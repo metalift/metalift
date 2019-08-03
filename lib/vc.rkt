@@ -12,18 +12,28 @@
 (require "analysis.rkt")
 
 ; data structure to store the current VC being computed
-(struct state (vc decls asserts) #:transparent)
+(struct state (vc decls asserts) #:transparent
+  #:methods gen:custom-write
+  [(define (write-proc self port mode)
+     (printf "VC state:~ndecls:~n")
+     (for ([d (state-decls self)]) (fprintf port "~a~n~n" d))
+     (printf "~nasserts:~n")
+     (for ([a (state-asserts self)]) (fprintf port "~a~n~n" a)))]
+)
 
 (define (vc code state)
   (printf "computing vc on ~a~ncurrent vc is ~a ~n~n" code state)
   (match code
 
     ; base ML statements
+    [(ml-define _ v e) (vc/define v e state)]
+      
     [(ml-if t test then else) (vc/ite t test (vc then state) (vc else state))]
 
     [(ml-for t test body)
      ; use results from live var analysis to determine the parameters of the invariant function
-     (vc/for t test body (lookup-live-in code)
+     ; live vars is returned as a set, we need a list for ml-call
+     (vc/for t test body (set->list (lookup-live-in code))
                                   ;(list (ml-var (ml-listof integer?) 'in) (ml-var integer? 'i)
                                   ;      (ml-var (ml-listof integer?) 'out))
                           state)]
@@ -66,7 +76,7 @@
 
          [body-vc 
           (for/fold ([s (state inv (state-decls st) (state-asserts st))])
-                    ([c (reverse body)]) (vc c s))]
+                    ([c (reverse (ml-block-body body))]) (vc c s))]
          
          [new-decls (cons inv-decl (state-decls body-vc))]
          [inv-implies-wp (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (ml-not boolean? test) inv) (ml-assert-e (state-vc st))))]
@@ -80,9 +90,10 @@
      new-decls new-asserts)))
 
     
-; replace v with e
+; replace v with e in vc
 (define (replace v e vc)
-  ;(printf "replace ~a with ~a pc is ~a~n" v e vc)
+  (printf "replace ~a with ~a in ~a~n~n" v e vc)
+  
   (match vc
     [(ml-assert type ex) (ml-assert type (replace v e ex))]
     [(ml-call type decl args) (ml-call type decl (replace v e args))]

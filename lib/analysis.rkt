@@ -104,7 +104,7 @@
 
 (define (live-vars code)
 
-  (printf "run live vars on ~a~n" code)
+  (printf "live vars analysis on ~a~n~n" code)
 
   (define (vars code)
     (match code
@@ -172,12 +172,18 @@
 
     [(ml-for _ test body) ;(live-vars body) (lv test (vars test) (set))]
      ; live vars for ml-for is same as those of the test condition
-     (printf "succ is ~a~n" (succs code))
      (or-|| (live-vars body) (lv test (vars test) (set)) (lv code (vars test) (set)))]
 
     [(ml-set! _ v e) (lv code (vars e) (vars v))]
 
+    [(ml-+ _ e1 e2) (lv code (set-union (vars e1) (vars e2)) (set))]
+    [(ml-- _ e1 e2) (lv code (set-union (vars e1) (vars e2)) (set))]
+    [(ml-* _ e1 e2) (lv code (set-union (vars e1) (vars e2)) (set))]
+    [(ml-/ _ e1 e2) (lv code (set-union (vars e1) (vars e2)) (set))]
+
     [(ml-var _ v) (lv code (set code) (set))]
+
+    [(ml-define _ v e) (lv code (vars e) (vars v)) (printf "in: ~a~n" (lookup-live-in code))]
 
     [(ml-lit _ v) (lv code (set) (set))]
 
@@ -188,7 +194,21 @@
   )
 
 ;; Typechecker    
+; union two hashes and return a new one
+(define (merge-hashes h1 h2)
+  (define out (hash))
+  (for ([(k v) h1])
+    (if (hash-has-key? h2 k) 
+        (if (equal? v (hash-ref h2 k))
+            (set! out (hash-set out k v))
+            (error (format "key ~a has different values: ~a and ~a" k v (hash-ref h2 k))))
+        (set! out (hash-set out k v))))
+  (for ([(k v) h2]
+        #:when (not (hash-has-key? h1 k)))
+    (set! out (hash-set out k v)))
+  out)
 
+; returns a pair of (type for code, context that stores type info)
 (define (typecheck code [ctx null])
   (printf "~n**** Type inference on ~a ctx is ~a****~n" code ctx)
   (match code
@@ -198,8 +218,18 @@
     [(ml-var _ n) (let ([type (hash-ref ctx n)])
                     (values (ml-var type n) (hash-set ctx n type)))]
 
-    ;(struct ml-define expr (v e) #:transparent)
-    ;(struct ml-if expr (cond e1 e2) #:transparent)
+    [(ml-define t v e) (let-values ([(new-e e-ctx) (typecheck e ctx)])
+                         (if (equal? (expr-type new-e) t)
+                             (values (ml-define t (ml-var t (ml-var-name v)) new-e) (hash-set e-ctx (ml-var-name v) t))
+                             (error (format "type doesn't match for ~a: ~a and ~a~n" code t (expr-type new-e)))))]
+    
+    [(ml-if _ test e1 e2) (letrec-values ([(new-test test-ctx) (typecheck test ctx)]
+                                          [(new-e1 e1-ctx) (typecheck e1 test-ctx)]
+                                          [(new-e2 e2-ctx) (typecheck e2 test-ctx)]
+                                          [(type-e1 type-e2) (values (expr-type new-e1) (expr-type new-e2))])
+                            (if (equal? type-e1 type-e2)
+                                (values (ml-if type-e1 new-test new-e1 new-e2) (merge-hashes e1-ctx e2-ctx))
+                                (error (format "type doesn't match for ~a: ~a and ~a~n" code type-e1 type-e2))))]
 
     [(ml-for _ test body) (letrec-values ([(new-test test-ctx) (typecheck test ctx)]
                                           [(new-body body-ctx) (typecheck body test-ctx)])                            
@@ -281,7 +311,7 @@
                      [(checked final-ctx) (typecheck body c)])                     
        (values (ml-decl name formals checked ret-type) final-ctx))]
     
-    [e (error (format "vc NYI: ~a" e))]    
+    [e (error (format "typecheck NYI: ~a" e))]    
     ))
 
 
@@ -289,9 +319,11 @@
 
 ;(define ast (ml-lookup 'select-*-test))
 ;(define ast (ml-lookup 'for-test))
-;(construct-cfg ast)
+(define ast (ml-lookup 'if-test))
 
-;(define-values (checked _) (typecheck ast))
+(construct-cfg ast)
+
+(define-values (checked _) (typecheck ast))
 
 ;(construct-cfg checked)
 
