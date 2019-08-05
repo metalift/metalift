@@ -33,6 +33,9 @@
 (define (ml-append l e)
   (append l (list e)))
 
+; remove type definition
+(define (ml-list-empty t)
+  empty)
 
 ; stores all fns that have been defined for compute-vc
 (define fns (make-hash))
@@ -105,12 +108,12 @@
 
  ; list operations 
  cons
- empty
  length
  list
  list-ref
  list-tail
- ml-append 
+ ml-append
+ (rename-out [ml-list-empty empty])
 
  ; type declarations
  ->
