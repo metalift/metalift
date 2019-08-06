@@ -31,8 +31,10 @@
 (struct ml-> expr (e1 e2) #:transparent)
 (struct ml->= expr (e1 e2) #:transparent)
 (struct ml-eq expr (e1 e2) #:transparent)
-(struct ml-and expr (e1 e2) #:transparent)
+
+(struct ml-and expr (exprs) #:transparent)
 (struct ml-or expr (e1 e2) #:transparent)
+
 (struct ml-+ expr (e1 e2) #:transparent)
 (struct ml-- expr (e1 e2) #:transparent)
 (struct ml-* expr (e1 e2) #:transparent)
@@ -77,6 +79,8 @@
 ;(define (make-ml-prog wp decls asserts p)
 ;  (ml-prog (ml-prog-out-vars p) (ml-prog-in-vars p) wp decls asserts))
 
+
+;(define-syntax-rule (mk es ...) (for ([e (list es ...)]) (printf "~a~n" e)))
 
 (define-syntax-rule (mk-and e1 e2 e3) (ml-and boolean? (ml-and boolean? e1 e2) e3))
 (define-syntax-rule (mk->= e1 e2) (ml->= boolean? e1 e2))
