@@ -4,15 +4,15 @@
 ;(require "z3.rkt")
 (require "../lang/ir.rkt")
 
-(define (define-space prog inv-space-fn pc-space-fn)
-  (let ([space-defined (for/list ([d (ml-prog-decls prog)])
+; replace the body of each pc or inv decl in prog by calling the user defined fn
+(define (define-space ast vc inv-space-fn pc-space-fn)
+  (let ([space-defined (for/list ([d (ml-prog-decls vc)])
                          (cond [(equal? (ml-decl-name d) "pc")
-                                (ml-decl (ml-decl-name d) (ml-decl-formals d) (list (pc-space-fn (ml-decl-formals d))) (ml-decl-ret-type d))]
+                                (ml-decl (ml-decl-name d) (ml-decl-formals d) (list (pc-space-fn ast (ml-decl-formals d))) (ml-decl-ret-type d))]
                                [(equal? (ml-decl-name d) "inv")
-                                (ml-decl (ml-decl-name d) (ml-decl-formals d) (list (inv-space-fn (ml-decl-formals d))) (ml-decl-ret-type d))]
-                               [else d]))])
-    ;(make-ml-prog (ml-prog-wp prog) space-defined (ml-prog-asserts prog) prog)))
-    (ml-prog space-defined (ml-prog-asserts prog))))
+                                (ml-decl (ml-decl-name d) (ml-decl-formals d) (list (inv-space-fn ast (ml-decl-formals d))) (ml-decl-ret-type d))]
+                               [else (error (format "unknown decl: ~a" ml-decl-name d))]))])
+    (ml-prog space-defined (ml-prog-asserts vc))))
 
 
 (define (resolve-choose prog)
@@ -22,7 +22,7 @@
     (printf "resolving ~a~n" expr)
     (match expr
       [(list es ...) (for/list ([e es]) (resolve e))]
-      [(ml-and t e1 e2) (ml-and t (resolve e1) (resolve e2))]
+      [(ml-and t es) (ml-and t (for/list ([e es]) (resolve e)))]
       [(ml-choose t (list e ...)) (first e)]
       [(ml-eq t e1 e2) (ml-eq t (resolve e1) (resolve e2))]
       [(ml-if t c e1 e2) (ml-if t (resolve c) (resolve e1) (resolve e2))]

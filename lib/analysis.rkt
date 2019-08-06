@@ -113,8 +113,10 @@
       [(ml-> _ e1 e2) (set-union (vars e1) (vars e2))]
       [(ml->= _ e1 e2) (set-union (vars e1) (vars e2))]
       [(ml-eq _ e1 e2) (set-union (vars e1) (vars e2))]
-      [(ml-and _ e1 e2) (set-union (vars e1) (vars e2))]
+      
+      [(ml-and _ es) (for/fold ([vs (set)]) ([e es]) (set-union vs (vars e)))]
       [(ml-or _ e1 e2) (set-union (vars e1) (vars e2))]
+
       [(ml-+ _ e1 e2) (set-union (vars e1) (vars e2))]
       [(ml-- _ e1 e2) (set-union (vars e1) (vars e2))]
       [(ml-* _ e1 e2) (set-union (vars e1) (vars e2))]

@@ -121,7 +121,11 @@ eos
     [(ml-implies type e1 e2) (format "(!(~a) || (~a))" (sk/expr e1) (sk/expr e2))]
     [(ml-if type c e1 e2) (format "(~a) ? ~a : ~a" (sk/expr c) (sk/expr e1) (sk/expr e2))]
 
-    [(ml-and type e1 e2) (format "(~a && ~a)" (sk/expr e1) (sk/expr e2))]
+    [(ml-and type es) (string-join (for/list ([e es]) (format "~a" (sk/expr e))) " && "
+                                   #:before-first "( "
+                                   #:after-last " )")]
+                        
+    
     [(ml-eq type e1 e2) (format "~a == ~a" (sk/expr e1) (sk/expr e2))]
     [(ml-not type e) (format "!(~a)" (sk/expr e))]
     [(ml-< type e1 e2) (format "(~a < ~a)" (sk/expr e1) (sk/expr e2))]

@@ -79,8 +79,8 @@
                     ([c (reverse (ml-block-body body))]) (vc c s))]
          
          [new-decls (cons inv-decl (state-decls body-vc))]
-         [inv-implies-wp (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (ml-not boolean? test) inv) (ml-assert-e (state-vc st))))]
-         [inv-preserved (ml-assert boolean? (ml-implies boolean? (ml-and boolean? test inv) (state-vc body-vc)))]
+         [inv-implies-wp (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list (ml-not boolean? test) inv)) (ml-assert-e (state-vc st))))]
+         [inv-preserved (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list test inv)) (state-vc body-vc)))]
          
          [new-asserts (cons inv-implies-wp (cons inv-preserved (state-asserts st)))]
          )
@@ -88,7 +88,6 @@
     (state
      (ml-assert boolean? (ml-eq boolean? inv (ml-lit boolean? true)))
      new-decls new-asserts)))
-
 
     
 ; replace v with e in vc
