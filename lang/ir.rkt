@@ -12,6 +12,12 @@
 ;(struct expr ([type #:auto]) #:auto-value void? #:mutable #:transparent)
 (struct expr (type) #:mutable #:transparent)
 
+; return value of fn, for users to construct their search space functions
+; fn is the ml-decl of the function 
+;(struct ml-ret-val expr (fn) #:transparent)
+(define (ml-ret-val fn)
+  (ml-var (ml-decl-ret-type fn) (string->symbol (format "~a-ret-val" (ml-decl-name fn)))))
+
 (struct ml-var expr (name) #:transparent
   #:methods gen:custom-write
   [(define (write-proc self port mode)
@@ -53,12 +59,12 @@
 ; list operations
 (struct ml-list expr (es) #:transparent)
 (struct ml-list-append expr (l e) #:transparent)
-(struct ml-list-length expr (l) #:transparent)
 (struct ml-list-equal expr (l1 l2) #:transparent)
-(struct ml-list-ref expr (l e) #:transparent)
+(struct ml-list-length expr (l) #:transparent)
 (struct ml-list-prepend expr (e l) #:transparent)
-(struct ml-list-take expr (l e) #:transparent)
+(struct ml-list-ref expr (l e) #:transparent)
 (struct ml-list-tail expr (l e) #:transparent)
+(struct ml-list-take expr (l e) #:transparent)
 
 ; each formal is a pair: (name type)
 (struct ml-decl (name formals body ret-type) #:transparent)
@@ -93,5 +99,9 @@
 (define-syntax-rule (choose e1 e2) (ml-choose boolean? e1 e2))
 
 
-(provide (all-defined-out))
+(provide
+ (except-out (all-defined-out) expr expr-type)
+ (rename-out [expr ml-expr]
+             [expr-type ml-expr-type]))
+ ;(all-defined-out))
 ;(except-out (all-defined-out) expr))

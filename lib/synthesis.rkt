@@ -4,14 +4,29 @@
 ;(require "z3.rkt")
 (require "../lang/ir.rkt")
 
+
+; build a hash table so that user function can look up the variables by name
+(define (build-vars-map decl)
+  (define h (hash))
+  (for/list ([f (ml-decl-formals decl)] #:when (ml-var? f)) (set! h (hash-set h (ml-var-name f) f)))
+  h)
+
 ; replace the body of each pc or inv decl in prog by calling the user defined fn
 (define (define-space ast vc inv-space-fn pc-space-fn)
+
+  
   (let ([space-defined (for/list ([d (ml-prog-decls vc)])
-                         (cond [(equal? (ml-decl-name d) "pc")
-                                (ml-decl (ml-decl-name d) (ml-decl-formals d) (list (pc-space-fn ast (ml-decl-formals d))) (ml-decl-ret-type d))]
+                                                                           
+                         (cond [(equal? (ml-decl-name d) "pc")                                                                                        
+                                (ml-decl (ml-decl-name d) (ml-decl-formals d)
+                                         (ml-block void? (list (pc-space-fn ast (build-vars-map d)))) (ml-decl-ret-type d))]
+
                                [(equal? (ml-decl-name d) "inv")
-                                (ml-decl (ml-decl-name d) (ml-decl-formals d) (list (inv-space-fn ast (ml-decl-formals d))) (ml-decl-ret-type d))]
-                               [else (error (format "unknown decl: ~a" ml-decl-name d))]))])
+                                (ml-decl (ml-decl-name d) (ml-decl-formals d)
+                                         (ml-block void? (list (inv-space-fn ast (build-vars-map d)))) (ml-decl-ret-type d))]
+                               
+                               [else d]))]) ; udos
+    
     (ml-prog space-defined (ml-prog-asserts vc))))
 
 

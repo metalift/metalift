@@ -2,28 +2,26 @@
 
 ; translates ML IR to Sketch
 
-(require (except-in "../lang/ir.rkt" expr))
+(require "../lang/ir.rkt")
+(require "../lib/util.rkt")
+(require syntax/parse)
 
 (define (to-sk p)
-  (printf "converting to sketch~n")
-  (let* ([out (open-output-string)]
-        
-         [decls (for/list ([d (ml-prog-decls p)]) (sk/decl d))]
-         ;[harness-args (sk/arg-list (append (ml-prog-out-vars p) (ml-prog-in-vars p)) #t)]
-         [harness (parse-harness (list (cons 'i integer?) (cons 'in (ml-listof integer?)) (cons 'out (ml-listof integer?))))]
-                  ;(append (ml-prog-out-vars p) (ml-prog-in-vars p)))]
-         
-         [harness-args (car harness)]
-         [harness-inits (cdr harness)]
-         ;(string-join (for/list ([a (append (ml-prog-out-vars p) (ml-prog-in-vars p))])
-         ;                            (format "int ~a" (sk/expr a))) ", ")]
-                                 
-        [asserts (for/list ([a (ml-prog-asserts p)]) (format "  ~a; ~n" (sk/expr a)))]
-        )
-    
-    ; includes
-    (fprintf out "include \"/Users/akcheung/proj/metalift/metalift/sketch/mllist.sk\";~n~n")
+  (printf "**** Converting to sketch~n")
 
+  (define out (open-output-string))
+        
+  (define decls (for/list ([d (ml-prog-decls p)]) (sk/decl d)))
+
+  (define harness-vars (for/fold ([vars (set)]) ([a (ml-prog-asserts p)]) (set-union vars (used-vars a))))
+         
+  (define asserts (for/list ([a (ml-prog-asserts p)]) (format "  ~a; ~n" (sk/expr a))))
+
+  (define-values (harness-args harness-inits) (parse-harness harness-vars))
+    
+    ; includes    
+    (fprintf out "include \"../../sketch/mllist.sk\";~n~n")
+    
     ; decls
     (fprintf out (string-join decls "~n"))
 
@@ -35,13 +33,13 @@
     (fprintf out (format "harness void main(~a) {~n~a~n~a ~n}" harness-args harness-inits (string-join asserts "~n")))
     
     (get-output-string out)
-    (with-output-to-file "/tmp/t.sk" #:exists 'replace (lambda () (printf (get-output-string out))))
-    ))
+    )
+
 
 (define (parse-harness vars)
   
   (define (init-decl v)
-    (let ([name (car v)] [type (cdr v)])
+    (let ([name (ml-var-name v)] [type (ml-expr-type v)])
       (match type
         ; XXX get rid of 'integer?
         [(or (== integer?) (== boolean?) (== 'integer?) (== 'boolean?)) (format "~a ~a" (sk/type type) (sk/name name))]
@@ -53,7 +51,7 @@
       )))
   
   (define (init-expr v)
-    (let ([name (car v)] [type (cdr v)])
+    (let ([name (ml-var-name v)] [type (ml-expr-type v)])
       (match type
         ; XXX get rid of 'integer?
         [(or (== integer?) (== boolean?) (== 'integer?) (== 'boolean?)) ""]
@@ -64,25 +62,24 @@
   
   (let ([decls empty] [inits empty])    
     (for ([v vars])
-      (let ([name (car v)] [type (cdr v)])
+      (let ([name (ml-var-name v)] [type (ml-expr-type v)])
         (set! decls (cons (init-decl v) decls))
         (set! inits (cons (init-expr v) inits))
         ))
                
     ;(cons (sk/arg-list revised-vars #t) "")))
-    (cons (string-join decls ", ") (string-join inits "~n"))))
+    (values (string-join decls ", ") (string-join inits "~n"))))
     
 
 (define (sk/decl decl)
-  (printf "translating decl ~a~n" decl)
-  ;(struct ml-decl (name formals body ret-type) #:transparent)
   (match decl
     [(ml-decl name formals body rtype)
      ;(printf "rtype for ~a ~a" name (sk/type rtype))
      
      (let ([translated-body (open-output-string)])
-       (for ([e body])
+       (for ([e (ml-block-body body)])
          (write-string (sk/expr e) translated-body))
+       
        (format "~a ~a (~a) { ~a ~a; }~n~n" (sk/type rtype) (sk/name name) (sk/arg-list formals #t)
                (if (equal? rtype void?) "" "return")
                (get-output-string translated-body)))]))
@@ -112,7 +109,7 @@ eos
 
 (define (sk/expr e)
 
-  (printf "parsing sk: ~a~n" e)
+  (printf "**** Parsing to sk: ~a~n~n" e)
   (match e
 
     [(ml-assert type e) (format "assert(~a)" (sk/expr e))]
@@ -146,15 +143,19 @@ eos
     [(ml-list-take type l e) (format "list_take(~a, ~a)" (sk/expr l) (sk/expr e))]    
     [(ml-list type es)  (if (= (length es) 0) "list_empty()"     
                             (format "make_MLList(~a, ~a)" (length es) (sk/arg-list es #f #f)))]
-    
+
+    [(ml-var type n) (format "~a" (sk/name n))]
+    ;[(ml-ret-val type fn) (format "~a_retval" (sk/name (ml-decl-name fn)))]
+     
     ;[(? symbol? sym) (format "~a" (sk/name sym))]
     ;[(? number? n) (format "~a" n)]
     ;[(? boolean? n) (if (equal? n #t) "true" "false")]
-    [e #:when (ml-var? e) (format "~a" (sk/name (ml-var-name e)))]
-    [e #:when (and (ml-lit? e) (equal? integer? (expr-type e))) (ml-lit-val e)]
-    [e #:when (and (ml-lit? e) (equal? boolean? (expr-type e))) (if (equal? (ml-lit-val e) #t) "true" "false")]
+    
+    [e #:when (and (ml-lit? e) (equal? integer? (ml-expr-type e))) (ml-lit-val e)]
+    [e #:when (and (ml-lit? e) (equal? boolean? (ml-expr-type e))) (if (equal? (ml-lit-val e) #t) "true" "false")]
     
     [(? procedure? n) (sk/name (second (regexp-match #rx"procedure:(.*)>" (format "~a" n))))]
+
     ;[e #:when (ml-user? e) (sk/udo e)]
     ))
 
@@ -175,7 +176,7 @@ eos
 (define (sk/arg-list args need-type [has-type #t])
   (let ([params (for/list ([a args])
                   (if need-type
-                      (format "~a ~a" (sk/type (expr-type a)) (sk/name (ml-var-name a)))
+                      (format "~a ~a" (sk/type (ml-expr-type a)) (sk/name (ml-var-name a)))
                       (if has-type
                           (format "~a" (sk/expr (ml-var-name a)))
                           (format "~a" (sk/expr a))
@@ -183,7 +184,6 @@ eos
     (string-join params ", ")))
 
 
-(require syntax/parse)
 (define (sk/type t)
   (match t
     ['integer? "int"]
@@ -209,7 +209,7 @@ eos
 
 ; escape sketch's reserved characters for names
 (define (sk/name n)
-  (let ([name (string-replace (format "~a" n) "-" "_")])
+  (let ([name (string-replace (string-replace (format "~a" n) "-" "_") "*" "_star")])
     ; procedure is printed as #<procedure:[name]>
     (if (procedure? n) (second (regexp-match #rx"procedure:(.*)>" name)) name)))
 

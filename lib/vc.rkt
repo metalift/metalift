@@ -6,7 +6,7 @@
 ; this pass requires the type checker and live variables to have run
 
 (require syntax/parse)
-(require (except-in "../lang/ir.rkt" expr) "util.rkt")
+(require "../lang/ir.rkt" "util.rkt")
 (require (only-in "../lang/base.rkt" ml-lookup ml-udos))
 
 (require "analysis.rkt")
@@ -70,7 +70,7 @@
 ;; (for (true) #:break test (body incr))
 ;                
 (define (vc/for type test body vars st)
-  (let* ([inv-decl (ml-decl "inv" vars (list (ml-synth boolean? vars vars)) boolean?)]
+  (let* ([inv-decl (ml-decl "inv" vars (ml-block void? (list (ml-synth boolean? vars vars))) boolean?)]
          ;[inv (ml-call boolean? "inv" (for/list ([v vars]) (car v)))]
          [inv (ml-call boolean? "inv" vars)]
 
@@ -110,23 +110,32 @@
     
     ;[arg (if (equal? arg v) e arg)]))
 
-    ; a single var expression
+    ;[(ml-ret-val t fn) vc]
+
+    ; a single var expression    
     ;[(? symbol? s) (if (equal? s v) e s)]
-    [(? ml-var? s) (if (and (equal? (ml-var-name s) (ml-var-name v)) (equal? (expr-type s) (expr-type v))) e s)]    
+    [(? ml-var? s) (if (and (equal? (ml-var-name s) (ml-var-name v)) (equal? (ml-expr-type s) (ml-expr-type v))) e s)]    
 
     ;[s #:when (or (number? s) (boolean? s)) s]
-    [s #:when (ml-lit? s) s]
+    ;[s #:when (ml-lit? s) s]
+    [(ml-lit t v) vc]
     ))
 
 
 ; take in a ml-decl instead as the input needs to have type checked
 ;(define (compute-vc fn)
-(define (compute-vc decl) 
-  (printf "~n**** Begin VC computation on ~a ****~n" (ml-decl-name decl))
+(define (compute-vc fndecl) 
+
+  (printf "~n**** Begin VC computation on ~a ****~n" (ml-decl-name fndecl))
+
+  ; (struct ml-decl (name formals body ret-type) #:transparent)
+  (define decl (ml-decl (ml-decl-name fndecl) (append (ml-decl-formals fndecl) (list (ml-ret-val fndecl)))
+                        (ml-decl-body fndecl) (ml-decl-ret-type fndecl)))
+
   (letrec (;[decl (ml-lookup fn)] ; a ml-decl
            [vars-types (ml-decl-formals decl)]
            [vars vars-types] ;(for/list ([vt vars-types]) (car vt))] ; extract the var name
-           [pc-decl (ml-decl "pc" vars-types (list (ml-synth boolean? vars vars)) boolean?)]
+           [pc-decl (ml-decl "pc" vars-types (ml-block void? (list (ml-synth boolean? vars vars))) boolean?)]
            [pc (ml-assert boolean? (ml-eq boolean? (ml-call boolean? "pc" vars) (ml-lit boolean? true)))]
 
            [result (vc decl (state pc (list pc-decl) empty))])

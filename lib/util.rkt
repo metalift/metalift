@@ -4,7 +4,7 @@
 ; ML IR
 
 (require syntax/parse
-         (except-in "../lang/ir.rkt" expr))
+         "../lang/ir.rkt")
 
 (define (parse-types formals types)
   (let* ([types-list types] ;(contract-name types)]
@@ -64,6 +64,44 @@
 
 ; zip multiple lists together
 ; (define (zip . lists) (apply map list lists))
+
+; return the set of ml-vars that are used in code
+(define (used-vars code)
+  (match code
+    [(ml-< _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-<= _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-> _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml->= _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-eq _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+      
+    [(ml-and _ es) (for/fold ([vs (set)]) ([e es]) (set-union vs (used-vars e)))]
+    [(ml-or _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+
+    [(ml-+ _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-- _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-* _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-/ _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+    [(ml-not _ e) (used-vars e)]
+
+    [(ml-list _ es)
+     (let ([r (for/list ([e es]) (used-vars e))])
+       (if (empty? r) (set) (apply set-union r)))]
+    [(ml-list-append _ l e) (set-union (used-vars l) (used-vars e))]
+    [(ml-list-length _ l) (used-vars l)]
+    [(ml-list-equal _ l1 l2) (set-union (used-vars l1) (used-vars l2))]
+    [(ml-list-ref _ l e) (set-union (used-vars l) (used-vars e))]
+    [(ml-list-prepend _ e l) (set-union (used-vars e) (used-vars l))]
+    [(ml-list-take _ l e) (set-union (used-vars l) (used-vars e))]
+    [(ml-list-tail _ l e) (set-union (used-vars l) (used-vars e))]
+      
+    [(ml-var _ v) (set code)]
+    [(ml-lit _ v) (set)]
+
+    [(ml-assert _ e) (used-vars e)]
+    [(ml-call _ n args) (for/fold ([vs (set)]) ([a args]) (set-union vs (used-vars a)))]
+    [(ml-implies _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
+      
+    [e (error (format "vc NYI: ~a" e))]))
 
 
 ; convert the input ML language into the ML IR represented using structs
@@ -172,5 +210,6 @@
 (provide parse-types
          eval-type
          to-ml
+         used-vars
          add-known-fns
          and-&& or-|| or-||/list)
