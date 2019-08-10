@@ -32,30 +32,31 @@
   )
 
 ; out = my-select-*(in) 
-(define (codegen s) ; s = sketch returned answer
+(define (cg s) ; s = sketch/z3 returned answer
+
   (define (cg/type t)
     (match t
       [(or (== 'boolean?) (== boolean?)) "bool"]
-      [(or (== 'integer?) (== integer?)) "int"]
-      [(== '(ml-listof integer?)) "int []"]))
-     
+      [(or (== 'integer?) (== integer?)) "int"]))
+    
   (match s
      
-    [(ml-call _ name arg) #:when (eq? name 'my-select-*)
-                           (format "SELECT * FROM ~a" (codegen arg))]
+    [(ml-call _ name args)
+     #:when (equal? (second (regexp-match #rx"procedure:(.*)>" (format "~a" name))) "my-select-*")     
+     (format "SELECT * FROM ~a" (cg (first args)))]
+
+    [(ml-block _ es) (format "~a" (string-join (for/list ([e es]) (cg e)) "~n"))]
     
-    [(ml-eq _ e1 e2) (format "~a = ~a" (codegen e1) (codegen e2))]
-
-    [(ml-if _ c e1 e2) (format "if (~a) {~n  ~a;~n} else {~n  ~a;~n}~n" (codegen c) (codegen e1) (codegen e2))]
+    [(ml-eq _ e1 e2) (format "~a = ~a" (cg e1) (cg e2))]
     
-    [(cons (? symbol? e) (? procedure? p)) (format "~a ~a" (cg/type p) e)]
-
-    [(or (? number? e) (? symbol? e)) (format "~a" e)]
-
-    [(? procedure? p) (second (regexp-match #rx"procedure:(.*)>" (format "~a" p)))]
-
-    [(ml-list-equal t e1 e2) (format "~a = ~a" (codegen e1) (codegen e2))]
+    [(ml-list-equal t e1 e2) (format "~a = ~a" (cg e1) (cg e2))]
     
+    [(ml-var _ n) (format "~a" n)]
+    
+    ;[(ml-if _ c e1 e2) (format "if (~a) {~n  ~a;~n} else {~n  ~a;~n}~n" (cg c) (cg e1) (cg e2))]    
+    ;[(cons (? symbol? e) (? procedure? p)) (format "~a ~a" (cg/type p) e)]
+    ;[(or (? number? e) (? symbol? e)) (format "~a" e)]
+    ;[(? procedure? p) (second (regexp-match #rx"procedure:(.*)>" (format "~a" p)))]       
     ))
 
 (require "tests.rkt")
@@ -78,15 +79,11 @@
 (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
 (define sk (to-sk space-defined))
-
 (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
 (define choose-resolved (resolve-choose space-defined))
 
 (define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
-
 (with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
 
-;;(define final (codegen qbs-codegen choose-resolved))
-
-
+(define final (codegen cg choose-resolved))

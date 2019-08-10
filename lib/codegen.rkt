@@ -5,7 +5,7 @@
 (define (codegen cg-fn prog)  
   (for/list ([d (ml-prog-decls prog)]
              #:when (equal? (ml-decl-name d) "pc"))
-    (printf "start codegen on ~a ~n" d)
-    (cg-fn d)))
+    (printf "**** Start codegen on ~a ~n" (ml-decl-body d))
+    (cg-fn (ml-decl-body d))))
 
 (provide codegen)
