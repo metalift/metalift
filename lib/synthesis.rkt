@@ -37,6 +37,7 @@
     (printf "resolving ~a~n" expr)
     (match expr
       [(list es ...) (for/list ([e es]) (resolve e))]
+      [(ml-block t es) (ml-block t (for/list ([e es]) (resolve e)))]
       [(ml-and t es) (ml-and t (for/list ([e es]) (resolve e)))]
       [(ml-choose t (list e ...)) (first e)]
       [(ml-eq t e1 e2) (ml-eq t (resolve e1) (resolve e2))]

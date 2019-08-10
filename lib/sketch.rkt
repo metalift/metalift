@@ -2,38 +2,34 @@
 
 ; translates ML IR to Sketch
 
-(require "../lang/ir.rkt")
-(require "../lib/util.rkt")
-(require syntax/parse)
+(require "../lang/ir.rkt"
+         "../lib/util.rkt"
+         syntax/parse)
 
 (define (to-sk p)
   (printf "**** Converting to sketch~n")
 
-  (define out (open-output-string))
-        
+  (define out (open-output-string))        
   (define decls (for/list ([d (ml-prog-decls p)]) (sk/decl d)))
-
-  (define harness-vars (for/fold ([vars (set)]) ([a (ml-prog-asserts p)]) (set-union vars (used-vars a))))
-         
+  (define harness-vars (for/fold ([vars (set)]) ([a (ml-prog-asserts p)]) (set-union vars (used-vars a))))         
   (define asserts (for/list ([a (ml-prog-asserts p)]) (format "  ~a; ~n" (sk/expr a))))
-
   (define-values (harness-args harness-inits) (parse-harness harness-vars))
     
-    ; includes    
-    (fprintf out "include \"../../sketch/mllist.sk\";~n~n")
-    
-    ; decls
-    (fprintf out (string-join decls "~n"))
-
-    ; chooses
-    (fprintf out (string-join (sk/choose-impls) "~n"))
-    
-    ; harness
-    
-    (fprintf out (format "harness void main(~a) {~n~a~n~a ~n}" harness-args harness-inits (string-join asserts "~n")))
-    
-    (get-output-string out)
-    )
+  ; includes    
+  (fprintf out "include \"../../sketch/mllist.sk\";~n~n")
+  
+  ; decls
+  (fprintf out (string-join decls "~n"))
+  
+  ; chooses
+  (fprintf out (string-join (sk/choose-impls) "~n"))
+  
+  ; harness
+  
+  (fprintf out (format "harness void main(~a) {~n~a~n~a ~n}" harness-args harness-inits (string-join asserts "~n")))
+  
+  (get-output-string out)
+)
 
 
 (define (parse-harness vars)

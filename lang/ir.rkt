@@ -88,15 +88,17 @@
 
 ;(define-syntax-rule (mk es ...) (for ([e (list es ...)]) (printf "~a~n" e)))
 
-(define-syntax-rule (mk-and e1 e2 e3) (ml-and boolean? (ml-and boolean? e1 e2) e3))
+; macros to make it easier to define UDOs
+
+(define-syntax-rule (mk-and es ...) (ml-and boolean? (list es ...)))
 (define-syntax-rule (mk->= e1 e2) (ml->= boolean? e1 e2))
 (define-syntax-rule (mk-<= e1 e2) (ml-<= boolean? e1 e2))
-(define-syntax-rule (mk-list-equal l1 l2) (ml-list-equal boolean? l1 l2))
-(define-syntax-rule (mk-list-take l n) (ml-list-take (ml-listof integer?) l n))
-(define-syntax-rule (mk-list-length l) (ml-list-length integer? l))
-(define-syntax-rule (call fn arg) (ml-call (ml-listof integer?) fn arg))
+(define-syntax-rule (list-equal l1 l2) (ml-list-equal boolean? l1 l2))
+(define-syntax-rule (list-take l n) (ml-list-take (ml-listof integer?) l n))
+(define-syntax-rule (list-length l) (ml-list-length integer? l))
+(define-syntax-rule (call fn args ...) (ml-call (ml-listof integer?) fn (list args ...)))
 (define-syntax-rule (mk-int n) (ml-lit integer? n))
-(define-syntax-rule (choose e1 e2) (ml-choose boolean? e1 e2))
+(define-syntax-rule (choose es ...) (ml-choose boolean? (list es ...)))
 
 
 (provide

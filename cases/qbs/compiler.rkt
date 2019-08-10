@@ -4,9 +4,9 @@
          "../../lib/vc.rkt"
          "../../lib/synthesis.rkt"
          "../../lib/codegen.rkt"
-         "../../lib/analysis.rkt")
-
-(require (only-in "../../lang/base.rkt" ml-lookup))
+         "../../lib/analysis.rkt"
+         "../../lib/z3.rkt"
+         (only-in "../../lang/base.rkt" ml-lookup))
 
 (require "udos.rkt")
 
@@ -16,21 +16,19 @@
   (define i (hash-ref vars 'i))
   (define out (hash-ref vars 'select-*-test-ret-val))
 
-  (ml-and boolean?
-          (list 
-           (mk-list-equal out (call my-select-* (list (mk-list-take in i))))
-           (mk-<= i (mk-list-length in))))
+  (mk-and (list-equal out (call my-select-* (list-take in i)))
+          (mk-<= i (list-length in)))
   )
 
 ; fn is a ml-decl
 (define (pc-search-space fn vars)
   
   (define in (hash-ref vars 'in))
+  (define out (ml-ret-val fn))
 
   ; choose(pc1, pc2, pc3, ...)
-  (ml-choose boolean?
-             (list (mk-list-equal (ml-ret-val fn) (call my-select-* (list in)))
-                   (mk-list-equal (ml-ret-val fn) in)))
+  (choose (list-equal out (call my-select-* in)) ; out = my-select-*(in)
+          (list-equal out in))  ; out = in
   )
 
 ; out = my-select-*(in) 
@@ -83,10 +81,12 @@
 
 (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
-;(define choose-resolved (resolve-choose space-defined))
-;
-;;(to-z3 choose-resolved)
-;
+(define choose-resolved (resolve-choose space-defined))
+
+(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
+
+(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
+
 ;;(define final (codegen qbs-codegen choose-resolved))
 
 

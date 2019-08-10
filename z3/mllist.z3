@@ -1,3 +1,5 @@
+;;; Begin metalift axioms
+
 (declare-datatypes ((MLList 1)) 
                    ((par (T) ((cons (head T) (tail (MLList T))) (nil)))))
 
@@ -79,74 +81,4 @@
 ;                (= (list_prepend (list_get l 0) (list_tail l 1)) l)))
 
 
-
-
-(declare-const a T1)
-(declare-const b T1)
-(declare-const c T1)
-(declare-const l_a_b_c (MLList T1))
-(declare-const l (MLList T1))
-
-(assert (= l_a_b_c  (cons a (cons b (cons c (as nil (MLList T1)))))))
-
-
-
-(push 1)
-;(assert (not (= (list_take l_a_b_c (list_length l_a_b_c)) l_a_b_c)))
-(assert (not (= (list_take l (list_length l)) l)))
-(check-sat) (pop 1)
-;
-;
-;(push 1)
-;(assert (not (<= 0 (list_length (as nil (MLList T1))))))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_length l_a_b_c) 3)))
-;(check-sat) (pop 1)
-;
-;(push 1)
-;(assert (not (= (list_append (cons a (as nil (MLList T1))) b) (cons a (cons b (as nil (MLList T1)))))))
-;(check-sat) (pop 1)
-;
-;(push 1)
-;(assert (not (= (list_get l_a_b_c 0) a)))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_get l_a_b_c 1) b)))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_get l_a_b_c 2) c)))
-;(check-sat) (pop 1)
-;
-;(push 1)
-;(assert (not (= (list_take l_a_b_c 1) (cons a (as nil (MLList T1))))))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_take l_a_b_c 2) (cons a (cons b (as nil (MLList T1)))))))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_take l_a_b_c 3) l_a_b_c)))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_take l_a_b_c 0) (as nil (MLList T1)))))
-;(check-sat) (pop 1)
-;
-;
-;(push 1)
-;(assert (not (= (list_tail l_a_b_c 0) l_a_b_c)))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_tail l_a_b_c 1) (cons b (cons c (as nil (MLList T1)))))))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_tail l_a_b_c 2) (cons c (as nil (MLList T1))))))
-;(check-sat) (pop 1)
-;(push 1)
-;(assert (not (= (list_tail l_a_b_c 3) (as nil (MLList T1)))))
-;(check-sat) (pop 1)
-;
-;(push 1)
-;(assert (not (list_equal l_a_b_c l_a_b_c)))
-;(check-sat) (pop 1)
-
-(exit)
+;;; End metalift axioms
