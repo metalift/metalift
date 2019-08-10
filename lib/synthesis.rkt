@@ -27,7 +27,7 @@
                                
                                [else d]))]) ; udos
     
-    (ml-prog space-defined (ml-prog-asserts vc))))
+    (ml-prog space-defined (ml-prog-asserts vc) (ml-prog-axioms vc))))
 
 
 (define (resolve-choose prog)
@@ -65,7 +65,7 @@
   
   (let ([choose-resolved (for/list ([d (ml-prog-decls prog)])
                            (ml-decl (ml-decl-name d) (ml-decl-formals d) (resolve (ml-decl-body d)) (ml-decl-ret-type d)))])
-    (ml-prog choose-resolved (ml-prog-asserts prog))))
+    (ml-prog choose-resolved (ml-prog-asserts prog) (ml-prog-axioms prog))))
 
 (provide define-space
          resolve-choose

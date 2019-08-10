@@ -8,7 +8,7 @@
   
   (define out (open-output-string))            
 
-  (define axioms (file->string axioms-path))
+  (define ml-axioms (file->string axioms-path))
   
   (define-values (decl-names decl-bodies) (for/fold ([ns empty] [bs empty]) ([d (ml-prog-decls p)])
                                             (let-values ([(name body) (z3/decl d)])
@@ -18,20 +18,32 @@
   (define harness-args (z3/arg-list (for/fold ([vars (set)]) ([a (ml-prog-asserts p)]) (set-union vars (used-vars a)))
                                     #t #:prefix "declare-const "))
 
-  ; asserts: each one is negated
-  (define asserts (for/list ([a (ml-prog-asserts p)]) (format "(push)~n(assert (not ~a))~n(check-sat) (pop)~n" (z3/expr (ml-assert-e a)))))
-    
+  (define user-axioms (for/list ([a (ml-prog-axioms p)]) (format "~a~n~n" (z3/axiom a))))
+  
+  ; asserts: each one is negated assertion
+  (define asserts (for/list ([a (ml-prog-asserts p)]) (format "(push)~n(assert (not ~a))~n(check-sat) (pop)~n" (z3/expr (ml-assert-e a)))))  
+
+  
+  ; generate output
+  
   ; decls
   (fprintf out (format "(define-funs-rec~n(~n~a~n)~n(~n~a~n)~n)~n~n" (string-join decl-names "~n") (string-join decl-bodies "~n")))
-   
+
+  (fprintf out (format "~n~a~n" (string-join user-axioms "~n")))
+  
   ; harness
   (fprintf out (string-join harness-args "~n"))
   ;(fprintf out (format "~n~n(define-fun main () Bool~n  (and ~a~n))~n" (string-join asserts "~n")))
   
   (fprintf out (format "~n~a~n" (string-join asserts "~n")))
         
-  (format "~a~n~n~n~a" axioms (get-output-string out))
+  (format "~a~n~n~n~a" ml-axioms (get-output-string out))
   )
+
+(define (z3/axiom axiom)
+  (define formals (z3/arg-list (ml-axiom-formals axiom) #t))
+  (format "(assert (forall ( ~a ) ~n ~a ))~n" (string-join formals " ") (z3/expr (ml-axiom-body axiom))))
+
 
 (define (z3/arg-list args need-type [has-type #t] #:prefix [prefix ""])
   

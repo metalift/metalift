@@ -9,7 +9,8 @@
 ; if (in.length == 0) return []
 ; else return concat(in[0], select-*(tail(in, 1)));
 
-;(axiom (= (my-select-* (my-select-* in f1) f2)
-;          (my-select-* (my-select-* in f2) f1)))
+(define-axiom (v l) (-> integer? (listof integer?))
+ (list-equal (my-select-* (ml-append l v))
+             (ml-append (my-select-* l) v)))
 
 (provide my-select-*)

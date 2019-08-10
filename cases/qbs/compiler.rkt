@@ -17,7 +17,9 @@
   (define out (hash-ref vars 'select-*-test-ret-val))
 
   (mk-and (list-equal out (call my-select-* (list-take in i)))
-          (mk-<= i (list-length in)))
+          (mk-<= i (list-length in))
+          (mk->= i (ml-lit integer? 0))
+          )
   )
 
 ; fn is a ml-decl
@@ -62,7 +64,7 @@
 (require "tests.rkt")
 
 ; ideally this would be the API we expose to users
-;(lift 'select-*-benchmark inv-search-space pc-search-space codegen)
+;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
 
 (define ast (ml-lookup 'select-*-test))
 

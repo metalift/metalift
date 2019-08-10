@@ -66,8 +66,9 @@
 (struct ml-list-tail expr (l e) #:transparent)
 (struct ml-list-take expr (l e) #:transparent)
 
-; each formal is a pair: (name type)
+; each formal is a ml-var
 (struct ml-decl (name formals body ret-type) #:transparent)
+(struct ml-axiom (formals body) #:transparent)
 
 ; additional expressions for VCs, not to be used for input programs
 (struct ml-implies expr (e1 e2) #:transparent)
@@ -75,11 +76,11 @@
 (struct ml-choose expr (exprs) #:transparent)
 (struct ml-assert expr (e) #:transparent)
 
-(struct ml-prog (decls asserts)
+(struct ml-prog (decls asserts axioms)
   #:methods gen:custom-write
   [(define (write-proc self port mode)     
-     (fprintf port "decls:~n~a~nasserts:~n~a~n"              
-              (ml-prog-decls self) (ml-prog-asserts self)))])
+     (fprintf port "decls:~n~a~nasserts:~n~a~naxioms:~n~a~n"              
+              (ml-prog-decls self) (ml-prog-asserts self) (ml-prog-axioms self)))])
 
 ; shortcut to save passing variables
 ;(define (make-ml-prog wp decls asserts p)
@@ -94,7 +95,7 @@
 (define-syntax-rule (mk->= e1 e2) (ml->= boolean? e1 e2))
 (define-syntax-rule (mk-<= e1 e2) (ml-<= boolean? e1 e2))
 (define-syntax-rule (list-equal l1 l2) (ml-list-equal boolean? l1 l2))
-(define-syntax-rule (list-take l n) (ml-list-take (ml-listof integer?) l n))
+(define-syntax-rule (list-take l n) (ml-list-take (ml-listof-type (expr-type l)) l n))
 (define-syntax-rule (list-length l) (ml-list-length integer? l))
 (define-syntax-rule (call fn args ...) (ml-call (ml-listof integer?) fn (list args ...)))
 (define-syntax-rule (mk-int n) (ml-lit integer? n))

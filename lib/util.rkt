@@ -103,7 +103,6 @@
       
     [e (error (format "vc NYI: ~a" e))]))
 
-
 ; convert the input ML language into the ML IR represented using structs
 ; mostly straightforward
 (define (to-ml stx [fns known-fns])
@@ -122,17 +121,25 @@
 
       (ml-decl (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body
                ret-type)))
+
+  (define (to-ml/axiom fs ts body)
+    (letrec ([formals (syntax->datum fs)]
+             [translated-body (ml-block void? (map to-ml (syntax->list body)))]
+             [formal-types (to-ml ts)])
+
+      (ml-axiom (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body)))
   
   ;(printf "known ~a~n" known-fns)
+
   (syntax-parse stx
-    #:datum-literals (require define define-udo
+    #:datum-literals (require define define-udo def-axiom
                       if ml-for set!
                       < <= > >= =
                       and or
                       + - * /
                       not
                       printf
-                      cons empty length list list-ref list-tail ml-append                      
+                      cons empty length list list-ref list-tail list-equal ml-append                   
                       -> integer? boolean? listof)
 
     ; racket base functions
@@ -141,6 +148,9 @@
     ; require  XXX need to import
     [(define-udo (name fs ...) ts body ...)
      (to-ml/fn #'name #'(fs ...) #'ts #'(body ...))]
+
+    [(def-axiom (fs ...) ts body ...)
+     (to-ml/axiom #'(fs ...) #'ts #'(body ...))]
     
     [(define (name fs ...) ts body ...)
      ;(letrec ([formals (map to-ml (syntax->list #'(fs ...)))]
@@ -150,6 +160,7 @@
      ;(ml-decl (to-ml #'name) (zip formals formal-types) (map to-ml (syntax->list #'(body ...)))
      ;         ret-type))]
      (to-ml/fn #'name #'(fs ...) #'ts #'(body ...))]
+    
     [(define n t v) (ml-define (to-ml #'t) (to-ml #'n) (to-ml #'v))]
 
     ; statements    
@@ -185,11 +196,13 @@
     [(list es ...) (ml-list (ml-listof integer?)
                             (for/list ([e (syntax->list #'(es ...))]) (to-ml e)))]
     [(list-ref l e) (ml-list-ref integer? (to-ml #'l) (to-ml #'e))]
-    [(list-tail l e) (ml-list-tail (ml-listof integer?) (to-ml #'l) (to-ml #'e))]    
+    [(list-tail l e) (ml-list-tail (ml-listof integer?) (to-ml #'l) (to-ml #'e))]
+    [(list-equal l1 l2) (ml-list-equal boolean? (to-ml #'l1) (to-ml #'l2))]
     [(ml-append l e) (ml-list-append (ml-listof integer?) (to-ml #'l) (to-ml #'e))]
             
     ; type declarations
-    [(-> ts ...) (map to-ml (syntax->list #'(ts ...)))]
+    ;[(-> ts ...) (map to-ml (syntax->list #'(ts ...)))]
+    [(-> ts ...) (for/list ([t (syntax->list #'(ts ...))]) (to-ml t))]
     [(listof t) (ml-listof (to-ml #'t))]
     [boolean? boolean?]
     [integer? integer?]        

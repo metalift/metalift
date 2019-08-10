@@ -70,6 +70,9 @@
 
 (define-fun list_equal ( (l1 (MLList T1)) (l2 (MLList T1)) ) Bool (= l1 l2))
 
+(assert (forall ( (l (MLList T1)) )
+                (list_equal (list_take l 0) list_empty)))
+
 
 ; additional axioms
 
@@ -79,6 +82,5 @@
 
 ;(assert (forall ( (l (MLList T1)) )
 ;                (= (list_prepend (list_get l 0) (list_tail l 1)) l)))
-
 
 ;;; End metalift axioms

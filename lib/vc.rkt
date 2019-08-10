@@ -5,9 +5,9 @@
 ;
 ; this pass requires the type checker and live variables to have run
 
-(require syntax/parse)
-(require "../lang/ir.rkt" "util.rkt")
-(require (only-in "../lang/base.rkt" ml-lookup ml-udos))
+(require syntax/parse
+         "../lang/ir.rkt" "util.rkt"
+         (only-in "../lang/base.rkt" ml-lookup ml-udos ml-axioms))
 
 (require "analysis.rkt")
 
@@ -140,10 +140,10 @@
 
            [result (vc decl (state pc (list pc-decl) empty))])
 
-    (ml-prog (state-decls result) (append (state-asserts result) (list (state-vc result))))))
+    (ml-prog (state-decls result) (append (state-asserts result) (list (state-vc result))) (ml-axioms))))
 
 
 (define (append-udos p)
-  (ml-prog (append (ml-prog-decls p) (ml-udos)) (ml-prog-asserts p)))
+  (ml-prog (append (ml-prog-decls p) (ml-udos)) (ml-prog-asserts p) (ml-prog-axioms p)))
 
 (provide compute-vc append-udos)

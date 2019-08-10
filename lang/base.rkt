@@ -65,6 +65,12 @@
 (define (ml-udos)
   (hash-values udos))
 
+(define axioms (list))
+(define (add-axiom ax)
+  (set! axioms (cons ax axioms)))
+
+(define (ml-axioms) axioms)
+
 (define-syntax (define-udo stx)
   (syntax-parse stx 
     [(ml-define (name formals ...) type body ...)
@@ -75,11 +81,18 @@
     [(ml-define name:id type:expr e:expr) #'(define name e)]))
 
 
+(define-syntax (define-axiom stx)
+  (syntax-parse stx
+    [(_ (fs ...) ts body ...)
+     #'(add-axiom (to-ml #'(def-axiom (fs ...) ts body ...)))]))
+
+
 ; list of functions supported by metalift
 (provide
 
  ml-lookup
  ml-udos
+ ml-axioms
 
  ; racket base functions
  syntax
@@ -87,6 +100,7 @@
  provide
  (rename-out [ml-define define])
  define-udo
+ define-axiom
 
  ; statements
  if
