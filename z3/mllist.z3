@@ -1,5 +1,3 @@
-;;; Begin metalift axioms
-
 (declare-datatypes ((MLList 1)) 
                    ((par (T) ((cons (head T) (tail (MLList T))) (nil)))))
 
@@ -83,4 +81,3 @@
 ;(assert (forall ( (l (MLList T1)) )
 ;                (= (list_prepend (list_get l 0) (list_tail l 1)) l)))
 
-;;; End metalift axioms

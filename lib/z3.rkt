@@ -21,23 +21,27 @@
   (define user-axioms (for/list ([a (ml-prog-axioms p)]) (format "~a~n~n" (z3/axiom a))))
   
   ; asserts: each one is negated assertion
-  (define asserts (for/list ([a (ml-prog-asserts p)]) (format "(push)~n(assert (not ~a))~n(check-sat) (pop)~n" (z3/expr (ml-assert-e a)))))  
+  (define asserts (for/list ([a (ml-prog-asserts p)]) (format "(push)~n(assert (not ~a))~n(check-sat)~n(pop)~n" (z3/expr (ml-assert-e a)))))  
 
   
   ; generate output
+
+  (fprintf out ";;; ML axioms~n~n")
+  (fprintf out ml-axioms)
   
-  ; decls
+  (fprintf out "~n~n;;; Function declarations~n~n")
   (fprintf out (format "(define-funs-rec~n(~n~a~n)~n(~n~a~n)~n)~n~n" (string-join decl-names "~n") (string-join decl-bodies "~n")))
 
+  (fprintf out "~n~n;;; User axioms~n")
   (fprintf out (format "~n~a~n" (string-join user-axioms "~n")))
   
-  ; harness
+  (fprintf out "~n~n;;; Constants~n")
   (fprintf out (string-join harness-args "~n"))
-  ;(fprintf out (format "~n~n(define-fun main () Bool~n  (and ~a~n))~n" (string-join asserts "~n")))
-  
+
+  (fprintf out "~n~n;;; Assertions~n")
   (fprintf out (format "~n~a~n" (string-join asserts "~n")))
         
-  (format "~a~n~n~n~a" ml-axioms (get-output-string out))
+  (get-output-string out)
   )
 
 (define (z3/axiom axiom)
