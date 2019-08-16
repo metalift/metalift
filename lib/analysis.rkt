@@ -1,9 +1,8 @@
 #lang racket
 
-(require "../lang/ir.rkt")
-(require "../lib/util.rkt")
-(require "../qbsTest2.rkt")
-(require (only-in "../lang/base.rkt" ml-lookup ml-udos))
+(require "../lang/ir.rkt"
+         "../lib/util.rkt"
+         (only-in "../lang/base.rkt" ml-lookup ml-udos))
 
 ; implementation of CFG construction, type checker, and live variable analysis
 
@@ -281,23 +280,5 @@
     
     [e (error (format "typecheck NYI: ~a" e))]    
     ))
-
-
-; test code below
-
-;(define ast (ml-lookup 'select-*-test))
-;(define ast (ml-lookup 'for-test))
-(define ast (ml-lookup 'if-test))
-
-(construct-cfg ast)
-
-(define-values (checked _) (typecheck ast))
-
-;(construct-cfg checked)
-
-;(live-vars checked)
-
-;(print-hash succ)
-
 
 (provide live-vars lookup-live-in typecheck construct-cfg)

@@ -2,7 +2,7 @@
 
 ; entry point of metalift
 
-; we don'g need to redefine module-begin as we current don't need whole program info
+; we don't need to redefine module-begin as we current don't need whole program info
 ;(define-syntax (@#%module-begin stx) 
 ;  (syntax-case stx ()
 ;

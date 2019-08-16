@@ -132,7 +132,7 @@
   ;(printf "known ~a~n" known-fns)
 
   (syntax-parse stx
-    #:datum-literals (require define define-udo def-axiom
+    #:datum-literals (require define define-udo define-axiom
                       if ml-for set!
                       < <= > >= =
                       and or
@@ -145,11 +145,11 @@
     ; racket base functions
 
     
-    ; require  XXX need to import
+    ; require  XXX need to import   
     [(define-udo (name fs ...) ts body ...)
      (to-ml/fn #'name #'(fs ...) #'ts #'(body ...))]
 
-    [(def-axiom (fs ...) ts body ...)
+    [(define-axiom (fs ...) ts body ...)
      (to-ml/axiom #'(fs ...) #'ts #'(body ...))]
     
     [(define (name fs ...) ts body ...)
