@@ -2,7 +2,7 @@
 
 (require "../lang/ir.rkt"
          "../lib/util.rkt"
-         (only-in "../lang/base.rkt" ml-lookup ml-udos))
+         (only-in "../lang/base.rkt" ml-udos))
 
 ; implementation of CFG construction, type checker, and live variable analysis
 

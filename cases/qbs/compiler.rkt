@@ -1,12 +1,13 @@
 #lang racket
 
-(require "../../lang/ir.rkt"
+(require "../../lang/ir-ctor.rkt"
+         "../../lang/ir.rkt"
+         (only-in "../../lang/base.rkt" ml-lookup-by-name)
          "../../lib/vc.rkt"
          "../../lib/synthesis.rkt"
          "../../lib/codegen.rkt"
          "../../lib/analysis.rkt"
-         "../../lib/z3.rkt"
-         (only-in "../../lang/base.rkt" ml-lookup))
+         "../../lib/z3.rkt")
 
 (require "udos.rkt")
 
@@ -22,6 +23,7 @@
           )
   )
 
+
 ; fn is a ml-decl
 (define (pc-search-space fn vars)
   
@@ -29,8 +31,8 @@
   (define out (ml-ret-val fn))
 
   ; choose(pc1, pc2, pc3, ...)
-  (choose (list-equal out (call my-select-* in)) ; out = my-select-*(in)
-          (list-equal out in))  ; out = in
+  (choose boolean? (list-equal out (call my-select-* in)) ; out = my-select-*(in)
+                   (list-equal out in))  ; out = in
   )
 
 ; out = my-select-*(in) 
@@ -66,7 +68,7 @@
 ; ideally this would be the API we expose to users
 ;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
 
-(define ast (ml-lookup 'select-*-test))
+(define ast (ml-lookup-by-name 'select-*-test))
 
 (define-values (checked _) (typecheck ast))
 

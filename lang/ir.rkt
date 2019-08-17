@@ -87,24 +87,9 @@
 ;  (ml-prog (ml-prog-out-vars p) (ml-prog-in-vars p) wp decls asserts))
 
 
-;(define-syntax-rule (mk es ...) (for ([e (list es ...)]) (printf "~a~n" e)))
-
-; macros to make it easier to define UDOs
-
-(define-syntax-rule (mk-and es ...) (ml-and boolean? (list es ...)))
-(define-syntax-rule (mk->= e1 e2) (ml->= boolean? e1 e2))
-(define-syntax-rule (mk-<= e1 e2) (ml-<= boolean? e1 e2))
-(define-syntax-rule (list-equal l1 l2) (ml-list-equal boolean? l1 l2))
-(define-syntax-rule (list-take l n) (ml-list-take (ml-listof-type (expr-type l)) l n))
-(define-syntax-rule (list-length l) (ml-list-length integer? l))
-(define-syntax-rule (call fn args ...) (ml-call (ml-listof integer?) fn (list args ...)))
-(define-syntax-rule (mk-int n) (ml-lit integer? n))
-(define-syntax-rule (choose es ...) (ml-choose boolean? (list es ...)))
-
-
 (provide
  (except-out (all-defined-out) expr expr-type)
  (rename-out [expr ml-expr]
              [expr-type ml-expr-type]))
- ;(all-defined-out))
+ 
 ;(except-out (all-defined-out) expr))

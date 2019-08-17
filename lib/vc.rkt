@@ -7,7 +7,7 @@
 
 (require syntax/parse
          "../lang/ir.rkt" "util.rkt"
-         (only-in "../lang/base.rkt" ml-lookup ml-udos ml-axioms))
+         (only-in "../lang/base.rkt" ml-udos ml-axioms))
 
 (require "analysis.rkt")
 

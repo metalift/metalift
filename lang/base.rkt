@@ -3,8 +3,8 @@
 ; ML frontend language used to express input programs and user defined operators
 ; programs written in this language are executed as normal racket code
 
-(require (for-syntax syntax/parse))
-(require "../lib/util.rkt")
+(require (for-syntax syntax/parse)
+         "../lib/util.rkt")
 
 ; ML specific forms
 
@@ -38,10 +38,16 @@
   empty)
 
 ; stores all fns that have been defined for compute-vc
+; maps function name (a datum) to ML ast representing that function
 (define fns (make-hash))
 
-(define (ml-lookup fn)
-  (hash-ref fns fn))
+(define (ml-lookup-by-name name)
+  (hash-ref fns name))
+
+(define (ml-lookup-by-fn fn)
+  (let ([name (string->symbol (second (regexp-match #rx"procedure:(.*)>" (format "~a" fn))))])
+  (ml-lookup-by-name name)))
+
 
 ; define the function and also store its def in the fns hash
 (define-syntax (ml-define stx)
@@ -59,11 +65,18 @@
 
 
 ; store user defined operators (udos)
-; XXX determine whether this needs to be a hash or just a list
 (define udos (make-hash))
 
 (define (ml-udos)
   (hash-values udos))
+
+(define (ml-lookup-udo-by-name name)
+  (hash-ref udos name))
+
+(define (ml-lookup-udo-by-fn fn)
+  (let ([name (string->symbol (second (regexp-match #rx"procedure:(.*)>" (format "~a" fn))))])
+    (ml-lookup-udo-by-name name)))
+
 
 (define axioms (list))
 (define (add-axiom ax)
@@ -91,7 +104,10 @@
 ; list of functions supported by metalift
 (provide
 
- ml-lookup
+ ml-lookup-by-name
+ ml-lookup-by-fn
+ ml-lookup-udo-by-name
+ ml-lookup-udo-by-fn
  ml-udos
  ml-axioms
 
@@ -106,7 +122,6 @@
  ; statements
  if
  ml-for         
- ;ml-lookup
  set!
 
  ; binary operators
