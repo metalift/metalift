@@ -39,7 +39,7 @@
                           state)]
     [(ml-set! _ v e) (vc/define v e state)]
     
-    [(ml-decl name formals body ret-type) (vc body state)]
+    [(ml-decl _ name formals body) (vc body state)]
 
     [(ml-block t body) (for/fold ([s state]) ([c (reverse body)]) (vc c s))]
 
@@ -70,24 +70,25 @@
 ;; (for (true) #:break test (body incr))
 ;                
 (define (vc/for type test body vars st)
-  (let* ([inv-decl (ml-decl "inv" vars (ml-block void? (list (ml-synth boolean? vars vars))) boolean?)]
-         ;[inv (ml-call boolean? "inv" (for/list ([v vars]) (car v)))]
-         [inv (ml-call boolean? "inv" vars)]
+  (define formal-types (for/list ([v vars]) (ml-expr-type v)))
+  (define inv-decl (ml-decl (ml-fn-type formal-types boolean?) "inv" vars (ml-block void? (list (ml-synth boolean? vars vars)))))
+  ;[inv (ml-call boolean? "inv" (for/list ([v vars]) (car v)))]
 
-         [body-vc 
-          (for/fold ([s (state inv (state-decls st) (state-asserts st))])
-                    ([c (reverse (ml-block-body body))]) (vc c s))]
-         
-         [new-decls (cons inv-decl (state-decls body-vc))]
-         [inv-implies-wp (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list (ml-not boolean? test) inv)) (ml-assert-e (state-vc st))))]
-         [inv-preserved (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list test inv)) (state-vc body-vc)))]
-         
-         [new-asserts (cons inv-implies-wp (cons inv-preserved (state-asserts st)))]
-         )
+  (define inv (ml-call boolean? "inv" vars))
 
-    (state
-     (ml-assert boolean? (ml-eq boolean? inv (ml-lit boolean? true)))
-     new-decls new-asserts)))
+  (define body-vc 
+    (for/fold ([s (state inv (state-decls st) (state-asserts st))])
+              ([c (reverse (ml-block-body body))]) (vc c s)))
+         
+  (define new-decls (cons inv-decl (state-decls body-vc)))
+  (define inv-implies-wp (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list (ml-not boolean? test) inv)) (ml-assert-e (state-vc st)))))
+  (define inv-preserved (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list test inv)) (state-vc body-vc))))
+         
+  (define new-asserts (cons inv-implies-wp (cons inv-preserved (state-asserts st))))         
+
+  (state
+   (ml-assert boolean? (ml-eq boolean? inv (ml-lit boolean? true)))
+   new-decls new-asserts))
 
     
 ; replace v with e in vc
@@ -128,19 +129,20 @@
 
   (printf "~n**** Begin VC computation on ~a ****~n" (ml-decl-name fndecl))
 
-  ; (struct ml-decl (name formals body ret-type) #:transparent)
-  (define decl (ml-decl (ml-decl-name fndecl) (append (ml-decl-formals fndecl) (list (ml-ret-val fndecl)))
-                        (ml-decl-body fndecl) (ml-decl-ret-type fndecl)))
+  ; (struct ml-decl expr (name formals body))
+  (define decl (ml-decl (ml-expr-type fndecl) (ml-decl-name fndecl)
+                        (append (ml-decl-formals fndecl) (list (ml-ret-val fndecl)))
+                        (ml-decl-body fndecl)))
 
-  (letrec (;[decl (ml-lookup fn)] ; a ml-decl
-           [vars-types (ml-decl-formals decl)]
-           [vars vars-types] ;(for/list ([vt vars-types]) (car vt))] ; extract the var name
-           [pc-decl (ml-decl "pc" vars-types (ml-block void? (list (ml-synth boolean? vars vars))) boolean?)]
-           [pc (ml-assert boolean? (ml-eq boolean? (ml-call boolean? "pc" vars) (ml-lit boolean? true)))]
+  (define vars-types (ml-decl-formals decl))
+  (define vars vars-types) ;(for/list ([vt vars-types]) (car vt))] ; extract the var name
 
-           [result (vc decl (state pc (list pc-decl) empty))])
+  (define pc-decl (ml-decl (ml-fn-type vars-types boolean?) "pc" vars (ml-block void? (list (ml-synth boolean? vars vars)))))
+  (define pc (ml-assert boolean? (ml-eq boolean? (ml-call boolean? "pc" vars) (ml-lit boolean? true))))
 
-    (ml-prog (state-decls result) (append (state-asserts result) (list (state-vc result))) (ml-axioms))))
+  (define result (vc decl (state pc (list pc-decl) empty)))
+
+  (ml-prog (state-decls result) (append (state-asserts result) (list (state-vc result))) (ml-axioms)))
 
 
 (define (append-udos p)

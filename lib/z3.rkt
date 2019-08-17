@@ -62,9 +62,9 @@
   (printf "translating decl ~a~n" decl)
   
   (match decl
-    [(ml-decl name formals body rtype)
+    [(ml-decl type name formals body)
      
-     (values (format "(~a ~a ~a)" (z3/name name) (z3/arg-list formals #t) (z3/type rtype))
+     (values (format "(~a ~a ~a)" (z3/name name) (z3/arg-list formals #t) (z3/type (ml-decl-ret-type decl)))
              (format "~a" (z3/expr body)))]))
 
 

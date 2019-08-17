@@ -97,8 +97,7 @@
 (define-syntax (define-axiom stx)
   (syntax-parse stx
     [(_ (fs ...) ts body ...)
-     #'1]))
-     ;#'(add-axiom (to-ml #'(define-axiom (fs ...) ts body ...)))]))
+     #'(add-axiom (to-ml #'(define-axiom (fs ...) ts body ...)))]))
 
 
 ; list of functions supported by metalift

@@ -69,10 +69,9 @@
 
 (define (sk/decl decl)
   (match decl
-    [(ml-decl name formals body rtype)
-     ;(printf "rtype for ~a ~a" name (sk/type rtype))
-     
-     (let ([translated-body (open-output-string)])
+    [(ml-decl type name formals body)   
+     (let ([translated-body (open-output-string)]
+           [rtype (ml-decl-ret-type decl)])
        (for ([e (ml-block-body body)])
          (write-string (sk/expr e) translated-body))
        

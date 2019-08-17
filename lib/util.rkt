@@ -54,10 +54,9 @@
 
 ;(define known-fns (mutable-set))
 
-(define known-fns (mutable-set 'my-select-* 'my-sum))
-
-(define (add-known-fns name)
-  (set-add! known-fns name))
+;(define known-fns (mutable-set 'my-select-* 'my-select 'my-sum))
+;(define (add-known-fns name)
+;  (set-add! known-fns name))
 
 
 (define (zip . lists) (apply map cons lists))
@@ -68,6 +67,9 @@
 ; return the set of ml-vars that are used in code
 (define (used-vars code)
   (match code
+
+    [(ml-if _ c e1 e2) (set-union (used-vars c) (used-vars e1) (used-vars e2))]
+    
     [(ml-< _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
     [(ml-<= _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
     [(ml-> _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
@@ -101,36 +103,32 @@
     [(ml-call _ n args) (for/fold ([vs (set)]) ([a args]) (set-union vs (used-vars a)))]
     [(ml-implies _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
       
-    [e (error (format "vc NYI: ~a" e))]))
+    [e (error (format "used-vars NYI: ~a" e))]))
+
+
+(define (to-ml/fn name fs ts body)
+  (letrec ([formals (syntax->datum fs)]
+           [translated-body (ml-block void? (map to-ml (syntax->list body)))]
+           [type (to-ml ts)]
+           [formal-types (ml-fn-type-formals type)]
+           [ret-type (ml-fn-type-ret-type type)])                             
+    (printf "~n**** Translation to ML ****~n~a~n~n" (ml-decl (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body
+                                                             ret-type))
+
+    (ml-decl type (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body)))
+
+(define (to-ml/axiom fs ts body)
+  (letrec ([formals (syntax->datum fs)]
+           [translated-body (ml-block void? (map to-ml (syntax->list body)))]
+           [formal-types (for/list ([t (syntax->list ts)]) (to-ml t))])
+
+    (ml-axiom (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body)))
+
 
 ; convert the input ML language into the ML IR represented using structs
-; mostly straightforward
-(define (to-ml stx [fns known-fns])
+(define (to-ml stx)  ;[fns known-fns])
   ;(printf "converting ~a~n" (syntax->datum stx))
-
-  (define (to-ml/fn name fs ts body)
-    (letrec ([formals (syntax->datum fs)]
-             [translated-body (ml-block void? (map to-ml (syntax->list body)))]
-             [types (to-ml ts)]
-             [formal-types (drop-right types 1)]
-             [ret-type (last types)])                             
-      (printf "~n**** Translation to ML ****~n~a~n~n" (ml-decl (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body
-               ret-type))
-      
-      ;(ml-decl name (zip formals formal-types) translated-body
-
-      (ml-decl (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body
-               ret-type)))
-
-  (define (to-ml/axiom fs ts body)
-    (letrec ([formals (syntax->datum fs)]
-             [translated-body (ml-block void? (map to-ml (syntax->list body)))]
-             [formal-types (to-ml ts)])
-
-      (ml-axiom (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body)))
   
-  ;(printf "known ~a~n" known-fns)
-
   (syntax-parse stx
     #:datum-literals (require define define-udo define-axiom
                       if ml-for set!
@@ -185,10 +183,6 @@
     ; unary operators
     [(not e)  (ml-not boolean? (to-ml #'e))]
 
-    ; racket functions    XXX move function call check to a separate pass
-    [(name args ...) #:when (set-member? known-fns (syntax->datum #'name))
-                     (ml-call boolean? (syntax->datum #'name) (map to-ml (syntax->list #'(args ...))))]
-
     ; list operations 
     [(cons e l) (ml-list-prepend (ml-listof integer?) (to-ml #'e) (to-ml #'l))]
     [(empty t) (ml-list (ml-listof (to-ml #'t)) empty)]
@@ -202,7 +196,10 @@
             
     ; type declarations
     ;[(-> ts ...) (map to-ml (syntax->list #'(ts ...)))]
-    [(-> ts ...) (for/list ([t (syntax->list #'(ts ...))]) (to-ml t))]
+    [(-> ts ...)
+     (let ([types (for/list ([t (syntax->list #'(ts ...))]) (to-ml t))])
+       (ml-fn-type (drop-right types 1) (last types)))]
+
     [(listof t) (ml-listof (to-ml #'t))]
     [boolean? boolean?]
     [integer? integer?]        
@@ -215,8 +212,12 @@
     [e #:when (boolean? (syntax->datum #'e)) (ml-lit boolean? (syntax->datum #'e))]
     ;[e #:when (or (number? (syntax->datum #'e)) (identifier? #'e) (boolean? (syntax->datum #'e)))
     ;  (syntax->datum #'e)]
+
+    ; parsed as function call last, after everything more specific has been matched
+    [(name args ...) ;#:when (set-member? known-fns (syntax->datum #'name))
+                     (ml-call boolean? (syntax->datum #'name) (map to-ml (syntax->list #'(args ...))))]
     
-    [e (error (format "to-ml NYI: ~a" #'e))] ;(syntax->datum #'e)))]
+    [e (error (format "to-ml NYI: ~a" #'e))]
 
     ))
 
@@ -224,5 +225,5 @@
          eval-type
          to-ml
          used-vars
-         add-known-fns
+         ;add-known-fns
          and-&& or-|| or-||/list)

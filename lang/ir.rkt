@@ -9,6 +9,8 @@
      (fprintf port "(listof ~a)" (ml-listof-type self)))]
 )
 
+(struct ml-fn-type (formals ret-type) #:transparent)
+
 ;(struct expr ([type #:auto]) #:auto-value void? #:mutable #:transparent)
 (struct expr (type) #:mutable #:transparent)
 
@@ -67,7 +69,11 @@
 (struct ml-list-take expr (l e) #:transparent)
 
 ; each formal is a ml-var
-(struct ml-decl (name formals body ret-type) #:transparent)
+(struct ml-decl expr (name formals body) #:transparent)
+; convenience function to get the return type of a function
+(define (ml-decl-ret-type decl)
+  (ml-fn-type-ret-type (expr-type decl)))
+        
 (struct ml-axiom (formals body) #:transparent)
 
 ; additional expressions for VCs, not to be used for input programs

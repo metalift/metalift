@@ -53,7 +53,7 @@
          
   ;(printf "running on ~a~n" code)
   (match code
-    [(ml-decl name formals body rt) (construct-cfg body p s)]
+    [(ml-decl _ name formals body) (construct-cfg body p s)]
     
     [(list es ...)
      (define l (length es)) 
@@ -129,7 +129,7 @@
 
   ; returns whether live-in or live-out is changed
   (match code
-    [(ml-decl name formals body rt) (live-vars body)]
+    [(ml-decl _ name formals body) (live-vars body)]
 
     [(list es ...) ;(for ([e (reverse es)]) (live-vars e))]
      (or-||/list (for/list ([e (reverse es)]) (live-vars e)))]
@@ -224,7 +224,12 @@
     ;(struct ml-<= expr (e1 e2) #:transparent)
     ;(struct ml-> expr (e1 e2) #:transparent)
     ;(struct ml->= expr (e1 e2) #:transparent)
-    ;(struct ml-eq expr (e1 e2) #:transparent)
+    [(ml-eq _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
+                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
+                          (values (ml-eq boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+     
     ;(struct ml-and expr (e1 e2) #:transparent)
     ;(struct ml-or expr (e1 e2) #:transparent)
     [(ml-+ _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
@@ -273,10 +278,10 @@
                                (values (ml-list-ref (ml-listof-type new-l-type) new-l new-e) l-ctx)
                                (error (format "types don't match: got ~a and ~a~n" new-l-type new-e-type))))]
                                              
-    [(ml-decl name formals body ret-type)
+    [(ml-decl type name formals body)
      (letrec-values ([(c) (for/hash ([f formals]) (values (ml-var-name f) (ml-expr-type f)))]
                      [(checked final-ctx) (typecheck body c)])                     
-       (values (ml-decl name formals checked ret-type) final-ctx))]
+       (values (ml-decl type name formals checked) final-ctx))]
     
     [e (error (format "typecheck NYI: ~a" e))]    
     ))

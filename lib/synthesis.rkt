@@ -18,12 +18,12 @@
   (let ([space-defined (for/list ([d (ml-prog-decls vc)])
                                                                            
                          (cond [(equal? (ml-decl-name d) "pc")                                                                                        
-                                (ml-decl (ml-decl-name d) (ml-decl-formals d)
-                                         (ml-block void? (list (pc-space-fn ast (build-vars-map d)))) (ml-decl-ret-type d))]
+                                (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d)
+                                         (ml-block void? (list (pc-space-fn ast (build-vars-map d)))))]
 
                                [(equal? (ml-decl-name d) "inv")
-                                (ml-decl (ml-decl-name d) (ml-decl-formals d)
-                                         (ml-block void? (list (inv-space-fn ast (build-vars-map d)))) (ml-decl-ret-type d))]
+                                (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d)
+                                         (ml-block void? (list (inv-space-fn ast (build-vars-map d)))))]
                                
                                [else d]))]) ; udos
     
@@ -64,7 +64,7 @@
       [(or (? ml-var? e) (? ml-lit? e) (? procedure? e)) e]))
   
   (let ([choose-resolved (for/list ([d (ml-prog-decls prog)])
-                           (ml-decl (ml-decl-name d) (ml-decl-formals d) (resolve (ml-decl-body d)) (ml-decl-ret-type d)))])
+                           (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (resolve (ml-decl-body d))))])
     (ml-prog choose-resolved (ml-prog-asserts prog) (ml-prog-axioms prog))))
 
 (provide define-space
