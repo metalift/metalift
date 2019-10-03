@@ -18,8 +18,7 @@
 
   (define in (hash-ref vars 'in)) 
   (define i (hash-ref vars 'i))
-  ;(define out (hash-ref vars 'select-*-test-ret-val))
-  (define out (ml-ret-val fn))
+  (define out (ml-decl-ret-var fn))
 
   ;(mk-and (list-equal out (call my-select-* (list-take in i) pred))
   (mk-and (list-equal out (call my-select-* (list-take in i)))
@@ -33,7 +32,7 @@
 (define (pc-search-space fn vars)
   
   (define in (hash-ref vars 'in))
-  (define out (ml-ret-val fn))
+  (define out (ml-decl-ret-var fn))
 
   ; choose(pc1, pc2, pc3, ...)
   (choose boolean? (list-equal out (call my-select-* in)) ; out = my-select-*(in)
