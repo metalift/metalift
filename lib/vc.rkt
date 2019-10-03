@@ -39,7 +39,7 @@
                           state)]
     [(ml-set! _ v e) (vc/define v e state)]
     
-    [(ml-decl _ name formals body) (vc body state)]
+    [(ml-decl _ name formals ret-var body) (vc body state)]
 
     [(ml-block t body) (for/fold ([s state]) ([c (reverse body)]) (vc c s))]
 
@@ -71,7 +71,7 @@
 ;                
 (define (vc/for type test body vars st)
   (define formal-types (for/list ([v vars]) (ml-expr-type v)))
-  (define inv-decl (ml-decl (ml-fn-type formal-types boolean?) "inv" vars (ml-block void? (list (ml-synth boolean? vars vars)))))
+  (define inv-decl (ml-decl (ml-fn-type formal-types boolean?) "inv" vars null (ml-block void? (list (ml-synth boolean? vars vars)))))
   ;[inv (ml-call boolean? "inv" (for/list ([v vars]) (car v)))]
 
   (define inv (ml-call boolean? "inv" vars))
@@ -129,15 +129,15 @@
 
   (printf "~n**** Begin VC computation on ~a ****~n" (ml-decl-name fndecl))
 
-  ; (struct ml-decl expr (name formals body))
+  ; (struct ml-decl expr (name formals ret-var body))
   (define decl (ml-decl (ml-expr-type fndecl) (ml-decl-name fndecl)
-                        (append (ml-decl-formals fndecl) (list (ml-ret-val fndecl)))
+                        (ml-decl-formals fndecl) (ml-decl-ret-var fndecl)
                         (ml-decl-body fndecl)))
 
   (define vars-types (ml-decl-formals decl))
   (define vars vars-types) ;(for/list ([vt vars-types]) (car vt))] ; extract the var name
 
-  (define pc-decl (ml-decl (ml-fn-type vars-types boolean?) "pc" vars (ml-block void? (list (ml-synth boolean? vars vars)))))
+  (define pc-decl (ml-decl (ml-fn-type vars-types boolean?) "pc" vars null (ml-block void? (list (ml-synth boolean? vars vars)))))
   (define pc (ml-assert boolean? (ml-eq boolean? (ml-call boolean? "pc" vars) (ml-lit boolean? true))))
 
   (define result (vc decl (state pc (list pc-decl) empty)))

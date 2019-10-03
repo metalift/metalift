@@ -1,18 +1,37 @@
 #lang metalift
 
-; select-*-test-ret-val = select * from in
-(define (select-*-test in) (-> (listof integer?) (listof integer?))
+; out = select * from in
+; name of the return variable is explicitly stated in the function type declaration
+; return variable is automatically returned at the end of the program, no need to explicitly return it
+(define (select-*-test in) (-> (listof integer?) (out (listof integer?)))
   
   (define i integer? 0) ; int i = 0;  
 
-  ; XXX using special variable name to indicate return value
-  (define select-*-test-ret-val (listof integer?) (empty integer?)) ; List<Int> select-*-test-ret-val = new ArrayList();
+  (set! out (empty integer?)) ; List<Int> out = new ArrayList();
 
   ; same as select * from in
   (ml-for (< i (length in))
-          (set! select-*-test-ret-val (ml-append select-*-test-ret-val (list-ref in i)))
-          ; select-*-test-ret-val = concat(select-*-test-ret-val, in[i]);
+          (set! out (ml-append out (list-ref in i)))
+          ; out = concat(out, in[i]);
+          (set! i (+ i 1))) 
+)
+
+; example run
+; (select-*-test (list 1 2 3))  ==> (list 1 2 3)
+
+(define (select-test in) (-> (listof integer?) (out (listof integer?)))
+
+  (define i integer? 0) ; int i = 0;  
+
+  (set! out (empty integer?))
+
+  ; same as select * from in where in = 42
+  (ml-for (< i (length in))
+          (if (= (list-ref in i) 42)
+              (set! out (ml-append out (list-ref in i)))
+              (set! out out)) ; racket 'if' must have both clauses
           (set! i (+ i 1)))   
-  
-  select-*-test-ret-val
-  )
+)
+
+; example run
+; (select-* (list 1 2 42))  ==> (list 42)

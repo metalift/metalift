@@ -69,7 +69,7 @@
 
 (define (sk/decl decl)
   (match decl
-    [(ml-decl type name formals body)   
+    [(ml-decl type name formals ret-var body)   
      (let ([translated-body (open-output-string)]
            [rtype (ml-decl-ret-type decl)])
        (for ([e (ml-block-body body)])

@@ -105,17 +105,28 @@
       
     [e (error (format "used-vars NYI: ~a" e))]))
 
+(define (ret-var type)
+  (syntax-parse type
+    [(-> ts ...)
+     (define ret-type (last (syntax->list #'(ts ...))))
+     (syntax-parse ret-type
+       [(name t) #'name]
+       [_ null])] ; no return value
+    [e (error (format "not a type: ~a" (syntax->datum #'e)))]))  
 
 (define (to-ml/fn name fs ts body)
   (letrec ([formals (syntax->datum fs)]
            [translated-body (ml-block void? (map to-ml (syntax->list body)))]
            [type (to-ml ts)]
            [formal-types (ml-fn-type-formals type)]
-           [ret-type (ml-fn-type-ret-type type)])                             
-    (printf "~n**** Translation to ML ****~n~a~n~n" (ml-decl (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body
-                                                             ret-type))
-
-    (ml-decl type (syntax->datum name) (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body)))
+           [ret-type (ml-fn-type-ret-type type)]
+           [rv-name (syntax->datum (ret-var ts))]
+           [rv (if (eq? rv-name null) null (ml-var ret-type rv-name))]
+           [decl (ml-decl type (syntax->datum name)
+                          (map (lambda (name type) (ml-var type name)) formals formal-types)
+                          rv translated-body)])
+    (printf "~n**** Translation to ML ****~n~a~n~n" decl)
+    decl))
 
 (define (to-ml/axiom fs ts body)
   (letrec ([formals (syntax->datum fs)]
@@ -201,6 +212,7 @@
        (ml-fn-type (drop-right types 1) (last types)))]
 
     [(listof t) (ml-listof (to-ml #'t))]
+    [(name:id t:expr) (to-ml #'t)] ; drop the name 
     [boolean? boolean?]
     [integer? integer?]        
 
@@ -225,5 +237,6 @@
          eval-type
          to-ml
          used-vars
+         ret-var
          ;add-known-fns
          and-&& or-|| or-||/list)

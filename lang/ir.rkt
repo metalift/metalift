@@ -16,9 +16,8 @@
 
 ; return value of fn, for users to construct their search space functions
 ; fn is the ml-decl of the function 
-;(struct ml-ret-val expr (fn) #:transparent)
-(define (ml-ret-val fn)
-  (ml-var (ml-decl-ret-type fn) (string->symbol (format "~a-ret-val" (ml-decl-name fn)))))
+;(define (ml-ret-val fn)
+;  (ml-var (ml-decl-ret-type fn) (string->symbol (format "~a-ret-val" (ml-decl-name fn)))))
 
 (struct ml-var expr (name) #:transparent
   #:methods gen:custom-write
@@ -69,7 +68,7 @@
 (struct ml-list-take expr (l e) #:transparent)
 
 ; each formal is a ml-var
-(struct ml-decl expr (name formals body) #:transparent)
+(struct ml-decl expr (name formals ret-var body) #:transparent)
 ; convenience function to get the return type of a function
 (define (ml-decl-ret-type decl)
   (ml-fn-type-ret-type (expr-type decl)))

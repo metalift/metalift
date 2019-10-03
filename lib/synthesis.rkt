@@ -1,8 +1,6 @@
 #lang racket
 
-(require "sketch.rkt")
-;(require "z3.rkt")
-(require "../lang/ir.rkt")
+(require "sketch.rkt" "../lang/ir.rkt")
 
 
 ; build a hash table so that user function can look up the variables by name
@@ -18,11 +16,11 @@
   (let ([space-defined (for/list ([d (ml-prog-decls vc)])
                                                                            
                          (cond [(equal? (ml-decl-name d) "pc")                                                                                        
-                                (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d)
+                                (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
                                          (ml-block void? (list (pc-space-fn ast (build-vars-map d)))))]
 
                                [(equal? (ml-decl-name d) "inv")
-                                (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d)
+                                (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
                                          (ml-block void? (list (inv-space-fn ast (build-vars-map d)))))]
                                
                                [else d]))]) ; udos
@@ -64,11 +62,11 @@
       [(or (? ml-var? e) (? ml-lit? e) (? procedure? e)) e]))
   
   (let ([choose-resolved (for/list ([d (ml-prog-decls prog)])
-                           (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (resolve (ml-decl-body d))))])
+                           (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
+                                    (resolve (ml-decl-body d))))])
     (ml-prog choose-resolved (ml-prog-asserts prog) (ml-prog-axioms prog))))
 
 (provide define-space
          resolve-choose
-         ;to-z3
          to-sk
          )

@@ -11,12 +11,17 @@
 
 (require "udos.rkt")
 
+(define (pred v)
+  (= v 42))
+
 (define (inv-search-space fn vars)
 
   (define in (hash-ref vars 'in)) 
   (define i (hash-ref vars 'i))
-  (define out (hash-ref vars 'select-*-test-ret-val))
+  ;(define out (hash-ref vars 'select-*-test-ret-val))
+  (define out (ml-ret-val fn))
 
+  ;(mk-and (list-equal out (call my-select-* (list-take in i) pred))
   (mk-and (list-equal out (call my-select-* (list-take in i)))
           (mk-<= i (list-length in))
           (mk->= i (ml-lit integer? 0))
@@ -33,7 +38,12 @@
   ; choose(pc1, pc2, pc3, ...)
   (choose boolean? (list-equal out (call my-select-* in)) ; out = my-select-*(in)
                    (list-equal out in))  ; out = in
+
+  ;(choose boolean? (list-equal out (call my-select-* in pred)) ; out = my-select-*(in)
+  ;                 (list-equal out in))  ; out = in  
   )
+
+
 
 ; out = my-select-*(in) 
 (define (cg s) ; s = sketch/z3 returned answer

@@ -3,7 +3,7 @@
 ; ML frontend language used to express input programs and user defined operators
 ; programs written in this language are executed as normal racket code
 
-(require (for-syntax syntax/parse)
+(require (for-syntax syntax/parse (only-in "../lib/util.rkt" ret-var))
          "../lib/util.rkt")
 
 ; ML specific forms
@@ -48,18 +48,17 @@
   (let ([name (string->symbol (second (regexp-match #rx"procedure:(.*)>" (format "~a" fn))))])
   (ml-lookup-by-name name)))
 
-
 ; define the function and also store its def in the fns hash
 (define-syntax (ml-define stx)
   (syntax-parse stx 
     [(ml-define (name formals ...) type body ...)
-     #'(begin
-         ;(hash-set! fns (syntax->datum #'name)
-         ;           (cons (parse-types (syntax->datum #'(formals ...)) (syntax->datum #'type))
-         ;                 (list #'body ...)))
-         ;(printf "setting to ~a~n" (to-ml #'(ml-define (name formals ...) type body ...)))
-         (hash-set! fns (syntax->datum #'name) (to-ml #'(ml-define (name formals ...) type body ...)))
-         (define (name formals ...) body ...))]
+     (define rv (ret-var #'type))
+     (define translated (if (eq? rv null)
+                            #'(define (name formals ...) body ...)
+                            #`(define (name formals ...) (begin (define #,rv 0) body ... #,rv))))        
+     #`(begin
+         (hash-set! fns (syntax->datum #'name) (to-ml #'(ml-define (name formals ...) type body ...)))         
+         #,translated)]
          
     [(ml-define name:id type:expr e:expr) #'(define name e)]))
 

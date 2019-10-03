@@ -53,7 +53,7 @@
          
   ;(printf "running on ~a~n" code)
   (match code
-    [(ml-decl _ name formals body) (construct-cfg body p s)]
+    [(ml-decl _ name formals ret-var body) (construct-cfg body p s)]
     
     [(list es ...)
      (define l (length es)) 
@@ -129,7 +129,7 @@
 
   ; returns whether live-in or live-out is changed
   (match code
-    [(ml-decl _ name formals body) (live-vars body)]
+    [(ml-decl _ name formals ret-var body) (live-vars body)]
 
     [(list es ...) ;(for ([e (reverse es)]) (live-vars e))]
      (or-||/list (for/list ([e (reverse es)]) (live-vars e)))]
@@ -278,10 +278,10 @@
                                (values (ml-list-ref (ml-listof-type new-l-type) new-l new-e) l-ctx)
                                (error (format "types don't match: got ~a and ~a~n" new-l-type new-e-type))))]
                                              
-    [(ml-decl type name formals body)
-     (letrec-values ([(c) (for/hash ([f formals]) (values (ml-var-name f) (ml-expr-type f)))]
+    [(ml-decl type name formals ret-var body)
+     (letrec-values ([(c) (for/hash ([f (append formals (list ret-var))]) (values (ml-var-name f) (ml-expr-type f)))]
                      [(checked final-ctx) (typecheck body c)])                     
-       (values (ml-decl type name formals checked) final-ctx))]
+       (values (ml-decl type name formals ret-var checked) final-ctx))]
     
     [e (error (format "typecheck NYI: ~a" e))]    
     ))
