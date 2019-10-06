@@ -33,6 +33,7 @@
     [(ml-for t test body)
      ; use results from live var analysis to determine the parameters of the invariant function
      ; live vars is returned as a set, we need a list for ml-call
+     (printf "yyy: ~a~n" (lookup-live-in code))
      (vc/for t test body (set->list (lookup-live-in code))
                                   ;(list (ml-var (ml-listof integer?) 'in) (ml-var integer? 'i)
                                   ;      (ml-var (ml-listof integer?) 'out))
@@ -137,8 +138,8 @@
   (define vars-types (ml-decl-formals decl))
   (define vars vars-types) ;(for/list ([vt vars-types]) (car vt))] ; extract the var name
 
-  (define pc-decl (ml-decl (ml-fn-type vars-types boolean?) "pc" vars null (ml-block void? (list (ml-synth boolean? vars vars)))))
-  (define pc (ml-assert boolean? (ml-eq boolean? (ml-call boolean? "pc" vars) (ml-lit boolean? true))))
+  (define pc-decl (ml-decl (ml-fn-type vars-types boolean?) "pc" (cons (ml-decl-ret-var decl) vars) null (ml-block void? (list (ml-synth boolean? vars vars)))))
+  (define pc (ml-assert boolean? (ml-eq boolean? (ml-call boolean? "pc" (cons (ml-decl-ret-var decl) vars)) (ml-lit boolean? true))))
 
   (define result (vc decl (state pc (list pc-decl) empty)))
 

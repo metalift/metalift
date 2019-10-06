@@ -18,9 +18,11 @@
   (for ([(k v) h]) (printf "k: ~a~nv: ~a~n~n" k v)))
 
 ; return the exit exprs for the given function
+; 'exit is a special terminal, checking for null doesn't work since loops might
+; have both 'exit and another expression as its successor
 (define (exits)
   (for/list ([(k v) succ]
-    #:when (null? v))
+    #:when (not (equal? (member 'exit v) #f)))
     k))
 
 
@@ -51,9 +53,8 @@
     (hash-set! pred code (append (hash-ref! pred code null) (flatten (list p))))
     (hash-set! succ code (append (hash-ref! succ code null) (flatten (list s)))))
          
-  ;(printf "running on ~a~n" code)
   (match code
-    [(ml-decl _ name formals ret-var body) (construct-cfg body p s)]
+    [(ml-decl _ name formals ret-var body) (construct-cfg body p (list 'exit))]
     
     [(list es ...)
      (define l (length es)) 
@@ -76,7 +77,7 @@
      (construct-cfg e2 c s)]
 
     ; cfg for for:
-    ; p -> for -> test -> {body, s} and body -> s
+    ; p -> for -> test -> {body, s} and body -> test
     [(ml-for _ test body)
      (update code p test)
      (construct-cfg test code (list (first-e body) s))
@@ -103,7 +104,7 @@
 
 (define (live-vars code)
 
-  (printf "live vars analysis on ~a~n~n" code)
+  (printf "live vars analysis on ~a~n~n" live-in)
 
   (define (hash-check-set h k v)
     (if (hash-has-key? h k)
@@ -111,7 +112,8 @@
             (begin (hash-set! h k v) #t)
             #f)
         (begin (hash-set! h k v) #t)))
-  
+
+  ; in and out are defined in the forward direction of the cfg
   (define (lv code gen kill)
     ; update live-out
     (define out-changed
@@ -129,17 +131,24 @@
 
   ; returns whether live-in or live-out is changed
   (match code
-    [(ml-decl _ name formals ret-var body) (live-vars body)]
+    [(ml-decl _ name formals ret-var body)
+     ; the return variable is live on each exit expr, since each exit needs to pass through the
+     ; return variable before actually returning from the function
+     (for ([e (exits)]) (hash-check-set live-out e (set ret-var)))     
+     (live-vars body)]
 
-    [(list es ...) ;(for ([e (reverse es)]) (live-vars e))]
+    [(list es ...)
      (or-||/list (for/list ([e (reverse es)]) (live-vars e)))]
 
-    [(ml-if _ c e1 e2) ;(live-vars e1) (live-vars e2) (lv c (vars c) (set))]
+    [(ml-if _ c e1 e2)
      (or-|| (live-vars e1) (live-vars e2) (lv c (used-vars c) (set)))]
 
-    [(ml-for _ test body) ;(live-vars body) (lv test (vars test) (set))]
-     ; live vars for ml-for is same as those of the test condition
-     (or-|| (live-vars body) (lv test (used-vars test) (set)) (lv code (used-vars test) (set)))]
+    [(ml-for _ test body)
+     (or-|| (live-vars body)
+            ; live-in(s) = used-vars(s) U live-out(s), doesn't kill anything
+            (lv test (set-union (used-vars test) (hash-ref live-out test)) (set))
+            ; live vars for ml-for is same as those of the test condition
+            (lv code (used-vars test) (set)))]
 
     [(ml-set! _ v e) (lv code (used-vars e) (used-vars v))]
 
@@ -150,7 +159,7 @@
 
     [(ml-var _ v) (lv code (set code) (set))]
 
-    [(ml-define _ v e) (lv code (used-vars e) (used-vars v)) (printf "in: ~a~n" (lookup-live-in code))]
+    [(ml-define _ v e) (lv code (used-vars e) (used-vars v))]
 
     [(ml-lit _ v) (lv code (set) (set))]
 
@@ -221,17 +230,48 @@
                       (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
                           (values (ml-< boolean? new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
-    ;(struct ml-<= expr (e1 e2) #:transparent)
-    ;(struct ml-> expr (e1 e2) #:transparent)
-    ;(struct ml->= expr (e1 e2) #:transparent)
+
+    [(ml-<= _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
+                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
+                          (values (ml-<= boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+
+    
+    [(ml-> _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
+                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
+                          (values (ml-> boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+
+    [(ml->= _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
+                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
+                          (values (ml->= boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+    
     [(ml-eq _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
                                     [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
                       (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
                           (values (ml-eq boolean? new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
      
-    ;(struct ml-and expr (e1 e2) #:transparent)
-    ;(struct ml-or expr (e1 e2) #:transparent)
+    [(ml-and _ es) (let-values ([(new-es new-ctx)
+                                 (for/fold ([checked-es null] [ct ctx]) ([e es])
+                                   (let-values ([(checked-e new-ctx) (typecheck e ct)])
+                                     (if (equal? (ml-expr-type checked-e) boolean?)
+                                         (values (append checked-es (list checked-e)) new-ctx)
+                                         (error (format "expect boolean type for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
+                        (values (ml-and boolean? new-es) new-ctx))]
+
+    [(ml-or _ es) (let-values ([(new-es new-ctx)
+                                 (for/fold ([checked-es null] [ct ctx]) ([e es])
+                                   (let-values ([(checked-e new-ctx) (typecheck e ct)])
+                                     (if (equal? (ml-expr-type checked-e) boolean?)
+                                         (values (append checked-es (list checked-e)) new-ctx)
+                                         (error (format "expect boolean type for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
+                        (values (ml-or boolean? new-es) new-ctx))]    
+    
     [(ml-+ _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
                                     [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
                       (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
@@ -270,14 +310,28 @@
                                 (values (ml-list-length integer? new-l) l-ctx)
                                 (error (format "type doesn't match: got ~a~n" (ml-expr-type new-l)))))]
 
-    ;(struct ml-list-equal expr (l1 l2) #:transparent)
+    [(ml-list-equal _ l1 l2) (letrec-values ([(new-l1 l1-ctx) (typecheck l1 ctx)]
+                                             [(new-l2 l2-ctx) (typecheck l2 l1-ctx)])
+                               (if (equal? (ml-expr-type new-l1) (ml-expr-type new-l2))
+                                   (values (ml-list-equal boolean? new-l1 new-l2) l2-ctx)
+                                   (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-l1) (ml-expr-type new-l2)))))]                                                                                                                         
+                               
     [(ml-list-ref _ l e) (letrec-values ([(new-e e-ctx) (typecheck e ctx)]
                                          [(new-l l-ctx) (typecheck l e-ctx)]
                                          [(new-l-type new-e-type) (values (ml-expr-type new-l) (ml-expr-type new-e))])
                            (if (and (equal? new-e-type integer?) (ml-listof? new-l-type))
                                (values (ml-list-ref (ml-listof-type new-l-type) new-l new-e) l-ctx)
                                (error (format "types don't match: got ~a and ~a~n" new-l-type new-e-type))))]
-                                             
+
+    [(ml-list-take _ l n) (letrec-values ([(new-n n-ctx) (typecheck n ctx)]
+                                         [(new-l l-ctx) (typecheck l n-ctx)]
+                                         [(new-l-type new-n-type) (values (ml-expr-type new-l) (ml-expr-type new-n))])
+                           (if (and (equal? new-n-type integer?) (ml-listof? new-l-type))
+                               (values (ml-list-take new-l-type new-l new-n) l-ctx)
+                               (error (format "types don't match: got ~a and ~a~n" new-l-type new-n-type))))]
+
+
+    
     [(ml-decl type name formals ret-var body)
      (letrec-values ([(c) (for/hash ([f (append formals (list ret-var))]) (values (ml-var-name f) (ml-expr-type f)))]
                      [(checked final-ctx) (typecheck body c)])                     

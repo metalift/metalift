@@ -6,7 +6,13 @@
 ; build a hash table so that user function can look up the variables by name
 (define (build-vars-map decl)
   (define h (hash))
-  (for/list ([f (ml-decl-formals decl)] #:when (ml-var? f)) (set! h (hash-set h (ml-var-name f) f)))
+  (for/list ([f (cons (ml-decl-ret-var decl) (ml-decl-formals decl))] #:when (ml-var? f)) (set! h (hash-set h (ml-var-name f) f)))
+  h)
+
+(define (build-varstypes-map decl)
+  (define h (hash))
+  (printf "qqq is ~a~n" (ml-decl-formals decl))
+  (for/list ([f (cons (ml-decl-ret-var decl) (ml-decl-formals decl))] #:when (ml-var? f)) (set! h (hash-set h (ml-var-name f) (ml-expr-type f))))
   h)
 
 ; replace the body of each pc or inv decl in prog by calling the user defined fn
@@ -21,7 +27,7 @@
 
                                [(equal? (ml-decl-name d) "inv")
                                 (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
-                                         (ml-block void? (list (inv-space-fn ast (build-vars-map d)))))]
+                                         (ml-block void? (list (inv-space-fn ast (build-vars-map d) (build-varstypes-map d)))))]
                                
                                [else d]))]) ; udos
     
