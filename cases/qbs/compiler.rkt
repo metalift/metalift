@@ -2,6 +2,7 @@
 
 (require "../../lang/ir-ctor.rkt"
          "../../lang/ir.rkt"
+         "../../lang/parser.rkt"
          (only-in "../../lang/base.rkt" ml-lookup-by-name)
          "../../lib/vc.rkt"
          "../../lib/synthesis.rkt"
@@ -14,17 +15,23 @@
 (define (pred v)
   (= v 42))
 
-(define (inv-search-space fn vars)
+(define (inv-search-space fn vars vartypes)
 
   (define in (hash-ref vars 'in)) 
   (define i (hash-ref vars 'i))
   (define out (ml-decl-ret-var fn))
-
+  
   ;(mk-and (list-equal out (call my-select-* (list-take in i) pred))
   (mk-and (list-equal out (call my-select-* (list-take in i)))
           (mk-<= i (list-length in))
           (mk->= i (ml-lit integer? 0))
           )
+
+  (define-values (ast _) (typecheck (to-ml #'(and (list-equal out (my-select-* (list-take in i)))
+                           (<= i (length in))
+                           (>= i 0))) vartypes))
+
+  ast
   )
 
 
@@ -37,7 +44,7 @@
   ; choose(pc1, pc2, pc3, ...)
   (choose boolean? (list-equal out (call my-select-* in)) ; out = my-select-*(in)
                    (list-equal out in))  ; out = in
-
+    
   ;(choose boolean? (list-equal out (call my-select-* in pred)) ; out = my-select-*(in)
   ;                 (list-equal out in))  ; out = in  
   )
@@ -72,6 +79,9 @@
     ;[(? procedure? p) (second (regexp-match #rx"procedure:(.*)>" (format "~a" p)))]       
     ))
 
+
+; *** compiler main code below ***
+
 (require "tests.rkt")
 
 ; ideally this would be the API we expose to users
@@ -91,6 +101,7 @@
 
 (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
+; run sketch with --bnd-inbits 2
 (define sk (to-sk space-defined))
 (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
