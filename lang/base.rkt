@@ -4,7 +4,7 @@
 ; programs written in this language are executed as normal racket code
 
 (require (for-syntax syntax/parse (only-in "../lib/util.rkt" ret-var))
-         "../lib/util.rkt")
+         "parser.rkt")
 
 ; ML specific forms
 

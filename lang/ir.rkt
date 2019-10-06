@@ -40,7 +40,7 @@
 (struct ml-eq expr (e1 e2) #:transparent)
 
 (struct ml-and expr (exprs) #:transparent)
-(struct ml-or expr (e1 e2) #:transparent)
+(struct ml-or expr (exprs) #:transparent)
 
 (struct ml-+ expr (e1 e2) #:transparent)
 (struct ml-- expr (e1 e2) #:transparent)
