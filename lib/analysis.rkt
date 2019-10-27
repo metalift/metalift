@@ -46,7 +46,7 @@
     [_ e]))
 
 ; construct the cfg for code, where p is the predecessor to code and s is its successor
-(define (construct-cfg code [p null] [s null])
+(define (construct-cfg code [p empty] [s empty])
 
   ; update pred and succ 
   (define (update code p s)
@@ -66,7 +66,9 @@
                       (set! curr-s (first-e (list-ref es (+ i 1))))]) ; e in the middle of a list of length > 1
        (construct-cfg e curr-p curr-s))]
 
-    [(ml-block _ body) (construct-cfg body p s)]
+    [(ml-block _ body)
+     (update code p s)
+     (construct-cfg body p s)]
 
     ; cfg for if:
     ; p -> if -> c -> {e1, e2} -> s
@@ -104,7 +106,7 @@
 
 (define (live-vars code)
 
-  (printf "live vars analysis on ~a~n~n" live-in)
+  (printf "live vars analysis on ~a~n~n" code)
 
   (define (hash-check-set h k v)
     (if (hash-has-key? h k)
@@ -144,11 +146,13 @@
      (or-|| (live-vars e1) (live-vars e2) (lv c (used-vars c) (set)))]
 
     [(ml-for _ test body)
-     (or-|| (live-vars body)
-            ; live-in(s) = used-vars(s) U live-out(s), doesn't kill anything
-            (lv test (set-union (used-vars test) (hash-ref live-out test)) (set))
-            ; live vars for ml-for is same as those of the test condition
-            (lv code (used-vars test) (set)))]
+     (define body-changed (live-vars body))
+     (define test-changed ; live-in(s) = used-vars(s) U live-out(s), doesn't kill anything
+       (lv test (set-union (used-vars test) (hash-ref live-out test) (hash-ref live-in body)) (set)))
+     (define for-changed ; live vars for ml-for is same as those of the test condition
+            (lv code (used-vars test) (set)))
+
+     (or-|| body-changed test-changed for-changed)]
 
     [(ml-set! _ v e) (lv code (used-vars e) (used-vars v))]
 
@@ -163,7 +167,10 @@
 
     [(ml-lit _ v) (lv code (set) (set))]
 
-    [(ml-block _ es) (live-vars es)]
+    [(ml-block _ es)
+     (define body-changed (live-vars es))
+     (lv code (hash-ref live-in (first es)) (set))
+     body-changed]
 
     [e (error (format "live-vars NYI: ~a" e))]
     )

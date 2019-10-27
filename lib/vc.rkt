@@ -33,7 +33,6 @@
     [(ml-for t test body)
      ; use results from live var analysis to determine the parameters of the invariant function
      ; live vars is returned as a set, we need a list for ml-call
-     (printf "yyy: ~a~n" (lookup-live-in code))
      (vc/for t test body (set->list (lookup-live-in code))
                                   ;(list (ml-var (ml-listof integer?) 'in) (ml-var integer? 'i)
                                   ;      (ml-var (ml-listof integer?) 'out))
@@ -109,6 +108,7 @@
     ; list functions
     [(ml-list type elems) (ml-list type (for/list ([elem elems]) (replace v e elem)))]
     [(ml-list-append type l elem) (ml-list-append type (replace v e l) (replace v e elem))]
+    [(ml-list-ref type l i) (ml-list-ref type (replace v e l) (replace v e i))]
     
     ;[arg (if (equal? arg v) e arg)]))
 
