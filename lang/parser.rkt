@@ -33,7 +33,7 @@
 
   (syntax-parse stx
     #:datum-literals (require define define-udo define-axiom
-                      if ml-while set!
+                      if while set!
                       < <= > >= =
                       and or
                       + - * /
@@ -65,7 +65,7 @@
 
     ; statements    
     [(if c e1 e2) (ml-if void? (to-ml #'c) (to-ml #'e1) (to-ml #'e2))]
-    [(ml-while test body ...) (ml-while void? (to-ml #'test)
+    [(while test body ...) (ml-while void? (to-ml #'test)
                                     (ml-block void? (map to-ml (syntax->list #'(body ...)))))]
     [(set! v e) (ml-set! void? (to-ml #'v) (to-ml #'e))]
 

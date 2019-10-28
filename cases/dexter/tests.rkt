@@ -8,34 +8,34 @@
   (set! out (list (list 0 0 0) (list 0 0 0) (list 0 0 0)))
   (define i integer? 0)
 
-  (ml-while (< i width)
-          (define j integer? 0)
-          (ml-while (< j height)
-                  ; v1 = in[i][j]
-                  (define v1 integer? (list-ref (list-ref in i) j))
-                  (define v2 integer? 0)
-                  (define v3 integer? 0)
-
-                  ; v2 = in[i][j+1] if within bounds
-                  (if (< (+ j 1) height)
-                      (set! v2 (list-ref (list-ref in i) (+ j 1)))
-                      (set! v2 0))
-
-                  ; v3 = in[i][j-1] if within bounds
-                  (if (>= (- j 1) 0)
-                      (set! v3 (list-ref (list-ref in i) (- j 1)))
-                      (set! v3 0))
-
-                  ; out[i][j] = (v1+v2+v3)/3
-                  (set! out (list-set out i (list-set (list-ref out i) j  (/ (+ (+ v1 v2) v3) 3.0))))
-                  
-                  (set! j (+ j 1))
-                  )
-          (set! i (+ i 1))
-          )
-
+  (while (< i width)
+         (define j integer? 0)
+         (while (< j height)
+                ; v1 = in[i][j]
+                (define v1 integer? (list-ref (list-ref in i) j))
+                (define v2 integer? 0)
+                (define v3 integer? 0)
+                
+                ; v2 = in[i][j+1] if within bounds
+                (if (< (+ j 1) height)
+                    (set! v2 (list-ref (list-ref in i) (+ j 1)))
+                    (set! v2 0))
+                
+                ; v3 = in[i][j-1] if within bounds
+                (if (>= (- j 1) 0)
+                    (set! v3 (list-ref (list-ref in i) (- j 1)))
+                    (set! v3 0))
+                
+                ; out[i][j] = (v1+v2+v3)/3
+                (set! out (list-set out i (list-set (list-ref out i) j  (/ (+ (+ v1 v2) v3) 3.0))))
+                
+                (set! j (+ j 1))
+                )
+         (set! i (+ i 1))
+         )
+  
   ; returning the output variable is implict
-)
+  )
 
 ; test code below
 (define width integer? 3)

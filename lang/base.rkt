@@ -8,8 +8,8 @@
 
 ; ML specific forms
 
-; another form of "for" with initialization
-;(define-syntax-rule (ml-while init test incr body ...)
+; another form of "while" with initialization
+;(define-syntax-rule (while init test incr body ...)
 ;  (run-ml-while (lambda () init) (lambda () test) (lambda () incr) (lambda () body ...)))
 ;
 ;(define (run-ml-while init test incr body)
@@ -19,7 +19,7 @@
 ;    (body)
 ;    (incr)))
 
-(define-syntax-rule (ml-while test body ...)
+(define-syntax-rule (while test body ...)
   (run-ml-while (lambda () test) (lambda () body ...)))
 
 (define (run-ml-while test body)
@@ -118,7 +118,7 @@
 
  ; statements
  if
- ml-while         
+ while         
  set!
 
  ; binary operators
