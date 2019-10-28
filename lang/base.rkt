@@ -9,24 +9,23 @@
 ; ML specific forms
 
 ; another form of "for" with initialization
-;(define-syntax-rule (ml-for init test incr body ...)
-;  (run-ml-for (lambda () init) (lambda () test) (lambda () incr) (lambda () body ...)))
+;(define-syntax-rule (ml-while init test incr body ...)
+;  (run-ml-while (lambda () init) (lambda () test) (lambda () incr) (lambda () body ...)))
 ;
-;(define (run-ml-for init test incr body)
+;(define (run-ml-while init test incr body)
 ;  (init)
 ;  (for ([i (in-naturals)])
 ;    #:break (not (test))
 ;    (body)
 ;    (incr)))
 
-(define-syntax-rule (ml-for test body ...)
-  (run-ml-for (lambda () test) (lambda () body ...)))
+(define-syntax-rule (ml-while test body ...)
+  (run-ml-while (lambda () test) (lambda () body ...)))
 
-(define (run-ml-for test body)
+(define (run-ml-while test body)
   (for ([i (in-naturals)])
     #:break (not (test))
     (body)))
-
 
 ; ML specific list functions
 ; append an element to the end of list
@@ -119,7 +118,7 @@
 
  ; statements
  if
- ml-for         
+ ml-while         
  set!
 
  ; binary operators
@@ -133,12 +132,14 @@
  
  ; racket functions
  printf
+ for/list
 
  ; list operations 
  cons
  length
  list
  list-ref
+ list-set
  list-tail
  ml-append
  (rename-out [ml-list-empty empty])

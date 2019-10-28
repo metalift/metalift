@@ -28,7 +28,7 @@
 
 (struct ml-define expr (v e) #:transparent)
 (struct ml-if expr (cond e1 e2) #:transparent)
-(struct ml-for expr (test body) #:transparent)
+(struct ml-while expr (test body) #:transparent)
 (struct ml-block expr (body) #:transparent) ; a code block
 (struct ml-set! expr (v e) #:transparent)
 
@@ -64,6 +64,7 @@
 (struct ml-list-length expr (l) #:transparent)
 (struct ml-list-prepend expr (e l) #:transparent)
 (struct ml-list-ref expr (l e) #:transparent)
+(struct ml-list-set expr (l index e) #:transparent)
 (struct ml-list-tail expr (l e) #:transparent)
 (struct ml-list-take expr (l e) #:transparent)
 

@@ -30,7 +30,7 @@
       
     [(ml-if t test then else) (vc/ite t test (vc then state) (vc else state))]
 
-    [(ml-for t test body)
+    [(ml-while t test body)
      ; use results from live var analysis to determine the parameters of the invariant function
      ; live vars is returned as a set, we need a list for ml-call
      (vc/for t test body (set->list (lookup-live-in code))
@@ -64,27 +64,40 @@
     (state new-vc         
            (remove-duplicates (append (state-decls then-state) (state-decls else-state)))
            (remove-duplicates (append (state-asserts then-state) (state-asserts else-state))))))
-             
+
+(define inv-num 0)
+(define (inv-name)
+  (set! inv-num (+ 1 inv-num))
+  (format "inv~a" (- inv-num 1)))
+
 ;; equivalent to
 ;; init
-;; (for (true) #:break test (body incr))
-;                
+;; (for (true) #:break test (body incr))                
 (define (vc/for type test body vars st)
   (define formal-types (for/list ([v vars]) (ml-expr-type v)))
-  (define inv-decl (ml-decl (ml-fn-type formal-types boolean?) "inv" vars null (ml-block void? (list (ml-synth boolean? vars vars)))))
+  (define inv-decl (ml-decl (ml-fn-type formal-types boolean?) (inv-name) vars null (ml-block void? (list (ml-synth boolean? vars vars)))))
   ;[inv (ml-call boolean? "inv" (for/list ([v vars]) (car v)))]
 
-  (define inv (ml-call boolean? "inv" vars))
+  (define inv (ml-call boolean? (ml-decl-name inv-decl) vars))
 
   (define body-vc 
     (for/fold ([s (state inv (state-decls st) (state-asserts st))])
               ([c (reverse (ml-block-body body))]) (vc c s)))
-         
+
   (define new-decls (cons inv-decl (state-decls body-vc)))
-  (define inv-implies-wp (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list (ml-not boolean? test) inv)) (ml-assert-e (state-vc st)))))
+
+  (define inv-implies-wp
+    ; the current vc can either be an assert or a call to an invariant function
+    (match (state-vc st)
+      [e #:when (ml-assert? e)
+         (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list (ml-not boolean? test) inv)) (ml-assert-e e)))]
+      [e #:when (ml-call? e)
+         (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list (ml-not boolean? test) inv)) e))]
+      [e (error (format "unknown vc: ~a" e))]))
+    
   (define inv-preserved (ml-assert boolean? (ml-implies boolean? (ml-and boolean? (list test inv)) (state-vc body-vc))))
          
-  (define new-asserts (cons inv-implies-wp (cons inv-preserved (state-asserts st))))         
+  (define new-asserts (cons inv-implies-wp (cons inv-preserved (state-asserts body-vc))))         
 
   (state
    (ml-assert boolean? (ml-eq boolean? inv (ml-lit boolean? true)))
@@ -97,9 +110,17 @@
   
   (match vc
     [(ml-assert type ex) (ml-assert type (replace v e ex))]
+    [(ml-if type c e1 e2) (ml-if type (replace v e c) (replace v e e1) (replace v e e2))]
     [(ml-call type decl args) (ml-call type decl (replace v e args))]
     [(ml-eq type e1 e2) (ml-eq type (replace v e e1) (replace v e e2))]
     [(ml-+ type e1 e2) (ml-+ type (replace v e e1) (replace v e e2))]
+    [(ml-- type e1 e2) (ml-- type (replace v e e1) (replace v e e2))]
+    [(ml-* type e1 e2) (ml-* type (replace v e e1) (replace v e e2))]
+    [(ml-/ type e1 e2) (ml-/ type (replace v e e1) (replace v e e2))]
+    [(ml->= type e1 e2) (ml->= type (replace v e e1) (replace v e e2))]
+    [(ml-> type e1 e2) (ml-> type (replace v e e1) (replace v e e2))]
+    [(ml-< type e1 e2) (ml-< type (replace v e e1) (replace v e e2))]
+    [(ml-<= type e1 e2) (ml-<= type (replace v e e1) (replace v e e2))]
 
     ; a function parameter
     [(cons arg t) #:when (procedure? t) (if (equal? arg v) e arg)]
@@ -109,6 +130,7 @@
     [(ml-list type elems) (ml-list type (for/list ([elem elems]) (replace v e elem)))]
     [(ml-list-append type l elem) (ml-list-append type (replace v e l) (replace v e elem))]
     [(ml-list-ref type l i) (ml-list-ref type (replace v e l) (replace v e i))]
+    [(ml-list-set type l i expr) (ml-list-set type (replace v e l) (replace v e i) (replace v e expr))]
     
     ;[arg (if (equal? arg v) e arg)]))
 

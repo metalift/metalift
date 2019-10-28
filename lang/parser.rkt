@@ -33,13 +33,13 @@
 
   (syntax-parse stx
     #:datum-literals (require define define-udo define-axiom
-                      if ml-for set!
+                      if ml-while set!
                       < <= > >= =
                       and or
                       + - * /
                       not
                       printf
-                      cons empty length list list-ref list-tail list-take list-equal ml-append                   
+                      cons empty length list list-ref list-set list-tail list-take list-equal ml-append                   
                       -> integer? boolean? listof)
 
     ; racket base functions
@@ -65,7 +65,7 @@
 
     ; statements    
     [(if c e1 e2) (ml-if void? (to-ml #'c) (to-ml #'e1) (to-ml #'e2))]
-    [(ml-for test body ...) (ml-for void? (to-ml #'test)
+    [(ml-while test body ...) (ml-while void? (to-ml #'test)
                                     (ml-block void? (map to-ml (syntax->list #'(body ...)))))]
     [(set! v e) (ml-set! void? (to-ml #'v) (to-ml #'e))]
 
@@ -94,6 +94,7 @@
     [(list es ...) (ml-list (ml-listof void?)
                             (for/list ([e (syntax->list #'(es ...))]) (to-ml e)))]
     [(list-ref l e) (ml-list-ref void? (to-ml #'l) (to-ml #'e))]
+    [(list-set l i e) (ml-list-set void? (to-ml #'l) (to-ml #'i) (to-ml #'e))]
     [(list-tail l e) (ml-list-tail (ml-listof void?) (to-ml #'l) (to-ml #'e))]
     [(list-take l e) (ml-list-take void? (to-ml #'l) (to-ml #'e))]
     [(list-equal l1 l2) (ml-list-equal boolean? (to-ml #'l1) (to-ml #'l2))]

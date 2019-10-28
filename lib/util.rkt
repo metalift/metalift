@@ -85,6 +85,7 @@
     [(ml-list-length _ l) (used-vars l)]
     [(ml-list-equal _ l1 l2) (set-union (used-vars l1) (used-vars l2))]
     [(ml-list-ref _ l e) (set-union (used-vars l) (used-vars e))]
+    [(ml-list-set _ l i e) (set-union (used-vars l) (used-vars i) (used-vars e))]
     [(ml-list-prepend _ e l) (set-union (used-vars e) (used-vars l))]
     [(ml-list-take _ l e) (set-union (used-vars l) (used-vars e))]
     [(ml-list-tail _ l e) (set-union (used-vars l) (used-vars e))]

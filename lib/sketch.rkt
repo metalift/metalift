@@ -127,6 +127,8 @@ eos
 
     [(ml-+ type e1 e2) (format "(~a + ~a)" (sk/expr e1) (sk/expr e2))]
     [(ml-- type e1 e2) (format "(~a - ~a)" (sk/expr e1) (sk/expr e2))]    
+    [(ml-* type e1 e2) (format "(~a * ~a)" (sk/expr e1) (sk/expr e2))]
+    [(ml-/ type e1 e2) (format "(~a / ~a)" (sk/expr e1) (sk/expr e2))]    
 
     ; list functions   
     [(ml-list-append type l e) (format "list_append(~a, ~a)" (sk/expr l) (sk/expr e))]
@@ -134,6 +136,7 @@ eos
     [(ml-list-length type e) (format "list_length(~a)" (sk/expr e))]
     [(ml-list-prepend type e l) (format "list_prepend(~a, ~a)" (sk/expr e) (sk/expr l))]
     [(ml-list-ref type l e) (format "list_get(~a, ~a)" (sk/expr l) (sk/expr e))]
+    [(ml-list-set type l i e) (format "list_set(~a, ~a, ~a)" (sk/expr l) (sk/expr i) (sk/expr e))]
     [(ml-list-tail type l e) (format "list_tail(~a, ~a)" (sk/expr l) (sk/expr e))]
     [(ml-list-take type l e) (format "list_take(~a, ~a)" (sk/expr l) (sk/expr e))]    
     [(ml-list type es)  (if (= (length es) 0) "list_empty()"     

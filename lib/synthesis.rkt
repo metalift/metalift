@@ -11,7 +11,6 @@
 
 (define (build-varstypes-map decl)
   (define h (hash))
-  (printf "qqq is ~a~n" (ml-decl-formals decl))
   (for/list ([f (cons (ml-decl-ret-var decl) (ml-decl-formals decl))] #:when (ml-var? f)) (set! h (hash-set h (ml-var-name f) (ml-expr-type f))))
   h)
 
@@ -25,7 +24,7 @@
                                 (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
                                          (ml-block void? (list (pc-space-fn ast (build-vars-map d)))))]
 
-                               [(equal? (ml-decl-name d) "inv")
+                               [(and (string? (ml-decl-name d)) (string-prefix? (ml-decl-name d) "inv"))
                                 (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
                                          (ml-block void? (list (inv-space-fn ast (build-vars-map d) (build-varstypes-map d)))))]
                                
