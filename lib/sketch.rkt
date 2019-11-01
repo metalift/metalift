@@ -128,7 +128,15 @@ eos
     [(ml-+ type e1 e2) (format "(~a + ~a)" (sk/expr e1) (sk/expr e2))]
     [(ml-- type e1 e2) (format "(~a - ~a)" (sk/expr e1) (sk/expr e2))]    
     [(ml-* type e1 e2) (format "(~a * ~a)" (sk/expr e1) (sk/expr e2))]
-    [(ml-/ type e1 e2) (format "(~a / ~a)" (sk/expr e1) (sk/expr e2))]    
+    [(ml-/ type e1 e2) (format "(~a / ~a)" (sk/expr e1) (sk/expr e2))]
+
+    ; ior, and, not, shift                                  
+    [(ml-bitop type n es)
+     (match n
+       ['ior (format "(~a | ~a)" (sk/expr (first es)) (sk/expr (second es)))]
+       ['and (format "(~a & ~a)" (sk/expr (first es)) (sk/expr (second es)))]
+       ['not (format "(!~a)" (sk/expr (first es)))]
+       [e (error (format "used-vars NYI: ~a" e))])]
 
     ; list functions   
     [(ml-list-append type l e) (format "list_append(~a, ~a)" (sk/expr l) (sk/expr e))]
@@ -155,6 +163,8 @@ eos
     [(? procedure? n) (sk/name (second (regexp-match #rx"procedure:(.*)>" (format "~a" n))))]
 
     ;[e #:when (ml-user? e) (sk/udo e)]
+
+    [e (error (format "used-vars NYI: ~a" e))]
     ))
 
 

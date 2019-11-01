@@ -50,6 +50,9 @@
 ; unary operators
 (struct ml-not expr (e) #:transparent)
 
+; bitwise operators
+(struct ml-bitop expr (name exprs) #:transparent)
+
 ; function calls
 (struct ml-call expr (name args) #:transparent
 ;  #:methods gen:custom-write

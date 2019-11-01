@@ -38,6 +38,7 @@
                       and or
                       + - * /
                       not
+                      bitwise-ior bitwise-and bitwise-not arithmetic-shift 
                       printf
                       cons empty length list list-ref list-set list-tail list-take list-equal ml-append                   
                       -> integer? boolean? listof)
@@ -86,6 +87,12 @@
     
     ; unary operators
     [(not e)  (ml-not boolean? (to-ml #'e))]
+
+    ; bitwise operators
+    [(bitwise-ior e1 e2) (ml-bitop integer? 'ior (list (to-ml #'e1) (to-ml #'e2)))]
+    [(bitwise-and e1 e2) (ml-bitop integer? 'and (list (to-ml #'e1) (to-ml #'e2)))]
+    [(bitwise-not e) (ml-bitop integer? 'not (list (to-ml #'e)))]
+    [(arithmetic-shift e1 e2) (ml-bitop integer? 'shift (list (to-ml #'e1) (to-ml #'e2)))]
 
     ; list operations 
     [(cons e l) (ml-list-prepend (ml-listof void?) (to-ml #'e) (to-ml #'l))]
