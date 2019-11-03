@@ -98,6 +98,13 @@ void make ()
   assert list_get(l, 1) == 1;
 }
 
+void set ()
+{
+  MLList<int> l = make_MLList(2, {(int)0, (int)1});
+  assert list_get(list_set(l, 0, 1), 0) == 1;
+  assert list_get(list_set(l, 1, 0), 1) == 0;
+}
+
 harness void test ()
 {
   length();
@@ -108,4 +115,5 @@ harness void test ()
   tail();
   equal();
   make();
+  set();
 }

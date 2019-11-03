@@ -81,7 +81,7 @@
     [(or es ...) (ml-or void? (for/list ([e (syntax->list #'(es ...))]) (to-ml e)))]    
 
     [(+ e1 e2) (ml-+ integer? (to-ml #'e1) (to-ml #'e2))]
-    [(- e1 e2)  (ml-- integer? (to-ml #'e1) (to-ml #'e2))]
+    [(- e1 e2) (ml-- integer? (to-ml #'e1) (to-ml #'e2))]
     [(* e1 e2) (ml-* integer? (to-ml #'e1) (to-ml #'e2))]
     [(/ e1 e2) (ml-/ integer? (to-ml #'e1) (to-ml #'e2))]
     
@@ -89,10 +89,10 @@
     [(not e)  (ml-not boolean? (to-ml #'e))]
 
     ; bitwise operators
-    [(bitwise-ior e1 e2) (ml-bitop integer? 'ior (list (to-ml #'e1) (to-ml #'e2)))]
-    [(bitwise-and e1 e2) (ml-bitop integer? 'and (list (to-ml #'e1) (to-ml #'e2)))]
-    [(bitwise-not e) (ml-bitop integer? 'not (list (to-ml #'e)))]
-    [(arithmetic-shift e1 e2) (ml-bitop integer? 'shift (list (to-ml #'e1) (to-ml #'e2)))]
+    [(bitwise-ior e1 e2) (bitwise-or (to-ml #'e1) (to-ml #'e2))]
+    [(bitwise-and e1 e2) (bitwise-and (to-ml #'e1) (to-ml #'e2))]
+    [(bitwise-not e) (bitwise-not (to-ml #'e))]
+    [(arithmetic-shift e1 e2) (bitwise-shift (to-ml #'e1) (to-ml #'e2))]
 
     ; list operations 
     [(cons e l) (ml-list-prepend (ml-listof void?) (to-ml #'e) (to-ml #'l))]

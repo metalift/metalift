@@ -1,3 +1,5 @@
+/* modeling of list functions */
+
 include "/Users/akcheung/build/sketch-1.7.5/sketch-frontend/sketchlib/array.skh";
 
 struct MLList<T> 
@@ -44,6 +46,15 @@ T list_get<T> (MLList<T> l, int i)
 MLList<T> list_empty<T> ()
 {
   MLList<T> n = new MLList<T>(list = newArray());
+  return n;
+}
+
+MLList<T> list_set<T> (MLList<T> l, int index, T e)
+{
+  if (index >= l.list.sz) assert(false);
+  MLList<T> n = new MLList<T>(list = new Array<T>(inner = new SArray<T>(n=l.list.sz), sz=l.list.sz));
+  n.list.inner.val[index] = e;
+
   return n;
 }
 
