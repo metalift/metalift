@@ -50,6 +50,14 @@
 ; unary operators
 (struct ml-not expr (e) #:transparent)
 
+; bitwise operators
+(struct ml-bitop expr (name exprs) #:transparent)
+(define-syntax-rule (bitwise-or e1 e2) (ml-bitop integer? 'ior (list e1 e2)))
+(define-syntax-rule (bitwise-and e1 e2) (ml-bitop integer? 'and (list e1 e2)))
+(define-syntax-rule (bitwise-not e) (ml-bitop integer? 'not (list e)))
+(define-syntax-rule (bitwise-shift e1 e2) (ml-bitop integer? 'shift (list e1 e2)))
+
+
 ; function calls
 (struct ml-call expr (name args) #:transparent
 ;  #:methods gen:custom-write

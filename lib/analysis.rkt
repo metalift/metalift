@@ -166,6 +166,8 @@
     [(ml-* _ e1 e2) (lv code (set-union (used-vars e1) (used-vars e2)) (set))]
     [(ml-/ _ e1 e2) (lv code (set-union (used-vars e1) (used-vars e2)) (set))]
 
+    [(ml-bitop _ n es) (lv code (set-union (for/list ([e es]) (used-vars e))) (set))]
+
     [(ml-var _ v) (lv code (set code) (set))]
 
     [(ml-define _ v e) (lv code (used-vars e) (used-vars v))]
@@ -308,6 +310,20 @@
                           (values (ml-/ integer? new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
 
+    ; unary operators   
+    [(ml-not _ e) (let-values ([(checked-e e-ctx) (typecheck e ctx)])
+                    (if (equal? boolean? (ml-expr-type checked-e))
+                        (values (ml-not boolean? checked-e) e-ctx)
+                        (error (format "expect boolean for ~a but got ~a ~n" checked-e (ml-expr-type checked-e)))))]
+    
+    ; bitwise operators
+    [(ml-bitop _ name es) (let-values ([(new-es new-ctx)
+                                        (for/fold ([checked-es null] [ct ctx]) ([e es])
+                                          (let-values ([(checked-e new-ctx) (typecheck e ct)])
+                                            (if (equal? (ml-expr-type checked-e) integer?)
+                                                (values (append checked-es (list checked-e)) new-ctx)
+                                                (error (format "expect integer for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
+                            (values (ml-bitop integer? name new-es) new-ctx))]
   
     ; list operations
     [(ml-list t es)

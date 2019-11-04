@@ -22,7 +22,7 @@
                                                                            
                          (cond [(equal? (ml-decl-name d) "pc")                                                                                        
                                 (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)
-                                         (ml-block void? (list (pc-space-fn ast (build-vars-map d)))))]
+                                         (ml-block void? (list (pc-space-fn ast (build-vars-map d) (build-varstypes-map d)))))]
 
                                [(and (string? (ml-decl-name d)) (string-prefix? (ml-decl-name d) "inv"))
                                 (ml-decl (ml-expr-type d) (ml-decl-name d) (ml-decl-formals d) (ml-decl-ret-var d)

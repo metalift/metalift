@@ -46,3 +46,9 @@
 (define in (listof (listof integer?)) (for/list ([x width]) (for/list ([y height]) 1)))
 
 (blur-1x3 in 3 3)
+
+
+(define (bitwise-ops i) (-> integer? (out integer?))
+  (set! out (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
+
+(bitwise-ops 1) ; ~( ((1&1) | 1) << 2 ) = -5

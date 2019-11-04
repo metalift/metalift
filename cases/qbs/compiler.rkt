@@ -36,7 +36,7 @@
 
 
 ; fn is a ml-decl
-(define (pc-search-space fn vars)
+(define (pc-search-space fn vars vartypes)
   
   (define in (hash-ref vars 'in))
   (define out (ml-decl-ret-var fn))
@@ -105,9 +105,9 @@
 (define sk (to-sk space-defined))
 (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
-(define choose-resolved (resolve-choose space-defined))
-
-(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
-(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
-
-(define final (codegen cg choose-resolved))
+;(define choose-resolved (resolve-choose space-defined))
+;
+;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
+;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
+;
+;(define final (codegen cg choose-resolved))

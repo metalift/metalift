@@ -23,11 +23,14 @@
 
 
 ; fn is a ml-decl
-(define (pc-search-space fn vars)
+(define (pc-search-space fn vars vartypes)
   
-  ; return a type checked ML ast
-  (define-values (ast _) (typecheck (to-ml #'#t)))
+  (define out (ml-decl-ret-var fn))
 
+  ; postcondition for bitwise-ops
+  (define-values (ast _) (typecheck (to-ml #`(= #,(ml-var-name out) (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
+                                    vartypes))
+  
   ast
   )
 
@@ -45,7 +48,8 @@
 
 ; this is the current pipeline
 
-(define ast (ml-lookup-by-name 'blur-1x3))
+;(define ast (ml-lookup-by-name 'blur-1x3))
+(define ast (ml-lookup-by-name 'bitwise-ops))
 
 (define-values (checked _) (typecheck ast))
 

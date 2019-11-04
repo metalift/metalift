@@ -129,6 +129,12 @@
 
  ; unary operators
  not
+
+ ; bitwise operators 
+ bitwise-ior
+ bitwise-and
+ bitwise-not
+ arithmetic-shift ; both left and right shifts
  
  ; racket functions
  printf

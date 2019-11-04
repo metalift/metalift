@@ -78,6 +78,8 @@
     [(ml-/ _ e1 e2) (set-union (used-vars e1) (used-vars e2))]
     [(ml-not _ e) (used-vars e)]
 
+    [(ml-bitop _ n es) (for/fold ([vs (set)]) ([e es]) (set-union vs (used-vars e)))]
+    
     [(ml-list _ es)
      (let ([r (for/list ([e es]) (used-vars e))])
        (if (empty? r) (set) (apply set-union r)))]

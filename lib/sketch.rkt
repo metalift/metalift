@@ -21,7 +21,8 @@
   (define-values (harness-args harness-inits) (parse-harness harness-vars))
     
   ; includes    
-  (fprintf out "include \"../../sketch/mllist.sk\";~n~n")
+  (fprintf out "include \"../../sketch/mllist.sk\";~n")
+  (fprintf out "include \"../../sketch/bitops.sk\";~n~n")
   
   ; decls
   (fprintf out (string-join decls "~n"))
@@ -133,7 +134,21 @@ eos
     [(ml-+ type e1 e2) (format "(~a + ~a)" (sk/expr e1) (sk/expr e2))]
     [(ml-- type e1 e2) (format "(~a - ~a)" (sk/expr e1) (sk/expr e2))]    
     [(ml-* type e1 e2) (format "(~a * ~a)" (sk/expr e1) (sk/expr e2))]
-    [(ml-/ type e1 e2) (format "(~a / ~a)" (sk/expr e1) (sk/expr e2))]    
+    [(ml-/ type e1 e2) (format "(~a / ~a)" (sk/expr e1) (sk/expr e2))]
+
+    ; ior, and, not, shift -- these are modeled as uninterpreted functions as in dexter
+    [(ml-bitop type n es)
+     (match n
+       ['ior (format "bor(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))]
+       ['and (format "band(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))]
+       ['not (format "bnot(~a)" (sk/expr (first es)))]
+       ['shift (if (ml-lit? (second es))
+                   (if (negative? (ml-lit-val (second es)))
+                       (format "ashr(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))
+                       (format "shl(~a, ~a)" (sk/expr (first es)) (sk/expr (second es))))
+                   (format "((~a < 0) ? ashr(~a, ~a) : shl(~a, ~a))"
+                           (sk/expr (second es)) (sk/expr (first es)) (sk/expr (second es)) (sk/expr (first es)) (sk/expr (second es))))]
+       [e (error (format "NYI: ~a" e))])]
 
     ; list functions   
     [(ml-list-append type l e) (format "list_append(~a, ~a)" (sk/expr l) (sk/expr e))]
@@ -160,6 +175,8 @@ eos
     [(? procedure? n) (sk/name (second (regexp-match #rx"procedure:(.*)>" (format "~a" n))))]
 
     ;[e #:when (ml-user? e) (sk/udo e)]
+
+    [e (error (format "used-vars NYI: ~a" e))]
     ))
 
 
