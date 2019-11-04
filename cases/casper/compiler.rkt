@@ -12,11 +12,16 @@
 
 (require "udos.rkt")
 
-
 (define (inv-search-space fn vars vartypes)
+  ; Get fn output
+  (define out (ml-decl-ret-var fn))
+  
+  (define grammar (to-ml #'(= out 1)))
+
+  (print grammar)
 
   ; return a type checked ML ast
-  (define-values (ast _) (typecheck (to-ml #'#t)))
+  (define-values (ast _) (typecheck grammar vartypes))
 
   ast
   )
@@ -31,39 +36,59 @@
   ast
   )
 
-; code generator (to be implemented)
+; Code Generator (to be implemented)
 (define (cg s) ; s = sketch/z3 returned answer
   s
   )
 
-; *** compiler main code below ***
+; *** Casper Pipeline ***
+
+;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
+
+; Turn off print statements
+(debug-parser #f)
+(debug-analysis #f)
+(debug-vc #f)
+(debug-sk-codegen #f)
 
 (require "tests.rkt")
 
-; ideally this would be the API we expose to users
-;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
+(define (casper)
+  ; Build AST of function
+  (define ast (ml-lookup-by-name 'sum))
 
-; this is the current pipeline
+  ; Run type-checker on AST
+  (define-values (checked _) (typecheck ast))
 
-(define ast (ml-lookup-by-name 'blur-1x3))
+  ; Build control-flow graph
+  (construct-cfg checked)
 
-(define-values (checked _) (typecheck ast))
+  ; Run live-vars analysis
+  (live-vars checked)
 
-(construct-cfg checked)
+  ; Compute verification conditions
+  (define vc (compute-vc checked))
 
-(live-vars checked)
+  ; Append DSL operators
+  (define udos-appended (append-udos vc))
 
-(define vc (compute-vc checked))
+  ; Stich search-space grammar
+  (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
-(define udos-appended (append-udos vc))
+  ; Compile SyGuS problem to Sketch
+  (define sk (to-sk space-defined))
+  
+  ; Write Sketch code to file
+  (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
-(define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
+  ; Run sketch with --bnd-inbits 2
+  ;(define choose-resolved (resolve-choose space-defined))
 
-; run sketch with --bnd-inbits 2
-(define sk (to-sk space-defined))
-(with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+  (void);sk;choose-resolved
+  )
 
-;(define choose-resolved (resolve-choose space-defined))
+(casper)
+
 ;
 ;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
 ;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))

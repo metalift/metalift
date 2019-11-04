@@ -74,4 +74,5 @@
 (provide define-space
          resolve-choose
          to-sk
+         debug-sk-codegen
          )

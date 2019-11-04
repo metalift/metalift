@@ -6,6 +6,11 @@
          "../lib/util.rkt"
          "ir.rkt")
 
+(define debug #f)
+
+(define (debug-parser (v boolean?))
+  (set! debug v))
+
 (define (to-ml/fn name fs ts body)
   (letrec ([formals (syntax->datum fs)]
            [translated-body (ml-block void? (map to-ml (syntax->list body)))]
@@ -17,7 +22,7 @@
            [decl (ml-decl type (syntax->datum name)
                           (map (lambda (name type) (ml-var type name)) formals formal-types)
                           rv translated-body)])
-    (printf "~n**** Translation to ML ****~n~a~n~n" decl)
+    (cond [debug (printf "~n**** Translation to ML ****~n~a~n~n" decl)])
     decl))
 
 (define (to-ml/axiom fs ts body)
@@ -112,6 +117,7 @@
     [integer? integer?]        
 
     ; bare vars are translated to void? types
+    [e #:when (ml-var? #'e) #'e]
     [e #:when (identifier? #'e) (ml-var void? (syntax->datum #'e))]
     
     ; literals
@@ -128,4 +134,4 @@
 
     ))
 
-(provide to-ml)
+(provide to-ml debug-parser)

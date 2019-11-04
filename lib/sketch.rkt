@@ -6,8 +6,13 @@
          "../lib/util.rkt"
          syntax/parse)
 
+(define debug #f)
+
+(define (debug-sk-codegen (v boolean?))
+  (set! debug v))
+
 (define (to-sk p)
-  (printf "**** Converting to sketch~n")
+  (cond [debug (printf "**** Converting to sketch~n")])
 
   (define out (open-output-string))        
   (define decls (for/list ([d (ml-prog-decls p)]) (sk/decl d)))
@@ -104,7 +109,7 @@ eos
 
 (define (sk/expr e)
 
-  (printf "**** Parsing to sk: ~a~n~n" e)
+  (cond [debug (printf "**** Parsing to sk: ~a~n~n" e)])
   (match e
 
     [(ml-assert type e) (format "assert(~a)" (sk/expr e))]
@@ -213,4 +218,4 @@ eos
 
 
 
-(provide to-sk)
+(provide to-sk debug-sk-codegen)

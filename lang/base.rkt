@@ -133,6 +133,9 @@
  ; racket functions
  printf
  for/list
+ random   ; just for writing driver code in test files
+ apply    ; just for writing driver code in test files
+ 
 
  ; list operations 
  cons

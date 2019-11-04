@@ -97,6 +97,10 @@
 
 
 ;; Live variable analysis
+(define debug #f)
+
+(define (debug-analysis (v boolean?))
+  (set! debug v))
 
 ; maps expr to list of live vars
 (define live-out (make-hash)) ; a mutable hash
@@ -105,8 +109,7 @@
 (define (lookup-live-in e) (hash-ref live-in e))
 
 (define (live-vars code)
-
-  (printf "live vars analysis on ~a~n~n" code)
+  (cond [debug (printf "live vars analysis on ~a~n~n" code)])
 
   (define (hash-check-set h k v)
     (if (hash-has-key? h k)
@@ -195,7 +198,7 @@
 
 ; returns a pair of (type for code, context that stores type info)
 (define (typecheck code [ctx null])
-  (printf "~n**** Type inference on ~a ctx is ~a****~n" code ctx)
+  (cond [debug (printf "~n**** Type inference on ~a ctx is ~a****~n" code ctx)])
   (match code
 
     [(ml-lit t v) (values code ctx)]
@@ -375,4 +378,4 @@
     [e (error (format "typecheck NYI: ~a" e))]    
     ))
 
-(provide live-vars lookup-live-in typecheck construct-cfg)
+(provide live-vars lookup-live-in typecheck construct-cfg debug-analysis)

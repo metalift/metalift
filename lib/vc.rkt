@@ -11,18 +11,23 @@
 
 (require "analysis.rkt")
 
+(define debug #f)
+
+(define (debug-vc (v boolean?))
+  (set! debug v))
+
 ; data structure to store the current VC being computed
 (struct state (vc decls asserts) #:transparent
   #:methods gen:custom-write
   [(define (write-proc self port mode)
-     (printf "VC state:~ndecls:~n")
+     (cond [debug (printf "VC state:~ndecls:~n")])
      (for ([d (state-decls self)]) (fprintf port "~a~n~n" d))
-     (printf "~nasserts:~n")
+     (cond [debug (printf "~nasserts:~n")])
      (for ([a (state-asserts self)]) (fprintf port "~a~n~n" a)))]
 )
 
 (define (vc code state)
-  (printf "computing vc on ~a~ncurrent vc is ~a ~n~n" code state)
+  (cond [debug (printf "computing vc on ~a~ncurrent vc is ~a ~n~n" code state)])
   (match code
 
     ; base ML statements
@@ -106,7 +111,7 @@
     
 ; replace v with e in vc
 (define (replace v e vc)
-  (printf "replace ~a with ~a in ~a~n~n" v e vc)
+  (cond [debug (printf "replace ~a with ~a in ~a~n~n" v e vc)])
   
   (match vc
     [(ml-assert type ex) (ml-assert type (replace v e ex))]
@@ -148,9 +153,9 @@
 
 ; take in a ml-decl instead as the input needs to have type checked
 ;(define (compute-vc fn)
-(define (compute-vc fndecl) 
+(define (compute-vc fndecl)
 
-  (printf "~n**** Begin VC computation on ~a ****~n" (ml-decl-name fndecl))
+  (cond [debug (printf "~n**** Begin VC computation on ~a ****~n" (ml-decl-name fndecl))])
 
   ; (struct ml-decl expr (name formals ret-var body))
   (define decl (ml-decl (ml-expr-type fndecl) (ml-decl-name fndecl)
@@ -171,4 +176,4 @@
 (define (append-udos p)
   (ml-prog (append (ml-prog-decls p) (ml-udos)) (ml-prog-asserts p) (ml-prog-axioms p)))
 
-(provide compute-vc append-udos)
+(provide compute-vc append-udos debug-vc)
