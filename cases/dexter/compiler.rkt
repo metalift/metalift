@@ -12,62 +12,83 @@
 
 (require "udos.rkt")
 
-
 (define (inv-search-space fn vars vartypes)
+  ; Get fn output
+  (define out (ml-decl-ret-var fn))
+  
+  (define grammar (to-ml #'(= out 1)))
+
+  (print grammar)
 
   ; return a type checked ML ast
-  (define-values (ast _) (typecheck (to-ml #'#t)))
+  (define-values (ast _) (typecheck grammar vartypes))
 
   ast
   )
 
 
 ; fn is a ml-decl
-(define (pc-search-space fn vars vartypes)
+(define (pc-search-space fn vars)
   
-  (define out (ml-decl-ret-var fn))
+  ; return a type checked ML ast
+  (define-values (ast _) (typecheck (to-ml #'#t)))
 
-  ; postcondition for bitwise-ops
-  (define-values (ast _) (typecheck (to-ml #`(= #,(ml-var-name out) (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
-                                    vartypes))
-  
   ast
   )
 
-; code generator (to be implemented)
+; Code Generator (to be implemented)
 (define (cg s) ; s = sketch/z3 returned answer
   s
   )
 
-; *** compiler main code below ***
+; *** Dexter Pipeline ***
 
-(require "tests.rkt")
-
-; ideally this would be the API we expose to users
 ;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
 
-; this is the current pipeline
+; Turn off print statements
+(debug-parser #f)
+(debug-analysis #f)
+(debug-vc #f)
+(debug-sk-codegen #f)
 
-;(define ast (ml-lookup-by-name 'blur-1x3))
-(define ast (ml-lookup-by-name 'bitwise-ops))
+(require "benchmarks/blend.rkt")
 
-(define-values (checked _) (typecheck ast))
+(define (dexter)
+  ; Build AST of function
+  (define ast (ml-lookup-by-name 'normalBlendf))
 
-(construct-cfg checked)
+  ; Run type-checker on AST
+  (define-values (checked _) (typecheck ast))
 
-(live-vars checked)
+  ; Build control-flow graph
+  (construct-cfg checked)
 
-(define vc (compute-vc checked))
+  ; Run live-vars analysis
+  (live-vars checked)
 
-(define udos-appended (append-udos vc))
+  ; Compute verification conditions
+  (define vc (compute-vc checked))
 
-(define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
+  ; Append DSL operators
+  (define udos-appended (append-udos vc))
 
-; run sketch with --bnd-inbits 2
-(define sk (to-sk space-defined))
-(with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+  ; Stich search-space grammar
+  (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
-;(define choose-resolved (resolve-choose space-defined))
+  ; Compile SyGuS problem to Sketch
+  (define sk (to-sk space-defined))
+  
+  ; Write Sketch code to file
+  (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+
+  ; Run sketch with --bnd-inbits 2
+  ;(define choose-resolved (resolve-choose space-defined))
+
+  (void);sk;choose-resolved
+  )
+
+(dexter)
+
 ;
 ;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
 ;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
