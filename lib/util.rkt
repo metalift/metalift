@@ -22,6 +22,11 @@
   ;  (eval t)))
   t)
 
+(define (is-numeric? t)
+  (or (equal? t integer?)
+      (equal? t int8_t?) (equal? t int16_t?) (equal? t int32_t?)
+      (equal? t uint8_t?) (equal? t uint16_t?) (equal? t uint32_t?)))
+
 (define-syntax and-&&
   (syntax-rules ()
     [(_) #t]
@@ -115,4 +120,5 @@
          eval-type
          used-vars
          ret-var
-         and-&& or-|| or-||/list)
+         and-&& or-|| or-||/list
+         is-numeric?)

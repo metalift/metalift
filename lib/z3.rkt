@@ -113,7 +113,7 @@
         
     [(ml-var _ name) (format "~a" (z3/name name))]
     [(ml-lit t v) (match t
-                    [(== integer?) (format "~a" v)]
+                    [e #:when (is-numeric? e) (format "~a" v)]
                     [(== boolean?) (if (equal? v #t) "true" "false")]
                     [_ (error (format "unknown literal type: ~a~n" e))])]
 
@@ -128,7 +128,7 @@
     ['integer? "Int"]
     ['boolean? "Bool"]
     [(== boolean?) "Bool"] ; vc.rkt uses boolean? explicitly
-    [(== integer?) "Int"] ; vc.rkt uses boolean? explicitly
+    [e #:when (is-numeric? e) "Int"] ; vc.rkt uses boolean? explicitly
     [(ml-listof type) (format "(MLList ~a)" (z3/type type))]
     ))
 

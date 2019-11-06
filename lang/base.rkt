@@ -4,7 +4,8 @@
 ; programs written in this language are executed as normal racket code
 
 (require (for-syntax syntax/parse (only-in "../lib/util.rkt" ret-var))
-         "parser.rkt")
+         "parser.rkt"
+         (only-in "ir.rkt" uint8_t?))
 
 ; ML specific forms
 
@@ -158,4 +159,5 @@
  integer?
  boolean?
  listof
+ ;uint8_t?
  )

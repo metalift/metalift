@@ -38,13 +38,14 @@
 )
 
 
+
 (define (parse-harness vars)
   
   (define (init-decl v)
     (let ([name (ml-var-name v)] [type (ml-expr-type v)])
       (match type
         ; XXX get rid of 'integer?
-        [(or (== integer?) (== boolean?) (== 'integer?) (== 'boolean?)) (format "~a ~a" (sk/type type) (sk/name name))]
+        [e #:when (or (equal? boolean? e) (is-numeric? e) (equal? 'integer? e) (equal? 'boolean? e)) (format "~a ~a" (sk/type type) (sk/name name))]
         [(ml-listof integer?) 
         ;[(list 'listof 'integer?)
          (let ([size (format "~a_sz" (sk/name name))]
@@ -56,7 +57,7 @@
     (let ([name (ml-var-name v)] [type (ml-expr-type v)])
       (match type
         ; XXX get rid of 'integer?
-        [(or (== integer?) (== boolean?) (== 'integer?) (== 'boolean?)) ""]
+        [e #:when (or (equal? boolean? e) (is-numeric? e) (equal? 'integer? e) (equal? 'boolean? e)) ""]
         [(ml-listof integer?) 
         ;[(list 'listof 'integer?)
          (format "  ~a ~a = make_MLList(~a_sz, ~a_vals);" (sk/type type) (sk/name name) (sk/name name) (sk/name name))]
@@ -209,7 +210,7 @@ eos
     ['integer? "int"]
     ['boolean? "bit"]
     [(== boolean?) "bit"] ; vc.rkt uses boolean? explicitly
-    [(== integer?) "int"] ; vc.rkt uses boolean? explicitly
+    [e #:when (is-numeric? e) "int"] ; vc.rkt uses boolean? explicitly
     [(ml-listof type) (format "MLList<~a>" (sk/type type))]
     ;[(list 'listof 'integer?) "MLList<int>"]
     ;[(list 'listof type) (printf "MLList<~a>" (sk/type type))]

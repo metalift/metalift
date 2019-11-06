@@ -11,6 +11,14 @@
 
 (struct ml-fn-type (formals ret-type) #:transparent)
 
+; singletons for the int types
+(define int8_t? (let () (struct int8_t () #:transparent) (int8_t)))
+(define int16_t? (let () (struct int16_t () #:transparent) (int16_t)))
+(define int32_t? (let () (struct int32_t () #:transparent) (int32_t)))
+(define uint8_t? (let () (struct uint8_t () #:transparent) (uint8_t)))
+(define uint16_t? (let () (struct uint16_t () #:transparent) (uint16_t)))
+(define uint32_t? (let () (struct uint32_t () #:transparent) (uint32_t)))
+
 ;(struct expr ([type #:auto]) #:auto-value void? #:mutable #:transparent)
 (struct expr (type) #:mutable #:transparent)
 

@@ -46,7 +46,7 @@
                       bitwise-ior bitwise-and bitwise-not arithmetic-shift 
                       printf
                       cons empty length list list-ref list-set list-tail list-take list-equal ml-append                   
-                      -> integer? boolean? listof)
+                      -> integer? boolean? listof uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
 
     ; racket base functions
 
@@ -121,7 +121,13 @@
     [(listof t) (ml-listof (to-ml #'t))]
     [(name:id t:expr) (to-ml #'t)] ; drop the name 
     [boolean? boolean?]
-    [integer? integer?]        
+    [integer? integer?]
+    [int8_t? int8_t?]
+    [int16_t? int16_t?]
+    [int32_t? int32_t?]
+    [uint8_t? uint8_t?]
+    [uint16_t? uint16_t?]
+    [uint32_t? uint32_t?]
 
     ; bare vars are translated to void? types
     [e #:when (ml-var? #'e) #'e]
