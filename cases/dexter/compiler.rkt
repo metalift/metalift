@@ -28,7 +28,7 @@
 
 
 ; fn is a ml-decl
-(define (pc-search-space fn vars)
+(define (pc-search-space fn vars vartypes)
   
   ; return a type checked ML ast
   (define-values (ast _) (typecheck (to-ml #'#t)))
@@ -51,11 +51,12 @@
 (debug-vc #f)
 (debug-sk-codegen #f)
 
-(require "benchmarks/blend.rkt")
+(require "tests.rkt")
 
 (define (dexter)
+  
   ; Build AST of function
-  (define ast (ml-lookup-by-name 'normalBlendf))
+  (define ast (ml-lookup-by-name 'int-types))
 
   ; Run type-checker on AST
   (define-values (checked _) (typecheck ast))
@@ -85,12 +86,12 @@
   ;(define choose-resolved (resolve-choose space-defined))
 
   (void);sk;choose-resolved
+
+  ; should pass choose-resolved instead
+  ;(define z3 (to-z3 space-defined "../../z3/mllist.z3"))
+  ;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
+
+  ;(define final (codegen cg choose-resolved))
   )
 
 (dexter)
-
-;
-;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
-;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
-;
-;(define final (codegen cg choose-resolved))
