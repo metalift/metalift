@@ -1,19 +1,20 @@
 #lang metalift
 
-; Utility Functions
+;; Utility Functions
 (define (Mul8x8Div255 a b)
-  (-> integer? integer? (out integer?))
-  (/ (* a b) 128))
+  (->  uint8_t?  uint8_t? (out  uint8_t?))
+  (/ (* a b) 255))
 
 (define (Screen8x8 a b)
-  (-> integer? integer? (out integer?))
+  (->  uint8_t?  uint8_t? (out  uint8_t?))
   (- (+ a b) (Mul8x8Div255 a b)))
 
+;; Normal blend for float types
 (define (normalBlendf base active opacity pixels)
-  (-> (listof floatnum?) (listof floatnum?) floatnum? integer? (out ( floatnum?)))
+  (-> (listof floatnum?) (listof floatnum?) floatnum? integer? (out (list floatnum?)))
 
   ; Init output with 0s
-  (set! out (list-gen pixels 0.0))
+  (set! out (for/list ([i pixels]) 0.0))
 
   ; Compute blend
   (define pixel integer? 0)
@@ -25,55 +26,41 @@
          )
   )
 
-;(define (blur-1x3 in width height)
-;  ; right now ML expects the output variable to be explicitly named
-;  (-> (listof (listof integer?)) integer? integer? (out (listof (listof integer?))))
-;
-;  ; out = [ [0,0,0], [0,0,0], [0,0,0] ]
-;  (set! out (list (list 0 0 0) (list 0 0 0) (list 0 0 0)))
-;  (define i integer? 0)
-;
-;  (while (< i width)
-;         (define j integer? 0)
-;         (while (< j height)
-;                ; v1 = in[i][j]
-;                (define v1 integer? (list-ref (list-ref in i) j))
-;                (define v2 integer? 0)
-;                (define v3 integer? 0)
-;                
-;                ; v2 = in[i][j+1] if within bounds
-;                (if (< (+ j 1) height)
-;                    (set! v2 (list-ref (list-ref in i) (+ j 1)))
-;                    (set! v2 0))
-;                
-;                ; v3 = in[i][j-1] if within bounds
-;                (if (>= (- j 1) 0)
-;                    (set! v3 (list-ref (list-ref in i) (- j 1)))
-;                    (set! v3 0))
-;                
-;                ; out[i][j] = (v1+v2+v3)/3
-;                (set! out (list-set out i (list-set (list-ref out i) j  (/ (+ (+ v1 v2) v3) 3.0))))
-;                
-;                (set! j (+ j 1))
-;                )
-;         (set! i (+ i 1))
-;         )
-;  
-;  ; returning the output variable is implict
-;  )
+;; Normal blend for uint8_t types
+(define (normalBlend8 base active opacity pixels)
+  (-> (listof uint8_t?) (listof uint8_t?) uint8_t? integer? (out (list uint8_t?)))
 
-; test code below
+  ; Init output with 0s
+  (set! out (for/list ([i pixels]) 0))
+
+  ; Compute blend
+  (define pixel integer? 0)
+  (while (< pixel pixels)
+         (define v1 uint8_t? (Mul8x8Div255 opacity (list-ref active pixel)))
+         (define v2 uint8_t? (Mul8x8Div255 (- 255 opacity) (list-ref base pixel)))
+         (set! out (list-set out pixel (+ v1 v2)))
+         (set! pixel (+ pixel 1))
+         )
+  )
+
+;; Test code below
 (define width integer? 3)
 (define height integer? 3)
+(define pixels integer? 9)
 
-; in = [ [1,1,1], [1,1,1], [1,1,1] ]
-; for/list is currently not supported inside code to be lifted, but works for driver code like below
-(define in (listof (listof integer?)) (for/list ([x width]) (for/list ([y height]) 1)))
+(define basef (listof integer?) (for/list ([x pixels]) 1.0))
+(define activef (listof integer?) (for/list ([x pixels]) 2.0))
+(define opacityf integer? 0.5)
 
-;(blur-1x3 in 3 3)
+(define base8 (listof integer?) (for/list ([x pixels]) 100))
+(define active8 (listof integer?) (for/list ([x pixels]) 200))
+(define opacity8 integer? 128)
 
+(normalBlendf basef activef opacityf pixels)
+(normalBlend8 base8 active8 opacity8 pixels)
+(Mul8x8Div255 128 100)
 
-(define (bitwise-ops i) (-> integer? (out integer?))
-  (set! out (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
+;(define (bitwise-ops i) (-> integer? (out integer?))
+ ; (set! out (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
 
-(bitwise-ops 1) ; ~( ((1&1) | 1) << 2 ) = -5
+;(bitwise-ops 1) ; ~( ((1&1) | 1) << 2 ) = -5
