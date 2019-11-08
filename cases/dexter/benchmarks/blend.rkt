@@ -43,6 +43,27 @@
          )
   )
 
+;; Darken blend (lists interpreted as 2D buffers + contains conditionals)
+(define (darkenBlend8 base active width height)
+  (-> (listof uint8_t?) (listof uint8_t?) integer? integer? (out (list uint8_t?)))
+
+  ; Init output with 0s
+  (set! out (for/list ([i (* width height)]) 0))
+
+  ; Compute blend
+  (define row integer? 0)
+  (while (< row height)
+         (define col integer? 0)
+         (while (< col width)
+                (define a uint8_t? (list-ref active (+ (* row width) col)))
+                (define b uint8_t? (list-ref base (+ (* row width) col)))
+                (set! out (list-set out (+ (* row width) col) (if (< a b) a b)))
+                (set! col (+ col 1))
+                )
+         (set! row (+ row 1))
+         )
+  )
+
 ;; Test code below
 (define width integer? 3)
 (define height integer? 3)
@@ -56,9 +77,12 @@
 (define active8 (listof uint8_t?) (for/list ([x pixels]) 200))
 (define opacity8 uint8_t? 128)
 
+(define base8_2d (listof uint8_t?) (for/list ([x (* width height)]) 100))
+(define active8_2d (listof uint8_t?) (for/list ([x (* width height)]) 200))
+
 (normalBlendf basef activef opacityf pixels)
 (normalBlend8 base8 active8 opacity8 pixels)
-(Mul8x8Div255 opacity8 opacity8)
+(darkenBlend8 base8_2d active8_2d width height)
 
 ;(define (bitwise-ops i) (-> integer? (out integer?))
  ; (set! out (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
