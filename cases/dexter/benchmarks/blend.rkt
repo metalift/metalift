@@ -2,8 +2,8 @@
 
 ;; Utility Functions
 (define (Mul8x8Div255 a b)
-  (->  uint8_t?  uint8_t? (out  uint8_t?))
-  (/ (* a b) 255))
+  (->  uint8_t?  uint8_t? (out uint8_t?))
+  (set! out (/ (* a b) 255)))
 
 (define (Screen8x8 a b)
   (->  uint8_t?  uint8_t? (out  uint8_t?))
@@ -48,17 +48,17 @@
 (define height integer? 3)
 (define pixels integer? 9)
 
-(define basef (listof integer?) (for/list ([x pixels]) 1.0))
-(define activef (listof integer?) (for/list ([x pixels]) 2.0))
-(define opacityf integer? 0.5)
+(define basef (listof floatnum?) (for/list ([x pixels]) 1.0))
+(define activef (listof floatnum?) (for/list ([x pixels]) 2.0))
+(define opacityf floatnum? 0.5)
 
-(define base8 (listof integer?) (for/list ([x pixels]) 100))
-(define active8 (listof integer?) (for/list ([x pixels]) 200))
-(define opacity8 integer? 128)
+(define base8 (listof uint8_t?) (for/list ([x pixels]) 100))
+(define active8 (listof uint8_t?) (for/list ([x pixels]) 200))
+(define opacity8 uint8_t? 128)
 
 (normalBlendf basef activef opacityf pixels)
 (normalBlend8 base8 active8 opacity8 pixels)
-(Mul8x8Div255 128 100)
+(Mul8x8Div255 opacity8 opacity8)
 
 ;(define (bitwise-ops i) (-> integer? (out integer?))
  ; (set! out (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))
