@@ -158,6 +158,6 @@
  ->
  integer?
  boolean?
+ flonum?
  listof
- ;uint8_t?
  )
