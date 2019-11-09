@@ -295,21 +295,27 @@
                           (error (format "types don't match: got ~a and ~a  haha~a~n" new-e1-type new-e2-type (is-numeric? new-e1-type)))))]
 
     [(ml-- _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-- integer? new-e1 new-e2) e2-ctx)
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-- new-e1-type new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
     
     [(ml-* _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-* integer? new-e1 new-e2) e2-ctx)
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-* new-e1-type new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
     
     [(ml-/ _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-/ integer? new-e1 new-e2) e2-ctx)
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-/ new-e1-type new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
 
     ; unary operators   
