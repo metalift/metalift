@@ -50,8 +50,13 @@
                       -> boolean? listof integer? flonum? uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
 
     ; racket base functions
-    [(module name lang (#%module-begin body)) (to-ml #'body)]
-
+    [(module name lang (#%module-begin terms ...))
+     (define fns (make-hash))
+     (for ([t (syntax->list #'(terms ...))])
+       (define tr (to-ml t))
+       (cond [(ml-decl? tr) (hash-set! fns (ml-decl-name tr) tr)])) ; other terms are ignored for now
+     fns]
+       
     ; require  XXX need to import        
     [(define-udo (name fs ...) ts body ...)
      (to-ml/fn #'name #'(fs ...) #'ts #'(body ...))]
@@ -153,22 +158,9 @@
 
     ))
 
+; main entry point to the parser
 (define (parse filename)
   (read-accept-reader #t)    
-  (define stx (read-syntax "input" (open-input-file filename)))
+  (to-ml (read-syntax "input" (open-input-file filename))))
 
-
-  (to-ml stx)
-  )
-
-(define (qun stx)
-  (syntax-parse stx
-    #:datum-literals (module #%module-begin)
-    [(module name lang (#%module-begin body)) (to-ml #'body)]))
-    ;[(#%module-begin body) (to-ml #'body)]))
-
-
-(parse "/Users/akcheung/proj/metalift/cases/dexter/benchmarks/blend.rkt")
-
-
-(provide to-ml debug-parser)
+(provide to-ml parse debug-parser)

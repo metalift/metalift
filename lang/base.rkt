@@ -37,16 +37,17 @@
 (define (ml-list-empty t)
   empty)
 
+; deprecated
 ; stores all fns that have been defined for compute-vc
 ; maps function name (a datum) to ML ast representing that function
-(define fns (make-hash))
+;(define fns (make-hash))
 
-(define (ml-lookup-by-name name)
-  (hash-ref fns name))
+;(define (ml-lookup-by-name name)
+;  (hash-ref fns name))
 
-(define (ml-lookup-by-fn fn)
-  (let ([name (string->symbol (second (regexp-match #rx"procedure:(.*)>" (format "~a" fn))))])
-  (ml-lookup-by-name name)))
+;(define (ml-lookup-by-fn fn)
+;  (let ([name (string->symbol (second (regexp-match #rx"procedure:(.*)>" (format "~a" fn))))])
+;  (ml-lookup-by-name name)))
 
 ; define the function and also store its def in the fns hash
 (define-syntax (ml-define stx)
@@ -57,7 +58,7 @@
                             #'(define (name formals ...) body ...)
                             #`(define (name formals ...) (begin (define #,rv 0) body ... #,rv))))        
      #`(begin
-         (hash-set! fns (syntax->datum #'name) (to-ml #'(ml-define (name formals ...) type body ...)))         
+         ;(hash-set! fns (syntax->datum #'name) (to-ml #'(ml-define (name formals ...) type body ...)))         
          #,translated)]
          
     [(ml-define name:id type:expr e:expr) #'(define name e)]))
@@ -102,8 +103,8 @@
 ; list of functions supported by metalift
 (provide
 
- ml-lookup-by-name
- ml-lookup-by-fn
+ ;ml-lookup-by-name
+ ;ml-lookup-by-fn
  ml-lookup-udo-by-name
  ml-lookup-udo-by-fn
  ml-udos
