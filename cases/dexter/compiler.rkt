@@ -65,22 +65,22 @@
   (construct-cfg checked)
 
   ; Run live-vars analysis
-  (live-vars checked)
+  ;(live-vars checked)
 
   ; Compute verification conditions
-  (define vc (compute-vc checked))
+  ;(define vc (compute-vc checked))
 
   ; Append DSL operators
-  (define udos-appended (append-udos vc))
+  ;(define udos-appended (append-udos vc))
 
   ; Stich search-space grammar
-  (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
+  ;(define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
   ; Compile SyGuS problem to Sketch
-  (define sk (to-sk space-defined))
+  ;(define sk (to-sk space-defined))
   
   ; Write Sketch code to file
-  (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+  ;(with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
   ; Run sketch with --bnd-inbits 2
   ;(define choose-resolved (resolve-choose space-defined))
@@ -94,6 +94,6 @@
   ;(define final (codegen cg choose-resolved))
   )
 
-(dexter 'normalBlend8)
+(dexter 'normalBlendf)
 ;(dexter 'normalBlend8)
 ;(dexter 'darkenBlend8)
