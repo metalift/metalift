@@ -140,6 +140,7 @@
     
     ; literals
     [e #:when (integer? (syntax->datum #'e)) (ml-lit integer? (syntax->datum #'e))]
+    [e #:when (flonum? (syntax->datum #'e)) (ml-lit flonum? (syntax->datum #'e))]
     [e #:when (boolean? (syntax->datum #'e)) (ml-lit boolean? (syntax->datum #'e))]
     ;[e #:when (or (number? (syntax->datum #'e)) (identifier? #'e) (boolean? (syntax->datum #'e)))
     ;  (syntax->datum #'e)]

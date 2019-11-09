@@ -53,10 +53,10 @@
 
 (require "benchmarks/blend.rkt")
 
-(define (dexter)
+(define (dexter fn)
   
   ; Build AST of function
-  (define ast (ml-lookup-by-name 'normalBlend8))
+  (define ast (ml-lookup-by-name fn))
 
   ; Run type-checker on AST
   (define-values (checked _) (typecheck ast))
@@ -83,7 +83,7 @@
   (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
   ; Run sketch with --bnd-inbits 2
-  ;(define choose-resolved (resolve-choose space-defined))
+  (define choose-resolved (resolve-choose space-defined))
 
   (void);sk;choose-resolved
 
@@ -94,4 +94,6 @@
   ;(define final (codegen cg choose-resolved))
   )
 
-(dexter)
+(dexter 'normalBlendf)
+;(dexter 'normalBlend8)
+;(dexter 'darkenBlend8)
