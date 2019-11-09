@@ -10,11 +10,12 @@
   (- (+ a b) (Mul8x8Div255 a b)))
 
 ;; Normal blend for float types
-(define (normalBlendf base active opacity pixels)
-  (-> (listof floatnum?) (listof floatnum?) floatnum? integer? (out (list floatnum?)))
+(define (normalBlendf base active blended opacity pixels)
+  (-> (listof floatnum?) (listof floatnum?) (listof floatnum?) floatnum? integer? (out (list floatnum?)))
 
   ; Init output with 0s
-  (set! out (for/list ([i pixels]) 0.0))
+  ;(set! out (for/list ([i pixels]) 0.0))
+  (set! out blended)
 
   ; Compute blend
   (define pixel integer? 0)
@@ -27,11 +28,12 @@
   )
 
 ;; Normal blend for uint8_t types
-(define (normalBlend8 base active opacity pixels)
-  (-> (listof uint8_t?) (listof uint8_t?) uint8_t? integer? (out (list uint8_t?)))
+(define (normalBlend8 base active blended opacity pixels)
+  (-> (listof uint8_t?) (listof uint8_t?) (listof uint8_t?) uint8_t? integer? (out (list uint8_t?)))
 
   ; Init output with 0s
-  (set! out (for/list ([i pixels]) 0))
+  ;(set! out (for/list ([i pixels]) 0))
+  (set! out blended)
 
   ; Compute blend
   (define pixel integer? 0)
@@ -71,18 +73,20 @@
 
 (define basef (listof floatnum?) (for/list ([x pixels]) 1.0))
 (define activef (listof floatnum?) (for/list ([x pixels]) 2.0))
+(define outf (listof floatnum?) (for/list ([x pixels]) 0.1))
 (define opacityf floatnum? 0.5)
 
 (define base8 (listof uint8_t?) (for/list ([x pixels]) 100))
 (define active8 (listof uint8_t?) (for/list ([x pixels]) 200))
+(define out8 (listof uint8_t?) (for/list ([x pixels]) 0))
 (define opacity8 uint8_t? 128)
 
 (define base8_2d (listof uint8_t?) (for/list ([x (* width height)]) 100))
 (define active8_2d (listof uint8_t?) (for/list ([x (* width height)]) 200))
 
-(normalBlendf basef activef opacityf pixels)
-(normalBlend8 base8 active8 opacity8 pixels)
-(darkenBlend8 base8_2d active8_2d width height)
+;(normalBlendf basef activef outf opacityf pixels)
+;(normalBlend8 base8 active8 out8 opacity8 pixels)
+;(darkenBlend8 base8_2d active8_2d width height)
 
 ;(define (bitwise-ops i) (-> integer? (out integer?))
  ; (set! out (bitwise-not (arithmetic-shift (bitwise-ior i (bitwise-and i i)) 2))))

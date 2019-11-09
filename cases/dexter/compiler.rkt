@@ -51,12 +51,12 @@
 (debug-vc #f)
 (debug-sk-codegen #f)
 
-(require "tests.rkt")
+(require "benchmarks/blend.rkt")
 
-(define (dexter)
+(define (dexter fn)
   
   ; Build AST of function
-  (define ast (ml-lookup-by-name 'int-types))
+  (define ast (ml-lookup-by-name fn))
 
   ; Run type-checker on AST
   (define-values (checked _) (typecheck ast))
@@ -94,4 +94,6 @@
   ;(define final (codegen cg choose-resolved))
   )
 
-(dexter)
+(dexter 'normalBlend8)
+;(dexter 'normalBlend8)
+;(dexter 'darkenBlend8)
