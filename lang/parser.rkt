@@ -11,6 +11,9 @@
 (define (debug-parser (v boolean?))
   (set! debug v))
 
+
+
+
 (define (to-ml/fn name fs ts body)
   (letrec ([formals (syntax->datum fs)]
            [translated-body (ml-block void? (map to-ml (syntax->list body)))]
@@ -35,7 +38,7 @@
 ; convert the input ML language into the ML IR represented using structs
 (define (to-ml stx)  ;[fns known-fns])
   (syntax-parse stx
-    #:datum-literals (require define define-udo define-axiom
+    #:datum-literals (require define define-udo define-axiom module #%module-begin
                       if while set!
                       < <= > >= =
                       and or
@@ -47,9 +50,9 @@
                       -> boolean? listof integer? flonum? uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
 
     ; racket base functions
+    [(module name lang (#%module-begin body)) (to-ml #'body)]
 
-    
-    ; require  XXX need to import   
+    ; require  XXX need to import        
     [(define-udo (name fs ...) ts body ...)
      (to-ml/fn #'name #'(fs ...) #'ts #'(body ...))]
 
@@ -148,5 +151,23 @@
     [e (error (format "to-ml NYI: ~a" #'e))]
 
     ))
+
+(define (parse filename)
+  (read-accept-reader #t)    
+  (define stx (read-syntax "input" (open-input-file filename)))
+
+
+  (to-ml stx)
+  )
+
+(define (qun stx)
+  (syntax-parse stx
+    #:datum-literals (module #%module-begin)
+    [(module name lang (#%module-begin body)) (to-ml #'body)]))
+    ;[(#%module-begin body) (to-ml #'body)]))
+
+
+(parse "/Users/akcheung/proj/metalift/cases/dexter/benchmarks/blend.rkt")
+
 
 (provide to-ml debug-parser)
