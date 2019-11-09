@@ -32,10 +32,8 @@
 
     (ml-axiom (map (lambda (name type) (ml-var type name)) formals formal-types) translated-body)))
 
-
 ; convert the input ML language into the ML IR represented using structs
 (define (to-ml stx)  ;[fns known-fns])
-
   (syntax-parse stx
     #:datum-literals (require define define-udo define-axiom
                       if while set!
@@ -46,7 +44,7 @@
                       bitwise-ior bitwise-and bitwise-not arithmetic-shift 
                       printf
                       cons empty length list list-ref list-set list-tail list-take list-equal ml-append                   
-                      -> integer? boolean? listof uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
+                      -> boolean? listof integer? flonum? uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
 
     ; racket base functions
 
@@ -116,11 +114,15 @@
     ;[(-> ts ...) (map to-ml (syntax->list #'(ts ...)))]
     [(-> ts ...)
      (let ([types (for/list ([t (syntax->list #'(ts ...))]) (to-ml t))])
+       ; check that the types are indeed types
+       (for ([t types]) (cond [(not (is-type? t)) (error (format "~a is not a type in ~a~n" t stx))]))
        (ml-fn-type (drop-right types 1) (last types)))]
 
     [(listof t) (ml-listof (to-ml #'t))]
-    [(name:id t:expr) (to-ml #'t)] ; drop the name 
+    [(name:id t:expr) (to-ml #'t)] ; drop the name
+    
     [boolean? boolean?]
+    [flonum? flonum?]
     [integer? integer?]
     [int8_t? int8_t?]
     [int16_t? int16_t?]
@@ -128,7 +130,7 @@
     [uint8_t? uint8_t?]
     [uint16_t? uint16_t?]
     [uint32_t? uint32_t?]
-
+    
     ; bare vars are translated to void? types
     [e #:when (ml-var? #'e) #'e]
     [e #:when (identifier? #'e) (ml-var void? (syntax->datum #'e))]
@@ -138,7 +140,7 @@
     [e #:when (boolean? (syntax->datum #'e)) (ml-lit boolean? (syntax->datum #'e))]
     ;[e #:when (or (number? (syntax->datum #'e)) (identifier? #'e) (boolean? (syntax->datum #'e)))
     ;  (syntax->datum #'e)]
-
+    
     ; parsed as function call last, after everything more specific has been matched
     [(name args ...) ;#:when (set-member? known-fns (syntax->datum #'name))
                      (ml-call boolean? (syntax->datum #'name) (map to-ml (syntax->list #'(args ...))))]

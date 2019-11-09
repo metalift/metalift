@@ -158,5 +158,6 @@
  ->
  integer?
  boolean?
+ flonum?
  listof
  )

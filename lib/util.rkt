@@ -23,9 +23,14 @@
   t)
 
 (define (is-numeric? t)
-  (or (equal? t integer?)
+  (or (equal? t integer?) (equal? t flonum?)
       (equal? t int8_t?) (equal? t int16_t?) (equal? t int32_t?)
       (equal? t uint8_t?) (equal? t uint16_t?) (equal? t uint32_t?)))
+
+; XXX hack for now
+(define (is-type? t)
+  (if (ml-listof? t) (is-type? (ml-listof-type t))
+      (or (equal? t boolean?) (is-numeric? t))))
 
 (define-syntax and-&&
   (syntax-rules ()
@@ -121,4 +126,5 @@
          used-vars
          ret-var
          and-&& or-|| or-||/list
-         is-numeric?)
+         is-numeric?
+         is-type?)
