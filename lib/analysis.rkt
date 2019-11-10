@@ -239,53 +239,6 @@
                            (error (format "type doesn't match for ~a: ~a and ~a~n" code type-v type-e))))]   
 
     ; binary operators
-    [(ml-< _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-< boolean? new-e1 new-e2) e2-ctx)
-                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
-
-    [(ml-<= _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-<= boolean? new-e1 new-e2) e2-ctx)
-                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
-
-    
-    [(ml-> _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-> boolean? new-e1 new-e2) e2-ctx)
-                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
-
-    [(ml->= _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml->= boolean? new-e1 new-e2) e2-ctx)
-                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
-    
-    [(ml-eq _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
-                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)])
-                      (if (and (equal? (ml-expr-type new-e1) integer?) (equal? (ml-expr-type new-e2) integer?))
-                          (values (ml-eq boolean? new-e1 new-e2) e2-ctx)
-                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
-     
-    [(ml-and _ es) (let-values ([(new-es new-ctx)
-                                 (for/fold ([checked-es null] [ct ctx]) ([e es])
-                                   (let-values ([(checked-e new-ctx) (typecheck e ct)])
-                                     (if (equal? (ml-expr-type checked-e) boolean?)
-                                         (values (append checked-es (list checked-e)) new-ctx)
-                                         (error (format "expect boolean type for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
-                        (values (ml-and boolean? new-es) new-ctx))]
-
-    [(ml-or _ es) (let-values ([(new-es new-ctx)
-                                 (for/fold ([checked-es null] [ct ctx]) ([e es])
-                                   (let-values ([(checked-e new-ctx) (typecheck e ct)])
-                                     (if (equal? (ml-expr-type checked-e) boolean?)
-                                         (values (append checked-es (list checked-e)) new-ctx)
-                                         (error (format "expect boolean type for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
-                        (values (ml-or boolean? new-es) new-ctx))]    
-    
     [(ml-+ _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
                                     [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
                                     [(new-e1-type) (ml-expr-type new-e1)]
@@ -317,6 +270,63 @@
                       (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
                           (values (ml-/ new-e1-type new-e1 new-e2) e2-ctx)
                           (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+    
+    [(ml-< _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-< boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+
+    [(ml-<= _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-<= boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+
+    
+    [(ml-> _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-> boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+
+    [(ml->= _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml->= boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+    
+    [(ml-eq _ e1 e2) (letrec-values ([(new-e1 e1-ctx) (typecheck e1 ctx)]
+                                    [(new-e2 e2-ctx) (typecheck e2 e1-ctx)]
+                                    [(new-e1-type) (ml-expr-type new-e1)]
+                                    [(new-e2-type) (ml-expr-type new-e2)])
+                      (if (and (is-numeric? new-e1-type) (is-numeric? new-e2-type) (equal? new-e1-type new-e2-type))
+                          (values (ml-eq boolean? new-e1 new-e2) e2-ctx)
+                          (error (format "types don't match: got ~a and ~a~n" (ml-expr-type new-e1) (ml-expr-type new-e2)))))]
+     
+    [(ml-and _ es) (let-values ([(new-es new-ctx)
+                                 (for/fold ([checked-es null] [ct ctx]) ([e es])
+                                   (let-values ([(checked-e new-ctx) (typecheck e ct)])
+                                     (if (equal? (ml-expr-type checked-e) boolean?)
+                                         (values (append checked-es (list checked-e)) new-ctx)
+                                         (error (format "expect boolean type for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
+                        (values (ml-and boolean? new-es) new-ctx))]
+
+    [(ml-or _ es) (let-values ([(new-es new-ctx)
+                                 (for/fold ([checked-es null] [ct ctx]) ([e es])
+                                   (let-values ([(checked-e new-ctx) (typecheck e ct)])
+                                     (if (equal? (ml-expr-type checked-e) boolean?)
+                                         (values (append checked-es (list checked-e)) new-ctx)
+                                         (error (format "expect boolean type for ~a but got ~a ~n" checked-e (ml-expr-type checked-e))))))])
+                        (values (ml-or boolean? new-es) new-ctx))]
 
     ; unary operators   
     [(ml-not _ e) (let-values ([(checked-e e-ctx) (typecheck e ctx)])
