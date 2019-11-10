@@ -16,9 +16,9 @@
   ; Get fn output
   (define out (ml-decl-ret-var fn))
   
-  (define grammar (to-ml #'(= out 1)))
+  (define grammar (to-ml #'#t))
 
-  (print grammar)
+  ;(print grammar)
 
   ; return a type checked ML ast
   (define-values (ast _) (typecheck grammar vartypes))
@@ -29,9 +29,29 @@
 
 ; fn is a ml-decl
 (define (pc-search-space fn vars vartypes)
+
+  ;; Dexter Grammar 1.0
+  ;; - Only 1D assignments
+  ;; - Only point stencils
+  ;; - 
+
+  ; Get name of output variable
+  (define outVar (ml-var-name (ml-decl-ret-var fn)))
+
+  (define grammar (to-ml #`(block
+                            (define ret boolean? #t)
+                            (define idx integer? 0)
+                            (while (< idx 10)
+                                   (set! ret (and ret (= (list-ref #,outVar #'idx) 0.0)))
+                                   (set! idx (+ idx 1))
+                                   )
+                            ret
+                            )))
+
+  ;(print grammar)
   
   ; return a type checked ML ast
-  (define-values (ast _) (typecheck (to-ml #'#t)))
+  (define-values (ast _) (typecheck grammar vartypes))
 
   ast
   )
@@ -78,12 +98,14 @@
 
   ; Compile SyGuS problem to Sketch
   (define sk (to-sk space-defined))
+
+  (printf sk)
   
   ; Write Sketch code to file
-  (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+  ;(with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
 
   ; Run sketch with --bnd-inbits 2
-  (define choose-resolved (resolve-choose space-defined))
+  ;(define choose-resolved (resolve-choose space-defined))
 
   (void);sk;choose-resolved
 

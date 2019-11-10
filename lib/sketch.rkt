@@ -72,20 +72,24 @@
                
     ;(cons (sk/arg-list revised-vars #t) "")))
     (values (string-join decls ", ") (string-join inits "~n"))))
-    
 
 (define (sk/decl decl)
   (match decl
     [(ml-decl type name formals ret-var body)   
      (let ([translated-body (open-output-string)]
            [rtype (ml-decl-ret-type decl)])
-       (for ([e (ml-block-body body)])
-         (write-string (sk/expr e) translated-body))
+
+       (sk/decl-body (ml-block-body body) translated-body)
        
-       (format "~a ~a (~a) { ~a ~a; }~n~n" (sk/type rtype) (sk/name name) (sk/arg-list formals #t)
-               (if (equal? rtype void?) "" "return")
+       (format "~a ~a (~a) {\n~a;\n}~n~n" (sk/type rtype) (sk/name name) (sk/arg-list formals #t)
                (get-output-string translated-body)))]))
 
+
+(define (sk/decl-body stmts translated-body)
+  (cond
+    [(empty? stmts) translated-body]
+    [(empty? (rest stmts)) (write-string (format "  return ~a" (sk/expr (first stmts))) translated-body)]
+    [else (cons (write-string (format "  ~a\n" (sk/expr (first stmts) 1)) translated-body) (sk/decl-body (rest stmts) translated-body))]))
 
 (define choose-fns empty)
 
@@ -107,12 +111,20 @@ eos
       (format template (sk/type type) n arg-str n (exact-ceiling (log num-args 2)) n
               (string-join (for/list ([m (in-range 1 num-args)])
                              (format "  else if (chosen~a == ~a) return v~a;~n" n m m)) "~n")))))
- 
 
-(define (sk/expr e)
+(define (tabs-gen c)
+  (string-join (for/list ([m (in-range 0 c)]) "  ")))
+
+(define (sk/expr e [tabs 0])
 
   (cond [debug (printf "**** Parsing to sk: ~a~n~n" e)])
   (match e
+
+    [(ml-block _ es) (string-join (for/list ([e es]) (format "~a~a\n" (tabs-gen tabs) (sk/expr e))) "")]
+    [(ml-set! _ v e) (format "~a = ~a;" (sk/expr v) (sk/expr e))]
+    [(ml-define type v e) (format "~a ~a = ~a;" (sk/type type) (sk/expr v) (sk/expr e))]
+    [(ml-while _ test body) (format "while (~a) {\n~a~a}" (sk/expr test) (sk/expr body (+ tabs 1)) (tabs-gen tabs))]
+    
 
     [(ml-assert type e) (format "assert(~a)" (sk/expr e))]
     [(ml-call type name args) (format "~a(~a)" (sk/name name) (sk/arg-list args #f #f))]    
@@ -171,13 +183,14 @@ eos
     ;[(? boolean? n) (if (equal? n #t) "true" "false")]
     
     [e #:when (and (ml-lit? e) (equal? integer? (ml-expr-type e))) (ml-lit-val e)]
+    [e #:when (and (ml-lit? e) (equal? flonum? (ml-expr-type e))) (ml-lit-val e)]
     [e #:when (and (ml-lit? e) (equal? boolean? (ml-expr-type e))) (if (equal? (ml-lit-val e) #t) "true" "false")]
     
     [(? procedure? n) (sk/name (second (regexp-match #rx"procedure:(.*)>" (format "~a" n))))]
 
     ;[e #:when (ml-user? e) (sk/udo e)]
 
-    [e (error (format "used-vars NYI: ~a" e))]
+    [e (error (format "to-sketch NYI: ~a" e))]
     ))
 
 
