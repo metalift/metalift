@@ -36,7 +36,7 @@
 (define (to-ml stx)  ;[fns known-fns])
   (syntax-parse stx
     #:datum-literals (require define define-udo define-axiom
-                      if while set!
+                      block if while set!
                       < <= > >= =
                       and or
                       + - * /
@@ -67,7 +67,8 @@
     
     [(define n t v) (ml-define (to-ml #'t) (to-ml #'n) (to-ml #'v))]
 
-    ; statements    
+    ; statements
+    [(block stmt ...) (ml-block void? (map to-ml (syntax->list #'(stmt ...))))]
     [(if c e1 e2) (ml-if void? (to-ml #'c) (to-ml #'e1) (to-ml #'e2))]
     [(while test body ...) (ml-while void? (to-ml #'test)
                                     (ml-block void? (map to-ml (syntax->list #'(body ...)))))]
@@ -136,7 +137,7 @@
     [e #:when (identifier? #'e) (ml-var void? (syntax->datum #'e))]
     
     ; literals
-    [e #:when (integer? (syntax->datum #'e)) (ml-lit integer? (syntax->datum #'e))]
+    [e #:when (exact-integer? (syntax->datum #'e)) (ml-lit integer? (syntax->datum #'e))]
     [e #:when (flonum? (syntax->datum #'e)) (ml-lit flonum? (syntax->datum #'e))]
     [e #:when (boolean? (syntax->datum #'e)) (ml-lit boolean? (syntax->datum #'e))]
     ;[e #:when (or (number? (syntax->datum #'e)) (identifier? #'e) (boolean? (syntax->datum #'e)))
