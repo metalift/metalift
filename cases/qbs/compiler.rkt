@@ -3,7 +3,6 @@
 (require "../../lang/ir-ctor.rkt"
          "../../lang/ir.rkt"
          "../../lang/parser.rkt"
-         (only-in "../../lang/base.rkt" ml-lookup-by-name)
          "../../lib/vc.rkt"
          "../../lib/synthesis.rkt"
          "../../lib/codegen.rkt"
@@ -82,32 +81,40 @@
 
 ; *** compiler main code below ***
 
-(require "tests.rkt")
 
 ; ideally this would be the API we expose to users
 ;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
 
-(define ast (ml-lookup-by-name 'select-*-test))
+(define (qbs filename fname)
 
-(define-values (checked _) (typecheck ast))
+  (define fns (parse filename))
+ 
+  (define ast (hash-ref fns fname))
 
-(construct-cfg checked)
+  (define-values (checked _) (typecheck ast))
 
-(live-vars checked)
+  (construct-cfg checked)
 
-(define vc (compute-vc checked))
+  (live-vars checked)
 
-(define udos-appended (append-udos vc))
+  (define vc (compute-vc checked))
 
-(define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
+  (define udos-appended (append-udos vc))
 
-; run sketch with --bnd-inbits 2
-(define sk (to-sk space-defined))
-(with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+  (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
-;(define choose-resolved (resolve-choose space-defined))
-;
-;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
-;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
-;
-;(define final (codegen cg choose-resolved))
+  ; run sketch with --bnd-inbits 2
+  (define sk (to-sk space-defined))
+  (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
+
+  ;(define choose-resolved (resolve-choose space-defined))
+  ;
+  ;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
+  ;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
+  ;
+  ;(define final (codegen cg choose-resolved))
+
+)
+
+; example run
+;(qbs "tests.rkt" 'select-*-test)

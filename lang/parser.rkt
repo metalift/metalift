@@ -11,6 +11,9 @@
 (define (debug-parser (v boolean?))
   (set! debug v))
 
+
+
+
 (define (to-ml/fn name fs ts body)
   (letrec ([formals (syntax->datum fs)]
            [translated-body (ml-block void? (map to-ml (syntax->list body)))]
@@ -35,7 +38,7 @@
 ; convert the input ML language into the ML IR represented using structs
 (define (to-ml stx)  ;[fns known-fns])
   (syntax-parse stx
-    #:datum-literals (require define define-udo define-axiom
+    #:datum-literals (require define define-udo define-axiom module #%module-begin
                       block if while set!
                       < <= > >= =
                       and or
@@ -47,9 +50,14 @@
                       -> boolean? listof integer? flonum? uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
 
     ; racket base functions
-
-    
-    ; require  XXX need to import   
+    [(module name lang (#%module-begin terms ...))
+     (define fns (make-hash))
+     (for ([t (syntax->list #'(terms ...))])
+       (define tr (to-ml t))
+       (cond [(ml-decl? tr) (hash-set! fns (ml-decl-name tr) tr)])) ; other terms are ignored for now
+     fns]
+       
+    ; require  XXX need to import        
     [(define-udo (name fs ...) ts body ...)
      (to-ml/fn #'name #'(fs ...) #'ts #'(body ...))]
 
@@ -151,4 +159,9 @@
 
     ))
 
-(provide to-ml debug-parser)
+; main entry point to the parser
+(define (parse filename)
+  (read-accept-reader #t)    
+  (to-ml (read-syntax "input" (open-input-file filename))))
+
+(provide to-ml parse debug-parser)
