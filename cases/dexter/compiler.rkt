@@ -3,7 +3,6 @@
 (require "../../lang/ir-ctor.rkt"
          "../../lang/ir.rkt"
          "../../lang/parser.rkt"
-         (only-in "../../lang/base.rkt" ml-lookup-by-name)
          "../../lib/vc.rkt"
          "../../lib/synthesis.rkt"
          "../../lib/codegen.rkt"
@@ -27,6 +26,10 @@
   )
 
 
+(define (bnd-gen vars)
+  (choose integer? 1 2 3)
+  )
+
 ; fn is a ml-decl
 (define (pc-search-space fn vars vartypes)
 
@@ -38,9 +41,13 @@
   ; Get name of output variable
   (define outVar (ml-var-name (ml-decl-ret-var fn)))
 
+  (define lower-bound (bnd-gen vars))
+
+  ;(print lower-bound)
+  
   (define grammar (to-ml #`(block
                             (define ret boolean? #t)
-                            (define idx integer? 0)
+                            (define idx integer? #,lower-bound)
                             (while (< idx 10)
                                    (set! ret (and ret (= (list-ref #,outVar #'idx) 0.0)))
                                    (set! idx (+ idx 1))
@@ -71,12 +78,12 @@
 (debug-vc #f)
 (debug-sk-codegen #f)
 
-(require "benchmarks/blend.rkt")
+(define (dexter filename fn_name)
+  ; Parse 
+  (define fns (parse filename))
 
-(define (dexter fn)
-  
   ; Build AST of function
-  (define ast (ml-lookup-by-name fn))
+  (define ast (hash-ref fns fn_name))
 
   ; Run type-checker on AST
   (define-values (checked _) (typecheck ast))
@@ -116,6 +123,6 @@
   ;(define final (codegen cg choose-resolved))
   )
 
-(dexter 'normalBlendf)
+(dexter "benchmarks/blend.rkt" 'normalBlendf)
 ;(dexter 'normalBlend8)
 ;(dexter 'darkenBlend8)
