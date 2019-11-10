@@ -46,6 +46,7 @@
                       not
                       bitwise-ior bitwise-and bitwise-not arithmetic-shift 
                       printf
+                      choose
                       cons empty length list list-ref list-set list-tail list-take list-equal ml-append                   
                       -> boolean? listof integer? flonum? uint8_t? uint16_t? uint32_t? int8_t? int16_t? int32_t?)
 
@@ -150,6 +151,9 @@
     [e #:when (boolean? (syntax->datum #'e)) (ml-lit boolean? (syntax->datum #'e))]
     ;[e #:when (or (number? (syntax->datum #'e)) (identifier? #'e) (boolean? (syntax->datum #'e)))
     ;  (syntax->datum #'e)]
+
+    ; choose expr
+    [(choose es ...) (ml-choose void? (for/list ([e (syntax->list #'(es ...))]) (to-ml e)))]
     
     ; parsed as function call last, after everything more specific has been matched
     [(name args ...) ;#:when (set-member? known-fns (syntax->datum #'name))

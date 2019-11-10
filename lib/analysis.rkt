@@ -403,6 +403,21 @@
                                (error (format "types don't match: got ~a and ~a~n" new-l-type new-n-type))))]
 
 
+
+    ; choose expr
+    [(ml-choose t es)
+       (if (empty? es)
+           (error (format "choose cannot be empty: ~a~n" (ml-choose t es)))
+
+           (let-values ([(checked final-ctx)
+                         (for/fold ([checked-es null] [ct ctx]) ([e es])
+                           (let-values ([(c x) (typecheck e ct)])
+                             (values (append checked-es (list c)) x)))])                             
+             (define type (ml-expr-type (first checked)))          
+             (for ([c checked]
+                   #:when (not (equal? (ml-expr-type c) type)))
+               (error (format "type doesn't match for ~a. Expected ~a~n" c type)))
+             (values (ml-choose type checked) final-ctx)))]
     
     [(ml-decl type name formals ret-var body)
      (letrec-values ([(c) (for/hash ([f (append formals (list ret-var))]) (values (ml-var-name f) (ml-expr-type f)))]

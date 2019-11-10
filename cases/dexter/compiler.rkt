@@ -45,7 +45,7 @@
   t)
 
 (define (float-expr-gen vars constants idx)
-  \(define l (ml-choose (ml-listof flonum?) (float-list-vars vars)))
+  (define l (ml-choose (ml-listof flonum?) (float-list-vars vars)))
   (define t (mk-list-ref l idx))
   ;(define c (ml-choose integer? (for/list ([c (int-consts vars)]) c))) ;; TODO: extract constants found in input code
   t)
