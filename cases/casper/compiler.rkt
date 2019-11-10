@@ -3,7 +3,6 @@
 (require "../../lang/ir-ctor.rkt"
          "../../lang/ir.rkt"
          "../../lang/parser.rkt"
-         (only-in "../../lang/base.rkt" ml-lookup-by-name)
          "../../lib/vc.rkt"
          "../../lib/synthesis.rkt"
          "../../lib/codegen.rkt"
@@ -51,11 +50,12 @@
 (debug-vc #f)
 (debug-sk-codegen #f)
 
-(require "tests.rkt")
+(define (casper filename fn_name)
+  ; Parse 
+  (define fns (parse filename))
 
-(define (casper)
   ; Build AST of function
-  (define ast (ml-lookup-by-name 'sum))
+  (define ast (hash-ref fns fn_name))
 
   ; Run type-checker on AST
   (define-values (checked _) (typecheck ast))
@@ -87,7 +87,7 @@
   (void);sk;choose-resolved
   )
 
-(casper)
+(casper "tests.rkt" 'sum)
 
 ;
 ;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
