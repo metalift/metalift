@@ -26,37 +26,55 @@
   )
 
 
+(define (int-vars vars)
+  (for/list ([(n v) vars] #:when (equal? (ml-expr-type v) integer?)) v))
+
+(define (int-list-vars vars)
+  (for/list ([(n v) vars] #:when (equal? (ml-expr-type v) (listof integer?))) v))
+
+(define (float-list-vars vars)
+  (for/list ([(n v) vars] #:when (equal? (ml-expr-type v) (ml-listof flonum?))) v))
+
 (define (bnd-gen vars)
-  (choose integer? 1 2 3)
-  )
+  (ml-choose integer? (for/list ([v (int-vars vars)]) v)))
+
+(define (int-expr-gen vars constants idx)
+  (define l (ml-choose (listof integer?) (int-list-vars vars)))
+  (define t (mk-list-ref l idx))
+  ;(define c (ml-choose integer? (for/list ([c (int-consts vars)]) c))) ;; TODO: extract constants found in input code
+  t)
+
+(define (float-expr-gen vars constants idx)
+  \(define l (ml-choose (ml-listof flonum?) (float-list-vars vars)))
+  (define t (mk-list-ref l idx))
+  ;(define c (ml-choose integer? (for/list ([c (int-consts vars)]) c))) ;; TODO: extract constants found in input code
+  t)
 
 ; fn is a ml-decl
 (define (pc-search-space fn vars vartypes)
-
+  
   ;; Dexter Grammar 1.0
   ;; - Only 1D assignments
   ;; - Only point stencils
-  ;; - 
 
   ; Get name of output variable
   (define outVar (ml-var-name (ml-decl-ret-var fn)))
 
-  (define lower-bound (bnd-gen vars))
+  (define lower-bound-opts (bnd-gen vars))
+  (define upper-bound-opts (bnd-gen vars))
 
-  ;(print lower-bound)
-  
-  (define grammar (to-ml #`(block
-                            (define ret boolean? #t)
-                            (define idx integer? #,lower-bound)
-                            (while (< idx 10)
-                                   (set! ret (and ret (= (list-ref #,outVar #'idx) 0.0)))
-                                   (set! idx (+ idx 1))
-                                   )
-                            ret
-                            )))
+  (define expr-grm (float-expr-gen vars vars (to-ml #'idx)))
 
-  ;(print grammar)
-  
+  (define grammar (mk-block
+                   (to-ml #'(define ret boolean? #t))
+                   (ml-define integer? (to-ml #'idx) lower-bound-opts)
+                   (mk-while (mk-< (to-ml #'idx) upper-bound-opts)
+                             (mk-block
+                              (mk-set! (to-ml #'ret) (mk-and (to-ml #'ret) (mk-= (to-ml #`(list-ref #,outVar #'idx)) expr-grm)))
+                              (to-ml #'(set! idx (+ idx 1)))
+                             ))
+                   (to-ml #'ret)))
+
   ; return a type checked ML ast
   (define-values (ast _) (typecheck grammar vartypes))
 
