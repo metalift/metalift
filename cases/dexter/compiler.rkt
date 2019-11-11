@@ -11,6 +11,9 @@
 
 (require "udos.rkt")
 
+; only if interpreting
+(require "interpreter.rkt")
+
 (define (inv-search-space fn vars vartypes)
   ; Get fn output
   (define out (ml-decl-ret-var fn))
@@ -102,6 +105,9 @@
 
   ; Build AST of function
   (define ast (hash-ref fns fn_name))
+
+  ; Interpret the function
+  (interpret ast)
 
   ; Run type-checker on AST
   (define-values (checked _) (typecheck ast))
