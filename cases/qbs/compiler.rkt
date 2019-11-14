@@ -85,6 +85,7 @@
 ; ideally this would be the API we expose to users
 ;(lift 'select-*-benchmark inv-search-space pc-search-space cg)
 
+(require racket/system)
 (define (qbs filename fname)
 
   (define fns (parse filename))
@@ -106,6 +107,9 @@
   ; run sketch with --fe-custom-codegen "path to parseSketchOutput.jar" --bnd-inbits 2 
   (define sk (to-sk space-defined))
   (with-output-to-file "test-sketch.sk" #:exists 'replace (lambda () (printf sk)))
+
+  ; runs sketch and waits for it to return
+  (system "../../runSketch.sh ../../lib/parseSketchOutput.jar test-sketch.sk" #:set-pwd? #t)
   
   (define choose-resolved (resolve-choose space-defined))
   
