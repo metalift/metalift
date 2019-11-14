@@ -1,7 +1,15 @@
 #lang racket
 
-(require "sketch.rkt" "../lang/ir.rkt")
+(require "sketch.rkt"
+         "../lang/ir.rkt")
 
+(define debug #f)
+
+(define (debug-synthesis (v boolean?))
+  (set! debug v))
+
+(define (debug-printf . args)
+  (cond [debug (apply printf (first args) (list-tail args 1))]))
 
 ; build a hash table so that user function can look up the variables by name
 (define (build-vars-map decl)
@@ -35,17 +43,29 @@
     
     (ml-prog space-defined (ml-prog-asserts vc) (ml-prog-axioms vc))))
 
+(define (resolve-choose prog [filename "metalift_skParse.txt"])
 
-(define (resolve-choose prog)
-  ;(to-sk prog)
-  ; temporary hack that always choose the first expr in choose
-  (define (resolve expr)
-    (printf "resolving ~a~n" expr)
+  ; chosen contains mapping of chooseFn number to the chosen value
+  (define chosen
+    (for/hash ([line (file->lines filename)])
+      (debug-printf "read sk output: ~a~n" line)
+      (define m (regexp-match #px"(\\d+):(\\d+)" line)) ; match on \d+ : \d+
+      (values (string->number (second m)) (string->number (third m)))))
+  
+  (define choose-num 0)
+  
+  (define (resolve expr)    
+    
     (match expr
       [(list es ...) (for/list ([e es]) (resolve e))]
       [(ml-block t es) (ml-block t (for/list ([e es]) (resolve e)))]
       [(ml-and t es) (ml-and t (for/list ([e es]) (resolve e)))]
-      [(ml-choose t (list e ...)) (first e)]
+
+      [(ml-choose t (list e ...))
+       (debug-printf "resolve: ~a to ~a~n" choose-num (hash-ref chosen choose-num))
+       (set! choose-num (+ 1 choose-num))
+       (list-ref e (hash-ref chosen (- choose-num 1)))]
+      
       [(ml-eq t e1 e2) (ml-eq t (resolve e1) (resolve e2))]
       [(ml-if t c e1 e2) (ml-if t (resolve c) (resolve e1) (resolve e2))]
       [(ml-not t e) (ml-not t (resolve e))]
@@ -56,7 +76,6 @@
       [(ml-- t e1 e2) (ml-- t (resolve e1) (resolve e2))]
       [(ml-+ t e1 e2) (ml-+ t (resolve e1) (resolve e2))]
       [(ml-call t name args) (ml-call t name (for/list ([a args]) (resolve a)))]
-
 
       [(ml-list t es) (ml-list t (for/list ([e es]) (resolve e)))]
       [(ml-list-append t l e) (ml-list-append t (resolve l) (resolve e))]

@@ -95,22 +95,21 @@
 
 (define (sk/choose-impls)
   (define template #<<eos
-~a choose~a (~a) {
-  int chosen~a = ??(~a);
-  if (chosen~a == 0) return v0;
+int choose~a = ??(~a);
+~a choosefn~a (~a) {
+  if (choose~a == 0) return v0;
 ~a
   else assert false;
 }
-
 
 eos
 )
   (for/list ([fn choose-fns] [n (in-naturals)])
     (let* ([type (first fn)] [num-args (second fn)] [arg-str (third fn)]
            [arg-str (string-join (for/list ([n (in-range num-args)]) (format "~a v~a" (sk/type type) n)) ", ")])
-      (format template (sk/type type) n arg-str n (exact-ceiling (log num-args 2)) n
+      (format template n (exact-ceiling (log num-args 2)) (sk/type type) n arg-str  n
               (string-join (for/list ([m (in-range 1 num-args)])
-                             (format "  else if (chosen~a == ~a) return v~a;~n" n m m)) "~n")))))
+                             (format "  else if (choose~a == ~a) return v~a;~n" n m m)) "~n")))))
 
 (define (tabs-gen c)
   (string-join (for/list ([m (in-range 0 c)]) "  ")))
@@ -198,7 +197,7 @@ eos
   (let ([num (length choose-fns)]
         [args (sk/arg-list as #f #f)])
     (set! choose-fns (append (list (list type (length as) args)) choose-fns))
-    (format "choose~a(~a)" num args)))
+    (format "choosefn~a(~a)" num args)))
 
 (define (sk/udo e)
   (printf "parse udo: ~a ~n" (struct->vector e))

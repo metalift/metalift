@@ -103,17 +103,18 @@
 
   (define space-defined (define-space ast udos-appended inv-search-space pc-search-space))
 
-  ; run sketch with --bnd-inbits 2
+  ; run sketch with --fe-custom-codegen "path to parseSketchOutput.jar" --bnd-inbits 2 
   (define sk (to-sk space-defined))
-  (with-output-to-file "test.sk" #:exists 'replace (lambda () (printf sk)))
-
-  ;(define choose-resolved (resolve-choose space-defined))
-  ;
+  (with-output-to-file "test-sketch.sk" #:exists 'replace (lambda () (printf sk)))
+  
+  (define choose-resolved (resolve-choose space-defined))
+  
   ;(define z3 (to-z3 choose-resolved "../../z3/mllist.z3"))
   ;(with-output-to-file "test.z3" #:exists 'replace (lambda () (printf z3)))
   ;
   ;(define final (codegen cg choose-resolved))
 
+  (void)  
 )
 
 ; example run
