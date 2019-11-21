@@ -3,12 +3,12 @@
 (require "../lang/ir.rkt"
          "../lib/util.rkt")
 
-(define (to-z3 p axioms-path)
+(define (to-z3 p . axioms-paths)
   (printf "**** Converting to z3~n~n")
   
   (define out (open-output-string))            
 
-  (define ml-axioms (file->string axioms-path))
+  (define ml-axioms (string-join (for/list ([f axioms-paths]) (file->string f)) "~n~n"))
   
   (define-values (decl-names decl-bodies) (for/fold ([ns empty] [bs empty]) ([d (ml-prog-decls p)])
                                             (let-values ([(name body) (z3/decl d)])
@@ -84,20 +84,28 @@
     [(ml-implies _ e1 e2) (format "(=> ~a ~a)" (z3/expr e1) (z3/expr e2))]
 
     [(ml-if _ c e1 e2) (format "(ite ~a ~a ~a)" (z3/expr c) (z3/expr e1) (z3/expr e2))]
-
+          
     [(ml-not _ e) (format "(not ~a)" (z3/expr e))]
     
     [(ml-+ _ e1 e2) (format "(+ ~a ~a)" (z3/expr e1) (z3/expr e2))]
-
     [(ml-- _ e1 e2) (format "(- ~a ~a)" (z3/expr e1) (z3/expr e2))]
-
+    ; * and / are not translated for now
+    
     [(ml-< _ e1 e2) (format "(< ~a ~a)" (z3/expr e1) (z3/expr e2))]
-
+    [(ml-> type e1 e2) (format "(> ~a ~a)" (z3/expr e1) (z3/expr e2))]
     [(ml-<= _ e1 e2) (format "(<= ~a ~a)" (z3/expr e1) (z3/expr e2))]
-
     [(ml->= _ e1 e2) (format "(>= ~a ~a)" (z3/expr e1) (z3/expr e2))]
 
-    
+    ; ior, and, not, shift -- these are modeled as uninterpreted functions as in dexter
+    [(ml-bitop type n es)
+     (match n
+       ['ior (format "(bor ~a ~a)" (z3/expr (first es)) (z3/expr (second es)))]
+       ['and (format "(band ~a ~a)" (z3/expr (first es)) (z3/expr (second es)))]
+       ['not (format "(bnot ~a)" (z3/expr (first es)))]
+       ['lshl (format "(lshl ~a ~a)" (z3/expr (first es)) (z3/expr (second es)))]
+       ['lshr (format "(lshr ~a ~a)" (z3/expr (first es)) (z3/expr (second es)))]
+       [e (error (format "NYI: ~a" e))])]
+       
     ; list functions   
     [(ml-list-append type l e) (format "(list_append ~a ~a)" (z3/expr l) (z3/expr e))]
     [(ml-list-equal type l1 l2) (format "(list_equal ~a ~a)" (z3/expr l1) (z3/expr l2))]

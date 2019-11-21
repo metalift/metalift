@@ -1,3 +1,5 @@
+; list operations
+
 (declare-datatypes ((MLList 1)) 
                    ((par (T) ((cons (head T) (tail (MLList T))) (nil)))))
 

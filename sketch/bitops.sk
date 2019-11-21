@@ -10,18 +10,22 @@ int bor (int v1, int v2);
 
 int bnot (int v1);
 
+int lshr_uninterpreted (int v1, int v2);
+
 int lshr (int v1, int v2) { 
   if (v2 == 0) return v1;
   if (v2 == 1) return v1 / 2;
   if (v2 == 2) return v1 / 4;
   if (v2 == 3) return v1 / 8;
-  return -100;
+  return lshr_uninterpreted(v1, v2);
 }
 
-int shl (int v1, int v2) {
+int lshl_uninterpreted (int v1, int v2);
+
+int lshl (int v1, int v2) {
   if (v2 == 0) return v1;
   if (v2 == 1) return v1 * 2;
   if (v2 == 2) return v1 * 4;
   if (v2 == 3) return v1 * 8;
-  return -100;
+  return lshl_uninterpreted(v1, v2);
 }

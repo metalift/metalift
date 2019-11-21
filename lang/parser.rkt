@@ -44,7 +44,7 @@
                       and or
                       + - * /
                       not
-                      bitwise-ior bitwise-and bitwise-not arithmetic-shift 
+                      bitwise-ior bitwise-and bitwise-not lshl lshr
                       printf
                       choose
                       cons empty length list list-ref list-set list-tail list-take list-equal ml-append                   
@@ -105,7 +105,8 @@
     [(bitwise-ior e1 e2) (bitwise-or (to-ml #'e1) (to-ml #'e2))]
     [(bitwise-and e1 e2) (bitwise-and (to-ml #'e1) (to-ml #'e2))]
     [(bitwise-not e) (bitwise-not (to-ml #'e))]
-    [(arithmetic-shift e1 e2) (bitwise-shift (to-ml #'e1) (to-ml #'e2))]
+    [(lshl e1 e2) (lshl (to-ml #'e1) (to-ml #'e2))]
+    [(lshr e1 e2) (lshr (to-ml #'e1) (to-ml #'e2))]
 
     ; list operations 
     [(cons e l) (ml-list-prepend (ml-listof void?) (to-ml #'e) (to-ml #'l))]

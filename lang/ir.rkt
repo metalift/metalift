@@ -63,7 +63,8 @@
 (define-syntax-rule (bitwise-or e1 e2) (ml-bitop integer? 'ior (list e1 e2)))
 (define-syntax-rule (bitwise-and e1 e2) (ml-bitop integer? 'and (list e1 e2)))
 (define-syntax-rule (bitwise-not e) (ml-bitop integer? 'not (list e)))
-(define-syntax-rule (bitwise-shift e1 e2) (ml-bitop integer? 'shift (list e1 e2)))
+(define-syntax-rule (lshl e1 e2) (ml-bitop integer? 'lshl (list e1 e2)))
+(define-syntax-rule (lshr e1 e2) (ml-bitop integer? 'lshr (list e1 e2)))
 
 
 ; function calls

@@ -154,12 +154,8 @@ eos
        ['ior (format "bor(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))]
        ['and (format "band(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))]
        ['not (format "bnot(~a)" (sk/expr (first es)))]
-       ['shift (if (ml-lit? (second es))
-                   (if (negative? (ml-lit-val (second es)))
-                       (format "ashr(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))
-                       (format "shl(~a, ~a)" (sk/expr (first es)) (sk/expr (second es))))
-                   (format "((~a < 0) ? ashr(~a, ~a) : shl(~a, ~a))"
-                           (sk/expr (second es)) (sk/expr (first es)) (sk/expr (second es)) (sk/expr (first es)) (sk/expr (second es))))]
+       ['lshl (format "lshl(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))]
+       ['lshr (format "lshr(~a, ~a)" (sk/expr (first es)) (sk/expr (second es)))]
        [e (error (format "NYI: ~a" e))])]
 
     ; list functions   

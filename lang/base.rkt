@@ -23,6 +23,12 @@
 (define-syntax-rule (while test body ...)
   (run-ml-while (lambda () test) (lambda () body ...)))
 
+(define (lshl v amt)
+  (arithmetic-shift v amt))
+
+(define (lshr v amt)
+  (arithmetic-shift v (- amt)))
+
 (define (run-ml-while test body)
   (for ([i (in-naturals)])
     #:break (not (test))
@@ -136,7 +142,8 @@
  bitwise-ior
  bitwise-and
  bitwise-not
- arithmetic-shift ; both left and right shifts
+ lshl
+ lshr
  
  ; racket functions
  printf
