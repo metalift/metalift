@@ -60,11 +60,11 @@ def codegen(ps):
   return CodeGenerator().visit(ps)
 
 
-t = python.translate_file('/Users/akcheung/proj/metalift/example/test.py')
+t = python.translate_file('example/test.py')
 print('t: %s' % t)
 
 # target language definition (wip)
-l = python.translate_file('/Users/akcheung/proj/metalift/example/udo.py')
+l = python.translate_file('example/udo.py')
 print('l: %s' % l)
 
 fn = t.fns['vctest']
