@@ -36,7 +36,6 @@ def space_fn3(vars: List[ir.Var], depth: int) -> ir.Stmt:
     alt = ir.Return(ir.BinaryOp(operator.add, space_fn3(vars, depth - 1), space_fn3(vars, depth - 1)))
     return ir.If(cond, cons, alt)
 
-
 class CodeGenerator(PassthruVisitor):
   def __init__(self):
     super().__init__(self.__class__.__name__)

@@ -121,8 +121,6 @@ def gen_Expr(name, types, ops):
 
 
 class Var(Expr):
-  valid_types = []
-
   def __init__(self, name, t):
     if not any(issubclass(t, vt) for vt in Var.valid_types):
       raise TypeError('only supported vars of type: %s and not %s' % (Var.valid_types, t))
@@ -142,8 +140,6 @@ class Var(Expr):
     return hash(self.name + str(self.type))
 
 class Lit(Expr):
-  valid_types = []
-
   def __init__(self, val, t):
     self.val = val
     if not any(isinstance(val, ty) for ty in Lit.valid_types):
@@ -414,7 +410,5 @@ BinaryOp.to_rktfn = binary_rktfn
 UnaryOp.valid_ops = [operator.neg, operator.not_]
 UnaryOp.to_skfn = unary_skfn
 UnaryOp.to_rktfn = unary_rktfn
-Var.valid_types = Lit.valid_types = [int, bool, Expr]
+Var.valid_types = Lit.valid_types = [bool, int, float, Expr]
 Expr.sktype_fn = sktype_fn
-
-

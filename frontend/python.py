@@ -1,6 +1,8 @@
+from typing import List
+from ir import Var
+
 import operator
 import inspect
-
 import ir
 import ast
 
@@ -144,6 +146,16 @@ class Translator(ast.NodeTransformer):
 
   def visit_While(self, n):
     return ir.While(self.visit(n.test), *[self.visit(s) for s in n.body])
+
+  # def visit_ListComp(self, n):
+  #   expr = n.elt
+  #   gens = n.generators
+  #   stmts = []
+  #   for g in gens:
+  #     target = self.visit(g.target)
+  #     iter = self.visit(g.iter)
+  #     stmts.append()
+  #   return ir.Block(stmts)
 
   def visit_Return(self, n):
     non_exprs = [ast.Name, ast.Num, ast.Str]
