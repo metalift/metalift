@@ -41,9 +41,13 @@ class Interpreter(ast.NodeTransformer):
     self.vars = {}
     self.rv = None
     self.args = args
+    self.eval = True
 
   def generic_visit(self, node):
     raise TypeError('NYI:', node)
+
+  def parseToIR(self, expr):
+    return python.Translator().visit(ast.parse(str(expr)).body[0])  # TODO: See if there is a less hacky way of doing this
 
   # Interpret function declaration
   def visit_FunctionDef(self, n):
@@ -67,7 +71,10 @@ class Interpreter(ast.NodeTransformer):
     if len(n.targets) > 1:
       raise TypeError('multi-assign NYI: %s' % n)
 
+    self.eval = False
     target = self.visit(n.targets[0])
+    self.eval = True
+
     val = self.visit(n.value)
     if len(n.targets) > 1:
       raise TypeError('multi-assign NYI: %s' % n)
@@ -102,6 +109,47 @@ class Interpreter(ast.NodeTransformer):
 
     return res
 
+  # Interpret conditionals
+  def visit_If(self, n):
+    test = self.visit(n.test)
+
+    if not isinstance(test, ir.Expr):
+      if test:
+        for stmt in n.body:
+          if not self.visit(stmt):
+            break
+        if self.rv:
+          return False
+      else:
+        for stmt in n.orelse:
+          if not self.visit(stmt):
+            break
+        if self.rv:
+          return False
+    else:
+      cons = None
+      altr = None
+
+      for stmt in n.body:
+        if not self.visit(stmt):
+          break
+      if self.rv:
+        cons = self.rv
+
+      for stmt in n.orelse:
+        if not self.visit(stmt):
+          break
+      if self.rv:
+        altr = self.rv
+
+      if cons and altr:
+        self.rv = ir.If(test, cons, altr)
+        return False
+      else:
+        raise TypeError("NYI")
+
+    return True
+
   # Interpret binary operator expression
   def visit_BinOp(self, n):
     lop = self.visit(n.left)
@@ -109,12 +157,12 @@ class Interpreter(ast.NodeTransformer):
 
     # If either operand is symbolic, the output is also symbolic
     if isinstance(lop, ir.Expr) or isinstance(rop, ir.Expr):
-      lop = lop if isinstance(lop, ir.Expr) else python.Translator().visit(ast.parse(str(lop)).body[0])   # TODO: See if there is a less hacky way of doing this
-      rop = rop if isinstance(rop, ir.Expr) else python.Translator().visit(ast.parse(str(rop)).body[0])   # TODO: See if there is a less hacky way of doing this
+      lop = lop if isinstance(lop, ir.Expr) else self.parseToIR(lop)
+      rop = rop if isinstance(rop, ir.Expr) else self.parseToIR(rop)
       if isinstance(n.op, ast.Add): return ir.BinaryOp(operator.add, lop, rop)
-      elif isinstance(n.op, ast.Sub): return ir.BinaryOp(operator.sub(), lop, rop)
-      elif isinstance(n.op, ast.Mult): return ir.BinaryOp(operator.mul(), lop, rop)
-      elif isinstance(n.op, ast.Div): return ir.BinaryOp(operator.floordiv(), lop, rop)   # TODO: Double check which div to use
+      elif isinstance(n.op, ast.Sub): return ir.BinaryOp(operator.sub, lop, rop)
+      elif isinstance(n.op, ast.Mult): return ir.BinaryOp(operator.mul, lop, rop)
+      elif isinstance(n.op, ast.Div): return ir.BinaryOp(operator.floordiv, lop, rop)   # TODO: Double check which div to use
       else: raise TypeError('NYI:', n.op)
     else:
       if isinstance(n.op, ast.Add): return operator.add(lop, rop)
@@ -128,20 +176,29 @@ class Interpreter(ast.NodeTransformer):
     if len(n.ops) > 1: raise TypeError('NYI: %s' % n.ops)
     if len(n.comparators) > 1: raise TypeError('NYI: %s' % n.comparators)
 
-    lhs = self.visit(n.left)
-    rhs = self.visit(n.comparators[0])
+    lop = self.visit(n.left)
+    rop = self.visit(n.comparators[0])
 
     # If either operand is symbolic, the output is also symbolic
-    if isinstance(lhs, ir.Expr) or isinstance(rhs, ir.Expr):
-      raise TypeError('NYI')
+    if isinstance(lop, ir.Expr) or isinstance(rop, ir.Expr):
+      lop = lop if isinstance(lop, ir.Expr) else self.parseToIR(lop)
+      rop = rop if isinstance(rop, ir.Expr) else self.parseToIR(rop)
+      op = n.ops[0]
+      if isinstance(op, ast.Eq): return ir.BinaryOp(operator.eq, lop, rop)
+      elif isinstance(op, ast.Lt): return ir.BinaryOp(operator.lt, lop, rop)
+      elif isinstance(op, ast.Gt): return ir.BinaryOp(operator.gt, lop, rop)
+      elif isinstance(op, ast.LtE): return ir.BinaryOp(operator.le, lop, rop)
+      elif isinstance(op, ast.GtE): return ir.BinaryOp(operator.ge, lop, rop)
+      elif isinstance(op, ast.NotEq): return ir.BinaryOp(operator.ne, lop, rop)
+      else: raise TypeError('NYI:', n.op)
     else:
       op = n.ops[0]
-      if isinstance(op, ast.Eq): return operator.eq(lhs, rhs)
-      elif isinstance(op, ast.Lt): return operator.lt(lhs, rhs)
-      elif isinstance(op, ast.Gt): return operator.gt(lhs, rhs)
-      elif isinstance(op, ast.LtE): return operator.lte(lhs, rhs)
-      elif isinstance(op, ast.GtE): return operator.gte(lhs, rhs)
-      elif isinstance(op, ast.NotEq): return operator.ne(lhs, rhs)
+      if isinstance(op, ast.Eq): return operator.eq(lop, rop)
+      elif isinstance(op, ast.Lt): return operator.lt(lop, rop)
+      elif isinstance(op, ast.Gt): return operator.gt(lop, rop)
+      elif isinstance(op, ast.LtE): return operator.lte(lop, rop)
+      elif isinstance(op, ast.GtE): return operator.gte(lop, rop)
+      elif isinstance(op, ast.NotEq): return operator.ne(lop, rop)
       else: raise TypeError('NYI: %s' % str(op))
 
   # Interpret function call
@@ -163,7 +220,8 @@ class Interpreter(ast.NodeTransformer):
 
     # Special handling for Choose function
     if fn == "Choose":
-      return ir.Choose(*args_eval)
+      parsed_args = [arg if isinstance(arg, ir.Expr) else self.parseToIR(arg) for arg in args_eval]
+      return ir.Choose(*parsed_args)
 
     if not n.func.id in globals()["__builtins__"]:
       raise TypeError("NYI: Only built-in methods allowed (" + n.func.id + ")")
@@ -191,7 +249,7 @@ class Interpreter(ast.NodeTransformer):
 
   # Interpret variable names
   def visit_Name(self, n):
-    if n.id in self.vars:
+    if self.eval and n.id in self.vars:
       return self.vars[n.id]
     else:
       return n.id

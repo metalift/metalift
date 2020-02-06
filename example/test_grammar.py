@@ -2,15 +2,17 @@ from typing import List
 from ir import Var, Choose
 from interpreter import SearchGrammar
 
-test123 = 123
+### Constant generators
 
 @SearchGrammar
-def search_space_1a(vars: List[Var]) -> int:
+def search_space_1a() -> int:
   return 1
 
 @SearchGrammar
-def search_space_1b(vars: List[Var]) -> int:
+def search_space_1b() -> int:
   return 1 + True + 2
+
+### Generators with symbolic variables
 
 @SearchGrammar
 def search_space_1c(vars: List[Var]) -> int:
@@ -22,24 +24,74 @@ def search_space_1d(vars: List[Var]) -> int:
   int_vars = [var for var in vars if var.type == int]
   return 1 + 1 + Choose(*int_vars) + 1
 
-args = list([Var("x", int), Var("y", int), Var("z", float)])
-print(search_space_1a(args))
-print(search_space_1b(args))
-print(search_space_1c(args))
-print(search_space_1d(args))
+### Generators with conditionals (that can be evaluated AOT)
 
-#def search_space_2a(vars: List[Var], depth: int) -> Stmt:
-#  if depth == 0:
-#    return 1 + 1 + Choose(*vars) + 1
-#  else:
-#    return Choose(*vars) + Choose(1, 2, 3, 4)
-#
-# def search_space_2b(vars: List[Var]) -> Stmt:
-#   if Choose(*vars) > 0:
-#     return 1
-#   else:
-#     return 2
-#
+@SearchGrammar
+def search_space_2a(vars: List[Var], depth: int) -> int:
+  int_vars = [var for var in vars if var.type == int]
+  if depth == 0:
+    return 3 + Choose(*int_vars)
+  else:
+    return Choose(*int_vars) + Choose(1, 2, 3, 4)
+
+@SearchGrammar
+def search_space_2b(vars: List[Var], depth: int) -> int:
+  int_vars = [var for var in vars if var.type == int]
+  ret = None
+  if depth == 0:
+    ret = 3 + Choose(*int_vars)
+  else:
+    ret =  Choose(*int_vars) + Choose(1, 2, 3, 4)
+  return ret
+
+### Generators with symbolic conditionals
+
+@SearchGrammar
+def search_space_2c(vars: List[Var]) -> int:
+  int_vars = [var for var in vars if var.type == int]
+  if Choose(*int_vars) > 0:
+    return 1
+  else:
+    return 2
+
+@SearchGrammar
+def search_space_2d(vars: List[Var]) -> int:
+  int_vars = [var for var in vars if var.type == int]
+  ret = None
+  if Choose(*int_vars) > 0:
+    ret = 1
+  else:
+    ret = 2
+  return ret
+
+args = list([Var("x", int), Var("y", int), Var("z", float)])
+
+print(search_space_1a())
+print("-----------------")
+
+print(search_space_1b())
+print("-----------------")
+
+print(search_space_1c(args))
+print("-----------------")
+
+print(search_space_1d(args))
+print("-----------------")
+
+print(search_space_2a(args, 0))
+print(search_space_2a(args, 1))
+print("-----------------")
+
+print(search_space_2b(args, 0))
+print(search_space_2b(args, 1))
+print("-----------------")
+
+print(search_space_2c(args))
+print("-----------------")
+
+print(search_space_2d(args))
+print("-----------------")
+
 # def search_space_3a(vars: List[Var], depth: int) -> Stmt:
 #   return Choose(*vars) + search_space_3a(vars, depth - 1)
 #
