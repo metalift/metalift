@@ -37,11 +37,10 @@ def search_space_2a(vars: List[Var], depth: int) -> int:
 @SearchGrammar
 def search_space_2b(vars: List[Var], depth: int) -> int:
   int_vars = [var for var in vars if var.type == int]
-  ret = None
   if depth == 0:
     ret = 3 + Choose(*int_vars)
   else:
-    ret =  Choose(*int_vars) + Choose(1, 2, 3, 4)
+    ret = Choose(*int_vars) + Choose(1, 2, 3, 4)
   return ret
 
 ### Generators with symbolic conditionals
@@ -57,40 +56,61 @@ def search_space_2c(vars: List[Var]) -> int:
 @SearchGrammar
 def search_space_2d(vars: List[Var]) -> int:
   int_vars = [var for var in vars if var.type == int]
-  ret = None
   if Choose(*int_vars) > 0:
     ret = 1
   else:
     ret = 2
   return ret
 
+@SearchGrammar
+def search_space_2e(vars: List[Var]) -> int:
+  int_vars = [var for var in vars if var.type == int]
+  ret = 2
+  if Choose(*int_vars) > 0:
+    ret = 1
+  return ret
+
+@SearchGrammar
+def search_space_2f(vars: List[Var]) -> int:
+  int_vars = [var for var in vars if var.type == int]
+  if Choose(*int_vars) > 0:
+    return 1
+  return 2
+
 args = list([Var("x", int), Var("y", int), Var("z", float)])
 
-print(search_space_1a())
-print("-----------------")
+print("------ Running search_space_1a() -------")
+print(search_space_1a(), "\n")
 
-print(search_space_1b())
-print("-----------------")
+print("------ Running search_space_1b() -------")
+print(search_space_1b(), "\n")
 
-print(search_space_1c(args))
-print("-----------------")
+print("----- Running search_space_1c(args) ----")
+print(search_space_1c(args), "\n")
 
-print(search_space_1d(args))
-print("-----------------")
+print("----- Running search_space_1d(args) ----")
+print(search_space_1d(args), "\n")
 
-print(search_space_2a(args, 0))
-print(search_space_2a(args, 1))
-print("-----------------")
+print("--- Running search_space_2a(args, 0) ---")
+print(search_space_2a(args, 0), "\n")
 
-print(search_space_2b(args, 0))
-print(search_space_2b(args, 1))
-print("-----------------")
+print("--- Running search_space_2a(args, 1) ---")
+print(search_space_2a(args, 1), "\n")
 
-print(search_space_2c(args))
-print("-----------------")
+print("--- Running search_space_2b(args, 0) ---")
+print(search_space_2b(args, 0), "\n")
 
-print(search_space_2d(args))
-print("-----------------")
+print("--- Running search_space_2b(args, 1) ---")
+print(search_space_2b(args, 1), "\n")
+
+print("----- Running search_space_2c(args) ----")
+print(search_space_2c(args), "\n")
+
+print("----- Running search_space_2d(args) ----")
+print(search_space_2d(args), "\n")
+
+print("----- Running search_space_2e(args) ----")
+print(search_space_2e(args), "\n")
 
 # def search_space_3a(vars: List[Var], depth: int) -> Stmt:
 #   return Choose(*vars) + search_space_3a(vars, depth - 1)

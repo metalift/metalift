@@ -1,4 +1,5 @@
 from frontend import python
+from state import State
 import ir
 import ast
 import operator
@@ -38,10 +39,9 @@ class Interpreter(ast.NodeTransformer):
 
   # Constructor
   def __init__(self, *args):
-    self.vars = {}
-    self.rv = None
-    self.args = args
     self.eval = True
+    self.args = args
+    self.state = State()
 
   def generic_visit(self, node):
     raise TypeError('NYI:', node)
@@ -51,19 +51,27 @@ class Interpreter(ast.NodeTransformer):
 
   # Interpret function declaration
   def visit_FunctionDef(self, n):
+    # Create a new frame to hold the function's local scope
+    self.state.newFrame()
+
     for i in range(len(n.args.args)):
       param = n.args.args[i]
       arg = self.args[i]
-      self.vars[param.arg] = arg
+      self.state.evaluatesTo(param.arg, arg)
+
     for stmt in n.body:
       if not self.visit(stmt):
         break
-    return self.rv
+
+    # Pop frame
+    frame = self.state.pop()
+
+    return frame.rv
 
   # Interpret return statement
   def visit_Return(self, n):
     r = self.visit(n.value)
-    self.rv = r
+    self.state.retVal(r)
     return False
 
   # Interpret assignment statement
@@ -79,7 +87,7 @@ class Interpreter(ast.NodeTransformer):
     if len(n.targets) > 1:
       raise TypeError('multi-assign NYI: %s' % n)
 
-    self.vars[target] = val
+    self.state.evaluatesTo(target, val)
     return True
 
   # Interpret list comprehension
@@ -98,14 +106,15 @@ class Interpreter(ast.NodeTransformer):
     iter = self.visit(gens[0].iter)
     filter = gens[0].ifs[0]
 
-    outer_scope = self.vars
+    self.state.dupFrame()
     res = []
     for val in iter:
-      self.vars[target] = val         # update local scope
-      cond = self.visit(filter)       # interpret filter condition in local scope
-      expr_eval = self.visit(expr)    # interpret expression in local scope
+      self.state.evaluatesTo(target, val)         # update local scope
+      cond = self.visit(filter)                   # interpret filter condition in local scope
+      expr_eval = self.visit(expr)                # interpret expression in local scope
       if cond:
         res.append(expr_eval)
+    self.state.pop()
 
     return res
 
@@ -115,36 +124,48 @@ class Interpreter(ast.NodeTransformer):
 
     if not isinstance(test, ir.Expr):
       if test:
+        self.state.dupFrame()
         for stmt in n.body:
           if not self.visit(stmt):
             break
-        if self.rv:
+        cons = self.state.pop()
+
+        if cons.rv:
+          self.state.retVal(cons.rv)
           return False
+        else:
+          self.state.update(cons)
       else:
+        self.state.dupFrame()
         for stmt in n.orelse:
           if not self.visit(stmt):
             break
-        if self.rv:
-          return False
-    else:
-      cons = None
-      altr = None
+        altr = self.state.pop()
 
+        if altr.rv:
+          self.state.retVal(altr.rv)
+          return False
+        else:
+          self.state.update(altr)
+    else:
+      self.state.dupFrame()
       for stmt in n.body:
         if not self.visit(stmt):
           break
-      if self.rv:
-        cons = self.rv
+      cons = self.state.pop()
 
+      self.state.dupFrame()
       for stmt in n.orelse:
         if not self.visit(stmt):
           break
-      if self.rv:
-        altr = self.rv
+      altr = self.state.pop()
 
-      if cons and altr:
-        self.rv = ir.If(test, cons, altr)
+      if cons.rv and altr.rv:
+        self.state.retVal(ir.If(test, cons.rv, altr.rv))
         return False
+      elif not cons.rv and not altr.rv:
+        self.state.merge(test, cons, altr)
+        return True
       else:
         raise TypeError("NYI")
 
@@ -249,8 +270,8 @@ class Interpreter(ast.NodeTransformer):
 
   # Interpret variable names
   def visit_Name(self, n):
-    if self.eval and n.id in self.vars:
-      return self.vars[n.id]
+    if self.eval and self.state.contains(n.id):
+      return self.state.evaluate(n.id)
     else:
       return n.id
 
