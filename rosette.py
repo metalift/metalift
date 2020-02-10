@@ -79,9 +79,10 @@ class RosetteTranslator(Visitor):
   def visit_Assert(self, n):
     return '(assert %s)' % self.visit(n.expr)
 
+  @staticmethod
   def count_vars(s: ir.Expr):
     if isinstance(s, ir.FnDecl):
-      return []
+      return set()
     elif isinstance(s, ir.BinaryOp) or isinstance(s, ir.UnaryOp) or isinstance(s, ir.Call):
       vs = set()
       for v in s.args:
@@ -89,10 +90,13 @@ class RosetteTranslator(Visitor):
       return vs
     elif isinstance(s, ir.Assert):
       return RosetteTranslator.count_vars(s.expr)
+    elif isinstance(s, ir.If):
+      return RosetteTranslator.count_vars(s.cond).union(RosetteTranslator.count_vars(s.conseq))\
+                                                 .union(RosetteTranslator.count_vars(s.alt))
     elif isinstance(s, ir.Lit):
-      return []
+      return set()
     elif isinstance(s, ir.Var):
-      return [s]
+      return {s}
     else:
       raise TypeError('NYI: %s of type %s' % (s, type(s)))
 
@@ -113,6 +117,7 @@ class RosetteTranslator(Visitor):
     top_vars_decls = ['(define-symbolic %s integer?)' % v.name for v in top_vars]
     top_vars_names = [v.name for v in top_vars]
 
+    print("assert are %s" % ' '.join(asserts))
     return ('%s\n\n' + \
            '%s\n\n' + \
            '(define binding\n' + \

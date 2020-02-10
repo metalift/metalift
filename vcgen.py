@@ -10,7 +10,7 @@ class VCGen(Visitor):
   class State:
     def __init__(self):
       self.var = {}
-      self.precond = deque()
+      self.precond = None
       self.fns = []
       self.asserts = []
       self.rv = None
@@ -24,9 +24,9 @@ class VCGen(Visitor):
   def __init__(self):
     super().__init__(self.__class__.__name__)
     self.state = VCGen.State()
+    self.inv_num = 0
 
   def visit_BinaryOp(self, n):
-    print("n is %s" % n)
     if isinstance(n.op, ir.Expr):
       return ir.BinaryOp(self.state.var[self.visit(n.op)], *[self.visit(a) for a in n.args])
     else:
@@ -101,35 +101,44 @@ class VCGen(Visitor):
     self.state = merged_state
     return True
 
+
+  def inv(self, vars, body=ir.Block()):
+    name = 'inv' + str(self.inv_num)
+    self.inv_num = self.inv_num + 1
+    return ir.FnDecl(name, vars, bool, body)
+
+  # translate cond -> assert(conseq) into assert((not cond) or conseq)
+  @staticmethod
+  def implies(cond, conseq):
+    return ir.Assert(ir.BinaryOp(operator.or_, ir.UnaryOp(operator.not_, cond), conseq))
+
   # loop, while
   def visit_While(self, n):
     # create a new invariant function
     inv_vars = list(self.state.var.keys())
-    inv = ir.FnDecl('inv', inv_vars, bool, ir.Block())
-    self.state.fns.append(inv)
+    inv_fn = self.inv(inv_vars)
+    self.state.fns.append(inv_fn)
 
-    # add assertion: inv is initially true
-    inv_call = ir.Call('inv', *[self.state.var[arg] for arg in inv_vars])
-    self.state.asserts.append(ir.Assert(inv_call))
+    # add assertion: precondition -> inv
+    inv_call = ir.Call(inv_fn.name, *[self.state.var[arg] for arg in inv_vars])
+    self.state.asserts.append(VCGen.implies(self.state.precond, inv_call))
 
-    cond = self.visit(n.cond)
     # create new visitor for the body
+    cond = self.visit(n.cond)
     body_visitor = VCGen()
     for v in inv_vars:
       body_visitor.state.var[v] = ir.Var(v.name, v.type)
     body_cont = body_visitor.visit(n.body)
     print("body: %s" % body_visitor.state)
 
-    # construct the assertion: cond & inv -> inv(body) => not(cond & inv) | inv(body)
-    inv_body_call = ir.Call('inv', *[body_visitor.state.var[arg] for arg in inv_vars])
-    inv_maintained = ir.BinaryOp(operator.or_, ir.UnaryOp(operator.not_, ir.BinaryOp(operator.and_, cond, inv_call)), inv_body_call)
-    self.state.asserts.append(ir.Assert(inv_maintained))
+    # add assertion: cond & inv -> inv(body)
+    inv_body_call = ir.Call(inv_fn.name, *[body_visitor.state.var[arg] for arg in inv_vars])
+    self.state.asserts.append(VCGen.implies(cond, inv_body_call))
 
-    # add precond to current state: !cond & inv
-    self.state.precond.append(ir.BinaryOp(operator.and_, ir.UnaryOp(operator.not_, cond), inv_call))
+    # precond is now the !cond & inv
+    self.state.precond = ir.BinaryOp(operator.and_, ir.UnaryOp(operator.not_, cond), inv_call)
 
     return body_cont
-
 
   def visit_Return(self, n):
     r = self.visit(n.body)
@@ -148,8 +157,10 @@ class VCGen(Visitor):
     return returned
 
   def visit_FnDecl(self, n):
+    # initialize function arguments
     for arg in n.args:
       self.state.var[arg] = arg
+    self.state.precond = ir.true()
 
     self.visit(n.body)
 
@@ -157,22 +168,13 @@ class VCGen(Visitor):
     ps_vars = list(self.state.var.keys())
     ps = ir.FnDecl('ps', ps_vars, bool, ir.Block())
     ps_call = ir.Call('ps', *[self.state.var[arg] for arg in ps_vars])
-    if self.state.precond is None:
-      ps_call = ir.Call('ps', *[self.state.var[arg] for arg in ps_vars])
-    else:
-      # if precond -> ps_call => !precond or ps_call
-      ps_call = ir.BinaryOp(operator.or_, ir.UnaryOp(operator.not_, self.state.precond[0]), ps_call)
 
+    # add precond -> postcond
     self.state.fns.append(ps)
-    self.state.asserts.append(ir.Assert(ps_call))
+    self.state.asserts.append(VCGen.implies(self.state.precond, ps_call))
 
     p = ir.Program(None, self.state.fns + self.state.asserts)
     return p
 
   def visit_Program(self, n):
     raise TypeError('NYI')
-    # for s in n.stmts:
-    #   self.visit(s)
-    # return self.state.rv
-
-

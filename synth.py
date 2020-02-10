@@ -30,8 +30,8 @@ def synthesize(n: ir.Program, lang: ir.Program, inv_fn, ps_fn):
 
   for s in n.stmts:
     if isinstance(s, ir.FnDecl):
-      if s.name == 'inv' or s.name == 'ps':
-        new_body = inv_fn(s.args) if s.name == 'inv' else ps_fn(s.args)
+      if s.name.startswith('inv') or s.name == 'ps':
+        new_body = inv_fn(s.args) if s.name.startswith('inv') else ps_fn(s.args)
         new_stmts.append(ir.FnDecl(s.name, s.args, s.rtype, new_body))
     else:
       new_stmts.append(s)
