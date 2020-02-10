@@ -155,9 +155,12 @@ class Lit(Expr):
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.type == other.type and self.val == other.val
 
+true_lit = Lit(True, bool)
+false_lit = Lit(False, bool)
+
 # shortcuts
-def true(): return Lit(True, bool)
-def false(): return Lit(False, bool)
+def true(): return true_lit
+def false(): return false_lit
 
 # python specific
 class Unpack(Expr):
