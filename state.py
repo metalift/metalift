@@ -61,9 +61,16 @@ class State:
     altr_keys = set(altr.vars.keys())
     keys = cons_keys.union(altr_keys)
     for key in keys:
-      cons_val = cons.vars[key]
-      altr_val = altr.vars[key]
-      if (cons_val == altr_val):
-        self.top().vars[key] = cons_val
+      if key not in cons:
+        self.top().vars[key] = altr.vars[key]
+      elif key not in altr:
+        self.top().vars[key] = cons.vars[key]
       else:
-        self.top().vars[key] = ir.If(test, cons_val, altr_val)
+        cons_val = cons.vars[key]
+        altr_val = altr.vars[key]
+        if cons_val == altr_val:
+          self.top().vars[key] = cons_val
+        else:
+          self.top().vars[key] = ir.If(test, cons_val, altr_val)
+
+    self.top().rv = cons.rv if cons.rv == altr.rv else ir.If(test, cons.rv, altr.rv)
