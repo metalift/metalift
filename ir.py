@@ -104,7 +104,7 @@ class Choose(Expr):
     return 'choose(%s)' % ', '.join(str(x) for x in self.args)
 
   def __eq__(self, other):
-    return self.__class__ == other.__class__ and self.op == other.op and self.args == other.args
+    return self.__class__ == other.__class__ and self.args == other.args
 
 # ignore this for now
 def gen_Expr(name, types, ops):
