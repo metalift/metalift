@@ -1,16 +1,21 @@
 # metalift input code
-def vctest(a: int) -> int:
-  s: int = 0
+def vctest(n: int) -> int:
+  sum: int = 0
   i: int = 0
 
-  while i >= a:
-    s = s + 1
+  # invariant: sum = my_sum(i)
+  while i < n:
+    sum = sum + 1
     i = i + 1
 
-  return s  # s = my_sum(a)
+  # postcondition: sum = my_sum(n)
+  return sum
 
-#print('a %s' % vctest(10))
+#print('sum: %s' % vctest(20))
 
+
+# old code below
+#
 # def rec1(vars: List[ir.Var], depth: int) -> int:
 #   #op: ir.Choose = Choose(operator.add, operator.sub)
 #
