@@ -38,12 +38,15 @@ class PassthruVisitor(Visitor):
     return n
 
   def visit_Assign(self, n):
-    return ir.Assign(self.visit(n.left), self.visit(n.righ))
+    return ir.Assign(self.visit(n.left), self.visit(n.right))
 
   def visit_If(self, n):
     return ir.If(self.visit(n.cond), self.visit(n.conseq), self.visit(n.alt))
 
   # loop, while
+
+  def visit_While(self, n):
+    return ir.While(self.visit(n.cond), self.visit(n.body))
 
   def visit_Return(self, n):
     return ir.Return(self.visit(n.body))
@@ -53,6 +56,9 @@ class PassthruVisitor(Visitor):
 
   def visit_FnDecl(self, n):
     return ir.FnDecl(n.name, [self.visit(a) for a in n.args], n.rtype, self.visit(n.body))
+
+  def visit_ExprStmt(self, n):
+    return ir.ExprStmt(self.visit(n.expr))
 
   def visit_Assert(self, n):
     return ir.Assert(self.visit(n.expr))

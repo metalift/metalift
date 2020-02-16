@@ -1,9 +1,75 @@
 import copy
 from collections import deque
 
-from visitor import Visitor
+from visitor import Visitor, PassthruVisitor
 import ir
 import operator
+
+class WriteVarIdentifier(PassthruVisitor):
+  def __init__(self):
+    super().__init__(self.__class__.__name__)
+    self.write_vars = set()
+    self.read_vars = set()
+
+  def visit_BinaryOp(self, n):
+    return set().union(*[self.visit(a) for a in n.args])
+
+  def visit_UnaryOp(self, n):
+    return set().union(*[self.visit(a) for a in n.args])
+
+  def visit_Call(self, n):
+    return set().union(*[self.visit(a) for a in n.args])
+
+  def visit_Choose(self, n):
+    raise TypeError("Choose should not appear")
+
+  def visit_Var(self, n):
+    return {n}
+
+  def visit_Lit(self, n):
+    return {}
+
+  def visit_Field(self, n):
+    return {n}
+
+  def visit_Assign(self, n):
+    self.write_vars.add(n.left)
+    self.read_vars.update(self.visit(n.right))
+    return None
+
+  def visit_If(self, n):
+    self.read_vars.update(self.visit(n.cond))
+    self.visit(n.conseq)
+    self.visit(n.alt)
+    return None
+
+  # loop, while
+
+  def visit_While(self, n):
+    self.read_vars.update(self.visit(n.cond))
+    self.visit(n.body)
+    return None
+
+  def visit_Return(self, n):
+    self.read_vars.update(self.visit(n.body))
+    return None
+
+  def visit_Block(self, n):
+    for s in n.stmts:
+      self.visit(s)
+    return None
+
+  def visit_FnDecl(self, n):
+    self.visit(n.body)
+    return None
+
+  def visit_ExprStmt(self, n):
+    self.visit(n.expr)
+    return None
+
+  def visit_Assert(self, n):
+    self.visit(n.expr)
+    return None
 
 class VCGen(Visitor):
 
@@ -25,6 +91,7 @@ class VCGen(Visitor):
     super().__init__(self.__class__.__name__)
     self.state = VCGen.State()
     self.inv_num = 0
+    self.info = {}  # maps invariant fn to (loop AST, read vars, write vars)
 
   def visit_BinaryOp(self, n):
     if isinstance(n.op, ir.Expr):
@@ -87,10 +154,10 @@ class VCGen(Visitor):
     for v, cons_val in cons_state.var.items():
       alt_val = alt_state.var[v]
       if alt_val != cons_val:
-        print("%s is diff: %s and %s" % (v, cons_val, alt_val))
+        #print("%s is diff: %s and %s" % (v, cons_val, alt_val))
         merged_state.var[v] = ir.If(cond, cons_val, alt_val)
       else:
-        print("%s is same: %s and %s" % (v, cons_val, alt_val))
+        #print("%s is same: %s and %s" % (v, cons_val, alt_val))
         merged_state.var[v] = cons_val
 
     if alt_state.rv != cons_state.rv:
@@ -102,41 +169,61 @@ class VCGen(Visitor):
     return True
 
 
-  def inv(self, vars, body=ir.Block()):
+  def inv(self, loop, read_vars, write_vars, body=ir.Block()):
     name = 'inv' + str(self.inv_num)
     self.inv_num = self.inv_num + 1
-    return ir.FnDecl(name, vars, bool, body)
+    inv_decl = ir.FnDecl(name, read_vars | write_vars, bool, body)
+    self.info[inv_decl] = (loop, read_vars, write_vars)
+    return inv_decl
 
-  # translate cond -> assert(conseq) into assert((not cond) or conseq)
-  @staticmethod
-  def implies(cond, conseq):
-    return ir.Assert(ir.BinaryOp(operator.or_, ir.UnaryOp(operator.not_, cond), conseq))
 
   # loop, while
   def visit_While(self, n):
     # create a new invariant function
-    inv_vars = list(self.state.var.keys())
-    inv_fn = self.inv(inv_vars)
+    wi = WriteVarIdentifier()
+    wi.visit(n)
+    write_vars = wi.write_vars
+    read_vars = set(filter(lambda var: var not in write_vars, self.state.var.keys()))
+    inv_vars = read_vars | write_vars
+
+    #inv_vars = list(self.state.var.keys())
+    inv_fn = self.inv(n, read_vars, write_vars)
     self.state.fns.append(inv_fn)
 
     # add assertion: precondition -> inv
     inv_call = ir.Call(inv_fn.name, *[self.state.var[arg] for arg in inv_vars])
-    self.state.asserts.append(VCGen.implies(self.state.precond, inv_call))
+    self.state.asserts.append(ir.implies(self.state.precond, inv_call))
 
     # create new visitor for the body
-    cond = self.visit(n.cond)
     body_visitor = VCGen()
-    for v in inv_vars:
-      body_visitor.state.var[v] = ir.Var(v.name, v.type)
-    body_cont = body_visitor.visit(n.body)
-    print("body: %s" % body_visitor.state)
+    # create fresh vars for those that are modified within the loop
+    for v in self.state.var:
+      if v in write_vars:
+        body_visitor.state.var[v] = ir.Var(v.name, v.type)
+      else:
+        body_visitor.state.var[v] = self.state.var[v]
 
     # add assertion: cond & inv -> inv(body)
+    inv_prebody_call = ir.Call(inv_fn.name, *[body_visitor.state.var[arg] for arg in inv_vars])
+
+    cond = body_visitor.visit(n.cond)
+    body_cont = body_visitor.visit(n.body)
+    #print("body: %s" % body_visitor.state)
+
     inv_body_call = ir.Call(inv_fn.name, *[body_visitor.state.var[arg] for arg in inv_vars])
-    self.state.asserts.append(VCGen.implies(cond, inv_body_call))
+    self.state.asserts.append(ir.implies(ir.BinaryOp(operator.and_, cond, inv_prebody_call), inv_body_call))
+
+    # create a new var map where modified vars are replaced with fresh ones
+    new_state_var = {}
+    for v in self.state.var:
+      if v in write_vars:
+        new_state_var[v] = ir.Var(v.name, v.type)
+      else:
+        new_state_var[v] = self.state.var[v]
+    self.state.var = new_state_var
 
     # precond is now the !cond & inv
-    self.state.precond = ir.BinaryOp(operator.and_, ir.UnaryOp(operator.not_, cond), inv_call)
+    self.state.precond = ir.BinaryOp(operator.and_, ir.UnaryOp(operator.not_, cond), inv_prebody_call)
 
     return body_cont
 
@@ -166,12 +253,16 @@ class VCGen(Visitor):
 
     # generate postcondition
     ps_vars = list(self.state.var.keys())
+    wi = WriteVarIdentifier()
+    wi.visit(n)
     ps = ir.FnDecl('ps', ps_vars, bool, ir.Block())
+    self.info[ps] = (n, wi.read_vars, wi.write_vars)
+
     ps_call = ir.Call('ps', *[self.state.var[arg] for arg in ps_vars])
 
     # add precond -> postcond
     self.state.fns.append(ps)
-    self.state.asserts.append(VCGen.implies(self.state.precond, ps_call))
+    self.state.asserts.append(ir.implies(self.state.precond, ps_call))
 
     p = ir.Program(None, self.state.fns + self.state.asserts)
     return p

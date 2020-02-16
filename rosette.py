@@ -1,13 +1,27 @@
-from visitor import Visitor
+import operator
+
+from visitor import Visitor, PassthruVisitor
 import ir
 import re
 
+
+class RecursiveTranslator(PassthruVisitor):
+  def __init__(self, call):
+    super().__init__(self.__class__.__name__)
+    self.call = call
+
+  def visit_Return(self, n):
+    return ir.ExprStmt(ir.BinaryOp(operator.eq, self.call, self.visit(n.body)))
+
+
 class RosetteTranslator(Visitor):
 
-  def __init__(self):
+  def __init__(self, synthesis, max_num=1):
     super().__init__(self.__class__.__name__)
     self.choose_fns = []
     self.choose_num = 0
+    self.synthesis = synthesis # synthesis or verify
+    self.max_num = max_num
 
   def visit_BinaryOp(self, n):
     op = None
@@ -23,6 +37,9 @@ class RosetteTranslator(Visitor):
     return '(%s %s)' % (n.name, ' '.join(self.visit(a) for a in n.args))
 
   def visit_Choose(self, n):
+    if not self.synthesis:
+      raise TypeError('Choose should not appear in verify')
+
     choose_num = self.choose_num
     args = []
     body = []
@@ -72,9 +89,26 @@ class RosetteTranslator(Visitor):
   def visit_Block(self, n):
     return '(begin %s)' % ('\n'.join(self.visit(s) for s in n.stmts))
 
+  def visit_ExprStmt(self, n):
+    return '%s' % self.visit(n.expr)
+
   def visit_FnDecl(self, n):
-    return '(define (%s %s) \n%s)\n' % \
-      (n.name, ' '.join('%s' % self.visit(a) for a in n.args), self.visit(n.body))
+    # hack for now: translate fn defs if synthesis, or invariants, and postconditions (assuming they are not recursive)
+    if self.synthesis or n.name.startswith('inv') or n.name == 'ps':
+      return '(define (%s %s) \n%s)\n' % \
+        (n.name, ' '.join('%s' % self.visit(a) for a in n.args), self.visit(n.body))
+
+    else:  # translate function definitions to UF in verification
+      fn_vars_decl = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in n.args]
+      call = ir.Call(n.name, *n.args)
+      body = RecursiveTranslator(call).visit(n.body)
+
+      return ('(define-symbolic %s (~> %s %s))\n' +
+              '%s\n' +
+              '(assert (forall (list %s)\n%s))\n') % \
+             (n.name, ' '.join(ir.Expr.rkttype_fn(a.type) for a in n.args), ir.Expr.rkttype_fn(n.rtype),
+              ' '.join(fn_vars_decl), ' '.join(a.name for a in n.args), self.visit(body))
+
 
   def visit_Assert(self, n):
     return '(assert %s)' % self.visit(n.expr)
@@ -110,21 +144,27 @@ class RosetteTranslator(Visitor):
     asserts = []
     for s in n.stmts:
       if isinstance(s, ir.Assert):
-        asserts.append(self.visit(s))
+        asserts.append(s)
       else:
         stmts.append(self.visit(s))
 
-    top_vars_decls = ['(define-symbolic %s integer?)' % v.name for v in top_vars]
-    top_vars_names = [v.name for v in top_vars]
+    if self.synthesis:
+      top_vars_decls = ['[%s (range %s)]' % (v.name, self.max_num) for v in top_vars]
 
-    print("assert are %s" % ' '.join(asserts))
-    return ('%s\n\n' + \
-           '%s\n\n' + \
-           '(define binding\n' + \
-           '  (synthesize #:forall (list %s)\n' + \
-           '              #:guarantee (and %s)))\n' + \
-           'binding') % ('\n'.join(stmts), '\n'.join(top_vars_decls),
-                                                      ' '.join(top_vars_names), ' '.join(asserts))
+      return ('%s\n\n' +
+             '(define binding\n' +
+             '  (solve (for (%s) \n' +
+             '           (and %s))))\n' +
+             'binding') % ('\n'.join(stmts), ' '.join(top_vars_decls), ' '.join([self.visit(a) for a in asserts]))
+
+    else:
+      top_vars_decls = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in top_vars]
+      top_vars_names = ' '.join(v.name for v in top_vars)
+      # add forall and negation to all asserts
+      all_asserts = ['(assert (forall (list %s) (not %s)))' % (top_vars_names, self.visit(a.expr)) for a in asserts]
+
+      return ('%s\n\n' + '%s\n\n' + '(solve (and\n' + '%s))') % ('\n'.join(stmts),
+                      '\n'.join(top_vars_decls), '\n'.join(all_asserts))
 
 
   def to_rosette(self, p):

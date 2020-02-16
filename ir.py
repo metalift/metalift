@@ -10,6 +10,7 @@ from state import State, Frame
 
 class Expr:
   sktype_fn = None
+  rkttype_fn = None
 
   def __init__(self, *args):
     self.args = args
@@ -140,6 +141,8 @@ class Var(Expr):
     return hash(self.name + str(self.type))
 
 class Lit(Expr):
+  valid_types = []
+
   def __init__(self, val, t):
     self.val = val
     if not any(isinstance(val, ty) for ty in Lit.valid_types):
@@ -155,12 +158,9 @@ class Lit(Expr):
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.type == other.type and self.val == other.val
 
-true_lit = Lit(True, bool)
-false_lit = Lit(False, bool)
+  def __hash__(self):
+    return hash(self.val)
 
-# shortcuts
-def true(): return true_lit
-def false(): return false_lit
 
 # python specific
 class Unpack(Expr):
@@ -243,9 +243,13 @@ class Loop(Stmt):
 
 class While(Loop):
   def __init__(self, cond, *body):
-    super().__init__(cond, Block(*body))  # block also expects a variable number of arguments
     self.cond = cond
-    self.body = Block(*body)
+    if len(body) == 1 and isinstance(body[0], Block):
+      super().__init__(cond, body)
+      self.body = body
+    else:
+      super().__init__(cond, Block(*body))  # block also expects a variable number of arguments
+      self.body = Block(*body)
 
   def __repr__(self):
     return 'while (%s) { %s }' % (self.cond, self.body)
@@ -311,7 +315,7 @@ class ExprStmt(Stmt):
     self.expr = e
 
   def __repr__(self):
-    return '(%s)' % self.e
+    return '(%s)' % self.expr
 
 class Assert(Stmt):
   def __init__(self, e: Expr):
@@ -366,6 +370,11 @@ def sktype_fn(t: type) -> str:
   elif t == bool: return 'bit'
   else: raise TypeError('NYI: %s' % t)
 
+def rkttype_fn(t: type) -> str:
+  if t == int: return 'integer?'
+  elif t == bool: return 'boolean?'
+  else: raise TypeError('NYI: %s' % t)
+
 def binary_skfn(op, *args) -> str:
   if op == operator.add: return '+'.join(args)
   elif op == operator.sub: return '-'.join(args)
@@ -408,7 +417,7 @@ def unary_rktfn(op, *args) -> str:
 
 Program.stmt_types = [FnDecl]
 FnDecl.stmt_types = [Block]
-Block.stmt_types = [Assign, If, While, Return, Call]
+Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt]
 BinaryOp.valid_ops = [operator.add, operator.sub, operator.mul, operator.truediv, operator.mod,
                       operator.and_, operator.or_,
                       operator.gt, operator.ge, operator.lt, operator.le, operator.eq, operator.ne]
@@ -417,5 +426,17 @@ BinaryOp.to_rktfn = binary_rktfn
 UnaryOp.valid_ops = [operator.neg, operator.not_]
 UnaryOp.to_skfn = unary_skfn
 UnaryOp.to_rktfn = unary_rktfn
-Var.valid_types = Lit.valid_types = [bool, int, float, Expr]
+
+Var.valid_types = [bool, int, float, Expr]
+Lit.valid_types = [bool, int, float, Expr]
+true_lit = Lit(True, bool)
+false_lit = Lit(False, bool)
+# shortcuts
+def true(): return true_lit
+def false(): return false_lit
+
 Expr.sktype_fn = sktype_fn
+Expr.rkttype_fn = rkttype_fn
+
+def implies(cond, conseq):
+  return Assert(BinaryOp(operator.or_, UnaryOp(operator.not_, cond), conseq))
