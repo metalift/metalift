@@ -5,7 +5,8 @@ from visitor import Visitor, PassthruVisitor
 import ir
 import operator
 
-class WriteVarIdentifier(PassthruVisitor):
+# labels each variable as either read, written, or both
+class VarIdentifier(PassthruVisitor):
   def __init__(self):
     super().__init__(self.__class__.__name__)
     self.write_vars = set()
@@ -27,7 +28,7 @@ class WriteVarIdentifier(PassthruVisitor):
     return {n}
 
   def visit_Lit(self, n):
-    return {}
+    return set()
 
   def visit_Field(self, n):
     return {n}
@@ -70,6 +71,7 @@ class WriteVarIdentifier(PassthruVisitor):
   def visit_Assert(self, n):
     self.visit(n.expr)
     return None
+
 
 class VCGen(Visitor):
 
@@ -180,13 +182,12 @@ class VCGen(Visitor):
   # loop, while
   def visit_While(self, n):
     # create a new invariant function
-    wi = WriteVarIdentifier()
+    wi = VarIdentifier()
     wi.visit(n)
     write_vars = wi.write_vars
     read_vars = set(filter(lambda var: var not in write_vars, self.state.var.keys()))
     inv_vars = read_vars | write_vars
 
-    #inv_vars = list(self.state.var.keys())
     inv_fn = self.inv(n, read_vars, write_vars)
     self.state.fns.append(inv_fn)
 
@@ -194,9 +195,8 @@ class VCGen(Visitor):
     inv_call = ir.Call(inv_fn.name, *[self.state.var[arg] for arg in inv_vars])
     self.state.asserts.append(ir.implies(self.state.precond, inv_call))
 
-    # create new visitor for the body
+    # create new visitor for the body, and create fresh vars for those that are modified within the loop
     body_visitor = VCGen()
-    # create fresh vars for those that are modified within the loop
     for v in self.state.var:
       if v in write_vars:
         body_visitor.state.var[v] = ir.Var(v.name, v.type)
@@ -253,7 +253,7 @@ class VCGen(Visitor):
 
     # generate postcondition
     ps_vars = list(self.state.var.keys())
-    wi = WriteVarIdentifier()
+    wi = VarIdentifier()
     wi.visit(n)
     ps = ir.FnDecl('ps', ps_vars, bool, ir.Block())
     self.info[ps] = (n, wi.read_vars, wi.write_vars)
@@ -266,6 +266,3 @@ class VCGen(Visitor):
 
     p = ir.Program(None, self.state.fns + self.state.asserts)
     return p
-
-  def visit_Program(self, n):
-    raise TypeError('NYI')

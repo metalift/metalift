@@ -3,7 +3,7 @@ import subprocess
 import ir
 import visitor
 from rosette import RosetteTranslator
-from vcgen import WriteVarIdentifier
+from vcgen import VarIdentifier
 
 
 class ChoiceReplacer(visitor.PassthruVisitor):
