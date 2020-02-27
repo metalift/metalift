@@ -14,9 +14,21 @@ class Translator(ast.NodeTransformer):
 
   # expressions
   def visit_arguments(self, n):
-    args = [ir.Var(a.arg, eval(self.visit(a.annotation))) for a in n.args]
-    for a in args:
-      self.vars[a.name] = a
+    # annotation here is for type, calling eval on it will return an actual type object
+    #args = [ir.Var(a.arg, eval(self.visit(a.annotation))) for a in n.args]
+    args = []
+    for a in n.args:
+      type_ = self.visit(a.annotation)
+      if isinstance(type_, str):
+        type_ = eval(type_)
+      elif isinstance(type_, ir.ListAccess):
+        type_ = eval('%s[%s]' % (type_.target, type_.index))
+      else:
+        raise TypeError('NYI: %s' % n)
+      v = ir.Var(a.arg, type_)
+      args.append(v)
+      self.vars[v.name] = v
+
     return args
 
   def visit_Attribute(self, n):
@@ -50,6 +62,10 @@ class Translator(ast.NodeTransformer):
 
     elif isinstance(v, ast.Call):
       return self.visit(v)
+
+    elif isinstance(v, ast.Subscript):
+      #return self.visit(v)
+      raise TypeError("xxx")
 
     else:
       raise TypeError('NYI: %s' % v)
@@ -98,8 +114,7 @@ class Translator(ast.NodeTransformer):
     return ir.Unpack(self.visit(n.value))
 
   def visit_Subscript(self, n):
-    # hack for now
-    return '%s[%s]' % (self.visit(n.value), self.visit(n.slice))
+    return ir.ListAccess(self.visit(n.value), self.visit(n.slice), None)
 
 
   # statements
@@ -164,6 +179,12 @@ class Translator(ast.NodeTransformer):
     else:
       v = self.visit(n.value)
     return ir.Return(v)
+
+  def visit_Break(self, n):
+    return ir.Branch(ir.Branch.Type.Break)
+
+  def visit_Continue(self, n):
+    return ir.Branch(ir.Branch.Type.Continue)
 
 
 def translate(fn):

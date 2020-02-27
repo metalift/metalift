@@ -1,6 +1,7 @@
 import importlib
 import operator
 from abc import abstractmethod
+from enum import Enum
 from typing import List
 
 from state import State, Frame
@@ -123,6 +124,9 @@ def gen_Expr(name, types, ops):
 
 class Var(Expr):
   def __init__(self, name, t):
+    # hack according to https://bugs.python.org/issue34568
+    if hasattr(t, '__origin__'):
+      t = t.__origin__
     if not any(issubclass(t, vt) for vt in Var.valid_types):
       raise TypeError('only supported vars of type: %s and not %s' % (Var.valid_types, t))
     self.name = name
@@ -173,6 +177,7 @@ class Unpack(Expr):
 
 class Field(Expr):
   def __init__(self, target, name):
+    super().__init__()
     self.target = target
     self.name = name
     self.type = None  # XXX
@@ -198,6 +203,22 @@ def gen_Lit(name, types):
       raise TypeError('only supported types are: ' + str(self.valid_types))
 
   return type(name, (Lit,), {'__init__': init, 'valid_types': types})
+
+
+class ListAccess(Expr):
+  def __init__(self, target, index, type):
+    super().__init__()
+    self.target = target
+    self.index = index
+    self.type = type
+
+  def __repr__(self):
+    return '%s[%s]' % (self.target, self.index)
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self.target == other.target and self.index == other.index \
+           and self.type == other.type
+
 
 
 class Stmt:
@@ -254,6 +275,7 @@ class While(Loop):
   def __repr__(self):
     return 'while (%s) { %s }' % (self.cond, self.body)
 
+
 class Return(Stmt):
   def __init__(self, body):
     super().__init__(body)
@@ -266,6 +288,18 @@ class Return(Stmt):
     r = self.body.symeval(s)
     s.rv = s.vars[r] if isinstance(r, Var) else r
     return False
+
+class Branch(Stmt):  # continue or break
+  class Type(Enum):
+    Continue = 1
+    Break = 2
+
+  def __init__(self, type):
+    super().__init__(None)
+    self.type = type
+
+  def __repr__(self):
+    return 'continue;' if self.type == Branch.Type.Continue else 'break;'
 
 
 class Block(Stmt):
@@ -417,7 +451,7 @@ def unary_rktfn(op, *args) -> str:
 
 Program.stmt_types = [FnDecl]
 FnDecl.stmt_types = [Block]
-Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt]
+Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch]
 BinaryOp.valid_ops = [operator.add, operator.sub, operator.mul, operator.truediv, operator.mod,
                       operator.and_, operator.or_,
                       operator.gt, operator.ge, operator.lt, operator.le, operator.eq, operator.ne]
@@ -427,7 +461,7 @@ UnaryOp.valid_ops = [operator.neg, operator.not_]
 UnaryOp.to_skfn = unary_skfn
 UnaryOp.to_rktfn = unary_rktfn
 
-Var.valid_types = [bool, int, float, Expr]
+Var.valid_types = [bool, int, float, List, Expr]
 Lit.valid_types = [bool, int, float, Expr]
 true_lit = Lit(True, bool)
 false_lit = Lit(False, bool)
