@@ -22,9 +22,9 @@ class Translator(ast.NodeTransformer):
       if isinstance(type_, str):
         type_ = eval(type_)
       elif isinstance(type_, ir.ListAccess):
-        type_ = eval('%s[%s]' % (type_.target, type_.index))
+        type_ = eval("%s[%s]" % (type_.target, type_.index))
       else:
-        raise TypeError('NYI: %s' % n)
+        raise TypeError("NYI: %s" % n)
       v = ir.Var(a.arg, type_)
       args.append(v)
       self.vars[v.name] = v
@@ -40,17 +40,24 @@ class Translator(ast.NodeTransformer):
     elif isinstance(op, ast.Sub): new_op = operator.sub
     elif isinstance(op, ast.Mult): new_op = operator.mul
     elif isinstance(op, ast.Div): new_op = operator.floordiv
-    else: raise TypeError('NYI; %s' % op)
+    else: raise TypeError("NYI; %s" % op)
 
     return ir.BinaryOp(new_op, self.resolve(n.left), self.resolve(n.right))
+
+  def visit_UnaryOp(self, n):
+    op = n.op
+    if isinstance(op, ast.Not): new_op = operator.not_
+    else: raise TypeError("NYI: %s" % op)
+
+    return ir.UnaryOp(new_op, self.resolve(n.operand))
 
   def resolve(self, v, is_var=True):
     if isinstance(v, ast.Name):
       if is_var:
-        if v.id not in self.vars: raise NameError('variable not found: %s' % v.id)
+        if v.id not in self.vars: raise NameError("variable not found: %s" % v.id)
         else: return self.vars[v.id]
       else:  # a function
-        # if v.id not in self.fns: raise NameError('function not found: %s' % v.id)
+        # if v.id not in self.fns: raise NameError("function not found: %s" % v.id)
         # else: return self.fns[v.id]
         return v.id
 
@@ -63,26 +70,29 @@ class Translator(ast.NodeTransformer):
     elif isinstance(v, ast.Call):
       return self.visit(v)
 
+    elif isinstance(v, ast.Constant):
+      return self.visit(v)
+
     elif isinstance(v, ast.Subscript):
       #return self.visit(v)
       raise TypeError("xxx")
 
     else:
-      raise TypeError('NYI: %s' % v)
+      raise TypeError("NYI: %s" % v)
 
   def visit_Call(self, n):
     args = [self.visit(a) for a in n.args]
     fn = self.resolve(n.func, False)
 
     # XXX hack for now
-    if fn == 'Choose' or (isinstance(fn, ir.Field) and fn.target == 'ir' and fn.name == 'Choose'):
+    if fn == "Choose" or (isinstance(fn, ir.Field) and fn.target == "ir" and fn.name == "Choose"):
       return ir.Choose(*args)
     else:
       return ir.Call(fn, *args)
 
   def visit_Compare(self, n):
-    if len(n.ops) > 1: raise TypeError('NYI: %s' % n.ops)
-    if len(n.comparators) > 1: raise TypeError('NYI: %s' % n.comparators)
+    if len(n.ops) > 1: raise TypeError("NYI: %s" % n.ops)
+    if len(n.comparators) > 1: raise TypeError("NYI: %s" % n.comparators)
 
     op = n.ops[0]
     if isinstance(op, ast.Eq): new_op = operator.eq
@@ -91,14 +101,16 @@ class Translator(ast.NodeTransformer):
     elif isinstance(op, ast.LtE): new_op = operator.le
     elif isinstance(op, ast.GtE): new_op = operator.ge
     elif isinstance(op, ast.NotEq): new_op = operator.ne
-    else: raise TypeError('NYI: %s' % str(op))
+    else: raise TypeError("NYI: %s" % str(op))
 
     return ir.BinaryOp(new_op, self.resolve(n.left), self.resolve(n.comparators[0]))
 
   def visit_Constant(self, n):
     t = None
-    if isinstance(n.value, int): t = int
-    else: raise TypeError('NYI: %s' % n.value)
+    if isinstance(n.value, bool): t = bool
+    elif isinstance(n.value, int): t = int  # True is also an int
+    elif n.value is None: t = None
+    else: raise TypeError("NYI: %s" % n.value)
     return ir.Lit(n.value, t)
 
   def visit_Expr(self, n):
@@ -135,7 +147,7 @@ class Translator(ast.NodeTransformer):
     else:
       val = self.visit(n.value)
     if len(n.targets) > 1:
-      raise TypeError('multi-assign NYI: %s' % n)
+      raise TypeError("multi-assign NYI: %s" % n)
     return ir.Assign(self.vars[self.visit(n.targets[0])], val)
 
   def visit_FunctionDef(self, n):
@@ -174,7 +186,9 @@ class Translator(ast.NodeTransformer):
 
   def visit_Return(self, n):
     non_exprs = [ast.Name, ast.Num, ast.Str]
-    if any(isinstance(n.value, a) for a in non_exprs):
+    if not n.value:
+      v = None
+    elif any(isinstance(n.value, a) for a in non_exprs):
       v = self.resolve(n.value)
     else:
       v = self.visit(n.value)
@@ -193,14 +207,12 @@ def translate(fn):
   print(ast.dump(tree))
   e = Translator()
   v = e.visit(tree)
-  print('final state: %s' % e.vars)
   return v
 
 def translate_file(name):
-  with open(name, 'r') as source:
+  with open(name, "r") as source:
     tree = ast.parse(source.read())
     print(ast.dump(tree))
     e = Translator()
     v = e.visit(tree)
-    print('final state: %s' % e.vars)
     return v
