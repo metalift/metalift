@@ -63,5 +63,14 @@ class PassthruVisitor(Visitor):
   def visit_Assert(self, n):
     return ir.Assert(self.visit(n.expr))
 
+  def visit_Assume(self, n):
+    return ir.Assume(self.visit(n.expr))
+
+  def visit_Havoc(self, n):
+    return ir.Havoc(*[self.visit(a) for a in n.args])
+
+  def visit_Branch(self, n):
+    return n
+
   def visit_Program(self, n):
     return ir.Program(n.imports, [self.visit(s) for s in n.stmts])

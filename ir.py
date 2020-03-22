@@ -4,7 +4,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import List
 
-from state import State, Frame
+#from state import State, Frame
 
 # metalift IR. There are two base classes: Expr's that return a typed value,
 # and Stmt's that do not return anything.
@@ -44,12 +44,12 @@ class BinaryOp(Expr):
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.op == other.op and self.args == other.args
 
-  def symeval(self, s: Frame):
-    args = [arg.symeval(s) for arg in self.args]
-    if any(isinstance(a, Var) for a in args): # symbolic
-      return BinaryOp(self.op, args)
-    else:
-      return self.op(*args)
+  # def symeval(self, s: Frame):
+  #   args = [arg.symeval(s) for arg in self.args]
+  #   if any(isinstance(a, Var) for a in args): # symbolic
+  #     return BinaryOp(self.op, args)
+  #   else:
+  #     return self.op(*args)
 
 
 class UnaryOp(Expr):
@@ -81,13 +81,13 @@ class Call(Expr):
   def __repr__(self):
     return '%s(%s)' % (self.name, ', '.join(str(x) for x in self.args))
 
-  def symeval(self, s: State):
-    args = [a.symeval(s) for a in self.args]
-    fn = self.name.symeval(s)
-    if isinstance(fn, Expr) or any(isinstance(a, Expr) for a in args):  # symbolic
-      raise TypeError('NYI: %s' % self)
-    else:
-      return fn(*args)
+  # def symeval(self, s: State):
+  #   args = [a.symeval(s) for a in self.args]
+  #   fn = self.name.symeval(s)
+  #   if isinstance(fn, Expr) or any(isinstance(a, Expr) for a in args):  # symbolic
+  #     raise TypeError('NYI: %s' % self)
+  #   else:
+  #     return fn(*args)
 
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.name == other.name and self.args == other.args
@@ -135,8 +135,8 @@ class Var(Expr):
   def __repr__(self):
     return '%s:%s' % (self.name, self.type.__name__)
 
-  def symeval(self, s: State):
-    return s.vars[self.name]
+  # def symeval(self, s: State):
+  #   return s.vars[self.name]
 
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.name == other.name and self.type == other.type
@@ -185,11 +185,11 @@ class Field(Expr):
   def __repr__(self):
     return '%s.%s' % (self.target, self.name)
 
-  def symeval(self, s):
-    if isinstance(self.target, str) and isinstance(self.name, str):
-      return eval(str(self))
-    else:
-      raise TypeError('NYI: %s' % self)
+  # def symeval(self, s):
+  #   if isinstance(self.target, str) and isinstance(self.name, str):
+  #     return eval(str(self))
+  #   else:
+  #     raise TypeError('NYI: %s' % self)
 
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.target == other.target and self.name == other.name \
@@ -236,9 +236,9 @@ class Assign(Stmt):
   def __repr__(self):
     return '%s = %s;\n' % (self.left, self.right)
 
-  def symeval(self, s: State):
-    s.vars[self.left.name] = self.right.symeval(s)
-    return True
+  # def symeval(self, s: State):
+  #   s.vars[self.left.name] = self.right.symeval(s)
+  #   return True
 
 
 class If(Stmt):
@@ -284,10 +284,10 @@ class Return(Stmt):
   def __repr__(self):
     return 'return %s;' % self.args[0]
 
-  def symeval(self, s: State):
-    r = self.body.symeval(s)
-    s.rv = s.vars[r] if isinstance(r, Var) else r
-    return False
+  # def symeval(self, s: State):
+  #   r = self.body.symeval(s)
+  #   s.rv = s.vars[r] if isinstance(r, Var) else r
+  #   return False
 
 class Branch(Stmt):  # continue or break
   class Type(Enum):
@@ -304,7 +304,9 @@ class Branch(Stmt):  # continue or break
 
 class Block(Stmt):
   stmt_types = []
+
   def __init__(self, *stmts):
+    stmts = list(stmts)
     super().__init__(stmts)
     self.stmts = stmts
     for s in stmts:
@@ -314,11 +316,11 @@ class Block(Stmt):
   def __repr__(self):
     return '{ %s }' % ('\n'.join(repr(s) for s in self.stmts))
 
-  def symeval(self, s: State):
-    for stmt in self.stmts:
-      if not stmt.symeval(s):
-        return False
-    return True
+  # def symeval(self, s: State):
+  #   for stmt in self.stmts:
+  #     if not stmt.symeval(s):
+  #       return False
+  #   return True
 
 
 class FnDecl(Stmt):
@@ -338,9 +340,9 @@ class FnDecl(Stmt):
   def __repr__(self):
     return '%s(%s) \n%s\n' % (self.name, ', '.join(repr(a) for a in self.args), self.body)
 
-  def symeval(self, s: State):
-    self.body.symeval(s)
-    return s.rv
+  # def symeval(self, s: State):
+  #   self.body.symeval(s)
+  #   return s.rv
 
 # e.g., a single function call w/o return values
 class ExprStmt(Stmt):
@@ -360,6 +362,25 @@ class Assert(Stmt):
     return 'assert(%s)' % self.expr
 
 
+class Assume(Stmt):
+  def __init__(self, e: Expr):
+    super().__init__(e)
+    self.expr = e
+
+  def __repr__(self):
+    return 'assume(%s)' % self.expr
+
+class Havoc(Stmt):
+  def __init__(self, *args):
+    super().__init__(*args)
+    self.args = args
+
+  def __repr__(self):
+    return 'havoc(%s)' % ', '.join(str(x) for x in self.args)
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self.args == other.args
+
 class Program:
   stmt_types = []
 
@@ -376,18 +397,18 @@ class Program:
   def __repr__(self):
     return '\n'.join([str(s) for s in self.stmts])
 
-  def symeval(self, fn_name, params={}):
-    for mod in self.imports:
-      globals()[mod] = importlib.import_module(mod)
-
-    fn = self.fns[fn_name]
-    s = State()
-    for a in fn.args:
-      if a.name in params:
-        s.vars[a.name] = params[a.name]
-      else:
-        s.vars[a.name] = Var(a.name, a.type)
-    return fn.symeval(s)
+  # def symeval(self, fn_name, params={}):
+  #   for mod in self.imports:
+  #     globals()[mod] = importlib.import_module(mod)
+  #
+  #   fn = self.fns[fn_name]
+  #   s = State()
+  #   for a in fn.args:
+  #     if a.name in params:
+  #       s.vars[a.name] = params[a.name]
+  #     else:
+  #       s.vars[a.name] = Var(a.name, a.type)
+  #   return fn.symeval(s)
 
 # ignore this for now
 def gen_Stmt(name, types, repr_fn):
@@ -427,7 +448,7 @@ def binary_rktfn(op, *args) -> str:
     elif op == operator.sub: op_str = '-'
     elif op == operator.mul: op_str = '*'
     elif op == operator.truediv: op_str = '/'
-    elif op == operator.eq: op_str = '='
+    elif op == operator.eq: op_str = 'eq?'
     elif op == operator.and_: op_str = 'and'
     elif op == operator.or_: op_str = 'or'
     elif op == operator.gt: op_str = '>'
@@ -451,7 +472,7 @@ def unary_rktfn(op, *args) -> str:
 
 Program.stmt_types = [FnDecl]
 FnDecl.stmt_types = [Block]
-Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch]
+Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch, Assert, Assume, Havoc, Block]
 BinaryOp.valid_ops = [operator.add, operator.sub, operator.mul, operator.truediv, operator.mod,
                       operator.and_, operator.or_,
                       operator.gt, operator.ge, operator.lt, operator.le, operator.eq, operator.ne]
@@ -468,9 +489,11 @@ false_lit = Lit(False, bool)
 # shortcuts
 def true(): return true_lit
 def false(): return false_lit
+def num(n: int): return Lit(n, int)
 
 Expr.sktype_fn = sktype_fn
 Expr.rkttype_fn = rkttype_fn
 
 def implies(cond, conseq):
   return Assert(BinaryOp(operator.or_, UnaryOp(operator.not_, cond), conseq))
+  #return If(cond, conseq, Assert(true()))

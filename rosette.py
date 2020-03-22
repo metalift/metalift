@@ -20,8 +20,9 @@ class RosetteTranslator(Visitor):
     super().__init__(self.__class__.__name__)
     self.choose_fns = []
     self.choose_num = 0
-    self.synthesis = synthesis # synthesis or verify
+    self.synthesis = synthesis  # synthesis or verify
     self.max_num = max_num
+    self.sym_vars = set()  # symbolic vars to be declared, in case there is overlap
 
   def visit_BinaryOp(self, n):
     op = None
@@ -47,12 +48,12 @@ class RosetteTranslator(Visitor):
       args.append('e%d' % i)
       body.append('   [(= choose%d %d) e%d]\n' % (choose_num, i, i))
 
-    self.choose_fns.append(('(define-symbolic choose%d integer?)\n' +
-                            '(define (choose%d_fn %s) \n' +
+    self.choose_fns.append(('(define (choose%d_fn %s) \n' +
                             '  (cond \n' +
                             '%s' +
                             '   [else (assert false)]))\n') %
-                           (choose_num, choose_num, ' '.join(args), ''.join(body)))
+                           (choose_num, ' '.join(args), ''.join(body)))
+    self.sym_vars.add(ir.Var('choose%d' % choose_num, int))
 
     self.choose_num += 1
     return '(choose%d_fn %s)' % (choose_num, ' '.join(self.visit(a) for a in n.args))
@@ -99,19 +100,22 @@ class RosetteTranslator(Visitor):
         (n.name, ' '.join('%s' % self.visit(a) for a in n.args), self.visit(n.body))
 
     else:  # translate function definitions to UF in verification
-      fn_vars_decl = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in n.args]
+      self.sym_vars.update(n.args)
+
       call = ir.Call(n.name, *n.args)
       body = RecursiveTranslator(call).visit(n.body)
 
       return ('(define-symbolic %s (~> %s %s))\n' +
-              '%s\n' +
               '(assert (forall (list %s)\n%s))\n') % \
              (n.name, ' '.join(ir.Expr.rkttype_fn(a.type) for a in n.args), ir.Expr.rkttype_fn(n.rtype),
-              ' '.join(fn_vars_decl), ' '.join(a.name for a in n.args), self.visit(body))
+              ' '.join(a.name for a in n.args), self.visit(body))
 
 
   def visit_Assert(self, n):
-    return '(assert %s)' % self.visit(n.expr)
+    if self.synthesis:
+      return '(assert %s)' % self.visit(n.expr)
+    else:
+      return self.visit(n.expr)
 
   @staticmethod
   def count_vars(s: ir.Expr):
@@ -149,22 +153,29 @@ class RosetteTranslator(Visitor):
         stmts.append(self.visit(s))
 
     if self.synthesis:
+      sym_vars_decls = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in self.sym_vars]
+      # distinguish between sym vars and those that need to be range limited
       top_vars_decls = ['[%s (range %s)]' % (v.name, self.max_num) for v in top_vars]
 
       return ('%s\n\n' +
+              '%s\n\n' +
              '(define binding\n' +
              '  (solve (for (%s) \n' +
              '           (and %s))))\n' +
-             'binding') % ('\n'.join(stmts), ' '.join(top_vars_decls), ' '.join([self.visit(a) for a in asserts]))
+             'binding') % ('\n'.join(sym_vars_decls), '\n'.join(stmts),
+                           ' '.join(top_vars_decls), ' '.join([self.visit(a) for a in asserts]))
 
-    else:
-      top_vars_decls = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in top_vars]
+    else:  # verification
+      self.sym_vars.update(top_vars)
+      top_vars_decls = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in self.sym_vars]
+
       top_vars_names = ' '.join(v.name for v in top_vars)
-      # add forall and negation to all asserts
-      all_asserts = ['(assert (forall (list %s) (not %s)))' % (top_vars_names, self.visit(a.expr)) for a in asserts]
+      fn_decls = [self.visit(s) for s in n.stmts if isinstance(s, ir.FnDecl)]
 
-      return ('%s\n\n' + '%s\n\n' + '(solve (and\n' + '%s))') % ('\n'.join(stmts),
-                      '\n'.join(top_vars_decls), '\n'.join(all_asserts))
+      # add forall and negation to asserts
+      translated = [self.visit(s) for s in n.stmts if not isinstance(s, ir.FnDecl)]
+      return ('%s\n\n' + '%s\n\n' + '(assert (forall (list %s) (not\n  (and\n    %s))))\n\n(solve (void))') % \
+              ('\n'.join(top_vars_decls), '\n'.join(fn_decls), top_vars_names, '\n    '.join(translated))
 
 
   def to_rosette(self, p):

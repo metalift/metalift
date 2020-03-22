@@ -3,8 +3,6 @@ import subprocess
 import ir
 import visitor
 from rosette import RosetteTranslator
-from vcgen import VarIdentifier
-
 
 class ChoiceReplacer(visitor.PassthruVisitor):
   def __init__(self, choices):
@@ -31,12 +29,14 @@ def synthesize(n: ir.Program, lang: ir.Program, info, inv_fn, ps_fn):
     if isinstance(s, ir.FnDecl):
       new_stmts.append(s)
 
+  # add search function output
   for s in n.stmts:
     if isinstance(s, ir.FnDecl):
-      if s.name.startswith('inv') or s.name == 'ps':
+
+      if s.name.startswith('inv') or s.name.endswith('_ps'):
         ast_info = info[s]
-        read_vars = {a.name: a for a in ast_info[1]}
-        write_vars = {a.name: a for a in ast_info[2]}
+        read_vars = {a.name: a for a in ast_info[0]}
+        write_vars = {a.name: a for a in ast_info[1]}
         new_body = inv_fn(ast_info[0], read_vars, write_vars) if s.name.startswith('inv') else\
                    ps_fn(ast_info[0], read_vars, write_vars)
         new_stmts.append(ir.FnDecl(s.name, s.args, s.rtype, new_body))
@@ -44,6 +44,8 @@ def synthesize(n: ir.Program, lang: ir.Program, info, inv_fn, ps_fn):
       new_stmts.append(s)
 
   mod_prog = ir.Program(n.imports, new_stmts)
+
+  print("mod prog: %s" % mod_prog)
 
   # synthesis
   rt = RosetteTranslator(True, max_num=4)

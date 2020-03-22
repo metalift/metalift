@@ -1,32 +1,42 @@
 from collections import defaultdict, deque
+from enum import Enum, auto
 
 import ir
 from frontend import python
 from visitor import Visitor, PassthruVisitor
 
 class CFGBuilder(PassthruVisitor):
+
+  class FlowType(Enum):
+    Normal = auto()
+    LoopBack = auto()
+    LoopExit = auto()
+
+    def __repr__(self):
+      return self.name
+
   def __init__(self):
     super().__init__(self.__class__.__name__)
     self.succs = defaultdict(set)
     self.preds = defaultdict(set)
     self.loops = deque()  # stack of (While, exit stmt) pairs representing the current context of loops
 
-  def update(self, code, pred, succ):
+  def update(self, code, pred, succ, pred_type=FlowType.Normal, succ_type=FlowType.Normal):
     if isinstance(pred, list):
       for p in pred:
-        self.succs[p].add(code)
+        self.succs[(p, pred_type)].add(code)
     else:
-      self.succs[pred].add(code)
-    self.preds.setdefault(code, set()).update(pred if isinstance(pred, list) else [pred])
+      self.succs[(pred, pred_type)].add(code)
+    self.preds.setdefault((code, pred_type), set()).update(pred if isinstance(pred, list) else [pred])
 
     if isinstance(succ, list):
       for s in succ:
-        self.preds[s].add(code)
+        self.preds[(s, succ_type)].add(code)
     else:
-      self.preds[succ].add(code)
-    self.succs.setdefault(code, set()).update(succ if isinstance(succ, list) else [succ])
+      self.preds[(succ, succ_type)].add(code)
+    self.succs.setdefault((code, succ_type), set()).update(succ if isinstance(succ, list) else [succ])
 
-  def construct_cfg(self, code, pred, succ):
+  def construct_cfg(self, code, pred=None, succ=None):
     if isinstance(code, ir.Block):
       s = succ
       p = pred
@@ -49,7 +59,10 @@ class CFGBuilder(PassthruVisitor):
       self.construct_cfg(code.alt, code, succ)
 
     elif isinstance(code, ir.Assign) or isinstance(code, ir.ExprStmt) or isinstance(code, ir.Assert):
-      self.update(code, pred, succ)
+      if isinstance(succ, ir.While) and self.loops and self.loops[-1][0] == succ:
+        self.update(code, pred, succ, CFGBuilder.FlowType.Normal, CFGBuilder.FlowType.LoopBack)
+      else:
+        self.update(code, pred, succ)
 
     elif isinstance(code, ir.While):
       self.loops.append((code, succ))
@@ -60,9 +73,9 @@ class CFGBuilder(PassthruVisitor):
     elif isinstance(code, ir.Branch):
       (loop, exit) = self.loops[-1]
       if code.type == ir.Branch.Type.Break:
-        self.update(code, pred, exit)
+        self.update(code, pred, exit, CFGBuilder.FlowType.Normal, CFGBuilder.FlowType.LoopExit)
       elif code.type == ir.Branch.Type.Continue:
-        self.update(code, pred, loop)
+        self.update(code, pred, loop, CFGBuilder.FlowType.Normal, CFGBuilder.FlowType.LoopBack)
       else:
         raise TypeError('Unknown branch type: %s' % code)
 
@@ -77,12 +90,13 @@ class CFGBuilder(PassthruVisitor):
 
 
 ## test code below
-# t = python.translate_file('example/nested_loops.py')
+
+# t = python.translate_file('example/unstructured_loop.py')
 # c = CFGBuilder()
 # c.construct_cfg(t.fns['vctest'], None, None)
 #
-# for (code, p) in c.preds.items():
-#   print('stmt: %spred: %s' % (code, p))
+# for (code, pred) in c.preds.items():
+#   print('stmt: %s pred: %s' % (code, pred))
 #
-# for (code, s) in c.succs.items():
-#   print('stmt: %ssucc: %s' % (code, s))
+# for (code, suc) in c.succs.items():
+#   print('stmt: %s succ: %s' % (code, suc))
