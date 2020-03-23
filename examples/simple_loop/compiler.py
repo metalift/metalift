@@ -15,12 +15,11 @@ def inv_space_fn1(ast: While, read_vars: Dict[str, Var], write_vars: Dict[str, V
   i = write_vars["i"]
   n = read_vars["n"]
 
-  # i <= n && sum = my_sum(i)
-  # if i <= n: i >= 0 and sum = my_sum(i)
+  # if 0 <= n: i <= n and sum = my_sum(i)
   # else: sum = 0
   #
-  return Block(If(BinaryOp(operator.le, i, n),
-                  Return(BinaryOp(operator.and_, BinaryOp(operator.ge, i, num(0)),
+  return Block(If(BinaryOp(operator.le, num(0), n),
+                  Return(BinaryOp(operator.and_, BinaryOp(operator.ge, i, n),
                                                  BinaryOp(operator.eq, sum, Call("my_sum", i)))),
                   Return(BinaryOp(operator.eq, sum, num(0)))))
 
@@ -29,12 +28,11 @@ def inv_space_fn2(ast: While, read_vars: Dict[str, Var], write_vars: Dict[str, V
   i = write_vars["i"]
   n = read_vars["n"]
 
-  # i <= n && sum = my_sum(i)
-  # if i <= n: i >= 0 and sum = my_sum(choose(i, n))
+  # if 0 <= n: i <= n and sum = my_sum(choose(i, n))
   # else: sum = 0
   #
-  return Block(If(BinaryOp(operator.le, i, n),
-                  Return(BinaryOp(operator.and_, BinaryOp(operator.ge, i, num(0)),
+  return Block(If(BinaryOp(operator.le, num(0), n),
+                  Return(BinaryOp(operator.and_, BinaryOp(operator.le, i, n),
                                                  BinaryOp(operator.eq, sum, Call("my_sum", Choose(n, i))))),
                   Return(BinaryOp(operator.eq, sum, num(0)))))
 
