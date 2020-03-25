@@ -5,7 +5,7 @@ def input(n: int) -> int:
   i: int = 0
 
   # invariant:
-  # if i <= n: i >= 0 and sum = my_sum(i)
+  # if 0 <= n: i <= n and sum = my_sum(choose(i, n))
   # else: sum = 0
   #
   while i < n:
@@ -13,8 +13,8 @@ def input(n: int) -> int:
     i = i + 1
 
   # postcondition:
-  # if i <= n: sum = my_sum(n)
-  # else: sum = 0
+  # if 0 <= n: sum = my_sum(n) and rv = sum
+  # else: sum = 0 and rv = sum
   #
   return sum
 
