@@ -5,8 +5,8 @@ def input(n: int) -> int:
   i: int = 0
 
   # invariant:
-  # if 0 <= n: i <= n and sum = my_sum(choose(i, n))
-  # else: sum = 0
+  # if n <= i and n <= 0: sum = 0
+  # else: sum = my_sum(i)
   #
   while i < n:
     sum = sum + 1

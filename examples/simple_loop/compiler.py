@@ -15,26 +15,28 @@ def inv_space_fn1(ast: While, read_vars: Dict[str, Var], write_vars: Dict[str, V
   i = write_vars["i"]
   n = read_vars["n"]
 
-  # if 0 <= n: i <= n and sum = my_sum(i)
-  # else: sum = 0
+  # if n <= i and n <= 0: sum = 0
+  # else: i >= 0 and i <= n and sum = my_sum(i)
   #
-  return Block(If(BinaryOp(operator.le, num(0), n),
-                  Return(BinaryOp(operator.and_, BinaryOp(operator.ge, i, n),
-                                                 BinaryOp(operator.eq, sum, Call("my_sum", i)))),
-                  Return(BinaryOp(operator.eq, sum, num(0)))))
+  return Block(If(BinaryOp(operator.and_, BinaryOp(operator.le, n, i), BinaryOp(operator.le, n, num(0))),
+                  Return(BinaryOp(operator.eq, sum, num(0))),
+                  Return(BinaryOp(operator.and_, BinaryOp(operator.le, i, num(0)),
+                                  BinaryOp(operator.le, i, n),
+                                  BinaryOp(operator.eq, sum, Call("my_sum", i))))))
 
 def inv_space_fn2(ast: While, read_vars: Dict[str, Var], write_vars: Dict[str, Var]) -> Stmt:
   sum = write_vars["sum"]
   i = write_vars["i"]
   n = read_vars["n"]
 
-  # if 0 <= n: i <= n and sum = my_sum(choose(i, n))
-  # else: sum = 0
+  # if n <= i and n <= 0: sum = 0
+  # else: sum = my_sum(choose(n, i))
   #
-  return Block(If(BinaryOp(operator.le, num(0), n),
-                  Return(BinaryOp(operator.and_, BinaryOp(operator.le, i, n),
-                                                 BinaryOp(operator.eq, sum, Call("my_sum", Choose(n, i))))),
-                  Return(BinaryOp(operator.eq, sum, num(0)))))
+  return Block(If(BinaryOp(operator.and_, BinaryOp(operator.le, n, i), BinaryOp(operator.le, n, num(0))),
+                  Return(BinaryOp(operator.eq, sum, num(0))),
+                  Return(BinaryOp(operator.and_, BinaryOp(operator.ge, i, num(0)),
+                                  BinaryOp(operator.le, i, n),
+                                  BinaryOp(operator.eq, sum, Call("my_sum", Choose(n, i)))))))
 
 
 def ps_space_fn1(ast: Stmt, read_vars: Dict[str, Var], write_vars: Dict[str, Var]) -> Stmt:
@@ -103,7 +105,7 @@ c.construct_cfg(fn)
 r = VCGen().visit(r)
 #print("after vcgen: %s" % r)
 
-r = synthesize(r, l, info, inv_space_fn1, ps_space_fn1)
+r = synthesize(r, l, info, inv_space_fn2, ps_space_fn1)
 #print("after synthesis: %s" % r)
 
 c = codegen(r.fns["input_ps"], fn)
