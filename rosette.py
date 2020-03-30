@@ -174,7 +174,7 @@ class RosetteTranslator(Visitor):
 
       # add forall and negation to asserts
       translated = [self.visit(s) for s in n.stmts if not isinstance(s, ir.FnDecl)]
-      return ('%s\n\n' + '%s\n\n' + '(assert (forall (list %s) (not\n  (and\n    %s))))\n\n(solve (void))') % \
+      return ('%s\n\n' + '%s\n\n' + '(assert (not (forall (list %s)\n  (and\n    %s))))\n\n(solve (void))') % \
               ('\n'.join(top_vars_decls), '\n'.join(fn_decls), top_vars_names, '\n    '.join(translated))
 
 
