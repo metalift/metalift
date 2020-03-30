@@ -8,6 +8,8 @@ from typing import List
 
 # metalift IR. There are two base classes: Expr's that return a typed value,
 # and Stmt's that do not return anything.
+import typing
+
 
 class Expr:
   sktype_fn = None
@@ -472,7 +474,7 @@ def unary_rktfn(op, *args) -> str:
 
 Program.stmt_types = [FnDecl]
 FnDecl.stmt_types = [Block]
-Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch, Assert, Assume, Havoc, Block]
+Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch, Assert, Assume, Havoc, Block, Var]
 BinaryOp.valid_ops = [operator.add, operator.sub, operator.mul, operator.truediv, operator.mod,
                       operator.and_, operator.or_,
                       operator.gt, operator.ge, operator.lt, operator.le, operator.eq, operator.ne]
@@ -482,7 +484,7 @@ UnaryOp.valid_ops = [operator.neg, operator.not_]
 UnaryOp.to_skfn = unary_skfn
 UnaryOp.to_rktfn = unary_rktfn
 
-Var.valid_types = [bool, int, float, List, Expr]
+Var.valid_types = [bool, int, float, List, Expr, typing.Callable]
 Lit.valid_types = [bool, int, float, Expr]
 true_lit = Lit(True, bool)
 false_lit = Lit(False, bool)

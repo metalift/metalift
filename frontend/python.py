@@ -1,5 +1,5 @@
-from typing import List
-from ir import Var
+import importlib
+from typing import Callable, List
 
 import operator
 import inspect
@@ -13,23 +13,38 @@ class Translator(ast.NodeTransformer):
     self.vars = None
 
   # expressions
+
+  # has form [var_name: type, ...]
   def visit_arguments(self, n):
-    # annotation here is for type, calling eval on it will return an actual type object
-    #args = [ir.Var(a.arg, eval(self.visit(a.annotation))) for a in n.args]
     args = []
     for a in n.args:
-      type_ = self.visit(a.annotation)
-      if isinstance(type_, str):
-        type_ = eval(type_)
-      elif isinstance(type_, ir.ListAccess):
-        type_ = eval("%s[%s]" % (type_.target, type_.index))
-      else:
-        raise TypeError("NYI: %s" % n)
+      # annotation here is type declaration, calling eval on it will return an actual type object
+      #print("parsing: %s" % ast.dump(a.annotation))
+      parsed_type = self.parse_type(a.annotation)
+      type_ = eval(parsed_type)
       v = ir.Var(a.arg, type_)
       args.append(v)
       self.vars[v.name] = v
 
     return args
+
+  def parse_type(self, t):
+    if isinstance(t, ast.Name):
+      return t.id
+    elif isinstance(t, ast.Index):
+      return self.parse_type(t.value)
+    elif isinstance(t, ast.Subscript):  # type_name[type_name ...]
+      base = self.parse_type(t.value)
+      elts = self.parse_type(t.slice)
+      return "%s[%s]" % (base, elts)
+    elif isinstance(t, ast.List):
+      return "[%s]" % ", ".join([self.parse_type(e) for e in t.elts])
+    elif isinstance(t, ast.Tuple):
+      return ", ".join([self.parse_type(t) for t in t.elts])
+
+    else:
+      raise TypeError("NYI: %s" % ast.dump(t))
+
 
   def visit_Attribute(self, n):
     return ir.Field(self.visit(n.value), n.attr)
@@ -42,7 +57,10 @@ class Translator(ast.NodeTransformer):
     elif isinstance(op, ast.Div): new_op = operator.floordiv
     else: raise TypeError("NYI; %s" % op)
 
-    return ir.BinaryOp(new_op, self.resolve(n.left), self.resolve(n.right))
+    left = self.resolve(n.left) if isinstance(n.left, ast.Name) else self.visit(n.left)
+    right = self.resolve(n.right) if isinstance(n.right, ast.Name) else self.visit(n.right)
+
+    return ir.BinaryOp(new_op, left, right)
 
   def visit_UnaryOp(self, n):
     op = n.op
@@ -78,7 +96,7 @@ class Translator(ast.NodeTransformer):
       raise TypeError("xxx")
 
     else:
-      raise TypeError("NYI: %s" % v)
+      raise TypeError("NYI: %s" % ast.dump(v))
 
   def visit_Call(self, n):
     args = [self.visit(a) for a in n.args]
@@ -128,17 +146,19 @@ class Translator(ast.NodeTransformer):
   def visit_Subscript(self, n):
     return ir.ListAccess(self.visit(n.value), self.visit(n.slice), None)
 
-
   # statements
-  def visit_AnnAssign(self, n):  # v:t = e
-    v = ir.Var(n.target.id, eval(str(self.visit(n.annotation))))
+  def visit_AnnAssign(self, n):  # v:t = e or just a declaration v:t
+    v = ir.Var(n.target.id, eval(self.parse_type(n.annotation)))
     self.vars[v.name] = v
-    val = None
-    if isinstance(n.value, ast.Name):
-      val = self.resolve(n.value)
+    if n.value:
+      val = None
+      if isinstance(n.value, ast.Name):
+        val = self.resolve(n.value)
+      else:
+        val = self.visit(n.value)
+      return ir.Assign(v, val)
     else:
-      val = self.visit(n.value)
-    return ir.Assign(v, val)
+      return v
 
   def visit_Assign(self, n):
     val = None
@@ -154,7 +174,7 @@ class Translator(ast.NodeTransformer):
     self.vars = {}
     args = self.visit(n.args)
     body = [self.visit(s) for s in n.body]
-    rtype = eval(self.visit(n.returns))  # visit returns a String if n.returns is a Name
+    rtype = self.parse_type(n.returns)
     return ir.FnDecl(n.name, args, rtype, ir.Block(*body))
 
   def visit_If(self, n):
