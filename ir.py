@@ -207,12 +207,26 @@ def gen_Lit(name, types):
   return type(name, (Lit,), {'__init__': init, 'valid_types': types})
 
 
-class ListAccess(Expr):
-  def __init__(self, target, index, type):
+# list operations
+class ListConstructor(Expr):
+  def __init__(self, *args: Expr):
+    super().__init__()
+    self.args = args
+    #self.type = List[args[0].type] if len(args) > 0 else None  # need type inference
+    self.type = int
+
+  def __repr__(self):
+    return 'List(%s)' % ", ".join([repr(e) for e in self.args])
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self.args == other.args and self.type == other.type
+
+class ListAccess(Expr):  # l[e]
+  def __init__(self, target, index, type_):
     super().__init__()
     self.target = target
     self.index = index
-    self.type = type
+    self.type = type_
 
   def __repr__(self):
     return '%s[%s]' % (self.target, self.index)

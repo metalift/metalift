@@ -8,8 +8,7 @@ def Map(l: List[int], f: Callable[[int], int]) -> List[int]:
 def do_map(l: List[int], f: Callable[[int], int], i: int) -> List[int]:
   out: List[int]
   if i >= 0:
-    out = do_map(l, f, i - 1)
-    out.append(f(l[i]))
+    out = do_map(l, f, i - 1) + [f(l[i])]  #out.append(f(l[i]))
   else:
     out = []
   return out

@@ -97,9 +97,9 @@ l = python.translate_file("udo.py")
 
 fn = t.fns["input"]
 
-c = CFGBuilder()
-c.construct_cfg(fn)
-
+# c = CFGBuilder()
+# c.construct_cfg(fn)
+#
 # (r, info) = LoopTransformer(c).visit(fn)
 # #print("after loop transform: %s" % r)
 #

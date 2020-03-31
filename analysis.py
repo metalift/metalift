@@ -26,6 +26,9 @@ class VarIdentifier(PassthruVisitor):
   def visit_Lit(self, n):
     return set()
 
+  # def visit_ListAccess(self, n):
+  #   self.visit(n.target)
+
   def visit_Field(self, n):
     return {n}
 
