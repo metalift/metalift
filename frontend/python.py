@@ -4,6 +4,7 @@ from typing import Callable, List
 import operator
 import inspect
 import ir
+import list as listir
 import ast
 
 class Translator(ast.NodeTransformer):
@@ -62,6 +63,11 @@ class Translator(ast.NodeTransformer):
     left = self.visit(n.left)
     right = self.visit(n.right)
 
+    # XXX hack for now - need type inference
+    print("%s right: %s" % (ast.dump(n), right))
+    # if not (isinstance(right, ir.BinaryOp) or isinstance(right, ir.Lit)):
+    #   return listir.Concat(left, right)
+    # else:
     return ir.BinaryOp(new_op, left, right)
 
   def visit_UnaryOp(self, n):
@@ -116,6 +122,8 @@ class Translator(ast.NodeTransformer):
     # XXX hack for now
     if fn == "Choose" or (isinstance(fn, ir.Field) and fn.target == "ir" and fn.name == "Choose"):
       return ir.Choose(*args)
+    elif fn == "len":
+      return listir.Len(*args)
     else:
       return ir.Call(fn, *args)
 

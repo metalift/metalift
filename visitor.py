@@ -72,5 +72,12 @@ class PassthruVisitor(Visitor):
   def visit_Branch(self, n):
     return n
 
+  # list
+  def visit_ListConstructor(self, n):
+    return ir.ListConstructor(*[self.visit(a) for a in n.exprs])
+
+  def visit_ListAccess(self, n):
+    return ir.ListAccess(self.visit(n.target), self.visit(n.index), n.type)
+
   def visit_Program(self, n):
     return ir.Program(n.imports, [self.visit(s) for s in n.stmts])

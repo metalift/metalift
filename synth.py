@@ -61,11 +61,11 @@ def synthesize(n: ir.Program, lang: ir.Program, info, inv_fn, ps_fn):
   mod_prog = remove_choices(mod_prog, choices)
 
   # verification
-  rt = RosetteTranslator(False)
-  with open(rosette_verfile, 'w') as f:
-    f.write(rt.to_rosette(mod_prog))
-
-  result = subprocess.check_output([racket_path, rosette_verfile], stderr=subprocess.STDOUT)
-  print('verification result: %s' % str(result))
+  # rt = RosetteTranslator(False)
+  # with open(rosette_verfile, 'w') as f:
+  #   f.write(rt.to_rosette(mod_prog))
+  #
+  # result = subprocess.check_output([racket_path, rosette_verfile], stderr=subprocess.STDOUT)
+  # print('verification result: %s' % str(result))
 
   return mod_prog

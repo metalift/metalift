@@ -35,7 +35,12 @@ class RosetteTranslator(Visitor):
     return ir.UnaryOp.to_rktfn(n.op, *[self.visit(a) for a in n.args])
 
   def visit_Call(self, n):
-    return '(%s %s)' % (n.name, ' '.join(self.visit(a) for a in n.args))
+    if n.name == "list_length":
+      name = "length"
+    else:
+      name = n.name
+
+    return '(%s %s)' % (name, ' '.join(self.visit(a) for a in n.args))
 
   def visit_Choose(self, n):
     if not self.synthesis:
@@ -79,6 +84,14 @@ class RosetteTranslator(Visitor):
   def visit_Assign(self, n):
     return '(define %s %s)' % (self.visit(n.left), self.visit(n.right))
 
+  # list operations
+  def visit_ListConstructor(self, n: ir.ListConstructor):
+    return '(list %s)' % " ".join(self.visit(e) for e in n.exprs)
+
+  def visit_ListAccess(self, n: ir.ListAccess):
+    return '(list-ref %s %s)' % (self.visit(n.target), self.visit(n.index))
+
+  # statements
   def visit_If(self, n):
     return '(if %s %s %s)' % (self.visit(n.cond), self.visit(n.conseq), self.visit(n.alt))
 
@@ -91,6 +104,7 @@ class RosetteTranslator(Visitor):
     return '(begin %s)' % ('\n'.join(self.visit(s) for s in n.stmts))
 
   def visit_ExprStmt(self, n):
+    print("qqq: %s" % n)
     return '%s' % self.visit(n.expr)
 
   def visit_FnDecl(self, n):
@@ -131,6 +145,8 @@ class RosetteTranslator(Visitor):
     elif isinstance(s, ir.If):
       return RosetteTranslator.count_vars(s.cond).union(RosetteTranslator.count_vars(s.conseq))\
                                                  .union(RosetteTranslator.count_vars(s.alt))
+    elif isinstance(s, ir.ListAccess):
+      return RosetteTranslator.count_vars(s.target).union(RosetteTranslator.count_vars(s.index))
     elif isinstance(s, ir.Lit):
       return set()
     elif isinstance(s, ir.Var):
@@ -155,6 +171,15 @@ class RosetteTranslator(Visitor):
     if self.synthesis:
       sym_vars_decls = ['(define-symbolic %s %s)' % (v.name, ir.Expr.rkttype_fn(v.type)) for v in self.sym_vars]
       # distinguish between sym vars and those that need to be range limited
+      top_vars_decls = []
+      for v in top_vars:
+        if v.type == int:
+          top_vars_decls.append('[%s (range %s)]' % (v.name, self.max_num))
+        elif v.type == list:
+          top_vars_decls.append('[%s (genlist %s)]' % (v.name, self.max_num))
+        else:
+          raise TypeError('NYI: %s' % v)
+
       top_vars_decls = ['[%s (range %s)]' % (v.name, self.max_num) for v in top_vars]
 
       return ('%s\n\n' +
@@ -181,6 +206,7 @@ class RosetteTranslator(Visitor):
   def to_rosette(self, p):
     out = self.visit(p)
     return ('#lang rosette\n' +
+            '(require (file "/Users/akcheung/proj/metalift/racket/utils.rkt"))\n' +
             '(require rosette/lib/synthax)\n' +
             '%s\n%s' % ('\n'.join(self.choose_fns), out))
 

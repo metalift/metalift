@@ -209,9 +209,9 @@ def gen_Lit(name, types):
 
 # list operations
 class ListConstructor(Expr):
-  def __init__(self, *args: Expr):
-    super().__init__()
-    self.args = args
+  def __init__(self, *exprs: Expr):
+    super().__init__(exprs)
+    self.exprs = exprs
     #self.type = List[args[0].type] if len(args) > 0 else None  # need type inference
     self.type = int
 
@@ -246,7 +246,7 @@ class Assign(Stmt):
     super().__init__(left, right)
     self.left = left
     self.right = right
-    if not isinstance(left, Var):
+    if not (isinstance(left, Var) or isinstance(left, ListAccess)):
       raise TypeError('left hand side of assign must be a Var rather than %s' % left)
 
   def __repr__(self):
@@ -511,5 +511,5 @@ Expr.sktype_fn = sktype_fn
 Expr.rkttype_fn = rkttype_fn
 
 def implies(cond, conseq):
-  return Assert(BinaryOp(operator.or_, UnaryOp(operator.not_, cond), conseq))
+  return BinaryOp(operator.or_, UnaryOp(operator.not_, cond), conseq)
   #return If(cond, conseq, Assert(true()))

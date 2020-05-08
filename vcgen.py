@@ -123,19 +123,28 @@ class VCGen(Visitor):
 
   def visit_Call(self, n: ir.Call):
     # special cases for invariant and postcondition function calls
-    if n.name.startswith("inv") or n.name.endswith("_ps"):
+    if n.name.startswith("inv") or n.name.endswith("_ps") or \
+      n.name == "list_length" or n.name == "list_concat":
       return ir.Call(n.name, *[self.visit(arg) for arg in n.args])
     else:
       raise TypeError('NYI: %s' % n)
 
   def visit_Choose(self, n):
-    raise TypeError('NYI')
+    raise TypeError("choose should not appear in vcgen: %s" % n)
 
   def visit_Var(self, n):
     return self.state.var[n]
 
   def visit_Lit(self, n):
     return n
+
+  # list operations
+  def visit_ListConstructor(self, n: ir.ListConstructor):
+    return ir.ListConstructor(*[self.visit(arg) for arg in n.args])
+
+  def visit_ListAccess(self, n: ir.ListAccess):
+    return ir.ListAccess(self.visit(n.target), self.visit(n.index), n.type)
+
 
   ## statements
 
@@ -231,7 +240,7 @@ class VCGen(Visitor):
     else:
       if self.state.assumes:
         assumes = functools.reduce(lambda c1, c2: ir.BinaryOp(operator.__and__, c1, c2), self.state.assumes)
-        self.state.asserts.append(ir.implies(assumes, ir.Assert(self.visit(n.expr))))
+        self.state.asserts.append(ir.Assert(ir.implies(assumes, self.visit(n.expr))))
       else:
         self.state.asserts.append(ir.Assert(self.visit(n.expr)))
       return True

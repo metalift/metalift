@@ -33,9 +33,19 @@ class VarIdentifier(PassthruVisitor):
     return {n}
 
   def visit_Assign(self, n):
-    self.write_vars.add(n.left)
+    self.write_vars.update(self.visit(n.left))
     self.read_vars.update(self.visit(n.right))
     return None
+
+  # list operations
+  def visit_ListConstructor(self, n):
+    return set().union(*[self.visit(a) for a in n.exprs])
+
+  def visit_ListAccess(self, n):
+    r = set()
+    r.update(self.visit(n.target))
+    r.update(self.visit(n.index))
+    return r
 
   def visit_If(self, n):
     self.read_vars.update(self.visit(n.cond))
