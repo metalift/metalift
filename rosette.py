@@ -180,8 +180,6 @@ class RosetteTranslator(Visitor):
         else:
           raise TypeError('NYI: %s' % v)
 
-      top_vars_decls = ['[%s (range %s)]' % (v.name, self.max_num) for v in top_vars]
-
       return ('%s\n\n' +
               '%s\n\n' +
              '(define binding\n' +
