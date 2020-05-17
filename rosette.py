@@ -1,9 +1,10 @@
 import operator
 
+import typing
+
 from visitor import Visitor, PassthruVisitor
 import ir
 import re
-
 
 class RecursiveTranslator(PassthruVisitor):
   def __init__(self, call):
@@ -28,6 +29,9 @@ class RosetteTranslator(Visitor):
     op = None
     if isinstance(n.op, ir.Choose):
       return '(%s %s)' % (self.visit(n.op), ' '.join(self.visit(a) for a in n.args))
+    elif n.op == operator.add and typing.get_origin(n.args[1].type) == list or typing.get_origin(n.args[0].type) == list:
+      # XXX distinguish between list concat and +
+      return '(append %s)' % ' '.join([self.visit(a) for a in n.args])
     else:
       return ir.BinaryOp.to_rktfn(n.op, *[self.visit(a) for a in n.args])
 
@@ -35,8 +39,12 @@ class RosetteTranslator(Visitor):
     return ir.UnaryOp.to_rktfn(n.op, *[self.visit(a) for a in n.args])
 
   def visit_Call(self, n):
-    if n.name == "list_length":
-      name = "length"
+    if n.name == 'list_length':
+      name = 'length'
+    elif n.name == 'list_take':
+      name = 'take'
+    elif n.name == 'list_tail':
+      name = 'list-tail'
     else:
       name = n.name
 
@@ -104,7 +112,6 @@ class RosetteTranslator(Visitor):
     return '(begin %s)' % ('\n'.join(self.visit(s) for s in n.stmts))
 
   def visit_ExprStmt(self, n):
-    print("qqq: %s" % n)
     return '%s' % self.visit(n.expr)
 
   def visit_FnDecl(self, n):

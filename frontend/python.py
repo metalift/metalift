@@ -164,7 +164,19 @@ class Translator(ast.NodeTransformer):
     return ir.Unpack(self.visit(n.value))
 
   def visit_Subscript(self, n):
-    return ir.ListAccess(self.visit(n.value), self.visit(n.slice), None)
+    if isinstance(n.slice, ast.Index):
+      return ir.ListAccess(self.visit(n.value), self.visit(n.slice), None)
+    elif isinstance(n.slice, ast.Slice):
+      return self.visit_Slice(self.visit(n.value), n.slice)
+    else:
+      raise TypeError('NYI: %s' % n)
+
+  def visit_Slice(self, l: ir.Var, n: ast.Slice):
+
+    if n.lower is not None and n.upper is None:  # of the form [n:]
+      return ir.Call('list_tail', l, self.visit(n.lower))
+    else:
+      raise TypeError('NYI: %s' % n)
 
   # statements
   def visit_AnnAssign(self, n):  # v:t = e or just a declaration v:t

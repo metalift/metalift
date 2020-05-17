@@ -1,3 +1,4 @@
+import collections
 import importlib
 import operator
 from abc import abstractmethod
@@ -14,6 +15,7 @@ import typing
 class Expr:
   sktype_fn = None
   rkttype_fn = None
+  z3type_fn = None
 
   def __init__(self, *args):
     self.args = args
@@ -38,13 +40,22 @@ class BinaryOp(Expr):
     # if len(types) != 1:
     #   raise TypeError('not all arguments are of the same type: %s' % self.args)
 
-    self.type = None
+    if op == operator.add or op == operator.sub or op == operator.mul or op == operator.truediv:
+      self.type = int
+    elif op == operator.eq or op == operator.and_ or op == operator.or_ or op == operator.gt or op == operator.ge or \
+         op == operator.lt or op == operator.le:
+      self.type = bool
+    else:
+      self.type = None
 
   def __repr__(self):
     return '%s(%s)' % (self.op, ', '.join(str(x) for x in self.args))
 
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.op == other.op and self.args == other.args
+
+  def __hash__(self):
+    return hash((self.op, self.args))
 
   # def symeval(self, s: Frame):
   #   args = [arg.symeval(s) for arg in self.args]
@@ -79,6 +90,7 @@ class Call(Expr):
     super().__init__(*args)
     self.name = name
     self.args = args
+    self.type = None  # need type inference
 
   def __repr__(self):
     return '%s(%s)' % (self.name, ', '.join(str(x) for x in self.args))
@@ -94,6 +106,9 @@ class Call(Expr):
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.name == other.name and self.args == other.args
 
+  def __hash__(self):
+    return hash((self.name, self.args, self.type))
+
 
 class Choose(Expr):
   def __init__(self, *args):
@@ -101,7 +116,7 @@ class Choose(Expr):
     self.args = args
     types = {a.type for a in args}
     if len(types) != 1:  # need to check for subtypes
-      raise TypeError('not all arguments are of the same type: %s' % self.args)
+      raise TypeError('not all arguments are of the same type: %s: %s' % (str(self.args), str([a.type for a in self.args])))
     self.type = types.pop()
 
   def __repr__(self):
@@ -144,7 +159,7 @@ class Var(Expr):
     return self.__class__ == other.__class__ and self.name == other.name and self.type == other.type
 
   def __hash__(self):
-    return hash(self.name + str(self.type))
+    return hash((self.name, str(self.type)))
 
 class Lit(Expr):
   valid_types = []
@@ -200,7 +215,7 @@ class Field(Expr):
 def gen_Lit(name, types):
 
   def init(self, val):
-    Lit.__init__(self, val)
+    Lit.__init__(self, val, None)
     if not isinstance(val, self.valid_types):
       raise TypeError('only supported types are: ' + str(self.valid_types))
 
@@ -212,8 +227,8 @@ class ListConstructor(Expr):
   def __init__(self, *exprs: Expr):
     super().__init__(exprs)
     self.exprs = exprs
-    #self.type = List[args[0].type] if len(args) > 0 else None  # need type inference
-    self.type = int
+    #self.type = List[exprs[0].type] if len(exprs) > 0 else None  # need type inference
+    self.type = List[int]
 
   def __repr__(self):
     return 'List(%s)' % ", ".join([repr(e) for e in self.args])
@@ -235,6 +250,8 @@ class ListAccess(Expr):  # l[e]
     return self.__class__ == other.__class__ and self.target == other.target and self.index == other.index \
            and self.type == other.type
 
+  def __hash__(self):
+    return hash((self.target, self.index, self.type))
 
 
 class Stmt:
@@ -446,6 +463,13 @@ def rkttype_fn(t: type) -> str:
   elif t == bool: return 'boolean?'
   else: raise TypeError('NYI: %s' % t)
 
+def z3type_fn(t: type) -> str:
+  if t == int: return 'Int'
+  elif t == bool: return 'Bool'
+  elif t == list or t == typing.List[int]: return '(MLList Int)'
+  elif t == collections.abc.Callable: return 'Int'
+  else: raise TypeError('NYI: %s' % t)
+
 def binary_skfn(op, *args) -> str:
   if op == operator.add: return '+'.join(args)
   elif op == operator.sub: return '-'.join(args)
@@ -459,12 +483,33 @@ def binary_rktfn(op, *args) -> str:
   args_str = ' '.join(args)
 
   if op != operator.ne:
-    op_str = None
     if op == operator.add: op_str = '+'
     elif op == operator.sub: op_str = '-'
     elif op == operator.mul: op_str = '*'
     elif op == operator.truediv: op_str = '/'
     elif op == operator.eq: op_str = 'eq?'
+    elif op == operator.and_: op_str = 'and'
+    elif op == operator.or_: op_str = 'or'
+    elif op == operator.gt: op_str = '>'
+    elif op == operator.ge: op_str = '>='
+    elif op == operator.lt: op_str = '<'
+    elif op == operator.le: op_str = '<='
+    else: raise TypeError('NYI: %s' % op)
+
+    return '(%s %s)' % (op_str, args_str)
+  else:
+    return '(not (= %s))' % args_str
+
+def binary_z3fn(op, *args) -> str:
+  args_str = ' '.join(args)
+
+  if op != operator.ne:
+    op_str = None
+    if op == operator.add: op_str = '+'
+    elif op == operator.sub: op_str = '-'
+    elif op == operator.mul: op_str = '*'
+    elif op == operator.truediv: op_str = '/'
+    elif op == operator.eq: op_str = '='
     elif op == operator.and_: op_str = 'and'
     elif op == operator.or_: op_str = 'or'
     elif op == operator.gt: op_str = '>'
@@ -486,6 +531,11 @@ def unary_rktfn(op, *args) -> str:
   elif op == operator.not_: return '(not %s)' % args[0]
   else: raise TypeError('NYI: %s' % op)
 
+def unary_z3fn(op, *args) -> str:
+  if op == operator.neg: return '-%s' % args[0]
+  else: raise TypeError('NYI: %s' % op)
+
+
 Program.stmt_types = [FnDecl]
 FnDecl.stmt_types = [Block]
 Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch, Assert, Assume, Havoc, Block, Var]
@@ -494,6 +544,7 @@ BinaryOp.valid_ops = [operator.add, operator.sub, operator.mul, operator.truediv
                       operator.gt, operator.ge, operator.lt, operator.le, operator.eq, operator.ne]
 BinaryOp.to_skfn = binary_skfn
 BinaryOp.to_rktfn = binary_rktfn
+BinaryOp.to_z3fn = binary_z3fn
 UnaryOp.valid_ops = [operator.neg, operator.not_]
 UnaryOp.to_skfn = unary_skfn
 UnaryOp.to_rktfn = unary_rktfn
@@ -509,6 +560,7 @@ def num(n: int): return Lit(n, int)
 
 Expr.sktype_fn = sktype_fn
 Expr.rkttype_fn = rkttype_fn
+Expr.z3type_fn = z3type_fn
 
 def implies(cond, conseq):
   return BinaryOp(operator.or_, UnaryOp(operator.not_, cond), conseq)

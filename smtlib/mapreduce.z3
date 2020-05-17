@@ -1,0 +1,5 @@
+(assert (forall ( (data (MLList Int)) (index Int) (init Int))
+                (=> (and (>= index 0) (< index (list_length data)))
+                    (= (reducer_lambda_reducer (mapper_lambda_mapper (list_take data (+ index 1))) init)
+                       (lambda_reducer (reducer_lambda_reducer (mapper_lambda_mapper (list_take data index)) init)
+                                       (lambda_mapper (list_get data index)))))))
