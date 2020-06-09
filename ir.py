@@ -1,16 +1,13 @@
 import collections
-import importlib
 import operator
-from abc import abstractmethod
 from enum import Enum
-from typing import List
-
-#from state import State, Frame
-
-# metalift IR. There are two base classes: Expr's that return a typed value,
-# and Stmt's that do not return anything.
 import typing
 
+## metalift IR. There are two base classes: Exprs return a typed value,
+## and Stmts do not return anything. The language is supposed to be typed, although
+## we haven't implemented type inference yet.
+
+### Expressions ###
 
 class Expr:
   sktype_fn = None
@@ -19,10 +16,6 @@ class Expr:
 
   def __init__(self, *args):
     self.args = args
-
-  @abstractmethod
-  def symeval(self, state):
-    pass
 
 
 class BinaryOp(Expr):
@@ -57,13 +50,6 @@ class BinaryOp(Expr):
   def __hash__(self):
     return hash((self.op, self.args))
 
-  # def symeval(self, s: Frame):
-  #   args = [arg.symeval(s) for arg in self.args]
-  #   if any(isinstance(a, Var) for a in args): # symbolic
-  #     return BinaryOp(self.op, args)
-  #   else:
-  #     return self.op(*args)
-
 
 class UnaryOp(Expr):
   valid_ops = []
@@ -95,14 +81,6 @@ class Call(Expr):
   def __repr__(self):
     return '%s(%s)' % (self.name, ', '.join(str(x) for x in self.args))
 
-  # def symeval(self, s: State):
-  #   args = [a.symeval(s) for a in self.args]
-  #   fn = self.name.symeval(s)
-  #   if isinstance(fn, Expr) or any(isinstance(a, Expr) for a in args):  # symbolic
-  #     raise TypeError('NYI: %s' % self)
-  #   else:
-  #     return fn(*args)
-
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.name == other.name and self.args == other.args
 
@@ -110,33 +88,18 @@ class Call(Expr):
     return hash((self.name, self.args, self.type))
 
 
-class Choose(Expr):
-  def __init__(self, *args):
-    super().__init__()
-    self.args = args
-    types = {a.type for a in args}
-    if len(types) != 1:  # need to check for subtypes
-      raise TypeError('not all arguments are of the same type: %s: %s' % (str(self.args), str([a.type for a in self.args])))
-    self.type = types.pop()
-
-  def __repr__(self):
-    return 'choose(%s)' % ', '.join(str(x) for x in self.args)
-
-  def __eq__(self, other):
-    return self.__class__ == other.__class__ and self.args == other.args
-
 # ignore this for now
-def gen_Expr(name, types, ops):
-  def init(self, op, *args):
-    Expr.__init__(self, op, args)
-    for a in args:
-      if not isinstance(a, self.valid_types):
-        raise TypeError('only supported types are: ' + str(self.valid_types))
-
-    if not any(op == o for o in self.valid_ops):
-      raise TypeError('only supported ops are: ' + str(self.valid_ops))
-
-  return type(name, (Expr, ), {'__init__': init, 'valid_types': types, 'valid_ops': ops})
+# def gen_Expr(name, types, ops):
+#   def init(self, op, *args):
+#     Expr.__init__(self, op, args)
+#     for a in args:
+#       if not isinstance(a, self.valid_types):
+#         raise TypeError('only supported types are: ' + str(self.valid_types))
+#
+#     if not any(op == o for o in self.valid_ops):
+#       raise TypeError('only supported ops are: ' + str(self.valid_ops))
+#
+#   return type(name, (Expr, ), {'__init__': init, 'valid_types': types, 'valid_ops': ops})
 
 
 class Var(Expr):
@@ -152,14 +115,12 @@ class Var(Expr):
   def __repr__(self):
     return '%s:%s' % (self.name, self.type.__name__)
 
-  # def symeval(self, s: State):
-  #   return s.vars[self.name]
-
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.name == other.name and self.type == other.type
 
   def __hash__(self):
     return hash((self.name, str(self.type)))
+
 
 class Lit(Expr):
   valid_types = []
@@ -173,23 +134,11 @@ class Lit(Expr):
   def __repr__(self):
     return '%s:%s' % (str(self.val), self.type.__name__)
 
-  def symeval(self, s):
-    return self.val
-
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.type == other.type and self.val == other.val
 
   def __hash__(self):
     return hash(self.val)
-
-
-# python specific
-class Unpack(Expr):
-  def __init__(self, val):
-    self.val = val
-
-  def __repr__(self):
-    return 'unpack(%s)' % str(self.val)
 
 
 class Field(Expr):
@@ -202,25 +151,27 @@ class Field(Expr):
   def __repr__(self):
     return '%s.%s' % (self.target, self.name)
 
-  # def symeval(self, s):
-  #   if isinstance(self.target, str) and isinstance(self.name, str):
-  #     return eval(str(self))
-  #   else:
-  #     raise TypeError('NYI: %s' % self)
-
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.target == other.target and self.name == other.name \
            and self.type == other.type
 
-def gen_Lit(name, types):
+# def gen_Lit(name, types):
+#
+#   def init(self, val):
+#     Lit.__init__(self, val, None)
+#     if not isinstance(val, self.valid_types):
+#       raise TypeError('only supported types are: ' + str(self.valid_types))
+#
+#   return type(name, (Lit,), {'__init__': init, 'valid_types': types})
 
-  def init(self, val):
-    Lit.__init__(self, val, None)
-    if not isinstance(val, self.valid_types):
-      raise TypeError('only supported types are: ' + str(self.valid_types))
 
-  return type(name, (Lit,), {'__init__': init, 'valid_types': types})
+# python specific expression
+class Unpack(Expr):
+  def __init__(self, val):
+    self.val = val
 
+  def __repr__(self):
+    return 'unpack(%s)' % str(self.val)
 
 # list operations
 class ListConstructor(Expr):
@@ -228,13 +179,14 @@ class ListConstructor(Expr):
     super().__init__(exprs)
     self.exprs = exprs
     #self.type = List[exprs[0].type] if len(exprs) > 0 else None  # need type inference
-    self.type = List[int]
+    self.type = typing.List[int]
 
   def __repr__(self):
     return 'List(%s)' % ", ".join([repr(e) for e in self.args])
 
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.args == other.args and self.type == other.type
+
 
 class ListAccess(Expr):  # l[e]
   def __init__(self, target, index, type_):
@@ -254,6 +206,24 @@ class ListAccess(Expr):  # l[e]
     return hash((self.target, self.index, self.type))
 
 
+# non deterministic execution -- only used for synthesis
+class Choose(Expr):
+  def __init__(self, *args):
+    super().__init__()
+    self.args = args
+    types = {a.type for a in args}
+    if len(types) != 1:  # need to check for subtypes
+      raise TypeError('not all arguments are of the same type: %s: %s' % (str(self.args), str([a.type for a in self.args])))
+    self.type = types.pop()
+
+  def __repr__(self):
+    return 'choose(%s)' % ', '.join(str(x) for x in self.args)
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self.args == other.args
+
+
+### Statements ###
 class Stmt:
   def __init__(self, *args):
     self.args = args
@@ -268,10 +238,6 @@ class Assign(Stmt):
 
   def __repr__(self):
     return '%s = %s;\n' % (self.left, self.right)
-
-  # def symeval(self, s: State):
-  #   s.vars[self.left.name] = self.right.symeval(s)
-  #   return True
 
 
 class If(Stmt):
@@ -295,6 +261,7 @@ class Loop(Stmt):
   def __init__(self, cond, body):
     super().__init__(cond, body)
 
+
 class While(Loop):
   def __init__(self, cond, *body):
     self.cond = cond
@@ -317,10 +284,6 @@ class Return(Stmt):
   def __repr__(self):
     return 'return %s;' % self.args[0]
 
-  # def symeval(self, s: State):
-  #   r = self.body.symeval(s)
-  #   s.rv = s.vars[r] if isinstance(r, Var) else r
-  #   return False
 
 class Branch(Stmt):  # continue or break
   class Type(Enum):
@@ -349,17 +312,11 @@ class Block(Stmt):
   def __repr__(self):
     return '{ %s }' % ('\n'.join(repr(s) for s in self.stmts))
 
-  # def symeval(self, s: State):
-  #   for stmt in self.stmts:
-  #     if not stmt.symeval(s):
-  #       return False
-  #   return True
-
 
 class FnDecl(Stmt):
   stmt_types = []
 
-  def __init__(self, name: str, args: List[Var], rtype: type, body: Block):
+  def __init__(self, name: str, args: typing.List[Var], rtype: type, body: Block):
     super().__init__(args)
     self.name = name
     self.args = args
@@ -373,11 +330,8 @@ class FnDecl(Stmt):
   def __repr__(self):
     return '%s(%s) \n%s\n' % (self.name, ', '.join(repr(a) for a in self.args), self.body)
 
-  # def symeval(self, s: State):
-  #   self.body.symeval(s)
-  #   return s.rv
 
-# e.g., a single function call w/o return values
+# an ExprStmt is a single function call that has no return value
 class ExprStmt(Stmt):
   def __init__(self, e: Expr):
     super().__init__(e)
@@ -386,6 +340,9 @@ class ExprStmt(Stmt):
   def __repr__(self):
     return '(%s)' % self.expr
 
+
+# the following stmts are only used to express the proof obligations to be sent to the solvers.
+# they are not intended to be used in the input or the target language
 class Assert(Stmt):
   def __init__(self, e: Expr):
     super().__init__(e)
@@ -403,6 +360,7 @@ class Assume(Stmt):
   def __repr__(self):
     return 'assume(%s)' % self.expr
 
+
 class Havoc(Stmt):
   def __init__(self, *args):
     super().__init__(*args)
@@ -413,6 +371,7 @@ class Havoc(Stmt):
 
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.args == other.args
+
 
 class Program:
   stmt_types = []
@@ -430,28 +389,19 @@ class Program:
   def __repr__(self):
     return '\n'.join([str(s) for s in self.stmts])
 
-  # def symeval(self, fn_name, params={}):
-  #   for mod in self.imports:
-  #     globals()[mod] = importlib.import_module(mod)
-  #
-  #   fn = self.fns[fn_name]
-  #   s = State()
-  #   for a in fn.args:
-  #     if a.name in params:
-  #       s.vars[a.name] = params[a.name]
-  #     else:
-  #       s.vars[a.name] = Var(a.name, a.type)
-  #   return fn.symeval(s)
 
 # ignore this for now
-def gen_Stmt(name, types, repr_fn):
-  def init(self, *args):
-    Stmt.__init__(self, args)
-    for a in args:
-      if not isinstance(a, self.valid_types):
-        raise TypeError('only supported types are: %s' % self.valid_types)
+# def gen_Stmt(name, types, repr_fn):
+#   def init(self, *args):
+#     Stmt.__init__(self, args)
+#     for a in args:
+#       if not isinstance(a, self.valid_types):
+#         raise TypeError('only supported types are: %s' % self.valid_types)
+#
+#   return type(name, (Stmt, ), {'__init__': init, 'valid_types': types, '__repr__': repr_fn})
 
-  return type(name, (Stmt, ), {'__init__': init, 'valid_types': types, '__repr__': repr_fn})
+
+## the following funtions maps the types between the Metalift IR and Sketch, Racket (Rosette), and Z3
 
 def sktype_fn(t: type) -> str:
   if t == int: return 'int'
@@ -536,6 +486,8 @@ def unary_z3fn(op, *args) -> str:
   else: raise TypeError('NYI: %s' % op)
 
 
+## the following defines the valid IR types allowed in the spec, in anticipation that we will
+## create different 'dialects' to accommodate different input languages (Java, C, Python, etc)
 Program.stmt_types = [FnDecl]
 FnDecl.stmt_types = [Block]
 Block.stmt_types = [Assign, If, While, Return, Call, ExprStmt, Branch, Assert, Assume, Havoc, Block, Var]
@@ -549,11 +501,13 @@ UnaryOp.valid_ops = [operator.neg, operator.not_]
 UnaryOp.to_skfn = unary_skfn
 UnaryOp.to_rktfn = unary_rktfn
 
-Var.valid_types = [bool, int, float, List, Expr, typing.Callable]
+Var.valid_types = [bool, int, float, typing.List, Expr, typing.Callable]
 Lit.valid_types = [bool, int, float, Expr]
+
+## shortcuts
 true_lit = Lit(True, bool)
 false_lit = Lit(False, bool)
-# shortcuts
+
 def true(): return true_lit
 def false(): return false_lit
 def num(n: int): return Lit(n, int)
@@ -564,4 +518,3 @@ Expr.z3type_fn = z3type_fn
 
 def implies(cond, conseq):
   return BinaryOp(operator.or_, UnaryOp(operator.not_, cond), conseq)
-  #return If(cond, conseq, Assert(true()))
