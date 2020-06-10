@@ -1,7 +1,8 @@
 # metalift input code
 from typing import List
 
-
+# the goal is to rewrite the body of this function into one that only uses
+# the operators defined in udo.py (i.e., map and reduce)
 def input(l: List[int]) -> int:
   i: int = 0
   sum: int = 0
