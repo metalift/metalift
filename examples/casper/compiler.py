@@ -1,10 +1,13 @@
 import operator
 from typing import Dict, Callable
 
+import typing
+
+import synth
 from analysis import VarIdentifier
 from cfg import CFGBuilder
 from frontend import python
-from ir import Block, num, Call, BinaryOp, While, Var, Stmt, If, Return, Lit, Choose, FnDecl, ExprStmt
+from ir import Block, num, Call, BinaryOp, While, Var, Stmt, If, Return, Lit, Choose, FnDecl, ExprStmt, implies, true
 
 from synth import synthesize, declare
 from vcgen import VCGen, LoopTransformer
@@ -24,6 +27,34 @@ def gen_lambdas():
   lambda_r = FnDecl('lambda_reducer', [v1, v2], int, Block(Return(BinaryOp(operator.add, v1, v2))))
 
   declare(lambda_m, lambda_r)
+
+  # (=> ( and ( >= index 0)( < index(list_length data)))
+  # (= (reducer_lambda_reducer (mapper_lambda_mapper (list_take data (+ index 1))) init)
+  # (lambda_reducer(reducer_lambda_reducer(mapper_lambda_mapper(list_take data index)) init)
+  # (lambda_mapper(list_get data index)))))))
+
+  index = Var('index', int)
+  data = Var('data', typing.List[int])
+  init = Var('init', int)
+  mapper_fn = Var(lambda_m.name, Callable[[int], int])
+  reducer_fn = Var(lambda_r.name, Callable[[int, int], int])
+
+  # (reducer_lambda_reducer (mapper_lambda_mapper (list_take data (+ index 1))) init)
+  # reduce(mapper(list_take(data, index+1), lambda_mapper), lambda_reducer, init)
+  left = Call('reducer', Call('mapper', Call('list_take', data, BinaryOp(operator.__add__, index, num(1))), mapper_fn),
+              reducer_fn, init)
+
+  # (lambda_reducer(reducer_lambda_reducer(mapper_lambda_mapper(list_take data index)) init)
+  # (lambda_mapper(list_get data index))))
+  # lambda_reduce(reduce(mapper(list_take(data, index), lambda_mapper), lamba_reducer, init),
+  #               lambda_mapper(list_get(data, index))
+  right = Call('lambda_reducer', Call('reducer', Call('mapper', Call('list_take', data, index), mapper_fn), reducer_fn, init),
+               Call('lambda_mapper', Call('list_get', data, index)))
+
+
+  synth.axiom([index, data, init], implies(BinaryOp(operator.__and__, BinaryOp(operator.ge, index, num(0)),
+                                             BinaryOp(operator.lt, Call('list_length', data))),
+                                           BinaryOp(operator.__eq__, left, right)))
 
 
 # input a list of vars used in the code fragment and return a ML program
