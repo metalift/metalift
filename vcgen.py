@@ -142,6 +142,7 @@ class VCGen(Visitor):
   def visit_ListConstructor(self, n: ir.ListConstructor):
     return ir.ListConstructor(*[self.visit(arg) for arg in n.args])
 
+
   def visit_ListAccess(self, n: ir.ListAccess):
     return ir.ListAccess(self.visit(n.target), self.visit(n.index), n.type)
 
@@ -151,6 +152,7 @@ class VCGen(Visitor):
   def visit_Assign(self, n: ir.Assign):
     if not isinstance(n.left, ir.Var):
       raise TypeError("lhs of assign is not a variable: %s" % n)
+    print('xxx %s' % n)
     self.state.var[n.left] = self.visit(n.right)
     return True
 

@@ -78,6 +78,7 @@ class Z3Translator(Visitor):
     super().__init__(self.__class__.__name__)
     self.sym_vars = set()  # symbolic vars to be declared, in case there is overlap
     self.specialize = set()
+    self.translate_axioms = False  # true if we are currently translating axioms
 
   def visit_BinaryOp(self, n: ir.BinaryOp):
     if n.op == operator.add:  # distinguish between list concat and +
@@ -162,7 +163,14 @@ class Z3Translator(Visitor):
             self.visit(n.body))
 
   def visit_Assert(self, n):
-    return "(push)\n(assert (not %s))\n(check-sat)\n(pop)\n\n" % self.visit(n.expr)
+    if self.translate_axioms:
+      return f"(assert {self.visit(n.expr)})\n"
+    else:
+      return f"(push)\n(assert (not {self.visit(n.expr)}))\n(check-sat)\n(pop)\n\n"
+
+  def visit_Forall(self, n: ir.Forall):
+    vs = " ".join([f"({v.name} {ir.Expr.z3type_fn(v.type)})" for v in n.vars])
+    return f"(forall ( {vs} )\n{self.visit(n.expr)})\n"
 
   def visit_Program(self, n):
     # parameters in top level stmts that are not func decls should be declared as symbolic
@@ -195,20 +203,22 @@ class Z3Translator(Visitor):
       else:
         print('%s for %s already generated' % (fn_name, sp_for))
 
-    # add forall and negation to asserts
     translated = [self.visit(s) for s in n.stmts if not isinstance(s, ir.FnDecl)]
 
+    # load in the domain specific definitions
     with open('../../smtlib/list.z3', 'r') as f:
       list_axioms = f.read()
 
-    with open('../../smtlib/mapreduce.z3', 'r') as f:
-      mr_axioms = f.read()
+    fn_decls = ";; fn decls\n\n" + '(define-funs-rec\n(\n%s\n)\n(\n%s\n))' % ('\n'.join(fn_names), '\n'.join(fn_defs))
 
-    fn_decls = '(define-funs-rec\n(\n%s\n)\n(\n%s\n))' % ('\n'.join(fn_names), '\n'.join(fn_defs))
+    # translate the user-defined axioms
+    self.translate_axioms = True
+    user_axioms = ";; user axioms\n\n" + "\n".join([self.visit(a) for a in n.user_axioms])
+    self.translate_axioms = False
 
-    return '%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n' % \
-           (list_axioms, fn_decls, mr_axioms, '\n'.join(top_vars_decls), '\n'.join(translated))
+    benchmark = ";; benchmark\n\n" + "\n".join(top_vars_decls) + "\n\n" + "\n".join(translated)
 
+    return '\n\n'.join([list_axioms, fn_decls, user_axioms, benchmark])
 
   def to_z3(self, p):
     out = self.visit(p)

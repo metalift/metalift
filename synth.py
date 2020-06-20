@@ -1,4 +1,5 @@
 import subprocess
+from typing import List
 
 import ir
 import visitor
@@ -24,6 +25,10 @@ extra_fns = []
 def declare(*fns: ir.FnDecl):
   global extra_fns
   extra_fns.extend(fns)
+
+axioms = []
+def axiom(vars: List[ir.Var], expr: ir.Expr):
+  axioms.append(ir.Assert(ir.Forall(vars, expr)))
 
 rosette_synfile = '/tmp/s.rkt'
 rosette_verfile = '/tmp/v.z3'
@@ -72,12 +77,17 @@ def synthesize(n: ir.Program, lang: ir.Program, info, inv_fn, ps_fn):
   mod_prog = remove_choices(mod_prog, choices)
 
   # verification
+
   # rt = RosetteTranslator(False)
   # with open(rosette_verfile, 'w') as f:
   #   f.write(rt.to_rosette(mod_prog))
   #
   # result = subprocess.check_output([racket_path, rosette_verfile], stderr=subprocess.STDOUT)
   # print('verification result: %s' % str(result))
+
+  mod_prog.user_axioms = axioms
+
+  print('with axioms: %s ' % mod_prog)
 
   z3 = Z3Translator()
   with open(rosette_verfile, 'w') as f:

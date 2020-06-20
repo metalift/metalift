@@ -70,7 +70,6 @@ class UnaryOp(Expr):
   def __eq__(self, other):
     return self.__class__ == other.__class__ and self.op == other.op and self.arg == other.arg
 
-
 class Call(Expr):
   def __init__(self, name, *args):
     super().__init__(*args)
@@ -176,7 +175,7 @@ class Unpack(Expr):
 # list operations
 class ListConstructor(Expr):
   def __init__(self, *exprs: Expr):
-    super().__init__(exprs)
+    super().__init__(*exprs)
     self.exprs = exprs
     #self.type = List[exprs[0].type] if len(exprs) > 0 else None  # need type inference
     self.type = typing.List[int]
@@ -209,7 +208,7 @@ class ListAccess(Expr):  # l[e]
 # non deterministic execution -- only used for synthesis
 class Choose(Expr):
   def __init__(self, *args):
-    super().__init__()
+    super().__init__(*args)
     self.args = args
     types = {a.type for a in args}
     if len(types) != 1:  # need to check for subtypes
@@ -243,6 +242,7 @@ class Assign(Stmt):
 class If(Stmt):
   def __init__(self, cond, conseq, alt = None):
     super().__init__(cond, conseq, alt)
+    self.type = None
     self.cond = cond
     self.conseq = conseq
     self.alt = alt
@@ -303,7 +303,7 @@ class Block(Stmt):
 
   def __init__(self, *stmts):
     stmts = list(stmts)
-    super().__init__(stmts)
+    super().__init__(*stmts)
     self.stmts = stmts
     for s in stmts:
       if not any(isinstance(s, t) for t in Block.stmt_types):
@@ -373,6 +373,19 @@ class Havoc(Stmt):
     return self.__class__ == other.__class__ and self.args == other.args
 
 
+class Forall(Stmt):
+  def __init__(self, vars, expr):
+    super().__init__(expr)
+    self.vars = vars
+    self.expr = expr
+
+  def __repr__(self):
+    return 'forall(%s, %s)' % (', '.join(str(x) for x in self.vars), self.expr)
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self.vars == other.vars and self.expr == other.expr
+
+
 class Program:
   stmt_types = []
 
@@ -380,6 +393,7 @@ class Program:
     self.imports = imports
     self.fns = {}
     self.stmts = stmts
+    self.user_axioms = []
     for s in stmts:
       #if not any(isinstance(s, t) for t in Program.stmt_types):
       #  raise TypeError('only supported types are: %s but not %s' % (self.stmt_types, s))
@@ -387,7 +401,9 @@ class Program:
         self.fns[s.name] = s
 
   def __repr__(self):
-    return '\n'.join([str(s) for s in self.stmts])
+    axioms = '\n'.join(str(a) for a in self.user_axioms)
+    stmts = '\n'.join(str(s) for s in self.stmts)
+    return f"### user axioms ### \n{axioms} \n### stmts ### \n{stmts}"
 
 
 # ignore this for now

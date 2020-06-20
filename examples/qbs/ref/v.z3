@@ -93,3 +93,62 @@
                    (list_concat (list_append xs y) ys))))
 
 ; end of list definition
+
+
+
+
+(define-funs-rec
+(
+(input_ps ( (i Int) (l (MLList Int)) (out (MLList Int)) (rv (MLList Int)) ) Bool)
+(inv_0 ( (i Int) (l (MLList Int)) (out (MLList Int)) ) Bool)
+(select_p ( (n Int) ) Bool)
+(Select_select_p ( (data (MLList Int)) ) (MLList Int))
+)
+(
+(= out (Select_select_p l))
+;(and (>= i 0) (<= i (list_length l)) (= out (Select_select_p (list_take l i))))
+(and (>= i 0) (<= i (list_length l)) (= (list_concat out (Select_select_p (list_tail l i))) (Select_select_p l)))
+
+
+(= n 2)
+
+(ite (= (list_length data) 0) list_empty
+     (ite (select_p (list_get data 0))
+          (list_concat (cons (list_get data 0) (as nil (MLList Int))) (Select_select_p (list_tail data 1)))
+          (Select_select_p (list_tail data 1))))
+))
+
+
+;(push)
+;(check-sat)
+;(pop)
+
+
+; benchmark
+
+(declare-const out_0 (MLList Int))
+(declare-const i_1 Int)
+(declare-const l (MLList Int))
+
+
+(push)
+(assert (not (inv_0 0 l (as nil (MLList Int)))))
+(check-sat)
+(pop)
+
+
+(push)
+(assert (not (or (not (and (inv_0 i_1 l out_0) (< i_1 (list_length l))))
+                 (inv_0 (+ i_1 1) l
+                        (ite (= (list_get l i_1) 2) (list_concat out_0 (cons (list_get l i_1) (as nil (MLList Int)))) out_0)))))
+(check-sat)
+(pop)
+
+
+(push)
+(assert (not (or (not (and (inv_0 i_1 l out_0) (not (< i_1 (list_length l))))) (input_ps i_1 l out_0 out_0))))
+(check-sat)
+(pop)
+
+
+

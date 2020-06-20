@@ -45,6 +45,8 @@ class RosetteTranslator(Visitor):
       name = 'take'
     elif n.name == 'list_tail':
       name = 'list-tail'
+    elif n.name == 'list_concat':
+      name = 'append'
     else:
       name = n.name
 
@@ -154,10 +156,17 @@ class RosetteTranslator(Visitor):
                                                  .union(RosetteTranslator.count_vars(s.alt))
     elif isinstance(s, ir.ListAccess):
       return RosetteTranslator.count_vars(s.target).union(RosetteTranslator.count_vars(s.index))
+    elif isinstance(s, ir.ListConstructor):
+      vs = set()
+      for v in s.args:
+        vs.update(RosetteTranslator.count_vars(v))
+      return vs
     elif isinstance(s, ir.Lit):
       return set()
     elif isinstance(s, ir.Var):
       return {s}
+    elif isinstance(s, ir.Forall):
+      return RosetteTranslator.count_vars(s.expr)
     else:
       raise TypeError('NYI: %s of type %s' % (s, type(s)))
 
