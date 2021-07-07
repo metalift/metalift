@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# compiles benchmark and run switch converter and instruction namer on it
+
+file="$1"
+clang_out=${file/.c/.ll}
+
+clang -emit-llvm -S $file -o $clang_out
+#opt -lowerswitch -instnamer -S $clang_out > tmp.ll
+opt -instnamer -S $clang_out > tmp.ll
+mv tmp.ll $clang_out
+
+# opt -analyze -loops <.ll>

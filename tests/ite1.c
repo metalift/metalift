@@ -1,4 +1,4 @@
-int foo (int i) {
+int test (int i) {
   int a;
   if (i > 10)
     a = 1;

@@ -1,20 +1,26 @@
 import re
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from copy import deepcopy
 
-from llvmlite.binding import TypeRef
+from llvmlite.binding import TypeRef, ValueRef
 
-from ir import Expr
+from ir import Expr, MLInstruction
+
 
 class State:
   def __init__(self):
     self.regs = {}
-    self.mem  = {}
+    self.mem = {}
     self.args = []
     self.vc = None
+    self.assumes = []
 
   def __repr__(self):
-    return "regs: %s\nmem: %s" % (self.regs, self.mem)
+    # keys are ValueRef objs
+    return "regs: %s\nmem: %s\nvc: %s\n" % \
+           (", ".join(["%s: %s" % (k.name, v) for (k,v) in self.regs.items()]),
+            ", ".join(["%s: %s" % (k.name, v) for (k,v) in self.mem.items()]),
+            self.vc)
 
 class Block:
   def __init__(self, name, instructions):
@@ -32,50 +38,37 @@ class VC:
 
   def __init__(self):
     self.vars = set()
+    self.havocNum = 0
     self.preds = dict()
 
   def makeVar(self, name, ty):
     if isinstance(ty, TypeRef):
-      if str(ty) == "i32":  # ty.name returns empty string. possibly bug
-        ty = "Int"
-      elif str(ty) == "i1":
-        ty = "Bool"
-      else:
-        raise Exception("NYI %s" % ty.name)
-    else:
-      if ty == int:
-        ty = "Int"
-      elif ty == bool:
-        ty = "Bool"
-      else:
-        raise Exception("NYI %s" % ty)
+      # ty.name returns empty string. possibly bug
+      if str(ty) == "i32": ty = Expr.Type.Int
+      elif str(ty) == "i1": ty = Expr.Type.Bool
+      else: raise Exception("NYI %s" % ty)
+    elif isinstance(ty, Expr.Type): pass
+    else: raise Exception("NYI %s with type %s" % (name, ty))
+
     e = Expr.Var(name, ty)
     self.vars.add(e)
     return e
 
-  def callPred(self, name, *args):
-    retType = args[-1]
-    if retType == int:
-      retType = "Int"
-    elif retType == bool:
-      retType = "Bool"
-    else:
-      raise Exception("NYI %s" % retType)
-    p = Expr.Pred(name, *args[0:-1], retType)
+  def callPred(self, name, returnT: Expr.Type, *args):
+    p = Expr.Pred(name, returnT, *args)
     self.preds[name] = p
     return p
 
   def computeVC(self, blocksMap, firstBlockName, arguments):
     initBlock = blocksMap[firstBlockName]
     for arg in arguments:
-      name = arg.name
-      v = self.makeVar(name, arg.type)
-      initBlock.state.regs[name] = v
+      v = self.makeVar(arg.name, arg.type)
+      initBlock.state.regs[arg] = v
       initBlock.state.args.append(v)
 
     # simple loop assuming the blocks are in predecessor order
     #for b in blocksMap.values():
-    #  self.computeBlockVC(b)
+    #  self.compute(b)
 
     # worklist style loop that doesn't assume any ordering of the blocks
     done = False
@@ -83,62 +76,104 @@ class VC:
       done = True
       for b in blocksMap.values():
         if b.state.vc is None and (not b.preds or all([p.state.vc is not None for p in b.preds])):
-          self.computeBlockVC(b)
+          self.compute(b)
           done = False
 
     blockVCs = [b.state.vc for b in blocksMap.values()]
-    vc = Expr.Assert(Expr.Not(Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, bool))))
+    vc = Expr.Assert(Expr.Not(Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Expr.Type.Bool))))
 
     return self.vars, self.preds.values(), vc
 
+  # merge either the registers or mem dict passed in containers
+  def merge(self, containers):
+    groups = defaultdict(lambda: defaultdict(list))
+    for pname,path,container in containers:
+      for k, v in container.items():
+        #groups[k][v].append(self.makeVar(pname, bool))
+        groups[k][v].append(path)
+
+    merged = dict()
+    for k, vals in groups.items():
+      if len(vals) == 1:
+        merged[k] = list(vals.keys())[0]
+      else:
+        valPaths = dict()
+        for v in vals:
+          paths = [Expr.And(*pathStack) if len(pathStack) > 1 else pathStack[0] for pathStack in vals[v]]
+          valPaths[v] = Expr.Or(*paths) if len(paths) > 1 else paths[0]
+
+        e = list(valPaths.items())[0][0]
+        for vp in list(valPaths.items())[1:]:
+          e = Expr.Ite(vp[1], vp[0], e)
+
+        merged[k] = e
+        print("merged[%s] = %s" % (k.name, e))
+
+    return merged
+
   def mergeStates(self, preds):
     if len(preds) == 1:
-      return deepcopy(preds[0].state)
-    else: # merge
       s = State()
-
-      reg_d = defaultdict(set)
-      mem_d = defaultdict(set)
-      for p in preds:
-        for k, v in p.state.regs.items():
-          reg_d[k].add( (self.makeVar(p.name, bool), v) )
-        for k, v in p.state.mem.items():
-          mem_d[k].add( (self.makeVar(p.name, bool), v) )
-
-      for k, v in reg_d.items():
-        if len(v) == 1:
-          s.regs[k] = v
-        else:
-          l = list(v)  # [ (p1, v1), (p2, v2) ]
-          sameVal = all( val == l[0][1] for (p, val) in l)
-          if sameVal:
-            s.regs[k] = l[0][1]
-          else:
-            e = Expr.Ite(l[0][0], l[0][1], Expr.Lit(0))
-            for path, val in l[1:]:
-              e = Expr.Ite(path, val, e)
-            s.regs[k] = e
-
-      for k, v in mem_d.items():
-        if len(v) == 1:
-          s.mem[k] = v
-        else:
-          l = list(v)  # [ (p1, v1), (p2, v2) ]
-          sameVal = all( val == l[0][1] for (p, val) in l)
-          if sameVal:
-            s.mem[k] = l[0][1]
-          else:
-            e = Expr.Ite(l[0][0], l[0][1], Expr.Lit(0))
-            for path, val in l[1:]:
-              e = Expr.Ite(path, val, e)
-            s.mem[k] = e
-
-      s.args = preds[0].state.args
+      src = preds[0].state
+      s.regs = dict([(k, deepcopy(v)) for k,v in src.regs.items()])
+      s.mem = dict([(k, deepcopy(v)) for k,v in src.mem.items()])
+      s.args = deepcopy(src.args)
+      s.assumes = deepcopy(src.assumes)
       return s
 
-  def computeBlockVC(self, b : Block):
-    s = self.mergeStates(b.preds) if len(b.preds) > 0 else b.state
+    else:  # merge
+      s = State()
+      s.regs = self.merge([p.name, p.state.assumes, p.state.regs] for p in preds)
+      s.mem = self.merge([p.name, p.state.assumes, p.state.mem] for p in preds)
+
+      s.args = preds[0].state.args
+
+      # vc should be None
+
+      assumeE = [Expr.And(*p.state.assumes) if len(p.state.assumes) > 1 else p.state.assumes[0] for p in preds]
+      s.assumes.append( Expr.Or(*assumeE) if len(assumeE) > 1 else assumeE[0] )
+
+      return s
+
+  def formVC(self, blockName, regs, assigns, assumes, asserts, succs):
+    # concat all assignments
+    if not assigns: assignE = None
+    elif len(assigns) == 1:  # r1 = v1
+      a = list(assigns)[0]
+      assignE = Expr.Eq(self.makeVar(a.name, a.type), regs[a])
+    else:  # r1 = v1 and r2 = v2 ...
+      assignE = Expr.And(*[Expr.Eq(self.makeVar(r.name, r.type), regs[r]) for r in assigns])
+
+    if not assumes: assumeE = None
+    elif len(assumes) == 1: assumeE = assumes[0]
+    else: assumeE = Expr.And(*assumes)
+
+    if not assignE and not assumeE: lhs = None
+    elif assignE and not assumeE: lhs = assignE
+    elif not assignE and assumeE: lhs = assumeE
+    else: lhs = Expr.And(assignE, assumeE)
+
+    if not succs: succE = None
+    elif len(succs) == 1: succE = self.makeVar(succs[0].name, Expr.Type.Bool)
+    else: succE = Expr.And(*[self.makeVar(s.name, Expr.Type.Bool) for s in succs])
+
+    if not asserts: assertE = None
+    elif len(asserts) == 1: assertE = asserts[0]
+    else: assertE = Expr.And(*asserts)
+
+    if not succE and not assertE: rhs = None
+    elif succE and not assertE: rhs = succE
+    elif not succE and assertE: rhs = assertE
+    else: rhs = Expr.And(succE, assertE)
+
+    vc = Expr.Eq(self.makeVar(blockName, Expr.Type.Bool), rhs if not lhs else Expr.Implies(lhs, rhs))
+
+    return vc
+
+  def compute(self, b: Block):
+    s = self.mergeStates(b.preds) if b.preds else b.state
     assigns = set()
+    asserts = list()
 
     print("block: %s" % b.name)
     for i in b.instructions:
@@ -148,69 +183,93 @@ class VC:
       ops = list(i.operands)
 
       if opcode == "alloca":
-        type = str(ops[0])
-        if type == "i32 1":
-          v = 0
-        elif type == "i1":
-          v = False
-        else:
-          raise Exception("NYI: %s" % type)
-        s.mem[i.name] = v
+        pass
 
       elif opcode == "load":
-        s.regs[i.name] = s.mem[ops[0].name]
-        assigns.add(i.name)
+        s.regs[i] = s.mem[ops[0]]
+        assigns.add(i)
 
       elif opcode == "store":
         # store either a reg or a literal
-        s.mem[ops[1].name] = VC.parseOperand(ops[0], True)
+        s.mem[ops[1]] = VC.parseOperand(ops[0], s.regs)
+
+      elif opcode == "add" or opcode == "sub":
+        op1 = VC.parseOperand(ops[0], s.regs)
+        op2 = VC.parseOperand(ops[1], s.regs)
+        if opcode == "add": s.regs[i] = Expr.Add(op1, op2)
+        elif opcode == "sub": s.regs[i] = Expr.Sub(op1, op2)
 
       elif opcode == "icmp":
         cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(i).strip()).group(1)
-        op1 = VC.parseOperand(ops[0], True)
-        if not VC.isLiteral(op1): op1 = s.regs[op1]
-        op2 = VC.parseOperand(ops[1], True)
-        if not VC.isLiteral(op2): op2 = s.regs[op2]
+        op1 = VC.parseOperand(ops[0], s.regs)
+        op2 = VC.parseOperand(ops[1], s.regs)
 
-        if cond == "sgt":
-          r = Expr.Lt(op1, op2)
-        else:
-          raise Exception("NYI")
+        if cond == "eq": r = Expr.Eq(op2, op1)
+        elif cond == "sgt": r = Expr.Lt(op2, op1)
+        elif cond == "sle": r = Expr.Le(op1, op2)
+        elif cond == "slt":r = Expr.Lt(op1, op2)
+        else: raise Exception("NYI %s" % cond)
 
-        s.regs[i.name] = r
-        assigns.add(i.name)
+        s.regs[i] = r
+        assigns.add(i)
 
       elif opcode == "br" or opcode == "ret" or opcode == "switch":
-        # concat all assignments
-        ass = Expr.And(*[Expr.Eq(r, s.regs[r]) for r in assigns]) if len(assigns) else None
+        pass
 
-        if opcode == "br":
-          # successor blocks
-          succs = self.makeVar(ops[0].name, bool) if len(ops) == 1 else \
-                  Expr.And(*[self.makeVar(op.name, bool) for op in ops])  #, makeVar(ops[2].name, bool))
-        else:  # ret -- assert postcondition
-          succs = self.callPred("ps", self.makeVar(ops[0].name, ops[0].type), *s.args, bool)
+      elif opcode == "assert":
+        # eval the inv args and concat with fn inputs
+        e = ops[0]
+        if e.kind == Expr.Kind.Pred:
+          if e.args[0].startswith("inv"):
+            parsed = VC.parseExpr(e, s.regs, s.mem)
+            e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:]) #e.args[0], bool, *([VC.parseExpr(ops[op], s.mem) for op in e.ops[1:]] + s.args))
+          elif e.args[0] == "ps":
+            parsed = VC.parseExpr(e, s.regs, s.mem)
+            e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:]) #e.args[0], bool, *([VC.parseExpr(ops[op], s.regs) for op in e.ops[1:]] + s.args))
+          else: raise Exception("NYI: %s" % i)
+        else: raise Exception("NYI: %s" % i)
 
-        succ_expr = succs if ass is None else Expr.Implies(ass, succs)
-        s.vc = Expr.Iff(self.makeVar(b.name, bool), succ_expr)
-        print("vc: %s" % s.vc)
+        asserts.append(e)
+
+      elif opcode == "assume":
+        if isinstance(ops[0], Expr):
+          s.assumes.append(VC.parseExpr(ops[0], s.regs, s.mem))
+        elif isinstance(ops[0], ValueRef):
+          s.assumes.append(VC.parseOperand(ops[0], s.regs))
+        else: raise Exception("NYI: %s" % i)
+
+      elif opcode == "havoc":
+        for op in ops:
+          s.mem[op] = self.makeVar("%s_%s" % (op.name, self.havocNum), s.mem[op].type)
+          self.havocNum = self.havocNum + 1
 
       else:
         raise Exception("NYI: %s" % i)
 
-    print("s: %s" % s)
+    s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
+
+    print("final state: %s" % s)
     b.state = s
     return s
 
+  # evaluate a ML instruction
   @staticmethod
-  def parseOperand(op, hasType = False):
-    if op.name:  # a reg
-      return op.name
-    elif hasType:  # i32 0
-      return int(re.search("(\w+) (\d+)", str(op)).group(2))
-    else:  # 0
-      return int(op)
+  def parseExpr(e: Expr, reg, mem, hasType = True):
+    newArgs = []
+    for a in e.args:
+      if isinstance(a, Expr): newArgs.append(VC.parseExpr(a, reg, mem, hasType))
+      elif isinstance(a, MLInstruction) and a.opcode == "load": newArgs.append(mem[a.operands[0]])
+      elif isinstance(a, ValueRef): newArgs.append(VC.parseOperand(a, reg, hasType))
+      elif isinstance(a, str): newArgs.append(a)
+      else: raise Exception("NYI: %s" % a)
+    return Expr(e.kind, e.type, newArgs)
 
   @staticmethod
-  def isLiteral(v):
-    return isinstance(v, int)
+  def parseOperand(op, reg, hasType = True):
+    # op is a ValueRef, and if it has a name then it's a register
+    if op.name:  # a reg
+      return reg[op]
+    elif hasType:  # i32 0
+      return Expr.Lit(int(re.search("(\w+) (\d+)", str(op)).group(2)), Expr.Type.Int)
+    else:  # 0
+      return Expr.Lit(int(op), Expr.Type.Int)

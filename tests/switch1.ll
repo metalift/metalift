@@ -1,10 +1,10 @@
-; ModuleID = 'case.bc'
-source_filename = "case.c"
+; ModuleID = 'switch1.ll'
+source_filename = "switch1.c"
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.16.0"
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
-define i32 @foo(i32 %arg) #0 {
+define i32 @test(i32 %arg) #0 {
 bb:
   %tmp = alloca i32, align 4
   %tmp1 = alloca i32, align 4
