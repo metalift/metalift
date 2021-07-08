@@ -30,14 +30,20 @@ def setupBlocks(blks):
 def parseLoops(filename):
   with open(filename, mode="r") as f:
     s = f.read()
-    m = re.search("Loop at depth 1 containing: (\S+)<header><exiting>,(\S+)<latch>", s.strip())
-    print("found loop: header: %s, latches: %s" % (m.group(1), m.group(2)))
     LoopInfo = namedtuple("LoopInfo", ["header", "body", "exits", "latches"])
-    return LoopInfo([m.group(1).replace("%", "")], [], [m.group(1).replace("%", "")], [m.group(2).replace("%", "")])
 
-# only handles one loop for now
+    matches = re.findall("Loop at depth 1 containing: (\S+)<header><exiting>,(\S+)<latch>", s.strip())
+    r = [LoopInfo([m[0].replace("%", "")], [], [m[0].replace("%", "")], [m[1].replace("%", "")]) for m in matches]
+    for l in r:
+      print("found loop: header: %s, latches: %s" % (l.header, l.latches))
+
+    return r
+
+invNum = 0
 def processLoops(header, body, exits, latches, fnArgs):
-  inv = "inv0"
+  global invNum
+  inv = "inv%s" % invNum
+  invNum = invNum + 1
 
   havocs = []
   for blk in [header, *body, *exits, *latches]:

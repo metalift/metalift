@@ -29,23 +29,11 @@ if __name__ == "__main__":
     blocksMap = setupBlocks(fn.blocks)
 
     loops = parseLoops(loopsFile) if loopsFile else None
-    if loops:
+    for l in loops:
       # assume for now there is only one header block
-      processLoops(blocksMap[loops.header[0]], [blocksMap[n] for n in loops.body],
-                   [blocksMap[n] for n in loops.exits], [blocksMap[n] for n in loops.latches],
+      processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
+                   [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
                    list(fn.arguments))
-
-    # while1.c
-    # processLoops(blocksMap["bb2"], [], [blocksMap[n] for n in ["bb2"]], [blocksMap[n] for n in ["bb6"]],
-    #              list(fn.arguments))
-
-    # while2.c
-    # processLoops(blocksMap["bb1"], [], [blocksMap[n] for n in ["bb1"]], [blocksMap[n] for n in ["bb4"]],
-    #              list(fn.arguments))
-
-    # while3.c
-    #processLoops(blocksMap["bb3"], [], [blocksMap[n] for n in ["bb3"]], [blocksMap[n] for n in ["bb7"]],
-    #              list(fn.arguments))
 
     # while 4.c
     # processLoops(blocksMap["bb2"], [], [blocksMap[n] for n in ["bb2"]], [blocksMap[n] for n in ["bb5"]],
