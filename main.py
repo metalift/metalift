@@ -31,6 +31,7 @@ if __name__ == "__main__":
     loops = parseLoops(loopsFile) if loopsFile else None
     for l in loops:
       # assume for now there is only one header block
+      if len(l.header) > 1: raise Exception("multiple loop headers: %s" % l)
       processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
                    [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
                    list(fn.arguments))
