@@ -32,12 +32,30 @@ def parseLoops(filename):
     s = f.read()
     LoopInfo = namedtuple("LoopInfo", ["header", "body", "exits", "latches"])
 
-    matches = re.findall("Loop at depth 1 containing: (\S+)<header><exiting>,(\S+)<latch>", s.strip())
-    r = [LoopInfo([m[0].replace("%", "")], [], [m[0].replace("%", "")], [m[1].replace("%", "")]) for m in matches]
-    for l in r:
-      print("found loop: header: %s, latches: %s" % (l.header, l.latches))
+    matches = re.findall("Loop at depth \d+ containing: (\S+)", s)
+    loops = []
 
-    return r
+    for m in matches:
+      header = []
+      body = []
+      exits = []
+      latches = []
+
+      blks = m.replace("%", "").split(",")
+      for b in blks:
+        name = re.search("([^<]+)", b).group(0)
+        print("name: %s" % b)
+        if "<header>" in b: header.append(name)
+        if "<exiting>" in b: exits.append(name)
+        if "<latch>" in b: latches.append(name)
+        if "<header>" not in b and "<exiting>" not in b and "latch" not in b: body.append(name)
+
+      loops.append(LoopInfo(header, body, exits, latches))
+
+    for l in loops:
+      print("found loop: header: %s, body: %s, exits: %s, latches: %s" % (l.header, l.body, l.exits, l.latches))
+
+    return loops
 
 invNum = 0
 def processLoops(header, body, exits, latches, fnArgs):
