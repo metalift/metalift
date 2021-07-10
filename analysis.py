@@ -27,15 +27,24 @@ def setupBlocks(blks):
 
   return bbs
 
-def parseLoops(filename):
+def parseLoops(filename, fnName):
   with open(filename, mode="r") as f:
-    s = f.read()
+    foundLines = []
+    found = False
+    for l in f.readlines():
+      if re.match("Printing analysis 'Natural Loop Information' for function '%s':" % fnName, l):
+        found = True
+      elif found:
+        m = re.match("Loop at depth \d+ containing: (\S+)", l.strip())
+        if m:
+          foundLines.append(m.group(1))
+        elif re.match("Printing analysis 'Natural Loop Information' for function '\S+':", l):
+          found = False
+
     LoopInfo = namedtuple("LoopInfo", ["header", "body", "exits", "latches"])
 
-    matches = re.findall("Loop at depth \d+ containing: (\S+)", s)
     loops = []
-
-    for m in matches:
+    for m in foundLines:
       header = []
       body = []
       exits = []
