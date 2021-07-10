@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     blocksMap = setupBlocks(fn.blocks)
 
-    loops = parseLoops(loopsFile) if loopsFile else None
+    loops = parseLoops(loopsFile, fnName) if loopsFile else None
     for l in loops:
       # assume for now there is only one header block
       if len(l.header) > 1: raise Exception("multiple loop headers: %s" % l)

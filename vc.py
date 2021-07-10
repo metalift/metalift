@@ -183,7 +183,10 @@ class VC:
       ops = list(i.operands)
 
       if opcode == "alloca":
-        pass
+        t = re.search("alloca (\S+), align \d+", str(i)).group(1)  # bug: ops[0] always return i32 1 regardless of type
+        if t == "i32": s.mem[i] = Expr.Lit(0, Expr.Type.Int)
+        elif t == "i8": s.mem[i] = Expr.Lit(False, Expr.Type.Bool)
+        else: raise Exception("NYI: %s" % i)
 
       elif opcode == "load":
         s.regs[i] = s.mem[ops[0]]
