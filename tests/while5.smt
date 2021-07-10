@@ -41,7 +41,23 @@
 
 
 
-(assert (not (=> (and (= bb (and bb3 (inv1 0 1))) (= bb3 (=> (and (and (= tmp4 tmp1_1) (= tmp5 (< tmp1_1 3))) (inv1 tmp_0 tmp1_1)) (and bb12 bb6))) (= bb6 (=> (and (and (= tmp7 tmp_0) (= tmp10 tmp1_1) (= tmp8 tmp1_1)) (and (inv1 tmp_0 tmp1_1) (< tmp1_1 3))) (inv1 (+ tmp_0 tmp1_1) (+ tmp1_1 1)))) (= bb12 (=> (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3))) (and bb13 (inv0 tmp_0 1)))) (= bb13 (=> (and (and (= tmp14 tmp2_3) (= tmp15 (< tmp2_3 4))) (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3)) (inv0 tmp_2 tmp2_3))) (and bb22 bb16))) (= bb16 (=> (and (and (= tmp17 tmp_2) (= tmp18 tmp2_3) (= tmp20 tmp2_3)) (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3)) (inv0 tmp_2 tmp2_3) (< tmp2_3 4))) (inv0 (+ tmp_2 tmp2_3) (+ tmp2_3 1)))) (= bb22 (=> (and (= tmp23 tmp_2) (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3)) (inv0 tmp_2 tmp2_3) (not (< tmp2_3 4)))) (ps tmp_2)))) bb)))
+(assert (not (=> (and 
+
+(= bb (and bb3 (inv1 0 1))) 
+
+(= bb3 (=> (and (and (= tmp4 tmp1_1) (= tmp5 (< tmp1_1 3))) (inv1 tmp_0 tmp1_1)) (and bb12 bb6))) 
+
+(= bb6 (=> (and (and (= tmp7 tmp_0) (= tmp10 tmp1_1) (= tmp8 tmp1_1)) (and (inv1 tmp_0 tmp1_1) (< tmp1_1 3))) (inv1 (+ tmp_0 tmp1_1) (+ tmp1_1 1)))) 
+
+(= bb12 (=> (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3))) (and bb13 (inv0 tmp_0 1)))) 
+
+(= bb13 (=> (and (and (= tmp14 tmp2_3) (= tmp15 (< tmp2_3 4))) (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3)) (inv0 tmp_2 tmp2_3))) (and bb22 bb16))) 
+
+(= bb16 (=> (and (and (= tmp17 tmp_2) (= tmp18 tmp2_3) (= tmp20 tmp2_3)) (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3)) (inv0 tmp_2 tmp2_3) (< tmp2_3 4))) (inv0 (+ tmp_2 tmp2_3) (+ tmp2_3 1)))) 
+
+(= bb22 (=> (and (= tmp23 tmp_2) (and (inv1 tmp_0 tmp1_1) (not (< tmp1_1 3)) (inv0 tmp_2 tmp2_3) (not (< tmp2_3 4)))) (ps tmp_2)))
+
+) bb)))
 
 (check-sat)
 (get-model)
