@@ -1,20 +1,24 @@
 import sys
+import os
 
 from llvmlite import binding as llvm
 
 from analysis import setupBlocks, processLoops, processBranches, parseLoops
 from vc import VC
+from synthesis import runSynthesis
+
 
 if __name__ == "__main__":
-  if len(sys.argv) < 5:
-    raise Exception("usage: main.py <.ll or .bc file> <inv and ps file> <output file> <function name to parse> [loops info]")
+  if len(sys.argv) < 6:
+    raise Exception("usage: main.py <.ll or .bc file> <inv and ps file> <output file> <function name to parse> [loops info] <path to cvc4>")
 
   filename = sys.argv[1]
+  basename = os.path.splitext(os.path.basename(filename))[0]
   ansFilename = sys.argv[2]
   outFile = sys.argv[3]
   fnName = sys.argv[4]
   loopsFile = sys.argv[5] if len(sys.argv) > 5 else None
-
+  cvcPath = sys.argv[6]
   mode = "r" if filename.endswith(".ll") else "rb"
   with open(filename, mode=mode) as file:
     if filename.endswith(".ll"):
@@ -49,7 +53,7 @@ if __name__ == "__main__":
         print("%s" % i)
 
     print("====== compute vc")
-    (varDecls, predDecls, vc) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
+    (varDecls, predDecls, vc, vcSygus) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
     v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in varDecls])  # name and type
     # name, args, return type
     p = "\n".join(["(define-fun %s (%s) (%s) )" % (p.args[0],
@@ -62,7 +66,8 @@ if __name__ == "__main__":
     print("%s\n" % p)
     print("%s\n" % vc)
     print("(check-sat)\n(get-model)")
-
+    ans = open(ansFilename, mode="r").read()
+    runSynthesis(v, str(vcSygus), ans, vc, predDecls, cvcPath, basename)
     with open(outFile, mode="w") as out, open(ansFilename, mode="r") as ans:
       noPSInv = filter(lambda p: p.args[0] != "ps" and not p.args[0].startswith("inv"), predDecls)
       pNoPSInv = "\n".join(["(define-fun %s (%s) (%s) )" % (p.args[0],

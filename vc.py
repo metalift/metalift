@@ -81,8 +81,9 @@ class VC:
 
     blockVCs = [b.state.vc for b in blocksMap.values()]
     vc = Expr.Assert(Expr.Not(Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Expr.Type.Bool))))
-
-    return self.vars, self.preds.values(), vc
+    vcSygus = Expr.Assert(Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Expr.Type.Bool)))
+    
+    return self.vars, self.preds.values(), vc, vcSygus
 
   # merge either the registers or mem dict passed in containers
   def merge(self, containers):
