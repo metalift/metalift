@@ -1,10 +1,11 @@
 import re
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from copy import deepcopy
 
 from llvmlite.binding import TypeRef, ValueRef
 
-from ir import Expr, MLInstruction
+import models
+from ir import Expr, MLInstruction, Type, parseTypeRef
 
 
 class State:
@@ -42,19 +43,15 @@ class VC:
     self.preds = dict()
 
   def makeVar(self, name, ty):
-    if isinstance(ty, TypeRef):
-      # ty.name returns empty string. possibly bug
-      if str(ty) == "i32": ty = Expr.Type.Int
-      elif str(ty) == "i1": ty = Expr.Type.Bool
-      else: raise Exception("NYI %s" % ty)
-    elif isinstance(ty, Expr.Type): pass
+    if isinstance(ty, TypeRef): ty = parseTypeRef(ty)
+    elif isinstance(ty, Type): pass
     else: raise Exception("NYI %s with type %s" % (name, ty))
 
     e = Expr.Var(name, ty)
     self.vars.add(e)
     return e
 
-  def callPred(self, name, returnT: Expr.Type, *args):
+  def callPred(self, name, returnT: Type, *args):
     p = Expr.Pred(name, returnT, *args)
     self.preds[name] = p
     return p
@@ -80,7 +77,7 @@ class VC:
           done = False
 
     blockVCs = [b.state.vc for b in blocksMap.values()]
-    vc = Expr.Assert(Expr.Not(Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Expr.Type.Bool))))
+    vc = Expr.Assert(Expr.Not(Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Type.bool()))))
 
     return self.vars, self.preds.values(), vc
 
@@ -142,6 +139,8 @@ class VC:
       a = list(assigns)[0]
       assignE = Expr.Eq(self.makeVar(a.name, a.type), regs[a])
     else:  # r1 = v1 and r2 = v2 ...
+      for r in assigns:
+        print("ass: %s" % r)
       assignE = Expr.And(*[Expr.Eq(self.makeVar(r.name, r.type), regs[r]) for r in assigns])
 
     if not assumes: assumeE = None
@@ -154,8 +153,8 @@ class VC:
     else: lhs = Expr.And(assignE, assumeE)
 
     if not succs: succE = None
-    elif len(succs) == 1: succE = self.makeVar(succs[0].name, Expr.Type.Bool)
-    else: succE = Expr.And(*[self.makeVar(s.name, Expr.Type.Bool) for s in succs])
+    elif len(succs) == 1: succE = self.makeVar(succs[0].name, Type.bool())
+    else: succE = Expr.And(*[self.makeVar(s.name, Type.bool()) for s in succs])
 
     if not asserts: assertE = None
     elif len(asserts) == 1: assertE = asserts[0]
@@ -166,7 +165,7 @@ class VC:
     elif not succE and assertE: rhs = assertE
     else: rhs = Expr.And(succE, assertE)
 
-    vc = Expr.Eq(self.makeVar(blockName, Expr.Type.Bool), rhs if not lhs else Expr.Implies(lhs, rhs))
+    vc = Expr.Eq(self.makeVar(blockName, Type.bool()), rhs if not lhs else Expr.Implies(lhs, rhs))
 
     return vc
 
@@ -183,9 +182,12 @@ class VC:
       ops = list(i.operands)
 
       if opcode == "alloca":
-        t = re.search("alloca (\S+), align \d+", str(i)).group(1)  # bug: ops[0] always return i32 1 regardless of type
-        if t == "i32": s.mem[i] = Expr.Lit(0, Expr.Type.Int)
-        elif t == "i8": s.mem[i] = Expr.Lit(False, Expr.Type.Bool)
+        # alloca <type>, align <num> or alloca <type>
+        t = re.search("alloca ([^$|,]+)", str(i)).group(1)  # bug: ops[0] always return i32 1 regardless of type
+        if t == "i32": s.mem[i] = Expr.Lit(0, Type.int())
+        elif t == "i8": s.mem[i] = Expr.Lit(False, Type.bool())
+        elif t == "i1": s.mem[i] = Expr.Lit(False, Type.bool())
+        elif t == "%struct.list*": s.mem[i] = Expr.Lit(0, Type.list(Type.int()))
         else: raise Exception("NYI: %s" % i)
 
       elif opcode == "load":
@@ -210,7 +212,7 @@ class VC:
         if cond == "eq": r = Expr.Eq(op2, op1)
         elif cond == "sgt": r = Expr.Lt(op2, op1)
         elif cond == "sle": r = Expr.Le(op1, op2)
-        elif cond == "slt":r = Expr.Lt(op1, op2)
+        elif cond == "slt" or cond == "ult": r = Expr.Lt(op1, op2)
         else: raise Exception("NYI %s" % cond)
 
         s.regs[i] = r
@@ -218,6 +220,27 @@ class VC:
 
       elif opcode == "br" or opcode == "ret" or opcode == "switch":
         pass
+
+      elif opcode == "bitcast" or opcode == "sext":
+        s.regs[i] = VC.parseOperand(ops[0], s.regs)
+
+
+      elif opcode == "call":  # last arg is fn to be called
+        fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+        if fnName in models.fnModels:
+          r = models.fnModels[fnName](s.regs, *ops[:-1])
+          # print("ret: %s, %s" % (r.val, r.assigns))
+          if r.val:
+            s.regs[i] = r.val
+            assigns.add(i)
+          if r.assigns:
+            for k,v in r.assigns:
+              s.regs[k] = v
+              assigns.add(k)
+
+
+        else: raise Exception("NYI: %s, name: %s" % (i, fnName))
+
 
       elif opcode == "assert":
         # eval the inv args and concat with fn inputs
@@ -273,6 +296,10 @@ class VC:
     if op.name:  # a reg
       return reg[op]
     elif hasType:  # i32 0
-      return Expr.Lit(int(re.search("(\w+) (\d+)", str(op)).group(2)), Expr.Type.Int)
+      val = re.search("\w+ (\S+)", str(op)).group(1)
+      if val == "true": return Expr.Lit(True, Type.bool())
+      elif val == "false": return Expr.Lit(False, Type.bool())
+      else:  # assuming it's a number
+        return Expr.Lit(int(val), Type.int())
     else:  # 0
-      return Expr.Lit(int(op), Expr.Type.Int)
+      return Expr.Lit(int(op), Type.int())

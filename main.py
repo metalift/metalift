@@ -2,7 +2,7 @@ import sys
 
 from llvmlite import binding as llvm
 
-from analysis import setupBlocks, processLoops, processBranches, parseLoops
+from analysis import setupBlocks, processLoops, processBranches, parseLoops, parseSrets, lowerVectorCalls
 from vc import VC
 
 if __name__ == "__main__":
@@ -25,8 +25,9 @@ if __name__ == "__main__":
       raise Exception("Unknown file type: %s" % filename)
 
     fn = ref.get_function(fnName)
-
     blocksMap = setupBlocks(fn.blocks)
+
+    parseSrets(list(fn.arguments), blocksMap.values())
 
     loops = parseLoops(loopsFile, fnName) if loopsFile else None
     for l in loops:

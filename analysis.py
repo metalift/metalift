@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 
-from ir import Expr, MLInstruction
+from ir import Expr, MLInstruction, Type
 from vc import Block
 
 def setupBlocks(blks):
@@ -26,6 +26,59 @@ def setupBlocks(blks):
       bbs[t.name].preds.append(b)
 
   return bbs
+
+# replace ret void with ret sret argument if srets are used
+def parseSrets(fnArgs, blks):
+  sret = None
+  for a in fnArgs:
+    if b"sret" in a.attributes:
+      if sret is None: sret = a
+      else: raise Exception("multiple sret arguments: %s and %s" % (sret, a))
+
+  if sret:
+    for b in blks:
+      if b.instructions[-1].opcode == "ret":
+        ops = list(b.instructions[-1].operands)
+        if len(ops): raise Exception("return val not void: %s" % b.instructions[-1])
+        else: b.instructions[-1] = MLInstruction("ret", sret)
+
+# previous attempt in rewriting all STL vector fn calls
+# def lowerVectorCalls(blks):
+#   for b in blks:
+#     for i in range(len(b.instructions)):
+#       inst = b.instructions[i]
+#
+#       if inst.opcode == "call":
+#         ops = list(inst.operands)
+#         fnName = ops[-1].name
+#         if fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev":
+#           newInst = MLInstruction("call", "newlist")
+#           newInst.name = ops[0].name
+#           newInst.type = ops[0].type
+#           b.instructions[i] = newInst
+#
+#         elif fnName == "_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv":
+#           newInst = MLInstruction("call", ops[0], "listLength")
+#           newInst.name = inst.name
+#           newInst.type = inst.type
+#           b.instructions[i] = newInst
+#
+#         elif fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm":
+#           newInst = MLInstruction("call", ops[0], ops[1], "listGet")
+#           newInst.name = inst.name
+#           newInst.type = inst.type
+#           b.instructions[i] = newInst
+#
+#         elif fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi":
+#           newInst = MLInstruction("call", ops[0], ops[1], "listAppend")
+#           newInst.name = ops[0].name
+#           newInst.type = ops[0].type
+#           b.instructions[i] = newInst
+#
+#         elif fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev": # destructor
+#           newInst = MLInstruction("call", ops[0], "listDestruct")
+#           b.instructions[i] = newInst
+
 
 def parseLoops(filename, fnName):
   with open(filename, mode="r") as f:
@@ -84,12 +137,12 @@ def processLoops(header, body, exits, latches, fnArgs):
   for l in latches:
     l.succs.remove(header)
     header.preds.remove(l)
-    l.instructions[-1] = MLInstruction("assert", Expr.Pred(inv, Expr.Type.Bool,
+    l.instructions[-1] = MLInstruction("assert", Expr.Pred(inv, Type.bool(),
                                                            *[MLInstruction("load", h) for h in havocs],
                                                            *fnArgs))
 
   # prepend assume inv to header
-  header.instructions.insert(0, MLInstruction("assume", Expr.Pred(inv, Expr.Type.Bool,
+  header.instructions.insert(0, MLInstruction("assume", Expr.Pred(inv, Type.bool(),
                                                                   *[MLInstruction("load", h) for h in havocs],
                                                                   *fnArgs)))
 
@@ -99,7 +152,7 @@ def processLoops(header, body, exits, latches, fnArgs):
 
   # append assert inv initialization to header's predecessor
   for p in header.preds:
-    p.instructions.insert(-1, MLInstruction("assert", Expr.Pred(inv, Expr.Type.Bool,
+    p.instructions.insert(-1, MLInstruction("assert", Expr.Pred(inv, Type.bool(),
                                                                 *[MLInstruction("load", h) for h in havocs],
                                                                 *fnArgs)))
 
@@ -145,4 +198,5 @@ def processBranches(blocksMap, fnArgs):
                                                     Expr.Not(Expr.Or( *[(Expr.Eq(ops[0], v)) for v in vals]))))
 
     elif opcode == "ret":
-      b.instructions.insert(-1, MLInstruction("assert", Expr.Pred("ps", Expr.Type.Bool, ops[0], *fnArgs)))
+      b.instructions.insert(-1, MLInstruction("assert", Expr.Pred("ps", Type.bool(), ops[0],
+                                                                  *filter(lambda a: b"sret" not in a.attributes, fnArgs))))

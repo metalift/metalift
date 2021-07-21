@@ -1,6 +1,31 @@
 from enum import Enum
 
-from llvmlite.binding import ValueRef
+from llvmlite.binding import ValueRef, TypeRef
+
+
+class Type: #(Enum):
+  #Bool = "Bool"
+  #Int = "Int"
+
+
+  def __init__(self, name, *args):
+    self.name = name
+    self.args = args
+
+  @staticmethod
+  def int(): return Type("Int", [])
+  @staticmethod
+  def bool(): return Type("Bool", [])
+  @staticmethod
+  def pointer(): return Type("Pointer", [])
+  @staticmethod
+  def list(contentT): return Type("MLList", [contentT])
+
+  def __repr__(self):
+    #return self.value
+    if self.name == "Int": return "Int"
+    elif self.name == "Bool": return "Bool"
+    else: return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
 
 
 class Expr:
@@ -26,13 +51,6 @@ class Expr:
     Pred = "pred"
 
     Assert = "assert"
-
-  class Type(Enum):
-    Bool = "Bool"
-    Int = "Int"
-
-    def __str__(self):
-      return self.value
 
 
   def __init__(self, kind, type, args):
@@ -75,26 +93,26 @@ class Expr:
   def Lit(val, ty): return Expr(Expr.Kind.Lit, ty, [val])
 
   @staticmethod
-  def Add(*args): return Expr(Expr.Kind.Add, Expr.Type.Int, args)
+  def Add(*args): return Expr(Expr.Kind.Add, Type.int(), args)
   @staticmethod
-  def Sub(*args): return Expr(Expr.Kind.Sub, Expr.Type.Int, args)
+  def Sub(*args): return Expr(Expr.Kind.Sub, Type.int(), args)
 
   @staticmethod
-  def Eq(e1, e2): return Expr(Expr.Kind.Eq, Expr.Type.Bool, [e1, e2])
+  def Eq(e1, e2): return Expr(Expr.Kind.Eq, Type.bool(), [e1, e2])
   @staticmethod
-  def Lt(e1, e2): return Expr(Expr.Kind.Lt, Expr.Type.Bool, [e1, e2])
+  def Lt(e1, e2): return Expr(Expr.Kind.Lt, Type.bool(), [e1, e2])
   @staticmethod
-  def Le(e1, e2): return Expr(Expr.Kind.Le, Expr.Type.Bool, [e1, e2])
+  def Le(e1, e2): return Expr(Expr.Kind.Le, Type.bool(), [e1, e2])
 
   @staticmethod
-  def And(*args): return Expr(Expr.Kind.And, Expr.Type.Bool, args)
+  def And(*args): return Expr(Expr.Kind.And, Type.bool(), args)
   @staticmethod
-  def Or(*args): return Expr(Expr.Kind.Or, Expr.Type.Bool, args)
+  def Or(*args): return Expr(Expr.Kind.Or, Type.bool(), args)
   @staticmethod
-  def Not(e): return Expr(Expr.Kind.Not, Expr.Type.Bool, [e])
+  def Not(e): return Expr(Expr.Kind.Not, Type.bool(), [e])
 
   @staticmethod
-  def Implies(e1, e2): return Expr(Expr.Kind.Implies, Expr.Type.Bool, [e1, e2])
+  def Implies(e1, e2): return Expr(Expr.Kind.Implies, Type.bool(), [e1, e2])
 
   @staticmethod
   def Ite(c, e1, e2): return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
@@ -103,7 +121,7 @@ class Expr:
   def Pred(name, returnT, *args): return Expr(Expr.Kind.Pred, returnT, [name, *args])
 
   @staticmethod
-  def Assert(e): return Expr(Expr.Kind.Assert, Expr.Type.Bool, [e])
+  def Assert(e): return Expr(Expr.Kind.Assert, Type.bool(), [e])
 
 
 # class to represent extra instructions inserted into the input code
@@ -112,10 +130,17 @@ class MLInstruction:
   def __init__(self, opcode, *operands):
     self.opcode = opcode
     self.operands = operands
+    self.name = None
+    self.type = None
 
   def __str__(self):
     if self.opcode == "load":
       return "(load %s)" % " ".join([o.name if isinstance(o, ValueRef) else str(o) for o in self.operands])
+    elif self.opcode == "call":
+      call = "call %s %s(%s)" % (self.type, self.operands[-1], ", ".join([o.name if isinstance(o, ValueRef) else str(o)
+                                                              for o in self.operands[:-1]]))
+      if self.name is not None: return "  %s = %s" % (self.name, call)
+      else: return "  %s" % call
     else: return "  %s %s" % (self.opcode, " ".join([o.name if isinstance(o, ValueRef) else str(o)
                                               for o in self.operands]))
 
@@ -126,3 +151,14 @@ class MLValueRef:
 
   def __str__(self):
     return self.name
+
+
+def parseTypeRef(t: TypeRef):
+  # ty.name returns empty string. possibly bug
+  tyStr = str(t)
+  if tyStr == "i64": return Type.int()
+  elif tyStr == "i32": return Type.int()
+  elif tyStr == "i1": return Type.bool()
+  elif tyStr == "%struct.list*": return Type("MLList", Type.int())
+
+  else: raise Exception("NYI %s" % t)
