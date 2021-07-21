@@ -3,11 +3,19 @@
 # compiles benchmark and run switch converter and instruction namer on it
 
 file="$1"
-clang_out=${file/.c/.ll}
+ext="${file##*\.}"
 
-clang -emit-llvm -S $file -o $clang_out
+clang_out=${file/.$ext/.ll}
+
+echo "output to:" $clang_out
+
+include_path="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+
+clang -I $include_path -c -emit-llvm -S $file -o $clang_out
+
 #opt -lowerswitch -instnamer -S $clang_out > tmp.ll
-opt -instnamer -S $clang_out > tmp.ll
+opt -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
+
 mv tmp.ll $clang_out
 
 # opt -analyze -loops <.ll>
