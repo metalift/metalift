@@ -1,0 +1,108 @@
+import sys
+
+from llvmlite import binding as llvm
+
+from ir import Expr
+import vc
+
+asm_sum1 = r"""
+; ModuleID = 't.c'
+source_filename = "t.c"
+target triple = "{triple}"
+
+; Function Attrs: noinline nounwind optnone ssp uwtable
+define i32 @foo(i32 %0) #0 {{
+  %2 = alloca i32, align 4
+  store i32 %0, i32* %2, align 4
+  %3 = load i32, i32* %2, align 4
+  %4 = add nsw i32 %3, 1
+  store i32 %4, i32* %2, align 4
+  %5 = load i32, i32* %2, align 4
+  ret i32 %5
+}}
+"""
+
+asm_sum2 = r"""
+    ; ModuleID = '<string>'
+    target triple = "{triple}"
+    %struct.glob_type = type {{ i64, [2 x i64]}}
+
+    @glob = global i32 0
+    @glob_b = global i8 0
+    @glob_f = global float 1.5
+    @glob_struct = global %struct.glob_type {{i64 0, [2 x i64] [i64 0, i64 0]}}
+
+    define i32 @foo(i32 %.1, i32 %.2) {{
+      %.3 = add i32 %1, %.2
+      %.4 = add i32 0, %.3
+      ret i32 %.4
+    }}
+    """
+
+
+filename = "/Users/akcheung/proj/metalift/case.ll"
+filename = "/Users/akcheung/proj/metalift/branch2.ll"
+
+if __name__ == "__main__":
+  if len(sys.argv) < 2:
+    raise Exception("usage: main.py <.ll or .bc file")
+
+  filename = sys.argv[1]
+
+  mode = "r" if filename.endswith(".ll") else "rb"
+  with open(filename, mode=mode) as file:
+    c = file.read()
+    if filename.endswith(".ll"):
+      ref = llvm.parse_assembly(c)
+    elif filename.endswith(".bc"):
+      ref = llvm.parse_bitcode(c)
+    else:
+      raise Exception("Unknown file type: %s" % filename)
+
+    fn = ref.get_function("foo")
+
+    blocksMap = vc.setupBlocks(fn.blocks)
+    print("%s" % blocksMap)
+
+    initBlock = blocksMap[list(fn.blocks)[0].name]
+    for arg in fn.arguments:
+      name = arg.name
+      v = vc.makeVar(name, arg.type)
+      initBlock.state.regs[name] = v
+      initBlock.state.args.append(v)
+
+    for b in blocksMap.values():
+      vc.computeBlockVC(b)
+
+
+    # construct overall VC
+    decls = "\n".join(["(declare-const %s %s)" % (v.args[0], v.args[1]) for v in vars])
+    # pred defs - name, args, and return type
+    predDecls = "\n".join(["(define-fun %s (%s) (%s) )" % (p.args[0],
+                                                         " ".join("(%s %s)" % (a.args[0], a.args[1]) for a in p.args[1:-1]),
+                                                         p.args[-1])
+                        for p in preds.values()])
+
+    blockVCs = [b.state.vc for b in blocksMap.values()]
+    vc = Expr.Assert(Expr.Not(Expr.Implies(Expr.And(*blockVCs), makeVar(fn.blocks.next().name, bool))))
+
+    print("decls: %s" % decls)
+    print("fn: %s" % predDecls)
+    print("vc: %s" % vc)
+
+
+    # done = False
+    # while not done:
+    #   for b in blockInfo:
+    #     if b.vc is None and (len(b.preds) == 0 or len(b.guard) == len(b.preds)):
+    #       done = False
+    #       print("compute vc: %s" % b.block.name)
+    #       computeBlockVC(b, ctx)
+    #   done = True
+
+
+
+
+
+
+
