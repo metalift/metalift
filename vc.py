@@ -52,9 +52,10 @@ class VC:
     return e
 
   def callPred(self, name, returnT: Type, *args):
-    p = Expr.Pred(name, returnT, *args)
-    self.preds[name] = p
-    return p
+    # normalize the arguments to variable names
+    newArgs = [Expr.Var("v%s" % i, a.type) for (i, a) in zip(range(len(args)), args)]
+    self.preds[name] = Expr.Pred(name, returnT, *newArgs)
+    return Expr.Pred(name, returnT, *args)
 
   def computeVC(self, blocksMap, firstBlockName, arguments):
     initBlock = blocksMap[firstBlockName]
