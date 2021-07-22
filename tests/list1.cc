@@ -18,7 +18,7 @@ int main (int argc, char ** argv)
   l = listAppend(l, 2);
   List r = test(l);
 
-  for (std::vector<int>::const_iterator i = l->contents.begin(); i != l->contents.end(); ++i)
+  for (std::vector<int>::const_iterator i = r->contents.begin(); i != r->contents.end(); ++i)
     std::cout << *i << std::endl;
 
   return 0;
