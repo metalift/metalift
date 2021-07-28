@@ -1,0 +1,3 @@
+See tests folder for test cases
+
+Example usage: main.py tests/while4.ll tests/while4-grammar.sl tests/out.smt test tests/while4.loops <path to cvc5>
