@@ -80,10 +80,13 @@ class VC:
     blockVCs = [b.state.vc for b in blocksMap.values()]
 
     body = Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Type.bool()))
-    vc = Expr.Assert(Expr.Not(body))
-    vcSygus = Expr.Assert(body)
-    
-    return self.vars, self.preds.values(), vc, vcSygus
+    #vc = Expr.Assert(Expr.Not(body))
+    #vcSygus = Expr.Assert(body)
+
+    invAndPs = filter(lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"), self.preds.values())
+    preds = filter(lambda p: not(p.args[0] == "ps" or p.args[0].startswith("inv")), self.preds.values())
+
+    return self.vars, invAndPs, preds, body
 
   # merge either the registers or mem dict passed in containers
   def merge(self, containers):

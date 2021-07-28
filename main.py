@@ -5,8 +5,7 @@ from llvmlite import binding as llvm
 
 from analysis import setupBlocks, processLoops, processBranches, parseLoops, parseSrets
 from vc import VC
-from synthesis import runSynthesis
-
+from synthesis import synthesize, toSMT
 
 if __name__ == "__main__":
   if len(sys.argv) < 6:
@@ -14,7 +13,7 @@ if __name__ == "__main__":
 
   filename = sys.argv[1]
   basename = os.path.splitext(os.path.basename(filename))[0]
-  ansFilename = sys.argv[2]
+  ansFile = sys.argv[2]
   outFile = sys.argv[3]
   fnName = sys.argv[4]
   loopsFile = sys.argv[5] if len(sys.argv) > 5 else None
@@ -41,7 +40,7 @@ if __name__ == "__main__":
                    [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
                    list(fn.arguments))
 
-    # while 4.c
+    # example for while4.c
     # processLoops(blocksMap["bb2"], [], [blocksMap[n] for n in ["bb2"]], [blocksMap[n] for n in ["bb5"]],
     #              list(fn.arguments))
 
@@ -54,30 +53,14 @@ if __name__ == "__main__":
         print("%s" % i)
 
     print("====== compute vc")
-    (varDecls, predDecls, vc, vcSygus) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
-    v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in varDecls])  # name and type
-    # name, args, return type
-    p = "\n".join(["(define-fun %s (%s) (%s) )" % (p.args[0],
-                                                   " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]),
-                                                   p.type)
-                                                   for p in predDecls])
+    (vars, invAndPs, preds, vc) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
 
-    # print the whole thing
-    print("%s\n" % v)
-    print("%s\n" % p)
-    print("%s\n" % vc)
-    print("(check-sat)\n(get-model)")
-
-    ans = open(ansFilename, mode="r").read()
-
-    # run synthesis
     if cvcPath:
-      runSynthesis(v, str(vcSygus), ans, vc, predDecls, cvcPath, basename)
+      print("====== synthesis")
+      synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename)
+    else:
+      print("====== print to SMT")
+      toSMT(open(ansFile, mode="r").read(), vars, preds, vc, outFile, False)
 
-    with open(outFile, mode="w") as out, open(ansFilename, mode="r") as ans:
-      noPSInv = filter(lambda p: p.args[0] != "ps" and not p.args[0].startswith("inv"), predDecls)
-      pNoPSInv = "\n".join(["(define-fun %s (%s) (%s) )" % (p.args[0],
-                                                         " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]),
-                                                         p.type)
-                         for p in noPSInv])
-      out.write("%s\n\n%s\n\n%s\n\n%s\n\n(check-sat)\n(get-model)" % (ans.read(), v, pNoPSInv, vc))
+
+    # codegen -- NYI

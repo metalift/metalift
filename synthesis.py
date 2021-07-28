@@ -1,7 +1,9 @@
-import subprocess 
-import io
+import subprocess
 import pyparsing as pp
 import os
+
+from ir import Expr
+
 
 def flatten(L):
 	for l in L:
@@ -44,16 +46,15 @@ def generateCand(synthDecls, line):
 				candidates.append(synthDecls[k] + ' ('  + ' '.join(list(flatten(a[1]))) + '))')
 	return candidates
 
-def runSynthesis(v, vcSygus, funDef, vc, predDecls, cvcPath, basename):
-	vcSygus = vcSygus.replace("assert", "constraint")
+def callCVC(funDef, vars, predDecls, vc, cvcPath, basename):
 	synthDir = './synthesisLogs/'
 	if not os.path.exists(synthDir):
 		os.mkdir(synthDir)
 	sygusFile = synthDir + basename + ".sl"
-	#Generate sygus file for synthesis
-	with open(sygusFile, mode="w") as out:
-		out.write("%s\n\n%s\n\n%s\n\n%s" %(funDef, v, vcSygus, "(check-synth)"))
-	
+
+	# Generate sygus file for synthesis
+	toSMT(funDef, vars, predDecls, vc, sygusFile, True)
+
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile,'a')
 	#Run synthesis subprocess
@@ -63,14 +64,14 @@ def runSynthesis(v, vcSygus, funDef, vc, predDecls, cvcPath, basename):
 	funs = "\n".join(d for d in extractFuns(funDef))
 	synthDecls = extractSynth(funDef, preds)
 	logfileVerif = open(logfile,"r")
-	while(1):
+	while True:
 		line = logfileVerif.readline()
 		if 'sygus-candidate' in line:
 			print("Current PS and INV Guess ", line)
 			candidates = "\n".join(d for d in generateCand(synthDecls, line))
 			smtFile = synthDir + basename + ".smt"
-			with open(smtFile, mode="w") as myfile:
-				myfile.write("%s\n\n%s\n\n%s\n\n%s\n\n%s" %(v, funs, candidates, vc, "(check-sat)"))
+			toSMT(funs, vars, candidates, vc, smtFile, False)
+
 			#run external verification subprocess
 			procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000' ,  smtFile],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
 			output = procVerify.stdout.readline()
@@ -82,4 +83,41 @@ def runSynthesis(v, vcSygus, funDef, vc, predDecls, cvcPath, basename):
 			else:
 				print("CVC4 verification Result for Current Guess")
 				print("SAT\n")
-			
+
+
+def synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename):
+	# grammars = [genGrammar(p) for p in invAndPs]
+	grammars = open(ansFile, mode="r").read()
+
+	callCVC(grammars, vars, preds, vc, cvcPath, basename)
+
+# programmatically generated grammar
+# def genGrammar (modifiedVars, inScopeVars):
+#   f = Expr.Choose(Expr.Lit(1, Type.int()), Expr.Lit(2, Type.int()), Expr.Lit(3, Type.int()))
+#   e = Expr.Choose(*filter(lambda v: v.type == Type.int(), inScopeVars))
+#   d = Expr.And(Expr.Ge(e, f), Expr.Le(e, f))
+#   c = Expr.Eq(e, Expr.Call("sum_n", Expr.Sub(e, f)))
+#   return Expr.And(c, d)
+
+
+# print to a file
+def toSMT(invAndPs, vars, preds, vc, outFile, isSynthesis):
+	# order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
+	with open(outFile, mode="w") as out:
+		out.write("%s\n\n" % invAndPs)
+
+		v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
+		out.write("%s\n\n" % v)
+
+		# name, args, return type
+		preds = "\n".join(["(define-fun %s (%s) (%s) )" %
+											 (p.args[0], " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]), p.type)
+											 for p in preds])
+		out.write("%s\n\n" % preds)
+
+		if isSynthesis:
+			out.write("%s\n\n" % Expr.Constraint(vc))
+			out.write("(check-synth)")
+		else:
+			out.write("%s\n\n" % Expr.Assert(Expr.Not(vc)))
+			out.write("(check-sat)\n(get-model)")

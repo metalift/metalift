@@ -51,6 +51,7 @@ class Expr:
     Pred = "pred"
 
     Assert = "assert"
+    Constraint = "constraint"
 
 
   def __init__(self, kind, type, args):
@@ -122,6 +123,9 @@ class Expr:
 
   @staticmethod
   def Assert(e): return Expr(Expr.Kind.Assert, Type.bool(), [e])
+
+  @staticmethod
+  def Constraint(e): return Expr(Expr.Kind.Constraint, Type.bool(), [e])
 
 
 # class to represent extra instructions inserted into the input code
