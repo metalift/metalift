@@ -18,4 +18,6 @@ opt -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
 
 mv tmp.ll $clang_out
 
-# opt -analyze -loops <.ll>
+loops_out=${file/.$ext/.loops}
+echo "output loops info to:" $loops_out
+opt -analyze -loops $clang_out > $loops_out
