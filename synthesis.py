@@ -110,10 +110,13 @@ def toSMT(invAndPs, vars, preds, vc, outFile, isSynthesis):
 		out.write("%s\n\n" % v)
 
 		# name, args, return type
-		preds = "\n".join(["(define-fun %s (%s) (%s) )" %
-											 (p.args[0], " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]), p.type)
-											 for p in preds])
-		out.write("%s\n\n" % preds)
+		if isinstance(preds, str) and not(isSynthesis):
+			out.write("%s\n\n" % preds)
+		#elif isinstance(preds, filter) and not(isSynthesis):
+			#preds = "\n".join(["(define-fun %s (%s) (%s) )" %
+											 #(p.args[0], " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]), p.type)
+											 #for p in preds])
+			#out.write("%s\n\n" % preds)
 
 		if isSynthesis:
 			out.write("%s\n\n" % Expr.Constraint(vc))
