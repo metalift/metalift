@@ -149,7 +149,22 @@
 
 
 
-(assert (not (=> (and (= bb (=> (= tmp3 list_empty) (and bb4 (inv0 list_empty 0 arg)))) (= bb4 (=> (and (and (= tmp5 tmp2_1) (= tmp7 (list_length arg)) (= tmp6 arg) (= tmp8 (< tmp2_1 (list_length arg)))) (inv0 tmp1_0 tmp2_1 arg)) (and bb24 bb9))) (= bb9 (=> (and (and (= tmp10 arg) (= tmp13 (< 2 (list_get arg tmp2_1))) (= tmp12 (list_get arg tmp2_1)) (= tmp11 tmp2_1)) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)))) (and bb20 bb14))) (= bb14 (=> (and (and (= tmp15 tmp1_0) (= tmp17 tmp2_1) (= tmp19 (list_append tmp1_0 (list_get arg tmp2_1))) (= tmp16 arg) (= tmp18 (list_get arg tmp2_1))) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1)))) bb20)) (= bb20 (=> (and (or (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg))) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1)))) (not (< 2 (list_get arg tmp2_1)))) bb21)) (= bb21 (=> (and (= tmp22 tmp2_1) (and (or (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg))) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1)))) (not (< 2 (list_get arg tmp2_1))))) (inv0 (ite (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1))) (list_append tmp1_0 (list_get arg tmp2_1)) tmp1_0) (+ tmp2_1 1) arg))) (= bb24 (=> (and (= tmp25 tmp1_0) (and (inv0 tmp1_0 tmp2_1 arg) (not (< tmp2_1 (list_length arg))))) (ps tmp1_0 arg)))) bb)))
+(assert (not (=> (and 
+(= bb (=> (= tmp3 list_empty) (and bb4 (inv0 list_empty 0 arg)))) 
+
+(= bb4 (=> (and (and (= tmp5 tmp2_1) (= tmp7 (list_length arg)) (= tmp6 arg) (= tmp8 (< tmp2_1 (list_length arg)))) (inv0 tmp1_0 tmp2_1 arg)) (and bb24 bb9))) 
+
+(= bb9 (=> (and (and (= tmp10 arg) (= tmp13 (< 2 (list_get arg tmp2_1))) (= tmp12 (list_get arg tmp2_1)) (= tmp11 tmp2_1)) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)))) (and bb20 bb14))) 
+
+(= bb14 (=> (and (and (= tmp15 tmp1_0) (= tmp17 tmp2_1) (= tmp19 (list_append tmp1_0 (list_get arg tmp2_1))) (= tmp16 arg) (= tmp18 (list_get arg tmp2_1))) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1)))) bb20)) 
+
+(= bb20 (=> (and (or (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg))) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1)))) (not (< 2 (list_get arg tmp2_1)))) bb21)) 
+
+(= bb21 (=> (and (= tmp22 tmp2_1) (and (or (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg))) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1)))) (not (< 2 (list_get arg tmp2_1))))) (inv0 (ite (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)) (< 2 (list_get arg tmp2_1))) (list_append tmp1_0 (list_get arg tmp2_1)) tmp1_0) (+ tmp2_1 1) arg))) 
+
+(= bb24 (=> (and (= tmp25 tmp1_0) (and (inv0 tmp1_0 tmp2_1 arg) (not (< tmp2_1 (list_length arg))))) (ps tmp1_0 arg)))
+
+) bb)))
 
 (check-sat)
 (get-model)

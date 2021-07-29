@@ -133,7 +133,19 @@
 
 
 
-(assert (not (=> (and (= bb (=> (= tmp3 list_empty) (and bb4 (inv0 list_empty 0 arg)))) (= bb4 (=> (and (and (= tmp5 tmp2_1) (= tmp6 arg) (= tmp8 (< tmp2_1 (list_length arg))) (= tmp7 (list_length arg))) (inv0 tmp1_0 tmp2_1 arg)) (and bb18 bb9))) (= bb9 (=> (and (and (= tmp11 arg) (= tmp12 tmp2_1) (= tmp13 (list_get arg tmp2_1)) (= tmp14 (list_append tmp1_0 (list_get arg tmp2_1))) (= tmp10 tmp1_0)) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)))) bb15)) (= bb15 (=> (and (= tmp16 tmp2_1) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)))) (inv0 (list_append tmp1_0 (list_get arg tmp2_1)) (+ tmp2_1 1) arg))) (= bb18 (=> (and (= tmp19 tmp1_0) (and (inv0 tmp1_0 tmp2_1 arg) (not (< tmp2_1 (list_length arg))))) (ps tmp1_0 arg)))) bb)))
+(assert (not (=> (and 
+
+(= bb (=> (= tmp3 list_empty) (and bb4 (inv0 list_empty 0 arg)))) 
+
+(= bb4 (=> (and (and (= tmp5 tmp2_1) (= tmp6 arg) (= tmp8 (< tmp2_1 (list_length arg))) (= tmp7 (list_length arg))) (inv0 tmp1_0 tmp2_1 arg)) (and bb18 bb9))) 
+
+(= bb9 (=> (and (and (= tmp11 arg) (= tmp12 tmp2_1) (= tmp13 (list_get arg tmp2_1)) (= tmp14 (list_append tmp1_0 (list_get arg tmp2_1))) (= tmp10 tmp1_0)) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)))) bb15)) 
+
+(= bb15 (=> (and (= tmp16 tmp2_1) (and (inv0 tmp1_0 tmp2_1 arg) (< tmp2_1 (list_length arg)))) (inv0 (list_append tmp1_0 (list_get arg tmp2_1)) (+ tmp2_1 1) arg))) 
+
+(= bb18 (=> (and (= tmp19 tmp1_0) (and (inv0 tmp1_0 tmp2_1 arg) (not (< tmp2_1 (list_length arg))))) (ps tmp1_0 arg)))
+
+) bb)))
 
 (check-sat)
 (get-model)
