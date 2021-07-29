@@ -109,14 +109,18 @@ def toSMT(invAndPs, vars, preds, vc, outFile, isSynthesis):
 		v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
 		out.write("%s\n\n" % v)
 
-		# name, args, return type
-		if isinstance(preds, str) and not(isSynthesis):
+
+		if isinstance(preds, str):
 			out.write("%s\n\n" % preds)
-		#elif isinstance(preds, filter) and not(isSynthesis):
-			#preds = "\n".join(["(define-fun %s (%s) (%s) )" %
-											 #(p.args[0], " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]), p.type)
-											 #for p in preds])
-			#out.write("%s\n\n" % preds)
+
+		# a list of Exprs - print name, args, return type
+		elif isinstance(preds, list):
+			preds = "\n".join(["(define-fun %s (%s) (%s) )" %
+										    (p.args[0], " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]), p.type)
+										    for p in preds])
+			out.write("%s\n\n" % preds)
+
+		else: raise Exception("unknown type passed in for preds: %s" % preds)
 
 		if isSynthesis:
 			out.write("%s\n\n" % Expr.Constraint(vc))

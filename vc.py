@@ -83,8 +83,8 @@ class VC:
     #vc = Expr.Assert(Expr.Not(body))
     #vcSygus = Expr.Assert(body)
 
-    invAndPs = filter(lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"), self.preds.values())
-    preds = filter(lambda p: not(p.args[0] == "ps" or p.args[0].startswith("inv")), self.preds.values())
+    invAndPs = list(filter(lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"), self.preds.values()))
+    preds = list(filter(lambda p: not(p.args[0] == "ps" or p.args[0].startswith("inv")), self.preds.values()))
 
     return self.vars, invAndPs, preds, body
 

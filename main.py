@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     if cvcPath:
       print("====== synthesis")
-      synthesize(invAndPs, vars, invAndPs, vc, ansFile, cvcPath, basename)
+      synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename)
     else:
       print("====== print to SMT file: %s" % outFile)
       toSMT(open(ansFile, mode="r").read(), vars, preds, vc, outFile, False)
