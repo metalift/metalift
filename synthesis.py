@@ -59,7 +59,7 @@ def callCVC(funDef, vars, invAndPs, preds, vc, cvcPath, basename):
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile,'a')
 	#Run synthesis subprocess
-	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--debug-sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
+	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
 
 	invpsDecl = [p.args[0] for p in invAndPs]
 	funs = "\n".join(d for d in extractFuns(funDef))
