@@ -1,30 +1,39 @@
 #include <vector>
 
+template <typename T>
 struct list
 {
-  std::vector<int> contents;
+  std::vector<T> contents;
 };
 
-typedef struct list * List;
+template <typename T>
+using List = list<T> *;
 
-List newList() 
-{
-  return (List)malloc(sizeof(struct list));
-}
 
-int listLength (List l) 
+template <class T>
+int listLength (List<T> l) 
 {
   return l->contents.size();
 }
 
-int listGet (List l, int i) 
+template <class T>
+List<T> newList() 
+{
+  //return (List<T>)malloc(sizeof(struct list));
+  return new list<T>();
+}
+
+template <class T>
+T listGet (List<T> l, int i) 
 { 
   return l->contents[i];
 }
 
-List listAppend (List in, int e) 
+
+template <class T>
+List<T> listAppend (List<T> in, T e) 
 {
-  List r = newList();
+  List<T> r = newList<T>();
   for (int i = 0; i < listLength(in); ++i)
     r->contents.push_back(listGet(in, i));
   r->contents.push_back(e);

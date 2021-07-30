@@ -1,14 +1,10 @@
-Printing analysis 'Natural Loop Information' for function '_Z7newListv':
-Printing analysis 'Natural Loop Information' for function '_Z10listLengthP4list':
-Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv':
-Printing analysis 'Natural Loop Information' for function '_Z7listGetP4listi':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm':
-Printing analysis 'Natural Loop Information' for function '_Z10listAppendP4listi':
-Loop at depth 1 containing: %bb7<header><exiting>,%bb12,%bb18<latch>
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi':
-Printing analysis 'Natural Loop Information' for function '_Z4testP4list':
+Printing analysis 'Natural Loop Information' for function '_Z4testP4listIiE':
 Loop at depth 1 containing: %bb4<header><exiting>,%bb9,%bb15<latch>
+Printing analysis 'Natural Loop Information' for function '_Z7newListIiEP4listIT_Ev':
+Printing analysis 'Natural Loop Information' for function '_Z10listLengthIiEiP4listIT_E':
+Printing analysis 'Natural Loop Information' for function '_Z10listAppendIiEP4listIT_ES3_S1_':
+Loop at depth 1 containing: %bb7<header><exiting>,%bb12,%bb18<latch>
+Printing analysis 'Natural Loop Information' for function '_Z7listGetIiET_P4listIS0_Ei':
 Printing analysis 'Natural Loop Information' for function 'main':
 Loop at depth 1 containing: %bb20<header><exiting>,%bb26,%bb31<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE5beginEv':
@@ -23,6 +19,24 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__111__wrap_ite
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__111__wrap_iterIPiE4baseEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__1eqIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__111__wrap_iterIPKiE4baseEv':
+Printing analysis 'Natural Loop Information' for function '_ZN4listIiEC1Ev':
+Printing analysis 'Natural Loop Information' for function '_ZN4listIiEC2Ev':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC2Ev':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_baseIiNS_9allocatorIiEEEC2Ev':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__120__vector_base_commonILb1EEC2Ev':
+Printing analysis 'Natural Loop Information' for function '__clang_call_terminate':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC1IDnNS_18__default_init_tagEEEOT_OT0_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC2IDnNS_18__default_init_tagEEEOT_OT0_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__17forwardINS_18__default_init_tagEEEOT_RNS_16remove_referenceIS2_E4typeE':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EEC2ENS_18__default_init_tagE':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiEC2Ev':
+Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJiEEEvDpOT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_':
@@ -52,7 +66,6 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__13minImEERKT_
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8max_sizeERKS2_':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114numeric_limitsIlE3maxEv':
-Printing analysis 'Natural Loop Information' for function '__clang_call_terminate':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__13minImNS_6__lessImmEEEERKT_S5_S5_T0_':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16__lessImmEclERKmS3_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10__max_sizeENS_17integral_constantIbLb1EEERKS2_':
@@ -71,8 +84,6 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC2IDnS4_EEOT_OT0_':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EEC2IS3_vEEOT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiE8allocateEmPKv':
