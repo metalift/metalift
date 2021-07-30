@@ -35,6 +35,7 @@ def extractSynth(funDef, preds):
 		for l in lines:
 			if p in l:
 				synthDecls[p] = l.replace('synth-fun', 'define-fun')
+	print("synth",synthDecls)
 	return synthDecls
 
 def generateCand(synthDecls, line):
@@ -46,23 +47,23 @@ def generateCand(synthDecls, line):
 				candidates.append(synthDecls[k] + ' ('  + ' '.join(list(flatten(a[1]))) + '))')
 	return candidates
 
-def callCVC(funDef, vars, predDecls, vc, cvcPath, basename):
+def callCVC(funDef, vars, invAndPs, preds, vc, cvcPath, basename):
 	synthDir = './synthesisLogs/'
 	if not os.path.exists(synthDir):
 		os.mkdir(synthDir)
 	sygusFile = synthDir + basename + ".sl"
 
 	# Generate sygus file for synthesis
-	toSMT(funDef, vars, predDecls, vc, sygusFile, True)
+	toSMT(funDef, vars, preds, vc, sygusFile, True)
 
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile,'a')
 	#Run synthesis subprocess
-	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus' ,  sygusFile],stdout=synthLogs,stderr=subprocess.DEVNULL)
-	
-	preds = [p.args[0] for p in predDecls]
+	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--debug-sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
+
+	invpsDecl = [p.args[0] for p in invAndPs]
 	funs = "\n".join(d for d in extractFuns(funDef))
-	synthDecls = extractSynth(funDef, preds)
+	synthDecls = extractSynth(funDef, invpsDecl)
 	logfileVerif = open(logfile,"r")
 	while True:
 		line = logfileVerif.readline()
@@ -89,7 +90,7 @@ def synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename):
 	# grammars = [genGrammar(p) for p in invAndPs]
 	grammars = open(ansFile, mode="r").read()
 
-	callCVC(grammars, vars, preds, vc, cvcPath, basename)
+	callCVC(grammars, vars, invAndPs, preds, vc, cvcPath, basename)
 
 # programmatically generated grammar
 # def genGrammar (modifiedVars, inScopeVars):
