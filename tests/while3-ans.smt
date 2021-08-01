@@ -6,5 +6,5 @@
 (define-fun ps ( (x Int) (arg Int) ) Bool
   (or (>= 1 arg) (= x (sum_n (- arg 1)))))
        
-(define-fun inv0 ( (x Int) (y Int) (arg Int) ) Bool
+(define-fun inv0 ( (dummy Int) (x Int) (y Int) (arg Int) ) Bool
   (or (>= 1 arg) (and (<= y arg) (= x (sum_n (- y 1))) (>= y 1))))
