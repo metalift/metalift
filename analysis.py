@@ -138,11 +138,13 @@ def processLoops(header, body, exits, latches, fnArgs):
     l.succs.remove(header)
     header.preds.remove(l)
     l.instructions[-1] = MLInstruction("assert", Expr.Pred(inv, Type.bool(),
+                                                           Expr.Lit(len(havocs), Type.int()),
                                                            *[MLInstruction("load", h) for h in havocs],
                                                            *fnArgs))
 
   # prepend assume inv to header
   header.instructions.insert(0, MLInstruction("assume", Expr.Pred(inv, Type.bool(),
+                                                                  Expr.Lit(len(havocs), Type.int()),
                                                                   *[MLInstruction("load", h) for h in havocs],
                                                                   *fnArgs)))
 
@@ -153,6 +155,7 @@ def processLoops(header, body, exits, latches, fnArgs):
   # append assert inv initialization to header's predecessor
   for p in header.preds:
     p.instructions.insert(-1, MLInstruction("assert", Expr.Pred(inv, Type.bool(),
+                                                                Expr.Lit(len(havocs), Type.int()),
                                                                 *[MLInstruction("load", h) for h in havocs],
                                                                 *fnArgs)))
 

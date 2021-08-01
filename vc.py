@@ -80,13 +80,13 @@ class VC:
     blockVCs = [b.state.vc for b in blocksMap.values()]
 
     body = Expr.Implies(Expr.And(*blockVCs), self.makeVar(firstBlockName, Type.bool()))
-    #vc = Expr.Assert(Expr.Not(body))
-    #vcSygus = Expr.Assert(body)
 
-    invAndPs = list(filter(lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"), self.preds.values()))
+    invAndPs = [Expr.Synth(p.args[0], Expr.Lit(True, Type.bool()), *p.args[1:]) for p in
+                filter(lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"), self.preds.values())]
     preds = list(filter(lambda p: not(p.args[0] == "ps" or p.args[0].startswith("inv")), self.preds.values()))
 
     return self.vars, invAndPs, preds, body
+
 
   # merge either the registers or mem dict passed in containers
   def merge(self, containers):
@@ -146,8 +146,6 @@ class VC:
       a = list(assigns)[0]
       assignE = Expr.Eq(self.makeVar(a.name, a.type), regs[a])
     else:  # r1 = v1 and r2 = v2 ...
-      for r in assigns:
-        print("ass: %s" % r)
       assignE = Expr.And(*[Expr.Eq(self.makeVar(r.name, r.type), regs[r]) for r in assigns])
 
     if not assumes: assumeE = None
@@ -245,7 +243,6 @@ class VC:
               s.regs[k] = v
               assigns.add(k)
 
-
         else: raise Exception("NYI: %s, name: %s" % (i, fnName))
 
 
@@ -293,6 +290,7 @@ class VC:
       if isinstance(a, Expr): newArgs.append(VC.parseExpr(a, reg, mem, hasType))
       elif isinstance(a, MLInstruction) and a.opcode == "load": newArgs.append(mem[a.operands[0]])
       elif isinstance(a, ValueRef): newArgs.append(VC.parseOperand(a, reg, hasType))
+      elif isinstance(a, int): newArgs.append(Expr.Lit(a, Type.int()))
       elif isinstance(a, str): newArgs.append(a)
       else: raise Exception("NYI: %s" % a)
     return Expr(e.kind, e.type, newArgs)

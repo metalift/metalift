@@ -52,6 +52,7 @@ class Expr:
 
     Assert = "assert"
     Constraint = "constraint"
+    Synth = "synth"
 
 
   def __init__(self, kind, type, args):
@@ -120,12 +121,12 @@ class Expr:
 
   @staticmethod
   def Pred(name, returnT, *args): return Expr(Expr.Kind.Pred, returnT, [name, *args])
-
   @staticmethod
   def Assert(e): return Expr(Expr.Kind.Assert, Type.bool(), [e])
-
   @staticmethod
   def Constraint(e): return Expr(Expr.Kind.Constraint, Type.bool(), [e])
+  @staticmethod
+  def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, *args, body])
 
 
 # class to represent extra instructions inserted into the input code
