@@ -92,13 +92,13 @@ def synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename):
 
 	callCVC(grammars, vars, invAndPs, preds, vc, cvcPath, basename)
 
-# programmatically generated grammar
-# def genGrammar (modifiedVars, inScopeVars):
-#   f = Expr.Choose(Expr.Lit(1, Type.int()), Expr.Lit(2, Type.int()), Expr.Lit(3, Type.int()))
-#   e = Expr.Choose(*filter(lambda v: v.type == Type.int(), inScopeVars))
-#   d = Expr.And(Expr.Ge(e, f), Expr.Le(e, f))
-#   c = Expr.Eq(e, Expr.Call("sum_n", Expr.Sub(e, f)))
-#   return Expr.And(c, d)
+# # programmatically generated grammar
+# def genGrammar(modified, inScope):
+# 	f = Expr.Choose(Expr.Lit(1, Type.int()), Expr.Lit(2, Type.int()), Expr.Lit(3, Type.int()))
+# 	e = Expr.Choose(*inScope)
+# 	d = Expr.And(Expr.Ge(e, f), Expr.Le(e, f))
+# 	c = Expr.Eq(e, Expr.Call("sum_n", Expr.Sub(e, f)))
+# 	return Expr.And(c, d)
 
 
 # print to a file

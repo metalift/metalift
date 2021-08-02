@@ -3,6 +3,7 @@ from collections import defaultdict
 from copy import deepcopy
 
 from llvmlite.binding import TypeRef, ValueRef
+from llvmlite.ir import Argument
 
 import models
 from ir import Expr, MLInstruction, Type, parseTypeRef
@@ -52,7 +53,6 @@ class VC:
     return e
 
   def callPred(self, name, returnT: Type, *args):
-    # normalize the arguments to variable names
     newArgs = [Expr.Var("v%s" % i, a.type) for (i, a) in zip(range(len(args)), args)]
     self.preds[name] = Expr.Pred(name, returnT, *newArgs)
     return Expr.Pred(name, returnT, *args)
@@ -247,26 +247,34 @@ class VC:
 
 
       elif opcode == "assert":
-        # eval the inv args and concat with fn inputs
-        e = ops[0]
-        if e.kind == Expr.Kind.Pred:
-          if e.args[0].startswith("inv"):
-            parsed = VC.parseExpr(e, s.regs, s.mem)
-            e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:]) #e.args[0], bool, *([VC.parseExpr(ops[op], s.mem) for op in e.ops[1:]] + s.args))
-          elif e.args[0] == "ps":
-            parsed = VC.parseExpr(e, s.regs, s.mem)
-            e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:]) #e.args[0], bool, *([VC.parseExpr(ops[op], s.regs) for op in e.ops[1:]] + s.args))
-          else: raise Exception("NYI: %s" % i)
-        else: raise Exception("NYI: %s" % i)
+        e = VC.evalMLInst(ops[0], s.regs, s.mem)
+        # e = ops[0]
+        # if e.opcode == "call":
+        #   name = e.operands[-1]
+        #   if name.startswith("inv"):
+        #     parsed = [VC.evalMLInst(arg, s.regs, s.mem) for arg in e.operands[0:-1]]
+        #     e = self.callPred(name, Type.bool(), *parsed)
+        #     #parsed = VC.parseExpr(e, s.regs, s.mem)
+        #     #e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:])
+        #
+        #   elif name == "ps":
+        #     parsed = [VC.evalMLInst(arg, s.regs, s.mem) for arg in e.operands[0:-1]]
+        #     e = self.callPred(name, Type.bool(), *parsed)
+        #
+        #     # parsed = VC.evalMLInst(e, s.regs, s.mem)
+        #     # e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:])
+        #   else: raise Exception("NYI: %s" % i)
+        # else: raise Exception("NYI: %s" % i)
 
         asserts.append(e)
 
       elif opcode == "assume":
-        if isinstance(ops[0], Expr):
-          s.assumes.append(VC.parseExpr(ops[0], s.regs, s.mem))
-        elif isinstance(ops[0], ValueRef):
-          s.assumes.append(VC.parseOperand(ops[0], s.regs))
-        else: raise Exception("NYI: %s" % i)
+        s.assumes.append(VC.evalMLInst(ops[0], s.regs, s.mem))
+        # if isinstance(ops[0], MLInstruction):
+        #   s.assumes.append(VC.evalMLInst(ops[0], s.regs, s.mem))
+        # elif isinstance(ops[0], ValueRef):
+        #   s.assumes.append(VC.parseOperand(ops[0], s.regs))
+        # else: raise Exception("NYI: %s" % i)
 
       elif opcode == "havoc":
         for op in ops:
@@ -282,18 +290,18 @@ class VC:
     b.state = s
     return s
 
-  # evaluate a ML instruction
+  # evaluate a ML instruction. returns an IR Expr
   @staticmethod
-  def parseExpr(e: Expr, reg, mem, hasType = True):
-    newArgs = []
-    for a in e.args:
-      if isinstance(a, Expr): newArgs.append(VC.parseExpr(a, reg, mem, hasType))
-      elif isinstance(a, MLInstruction) and a.opcode == "load": newArgs.append(mem[a.operands[0]])
-      elif isinstance(a, ValueRef): newArgs.append(VC.parseOperand(a, reg, hasType))
-      elif isinstance(a, int): newArgs.append(Expr.Lit(a, Type.int()))
-      elif isinstance(a, str): newArgs.append(a)
-      else: raise Exception("NYI: %s" % a)
-    return Expr(e.kind, e.type, newArgs)
+  def evalMLInst(i, reg, mem):
+    if isinstance(i, ValueRef): return reg[i]
+    elif isinstance(i, str): return i
+    elif i.opcode == "load": return mem[i.operands[0]]
+    elif i.opcode == "not": return Expr.Not(VC.evalMLInst(i.operands[0], reg, mem))
+    elif i.opcode == "or": return Expr.Or(VC.evalMLInst(i.operands[0], reg, mem))
+    elif i.opcode == "call": return Expr.Pred(i.operands[0], i.type,
+                                              *[VC.evalMLInst(a, reg, mem) for a in i.operands[1:]])
+    else: raise Exception("NYI: %s" % i)
+
 
   @staticmethod
   def parseOperand(op, reg, hasType = True):

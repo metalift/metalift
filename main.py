@@ -4,8 +4,17 @@ import os
 from llvmlite import binding as llvm
 
 from analysis import setupBlocks, processLoops, processBranches, parseLoops, parseSrets
+from ir import Expr, Type
 from vc import VC
 from synthesis import synthesize, toSMT
+
+# # programmatically generated grammar
+# def genGrammar(loop):
+#   f = Expr.Choose(Expr.Lit(1, Type.int()), Expr.Lit(2, Type.int()), Expr.Lit(3, Type.int()))
+#   e = Expr.Choose(*loop.fnArgs)
+#   d = Expr.And(Expr.Ge(e, f), Expr.Le(e, f))
+#   c = Expr.Eq(e, Expr.Pred("sum_n", Expr.Sub(e, f)))
+#   return Expr.And(c, d)
 
 if __name__ == "__main__":
   if len(sys.argv) < 6:
@@ -33,12 +42,13 @@ if __name__ == "__main__":
     parseSrets(list(fn.arguments), blocksMap.values())
 
     loops = parseLoops(loopsFile, fnName) if loopsFile else None
+    loopInfo = []
     for l in loops:
       # assume for now there is only one header block
       if len(l.header) > 1: raise Exception("multiple loop headers: %s" % l)
-      processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
-                   [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
-                   list(fn.arguments))
+      loopInfo.append(processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
+                      [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
+                      list(fn.arguments)))
 
     # example for while4.c
     # processLoops(blocksMap["bb2"], [], [blocksMap[n] for n in ["bb2"]], [blocksMap[n] for n in ["bb5"]],
@@ -57,10 +67,17 @@ if __name__ == "__main__":
 
     if cvcPath:
       print("====== synthesis")
-      synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename)
+      synthesize(loopInfo, vars, preds, vc, ansFile, cvcPath, basename)
     else:
       print("====== print to SMT file: %s" % outFile)
+
+      for l in loopInfo:
+        print("loop: %s" % l)
+        # genGrammar(l)
+
       toSMT(open(ansFile, mode="r").read(), vars, preds, vc, outFile, False)
 
 
     # codegen -- NYI
+
+

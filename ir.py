@@ -39,6 +39,8 @@ class Expr:
     Eq = "="
     Lt = "<"
     Le = "<="
+    Gt = ">"
+    Ge = ">="
 
     And = "and"
     Or = "or"
@@ -53,6 +55,7 @@ class Expr:
     Assert = "assert"
     Constraint = "constraint"
     Synth = "synth"
+    Choose = "choose"
 
 
   def __init__(self, kind, type, args):
@@ -105,6 +108,11 @@ class Expr:
   def Lt(e1, e2): return Expr(Expr.Kind.Lt, Type.bool(), [e1, e2])
   @staticmethod
   def Le(e1, e2): return Expr(Expr.Kind.Le, Type.bool(), [e1, e2])
+  @staticmethod
+  def Gt(e1, e2): return Expr(Expr.Kind.Gt, Type.bool(), [e1, e2])
+  @staticmethod
+  def Ge(e1, e2): return Expr(Expr.Kind.Ge, Type.bool(), [e1, e2])
+
 
   @staticmethod
   def And(*args): return Expr(Expr.Kind.And, Type.bool(), args)
@@ -126,26 +134,31 @@ class Expr:
   @staticmethod
   def Constraint(e): return Expr(Expr.Kind.Constraint, Type.bool(), [e])
   @staticmethod
-  def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, *args, body])
+  def Choose(*args): return Expr(Expr.Kind.Choose, args[0].type, args)
+  # the body of a synth-fun
+  @staticmethod
+  def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
 
 
 # class to represent extra instructions inserted into the input code
 # as a result of code transformations before VC computation
 class MLInstruction:
-  def __init__(self, opcode, *operands):
+  def __init__(self, opcode, type, *operands):
     self.opcode = opcode
     self.operands = operands
     self.name = None
-    self.type = None
+    self.type = type
 
   def __str__(self):
     if self.opcode == "load":
-      return "(load %s)" % " ".join([o.name if isinstance(o, ValueRef) else str(o) for o in self.operands])
+      return "load(%s)" % " ".join([o.name if isinstance(o, ValueRef) else str(o) for o in self.operands])
     elif self.opcode == "call":
-      call = "call %s %s(%s)" % (self.type, self.operands[-1], ", ".join([o.name if isinstance(o, ValueRef) else str(o)
-                                                              for o in self.operands[:-1]]))
+      call = "call %s %s(%s)" % (self.type, self.operands[0], ", ".join([o.name if isinstance(o, ValueRef) else str(o)
+                                                              for o in self.operands[1:]]))
+      # call = "call %s(%s)" % (self.operands[-1], ", ".join([o.name if isinstance(o, ValueRef) else str(o)
+      #                                                       for o in self.operands[:-1]]))
       if self.name is not None: return "  %s = %s" % (self.name, call)
-      else: return "  %s" % call
+      else: return call
     else: return "  %s %s" % (self.opcode, " ".join([o.name if isinstance(o, ValueRef) else str(o)
                                               for o in self.operands]))
 
