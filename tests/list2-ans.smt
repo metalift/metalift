@@ -102,7 +102,7 @@
 (define-funs-rec
 (
 (ps ( (out (MLList Int)) (l (MLList Int)) ) Bool)
-(inv0 ( (dummy Int) (out (MLList Int)) (i Int) (l (MLList Int)) ) Bool)
+(inv0 ((out (MLList Int)) (i Int) (l (MLList Int)) ) Bool)
 (select_p ( (n Int) ) Bool)
 (Select_select_p ( (data (MLList Int)) ) (MLList Int))
 )

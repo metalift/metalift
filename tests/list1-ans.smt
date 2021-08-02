@@ -99,7 +99,7 @@
 ; end of list definition
 
 
-(define-fun inv0 ( (dummy Int) (out (MLList Int)) (i Int) (l (MLList Int))) (Bool) 
+(define-fun inv0 ((out (MLList Int)) (i Int) (l (MLList Int))) (Bool) 
   (and (>= i 0) (<= i (list_length l)) (= (list_concat out (list_tail l i)) l))
 )
 

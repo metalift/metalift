@@ -112,12 +112,12 @@
 (ps ( (out (MLList Int)) (l (MLList Int)) ) Bool)
 
 ; inv1 - first loop
-(inv1 ((dummy Int) (out (MLList Int)) (i Int) (l (MLList Int)) ) Bool)
+(inv1 ((out (MLList Int)) (i Int) (l (MLList Int)) ) Bool)
 (select_p1 ( (n Int) ) Bool)
 (Select_select_p1 ( (data (MLList Int)) ) (MLList Int))
 
 ; inv0 - second loop
-(inv0 ( (dummy Int) (out (MLList Int)) (i Int) (l (MLList Int)) ) Bool)
+(inv0 ((out (MLList Int)) (i Int) (l (MLList Int)) ) Bool)
 (select_p0 ( (n Int) ) Bool)
 (Select_select_p0 ( (data (MLList Int)) ) (MLList Int))
 
