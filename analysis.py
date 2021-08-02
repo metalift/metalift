@@ -120,13 +120,13 @@ def parseLoops(filename, fnName):
     return loops
 
 class CodeInfo:
-  def __init__(self, inv, modifiedVars, fnArgs):
-    self.inv = inv
+  def __init__(self, code, modifiedVars, fnArgs):
+    self.code = code  # either an inv or ps
     self.modifiedVars = modifiedVars
     self.fnArgs = fnArgs
 
   def __repr__(self):
-    return "inv: %s\nmod vars: %s\nfn args: %s" % (self.inv, [v.name for v in self.modifiedVars],
+    return "code: %s\nmod vars: %s\nfn args: %s" % (self.code, [v.name for v in self.modifiedVars],
                                                    [v.name for v in self.fnArgs])
 
 invNum = 0
@@ -183,6 +183,7 @@ def processLoops(header, body, exits, latches, fnArgs):
   return CodeInfo(inv, havocs, fnArgs)
 
 def processBranches(blocksMap, fnArgs):
+  retCodeInfo = []
   for b in blocksMap.values():
     opcode = b.instructions[-1].opcode
     ops = list(b.instructions[-1].operands)
@@ -204,5 +205,9 @@ def processBranches(blocksMap, fnArgs):
                                                                   MLInstruction("or", Type.bool(), *[(Expr.Eq(ops[0], v)) for v in vals]))))
 
     elif opcode == "ret":
-      ps = MLInstruction("call", Type.bool(), "ps", ops[0], *filter(lambda a: b"sret" not in a.attributes, fnArgs))
+      filteredArgs = list(filter(lambda a: b"sret" not in a.attributes, fnArgs))  # remove the sret args
+      ps = MLInstruction("call", Type.bool(), "ps", ops[0], *filteredArgs)
       b.instructions.insert(-1, MLInstruction("assert", Type.bool(), ps))
+      retCodeInfo.append(CodeInfo(ps, [ops[0]], filteredArgs))
+
+  return retCodeInfo

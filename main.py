@@ -42,19 +42,20 @@ if __name__ == "__main__":
     parseSrets(list(fn.arguments), blocksMap.values())
 
     loops = parseLoops(loopsFile, fnName) if loopsFile else None
-    loopInfo = []
+    loopAndPsInfo = []
     for l in loops:
       # assume for now there is only one header block
       if len(l.header) > 1: raise Exception("multiple loop headers: %s" % l)
-      loopInfo.append(processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
-                      [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
-                      list(fn.arguments)))
+      loopAndPsInfo.append(processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
+                           [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
+                           list(fn.arguments)))
 
     # example for while4.c
     # processLoops(blocksMap["bb2"], [], [blocksMap[n] for n in ["bb2"]], [blocksMap[n] for n in ["bb5"]],
     #              list(fn.arguments))
 
-    processBranches(blocksMap, list(fn.arguments))
+    # add ps code info
+    loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments))
 
     print("====== after transforms")
     for b in blocksMap.values():
@@ -67,11 +68,11 @@ if __name__ == "__main__":
 
     if cvcPath:
       print("====== synthesis")
-      synthesize(loopInfo, vars, preds, vc, ansFile, cvcPath, basename)
+      synthesize(loopAndPsInfo, vars, preds, vc, ansFile, cvcPath, basename)
     else:
       print("====== print to SMT file: %s" % outFile)
 
-      for l in loopInfo:
+      for l in loopAndPsInfo:
         print("loop: %s" % l)
         # genGrammar(l)
 
