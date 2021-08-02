@@ -11,7 +11,7 @@
  (E Int (x))
  (F Int (1))))
        
-(synth-fun inv0 ( (dummy Int) (x Int) (y Int) (arg Int) ) Bool
+(synth-fun inv0 ((x Int) (y Int) (arg Int) ) Bool
    ((B Bool) (C Bool) (D Bool) (E Int) (F Int))
    ((B Bool ((or C D)))
    (C Bool ((>= 1 arg) ))

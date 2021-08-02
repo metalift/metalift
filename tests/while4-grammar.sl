@@ -9,7 +9,7 @@
  (C Int (x))
  (D Int (1 2))))
        
-(synth-fun inv0 ( (dummy Int) (x Int) (y Int) ) Bool
+(synth-fun inv0 ((x Int) (y Int) ) Bool
    ((B Bool) (C Bool) (D Bool) (E Int) (F Int))
    ((B Bool ((and C D)))
    (C Bool ((= E (sum_n (- E F)))))
