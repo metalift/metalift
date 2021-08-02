@@ -61,7 +61,7 @@ def callCVC(funDef, vars, loopInfo, preds, vc, cvcPath, basename):
 	#Run synthesis subprocess
 	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
 	
-	invpsDecl = [loopInfo[i].inv.operands[0] for i in range(len(loopInfo))] + ['ps'] #[p.args[0] for p in invAndPs]
+	invpsDecl = [loopInfo[i].code.operands[0] for i in range(len(loopInfo))] 
 	funs = "\n".join(d for d in extractFuns(funDef))
 	synthDecls = extractSynth(funDef, invpsDecl)
 	logfileVerif = open(logfile,"r")
