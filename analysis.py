@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 
-from ir import Expr, MLInstruction, Type
+from ir import MLInst, Type
 from vc import Block
 
 def setupBlocks(blks):
@@ -40,7 +40,7 @@ def parseSrets(fnArgs, blks):
       if b.instructions[-1].opcode == "ret":
         ops = list(b.instructions[-1].operands)
         if len(ops): raise Exception("return val not void: %s" % b.instructions[-1])
-        else: b.instructions[-1] = MLInstruction("ret", sret.type, sret)
+        else: b.instructions[-1] = MLInst.Return(sret)
 
 # previous attempt in rewriting all STL vector fn calls
 # def lowerVectorCalls(blks):
@@ -140,25 +140,25 @@ def processLoops(header, body, exits, latches, fnArgs):
         havocs.append(ops[1])
 
   global invNum
-  inv = MLInstruction("call", Type.bool(), "inv%s" % invNum, *[MLInstruction("load", h.type, h) for h in havocs], *fnArgs)
+  inv = MLInst.Call("inv%s" % invNum, Type.bool(), *[MLInst.Load(h) for h in havocs], *fnArgs)
   invNum = invNum + 1
 
   # remove back edges, and replace br with assert inv
   for l in latches:
     l.succs.remove(header)
     header.preds.remove(l)
-    l.instructions[-1] = MLInstruction("assert", Type.bool(), inv)
+    l.instructions[-1] = MLInst.Assert(inv)
 
   # prepend assume inv to header
-  header.instructions.insert(0, MLInstruction("assume", Type.bool(), inv))
+  header.instructions.insert(0, MLInst.Assume(inv))
 
   # prepend havocs to header
   if havocs:
-    header.instructions.insert(0, MLInstruction("havoc", None, *havocs))
+    header.instructions.insert(0, MLInst.Havoc(*havocs))
 
   # append assert inv initialization to header's predecessor
   for p in header.preds:
-    p.instructions.insert(-1, MLInstruction("assert", Type.bool(), inv))
+    p.instructions.insert(-1, MLInst.Assert(inv))
 
   print("header preds:")
   for p in header.preds:
@@ -190,24 +190,23 @@ def processBranches(blocksMap, fnArgs):
 
     if opcode == "br" and len(ops) > 1:  # a conditional branch
       # XXX: bug in llvmlite that switches the ordering of succs
-      b.succs[1].instructions.insert(0, MLInstruction("assume", None, ops[0]))
-      b.succs[0].instructions.insert(0, MLInstruction("assume", None, MLInstruction("not", Type.bool(), ops[0])))
+      b.succs[1].instructions.insert(0, MLInst.Assume(ops[0]))
+      b.succs[0].instructions.insert(0, MLInst.Assume(MLInst.Not(ops[0])))
 
     elif opcode == "switch":
       targets = ops[3::2]
       vals = ops[2::2]
       for t,v in zip(targets, vals):
-        blocksMap[t.name].instructions.insert(0, MLInstruction("assume", None, Expr.Eq(ops[0], v)))
+        blocksMap[t.name].instructions.insert(0, MLInst.Assume(MLInst(ops[0], v)))
 
       # default fallthrough
-      blocksMap[ops[1].name].instructions.insert(0, MLInstruction("assume", None,
-                                                    MLInstruction("not", Type.bool(),
-                                                                  MLInstruction("or", Type.bool(), *[(Expr.Eq(ops[0], v)) for v in vals]))))
+      blocksMap[ops[1].name].instructions.insert(0, MLInst.Assume(
+                                                    MLInst.Not(MLInst.Or(*[MLInst.Eq(ops[0], v) for v in vals]))))
 
     elif opcode == "ret":
       filteredArgs = list(filter(lambda a: b"sret" not in a.attributes, fnArgs))  # remove the sret args
-      ps = MLInstruction("call", Type.bool(), "ps", ops[0], *filteredArgs)
-      b.instructions.insert(-1, MLInstruction("assert", Type.bool(), ps))
+      ps = MLInst.Call("ps", Type.bool(), ops[0], *filteredArgs)
+      b.instructions.insert(-1, MLInst.Assert(ps))
       retCodeInfo.append(CodeInfo(ps, [ops[0]], filteredArgs))
 
   return retCodeInfo

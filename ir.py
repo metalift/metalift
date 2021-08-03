@@ -140,27 +140,50 @@ class Expr:
   def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
 
 
-# class to represent extra instructions inserted into the input code
-# as a result of code transformations before VC computation
-class MLInstruction:
-  def __init__(self, opcode, type, *operands):
+# class to represent the extra instructions that are inserted into the llvm code during analysis
+class MLInst:
+  class Kind:  # not defined as an enum as computeVC switches on the opcode str
+    Assert = "assert"
+    Assume = "assume"
+    Call = "call"
+    Eq = "eq"
+    Havoc = "havoc"
+    Load = "load"
+    Not = "not"
+    Or = "or"
+    Return = "return"
+
+  def __init__(self, opcode, *operands):
     self.opcode = opcode
     self.operands = operands
-    self.name = None
-    self.type = type
 
   def __str__(self):
-    if self.opcode == "load":
-      return "load(%s)" % " ".join([o.name if isinstance(o, ValueRef) else str(o) for o in self.operands])
-    elif self.opcode == "call":
-      call = "call %s %s(%s)" % (self.type, self.operands[0], ", ".join([o.name if isinstance(o, ValueRef) else str(o)
-                                                              for o in self.operands[1:]]))
-      # call = "call %s(%s)" % (self.operands[-1], ", ".join([o.name if isinstance(o, ValueRef) else str(o)
-      #                                                       for o in self.operands[:-1]]))
-      if self.name is not None: return "  %s = %s" % (self.name, call)
-      else: return call
-    else: return "  %s %s" % (self.opcode, " ".join([o.name if isinstance(o, ValueRef) else str(o)
+    if self.opcode == "call":
+      return "call %s %s(%s)" % (self.operands[0], self.operands[1], " ".join([o.name if isinstance(o, ValueRef) else str(o)
+                                                                          for o in self.operands[2:]]))
+    else:
+      return "(%s %s)" % (self.opcode, " ".join([o.name if isinstance(o, ValueRef) else str(o)
                                               for o in self.operands]))
+
+  @staticmethod
+  def Assert(val): return MLInst(MLInst.Kind.Assert, val)
+  @staticmethod
+  def Assume(val): return MLInst(MLInst.Kind.Assume, val)
+  @staticmethod
+  def Call(name, retType, *args): return MLInst(MLInst.Kind.Call, name, retType, *args)
+  @staticmethod
+  def Eq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
+  @staticmethod
+  def Havoc(*args): return MLInst(MLInst.Kind.Havoc, *args)
+  @staticmethod
+  def Load(val): return MLInst(MLInst.Kind.Load, val)
+  @staticmethod
+  def Not(val): return MLInst(MLInst.Kind.Not, val)
+  @staticmethod
+  def Or(val): return MLInst(MLInst.Kind.Or, val)
+  @staticmethod
+  def Return(val): return MLInst(MLInst.Kind.Return, val)
+
 
 class MLValueRef:
   def __init__(self, name, ty):

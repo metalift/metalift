@@ -6,7 +6,7 @@ from llvmlite.binding import TypeRef, ValueRef
 from llvmlite.ir import Argument
 
 import models
-from ir import Expr, MLInstruction, Type, parseTypeRef
+from ir import Expr, MLInst, Type, parseTypeRef
 
 
 class State:
@@ -298,8 +298,8 @@ class VC:
     elif i.opcode == "load": return mem[i.operands[0]]
     elif i.opcode == "not": return Expr.Not(VC.evalMLInst(i.operands[0], reg, mem))
     elif i.opcode == "or": return Expr.Or(VC.evalMLInst(i.operands[0], reg, mem))
-    elif i.opcode == "call": return Expr.Pred(i.operands[0], i.type,
-                                              *[VC.evalMLInst(a, reg, mem) for a in i.operands[1:]])
+    elif i.opcode == "call": return Expr.Pred(i.operands[0], i.operands[1],
+                                              *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]])
     else: raise Exception("NYI: %s" % i)
 
 
