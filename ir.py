@@ -198,7 +198,7 @@ def parseTypeRef(t: TypeRef):
   # ty.name returns empty string. possibly bug
   tyStr = str(t)
   if tyStr == "i64": return Type.int()
-  elif tyStr == "i32": return Type.int()
+  elif tyStr == "i32" or tyStr == "i32*" : return Type.int()
   elif tyStr == "i1": return Type.bool()
   elif tyStr == "%struct.list*": return Type("MLList", Type.int())
 

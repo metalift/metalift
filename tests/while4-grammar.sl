@@ -3,16 +3,16 @@
                        (+ x (sum_n (- x 1)))
                        0))
 
-(synth-fun ps ( (x Int) ) Bool
+(synth-fun ps ( (tmp12 Int) ) Bool
  ((B Bool) (C Int) (D Int))
  ((B Bool ((= C (sum_n D))))
- (C Int (x))
+ (C Int (tmp12))
  (D Int (1 2))))
        
-(synth-fun inv0 ((x Int) (y Int) ) Bool
+(synth-fun inv0 ((tmp Int) (tmp1 Int) ) Bool
    ((B Bool) (C Bool) (D Bool) (E Int) (F Int))
    ((B Bool ((and C D)))
    (C Bool ((= E (sum_n (- E F)))))
    (D Bool ((and (>= E F) (<= E F))))
-   (E Int (x y))
+   (E Int (tmp tmp1))
    (F Int (1 2 3))))

@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr
+from ir import Expr, parseTypeRef
 
 
 def flatten(L):
@@ -21,31 +21,49 @@ def generateAST(expr):
 	return ast
 
 def extractFuns(funDef):
-	funDecls = []
+	funDecls, funName, returnType = [], [], []
 	ast = generateAST(funDef)
 	for a in ast:
 		if 'define-fun-rec' in a:
 			funDecls.append('( ' + ' '.join(list(flatten(a))) + ' )')
-	return funDecls
+			funName.append(a[1])
+			returnType.append(a[3])
+	return funDecls, funName, returnType
 
-def extractSynth(funDef, preds):
-	synthDecls = {}
-	lines = funDef.split("\n")
-	for p in preds:
-		for l in lines:
-			if p in l:
-				synthDecls[p] = l.replace('synth-fun', 'define-fun')
-	print("synth",synthDecls)
-	return synthDecls
+def generateDecls(loopInfo):
+	invpsDecls = {}
+	for l in loopInfo:
+		funName = '(define-fun ' + l.code.operands[0] + '('
+		for h in l.modifiedVars:
+			funName += '( ' + h.name + " " + str(parseTypeRef(h.type)) + ' ) '
+		for f in l.fnArgs:
+			funName += '( ' + f.name + " " + str(parseTypeRef(f.type)) + ' ) '
+		funName += ') Bool '
+		invpsDecls[l.code.operands[0]] = funName
+	return invpsDecls
 
-def generateCand(synthDecls, line):
-	candidates = []
+def generateCand(synthDecls, line, funName, returnType):
+	candidates, candidatesExpr = [], {}
 	ast  = generateAST(line)
 	for k in synthDecls.keys():
 		for a in ast[0]:
 			if k in a:
+				candidatesExpr[a[0]] = toExpr(a[1],funName, returnType)
 				candidates.append(synthDecls[k] + ' ('  + ' '.join(list(flatten(a[1]))) + '))')
 	return candidates
+
+def toExpr(ast, funName, returnType):
+	expr_bi = {'=':Expr.Eq, '+':Expr.Add, '-':Expr.Sub, '<':Expr.Lt, '<=':Expr.Le, '>':Expr.Gt, '>=': Expr.Ge,'and': Expr.And, 'or': Expr.Or, '=>': Expr.Implies}
+	expr_uni = {'not':Expr.Not}
+	if ast[0] in expr_bi.keys():
+		return expr_bi[ast[0]](toExpr(ast[1], funName, returnType) , toExpr(ast[2], funName, returnType))
+	elif ast[0] in expr_uni.keys():
+		return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
+	elif ast[0] in funName:
+		index = funName.index(ast[0])
+		return Expr.Pred(ast[0],returnType[index] , toExpr(ast[1], funName, returnType))
+	else:
+		return ast
 
 def callCVC(funDef, vars, loopInfo, preds, vc, cvcPath, basename):
 	synthDir = './synthesisLogs/'
@@ -61,15 +79,15 @@ def callCVC(funDef, vars, loopInfo, preds, vc, cvcPath, basename):
 	#Run synthesis subprocess
 	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
 	
-	invpsDecl = [loopInfo[i].code.operands[0] for i in range(len(loopInfo))] 
-	funs = "\n".join(d for d in extractFuns(funDef))
-	synthDecls = extractSynth(funDef, invpsDecl)
+	funDecls, funName, returnType = extractFuns(funDef)
+	funs = "\n".join(d for d in funDecls)
+	synthDecls = generateDecls(loopInfo)
 	logfileVerif = open(logfile,"r")
 	while True:
 		line = logfileVerif.readline()
 		if 'sygus-candidate' in line:
 			print("Current PS and INV Guess ", line)
-			candidates = "\n".join(d for d in generateCand(synthDecls, line))
+			candidates = "\n".join(d for d in generateCand(synthDecls, line, funName, returnType))
 			smtFile = synthDir + basename + ".smt"
 			toSMT(funs, vars, candidates, vc, smtFile, False)
 
