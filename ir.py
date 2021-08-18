@@ -103,9 +103,7 @@ class Expr:
   def printSynth(e):
     cnts = Expr.findCommonExprs(e.args[1], {})
     commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
-    print("ex: %s" % commonExprs)
     rewritten = Expr.replaceExprs(e.args[1], commonExprs)
-    print("re: %s" % rewritten)
 
     # (synth-fun name ( (arg type) ... ) return-type
     # ( (return-val type) (non-term type) (non-term type) ...)
