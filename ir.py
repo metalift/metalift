@@ -207,24 +207,15 @@ class MLInst:
       return "(%s %s)" % (self.opcode, " ".join([o.name if isinstance(o, ValueRef) else str(o)
                                               for o in self.operands]))
 
-  @staticmethod
-  def Assert(val): return MLInst(MLInst.Kind.Assert, val)
-  @staticmethod
-  def Assume(val): return MLInst(MLInst.Kind.Assume, val)
-  @staticmethod
-  def Call(name, retType, *args): return MLInst(MLInst.Kind.Call, name, retType, *args)
-  @staticmethod
-  def Eq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
-  @staticmethod
-  def Havoc(*args): return MLInst(MLInst.Kind.Havoc, *args)
-  @staticmethod
-  def Load(val): return MLInst(MLInst.Kind.Load, val)
-  @staticmethod
-  def Not(val): return MLInst(MLInst.Kind.Not, val)
-  @staticmethod
-  def Or(val): return MLInst(MLInst.Kind.Or, val)
-  @staticmethod
-  def Return(val): return MLInst(MLInst.Kind.Return, val)
+def Assert(val): return MLInst(MLInst.Kind.Assert, val)
+def Assume(val): return MLInst(MLInst.Kind.Assume, val)
+def Call(name, retType, *args): return MLInst(MLInst.Kind.Call, name, retType, *args)
+def Eq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
+def Havoc(*args): return MLInst(MLInst.Kind.Havoc, *args)
+def Load(val): return MLInst(MLInst.Kind.Load, val)
+def MLInstNot(val): return MLInst(MLInst.Kind.Not, val)
+def MLInstOr(val): return MLInst(MLInst.Kind.Or, val)
+def Return(val): return MLInst(MLInst.Kind.Return, val)
 
 
 class MLValueRef:
