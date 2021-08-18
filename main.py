@@ -4,17 +4,8 @@ import os
 from llvmlite import binding as llvm
 
 from analysis import setupBlocks, processLoops, processBranches, parseLoops, parseSrets
-from ir import Expr, Type
 from vc import VC
 from synthesis import synthesize, toSMT
-
-# # programmatically generated grammar
-# def genGrammar(loop):
-#   f = Expr.Choose(Expr.Lit(1, Type.int()), Expr.Lit(2, Type.int()), Expr.Lit(3, Type.int()))
-#   e = Expr.Choose(*loop.fnArgs)
-#   d = Expr.And(Expr.Ge(e, f), Expr.Le(e, f))
-#   c = Expr.Eq(e, Expr.Pred("sum_n", Expr.Sub(e, f)))
-#   return Expr.And(c, d)
 
 if __name__ == "__main__":
   if len(sys.argv) < 6:
@@ -74,7 +65,6 @@ if __name__ == "__main__":
 
       for l in loopAndPsInfo:
         print("loop: %s" % l)
-        # genGrammar(l)
 
       toSMT(open(ansFile, mode="r").read(), vars, preds, vc, outFile, False)
 

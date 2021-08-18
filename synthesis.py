@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr, parseTypeRef
+from ir import Expr, parseTypeRef, Constraint, Assert, Pred
 
 
 def flatten(L):
@@ -33,13 +33,13 @@ def extractFuns(funDef):
 def generateDecls(loopInfo):
 	invpsDecls = {}
 	for l in loopInfo:
-		funName = '(define-fun ' + l.code.operands[0] + '('
+		funName = '(define-fun ' + l.name + '('
 		for h in l.modifiedVars:
 			funName += '( ' + h.name + " " + str(parseTypeRef(h.type)) + ' ) '
-		for f in l.fnArgs:
+		for f in l.readVars:
 			funName += '( ' + f.name + " " + str(parseTypeRef(f.type)) + ' ) '
 		funName += ') Bool '
-		invpsDecls[l.code.operands[0]] = funName
+		invpsDecls[l.name] = funName
 	return invpsDecls
 
 def generateCand(synthDecls, line, funName, returnType):
@@ -61,7 +61,7 @@ def toExpr(ast, funName, returnType):
 		return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
 	elif ast[0] in funName:
 		index = funName.index(ast[0])
-		return Expr.Pred(ast[0],returnType[index] , toExpr(ast[1], funName, returnType))
+		return Pred(ast[0],returnType[index] , toExpr(ast[1], funName, returnType))
 	else:
 		return ast
 
@@ -72,13 +72,13 @@ def callCVC(funDef, vars, loopInfo, preds, vc, cvcPath, basename):
 	sygusFile = synthDir + basename + ".sl"
 
 	# Generate sygus file for synthesis
-	toSMT(funDef, vars, preds, vc, sygusFile, True)
+	toSMT("", funDef, vars, preds, vc, sygusFile, True)
 
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile,'a')
 	#Run synthesis subprocess
 	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
-	
+
 	funDecls, funName, returnType = extractFuns(funDef)
 	funs = "\n".join(d for d in funDecls)
 	synthDecls = generateDecls(loopInfo)
@@ -105,29 +105,63 @@ def callCVC(funDef, vars, loopInfo, preds, vc, cvcPath, basename):
 
 
 def synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename):
-	# grammars = [genGrammar(p) for p in invAndPs]
 	grammars = open(ansFile, mode="r").read()
 
 	callCVC(grammars, vars, invAndPs, preds, vc, cvcPath, basename)
 
-# # programmatically generated grammar
-# def genGrammar(modified, inScope):
-# 	f = Expr.Choose(Expr.Lit(1, Type.int()), Expr.Lit(2, Type.int()), Expr.Lit(3, Type.int()))
-# 	e = Expr.Choose(*inScope)
-# 	d = Expr.And(Expr.Ge(e, f), Expr.Le(e, f))
-# 	c = Expr.Eq(e, Expr.Call("sum_n", Expr.Sub(e, f)))
-# 	return Expr.And(c, d)
+
+
+def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
+	synthDir = './synthesisLogs/'
+	if not os.path.exists(synthDir):
+		os.mkdir(synthDir)
+	sygusFile = synthDir + basename + ".sl"
+
+	# Generate sygus file for synthesis
+	toSMT(targetLang, "\n\n".join([str(i) for i in invAndPs]), vars, preds, vc, sygusFile, True)
+
+	# logfile = synthDir + basename + '_logs.txt'
+	# synthLogs = open(logfile, 'a')
+	# # Run synthesis subprocess
+	# proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
+	# 												stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
+	#
+	# funDecls, funName, returnType = extractFuns(funDef)
+	# funs = "\n".join(d for d in funDecls)
+	# synthDecls = generateDecls(loopInfo)
+	# logfileVerif = open(logfile, "r")
+	# while True:
+	# 	line = logfileVerif.readline()
+	# 	if 'sygus-candidate' in line:
+	# 		print("Current PS and INV Guess ", line)
+	# 		candidates = "\n".join(d for d in generateCand(synthDecls, line, funName, returnType))
+	# 		smtFile = synthDir + basename + ".smt"
+	# 		toSMT(funs, vars, candidates, vc, smtFile, False)
+	#
+	# 		# run external verification subprocess
+	# 		procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000', smtFile],
+	# 																	stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+	# 		output = procVerify.stdout.readline()
+	# 		output = output.decode("utf-8")
+	# 		if output.count('unsat') == 1:
+	# 			print("UNSAT\n")
+	# 			print("Verified PS and INV Candidates ", candidates)
+	# 			break
+	# 		else:
+	# 			print("CVC4 verification Result for Current Guess")
+	# 			print("SAT\n")
 
 
 # print to a file
-def toSMT(invAndPs, vars, preds, vc, outFile, isSynthesis):
+def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 	# order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
 	with open(outFile, mode="w") as out:
+		out.write(targetLang)
+
 		out.write("%s\n\n" % invAndPs)
 
 		v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
 		out.write("%s\n\n" % v)
-
 
 		if isinstance(preds, str):
 			out.write("%s\n\n" % preds)
@@ -142,8 +176,8 @@ def toSMT(invAndPs, vars, preds, vc, outFile, isSynthesis):
 		else: raise Exception("unknown type passed in for preds: %s" % preds)
 
 		if isSynthesis:
-			out.write("%s\n\n" % Expr.Constraint(vc))
+			out.write("%s\n\n" % Constraint(vc))
 			out.write("(check-synth)")
 		else:
-			out.write("%s\n\n" % Expr.Assert(Expr.Not(vc)))
+			out.write("%s\n\n" % Assert(Expr.Not(vc)))
 			out.write("(check-sat)\n(get-model)")

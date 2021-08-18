@@ -12,21 +12,31 @@ class Type: #(Enum):
     self.name = name
     self.args = args
 
-  @staticmethod
-  def int(): return Type("Int", [])
-  @staticmethod
-  def bool(): return Type("Bool", [])
-  @staticmethod
-  def pointer(): return Type("Pointer", [])
-  @staticmethod
-  def list(contentT): return Type("MLList", [contentT])
-
   def __repr__(self):
     #return self.value
     if self.name == "Int": return "Int"
     elif self.name == "Bool": return "Bool"
     else: return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
 
+  def __eq__(self, other):
+    if isinstance(other, Type):
+      if self.name != other.name or len(self.args) != len(other.args):
+        return False
+      else:
+        return all( a1 == a2 if isinstance(a1, type) and isinstance(a2, type) else a1.__eq__(a2)
+                    for a1,a2 in zip(self.args, other.args))
+    return NotImplemented
+
+  def __ne__(self, other):
+    x = self.__eq__(other)
+    if x is not NotImplemented:
+      return not x
+    return NotImplemented
+
+def Int(): return Type("Int", [])
+def Bool(): return Type("Bool", [])
+def Pointer(): return Type("Pointer", [])
+def List(contentT): return Type("MLList", [contentT])
 
 class Expr:
   class Kind(Enum):
@@ -63,81 +73,115 @@ class Expr:
     self.args = args
     self.type = type
 
+
+  @staticmethod
+  def findCommonExprs(e, cnts):
+    if e not in cnts:
+      cnts[e] = 1
+      for i in range(len(e.args)):
+        if isinstance(e.args[i], Expr):
+          cnts = Expr.findCommonExprs(e.args[i], cnts)
+
+    else:
+      cnts[e] = cnts[e] + 1
+
+    return cnts
+
+  @staticmethod
+  def replaceExprs(e, commonExprs):
+    if e not in commonExprs:
+      if isinstance(e, Expr):
+        newArgs = [Expr.replaceExprs(arg, commonExprs) for arg in e.args]
+        return Expr(e.kind, e.type, newArgs)
+      else:
+        return e  # ValueRef or TypeRef
+    else:
+      return Var("v%d" % commonExprs.index(e), e.type)
+
+  #Expr(Expr.Kind.Synth, body.type, [name, body, *args])
+  @staticmethod
+  def printSynth(e):
+    cnts = Expr.findCommonExprs(e.args[1], {})
+    commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
+    print("ex: %s" % commonExprs)
+    rewritten = Expr.replaceExprs(e.args[1], commonExprs)
+    print("re: %s" % rewritten)
+
+    # (synth-fun name ( (arg type) ... ) return-type
+    # ( (return-val type) (non-term type) (non-term type) ...)
+    # ( (return-val type definition)
+    #   (non-term type definition) ... ) )
+    decls = "((rv %s) %s)" % (e.type, " ".join("(%s %s)" % ("v%d" % i, parseTypeRef(e.type)) for i, e in enumerate(commonExprs)))
+    defs = "(rv %s %s)\n" % (e.type, rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
+                                               else "(%s)" % rewritten)
+    defs = defs + "\n".join("(%s %s %s)" % ("v%d" % i, parseTypeRef(e.type), e) for i,e in enumerate(commonExprs))
+
+    body = decls + "\n" + "(" + defs + ")"
+
+    args = " ".join("(%s %s)" % (a.name, parseTypeRef(a.type)) for a in e.args[2:])
+    return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
+
   def __repr__(self):
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
       return str(self.args[0])
-    elif kind == Expr.Kind.Pred:
+    elif kind == Expr.Kind.Pred or kind == Expr.Kind.Choose:
       return "(" + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
+    elif kind == Expr.Kind.Synth:
+      return Expr.printSynth(self)
     else:
       return "(" + self.kind.value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                                                      for a in self.args]) + ")"
 
-  def __eq__(self, other):
-    if isinstance(other, Expr):
-      if self.kind != other.kind or len(self.args) != len(other.args):
-        return False
-      else:
-        return all( a1 == a2 if isinstance(a1, type) and isinstance(a2, type) else a1.__eq__(a2)
-                    for a1,a2 in zip(self.args, other.args))
-    return NotImplemented
-
-  def __ne__(self, other):
-    x = self.__eq__(other)
-    if x is not NotImplemented:
-      return not x
-    return NotImplemented
+  # commented out so that common exprs can be detected
+  #
+  # def __eq__(self, other):
+  #   if isinstance(other, Expr):
+  #     if self.kind != other.kind or len(self.args) != len(other.args):
+  #       return False
+  #     else:
+  #       return all( a1 == a2 if isinstance(a1, type) and isinstance(a2, type) else a1.__eq__(a2)
+  #                   for a1,a2 in zip(self.args, other.args))
+  #   return NotImplemented
+  #
+  # def __ne__(self, other):
+  #   x = self.__eq__(other)
+  #   if x is not NotImplemented:
+  #     return not x
+  #   return NotImplemented
 
   def __hash__(self):
     return hash(tuple(sorted({'kind': self.kind, 'type': self.type, 'args': tuple(self.args)})))
 
 
-  @staticmethod
-  def Var(name, ty): return Expr(Expr.Kind.Var, ty, [name])
-  @staticmethod
-  def Lit(val, ty): return Expr(Expr.Kind.Lit, ty, [val])
+def Var(name, ty): return Expr(Expr.Kind.Var, ty, [name])
+def Lit(val, ty): return Expr(Expr.Kind.Lit, ty, [val])
 
-  @staticmethod
-  def Add(*args): return Expr(Expr.Kind.Add, Type.int(), args)
-  @staticmethod
-  def Sub(*args): return Expr(Expr.Kind.Sub, Type.int(), args)
+def Add(*args): return Expr(Expr.Kind.Add, Int(), args)
+def Sub(*args): return Expr(Expr.Kind.Sub, Int(), args)
 
-  @staticmethod
-  def Eq(e1, e2): return Expr(Expr.Kind.Eq, Type.bool(), [e1, e2])
-  @staticmethod
-  def Lt(e1, e2): return Expr(Expr.Kind.Lt, Type.bool(), [e1, e2])
-  @staticmethod
-  def Le(e1, e2): return Expr(Expr.Kind.Le, Type.bool(), [e1, e2])
-  @staticmethod
-  def Gt(e1, e2): return Expr(Expr.Kind.Gt, Type.bool(), [e1, e2])
-  @staticmethod
-  def Ge(e1, e2): return Expr(Expr.Kind.Ge, Type.bool(), [e1, e2])
+def Eq(e1, e2): return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
+def Lt(e1, e2): return Expr(Expr.Kind.Lt, Bool(), [e1, e2])
+def Le(e1, e2): return Expr(Expr.Kind.Le, Bool(), [e1, e2])
+def Gt(e1, e2): return Expr(Expr.Kind.Gt, Bool(), [e1, e2])
+def Ge(e1, e2): return Expr(Expr.Kind.Ge, Bool(), [e1, e2])
 
+def And(*args): return Expr(Expr.Kind.And, Bool(), args)
+def Or(*args): return Expr(Expr.Kind.Or, Bool(), args)
+def Not(e): return Expr(Expr.Kind.Not, Bool(), [e])
 
-  @staticmethod
-  def And(*args): return Expr(Expr.Kind.And, Type.bool(), args)
-  @staticmethod
-  def Or(*args): return Expr(Expr.Kind.Or, Type.bool(), args)
-  @staticmethod
-  def Not(e): return Expr(Expr.Kind.Not, Type.bool(), [e])
+def Implies(e1, e2): return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
 
-  @staticmethod
-  def Implies(e1, e2): return Expr(Expr.Kind.Implies, Type.bool(), [e1, e2])
+def Ite(c, e1, e2): return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
-  @staticmethod
-  def Ite(c, e1, e2): return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
+def Pred(name, returnT, *args): return Expr(Expr.Kind.Pred, returnT, [name, *args])
+def Assert(e): return Expr(Expr.Kind.Assert, Bool(), [e])
+def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 
-  @staticmethod
-  def Pred(name, returnT, *args): return Expr(Expr.Kind.Pred, returnT, [name, *args])
-  @staticmethod
-  def Assert(e): return Expr(Expr.Kind.Assert, Type.bool(), [e])
-  @staticmethod
-  def Constraint(e): return Expr(Expr.Kind.Constraint, Type.bool(), [e])
-  @staticmethod
-  def Choose(*args): return Expr(Expr.Kind.Choose, args[0].type, args)
-  # the body of a synth-fun
-  @staticmethod
-  def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
+# the body of a synth-fun
+def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
+def Choose(*args): return Expr(Expr.Kind.Choose, args[0].type, args)
+
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
@@ -197,9 +241,9 @@ class MLValueRef:
 def parseTypeRef(t: TypeRef):
   # ty.name returns empty string. possibly bug
   tyStr = str(t)
-  if tyStr == "i64": return Type.int()
-  elif tyStr == "i32" or tyStr == "i32*" : return Type.int()
-  elif tyStr == "i1": return Type.bool()
-  elif tyStr == "%struct.list*": return Type("MLList", Type.int())
+  if tyStr == "i64": return Int()
+  elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int": return Int()
+  elif tyStr == "i1" or tyStr == "Bool": return Bool()
+  elif tyStr == "%struct.list*": return Type("MLList", Int())
 
   else: raise Exception("NYI %s" % t)

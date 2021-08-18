@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 
-from ir import MLInst, Type
+from ir import MLInst, Bool
 from vc import Block
 
 def setupBlocks(blks):
@@ -120,14 +120,15 @@ def parseLoops(filename, fnName):
     return loops
 
 class CodeInfo:
-  def __init__(self, code, modifiedVars, fnArgs):
-    self.code = code  # either an inv or ps
+  def __init__(self, name, retT, modifiedVars, readVars):
+    self.name = name
+    self.retT = retT
     self.modifiedVars = modifiedVars
-    self.fnArgs = fnArgs
+    self.readVars = readVars
 
   def __repr__(self):
-    return "code: %s\nmod vars: %s\nfn args: %s" % (self.code, [v.name for v in self.modifiedVars],
-                                                   [v.name for v in self.fnArgs])
+    return "name: %s\nret type: %s\nmod vars: %s\nread args: %s" % (self.name, self.retT, [v.name for v in self.modifiedVars],
+                                                   [v.name for v in self.readVars])
 
 invNum = 0
 def processLoops(header, body, exits, latches, fnArgs):
@@ -140,7 +141,7 @@ def processLoops(header, body, exits, latches, fnArgs):
         havocs.append(ops[1])
 
   global invNum
-  inv = MLInst.Call("inv%s" % invNum, Type.bool(), *[MLInst.Load(h) for h in havocs], *fnArgs)
+  inv = MLInst.Call("inv%s" % invNum, Bool(), *[MLInst.Load(h) for h in havocs], *fnArgs)
   invNum = invNum + 1
 
   # remove back edges, and replace br with assert inv
@@ -180,7 +181,7 @@ def processLoops(header, body, exits, latches, fnArgs):
     for i in l.instructions:
       print("%s" % i)
 
-  return CodeInfo(inv, havocs, fnArgs)
+  return CodeInfo(inv.operands[0], Bool(), havocs, fnArgs)
 
 def processBranches(blocksMap, fnArgs):
   retCodeInfo = []
@@ -205,8 +206,8 @@ def processBranches(blocksMap, fnArgs):
 
     elif opcode == "ret":
       filteredArgs = list(filter(lambda a: b"sret" not in a.attributes, fnArgs))  # remove the sret args
-      ps = MLInst.Call("ps", Type.bool(), ops[0], *filteredArgs)
+      ps = MLInst.Call("ps", Bool(), ops[0], *filteredArgs)
       b.instructions.insert(-1, MLInst.Assert(ps))
-      retCodeInfo.append(CodeInfo(ps, [ops[0]], filteredArgs))
+      retCodeInfo.append(CodeInfo("ps", Bool(), [ops[0]], filteredArgs))
 
   return retCodeInfo
