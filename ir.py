@@ -66,6 +66,7 @@ class Expr:
     Constraint = "constraint"
     Synth = "synth"
     Choose = "choose"
+    FnDecl = "fndecl"
 
 
   def __init__(self, kind, type, args):
@@ -126,6 +127,10 @@ class Expr:
       return "(" + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
     elif kind == Expr.Kind.Synth:
       return Expr.printSynth(self)
+    elif kind == Expr.Kind.FnDecl:
+      args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
+                       "(%s %s)" % (a.args[0], parseTypeRef(a.type)) for a in self.args[2:]])
+      return "(define-fun %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
     else:
       return "(" + self.kind.value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                                                      for a in self.args]) + ")"
@@ -180,6 +185,7 @@ def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 # the body of a synth-fun
 def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
 def Choose(*args): return Expr(Expr.Kind.Choose, args[0].type, args)
+def FnDecl(name, returnT, body, *args): return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
 
 
