@@ -98,7 +98,6 @@ class Expr:
     else:
       return Var("v%d" % commonExprs.index(e), e.type)
 
-  #Expr(Expr.Kind.Synth, body.type, [name, body, *args])
   @staticmethod
   def printSynth(e):
     cnts = Expr.findCommonExprs(e.args[1], {})
@@ -154,6 +153,8 @@ class Expr:
 
 def Var(name, ty): return Expr(Expr.Kind.Var, ty, [name])
 def Lit(val, ty): return Expr(Expr.Kind.Lit, ty, [val])
+def IntLit(val): return Lit(val, Int())
+def BoolLit(val): return Lit(val, Bool())
 
 def Add(*args): return Expr(Expr.Kind.Add, Int(), args)
 def Sub(*args): return Expr(Expr.Kind.Sub, Int(), args)
@@ -210,7 +211,7 @@ class MLInst:
 def Assert(val): return MLInst(MLInst.Kind.Assert, val)
 def Assume(val): return MLInst(MLInst.Kind.Assume, val)
 def Call(name, retType, *args): return MLInst(MLInst.Kind.Call, name, retType, *args)
-def Eq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
+def MLInstEq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
 def Havoc(*args): return MLInst(MLInst.Kind.Havoc, *args)
 def Load(val): return MLInst(MLInst.Kind.Load, val)
 def MLInstNot(val): return MLInst(MLInst.Kind.Not, val)

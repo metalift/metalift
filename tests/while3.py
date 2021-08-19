@@ -3,7 +3,7 @@ import sys
 from llvmlite import binding as llvm
 
 from analysis import CodeInfo, setupBlocks, parseSrets, parseLoops, processLoops, processBranches
-from ir import Choose, Lit, And, Ge, Eq, Le, Sub, Synth, Or, Pred, Int
+from ir import Choose, Lit, And, Ge, Eq, Le, Sub, Synth, Pred, Int, IntLit, Or
 from synthesis import synthesize_new
 from vc import VC
 
@@ -30,24 +30,28 @@ def genGrammar_while3(ci: CodeInfo):
   name = ci.name
 
   if name.startswith("inv"):
-    f = Choose(Lit(1, Int()))
+    f = Choose(IntLit(1))
     e = Choose(*ci.modifiedVars)
-    d = And(Ge(e, Lit(1, Int())), Le(e, ci.readVars[0]),
-            Eq(e, Pred("sum_n", Int(), Sub(e, f))))
+    d = And(Ge(e, Lit(1, Int())), Le(e, ci.readVars[0]), Eq(e, Pred("sum_n", Int(), Sub(e, f))))
     c = Ge(Lit(1, Int()), ci.readVars[0])
     b = Or(c, d)
+
     return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
 
   else:  # ps
     arg = ci.readVars[0]
     rv = ci.modifiedVars[0]
 
-    f = Choose(Lit(1, Int()))
-    e = Choose(rv)
-    d = Eq(e, Pred("sum_n", Int(), Sub(arg, f)))
-    c = Ge(f, arg)
-    b = Or(c, d)
+    choices = Choose(IntLit(1), IntLit(2), IntLit(3))
+    b = Or(Ge(choices, arg), Eq(rv, Pred("sum_n", Int(), Sub(arg, choices))))
     return Synth(name, b, *ci.modifiedVars, *ci.readVars)
+
+    # f = Choose(IntLit(1))
+    # e = Choose(rv)
+    # d = Eq(e, Pred("sum_n", Int(), Sub(arg, f)))
+    # c = Ge(f, arg)
+    # b = Or(c, d)
+    # return Synth(name, b, *ci.modifiedVars, *ci.readVars)
 
 
 if __name__ == "__main__":
