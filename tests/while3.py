@@ -98,4 +98,5 @@ if __name__ == "__main__":
 
     targetLang = open(targetLangFile, mode="r").read()
 
-    synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename)
+    candidates = synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename)
+    

@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr, parseTypeRef, Constraint, Assert, Pred
+from ir import Expr, parseTypeRef, Constraint, Assert, Pred, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq
 
 
 def flatten(L):
@@ -52,9 +52,20 @@ def generateCand(synthDecls, line, funName, returnType):
 				candidates.append(synthDecls[k] + ' ('  + ' '.join(list(flatten(a[1]))) + '))')
 	return candidates
 
+def generateCandidates(invAndPs, line, funName, returnType):
+	candidates, candidatesExpr = [], {}
+	ast  = generateAST(line)
+	for ce in invAndPs:
+		name = ce.args[0]
+		for a in ast[0]:
+			if name in a:
+				candidatesExpr[a[0]] = toExpr(a[1],funName, returnType)
+				candidates.append(FnDecl(ce.args[0], ce.type, '(' +  ' '.join(list(flatten(a[1]))) + ')', *ce.args[2:]))
+	return candidates, candidatesExpr
+
 def toExpr(ast, funName, returnType):
-	expr_bi = {'=':Expr.Eq, '+':Expr.Add, '-':Expr.Sub, '<':Expr.Lt, '<=':Expr.Le, '>':Expr.Gt, '>=': Expr.Ge,'and': Expr.And, 'or': Expr.Or, '=>': Expr.Implies}
-	expr_uni = {'not':Expr.Not}
+	expr_bi = {'=': Eq, '+': Add, '-': Sub, '<': Lt, '<=': Le, '>': Gt, '>=':  Ge,'and':  And, 'or':  Or, '=>':  Implies}
+	expr_uni = {'not': Not}
 	if ast[0] in expr_bi.keys():
 		return expr_bi[ast[0]](toExpr(ast[1], funName, returnType) , toExpr(ast[2], funName, returnType))
 	elif ast[0] in expr_uni.keys():
@@ -119,37 +130,39 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 
 	# Generate sygus file for synthesis
 	toSMT(targetLang, "\n\n".join([str(i) for i in invAndPs]), vars, preds, vc, sygusFile, True)
-
-	# logfile = synthDir + basename + '_logs.txt'
-	# synthLogs = open(logfile, 'a')
-	# # Run synthesis subprocess
-	# proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
-	# 												stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
-	#
-	# funDecls, funName, returnType = extractFuns(funDef)
-	# funs = "\n".join(d for d in funDecls)
-	# synthDecls = generateDecls(loopInfo)
-	# logfileVerif = open(logfile, "r")
-	# while True:
-	# 	line = logfileVerif.readline()
-	# 	if 'sygus-candidate' in line:
-	# 		print("Current PS and INV Guess ", line)
-	# 		candidates = "\n".join(d for d in generateCand(synthDecls, line, funName, returnType))
-	# 		smtFile = synthDir + basename + ".smt"
-	# 		toSMT(funs, vars, candidates, vc, smtFile, False)
-	#
-	# 		# run external verification subprocess
-	# 		procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000', smtFile],
-	# 																	stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-	# 		output = procVerify.stdout.readline()
-	# 		output = output.decode("utf-8")
-	# 		if output.count('unsat') == 1:
-	# 			print("UNSAT\n")
-	# 			print("Verified PS and INV Candidates ", candidates)
-	# 			break
-	# 		else:
-	# 			print("CVC4 verification Result for Current Guess")
-	# 			print("SAT\n")
+	
+	logfile = synthDir + basename + '_logs.txt'
+	synthLogs = open(logfile, 'a')
+	# Run synthesis subprocess
+	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
+													stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
+	
+	funDecls, funName, returnType = extractFuns(targetLang)
+	funs = "\n\n".join(d for d in funDecls) + "\n\n"
+	logfileVerif = open(logfile, "r")
+	while True:
+		line = logfileVerif.readline()
+		if 'sygus-candidate' in line:
+			print("Current PS and INV Guess ", line)
+			candidates, candidatesExpr = generateCandidates(invAndPs, line, funName, returnType)
+			candDef = "\n\n".join(str(d) for d in candidates)
+			smtFile = synthDir + basename + ".smt"
+			toSMT(funs, candDef, vars, preds, vc, smtFile, False)
+	
+			# run external verification subprocess
+			procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000', smtFile],
+																		stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+			output = procVerify.stdout.readline()
+			output = output.decode("utf-8")
+			if output.count('unsat') == 1:
+				print("UNSAT\n")
+				print("Verified PS and INV Candidates ", candDef)
+				#return verified invandPs as dict. {'inv0': expression, 'ps': expression} 
+				return candidatesExpr
+				
+			else:
+				print("CVC4 verification Result for Current Guess")
+				print("SAT\n")
 
 
 # print to a file
@@ -179,5 +192,5 @@ def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 			out.write("%s\n\n" % Constraint(vc))
 			out.write("(check-synth)")
 		else:
-			out.write("%s\n\n" % Assert(Expr.Not(vc)))
+			out.write("%s\n\n" % Assert(Not(vc)))
 			out.write("(check-sat)\n(get-model)")
