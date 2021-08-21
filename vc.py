@@ -6,7 +6,7 @@ from llvmlite.binding import TypeRef, ValueRef
 from llvmlite.ir import Argument
 
 import models
-from ir import Expr, Type, parseTypeRef, Var, Pred, Lit, Bool, Int, List, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
+from ir import Expr, Type, parseTypeRef, Var, Call, Lit, Bool, Int, List, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
   Add, Sub
 
 
@@ -57,8 +57,8 @@ class VC:
 
   def callPred(self, name, returnT: Type, *args):
     newArgs = [Var("v%s" % i, a.type) for (i, a) in zip(range(len(args)), args)]
-    self.preds[name] = Pred(name, returnT, *newArgs)
-    return Pred(name, returnT, *args)
+    self.preds[name] = Call(name, returnT, *newArgs)
+    return Call(name, returnT, *args)
 
   def computeVC(self, blocksMap, firstBlockName, arguments):
     initBlock = blocksMap[firstBlockName]
@@ -301,8 +301,8 @@ class VC:
     elif i.opcode == "load": return mem[i.operands[0]]
     elif i.opcode == "not": return Not(VC.evalMLInst(i.operands[0], reg, mem))
     elif i.opcode == "or": return Or(VC.evalMLInst(i.operands[0], reg, mem))
-    elif i.opcode == "call": return Pred(i.operands[0], i.operands[1],
-                                              *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]])
+    elif i.opcode == "call": return Call(i.operands[0], i.operands[1],
+                                         *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]])
     else: raise Exception("NYI: %s" % i)
 
 

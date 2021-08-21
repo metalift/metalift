@@ -60,7 +60,7 @@ class Expr:
 
     Ite = "ite"
 
-    Pred = "pred"
+    Call = "call"
 
     Assert = "assert"
     Constraint = "constraint"
@@ -123,7 +123,7 @@ class Expr:
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
       return str(self.args[0])
-    elif kind == Expr.Kind.Pred or kind == Expr.Kind.Choose:
+    elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
       return "(" + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
     elif kind == Expr.Kind.Synth:
       return Expr.printSynth(self)
@@ -178,7 +178,7 @@ def Implies(e1, e2): return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
 
 def Ite(c, e1, e2): return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
-def Pred(name, returnT, *args): return Expr(Expr.Kind.Pred, returnT, [name, *args])
+def Call(name, returnT, *args): return Expr(Expr.Kind.Call, returnT, [name, *args])
 def Assert(e): return Expr(Expr.Kind.Assert, Bool(), [e])
 def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 
@@ -207,22 +207,22 @@ class MLInst:
     self.operands = operands
 
   def __str__(self):
-    if self.opcode == "call":
+    if self.opcode == MLInst.Kind.Call:
       return "call %s %s(%s)" % (self.operands[0], self.operands[1], " ".join([o.name if isinstance(o, ValueRef) else str(o)
                                                                           for o in self.operands[2:]]))
     else:
       return "(%s %s)" % (self.opcode, " ".join([o.name if isinstance(o, ValueRef) else str(o)
                                               for o in self.operands]))
 
-def Assert(val): return MLInst(MLInst.Kind.Assert, val)
-def Assume(val): return MLInst(MLInst.Kind.Assume, val)
-def Call(name, retType, *args): return MLInst(MLInst.Kind.Call, name, retType, *args)
-def MLInstEq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
-def Havoc(*args): return MLInst(MLInst.Kind.Havoc, *args)
-def Load(val): return MLInst(MLInst.Kind.Load, val)
-def MLInstNot(val): return MLInst(MLInst.Kind.Not, val)
-def MLInstOr(val): return MLInst(MLInst.Kind.Or, val)
-def Return(val): return MLInst(MLInst.Kind.Return, val)
+def MLInst_Assert(val): return MLInst(MLInst.Kind.Assert, val)
+def MLInst_Assume(val): return MLInst(MLInst.Kind.Assume, val)
+def MLInst_Call(name, retType, *args): return MLInst(MLInst.Kind.Call, name, retType, *args)
+def MLInst_Eq(v1, v2): return MLInst(MLInst.Kind.Eq, v1, v2)
+def MLInst_Havoc(*args): return MLInst(MLInst.Kind.Havoc, *args)
+def MLInst_Load(val): return MLInst(MLInst.Kind.Load, val)
+def MLInst_Not(val): return MLInst(MLInst.Kind.Not, val)
+def MLInst_Or(val): return MLInst(MLInst.Kind.Or, val)
+def MLInst_Return(val): return MLInst(MLInst.Kind.Return, val)
 
 
 class MLValueRef:

@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr, parseTypeRef, Constraint, Assert, Pred, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq
+from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq
 
 
 def flatten(L):
@@ -72,7 +72,7 @@ def toExpr(ast, funName, returnType):
 		return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
 	elif ast[0] in funName:
 		index = funName.index(ast[0])
-		return Pred(ast[0],returnType[index] , toExpr(ast[1], funName, returnType))
+		return Call(ast[0], returnType[index], toExpr(ast[1], funName, returnType))
 	else:
 		return ast
 
@@ -192,5 +192,5 @@ def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 			out.write("%s\n\n" % Constraint(vc))
 			out.write("(check-synth)")
 		else:
-			out.write("%s\n\n" % Assert(Not(vc)))
+			out.write("%s\n\n" % MLInst_Assert(Not(vc)))
 			out.write("(check-sat)\n(get-model)")
