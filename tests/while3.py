@@ -1,11 +1,9 @@
 import os
 import sys
-from llvmlite import binding as llvm
 
-from analysis import CodeInfo, setupBlocks, parseSrets, parseLoops, processLoops, processBranches
+from analysis import CodeInfo, analyze
 from ir import Choose, Lit, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
 from synthesis import synthesize_new
-from vc import VC
 
 
 # # programmatically generated grammar
@@ -26,7 +24,7 @@ from vc import VC
 #    (E Int (tmp1 tmp2))
 #    (F Int (1))))
 
-def genGrammar_while3(ci: CodeInfo):
+def grammar(ci: CodeInfo):
   name = ci.name
 
   if name.startswith("inv"):
@@ -54,7 +52,7 @@ def genGrammar_while3(ci: CodeInfo):
     # return Synth(name, b, *ci.modifiedVars, *ci.readVars)
 
 
-# sum_n (int x)
+# sum_n (x : int):
 #   if x >= 1: return x + sum_n(x - 1)
 #   else: return 0
 def targetLang():
@@ -63,50 +61,21 @@ def targetLang():
   return [sum_n]
 
 
-
 if __name__ == "__main__":
   filename = sys.argv[1]
   basename = os.path.splitext(os.path.basename(filename))[0]
 
-  targetLangFile = sys.argv[2]
-  fnName = sys.argv[3]
-  loopsFile = sys.argv[4]
-  cvcPath = sys.argv[5]
+  fnName = sys.argv[2]
+  loopsFile = sys.argv[3]
+  cvcPath = sys.argv[4]
+
+  (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+
+  print("====== synthesis")
+  invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+
+  lang = targetLang()
+
+  candidates = synthesize_new(lang, invAndPs, vars, preds, vc, cvcPath, basename)
 
 
-  with open(filename, mode="r") as file:
-    ref = llvm.parse_assembly(file.read())
-
-    fn = ref.get_function(fnName)
-    blocksMap = setupBlocks(fn.blocks)
-
-    parseSrets(list(fn.arguments), blocksMap.values())
-
-    loops = parseLoops(loopsFile, fnName) if loopsFile else None
-    loopAndPsInfo = []
-    for l in loops:
-      # assume for now there is only one header block
-      if len(l.header) > 1: raise Exception("multiple loop headers: %s" % l)
-      loopAndPsInfo.append(processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
-                           [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
-                           list(fn.arguments)))
-
-    # add ps code info
-    loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments))
-
-    print("====== after transforms")
-    for b in blocksMap.values():
-      print("blk: %s" % b.name)
-      for i in b.instructions:
-        print("%s" % i)
-
-    print("====== compute vc")
-    (vars, invAndPs, preds, vc) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
-
-    print("====== synthesis")
-    invAndPs = [genGrammar_while3(ci) for ci in loopAndPsInfo]
-
-    lang = targetLang()
-
-    candidates = synthesize_new(lang, invAndPs, vars, preds, vc, cvcPath, basename)
-    

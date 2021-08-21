@@ -1,8 +1,10 @@
 import re
 from collections import namedtuple
+from llvmlite import binding as llvm
 
 from ir import MLInst, Bool, MLInst_Call, MLInst_Load, MLInst_Assert, MLInst_Assume, MLInst_Havoc, MLInst_Not
-from vc import Block
+from vc import Block, VC
+
 
 def setupBlocks(blks):
   bbs = dict((b.name, Block(b.name, list(b.instructions))) for b in blks)
@@ -211,3 +213,36 @@ def processBranches(blocksMap, fnArgs):
       retCodeInfo.append(CodeInfo("ps", Bool(), [ops[0]], filteredArgs))
 
   return retCodeInfo
+
+# run all code analysis
+def analyze(filename, fnName, loopsFile):
+  with open(filename, mode="r") as file:
+    ref = llvm.parse_assembly(file.read())
+
+  fn = ref.get_function(fnName)
+  blocksMap = setupBlocks(fn.blocks)
+
+  parseSrets(list(fn.arguments), blocksMap.values())
+
+  loops = parseLoops(loopsFile, fnName) if loopsFile else None
+  loopAndPsInfo = []
+  for l in loops:
+    # assume for now there is only one header block
+    if len(l.header) > 1: raise Exception("multiple loop headers: %s" % l)
+    loopAndPsInfo.append(processLoops(blocksMap[l.header[0]], [blocksMap[n] for n in l.body],
+                         [blocksMap[n] for n in l.exits], [blocksMap[n] for n in l.latches],
+                         list(fn.arguments)))
+
+  # add ps code info
+  loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments))
+
+  print("====== after transforms")
+  for b in blocksMap.values():
+    print("blk: %s" % b.name)
+    for i in b.instructions:
+      print("%s" % i)
+
+  print("====== compute vc")
+  (vars, invAndPs, preds, vc) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
+
+  return (vars, invAndPs, preds, vc, loopAndPsInfo)
