@@ -2,7 +2,7 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, Lit, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
+from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
 from synthesis import synthesize_new
 
 
@@ -30,8 +30,8 @@ def grammar(ci: CodeInfo):
   if name.startswith("inv"):
     f = Choose(IntLit(1))
     e = Choose(*ci.modifiedVars)
-    d = And(Ge(e, Lit(1, Int())), Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f))))
-    c = Ge(Lit(1, Int()), ci.readVars[0])
+    d = And(Ge(e, IntLit(1)), Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f))))
+    c = Ge(IntLit(1), ci.readVars[0])
     b = Or(c, d)
 
     return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
