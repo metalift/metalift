@@ -130,7 +130,7 @@ class Expr:
     elif kind == Expr.Kind.FnDecl:
       args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
                        "(%s %s)" % (a.args[0], parseTypeRef(a.type)) for a in self.args[2:]])
-      return "(define-fun %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
+      return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
     else:
       return "(" + self.kind.value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                                                      for a in self.args]) + ")"

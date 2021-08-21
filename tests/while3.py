@@ -3,7 +3,7 @@ import sys
 from llvmlite import binding as llvm
 
 from analysis import CodeInfo, setupBlocks, parseSrets, parseLoops, processLoops, processBranches
-from ir import Choose, Lit, And, Ge, Eq, Le, Sub, Synth, Pred, Int, IntLit, Or
+from ir import Choose, Lit, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
 from synthesis import synthesize_new
 from vc import VC
 
@@ -32,7 +32,7 @@ def genGrammar_while3(ci: CodeInfo):
   if name.startswith("inv"):
     f = Choose(IntLit(1))
     e = Choose(*ci.modifiedVars)
-    d = And(Ge(e, Lit(1, Int())), Le(e, ci.readVars[0]), Eq(e, Pred("sum_n", Int(), Sub(e, f))))
+    d = And(Ge(e, Lit(1, Int())), Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f))))
     c = Ge(Lit(1, Int()), ci.readVars[0])
     b = Or(c, d)
 
@@ -43,7 +43,7 @@ def genGrammar_while3(ci: CodeInfo):
     rv = ci.modifiedVars[0]
 
     choices = Choose(IntLit(1), IntLit(2), IntLit(3))
-    b = Or(Ge(choices, arg), Eq(rv, Pred("sum_n", Int(), Sub(arg, choices))))
+    b = Or(Ge(choices, arg), Eq(rv, Call("sum_n", Int(), Sub(arg, choices))))
     return Synth(name, b, *ci.modifiedVars, *ci.readVars)
 
     # f = Choose(IntLit(1))
@@ -52,6 +52,16 @@ def genGrammar_while3(ci: CodeInfo):
     # c = Ge(f, arg)
     # b = Or(c, d)
     # return Synth(name, b, *ci.modifiedVars, *ci.readVars)
+
+
+# sum_n (int x)
+#   if x >= 1: return x + sum_n(x - 1)
+#   else: return 0
+def targetLang():
+  x = Var("x", Int())
+  sum_n = FnDecl("sum_n", Int(), Ite(Ge(x, IntLit(1)), Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)), x)
+  return [sum_n]
+
 
 
 if __name__ == "__main__":
@@ -96,7 +106,7 @@ if __name__ == "__main__":
     print("====== synthesis")
     invAndPs = [genGrammar_while3(ci) for ci in loopAndPsInfo]
 
-    targetLang = open(targetLangFile, mode="r").read()
+    lang = targetLang()
 
-    candidates = synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename)
+    candidates = synthesize_new(lang, invAndPs, vars, preds, vc, cvcPath, basename)
     

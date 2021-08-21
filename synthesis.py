@@ -169,9 +169,9 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 	# order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
 	with open(outFile, mode="w") as out:
-		out.write(targetLang)
+		out.write("\n\n".join([str(t) for t in targetLang]))
 
-		out.write("%s\n\n" % invAndPs)
+		out.write("\n\n%s\n\n" % invAndPs)
 
 		v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
 		out.write("%s\n\n" % v)
