@@ -2,8 +2,6 @@
 (declare-datatypes ((MLList 1))
                    ((par (T) ((cons (head T) (tail (MLList T))) (nil)))))
 
-(MLList 2) (par (T1 T2) (cons T1 (cons T2 (nil)))
-
 (define-sort T1 () Int)
 
 
