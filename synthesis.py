@@ -131,7 +131,7 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile, 'a')
 	# Run synthesis subprocess
-	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--debug-sygus', sygusFile],
+	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
 													stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
 	
 	funName, returnType = extractFuns(targetLang)
