@@ -20,15 +20,12 @@ def generateAST(expr):
 	ast = parser.parseString(expr, parseAll=True).asList()
 	return ast
 
-def extractFuns(funDef):
-	funDecls, funName, returnType = [], [], []
-	ast = generateAST(funDef)
-	for a in ast:
-		if 'define-fun-rec' in a:
-			funDecls.append('( ' + ' '.join(list(flatten(a))) + ' )')
-			funName.append(a[1])
-			returnType.append(a[3])
-	return funDecls, funName, returnType
+def extractFuns(targetLang):
+	funName, returnType = [], [],
+	for t in targetLang:
+		funName.append(t.args[0])
+		returnType.append(t.type)
+	return funName, returnType
 
 def generateDecls(loopInfo):
 	invpsDecls = {}
@@ -130,15 +127,14 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 
 	# Generate sygus file for synthesis
 	toSMT(targetLang, "\n\n".join([str(i) for i in invAndPs]), vars, preds, vc, sygusFile, True)
-	
+
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile, 'a')
 	# Run synthesis subprocess
-	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
+	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--debug-sygus', sygusFile],
 													stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
 	
-	funDecls, funName, returnType = extractFuns(targetLang)
-	funs = "\n\n".join(d for d in funDecls) + "\n\n"
+	funName, returnType = extractFuns(targetLang)
 	logfileVerif = open(logfile, "r")
 	while True:
 		line = logfileVerif.readline()
@@ -147,7 +143,7 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 			candidates, candidatesExpr = generateCandidates(invAndPs, line, funName, returnType)
 			candDef = "\n\n".join(str(d) for d in candidates)
 			smtFile = synthDir + basename + ".smt"
-			toSMT(funs, candDef, vars, preds, vc, smtFile, False)
+			toSMT(targetLang, candDef, vars, preds, vc, smtFile, False)
 	
 			# run external verification subprocess
 			procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000', smtFile],
