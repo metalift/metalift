@@ -7,7 +7,7 @@ from llvmlite.ir import Argument
 
 import models
 from ir import Expr, Type, parseTypeRef, Var, Call, Lit, Bool, Int, List, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
-  Add, Sub
+  Add, Sub, BoolLit
 
 
 class State:
@@ -66,6 +66,7 @@ class VC:
       v = self.makeVar(arg.name, arg.type)
       initBlock.state.regs[arg] = v
       initBlock.state.args.append(v)
+      initBlock.state.assumes.append(BoolLit(True))
 
     # simple loop assuming the blocks are in predecessor order
     #for b in blocksMap.values():
