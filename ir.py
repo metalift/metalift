@@ -38,6 +38,13 @@ def Bool(): return Type("Bool", [])
 def Pointer(): return Type("Pointer", [])
 def List(contentT): return Type("MLList", [contentT])
 
+
+class PrintMode(Enum):
+  SMT = 0
+  Rosette = 1
+
+printMode = PrintMode.SMT #Rosette
+
 class Expr:
   class Kind(Enum):
     Var = "var"
@@ -132,7 +139,15 @@ class Expr:
                        "(%s %s)" % (a.args[0], parseTypeRef(a.type)) for a in self.args[2:]])
       return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
     else:
-      return "(" + self.kind.value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+      global printMode
+      if printMode == PrintMode.SMT: value = self.kind.value
+      elif printMode == PrintMode.Rosette:
+        k = self.kind
+        if k == Expr.Kind.And: value = "&&"
+        elif k == Expr.Kind.Eq: value = "equal?"
+        else: value = self.kind.value
+
+      return "(" + value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                                                      for a in self.args]) + ")"
 
   # commented out so that common exprs can be detected
@@ -186,6 +201,33 @@ def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
 def Choose(*args): return Expr(Expr.Kind.Choose, args[0].type, args)
 def FnDecl(name, returnT, body, *args): return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
+
+
+def toRosette(targetLang, invAndPs, vars, preds, vc):
+  global printMode
+  printMode = PrintMode.Rosette
+
+  #out.write("\n\n".join([str(t) for t in targetLang]))
+
+  #out.write("\n\n%s\n\n" % invAndPs)
+
+  varsStr = ""
+  for v in vars:
+    if v.type == Int(): varsStr = varsStr + "(define %s (sym-int))\n" % v.args[0]
+    elif v.type == Bool(): varsStr = varsStr + "(define %s (sym-bool))\n" % v.args[0]
+    elif v.type == List(Int()): varsStr = varsStr + "(define %s (sym-list 2))\n" % v.args[0]
+    else: raise Exception("NYI: %s" % v)
+
+  #vars = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
+
+  # a list of Exprs - print name, args, return type
+  predsStr = "\n".join(["(define-fun %s (%s) (%s) )" %
+                     (p.args[0], " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]), p.type)
+                     for p in preds])
+
+  assertions = "(define (assertions)\n (assert %s))" % vc
+
+  return varsStr + "\n" + predsStr + "\n" + assertions
 
 
 
@@ -243,3 +285,4 @@ def parseTypeRef(t: TypeRef):
   elif tyStr == "%struct.list*": return Type("MLList", Int())
 
   else: raise Exception("NYI %s" % t)
+
