@@ -8,3 +8,19 @@ Example synthesis usage: `main.py tests/while4.ll tests/while4-grammar.sl tests/
 
 Example verification usage (using pre-generated answer): `main.py tests/while4.ll tests/while4-ans.smt tests/out.smt test tests/while4.loops`
 This prints the verification file to out.smt that can be run using an external solver (e.g., z3)
+
+----
+
+Run the following to build the LLVM pass for processing branch instructions:
+````angular2
+cd llvm-pass
+mkdir build
+cd build
+cmake ..
+make 
+cd ..
+```` 
+Then run it with:
+````angular2
+opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll name>
+````
