@@ -3,8 +3,8 @@
 
 
 int test(List<int> data) {
-	int min = Integer.MAX_VALUE;
-	int max = Integer.MIN_VALUE;
+	int min = __INT_MAX__;
+	int max = __INT_MIN__;
 	for(int i=0; i<listLength(data); i++) {
 		int val = listGet(data,i);
 		if(max < val)
