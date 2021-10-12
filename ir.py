@@ -96,8 +96,9 @@ class Expr:
     return cnts
 
   @staticmethod
-  def replaceExprs(e, commonExprs):
-    if e not in commonExprs:
+  def replaceExprs(e, commonExprs, skipTop=False):
+    # skipTop is used to ignore the top-level match when simplifying a common expr
+    if e not in commonExprs or skipTop:
       if isinstance(e, Expr):
         newArgs = [Expr.replaceExprs(arg, commonExprs) for arg in e.args]
         return Expr(e.kind, e.type, newArgs)
@@ -112,6 +113,9 @@ class Expr:
     commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
     rewritten = Expr.replaceExprs(e.args[1], commonExprs)
 
+    # rewrite common exprs to use each other
+    commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
+
     # (synth-fun name ( (arg type) ... ) return-type
     # ( (return-val type) (non-term type) (non-term type) ...)
     # ( (return-val type definition)
@@ -119,7 +123,12 @@ class Expr:
     decls = "((rv %s) %s)" % (e.type, " ".join("(%s %s)" % ("v%d" % i, parseTypeRef(e.type)) for i, e in enumerate(commonExprs)))
     defs = "(rv %s %s)\n" % (e.type, rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
                                                else "(%s)" % rewritten)
-    defs = defs + "\n".join("(%s %s %s)" % ("v%d" % i, parseTypeRef(e.type), e) for i,e in enumerate(commonExprs))
+
+    defs = defs + "\n".join("(%s %s %s)" % (
+      "v%d" % i,
+      parseTypeRef(e.type),
+      e if e.kind == Expr.Kind.Choose else f"({e})"
+    ) for i,e in enumerate(commonExprs))
 
     body = decls + "\n" + "(" + defs + ")"
 
@@ -129,7 +138,13 @@ class Expr:
   def __repr__(self):
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-      return str(self.args[0])
+      if kind == Expr.Kind.Lit and self.type == Bool():
+        if self.args[0] == True:
+          return "true"
+        else:
+          return "false"
+      else:
+        return str(self.args[0])
     elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
       return "(" + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
     elif kind == Expr.Kind.Synth:
