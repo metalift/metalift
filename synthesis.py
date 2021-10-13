@@ -129,7 +129,7 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 	toSMT(targetLang, "\n\n".join([str(i) for i in invAndPs]), vars, preds, vc, sygusFile, True)
 
 	logfile = synthDir + basename + '_logs.txt'
-	synthLogs = open(logfile, 'a')
+	synthLogs = open(logfile, 'w')
 	# Run synthesis subprocess
 	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
 													stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
