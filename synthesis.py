@@ -169,7 +169,8 @@ def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 
 		out.write("\n\n%s\n\n" % invAndPs)
 
-		v = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
+		var_decl_command = "declare-var" if isSynthesis else "declare-const"
+		v = "\n".join(["(%s %s %s)" % (var_decl_command, v.args[0], v.type) for v in vars])  # name and type
 		out.write("%s\n\n" % v)
 
 		if isinstance(preds, str):

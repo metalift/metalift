@@ -32,13 +32,13 @@ let
   pythonPackages = python38Packages;
   cvc5 = stdenv.mkDerivation rec {
     pname = "cvc5";
-    version = "e607ce390cff26aa14862b2f9c1da727d14cdf68";
+    version = "cvc5-0.0.2";
 
     src = fetchFromGitHub {
       owner  = "cvc5";
       repo   = "cvc5";
       rev    = version;
-      sha256 = "05nmgwh1s4xbwh0i5wn81i06p43y9n0xq34l52rv6dys3yb6qkac";
+      sha256 = "0wzl1lp6kr7f0yz1i7xpmwp6sx3v0qf61p74hfwgcyy7phkv9hsa";
     };
 
     nativeBuildInputs = [ pkg-config cmake ];
