@@ -11,7 +11,7 @@ This prints the verification file to out.smt that can be run using an external s
 
 ----
 
-Run the following to build the LLVM pass for processing branch instructions:
+Run the following to build the LLVM pass for processing branch instructions (works on LLVM 10):
 ````angular2
 cd llvm-pass
 mkdir build
