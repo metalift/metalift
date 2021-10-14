@@ -1,6 +1,7 @@
 from collections import namedtuple
 
-from ir import Expr, Type, parseTypeRef, Int, Bool, Var, Call
+from ir import Expr, Type, Set, parseTypeRef, Int, Bool, Var, Call
+from vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
 
@@ -35,5 +36,10 @@ fnModels = {
   "_Z7newListIiEP4listIT_Ev": newlist,
   "_Z10listLengthIiEiP4listIT_E": listLength,
   "_Z7listGetIiET_P4listIS0_Ei": listGet,
-  "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend
+  "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
+
+  # names for set.h
+  "set_create": lambda _: ReturnValue(Var("(as emptyset (Set Int))", Set(Int())), None),
+  "set_add": lambda regs, *args: ReturnValue(Call("insert", Set(Int()), parseOperand(args[1], regs), parseOperand(args[0], regs)), None),
+  "set_contains": lambda regs, *args: ReturnValue(Call("member", Set(Int()), parseOperand(args[1], regs), parseOperand(args[0], regs)), None),
 }

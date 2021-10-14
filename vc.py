@@ -6,9 +6,10 @@ from llvmlite.binding import TypeRef, ValueRef
 from llvmlite.ir import Argument
 
 import models
-from ir import Expr, Type, parseTypeRef, Var, Call, Lit, Bool, Int, List, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
+from ir import Expr, Type, parseTypeRef, Var, Call, Lit, Bool, Int, List, Set, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
   Add, Sub, Mul, BoolLit
 
+from vc_util import parseOperand
 
 class State:
   def __init__(self):
@@ -197,6 +198,7 @@ class VC:
         elif t == "i8": s.mem[i] = Lit(False, Bool())
         elif t == "i1": s.mem[i] = Lit(False, Bool())
         elif t == "%struct.list*": s.mem[i] = Lit(0, List(Int()))
+        elif t == "%struct.set*": s.mem[i] = Lit(0, Set(Int()))
         else: raise Exception("NYI: %s" % i)
 
       elif opcode == "load":
@@ -310,14 +312,4 @@ class VC:
 
   @staticmethod
   def parseOperand(op, reg, hasType = True):
-    # op is a ValueRef, and if it has a name then it's a register
-    if op.name:  # a reg
-      return reg[op]
-    elif hasType:  # i32 0
-      val = re.search("\w+ (\S+)", str(op)).group(1)
-      if val == "true": return Lit(True, Bool())
-      elif val == "false": return Lit(False, Bool())
-      else:  # assuming it's a number
-        return Lit(int(val), Int())
-    else:  # 0
-      return Lit(int(op), Int())
+    return parseOperand(op, reg, hasType)

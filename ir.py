@@ -44,6 +44,14 @@ def Bool(): return Type("Bool", [])
 def Pointer(): return Type("Pointer", [])
 def List(contentT): return Type("MLList", contentT)
 def Fn(retT, *argT): return Type("Function", retT, *argT)
+def Set(contentT): return Type("Set", contentT)
+
+
+class PrintMode(Enum):
+  SMT = 0
+  Rosette = 1
+
+printMode = PrintMode.SMT #Rosette
 
 class Expr:
   class Kind(Enum):
@@ -410,7 +418,8 @@ def parseTypeRef(t: TypeRef):
   if tyStr == "i64": return Int()
   elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int": return Int()
   elif tyStr == "i1" or tyStr == "Bool": return Bool()
-  elif tyStr == "%struct.list*" or tyStr == "%struct.list**"  or tyStr == "(MLList Int)": return Type("MLList", Int())
+  elif tyStr == "%struct.list*" or tyStr == "%struct.list**" or tyStr == "(MLList Int)": return Type("MLList", Int())
+  elif tyStr == "%struct.set*": return Set(Int())
   elif tyStr == "(Function Bool)": return Type("Function", Bool())
   elif tyStr == "(Function Int)": return Type("Function", Int())
   else: raise Exception("NYI %s" % t)
