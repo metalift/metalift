@@ -2,7 +2,7 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, BoolLit, FnDecl, Var, Add, Implies, Ite
+from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, BoolLit, FnDecl, Var, Add, Implies, Ite, Set
 from synthesis import synthesize_new
 
 def grammar(ci: CodeInfo):
@@ -13,13 +13,13 @@ def grammar(ci: CodeInfo):
   else:  # ps
     inputVars = Choose(*ci.readVars)
     outputVar = ci.modifiedVars[0]
-    boolLit = Choose(BoolLit(False), BoolLit(True))
+    emptySet = Call("as emptyset (Set Int)", Set(Int()))
     intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    comp = Eq(inputVars, intLit)
-    ite = boolLit
+    intValue = Choose(inputVars, intLit)
+    outSet = emptySet
     for i in range(3):
-      ite = Choose(ite, Ite(comp, boolLit, ite))
-    summary = Eq(outputVar, ite)
+      outSet = Call("insert", Set(Int()), intValue, outSet)
+    summary = Eq(outputVar, outSet)
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
