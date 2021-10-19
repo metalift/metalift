@@ -3,8 +3,8 @@ import sys
 
 from analysis import CodeInfo, analyze
 from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
-from synthesis import synthesize_new
-
+from synthesize_rosette import synthesize
+from rosette_translator import toRosette
 
 # # programmatically generated grammar
 
@@ -30,7 +30,7 @@ def grammar(ci: CodeInfo):
   if name.startswith("inv"):
     f = Choose(IntLit(1))
     e = Choose(*ci.modifiedVars)
-    d = And(Ge(e, IntLit(1)), Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f))))
+    d = And(Ge(e, IntLit(1)), And(Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f)))))
     c = Ge(IntLit(1), ci.readVars[0])
     b = Or(c, d)
 
@@ -44,17 +44,6 @@ def grammar(ci: CodeInfo):
     b = Or(Ge(choices, arg), Eq(rv, Call("sum_n", Int(), Sub(arg, choices))))
     return Synth(name, b, *ci.modifiedVars, *ci.readVars)
 
-    # f = Choose(IntLit(1))
-    # e = Choose(rv)
-    # d = Eq(e, Pred("sum_n", Int(), Sub(arg, f)))
-    # c = Ge(f, arg)
-    # b = Or(c, d)
-    # return Synth(name, b, *ci.modifiedVars, *ci.readVars)
-
-
-# sum_n (x : int):
-#   if x >= 1: return x + sum_n(x - 1)
-#   else: return 0
 def targetLang():
   x = Var("x", Int())
   sum_n = FnDecl("sum_n", Int(), Ite(Ge(x, IntLit(1)), Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)), x)
@@ -73,9 +62,13 @@ if __name__ == "__main__":
 
   print("====== synthesis")
   invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-
+  
   lang = targetLang()
 
-  candidates = synthesize_new(lang, invAndPs, vars, preds, vc, cvcPath, basename)
+  #rosette synthesizer  + CVC verfication
+  candidates = synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
+  print("====== verified candidates")
+  for c in candidates:print(c,"\n")
 
+  #TODO codegen
 

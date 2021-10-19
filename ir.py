@@ -5,6 +5,7 @@ from llvmlite.binding import ValueRef, TypeRef
 class PrintMode(Enum):
   SMT = 0
   Rosette = 1
+  RosetteVC = 2
 
 printMode = PrintMode.SMT
 
@@ -66,7 +67,7 @@ class Expr:
     Ite = "ite"
 
     Call = "call"
-
+    
     Assert = "assert"
     Constraint = "constraint"
     Axiom = "axiom"
@@ -100,42 +101,34 @@ class Expr:
     if e not in commonExprs or skipTop:
       if isinstance(e, Expr):
         newArgs = [Expr.replaceExprs(arg, commonExprs) for arg in e.args]
+        if e.kind == Expr.Kind.Call:
+          newArgs[0] = '_'+newArgs[0]
         return Expr(e.kind, e.type, newArgs)
       else:
         return e  # ValueRef or TypeRef
     else:
-      return Var("v%d" % commonExprs.index(e), e.type)
+      return Var("(v%d)" % commonExprs.index(e), e.type)
 
   @staticmethod
   def printSynth(e):
     cnts = Expr.findCommonExprs(e.args[1], {})
     commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
     rewritten = Expr.replaceExprs(e.args[1], commonExprs)
-
-    # rewrite common exprs to use each other
     commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
-
-    # (synth-fun name ( (arg type) ... ) return-type
-    # ( (return-val type) (non-term type) (non-term type) ...)
-    # ( (return-val type definition)
-    #   (non-term type definition) ... ) )
-    decls = "((rv %s) %s)" % (e.type, " ".join("(%s %s)" % ("v%d" % i, parseTypeRef(e.type)) for i, e in enumerate(commonExprs)))
-    defs = "(rv %s %s)\n" % (e.type, rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
-                                               else "(%s)" % rewritten)
-
-    defs = defs + "\n".join("(%s %s %s)" % (
-      "v%d" % i,
-      parseTypeRef(e.type),
-      e if e.kind == Expr.Kind.Choose else f"({e})"
-    ) for i,e in enumerate(commonExprs))
-
-    body = decls + "\n" + "(" + defs + ")"
-
-    args = " ".join("(%s %s)" % (a.name, parseTypeRef(a.type)) for a in e.args[2:])
-    return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
+    
+    args = " ".join("%s" % (a.name) for a in e.args[2:])
+    
+    defs= "[rv (choose %s)]\n" % (rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
+                                               else "%s" % rewritten)
+    
+    defs =  defs + "\n".join("%s %s)]" % ("[v%d (choose" % i, e) for i,e in enumerate(commonExprs))
+    
+   
+    return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
 
   def __repr__(self):
     global printMode
+    listFns = {'list_get': 'list-ref-noerr','list_append': 'list-append', 'list_empty': 'list-empty', 'list_tail': 'list-tail-noerr', 'list_length': 'length'}
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
       if kind == Expr.Kind.Lit and self.type == Bool():
@@ -146,7 +139,38 @@ class Expr:
       else:
         return str(self.args[0])
     elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
-      return "(" + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
+      if isinstance(self.args[0],str):
+        if (self.args[0].startswith('inv') or self.args[0].startswith('ps')) and printMode == PrintMode.RosetteVC:
+          callStr = "(interpret " + "%s (vector "%(str(self.args[0]))
+          for a in self.args[1:]:
+            if isinstance(a, ValueRef) and a.name != "":
+              callStr += "%s "%(a.name)
+            else:
+              if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
+                callStr += '(' + listFns[str(a)] + ')' + " "
+              elif (str(a)) in listFns.keys(): 
+                 callStr += listFns[str(a)]  + " "
+              else:
+                callStr += str(a) + " "
+          callStr += '))'
+          return callStr
+        elif (self.args[0].startswith('list') and printMode == PrintMode.RosetteVC):
+          
+          callStr = '(' + "%s"%(listFns[self.args[0]] if self.args[0] in listFns.keys() else self.args[0])  + " "
+          for a in self.args[1:]:
+            if isinstance(a, ValueRef) and a.name != "":
+              callStr += "%s "%(a.name)
+            else:
+                callStr += str(a) + " "
+          callStr += ')'
+          return callStr
+        else:
+          if 'list_empty' in self.args:
+            return   " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) 
+          else:
+            return '(' + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ')'
+      else:
+        return   " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args])
     elif kind == Expr.Kind.Synth:
       return Expr.printSynth(self)
 
@@ -157,19 +181,56 @@ class Expr:
       else: raise Exception("NYI: %s" % self)
 
     elif kind == Expr.Kind.FnDecl:
-      args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
+      if printMode == PrintMode.SMT:
+        args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
                        "(%s %s)" % (a.args[0], parseTypeRef(a.type)) for a in self.args[2:]])
-      return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
+
+        return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
+      else:
+        args = " ".join(["%s" % (a.name) if isinstance(a, ValueRef) and a.name != "" else
+                       "%s" % (a.args[0]) for a in self.args[2:]])
+        return "(define-bounded (%s %s) \n%s)" % (self.args[0], args, self.args[1])
     else:
       if printMode == PrintMode.SMT: value = self.kind.value
-      elif printMode == PrintMode.Rosette:
+      elif printMode == PrintMode.RosetteVC :
         k = self.kind
         if k == Expr.Kind.And: value = "&&"
         elif k == Expr.Kind.Eq: value = "equal?"
+        elif k == Expr.Kind.Ite: value = "if"
         else: value = self.kind.value
-
-      return "(" + value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+      else:
+        k = self.kind
+        if k == Expr.Kind.And: value = "_and"
+        elif k == Expr.Kind.Eq: value = "_eq"
+        elif k == Expr.Kind.Or: value = "_or"
+        elif k == Expr.Kind.Implies: value = "_implies"
+        elif k == Expr.Kind.Not: value = "_not"
+        elif k == Expr.Kind.Ite: value = "if"
+        elif k == Expr.Kind.Add: value = "_add"
+        elif k == Expr.Kind.Sub: value = "_sub"
+        elif k == Expr.Kind.Le: value = "_lte"
+        elif k == Expr.Kind.Lt: value = "_lt"
+        elif k == Expr.Kind.Ge: value = "_gte"
+        elif k == Expr.Kind.Gt: value = "_gt"
+        else: value = self.kind.value
+      
+      if printMode == PrintMode.SMT or printMode == PrintMode.Rosette:
+        return "(" + value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                                                      for a in self.args]) + ")"
+      else:
+        retStr = "(" + value + " "
+        for a in self.args:
+          if isinstance(a, ValueRef) and a.name != "":
+            retStr += "%s"%(a.name) + " "
+          else:
+            if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
+                retStr += '(' + listFns[str(a)] + ')' + " "
+            elif (str(a)) in listFns.keys():
+                retStr += listFns[str(a)]
+            else:
+                retStr += str(a) + " "
+        retStr += ')'
+        return retStr
 
   # commented out so that common exprs can be detected
   #
@@ -305,6 +366,6 @@ def parseTypeRef(t: TypeRef):
   if tyStr == "i64": return Int()
   elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int": return Int()
   elif tyStr == "i1" or tyStr == "Bool": return Bool()
-  elif tyStr == "%struct.list*": return Type("MLList", Int())
+  elif tyStr == "%struct.list*" or tyStr == "%struct.list**"  or tyStr == "(MLList Int)": return Type("MLList", Int())
 
   else: raise Exception("NYI %s" % t)

@@ -40,4 +40,17 @@ List<T> listAppend (List<T> in, T e)
   return r;
 }
 
+template <class T>
+List<T> listConcat (List<T> in, List<T> e) 
+{
+  List<T> r = newList<T>();
+  for (int i = 0; i < listLength(in); ++i)
+    r->contents.push_back(listGet(in, i));
+  for (int i = 0; i < listLength(e); ++i)
+    r->contents.push_back(listGet(e, i));
+  return r;
+}
+
+
+
 

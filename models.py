@@ -19,6 +19,10 @@ def listAppend(regs, *args):
   # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
   return ReturnValue(Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]), None)
 
+def listConcat(regs, *args):
+  # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
+  return ReturnValue(Call("list_concat", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]), None)
+
 fnModels = {
   # mangled names for non template version of list.h
   # "_Z7newListv": newlist,
@@ -27,6 +31,7 @@ fnModels = {
   # "_Z10listAppendP4listi": listAppend
 
   # mangled names for template version of list.h
+  # TODO add mangle name for list_concat
   "_Z7newListIiEP4listIT_Ev": newlist,
   "_Z10listLengthIiEiP4listIT_E": listLength,
   "_Z7listGetIiET_P4listIS0_Ei": listGet,
