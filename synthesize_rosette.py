@@ -3,7 +3,7 @@ import pyparsing as pp
 import os
 import ir
 from ir import printMode,PrintMode
-from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List
+from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit
 from rosette_translator import toRosette
 
 
@@ -34,10 +34,13 @@ def toExpr(ast):
 
 	expr_bi = {'_eq': Eq, '_add': Add, '_sub': Sub, '_lt': Lt, '_lte': Le, '_gt': Gt, '_gte':  Ge,'_and':  And, '_or':  Or, '=>':  Implies}
 	expr_uni = {'_not': Not}
+
 	if ast[0] in expr_bi.keys():
 		return expr_bi[ast[0]](toExpr(ast[1]), toExpr(ast[2]))
 	elif ast[0] in expr_uni.keys():
 		return expr_uni[ast[0]](toExpr(ast[1]))
+	elif ast[0] == '_if':
+		return Ite(toExpr(ast[1]), toExpr(ast[2]), toExpr(ast[3]))
 	elif ast[0] == '_list_length':
 		return Call("list_length", Int(), toExpr(ast[1]))
 	elif ast[0] == '_list_eq':
@@ -48,13 +51,18 @@ def toExpr(ast):
 		return Call("list_tail", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
 	elif ast[0] == '_list_concat':
 		return Call("list_concat", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
+	elif ast[0] == '_list_concat':
+		return Call("list_concat", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
 	elif ast[0].startswith('_'):
 		arg_eval =[]
 		for alen in range(1,len(ast)):
 			arg_eval.append(toExpr(ast[alen]))
 		return Call(ast[0][1:], List, *arg_eval)
 	else:
-		return ast
+		if ast.isnumeric():
+			return IntLit(ast)
+		else:
+			return ast
 		
 
 def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):

@@ -7,6 +7,7 @@
 (struct _and (arg1 arg2) #:transparent)
 (struct _or (arg1 arg2) #:transparent)
 (struct _implies (arg1 arg2) #:transparent)
+(struct _if (arg1 arg2 arg3) #:transparent)
 (struct _add (arg1 arg2) #:transparent)
 (struct _sub (arg1 arg2) #:transparent)
 (struct _list_append (arg1 arg2) #:transparent)
@@ -26,6 +27,7 @@
     [(_or a1 a2) (|| (interpret a1 env) (interpret a2 env))]
     [(_and a1 a2) (&& (interpret a1 env) (interpret a2 env))]
     [(_implies a1 a2) (=> (interpret a1 env) (interpret a2 env))]
+    [(_if a1 a2 a3) (if (interpret a1 env) (interpret a2 env) (interpret a3 env))]
     [(_add a1 a2) (+ (interpret a1 env) (interpret a2 env))]
     [(_sub a1 a2) (- (interpret a1 env) (interpret a2 env))]
     [(_list_append a1 a2)  (append (interpret a1 env) (interpret a2 env))]

@@ -76,6 +76,8 @@ def toRosette(filename,targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, inv
 
 	#struct declarations and function definition of target constructs
 	ir.printMode = PrintMode.RosetteVC
+	
+		
 	for t in targetLang:print("\n",generateStruct(t),"\n",t,"\n",file=f)
 	print(generateInter(targetLang),file=f)
 	

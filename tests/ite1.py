@@ -3,7 +3,8 @@ import sys
 
 from analysis import CodeInfo, analyze
 from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, FnDecl, Var, Add, Implies, Ite
-from synthesis import synthesize_new
+from rosette_translator import toRosette
+from synthesize_rosette import synthesize
 
 def grammar(ci: CodeInfo):
   name = ci.name
@@ -40,5 +41,6 @@ if __name__ == "__main__":
   invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
   lang = targetLang()
-
-  candidates = synthesize_new(lang, invAndPs, vars, preds, vc, cvcPath, basename)
+  candidates = synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
+  for c in candidates:print(c,"\n")
+  # candidates = synthesize_new(lang, invAndPs, vars, preds, vc, cvcPath, basename)

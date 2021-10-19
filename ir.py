@@ -205,13 +205,14 @@ class Expr:
         elif k == Expr.Kind.Or: value = "_or"
         elif k == Expr.Kind.Implies: value = "_implies"
         elif k == Expr.Kind.Not: value = "_not"
-        elif k == Expr.Kind.Ite: value = "if"
+        elif k == Expr.Kind.Ite: value = "_if"
         elif k == Expr.Kind.Add: value = "_add"
         elif k == Expr.Kind.Sub: value = "_sub"
         elif k == Expr.Kind.Le: value = "_lte"
         elif k == Expr.Kind.Lt: value = "_lt"
         elif k == Expr.Kind.Ge: value = "_gte"
         elif k == Expr.Kind.Gt: value = "_gt"
+
         else: value = self.kind.value
       
       if printMode == PrintMode.SMT or printMode == PrintMode.Rosette:
