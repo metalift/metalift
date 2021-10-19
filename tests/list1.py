@@ -11,15 +11,10 @@ def grammar(ci: CodeInfo):
   name = ci.name
 
   if name.startswith("inv"):
-    # e = Choose(*ci.modifiedVars)
-    # f = Choose(IntLit(1), IntLit(2), IntLit(3))
-    # c = Eq(e, Call("sum_n", Int(), Sub(e, f)))
-    # d = And(Ge(e, f), Le(e, f))
-    # b = And(c, d)
-    # return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
+
     a = Choose(ci.modifiedVars[0], *ci.readVars, Call("Select",List(Int()),*ci.readVars))
     i = Choose(IntLit(0), IntLit(1))
-    e = Choose(Call("list_eq",Bool,Call('list_append',List(Int()),a,Call("Select", List(Int()), Call('list_tail', List(Int()),a,ci.modifiedVars[1]))),a), Call("list_eq",Bool(),Call('list_concat',List(Int()),a, Call('list_tail', List(Int()),a,ci.modifiedVars[1])),a))
+    e = Choose(Call("list_eq",Bool(),Call('list_append',List(Int()),a,Call("Select", List(Int()), Call('list_tail', List(Int()),a,ci.modifiedVars[1]))),a), Call("list_eq",Bool(),Call('list_concat',List(Int()),a, Call('list_tail', List(Int()),a,ci.modifiedVars[1])),a))
     d = Choose(Ge(ci.modifiedVars[1],Call("list_length",Int(),*ci.readVars)),Le(ci.modifiedVars[1],Call("list_length",Int(),*ci.readVars)),Gt(ci.modifiedVars[1],Call("list_length",Int(),*ci.readVars)),Lt(ci.modifiedVars[1],Call("list_length",Int(),*ci.readVars)), Eq(ci.modifiedVars[1],Call("list_length",Int(),*ci.readVars)))
     c = Choose(Ge(ci.modifiedVars[1],i),Le(ci.modifiedVars[1],i),Gt(ci.modifiedVars[1],i),Lt(ci.modifiedVars[1],i), Eq(ci.modifiedVars[1],i))
     b = Choose(And(And(c,d),e))
@@ -27,10 +22,6 @@ def grammar(ci: CodeInfo):
 
   else:  # ps
     rv = ci.modifiedVars[0]
-    # choices = Choose(IntLit(1), IntLit(2))
-    # b = Eq(rv, Call("sum_n", Int(), choices))
-    # return Synth(name, b, *ci.modifiedVars, *ci.readVars)
-
     choices  = Choose(Call("list_eq", Bool(), rv, *ci.readVars), (Call("list_eq", Bool(), rv, Call("Select", List(Int()),*ci.readVars))), (Call("list_eq", Bool(), rv, Call("Select1", List(Int()),*ci.readVars))), (Call("list_eq", Bool(), rv, Call("Select2", List(Int()),*ci.readVars))))
     return Synth(name, choices, *ci.modifiedVars, *ci.readVars)
 
