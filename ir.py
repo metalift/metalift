@@ -2,6 +2,11 @@ from enum import Enum
 
 from llvmlite.binding import ValueRef, TypeRef
 
+class PrintMode(Enum):
+  SMT = 0
+  Rosette = 1
+
+printMode = PrintMode.SMT
 
 class Type: #(Enum):
   #Bool = "Bool"
@@ -36,14 +41,7 @@ class Type: #(Enum):
 def Int(): return Type("Int", [])
 def Bool(): return Type("Bool", [])
 def Pointer(): return Type("Pointer", [])
-def List(contentT): return Type("MLList", [contentT])
-
-
-class PrintMode(Enum):
-  SMT = 0
-  Rosette = 1
-
-printMode = PrintMode.SMT #Rosette
+def List(contentT): return Type("MLList", contentT)
 
 class Expr:
   class Kind(Enum):
@@ -71,6 +69,7 @@ class Expr:
 
     Assert = "assert"
     Constraint = "constraint"
+    Axiom = "axiom"
     Synth = "synth"
     Choose = "choose"
     FnDecl = "fndecl"
@@ -136,6 +135,7 @@ class Expr:
     return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
 
   def __repr__(self):
+    global printMode
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
       if kind == Expr.Kind.Lit and self.type == Bool():
@@ -149,12 +149,17 @@ class Expr:
       return "(" + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
     elif kind == Expr.Kind.Synth:
       return Expr.printSynth(self)
+
+    elif kind == Expr.Kind.Axiom:
+      if printMode == PrintMode.SMT:
+        vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
+        return "(assert (forall ( %s ) ) %s) " % (" ".join(vs), self.args[0])
+
     elif kind == Expr.Kind.FnDecl:
       args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
                        "(%s %s)" % (a.args[0], parseTypeRef(a.type)) for a in self.args[2:]])
       return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
     else:
-      global printMode
       if printMode == PrintMode.SMT: value = self.kind.value
       elif printMode == PrintMode.Rosette:
         k = self.kind
@@ -211,6 +216,8 @@ def Ite(c, e1, e2): return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 def Call(name, returnT, *args): return Expr(Expr.Kind.Call, returnT, [name, *args])
 def Assert(e): return Expr(Expr.Kind.Assert, Bool(), [e])
 def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
+
+def Axiom(e, *vars): return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
 
 # the body of a synth-fun
 def Synth(name, body, *args): return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
@@ -300,4 +307,3 @@ def parseTypeRef(t: TypeRef):
   elif tyStr == "%struct.list*": return Type("MLList", Int())
 
   else: raise Exception("NYI %s" % t)
-
