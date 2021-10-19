@@ -111,6 +111,33 @@ class Expr:
 
   @staticmethod
   def printSynth(e):
+    # commenting the code for sygus grammar generation
+    # cnts = Expr.findCommonExprs(e.args[1], {})
+    # commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
+    # rewritten = Expr.replaceExprs(e.args[1], commonExprs)
+
+    # # rewrite common exprs to use each other
+    # commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
+
+    # # (synth-fun name ( (arg type) ... ) return-type
+    # # ( (return-val type) (non-term type) (non-term type) ...)
+    # # ( (return-val type definition)
+    # #   (non-term type definition) ... ) )
+    # decls = "((rv %s) %s)" % (e.type, " ".join("(%s %s)" % ("v%d" % i, parseTypeRef(e.type)) for i, e in enumerate(commonExprs)))
+    # defs = "(rv %s %s)\n" % (e.type, rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
+    #                                            else "(%s)" % rewritten)
+
+    # defs = defs + "\n".join("(%s %s %s)" % (
+    #   "v%d" % i,
+    #   parseTypeRef(e.type),
+    #   e if e.kind == Expr.Kind.Choose else f"({e})"
+    # ) for i,e in enumerate(commonExprs))
+
+    # body = decls + "\n" + "(" + defs + ")"
+
+    # args = " ".join("(%s %s)" % (a.name, parseTypeRef(a.type)) for a in e.args[2:])
+    # return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
+
     cnts = Expr.findCommonExprs(e.args[1], {})
     commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
     rewritten = Expr.replaceExprs(e.args[1], commonExprs)
