@@ -154,6 +154,7 @@ class Expr:
       if printMode == PrintMode.SMT:
         vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
         return "(assert (forall ( %s ) ) %s) " % (" ".join(vs), self.args[0])
+      else: raise Exception("NYI: %s" % self)
 
     elif kind == Expr.Kind.FnDecl:
       args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
