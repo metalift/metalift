@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq
+from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq
 
 
 def flatten(L):
@@ -61,7 +61,7 @@ def generateCandidates(invAndPs, line, funName, returnType):
 	return candidates, candidatesExpr
 
 def toExpr(ast, funName, returnType):
-	expr_bi = {'=': Eq, '+': Add, '-': Sub, '<': Lt, '<=': Le, '>': Gt, '>=':  Ge,'and':  And, 'or':  Or, '=>':  Implies}
+	expr_bi = {'=': Eq, '+': Add, '-': Sub, '*': Mul, '<': Lt, '<=': Le, '>': Gt, '>=':  Ge,'and':  And, 'or':  Or, '=>':  Implies}
 	expr_uni = {'not': Not}
 	if ast[0] in expr_bi.keys():
 		return expr_bi[ast[0]](toExpr(ast[1], funName, returnType) , toExpr(ast[2], funName, returnType))
@@ -133,7 +133,7 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 	# Run synthesis subprocess
 	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
 													stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
-	
+
 	funName, returnType = extractFuns(targetLang)
 	logfileVerif = open(logfile, "r")
 	while True:
@@ -144,7 +144,7 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 			candDef = "\n\n".join(str(d) for d in candidates)
 			smtFile = synthDir + basename + ".smt"
 			toSMT(targetLang, candDef, vars, preds, vc, smtFile, False)
-	
+
 			# run external verification subprocess
 			procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000', smtFile],
 																		stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -153,9 +153,9 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 			if output.count('unsat') == 1:
 				print("UNSAT\n")
 				print("Verified PS and INV Candidates ", candDef)
-				#return verified invandPs as dict. {'inv0': expression, 'ps': expression} 
+				#return verified invandPs as dict. {'inv0': expression, 'ps': expression}
 				return candidatesExpr
-				
+
 			else:
 				print("CVC4 verification Result for Current Guess")
 				print("SAT\n")
