@@ -3,7 +3,7 @@ import pyparsing as pp
 import os
 import ir
 from ir import printMode,PrintMode
-from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit
+from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit
 from rosette_translator import toRosette
 
 
@@ -32,7 +32,7 @@ def stringToIr(sols, loopAndPsInfo):
 
 def toExpr(ast):
 
-	expr_bi = {'_eq': Eq, '_add': Add, '_sub': Sub, '_lt': Lt, '_lte': Le, '_gt': Gt, '_gte':  Ge,'_and':  And, '_or':  Or, '=>':  Implies}
+	expr_bi = {'_eq': Eq, '_add': Add, '_sub': Sub, '_mul': Mul, '_lt': Lt, '_lte': Le, '_gt': Gt, '_gte':  Ge,'_and':  And, '_or':  Or, '=>':  Implies}
 	expr_uni = {'_not': Not}
 
 	if ast[0] in expr_bi.keys():
@@ -63,14 +63,14 @@ def toExpr(ast):
 			return IntLit(ast)
 		else:
 			return ast
-		
+
 
 def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
 	invGuess = []
 	synthDir = './synthesisLogs/'
 	if not os.path.exists(synthDir):
 		os.mkdir(synthDir)
-	
+
 	while(True):
 		synthFile = synthDir + basename + '.rkt'
 		toRosette(synthFile,lang,vars, invAndPs, preds, vc, loopAndPsInfo,invGuess)
@@ -81,20 +81,20 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 			for idx,res in enumerate(resultSynth[1:len(resultSynth)-1]):
 				print("Generated Inv%d %s"%(idx,res))
 			print("Generated Program Summary %s"%(resultSynth[-1]))
-			
+
 		candidates = stringToIr(resultSynth[1:],loopAndPsInfo)
-		
+
 		candidatesSMT = []
 		for idx,ce in enumerate(loopAndPsInfo):
 			candidatesSMT.append(FnDecl(ce.name, ce.retT, candidates[idx],*ce.modifiedVars, *ce.readVars))
 		print("====== verification")
 		verifFile = synthDir + basename + '.smt'
-		
+
 		toSMT(lang,vars,candidatesSMT,preds,vc, verifFile)
-		
+
 
 		procVerify = subprocess.run([cvcPath,'--lang=smt','--tlimit=100000',verifFile],stdout=subprocess.PIPE)
-		
+
 		if procVerify.returncode < 0:
 			resultVerify = "SAT/UNKNOW"
 		else:
@@ -107,11 +107,11 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 			break
 		else:
 			print("verification failed")
-			invGuess.append(resultSynth[1])	
+			invGuess.append(resultSynth[1])
 			print(invGuess)
-	
-	return candidatesSMT	
-	
+
+	return candidatesSMT
+
 def toSMT(targetLang, vars, invAndPs, preds, vc, outFile):
 	# order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
 	with open(outFile, mode="w") as out:
@@ -137,6 +137,6 @@ def toSMT(targetLang, vars, invAndPs, preds, vc, outFile):
 
 		else: raise Exception("unknown type passed in for preds: %s" % preds)
 
-		
+
 		out.write("%s\n\n" % MLInst_Assert(Not(vc)))
 		out.write("(check-sat)\n(get-model)")

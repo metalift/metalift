@@ -51,6 +51,7 @@ class Expr:
 
     Add = "+"
     Sub = "-"
+    Mul = "*"
 
     Eq = "="
     Lt = "<"
@@ -67,7 +68,7 @@ class Expr:
     Ite = "ite"
 
     Call = "call"
-    
+
     Assert = "assert"
     Constraint = "constraint"
     Axiom = "axiom"
@@ -142,15 +143,15 @@ class Expr:
     commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
     rewritten = Expr.replaceExprs(e.args[1], commonExprs)
     commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
-    
+
     args = " ".join("%s" % (a.name) for a in e.args[2:])
-    
+
     defs= "[rv (choose %s)]\n" % (rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
                                                else "%s" % rewritten)
-    
+
     defs =  defs + "\n".join("%s %s)]" % ("[v%d (choose" % i, e) for i,e in enumerate(commonExprs))
-    
-   
+
+
     return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
 
   def __repr__(self):
@@ -175,14 +176,14 @@ class Expr:
             else:
               if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
                 callStr += '(' + listFns[str(a)] + ')' + " "
-              elif (str(a)) in listFns.keys(): 
+              elif (str(a)) in listFns.keys():
                  callStr += listFns[str(a)]  + " "
               else:
                 callStr += str(a) + " "
           callStr += '))'
           return callStr
         elif (self.args[0].startswith('list') and printMode == PrintMode.RosetteVC):
-          
+
           callStr = '(' + "%s"%(listFns[self.args[0]] if self.args[0] in listFns.keys() else self.args[0])  + " "
           for a in self.args[1:]:
             if isinstance(a, ValueRef) and a.name != "":
@@ -193,7 +194,7 @@ class Expr:
           return callStr
         else:
           if 'list_empty' in self.args:
-            return   " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) 
+            return   " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args])
           else:
             return '(' + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ')'
       else:
@@ -235,13 +236,14 @@ class Expr:
         elif k == Expr.Kind.Ite: value = "_if"
         elif k == Expr.Kind.Add: value = "_add"
         elif k == Expr.Kind.Sub: value = "_sub"
+        elif k == Expr.Kind.Mul: value = "_mul"
         elif k == Expr.Kind.Le: value = "_lte"
         elif k == Expr.Kind.Lt: value = "_lt"
         elif k == Expr.Kind.Ge: value = "_gte"
         elif k == Expr.Kind.Gt: value = "_gt"
 
         else: value = self.kind.value
-      
+
       if printMode == PrintMode.SMT or printMode == PrintMode.Rosette:
         return "(" + value + " " + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                                                      for a in self.args]) + ")"
@@ -288,6 +290,7 @@ def BoolLit(val): return Lit(val, Bool())
 
 def Add(*args): return Expr(Expr.Kind.Add, Int(), args)
 def Sub(*args): return Expr(Expr.Kind.Sub, Int(), args)
+def Mul(*args): return Expr(Expr.Kind.Mul, Int(), args)
 
 def Eq(e1, e2): return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 def Lt(e1, e2): return Expr(Expr.Kind.Lt, Bool(), [e1, e2])

@@ -7,7 +7,7 @@ from llvmlite.ir import Argument
 
 import models
 from ir import Expr, Type, parseTypeRef, Var, Call, Lit, Bool, Int, List, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
-  Add, Sub, BoolLit
+  Add, Sub, Mul, BoolLit
 
 
 class State:
@@ -207,11 +207,12 @@ class VC:
         # store either a reg or a literal
         s.mem[ops[1]] = VC.parseOperand(ops[0], s.regs)
 
-      elif opcode == "add" or opcode == "sub":
+      elif opcode in ("add", "sub", "mul"):
         op1 = VC.parseOperand(ops[0], s.regs)
         op2 = VC.parseOperand(ops[1], s.regs)
         if opcode == "add": s.regs[i] = Add(op1, op2)
         elif opcode == "sub": s.regs[i] = Sub(op1, op2)
+        elif opcode == "mul": s.regs[i] = Mul(op1, op2)
 
       elif opcode == "icmp":
         cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(i).strip()).group(1)

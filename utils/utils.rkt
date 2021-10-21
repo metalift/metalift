@@ -10,6 +10,7 @@
 (struct _if (arg1 arg2 arg3) #:transparent)
 (struct _add (arg1 arg2) #:transparent)
 (struct _sub (arg1 arg2) #:transparent)
+(struct _mul (arg1 arg2) #:transparent)
 (struct _list_append (arg1 arg2) #:transparent)
 (struct _list_concat (arg1 arg2) #:transparent)
 (struct _list_tail (arg1 arg2) #:transparent)
@@ -30,12 +31,13 @@
     [(_if a1 a2 a3) (if (interpret a1 env) (interpret a2 env) (interpret a3 env))]
     [(_add a1 a2) (+ (interpret a1 env) (interpret a2 env))]
     [(_sub a1 a2) (- (interpret a1 env) (interpret a2 env))]
+    [(_mul a1 a2) (* (interpret a1 env) (interpret a2 env))]
     [(_list_append a1 a2)  (append (interpret a1 env) (interpret a2 env))]
     [(_list_concat a1 a2)  (append (interpret a1 env) (interpret a2 env))]
     [(_list_tail a1 a2)  (list-tail-noerr (interpret a1 env) (interpret a2 env))]
     [(_list_eq a1 a2)  (equal? (interpret a1 env) (interpret a2 env))] ; not eq?
     [(_list_take a1 a2)  (take (interpret a1 env) (interpret a2 env)) ]
-    [(_list_length a1)  (length (interpret a1 env))]    
+    [(_list_length a1)  (length (interpret a1 env))]
     [(loc i) (vector-ref env i)]
     [_ (interpret2 e env)]))
 
