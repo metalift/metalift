@@ -43,6 +43,7 @@ def Int(): return Type("Int", [])
 def Bool(): return Type("Bool", [])
 def Pointer(): return Type("Pointer", [])
 def List(contentT): return Type("MLList", contentT)
+def Fn(retT, *argT): return Type("Function", retT, *argT)
 
 class Expr:
   class Kind(Enum):
