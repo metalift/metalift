@@ -15,7 +15,7 @@ def generateAST(expr):
 	ast = parser.parseString(expr, parseAll=True).asList()
 	return ast
 
-def stringToIr(sols, loopAndPsInfo):
+def stringToIr(sols, loopAndPsInfo, fnsType):
 	candidates = []
 	for idx,s in enumerate(sols):
 		locMappings = {}
@@ -25,46 +25,52 @@ def stringToIr(sols, loopAndPsInfo):
 			s = s.replace(key,locMappings[key])
 		ast = generateAST(s)
 		for a in ast:
-			expr = toExpr(a)
+			expr = toExpr(a,fnsType)
 		ir.printMode = PrintMode.SMT
 		candidates.append(expr)
 	return candidates
 
-def toExpr(ast):
+def toExpr(ast,fnsType):
 
 	expr_bi = {'_eq': Eq, '_add': Add, '_sub': Sub, '_mul': Mul, '_lt': Lt, '_lte': Le, '_gt': Gt, '_gte':  Ge,'_and':  And, '_or':  Or, '=>':  Implies}
 	expr_uni = {'_not': Not}
 
 	if ast[0] in expr_bi.keys():
-		return expr_bi[ast[0]](toExpr(ast[1]), toExpr(ast[2]))
+		return expr_bi[ast[0]](toExpr(ast[1],fnsType), toExpr(ast[2],fnsType))
 	elif ast[0] in expr_uni.keys():
-		return expr_uni[ast[0]](toExpr(ast[1]))
+		return expr_uni[ast[0]](toExpr(ast[1]),fnsType)
 	elif ast[0] == '_if':
-		return Ite(toExpr(ast[1]), toExpr(ast[2]), toExpr(ast[3]))
+		return Ite(toExpr(ast[1],fnsType), toExpr(ast[2],fnsType), toExpr(ast[3],fnsType))
 	elif ast[0] == '_list_length':
-		return Call("list_length", Int(), toExpr(ast[1]))
+		return Call("list_length", Int(), toExpr(ast[1],fnsType))
 	elif ast[0] == '_list_eq':
-		return Call("=", Bool(), toExpr(ast[1]), toExpr(ast[2]))
+		return Call("=", Bool(), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType))
 	elif ast[0] == '_list-append':
-		return Call("list_append", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
-	elif ast[0] == '_list-tail':
-		return Call("list_tail", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
+		return Call("list_append", List(Int()), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType) )
+	elif ast[0] == '_list_tail':
+		return Call("list_tail", List(Int()), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType) )
 	elif ast[0] == '_list_concat':
-		return Call("list_concat", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
+		return Call("list_concat", List(Int()), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType) )
 	elif ast[0] == '_list_concat':
-		return Call("list_concat", List(Int()), toExpr(ast[1]), toExpr(ast[2]) )
+		return Call("list_concat", List(Int()), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType) )
 	elif ast[0].startswith('_'):
+		
 		arg_eval =[]
 		for alen in range(1,len(ast)):
-			arg_eval.append(toExpr(ast[alen]))
-		return Call(ast[0][1:], List, *arg_eval)
+			arg_eval.append(toExpr(ast[alen],fnsType))
+		retT = fnsType[ast[0]]
+
+		return Call(ast[0][1:], retT, *arg_eval)
 	else:
 		if ast.isnumeric():
 			return IntLit(ast)
 		else:
 			return ast
-
-
+def generateTypes(lang):
+	fnsType = {}
+	for l in lang:
+		fnsType['_'+l.args[0]] = l.type
+	return fnsType
 def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
 	invGuess = []
 	synthDir = './synthesisLogs/'
@@ -81,15 +87,18 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 			for idx,res in enumerate(resultSynth[1:len(resultSynth)-1]):
 				print("Generated Inv%d %s"%(idx,res))
 			print("Generated Program Summary %s"%(resultSynth[-1]))
-
-		candidates = stringToIr(resultSynth[1:],loopAndPsInfo)
+		fnsType = generateTypes(lang)
+		
+		candidates = stringToIr(resultSynth[1:],loopAndPsInfo,fnsType)
 
 		candidatesSMT = []
 		for idx,ce in enumerate(loopAndPsInfo):
+		
+			
 			candidatesSMT.append(FnDecl(ce.name, ce.retT, candidates[idx],*ce.modifiedVars, *ce.readVars))
 		print("====== verification")
 		verifFile = synthDir + basename + '.smt'
-
+		
 		toSMT(lang,vars,candidatesSMT,preds,vc, verifFile)
 
 

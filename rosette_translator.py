@@ -50,13 +50,13 @@ def generateSynth(vars, invariant_guesses, loopAndPsInfo):
 	return synth_fun
 
 def generateStruct(FnDecl):
-	structDecl = "(struct _%s (%s) #:transparent)"%(str(FnDecl.args[0]), ' '.join(map(str, FnDecl.args[2:])))
+	structDecl = "(struct _%s (%s) #:transparent)"%(str(FnDecl.args[0]), ' '.join([f.args[0] if f.type.name == "Function" else str(f) for f in FnDecl.args[2:]]))
 	return structDecl
 
 def generateInter(FnDecl):
 	interpreter = "(define (interpret2 e env)\n(match e\n"
 	for fns in FnDecl:
-		interpreter += '[(_%s %s) (%s %s)]\n'%(str(fns.args[0]), ' '.join(map(str, fns.args[2:])),str(fns.args[0]),' '.join(["(interpret %s env)"%(v) for v in fns.args[2:]])) 
+		interpreter += '[(_%s %s) (%s %s)]\n'%(str(fns.args[0]), ' '.join([f.args[0] if f.type.name == "Function" else str(f) for f in fns.args[2:]]),str(fns.args[0]),' '.join(["(interpret %s env)"%(v) if v.type.name != "Function" else "%s"%(v.args[0])  for v in fns.args[2:]])) 
 	#base case
 	interpreter += '[_ e]))\n\n'
 	return interpreter
