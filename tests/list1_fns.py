@@ -37,7 +37,7 @@ def targetLang():
   select_pred2 = FnDecl("Select-pred2",Fn(Bool()),And(Gt(arg,2),Lt(arg,10)),arg)
   data = Var("l", List(Int()))
   f = Var("f", Fn(Bool()))
-  select_func = FnDecl("Select", List(Int()), Ite(Eq(Call("list_length",Int(),data),IntLit(0)), Call("list_empty",List(Int())), Ite(Call("f",Bool(),Call("list_get", Int(), data, IntLit(0))),Call("list_append",List(Int()),Call("Select",List(Int()),Call("list_tail", List(Int()),data, IntLit(1))), Call("list_get", Int(),data, IntLit(0)),),Call("Select",List(Int()),Call("list_tail",List(Int()),data,IntLit(1))))),data,f)
+  select_func = FnDecl("Select", List(Int()), Ite(Eq(Call("list_length",Int(),data),IntLit(0)), Call("list_empty",List(Int())), Ite(Call(f.args[0],Bool(),Call("list_get", Int(), data, IntLit(0))),Call("list_append",List(Int()),Call("Select",List(Int()),Call("list_tail", List(Int()),data, IntLit(1))), Call("list_get", Int(),data, IntLit(0)),),Call("Select",List(Int()),Call("list_tail",List(Int()),data,IntLit(1))))),data,f)
   
 
   
