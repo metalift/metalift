@@ -58,15 +58,17 @@ mkShell {
     pythonPackages.python
     pythonPackages.llvmlite
     pythonPackages.pyparsing
-    pythonPackages.venvShellHook
     (cvc5)
     llvm_10
     clang_10
+    racket
   ];
 
-  postShellHook = ''
-    pip install --upgrade pip
-  '';
-
   hardeningDisable = [ "fortify" ];
+
+  NIX_LD_LIBRARY_PATH = lib.makeLibraryPath [
+    stdenv.cc.cc
+  ];
+
+  NIX_LD = lib.fileContents "${stdenv.cc}/nix-support/dynamic-linker";
 }

@@ -104,14 +104,14 @@ class Expr:
     if e not in commonExprs or skipTop:
       if isinstance(e, Expr):
         newArgs = [Expr.replaceExprs(arg, commonExprs) for arg in e.args]
-        if printMode == PrintMode.RosetteVC and e.kind == Expr.Kind.Call:
+        if (printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC) and e.kind == Expr.Kind.Call:
           if e.type.name != "Function":
             newArgs[0] = '_' + newArgs[0]
         return Expr(e.kind, e.type, newArgs)
       else:
         return e  # ValueRef or TypeRef
     else:
-      if printMode == PrintMode.RosetteVC:
+      if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
         return Var("(v%d)" % commonExprs.index(e), e.type)
       else:
         return Var("v%d" % commonExprs.index(e), e.type)
@@ -125,13 +125,13 @@ class Expr:
     # rewrite common exprs to use each other
     commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
 
-    if printMode == PrintMode.RosetteVC:
+    if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
       args = " ".join("%s" % (a.name) for a in e.args[2:])
 
       defs= "[rv (choose %s)]\n" % (rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
                                                 else "%s" % rewritten)
     
-      defs =  defs + "\n".join("%s %s)]" % ("[v%d (choose" % i, parseTypeRef(e.type) if isinstance(e.type, TypeRef) else e.type) for i,e in enumerate(commonExprs))
+      defs =  defs + "\n".join("%s %s)]" % ("[v%d (choose" % i, e) for i,e in enumerate(commonExprs))
 
       return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
     elif printMode == PrintMode.SMT:

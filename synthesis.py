@@ -119,7 +119,7 @@ def synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename):
 
 
 
-def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
+def synthesize_new(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
 	synthDir = './synthesisLogs/'
 	if not os.path.exists(synthDir):
 		os.mkdir(synthDir)
@@ -153,8 +153,8 @@ def synthesize_new(targetLang, invAndPs, vars, preds, vc, cvcPath, basename):
 			if output.count('unsat') == 1:
 				print("UNSAT\n")
 				print("Verified PS and INV Candidates ", candDef)
-				#return verified invandPs as dict. {'inv0': expression, 'ps': expression}
-				return candidatesExpr
+
+				return candidates
 
 			else:
 				print("CVC4 verification Result for Current Guess")
