@@ -6,51 +6,46 @@ target triple = "x86_64-unknown-linux-gnu"
 %struct.set = type {}
 
 ; Function Attrs: noinline nounwind optnone sspstrong uwtable
-define %struct.set* @test(i32 %arg) #0 {
+define %struct.set* @test(%struct.set* %arg, i32 %arg1, i32 %arg2) #0 {
 bb:
-  %tmp = alloca i32, align 4
-  %tmp1 = alloca %struct.set*, align 8
-  store i32 %arg, i32* %tmp, align 4
-  %tmp2 = call %struct.set* (...) @set_create()
-  store %struct.set* %tmp2, %struct.set** %tmp1, align 8
-  %tmp3 = load %struct.set*, %struct.set** %tmp1, align 8
-  %tmp4 = call %struct.set* @set_add(%struct.set* %tmp3, i32 1)
-  store %struct.set* %tmp4, %struct.set** %tmp1, align 8
-  %tmp5 = load %struct.set*, %struct.set** %tmp1, align 8
-  %tmp6 = call %struct.set* @set_add(%struct.set* %tmp5, i32 2)
-  store %struct.set* %tmp6, %struct.set** %tmp1, align 8
-  %tmp7 = load %struct.set*, %struct.set** %tmp1, align 8
-  %tmp8 = call %struct.set* @set_add(%struct.set* %tmp7, i32 3)
-  store %struct.set* %tmp8, %struct.set** %tmp1, align 8
-  %tmp9 = load i32, i32* %tmp, align 4
-  %tmp10 = icmp eq i32 %tmp9, 1
-  br i1 %tmp10, label %bb17, label %bb11
+  %tmp = alloca %struct.set*, align 8
+  %tmp3 = alloca i32, align 4
+  %tmp4 = alloca i32, align 4
+  store %struct.set* %arg, %struct.set** %tmp, align 8
+  store i32 %arg1, i32* %tmp3, align 4
+  store i32 %arg2, i32* %tmp4, align 4
+  %tmp5 = load i32, i32* %tmp3, align 4
+  %tmp6 = icmp eq i32 %tmp5, 1
+  br i1 %tmp6, label %bb17, label %bb18
 
-bb11:                                             ; preds = %bb
-  %tmp12 = load i32, i32* %tmp, align 4
-  %tmp13 = icmp eq i32 %tmp12, 2
-  br i1 %tmp13, label %bb17, label %bb14
+bb7:                                              ; preds = %bb17
+  %tmp8 = load %struct.set*, %struct.set** %tmp, align 8
+  %tmp9 = load i32, i32* %tmp4, align 4
+  %tmp10 = call %struct.set* @set_add(%struct.set* %tmp8, i32 %tmp9)
+  store %struct.set* %tmp10, %struct.set** %tmp, align 8
+  br label %bb15
 
-bb14:                                             ; preds = %bb11
-  %tmp15 = load i32, i32* %tmp, align 4
-  %tmp16 = icmp eq i32 %tmp15, 3
-  br i1 %tmp16, label %bb17, label %bb21
+bb11:                                             ; preds = %bb18
+  %tmp12 = load %struct.set*, %struct.set** %tmp, align 8
+  %tmp13 = load i32, i32* %tmp4, align 4
+  %tmp14 = call %struct.set* @set_remove(%struct.set* %tmp12, i32 %tmp13)
+  store %struct.set* %tmp14, %struct.set** %tmp, align 8
+  br label %bb15
 
-bb17:                                             ; preds = %bb14, %bb11, %bb
-  %tmp18 = load %struct.set*, %struct.set** %tmp1, align 8
-  %tmp19 = load i32, i32* %tmp, align 4
-  %tmp20 = call %struct.set* @set_add(%struct.set* %tmp18, i32 %tmp19)
-  store %struct.set* %tmp20, %struct.set** %tmp1, align 8
-  br label %bb21
+bb15:                                             ; preds = %bb11, %bb7
+  %tmp16 = load %struct.set*, %struct.set** %tmp, align 8
+  ret %struct.set* %tmp16
 
-bb21:                                             ; preds = %bb17, %bb14
-  %tmp22 = load %struct.set*, %struct.set** %tmp1, align 8
-  ret %struct.set* %tmp22
+bb17:                                             ; preds = %bb
+  br label %bb7
+
+bb18:                                             ; preds = %bb
+  br label %bb11
 }
 
-declare %struct.set* @set_create(...) #1
-
 declare %struct.set* @set_add(%struct.set*, i32) #1
+
+declare %struct.set* @set_remove(%struct.set*, i32) #1
 
 attributes #0 = { noinline nounwind optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="4" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="4" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }

@@ -11,15 +11,37 @@ def grammar(ci: CodeInfo):
   if name.startswith("inv"):
     raise Exception("no invariant")
   else:  # ps
-    inputVars = Choose(*ci.readVars)
+    inputS = ci.readVars[0]
+    inputAdd = ci.readVars[1]
+    inputValue = ci.readVars[2]
     outputVar = ci.modifiedVars[0]
+        
     emptySet = Call("as emptyset (Set Int)", Set(Int()))
+
     intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    intValue = Choose(inputVars, intLit)
-    outSet = emptySet
-    for i in range(3):
-      outSet = Call("insert", Set(Int()), intValue, outSet)
-    summary = Eq(outputVar, outSet)
+    intValue = Choose(inputValue, intLit)
+
+    condition = Eq(inputAdd, intLit)
+
+    setIn = Choose(
+      inputS,
+      emptySet,
+      Call("singleton", Set(Int()), intValue)
+    )
+
+    setTransform = Choose(
+      setIn,
+      Call("union", Set(Int()), setIn, setIn),
+      Call("setminus", Set(Int()), setIn, setIn)
+    )
+
+    chosenTransform = Ite(
+      condition,
+      setTransform,
+      setTransform
+    )
+
+    summary = Eq(outputVar, chosenTransform)
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():

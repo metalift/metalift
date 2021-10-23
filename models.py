@@ -41,5 +41,13 @@ fnModels = {
   # names for set.h
   "set_create": lambda _: ReturnValue(Var("(as emptyset (Set Int))", Set(Int())), None),
   "set_add": lambda regs, *args: ReturnValue(Call("insert", Set(Int()), parseOperand(args[1], regs), parseOperand(args[0], regs)), None),
+  "set_remove": lambda regs, *args: ReturnValue(
+    Call(
+      "setminus", Set(Int()),
+      parseOperand(args[0], regs),
+      Call("singleton", Set(Int()), parseOperand(args[1], regs))
+    ),
+    None
+  ),
   "set_contains": lambda regs, *args: ReturnValue(Call("member", Set(Int()), parseOperand(args[1], regs), parseOperand(args[0], regs)), None),
 }

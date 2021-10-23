@@ -161,7 +161,7 @@ class Expr:
     defs= "[rv (choose %s)]\n" % (rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
                                                else "%s" % rewritten)
   
-    defs =  defs + "\n".join("%s %s)]" % ("[v%d (choose" % i, e) for i,e in enumerate(commonExprs))
+    defs =  defs + "\n".join("%s %s)]" % ("[v%d (choose" % i, parseTypeRef(e.type) if isinstance(e.type, TypeRef) else e.type) for i,e in enumerate(commonExprs))
 
 
     return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
