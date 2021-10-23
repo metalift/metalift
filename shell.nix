@@ -21,12 +21,6 @@ let
       cp -r * $out/symfpu/
     '';
   };
-
-  cadicalCpp = unstable.cadical.overrideAttrs(super: {
-    installPhase = super.installPhase + ''
-      install -Dm0644 src/cadical.hpp "$dev/include/cadical.hpp"
-    '';
-  });
 in
 let
   pythonPackages = python38Packages;
@@ -50,8 +44,8 @@ let
 
     cmakeFlags = [
       "-DCMAKE_BUILD_TYPE=Production"
-      "-DCaDiCaL_INCLUDE_DIR=${cadicalCpp.dev}/include/"
-      "-DCaDiCaL_LIBRARIES=${cadicalCpp.lib}/lib/libcadical.a"
+      "-DCaDiCaL_INCLUDE_DIR=${unstable.cadical.dev}/include/"
+      "-DCaDiCaL_LIBRARIES=${unstable.cadical.lib}/lib/libcadical.a"
       "-DCaDiCaL_FOUND=1"
       "-DANTLR3_JAR=${antlr3_4}/lib/antlr/antlr-3.4-complete.jar"
       "-DSymFPU_INCLUDE_DIR=${(symfpu)}"
