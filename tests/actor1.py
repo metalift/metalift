@@ -12,6 +12,12 @@ else:
 def observeEquivalence(inputState, synthState):
   return Eq(inputState, synthState)
 
+def supportedCommand(synthState, args):
+  add = args[0]
+  value = args[1]
+
+  return BoolLit(True)
+
 def grammar(ci: CodeInfo):
   name = ci.name
 
@@ -85,7 +91,10 @@ if __name__ == "__main__":
     ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
     
     return Implies(
-      observeEquivalence(beforeState, beforeStateForPS),
+      And(
+        supportedCommand(beforeStateForPS, origArgs[1:]),
+        observeEquivalence(beforeState, beforeStateForPS)
+      ),
       Implies(
         ps,
         observeEquivalence(afterState, afterStateForPS)
