@@ -84,6 +84,8 @@ class Expr:
     self.args = args
     self.type = type
 
+  def mapArgs(self, f):
+    return Expr(self.kind, self.type, [f(a) for a in self.args])
 
   @staticmethod
   def findCommonExprs(e, cnts):

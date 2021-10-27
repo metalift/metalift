@@ -185,7 +185,7 @@ def processLoops(header, body, exits, latches, fnArgs):
 
   return CodeInfo(inv.operands[0], Bool(), havocs, fnArgs)
 
-def processBranches(blocksMap, fnArgs):
+def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None):
   retCodeInfo = []
   for b in blocksMap.values():
     opcode = b.instructions[-1].opcode
@@ -209,13 +209,15 @@ def processBranches(blocksMap, fnArgs):
     elif opcode == "ret":
       filteredArgs = list(filter(lambda a: b"sret" not in a.attributes, fnArgs))  # remove the sret args
       ps = MLInst_Call("ps", Bool(), ops[0], *filteredArgs)
+      if wrapSummaryCheck:
+        ps = wrapSummaryCheck(ps)
       b.instructions.insert(-1, MLInst_Assert(ps))
       retCodeInfo.append(CodeInfo("ps", Bool(), [ops[0]], filteredArgs))
 
   return retCodeInfo
 
 # run all code analysis
-def analyze(filename, fnName, loopsFile):
+def analyze(filename, fnName, loopsFile, wrapSummaryCheck=None):
   with open(filename, mode="r") as file:
     ref = llvm.parse_assembly(file.read())
 
@@ -234,7 +236,7 @@ def analyze(filename, fnName, loopsFile):
                          list(fn.arguments)))
 
   # add ps code info
-  loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments))
+  loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments), wrapSummaryCheck)
 
   print("====== after transforms")
   for b in blocksMap.values():

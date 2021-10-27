@@ -3,3 +3,5 @@
 *.pyc
 llvm-pass/build/
 synthesisLogs/
+tests/*.ll
+tests/*.loops

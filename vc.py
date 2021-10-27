@@ -301,6 +301,9 @@ class VC:
   @staticmethod
   def evalMLInst(i, reg, mem):
     if isinstance(i, ValueRef): return reg[i]
+    if isinstance(i, Expr):
+      if i.kind == Expr.Kind.Lit: return i
+      else: return i.mapArgs(lambda x: VC.evalMLInst(x, reg, mem))
     elif isinstance(i, str): return i
     elif i.opcode == "load": return mem[i.operands[0]]
     elif i.opcode == "not": return Not(VC.evalMLInst(i.operands[0], reg, mem))
