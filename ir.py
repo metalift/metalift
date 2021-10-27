@@ -45,6 +45,7 @@ def Pointer(): return Type("Pointer", [])
 def List(contentT): return Type("MLList", contentT)
 def Fn(retT, *argT): return Type("Function", retT, *argT)
 def Set(contentT): return Type("Set", contentT)
+def Tuple(*elemT): return Type("Tuple", *elemT)
 
 class Expr:
   class Kind(Enum):
@@ -77,6 +78,8 @@ class Expr:
     Synth = "synth"
     Choose = "choose"
     FnDecl = "fndecl"
+
+    TupleSel = "tuplesel"
 
 
   def __init__(self, kind, type, args):
@@ -148,7 +151,7 @@ class Expr:
 
       body = decls + "\n" + "(" + defs + ")"
 
-      args = " ".join("(%s %s)" % (a.name, parseTypeRef(a.type)) for a in e.args[2:])
+      args = " ".join("(%s %s)" % (a.name if isinstance(a, ValueRef) else str(a), parseTypeRef(a.type)) for a in e.args[2:])
       return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
 
   def __repr__(self):
@@ -226,6 +229,11 @@ class Expr:
                        "%s" % (a.args[0]) for a in self.args[2:]])
 
         return "(define-bounded (%s %s) \n%s)" % (self.args[0], args, self.args[1])
+    elif kind == Expr.Kind.TupleSel:
+      if printMode == PrintMode.SMT:
+        return "((_ tuple_select %s) %s)" % (self.args[1], self.args[0])
+      else:
+        raise Exception("NYI (rosette): %s" % self)
     else:
       if printMode == PrintMode.SMT: value = self.kind.value
       elif printMode == PrintMode.RosetteVC :
@@ -318,6 +326,8 @@ def Call(name, returnT, *args): return Expr(Expr.Kind.Call, returnT, [name, *arg
 def Assert(e): return Expr(Expr.Kind.Assert, Bool(), [e])
 def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 
+def TupleSel(t, i): return Expr(Expr.Kind.TupleSel, t.type.args[i], [t, IntLit(i)])
+
 def Axiom(e, *vars): return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
 
 # the body of a synth-fun
@@ -402,6 +412,9 @@ class MLValueRef:
 def parseTypeRef(t: TypeRef):
   # ty.name returns empty string. possibly bug
   tyStr = str(t)
+
+  if isinstance(t, Type): return t
+
   if tyStr == "i64": return Int()
   elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int": return Int()
   elif tyStr == "i1" or tyStr == "Bool": return Bool()

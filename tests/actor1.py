@@ -2,7 +2,7 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, BoolLit, FnDecl, Var, Add, Implies, Ite, Set
+from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, Bool, BoolLit, FnDecl, Var, Add, Implies, Ite, Set, Tuple, TupleSel
 
 if False:
   from synthesize_rosette import synthesize
@@ -10,13 +10,27 @@ else:
   from synthesis import synthesize_new as synthesize
 
 def observeEquivalence(inputState, synthState):
-  return Eq(inputState, synthState)
+  return Eq(
+    inputState,
+    Call(
+      "setminus", Set(Int()),
+      TupleSel(synthState, 0),
+      TupleSel(synthState, 1)
+    )
+  )
 
 def supportedCommand(synthState, args):
   add = args[0]
   value = args[1]
 
-  return BoolLit(True)
+  return Ite(
+    Eq(add, IntLit(1)),
+    Not(Or(
+      Call("member", Bool(), value, TupleSel(synthState, 0)),
+      Call("member", Bool(), value, TupleSel(synthState, 1))
+    )),
+    Not(Call("member", Bool(), value, TupleSel(synthState, 1)))
+  )
 
 def grammar(ci: CodeInfo):
   name = ci.name
@@ -25,27 +39,27 @@ def grammar(ci: CodeInfo):
     raise Exception("no invariant")
   else:  # ps
     inputState = ci.readVars[0]
+    stateSet1 = TupleSel(inputState, 0)
+    stateSet2 = TupleSel(inputState, 1)
+
     inputAdd = ci.readVars[1]
     inputValue = ci.readVars[2]
+
     outputState = ci.modifiedVars[0]
         
     emptySet = Call("as emptyset (Set Int)", Set(Int()))
 
-    intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    intValue = Choose(inputValue, intLit)
+    intLit = Choose(IntLit(0), IntLit(1))
 
     condition = Eq(inputAdd, intLit)
 
     setIn = Choose(
-      inputState,
-      emptySet,
-      Call("singleton", Set(Int()), intValue)
+      stateSet1, stateSet2,
+      Call("singleton", Set(Int()), inputValue),
     )
 
     setTransform = Choose(
-      setIn,
-      Call("union", Set(Int()), setIn, setIn),
-      Call("setminus", Set(Int()), setIn, setIn)
+      Call("union", Set(Int()), setIn, setIn)
     )
 
     chosenTransform = Ite(
@@ -54,7 +68,13 @@ def grammar(ci: CodeInfo):
       setTransform
     )
 
-    summary = observeEquivalence(outputState, chosenTransform)
+    summary = Eq(outputState, Call(
+      "tuple",
+      Tuple(Set(Int()), Set(Int())),
+      chosenTransform,
+      chosenTransform
+    ))
+
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -77,10 +97,11 @@ if __name__ == "__main__":
     beforeState = origArgs[0]
     afterState = origReturn
 
-    beforeStateForPS = Var(beforeState.name + "_for_ps", Set(Int()))
+    synthStateType = Tuple(Set(Int()), Set(Int()))
+    beforeStateForPS = Var(beforeState.name + "_for_ps", synthStateType)
     extraVarsStateTransition.add(beforeStateForPS)
 
-    afterStateForPS = Var(afterState.name + "_for_ps", Set(Int()))
+    afterStateForPS = Var(afterState.name + "_for_ps", synthStateType)
     extraVarsStateTransition.add(afterStateForPS)
 
     newReturn = afterStateForPS
@@ -99,7 +120,7 @@ if __name__ == "__main__":
         ps,
         observeEquivalence(afterState, afterStateForPS)
       )
-    )
+    ), ps.operands[2:]
 
   (vcVarsStateTransition, invAndPsStateTransition, predsStateTransition, vcStateTransition, loopAndPsInfoStateTransition) = analyze(
     filename, fnNameBase + "_next_state", loopsFile,

@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq
+from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, TupleSel, Int
 
 
 def flatten(L):
@@ -63,7 +63,9 @@ def generateCandidates(invAndPs, line, funName, returnType):
 def toExpr(ast, funName, returnType):
 	expr_bi = {'=': Eq, '+': Add, '-': Sub, '*': Mul, '<': Lt, '<=': Le, '>': Gt, '>=':  Ge,'and':  And, 'or':  Or, '=>':  Implies}
 	expr_uni = {'not': Not}
-	if ast[0] in expr_bi.keys():
+	if type(ast[0]) == list and ast[0][0] == "_" and ast[0][1] == "tuple_select":
+		return "TODO"
+	elif ast[0] in expr_bi.keys():
 		return expr_bi[ast[0]](toExpr(ast[1], funName, returnType) , toExpr(ast[2], funName, returnType))
 	elif ast[0] in expr_uni.keys():
 		return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
@@ -131,16 +133,19 @@ def synthesize_new(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInf
 	logfile = synthDir + basename + '_logs.txt'
 	synthLogs = open(logfile, 'w')
 	# Run synthesis subprocess
-	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', sygusFile],
+	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus', '--no-sygus-pbe', sygusFile],
 													stdout=synthLogs)  # ,stderr=subprocess.DEVNULL)
 
 	funName, returnType = extractFuns(targetLang)
 	logfileVerif = open(logfile, "r")
 	while True:
 		line = logfileVerif.readline()
-		if 'sygus-candidate' in line:
+		if 'fail' in line:
+			print("SyGuS failed")
+			break
+		elif 'sygus-candidate' in line:
 			print("Current PS and INV Guess ", line)
-			candidates, candidatesExpr = generateCandidates(invAndPs, line, funName, returnType)
+			candidates, _ = generateCandidates(invAndPs, line, funName, returnType)
 			candDef = "\n\n".join(str(d) for d in candidates)
 			smtFile = synthDir + basename + ".smt"
 			toSMT(targetLang, candDef, vars, preds, vc, smtFile, False)

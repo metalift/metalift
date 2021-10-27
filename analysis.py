@@ -207,12 +207,15 @@ def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None):
                                                     MLInst_Not(MLInstOr(*[MLInst.Eq(ops[0], v) for v in vals]))))
 
     elif opcode == "ret":
+      returnArg = ops[0]
       filteredArgs = list(filter(lambda a: b"sret" not in a.attributes, fnArgs))  # remove the sret args
-      ps = MLInst_Call("ps", Bool(), ops[0], *filteredArgs)
+      ps = MLInst_Call("ps", Bool(), returnArg, *filteredArgs)
       if wrapSummaryCheck:
-        ps = wrapSummaryCheck(ps)
+        ps, transformedArgs = wrapSummaryCheck(ps)
+        returnArg = transformedArgs[0]
+        filteredArgs = transformedArgs[1:]
       b.instructions.insert(-1, MLInst_Assert(ps))
-      retCodeInfo.append(CodeInfo("ps", Bool(), [ops[0]], filteredArgs))
+      retCodeInfo.append(CodeInfo("ps", Bool(), [returnArg], filteredArgs))
 
   return retCodeInfo
 
