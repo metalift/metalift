@@ -58,13 +58,17 @@ def grammar(ci: CodeInfo):
     )
 
     setTransform = Choose(
+      setIn,
       Call("union", Set(Int()), setIn, setIn)
     )
 
-    chosenTransform = Ite(
-      condition,
+    chosenTransform = Choose(
       setTransform,
-      setTransform
+      Ite(
+        condition,
+        setTransform,
+        setTransform
+      )
     )
 
     summary = Eq(outputState, Call(
