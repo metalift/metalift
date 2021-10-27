@@ -25,11 +25,10 @@ def supportedCommand(synthState, args):
 
   return Ite(
     Eq(add, IntLit(1)),
-    Not(Or(
-      Call("member", Bool(), value, TupleSel(synthState, 0)),
-      Call("member", Bool(), value, TupleSel(synthState, 1))
-    )),
-    Not(Call("member", Bool(), value, TupleSel(synthState, 1)))
+    # insertion works if the elem is not in the deletion set
+    Not(Call("member", Bool(), value, TupleSel(synthState, 1))),
+    # deletion always works
+    BoolLit(True)
   )
 
 def grammar(ci: CodeInfo):
