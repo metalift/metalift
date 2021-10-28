@@ -9,6 +9,8 @@ if False:
 else:
   from synthesis import synthesize_new as synthesize
 
+synthStateType = Tuple(Set(Int()), Set(Int()))
+
 def observeEquivalence(inputState, synthState):
   return Eq(
     inputState,
@@ -19,6 +21,10 @@ def observeEquivalence(inputState, synthState):
     )
   )
 
+def validState(synthState):
+  # delete set is a subset of the insert set
+  return Call("subset", Bool(), TupleSel(synthState, 1), TupleSel(synthState, 0))
+
 def supportedCommand(synthState, args):
   add = args[0]
   value = args[1]
@@ -26,8 +32,11 @@ def supportedCommand(synthState, args):
   return Ite(
     Eq(add, IntLit(1)),
     # insertion works if the elem is not in the deletion set
+    # (which means it's in both sets)
     Not(Call("member", Bool(), value, TupleSel(synthState, 1))),
-    # deletion always works
+    # deletion can work even if not in the insertion set
+    # because we can just add the element to both sets
+    # which results in an observed-equivalent final state
     BoolLit(True)
   )
 
@@ -100,7 +109,6 @@ if __name__ == "__main__":
     beforeState = origArgs[0]
     afterState = origReturn
 
-    synthStateType = Tuple(Set(Int()), Set(Int()))
     beforeStateForPS = Var(beforeState.name + "_for_ps", synthStateType)
     extraVarsStateTransition.add(beforeStateForPS)
 
@@ -116,12 +124,18 @@ if __name__ == "__main__":
     
     return Implies(
       And(
-        supportedCommand(beforeStateForPS, origArgs[1:]),
-        observeEquivalence(beforeState, beforeStateForPS)
+        validState(beforeStateForPS),
+        And(
+          supportedCommand(beforeStateForPS, origArgs[1:]),
+          observeEquivalence(beforeState, beforeStateForPS)
+        )
       ),
       Implies(
         ps,
-        observeEquivalence(afterState, afterStateForPS)
+        And(
+          validState(afterStateForPS),
+          observeEquivalence(afterState, afterStateForPS)
+        )
       )
     ), ps.operands[2:]
 
@@ -135,6 +149,32 @@ if __name__ == "__main__":
   print("====== synthesis")
   invAndPsStateTransition = [grammar(ci) for ci in loopAndPsInfoStateTransition]
 
+  extraVarsInitValidStateVC = set()
+  initStateVar = Var("initState", synthStateType)
+  extraVarsInitValidStateVC.add(initStateVar)
+  initValidStateVC = Implies(
+    Eq(initStateVar, Call(
+      "tuple",
+      Tuple(Set(Int()), Set(Int())),
+      Var("(as emptyset (Set Int))", Set(Int())),
+      Var("(as emptyset (Set Int))", Set(Int()))
+    )),
+    validState(initStateVar)
+  )
+
+  combinedVCVars = vcVarsStateTransition.union(extraVarsInitValidStateVC)
+
+  combinedInvAndPs = invAndPsStateTransition
+
+  combinedPreds = predsStateTransition
+
+  combinedLoopAndPsInfo = loopAndPsInfoStateTransition
+
+  combinedVC = And(
+    initValidStateVC,
+    vcStateTransition
+  )
+
   lang = targetLang()
 
-  candidates = synthesize(basename, lang, vcVarsStateTransition, invAndPsStateTransition, predsStateTransition, vcStateTransition, loopAndPsInfoStateTransition, cvcPath)
+  candidates = synthesize(basename, lang, combinedVCVars, combinedInvAndPs, combinedPreds, combinedVC, combinedLoopAndPsInfo, cvcPath)
