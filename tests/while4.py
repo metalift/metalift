@@ -24,6 +24,7 @@ def grammar(ci: CodeInfo):
   name = ci.name
 
   if name.startswith("inv"):
+
     e = Choose(*ci.modifiedVars)
     f = Choose(IntLit(1), IntLit(2), IntLit(3))
     c = Eq(e, Call("sum_n", Int(), Sub(e, f)))

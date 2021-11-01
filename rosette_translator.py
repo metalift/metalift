@@ -44,26 +44,21 @@ def generateSynth(vars, invariant_guesses, loopAndPsInfo):
 		for inv in invariant_guesses:
 			blocking_constraints.append("(assert (!(eq? inv %s)))"%(inv))
 		asserts = " ".join(blocking_constraints)
-		synth_fun = "(define sol\n (synthesize\n #:forall %s\n #:guarantee (begin (assertions) %s)))\n (sat? sol)\n %s"%(listvars,asserts, "\n".join(["(evaluate %s sol)"%(a.name) for a in loopAndPsInfo]))
+		synth_fun = "(define sol\n (synthesize\n #:forall %s\n #:guarantee (begin (assertions) %s)))\n (sat? sol)\n %s"%(listvars,asserts, "(print-forms sol)")
 	else:
-		synth_fun = "(define sol\n (synthesize\n #:forall %s\n #:guarantee (assertions)))\n (sat? sol)\n %s"%(listvars,"\n".join(["(evaluate %s sol)"%(a.name) for a in loopAndPsInfo]))
+		synth_fun = "(define sol\n (synthesize\n #:forall %s\n #:guarantee (assertions)))\n (sat? sol)\n %s"%(listvars,"(print-forms sol)")
 	return synth_fun
 
-def generateStruct(FnDecl):
-	structDecl = "(struct _%s (%s) #:transparent)"%(str(FnDecl.args[0]), ' '.join([f.args[0] if f.type.name == "Function" else str(f) for f in FnDecl.args[2:]]))
-	return structDecl
-
-def generateInter(FnDecl):
-	interpreter = "(define (interpret2 e env)\n(match e\n"
-	for fns in FnDecl:
-		interpreter += '[(_%s %s) (%s %s)]\n'%(str(fns.args[0]), ' '.join([f.args[0] if f.type.name == "Function" else str(f) for f in fns.args[2:]]),str(fns.args[0]),' '.join(["(interpret %s env)"%(v) if v.type.name != "Function" else "%s"%(v.args[0])  for v in fns.args[2:]])) 
-	#base case
-	interpreter += '[_ e]))\n\n'
-	return interpreter
 def generateInvPs(loopAndPsInfo):
+	
 	decls = ""
 	for i in loopAndPsInfo:
-		decls += "(define %s (%s %s #:depth 10))\n"%(i.name,i.name+"_gram"," ".join(["(loc %d)"%(idx) for idx in range(len(i.readVars)+len(i.modifiedVars))]))
+		if isinstance(i,CodeInfo):
+			inpVars = " ".join(["%s"%(v.name) for v in ((i.modifiedVars)+(i.readVars))])
+			decls += "(define (%s %s) (%s %s #:depth 10))\n"%(i.name,inpVars,i.name+"_gram",inpVars)
+		else:
+			inpVars = " ".join(["%s"%(str(v)) for v in i.args[2:]])
+			decls += "(define (%s %s) (%s %s #:depth 10))\n"%(i.args[0],inpVars,i.args[0]+"_gram",inpVars)
 	return decls			
 
 
@@ -78,15 +73,24 @@ def toRosette(filename,targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, inv
 	ir.printMode = PrintMode.RosetteVC
 	
 		
-	for t in targetLang:print("\n",generateStruct(t),"\n",t,"\n",file=f)
-	print(generateInter(targetLang),file=f)
+	for t in targetLang:
+		if t.args[1] != "":
+			print("\n",t,"\n",file=f)
+	# print(generateInter(targetLang),file=f)
 	
 	#inv and ps grammar definition
-	ir.printMode = PrintMode.Rosette
+	ir.printMode = PrintMode.RosetteVC
 	for g in invAndPs:print(g,"\n",file=f)
 
 	#inv and ps declaration
 	print(generateInvPs(loopAndPsInfo),file=f)
+	
+	fnsDecls = []
+	for t in targetLang:
+		if t.args[1] == "":
+			fnsDecls.append(t)
+	if fnsDecls:
+		print(generateInvPs(fnsDecls),file=f)
 	
 	#vars declaration 
 	varDecls, vars_all = generateVars(vars)
