@@ -9,7 +9,7 @@ if False:
 else:
   from synthesis import synthesize_new as synthesize
 
-synthStateType = Tuple(Set(Int()), Set(Int()))
+synthStateType = Tuple(Int(), Int())
 
 # todo: synthesize so that equivalence implies equal queries
 # todo: think through why equivalence needs to be synthesized
@@ -18,29 +18,22 @@ def observeEquivalence(inputState, synthState):
   return Eq(
     inputState,
     Call(
-      "setminus", Set(Int()),
+      "-", Int(),
       TupleSel(synthState, 0),
       TupleSel(synthState, 1)
     )
   )
 
 def stateInvariant(synthState):
-  # delete set is a subset of the insert set
-  return Call("subset", Bool(), TupleSel(synthState, 1), TupleSel(synthState, 0))
+  return BoolLit(True)
 
 def supportedCommand(synthState, args):
   add = args[0]
-  value = args[1]
 
   return Ite(
     Eq(add, IntLit(1)),
-    # insertion works if the elem is not in the deletion set
-    # (which means it's in both sets)
-    Not(Call("member", Bool(), value, TupleSel(synthState, 1))),
-    # deletion can work even if not in the insertion set
-    # because we can just add the element to both sets
-    # which results in an observed-equivalent final state
-    BoolLit(True)
+    BoolLit(True),
+    Call(">", Bool(), TupleSel(synthState, 0), TupleSel(synthState, 1))
   )
 
 def grammar(ci: CodeInfo):
@@ -50,42 +43,45 @@ def grammar(ci: CodeInfo):
     raise Exception("no invariant")
   else:  # ps
     inputState = ci.readVars[0]
-    stateSet1 = TupleSel(inputState, 0)
-    stateSet2 = TupleSel(inputState, 1)
+    stateVal1 = TupleSel(inputState, 0)
+    stateVal2 = TupleSel(inputState, 1)
 
     inputAdd = ci.readVars[1]
-    inputValue = ci.readVars[2]
 
     outputState = ci.modifiedVars[0]
-        
-    emptySet = Call("as emptyset (Set Int)", Set(Int()))
+
+    condition = Eq(inputAdd, Choose(
+      IntLit(0),
+      IntLit(1)
+    ))
 
     intLit = Choose(IntLit(0), IntLit(1))
 
-    condition = Eq(inputAdd, intLit)
-
-    setIn = Choose(
-      stateSet1, stateSet2,
-      Call("singleton", Set(Int()), inputValue),
+    intIn = Choose(
+      stateVal1, stateVal2
     )
 
-    setTransform = Choose(
-      setIn,
-      Call("union", Set(Int()), setIn, setIn)
+    intTransform = Choose(
+      intIn,
+      Add(
+        intIn,
+        # intLit # (doesn't work)
+        IntLit(1) # works???
+      )
     )
 
     chosenTransform = Choose(
-      setTransform,
+      intTransform,
       Ite(
         condition,
-        setTransform,
-        setTransform
+        intTransform,
+        intTransform
       )
     )
 
     summary = Eq(outputState, Call(
       "tuple",
-      Tuple(Set(Int()), Set(Int())),
+      Tuple(Int(), Int()),
       chosenTransform,
       chosenTransform
     ))
@@ -95,9 +91,9 @@ def grammar(ci: CodeInfo):
 def initState():
   return Call(
     "tuple",
-    Tuple(Set(Int()), Set(Int())),
-    Var("(as emptyset (Set Int))", Set(Int())),
-    Var("(as emptyset (Set Int))", Set(Int()))
+    Tuple(Int(), Int()),
+    IntLit(0),
+    IntLit(0)
   )
 
 def targetLang():
