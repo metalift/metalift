@@ -12,9 +12,13 @@ else:
 synthStateType = Tuple(Set(Int()), Set(Int()))
 
 # todo: synthesize so that equivalence implies equal queries
-# todo: think through why equivalence needs to be synthesized
-# separately from query implementations
 def observeEquivalence(inputState, synthState):
+  # return Call(
+  #   "equivalence",
+  #   Bool(),
+  #   inputState,
+  #   synthState
+  # )
   return Eq(
     inputState,
     Call(
@@ -23,6 +27,21 @@ def observeEquivalence(inputState, synthState):
       TupleSel(synthState, 1)
     )
   )
+
+def equivalenceGrammar():
+  inputState = Var("inputState", Set(Int()))
+  synthState = Var("synthState", synthStateType)
+
+  equivalent = Eq(
+    inputState,
+    Call(
+      "setminus", Set(Int()),
+      TupleSel(synthState, 0),
+      TupleSel(synthState, 1)
+    )
+  )
+
+  return Synth("equivalence", equivalent, inputState, synthState)
 
 def stateInvariant(synthState):
   # delete set is a subset of the insert set
@@ -183,4 +202,8 @@ if __name__ == "__main__":
 
   lang = targetLang()
 
-  candidates = synthesize(basename, lang, combinedVCVars, combinedInvAndPs, combinedPreds, combinedVC, combinedLoopAndPsInfo, cvcPath)
+  candidates = synthesize(
+    basename, lang, combinedVCVars,
+    combinedInvAndPs + [equivalenceGrammar()],
+    combinedPreds, combinedVC, combinedLoopAndPsInfo, cvcPath
+  )
