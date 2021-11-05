@@ -2,9 +2,9 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, Bool, BoolLit, FnDecl, Var, Add, Implies, Ite, Set, Tuple, TupleSel
+from ir import *
 
-if False:
+if True:
   from synthesize_rosette import synthesize
 else:
   from synthesis import synthesize_new as synthesize
@@ -79,9 +79,7 @@ def grammar(ci: CodeInfo):
       )
     )
 
-    summary = Eq(outputState, Call(
-      "tuple",
-      Tuple(Int(), Int()),
+    summary = Eq(outputState, MakeTuple(
       chosenTransform,
       chosenTransform
     ))
@@ -89,9 +87,7 @@ def grammar(ci: CodeInfo):
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def initState():
-  return Call(
-    "tuple",
-    Tuple(Int(), Int()),
+  return MakeTuple(
     IntLit(0),
     IntLit(0)
   )

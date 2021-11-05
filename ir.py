@@ -79,6 +79,7 @@ class Expr:
     Choose = "choose"
     FnDecl = "fndecl"
 
+    Tuple = "tuple"
     TupleSel = "tuplesel"
 
 
@@ -131,7 +132,7 @@ class Expr:
     commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
 
     if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
-      args = " ".join("%s" % (a.name) for a in e.args[2:])
+      args = " ".join("%s" % (a.name if isinstance(a, ValueRef) else str(a)) for a in e.args[2:])
 
       defs= "[rv (choose %s)]\n" % (rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
                                                 else "%s" % rewritten)
@@ -229,11 +230,24 @@ class Expr:
                        "%s" % (a.args[0]) for a in self.args[2:]])
 
         return "(define-bounded (%s %s) \n%s)" % (self.args[0], args, self.args[1])
+    elif kind == Expr.Kind.Tuple:
+      if printMode == PrintMode.SMT:
+        elems = " ".join([str(a) for a in self.args])
+        return "(tuple %s)" % (elems)
+      else:
+        args_reversed = list(self.args)
+        args_reversed.reverse()
+
+        out = "'()"
+        for a in args_reversed:
+          out = "(cons %s %s)" % (a, out)
+
+        return out
     elif kind == Expr.Kind.TupleSel:
       if printMode == PrintMode.SMT:
         return "((_ tuple_select %s) %s)" % (self.args[1], self.args[0])
       else:
-        raise Exception("NYI (rosette): %s" % self)
+        return "(list-ref-noerr %s %s)" % (self.args[0], self.args[1])
     else:
       if printMode == PrintMode.SMT: value = self.kind.value
       elif printMode == PrintMode.RosetteVC :
@@ -269,12 +283,13 @@ class Expr:
           if isinstance(a, ValueRef) and a.name != "":
             retStr += "%s"%(a.name) + " "
           else:
-            if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
-                retStr += '(' + listFns[str(a)] + ')' + " "
-            elif (str(a)) in listFns.keys():
-                retStr += listFns[str(a)]
+            arg_expr = str(a)
+            if (arg_expr) in listFns.keys() and 'list_empty' in (arg_expr):
+                retStr += '(' + listFns[arg_expr] + ')' + " "
+            elif (arg_expr) in listFns.keys():
+                retStr += listFns[arg_expr]
             else:
-                retStr += str(a) + " "
+                retStr += arg_expr + " "
         retStr += ')'
         return retStr
 
@@ -326,6 +341,7 @@ def Call(name, returnT, *args): return Expr(Expr.Kind.Call, returnT, [name, *arg
 def Assert(e): return Expr(Expr.Kind.Assert, Bool(), [e])
 def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 
+def MakeTuple(*args): return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
 def TupleSel(t, i): return Expr(Expr.Kind.TupleSel, t.type.args[i], [t, IntLit(i)])
 
 def Axiom(e, *vars): return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])

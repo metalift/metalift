@@ -13,29 +13,48 @@ def generateAST(expr):
 	ast = parser.parseString(expr, parseAll=True).asList()
 	return ast
 
+def genVar(v, decls, vars_all):
+	if v.type.name == "Int":
+		decls.append("(define-symbolic %s integer?)"%(v))
+		vars_all.append(v.args[0])
+		
+	elif v.type.name == "Bool":
+		decls.append("(define-symbolic %s boolean?)"%(v))
+		vars_all.append(v.args[0])
+	
+	elif v.type.name == "MLList":
+		tmp = [v.args[0]+"_"+str(i) for i in range(n)]
+		tmp.append(v.args[0]+'-len')
+		vars_all = vars_all + tmp
+		if v.type.args[0].name == "Int":
+			decls.append("(define-symbolic %s integer?)"%(" ".join(tmp)))
+			decls.append('(define %s (take %s %s))'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1]))
+		elif v.type.args[0].name == "Bool":
+			decls.append("(define-symbolic %s boolean?)"%(" ".join(tmp)))
+			decls.append('(define %s (take %s %s))'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1]))
+	elif v.type.name == "Tuple":
+		elem_names_reversed = []
+		for i, t in enumerate(v.type.args):
+			elem_name = v.args[0] + "_" + str(i)
+			genVar(Var(elem_name, t), decls, vars_all)
+			elem_names_reversed = [elem_name] + elem_names_reversed
+		
+		definition = "'()"
+		for elem in elem_names_reversed:
+			definition = f"(cons {elem} {definition})"
+
+		decls.append("(define %s %s)" % (v.args[0], definition))
+	else:
+		raise Exception(f"Unknown type: {v.type}")
+
 def generateVars(vars):
-	decls = ""
+	decls = []
 	vars_all = []
 	for v in list(vars):
-		if v.type.name == "Int":
-			decls += "(define-symbolic %s integer?)\n"%(v)
-			vars_all.append(v.args[0])
-			
-		elif v.type.name == "Bool":
-			decls += "(define-symbolic %s boolean?)\n"%(v)
-			vars_all.append(v.args[0])
+		genVar(v, decls, vars_all)
 		
-		elif v.type.name == "MLList":
-			tmp = [v.args[0]+"_"+str(i) for i in range(n)]
-			tmp.append(v.args[0]+'-len')
-			vars_all = vars_all + tmp
-			if v.type.args[0].name == "Int":
-				decls += "(define-symbolic %s integer?)\n"%(" ".join(tmp))
-				decls += '(define %s (take %s %s))\n'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1])
-			elif v.type.args[0].name == "Bool":
-				decls += "(define-symbolic %s boolean?)\n"%(" ".join(tmp))
-				decls += '(define %s (take %s %s))\n'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1])
-	return decls,vars_all
+	return "\n".join(decls),vars_all
+
 def generateSynth(vars, invariant_guesses, loopAndPsInfo):
 	
 	listvars = "(list " + " ".join(vars) + ")"
