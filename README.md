@@ -3,12 +3,11 @@ Check out any of the python files in that folder to see how to define
 your target language and build your own lifting based compiler. 
 Do not use `main.py`.
 
-We currently support [cvc5](https://cvc5.github.io/) as the synthesis backend (with plans to include [Rosette](https://emina.github.io/rosette/)) 
-and [Z3](https://github.com/Z3Prover/z3) as the verifier.
+We currently support [Rosette](https://emina.github.io/rosette/) (and [cvc5](https://cvc5.github.io/) but cvc5 has been flaky) as the synthesis backend, and [Z3](https://github.com/Z3Prover/z3) as the verifier.
 
 ### LLVM instructions
 
-Run the following to build the LLVM pass for processing branch instructions (works on LLVM 10):
+Run the following to build the LLVM pass for processing branch instructions (works for LLVM 10):
 ````angular2
 cd llvm-pass
 mkdir build
