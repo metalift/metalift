@@ -177,12 +177,13 @@ class Expr:
               if isinstance(a, ValueRef) and a.name != "":
                 callStr += "%s "%(a.name)
               else:
-                if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
-                  callStr += '(' + listFns[str(a)] + ')' + " "
-                elif (str(a)) in listFns.keys():
-                   callStr += listFns[str(a)]  + " "
+                strExp = str(a)
+                if (strExp) in listFns.keys() and 'list_empty' in (strExp):
+                  callStr += '(' + listFns[strExp] + ')' + " "
+                elif (strExp) in listFns.keys():
+                   callStr += listFns[strExp]  + " "
                 else:
-                  callStr += str(a) + " "
+                  callStr += strExp + " "
             callStr += ')'
             return callStr
           elif (self.args[0].startswith('list') and printMode == PrintMode.RosetteVC):
@@ -265,12 +266,13 @@ class Expr:
           if isinstance(a, ValueRef) and a.name != "":
             retStr += "%s"%(a.name) + " "
           else:
-            if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
-                retStr += '(' + listFns[str(a)] + ')' + " "
-            elif (str(a)) in listFns.keys():
-                retStr += listFns[str(a)]
+            strExp = str(a)
+            if (strExp) in listFns.keys() and 'list_empty' in (strExp):
+                retStr += '(' + listFns[strExp] + ')' + " "
+            elif (strExp) in listFns.keys():
+                retStr += listFns[strExp]
             else:
-                retStr += str(a) + " "
+                retStr += strExp + " "
         retStr += ')'
         return retStr
 
