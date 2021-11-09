@@ -3,6 +3,7 @@ import ir
 import re
 import pyparsing as pp
 from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite, List, Bool, PrintMode, printMode
+from llvmlite.binding import ValueRef
 
 #param for bounding the input list length
 n = 2
@@ -33,17 +34,13 @@ def genVar(v, decls, vars_all):
 			decls.append("(define-symbolic %s boolean?)"%(" ".join(tmp)))
 			decls.append('(define %s (take %s %s))'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1]))
 	elif v.type.name == "Tuple":
-		elem_names_reversed = []
+		elem_names = []
 		for i, t in enumerate(v.type.args):
 			elem_name = v.args[0] + "_" + str(i)
 			genVar(Var(elem_name, t), decls, vars_all)
-			elem_names_reversed = [elem_name] + elem_names_reversed
-		
-		definition = "'()"
-		for elem in elem_names_reversed:
-			definition = f"(cons {elem} {definition})"
+			elem_names.append(elem_name)
 
-		decls.append("(define %s %s)" % (v.args[0], definition))
+		# decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
 	else:
 		raise Exception(f"Unknown type: {v.type}")
 
@@ -82,7 +79,9 @@ def generateInter(FnDecl):
 def generateInvPs(loopAndPsInfo):
 	decls = ""
 	for i in loopAndPsInfo:
-		decls += "(define %s (%s %s #:depth 10))\n"%(i.name,i.name+"_gram"," ".join(["(loc %d)"%(idx) for idx in range(len(i.readVars)+len(i.modifiedVars))]))
+		all_args = list(i.readVars) + i.modifiedVars
+		arg_names = " ".join([a.name if isinstance(a, ValueRef) else str(a) for a in all_args])
+		decls += "(define %s (%s %s #:depth 10))\n"%(i.name,i.name+"_gram"," ".join(["(loc %d)"%(idx) for idx in range(len(arg_names.split(" ")))]))
 	return decls			
 
 

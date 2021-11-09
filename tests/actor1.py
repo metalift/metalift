@@ -2,7 +2,7 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, Bool, BoolLit, FnDecl, Var, Add, Implies, Ite, Set, Tuple, TupleSel
+from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, Bool, BoolLit, FnDecl, Var, Add, Implies, Ite, Set, Tuple, TupleSel, MakeTuple
 
 if False:
   from synthesize_rosette import synthesize
@@ -13,12 +13,6 @@ synthStateType = Tuple(Set(Int()), Set(Int()))
 
 # todo: synthesize so that equivalence implies equal queries
 def observeEquivalence(inputState, synthState):
-  # return Call(
-  #   "equivalence",
-  #   Bool(),
-  #   inputState,
-  #   synthState
-  # )
   return Eq(
     inputState,
     Call(
@@ -102,9 +96,7 @@ def grammar(ci: CodeInfo):
       )
     )
 
-    summary = Eq(outputState, Call(
-      "tuple",
-      Tuple(Set(Int()), Set(Int())),
+    summary = Eq(outputState, MakeTuple(
       chosenTransform,
       chosenTransform
     ))
@@ -112,9 +104,7 @@ def grammar(ci: CodeInfo):
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def initState():
-  return Call(
-    "tuple",
-    Tuple(Set(Int()), Set(Int())),
+  return MakeTuple(
     Var("(as emptyset (Set Int))", Set(Int())),
     Var("(as emptyset (Set Int))", Set(Int()))
   )

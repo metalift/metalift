@@ -2,7 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, TupleSel, Int
+from ir import Expr, parseTypeRef, genVar, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, TupleSel, Int, Var
 
 
 def flatten(L):
@@ -165,7 +165,6 @@ def synthesize_new(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInf
 				print("CVC4 verification Result for Current Guess")
 				print("SAT\n")
 
-
 # print to a file
 def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 	# order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
@@ -175,7 +174,12 @@ def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 		out.write("\n\n%s\n\n" % invAndPs)
 
 		var_decl_command = "declare-var" if isSynthesis else "declare-const"
-		v = "\n".join(["(%s %s %s)" % (var_decl_command, v.args[0], v.type) for v in vars])  # name and type
+
+		declarations = []
+		for v in vars:
+			genVar(v, declarations)
+
+		v = "\n".join(["(%s %s %s)" % (var_decl_command, d[0], d[1]) for d in declarations])  # name and type
 		out.write("%s\n\n" % v)
 
 		if isinstance(preds, str):

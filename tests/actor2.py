@@ -4,7 +4,7 @@ import sys
 from analysis import CodeInfo, analyze
 from ir import *
 
-if True:
+if False:
   from synthesize_rosette import synthesize
 else:
   from synthesis import synthesize_new as synthesize
@@ -65,8 +65,7 @@ def grammar(ci: CodeInfo):
       intIn,
       Add(
         intIn,
-        # intLit # (doesn't work)
-        IntLit(1) # works???
+        intLit
       )
     )
 

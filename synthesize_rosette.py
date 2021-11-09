@@ -3,7 +3,7 @@ import pyparsing as pp
 import os
 import ir
 from ir import printMode,PrintMode
-from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit
+from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit, BoolLit, MakeTuple
 from rosette_translator import toRosette
 
 
@@ -19,8 +19,11 @@ def stringToIr(sols, loopAndPsInfo, fnsType):
 	candidates = []
 	for idx,s in enumerate(sols):
 		locMappings = {}
-		for idx,v in enumerate(loopAndPsInfo[idx].modifiedVars + loopAndPsInfo[idx].readVars):
-			locMappings['(loc %d)'%(idx)] = v.name
+		for idx,v in enumerate(loopAndPsInfo[idx].modifiedVars + list(loopAndPsInfo[idx].readVars)):
+			if isinstance(v, Expr) and v.kind == Expr.Kind.Var:
+				locMappings['(loc %d)'%(idx)] = v.args[0]
+			else:
+				locMappings['(loc %d)'%(idx)] = v.name
 		for key in locMappings.keys():
 			s = s.replace(key,locMappings[key])
 		ast = generateAST(s)
@@ -39,7 +42,7 @@ def toExpr(ast,fnsType):
 		return expr_bi[ast[0]](toExpr(ast[1],fnsType), toExpr(ast[2],fnsType))
 	elif ast[0] in expr_uni.keys():
 		return expr_uni[ast[0]](toExpr(ast[1]),fnsType)
-	elif ast[0] == '_if':
+	elif ast[0] == '_if' or ast[0] == 'ite':
 		return Ite(toExpr(ast[1],fnsType), toExpr(ast[2],fnsType), toExpr(ast[3],fnsType))
 	elif ast[0] == '_list_length':
 		return Call("list_length", Int(), toExpr(ast[1],fnsType))
@@ -53,6 +56,16 @@ def toExpr(ast,fnsType):
 		return Call("list_concat", List(Int()), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType) )
 	elif ast[0] == '_list_concat':
 		return Call("list_concat", List(Int()), toExpr(ast[1],fnsType), toExpr(ast[2],fnsType) )
+	# elif ast[0] == '_tuple_n':
+	# 	index = toExpr(ast[2],fnsType)
+	# 	if index.kind == Expr.Kind.Ite and index.args[0].kind == Expr.Kind.Lit:
+	# 		if index.args[0].args[0]:
+	# 			index = index.args[2]
+	# 		else:
+	# 			index = index.args[1]
+	# 	return Expr(Expr.Kind.TupleSel, Int(), [toExpr(ast[1],fnsType), index])
+	# elif ast[0] == "list":
+	# 	return MakeTuple(*[toExpr(e,fnsType) for e in ast[1:]])
 	elif ast[0].startswith('_'):
 		
 		arg_eval =[]
@@ -65,6 +78,10 @@ def toExpr(ast,fnsType):
 		if ast.isnumeric():
 			return IntLit(ast)
 		else:
+			# if ast.split('$')[0] == "0":
+			# 	return BoolLit(True)
+			# else:
+			# 	return ast.split('$')[0]
 			return ast
 def generateTypes(lang):
 	fnsType = {}
@@ -118,6 +135,7 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 			print("verification failed")
 			invGuess.append(resultSynth[1])
 			print(invGuess)
+			raise Exception()
 
 	return candidatesSMT
 

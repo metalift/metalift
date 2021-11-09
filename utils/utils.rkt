@@ -17,6 +17,9 @@
 (struct _list_eq (arg1 arg2) #:transparent)
 (struct _list_take (arg1 arg2) #:transparent)
 (struct _list_length (arg1) #:transparent)
+(struct _car (arg1) #:transparent)
+(struct _cdr (arg1) #:transparent)
+(struct _tuple_n (arg1 arg2) #:transparent)
 (struct loc (id) #:transparent)
 (define (interpret e env)
   (match e
@@ -38,6 +41,9 @@
     [(_list_eq a1 a2)  (equal? (interpret a1 env) (interpret a2 env))] ; not eq?
     [(_list_take a1 a2)  (take (interpret a1 env) (interpret a2 env)) ]
     [(_list_length a1)  (length (interpret a1 env))]
+    [(_car a1)  (car (interpret a1 env))]
+    [(_cdr a1)  (cdr (interpret a1 env))]
+    [(_tuple_n a1 a2) (list-ref (interpret a1 env) (interpret a2 env))]
     [(loc i) (vector-ref env i)]
     [_ (interpret2 e env)]))
 
