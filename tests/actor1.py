@@ -11,15 +11,12 @@ else:
 
 synthStateType = Tuple(Set(Int()), Set(Int()))
 
-# todo: synthesize so that equivalence implies equal queries
 def observeEquivalence(inputState, synthState):
-  return Eq(
+  return Call(
+    "equivalence",
+    Bool(),
     inputState,
-    Call(
-      "setminus", Set(Int()),
-      TupleSel(synthState, 0),
-      TupleSel(synthState, 1)
-    )
+    synthState
   )
 
 def equivalenceGrammar():
@@ -55,6 +52,45 @@ def supportedCommand(synthState, args):
     # which results in an observed-equivalent final state
     BoolLit(True)
   )
+
+def grammarQuery(ci: CodeInfo):
+  name = ci.name
+
+  inputState = ci.readVars[0]
+  outputVar = ci.modifiedVars[0]
+
+  stateSet1 = TupleSel(inputState, 0)
+  stateSet2 = TupleSel(inputState, 1)
+
+  inputValue = ci.readVars[1]
+
+  setIn = Choose(stateSet1, stateSet2)
+  setContains = Call("member", Bool(), inputValue, setIn)
+
+  setContainTransformed = Choose(
+    setContains,
+    Not(setContains)
+  )
+
+  setContainTransformed = Choose(
+    setContainTransformed,
+    And(setContainTransformed, setContainTransformed)
+  )
+
+  intLit = Choose(IntLit(0), IntLit(1))
+
+  out = Ite(
+    setContainTransformed,
+    intLit,
+    intLit
+  )
+
+  summary = Eq(
+    outputVar,
+    out
+  )
+
+  return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def grammar(ci: CodeInfo):
   name = ci.name
@@ -120,6 +156,7 @@ if __name__ == "__main__":
   loopsFile = sys.argv[3]
   cvcPath = sys.argv[4]
 
+  # begin state transition
   extraVarsStateTransition = set()
 
   def summaryWrapStateTransition(ps):
@@ -165,10 +202,44 @@ if __name__ == "__main__":
   )
 
   vcVarsStateTransition = vcVarsStateTransition.union(extraVarsStateTransition)
-
-  print("====== synthesis")
   invAndPsStateTransition = [grammar(ci) for ci in loopAndPsInfoStateTransition]
+  # end state transition
 
+  # begin query
+  extraVarsQuery = set()
+
+  def summaryWrapQuery(ps):
+    origReturn = ps.operands[2]
+    origArgs = ps.operands[3:]
+
+    beforeState = origArgs[0]
+
+    beforeStateForQuery = Var(beforeState.name + "_for_query", synthStateType)
+    extraVarsQuery.add(beforeStateForQuery)
+
+    newArgs = list(origArgs)
+    newArgs[0] = beforeStateForQuery
+
+    ps.operands = tuple(list(ps.operands[:2]) + [origReturn] + newArgs)
+
+    return Implies(
+      And(
+        stateInvariant(beforeStateForQuery),
+        observeEquivalence(beforeState, beforeStateForQuery)
+      ),
+      ps
+    ), ps.operands[2:]
+
+  (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
+    filename, fnNameBase + "_response", loopsFile,
+    wrapSummaryCheck=summaryWrapQuery
+  )
+
+  vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
+  invAndPsQuery = [grammarQuery(ci) for ci in loopAndPsInfoQuery]
+  # end query
+
+  # begin init state
   extraVarsInitstateInvariantVC = set()
   initStateVar = Var("initState", synthStateType)
   extraVarsInitstateInvariantVC.add(initStateVar)
@@ -176,24 +247,32 @@ if __name__ == "__main__":
     Eq(initStateVar, initState()),
     stateInvariant(initStateVar)
   )
+  # end init state
 
-  combinedVCVars = vcVarsStateTransition.union(extraVarsInitstateInvariantVC)
+  # begin equivalence
+  invAndPsEquivalence = [equivalenceGrammar()]
+  # end equivalence
 
-  combinedInvAndPs = invAndPsStateTransition
+  print("====== synthesis")
+  
+  combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(extraVarsInitstateInvariantVC)
 
-  combinedPreds = predsStateTransition
+  combinedInvAndPs = invAndPsStateTransition + invAndPsQuery + invAndPsEquivalence
 
-  combinedLoopAndPsInfo = loopAndPsInfoStateTransition
+  combinedPreds = predsStateTransition + predsQuery
+
+  combinedLoopAndPsInfo = loopAndPsInfoStateTransition + loopAndPsInfoQuery
 
   combinedVC = And(
-    initstateInvariantVC,
-    vcStateTransition
+    vcStateTransition,
+    vcQuery,
+    initstateInvariantVC
   )
 
   lang = targetLang()
 
   candidates = synthesize(
     basename, lang, combinedVCVars,
-    combinedInvAndPs + [equivalenceGrammar()],
+    combinedInvAndPs,
     combinedPreds, combinedVC, combinedLoopAndPsInfo, cvcPath
   )

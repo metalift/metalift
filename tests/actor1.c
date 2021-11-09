@@ -10,6 +10,6 @@ set* test_next_state(set* state, int add, int value) {
   return state;
 }
 
-int test_response(set* state, int add, int value) {
-  return 123;
+int test_response(set* state, int value) {
+  return set_contains(state, value);
 }
