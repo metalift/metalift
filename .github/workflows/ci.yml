@@ -1,0 +1,35 @@
+name: Metalift CI
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache install Nix packages
+      uses: rikhuijzer/cache-install@v1.0.8
+      with:
+        key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
+        nix_file: 'ci.nix'
+
+    - name: Build LLVM Pass
+      run: |
+        cd llvm-pass
+        mkdir build
+        cd build
+        cmake ..
+        make 
+        cd ..
+
+    - name: Build Test Inputs
+      run: |
+        cd tests
+        ./compile-all
+        cd ..
+
+    - name: Test Actor Examples
+      run: |
+        python -m tests.actor1 tests/actor1.ll test tests/actor1.loops cvc5
