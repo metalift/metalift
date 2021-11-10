@@ -29,12 +29,6 @@ T listGet (List<T> l, int i)
   return l->contents[i];
 }
 
-template <class T>
-Void listSet (List<T> l, int idx, int v)
-{
-  l-> contents[idx] = v
-}
-
 
 template <class T>
 List<T> listAppend (List<T> in, T e) 
