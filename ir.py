@@ -262,27 +262,13 @@ class Expr:
         return "(define-bounded (%s %s) \n%s)" % (self.args[0], args, self.args[1])
     elif kind == Expr.Kind.Tuple:
       raise Exception("Tuples should be flattened")
-      # elems = " ".join([str(a) for a in self.args])
-      # if printMode == PrintMode.SMT:
-      #   return "(tuple %s)" % (elems)
-      # else:
-      #   return "(list %s)" % (elems)
     elif kind == Expr.Kind.TupleSel:
       if self.args[0].kind == Expr.Kind.Var:
         return "%s_%s" % (self.args[0].args[0], self.args[1])
       elif self.args[0].kind == Expr.Kind.Tuple:
         return self.args[0].args[self.args[1].args[0]].__repr__()
       else:
-        print(self.args[0])
-        raise Exception("unsupported")
-
-      # if printMode == PrintMode.SMT:
-      #   return "((_ tuple_select %s) %s)" % (self.args[1], self.args[0])
-      # else:
-      #   if printMode == PrintMode.RosetteVC:
-      #     return "(list-ref %s %s)" % (self.args[0], self.args[1])
-      #   else:
-      #     return "(_tuple_n %s %s)" % (self.args[0], self.args[1])
+        raise Exception("Tuple selection requires static tuples and index")
     elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
       return And(*[
         Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))

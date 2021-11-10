@@ -63,9 +63,7 @@ def generateCandidates(invAndPs, line, funName, returnType):
 def toExpr(ast, funName, returnType):
 	expr_bi = {'=': Eq, '+': Add, '-': Sub, '*': Mul, '<': Lt, '<=': Le, '>': Gt, '>=':  Ge,'and':  And, 'or':  Or, '=>':  Implies}
 	expr_uni = {'not': Not}
-	if type(ast[0]) == list and ast[0][0] == "_" and ast[0][1] == "tuple_select":
-		return "TODO"
-	elif ast[0] in expr_bi.keys():
+	if ast[0] in expr_bi.keys():
 		return expr_bi[ast[0]](toExpr(ast[1], funName, returnType) , toExpr(ast[2], funName, returnType))
 	elif ast[0] in expr_uni.keys():
 		return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
