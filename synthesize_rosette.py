@@ -181,7 +181,8 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 		#####parsing output of rosette synthesis#####
 		varTypes = {}
 		for i in loopAndPsInfo:
-			varTypes[i.name] = generateTypes(i.readVars + i.modifiedVars)
+			if isinstance(i, CodeInfo):
+				varTypes[i.name] = generateTypes(i.modifiedVars + i.readVars)
 		for i in lang:
 			varTypes[i.args[0]] = generateTypes(i.args[2:])
 		

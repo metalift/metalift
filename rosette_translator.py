@@ -69,7 +69,7 @@ def generateInvPs(loopAndPsInfo):
 	
 	decls = ""
 	for i in loopAndPsInfo:
-		all_args = i.readVars + i.modifiedVars if isinstance(i, CodeInfo) else i.args[2:]
+		all_args = i.modifiedVars + i.readVars if isinstance(i, CodeInfo) else i.args[2:]
 		func_name = i.name if isinstance(i, CodeInfo) else i.args[0]
 		arg_names = " ".join([a.name if isinstance(a, ValueRef) else str(a) for a in all_args])
 		decls += "(define (%s %s) (%s %s #:depth 10))\n"%(func_name,arg_names,func_name+"_gram",arg_names)
