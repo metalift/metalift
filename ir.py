@@ -126,7 +126,7 @@ class Expr:
     commonExprs = [Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs]
 
     if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
-      args = " ".join("%s" % (a.name) for a in e.args[2:])
+      args = " ".join("%s" % (a.name) if isinstance(a,ValueRef) else str(a) for a in e.args[2:])
 
       defs= "[rv (choose %s)]\n" % (rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
                                                 else "%s" % rewritten)
@@ -146,12 +146,12 @@ class Expr:
 
       body = decls + "\n" + "(" + defs + ")"
 
-      args = " ".join("(%s %s)" % (a.name, parseTypeRef(a.type)) for a in e.args[2:])
+      args = " ".join("(%s %s)" % (a.name if isinstance(a,ValueRef) else str(a), parseTypeRef(a.type)) for a in e.args[2:])
       return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
 
   def __repr__(self):
     global printMode
-    listFns = {'list_get': 'list-ref-noerr','list_append': 'list-append', 'list_empty': 'list-empty', 'list_tail': 'list-tail-noerr', 'list_length': 'length'}
+    listFns = {'list_get': 'list-ref-noerr','list_append': 'list-append', 'list_empty': 'list-empty', 'list_tail': 'list-tail-noerr', 'list_length': 'length' ,'list_take': 'list-take-noerr', 'list_prepend': 'list-prepend', 'list_eq': 'equal?' , 'list_concat': 'list-concat' }
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
       if kind == Expr.Kind.Lit and self.type == Bool():
@@ -167,18 +167,19 @@ class Expr:
         else:
           if isinstance(self.args[0],str):
             if (self.args[0].startswith('inv') or self.args[0].startswith('ps')) and printMode == PrintMode.RosetteVC:
-              callStr = "(interpret " + "%s (vector "%(str(self.args[0]))
+              callStr = "( " + "%s "%(str(self.args[0]))
               for a in self.args[1:]:
                 if isinstance(a, ValueRef) and a.name != "":
                   callStr += "%s "%(a.name)
                 else:
-                  if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
-                    callStr += '(' + listFns[str(a)] + ')' + " "
-                  elif (str(a)) in listFns.keys():
-                    callStr += listFns[str(a)]  + " "
+                  strExp = str(a)
+                  if (strExp) in listFns.keys() and 'list_empty' in (strExp):
+                    callStr += '(' + listFns[strExp] + ')' + " "
+                  elif (strExp) in listFns.keys():
+                    callStr += listFns[strExp]  + " "
                   else:
-                    callStr += str(a) + " "
-              callStr += '))'
+                    callStr += strExp + " "
+              callStr += ')'
               return callStr
             elif (self.args[0].startswith('list') and printMode == PrintMode.RosetteVC):
 
@@ -190,14 +191,15 @@ class Expr:
                     callStr += str(a) + " "
               callStr += ')'
               return callStr
+
             elif self.type.name == "Function" and printMode == PrintMode.Rosette:
               return "%s"%(self.args[0])
             else:
-              if 'list_empty' in self.args:
+              if 'list_empty' in self.args or len(self.args) == 1:
                 return   " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args])
               else:
-                
-                return '(' + " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ')'
+              
+                return "("+  " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args]) + ")"
           else:
             return   " ".join([a.name if isinstance(a, ValueRef) and a.name != "" else str(a) for a in self.args])
       
@@ -214,9 +216,9 @@ class Expr:
 
       if printMode == PrintMode.SMT:
         args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
-                       "(%s %s)" % (a.args[0], parseTypeRef(a.type)) for a in self.args[2:]])
+                       "(%s %s)" % (a.args[0], parseTypeRef(a.type)  ) for a in self.args[2:]])
         
-        return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type, self.args[1])
+        return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type if self.type.name != "Function" else self.type.args[0], self.args[1])
       else:
         
        
@@ -259,12 +261,13 @@ class Expr:
           if isinstance(a, ValueRef) and a.name != "":
             retStr += "%s"%(a.name) + " "
           else:
-            if (str(a)) in listFns.keys() and 'list_empty' in (str(a)):
-                retStr += '(' + listFns[str(a)] + ')' + " "
-            elif (str(a)) in listFns.keys():
-                retStr += listFns[str(a)]
+            strExp = str(a)
+            if (strExp) in listFns.keys() and 'list_empty' in (strExp):
+                retStr += '(' + listFns[strExp] + ')' + " "
+            elif (strExp) in listFns.keys():
+                retStr += listFns[strExp]
             else:
-                retStr += str(a) + " "
+                retStr += strExp + " "
         retStr += ')'
         return retStr
 
@@ -400,6 +403,7 @@ class MLValueRef:
 def parseTypeRef(t: TypeRef):
   # ty.name returns empty string. possibly bug
   tyStr = str(t)
+  
   if tyStr == "i64": return Int()
   elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int": return Int()
   elif tyStr == "i1" or tyStr == "Bool": return Bool()

@@ -28,10 +28,10 @@ def grammar(ci: CodeInfo):
   name = ci.name
 
   if name.startswith("inv"):
-    f = Choose(IntLit(1))
+    f = Choose(IntLit(0), IntLit(1), IntLit(2))
     e = Choose(*ci.modifiedVars)
     d = And(Ge(e, IntLit(1)), And(Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f)))))
-    c = Ge(IntLit(1), ci.readVars[0])
+    c = Choose(Ge(IntLit(1), ci.readVars[0]),Le(IntLit(1), ci.readVars[0]))
     b = Or(c, d)
 
     return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)

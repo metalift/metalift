@@ -16,13 +16,13 @@ def grammar(ci: CodeInfo):
   if name.startswith("inv"):
     raise Exception("no invariant")
   else:  # ps
-    inputVars = Choose(*ci.readVars)
+    
     outputVar = ci.modifiedVars[0]
     intLit = Choose(IntLit(1), IntLit(2), IntLit(3), IntLit(10))
     cond = Choose(
-      Eq(inputVars, intLit),
-      Gt(inputVars, intLit),
-      Le(inputVars, intLit)
+      Eq(*ci.readVars, intLit),
+      Gt(*ci.readVars, intLit),
+      Le(*ci.readVars, intLit)
     )
     ite = Ite(cond, intLit, intLit)
     summary = Eq(outputVar, ite)

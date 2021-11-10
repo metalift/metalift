@@ -3,11 +3,13 @@
 
 
 int test(List<int> data) {
-	int min = __INT_MAX__;
+	int count = 0;
 	for(int i=0; i<listLength(data); i++) {
-		int val = listGet(data, i);
-		if(min > val)
-			min = val;
+		int var = listGet(data,i);
+		if(var < 100){
+			count++;
+		}
 	}
-	return min;
+	return count;
 }
+
