@@ -9,7 +9,7 @@ import models
 from ir import Expr, Type, parseTypeRef, Var, Call, Lit, Bool, Int, List, Set, Eq, Lt, Le, Not, Or, And, Implies, Synth, Ite, \
   Add, Sub, Mul, BoolLit
 
-from vc_util import parseOperand
+import vc_util
 
 class State:
   def __init__(self):
@@ -312,4 +312,4 @@ class VC:
 
   @staticmethod
   def parseOperand(op, reg, hasType = True):
-    return parseOperand(op, reg, hasType)
+    return vc_util.parseOperand(op, reg, hasType)
