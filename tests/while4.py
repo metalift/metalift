@@ -3,9 +3,11 @@ import sys
 
 from analysis import CodeInfo, analyze
 from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
-from synthesize_rosette import synthesize
-from rosette_translator import toRosette
 
+if True:
+  from synthesize_rosette import synthesize
+else:
+  from synthesis import synthesize_new as synthesize
 
 # # programmatically generated grammar
     # (synth-fun inv0 ((tmp Int) (tmp1 Int) ) Bool
@@ -65,6 +67,5 @@ if __name__ == "__main__":
   #rosette synthesizer  + CVC verfication
   candidates = synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
   print("====== verified candidates")
-  for c in candidates:print(c,"\n")
-
-
+  for c in candidates:
+    print(c,"\n")

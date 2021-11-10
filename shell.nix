@@ -21,24 +21,18 @@ let
       cp -r * $out/symfpu/
     '';
   };
-
-  cadicalCpp = unstable.cadical.overrideAttrs(super: {
-    installPhase = super.installPhase + ''
-      install -Dm0644 src/cadical.hpp "$dev/include/cadical.hpp"
-    '';
-  });
 in
 let
   pythonPackages = python38Packages;
   cvc5 = stdenv.mkDerivation rec {
     pname = "cvc5";
-    version = "e607ce390cff26aa14862b2f9c1da727d14cdf68";
+    version = "cvc5-0.0.3";
 
     src = fetchFromGitHub {
       owner  = "cvc5";
       repo   = "cvc5";
       rev    = version;
-      sha256 = "05nmgwh1s4xbwh0i5wn81i06p43y9n0xq34l52rv6dys3yb6qkac";
+      sha256 = "1l1n2d5sxxp2vv0n5j70lvmj4mcfda4wippnl7mm22xb10a2gn9c";
     };
 
     nativeBuildInputs = [ pkg-config cmake ];
@@ -50,8 +44,8 @@ let
 
     cmakeFlags = [
       "-DCMAKE_BUILD_TYPE=Production"
-      "-DCaDiCaL_INCLUDE_DIR=${cadicalCpp.dev}/include/"
-      "-DCaDiCaL_LIBRARIES=${cadicalCpp.lib}/lib/libcadical.a"
+      "-DCaDiCaL_INCLUDE_DIR=${unstable.cadical.dev}/include/"
+      "-DCaDiCaL_LIBRARIES=${unstable.cadical.lib}/lib/libcadical.a"
       "-DCaDiCaL_FOUND=1"
       "-DANTLR3_JAR=${antlr3_4}/lib/antlr/antlr-3.4-complete.jar"
       "-DSymFPU_INCLUDE_DIR=${(symfpu)}"
@@ -64,15 +58,17 @@ mkShell {
     pythonPackages.python
     pythonPackages.llvmlite
     pythonPackages.pyparsing
-    pythonPackages.venvShellHook
     (cvc5)
     llvm_10
     clang_10
+    racket
   ];
 
-  postShellHook = ''
-    pip install --upgrade pip
-  '';
-
   hardeningDisable = [ "fortify" ];
+
+  NIX_LD_LIBRARY_PATH = lib.makeLibraryPath [
+    stdenv.cc.cc
+  ];
+
+  NIX_LD = lib.fileContents "${stdenv.cc}/nix-support/dynamic-linker";
 }

@@ -2,10 +2,9 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, FnDecl, Var, Add, Implies, Ite
-from rosette_translator import toRosette
+from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, IntLit, BoolLit, FnDecl, Var, Add, Implies, Ite, Set
 
-if True:
+if False:
   from synthesize_rosette import synthesize
 else:
   from synthesis import synthesize_new as synthesize
@@ -16,16 +15,37 @@ def grammar(ci: CodeInfo):
   if name.startswith("inv"):
     raise Exception("no invariant")
   else:  # ps
-    
+    inputS = ci.readVars[0]
+    inputAdd = ci.readVars[1]
+    inputValue = ci.readVars[2]
     outputVar = ci.modifiedVars[0]
-    intLit = Choose(IntLit(1), IntLit(2), IntLit(3), IntLit(10))
-    cond = Choose(
-      Eq(*ci.readVars, intLit),
-      Gt(*ci.readVars, intLit),
-      Le(*ci.readVars, intLit)
+        
+    emptySet = Call("as emptyset (Set Int)", Set(Int()))
+
+    intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
+    intValue = Choose(inputValue, intLit)
+
+    condition = Eq(inputAdd, intLit)
+
+    setIn = Choose(
+      inputS,
+      emptySet,
+      Call("singleton", Set(Int()), intValue)
     )
-    ite = Ite(cond, intLit, intLit)
-    summary = Eq(outputVar, ite)
+
+    setTransform = Choose(
+      setIn,
+      Call("union", Set(Int()), setIn, setIn),
+      Call("setminus", Set(Int()), setIn, setIn)
+    )
+
+    chosenTransform = Ite(
+      condition,
+      setTransform,
+      setTransform
+    )
+
+    summary = Eq(outputVar, chosenTransform)
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -45,6 +65,5 @@ if __name__ == "__main__":
   invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
   lang = targetLang()
+
   candidates = synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
-  for c in candidates:
-    print(c,"\n")
