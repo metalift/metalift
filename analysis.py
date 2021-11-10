@@ -185,7 +185,7 @@ def processLoops(header, body, exits, latches, fnArgs):
 
   return CodeInfo(inv.operands[0], Bool(), havocs, fnArgs)
 
-def processBranches(blocksMap, fnArgs):
+def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None, fnName="ps"):
   retCodeInfo = []
   for b in blocksMap.values():
     opcode = b.instructions[-1].opcode
@@ -207,15 +207,20 @@ def processBranches(blocksMap, fnArgs):
                                                     MLInst_Not(MLInstOr(*[MLInst.Eq(ops[0], v) for v in vals]))))
 
     elif opcode == "ret":
+      returnArg = ops[0]
       filteredArgs = list(filter(lambda a: b"sret" not in a.attributes, fnArgs))  # remove the sret args
-      ps = MLInst_Call("ps", Bool(), ops[0], *filteredArgs)
+      ps = MLInst_Call(fnName, Bool(), returnArg, *filteredArgs)
+      if wrapSummaryCheck:
+        ps, transformedArgs = wrapSummaryCheck(ps)
+        returnArg = transformedArgs[0]
+        filteredArgs = transformedArgs[1:]
       b.instructions.insert(-1, MLInst_Assert(ps))
-      retCodeInfo.append(CodeInfo("ps", Bool(), [ops[0]], filteredArgs))
+      retCodeInfo.append(CodeInfo(fnName, Bool(), [returnArg], filteredArgs))
 
   return retCodeInfo
 
 # run all code analysis
-def analyze(filename, fnName, loopsFile):
+def analyze(filename, fnName, loopsFile, wrapSummaryCheck=None):
   with open(filename, mode="r") as file:
     ref = llvm.parse_assembly(file.read())
 
@@ -234,7 +239,7 @@ def analyze(filename, fnName, loopsFile):
                          list(fn.arguments)))
 
   # add ps code info
-  loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments))
+  loopAndPsInfo = loopAndPsInfo + processBranches(blocksMap, list(fn.arguments), wrapSummaryCheck, fnName)
 
   print("====== after transforms")
   for b in blocksMap.values():
@@ -243,6 +248,6 @@ def analyze(filename, fnName, loopsFile):
       print("%s" % i)
 
   print("====== compute vc")
-  (vars, invAndPs, preds, vc) = VC().computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
+  (vars, invAndPs, preds, vc) = VC(fnName).computeVC(blocksMap, list(fn.blocks)[0].name, list(fn.arguments))
 
   return (vars, invAndPs, preds, vc, loopAndPsInfo)

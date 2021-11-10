@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from ir import Expr, Type, Set, parseTypeRef, Int, Bool, Var, Call
+from ir import Expr, Type, Set, parseTypeRef, Int, Bool, Var, Call, IntLit, Ite
 from vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
@@ -49,5 +49,9 @@ fnModels = {
     ),
     None
   ),
-  "set_contains": lambda regs, *args: ReturnValue(Call("member", Set(Int()), parseOperand(args[1], regs), parseOperand(args[0], regs)), None),
+  "set_contains": lambda regs, *args: ReturnValue(Ite(
+    Call("member", Set(Int()), parseOperand(args[1], regs), parseOperand(args[0], regs)),
+    IntLit(1),
+    IntLit(0)
+  ), None),
 }

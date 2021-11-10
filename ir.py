@@ -22,6 +22,8 @@ class Type: #(Enum):
     #return self.value
     if self.name == "Int": return "Int"
     elif self.name == "Bool": return "Bool"
+    elif self.name == "Tuple":
+      raise Exception("Tuples should be flattened")
     else: return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
 
   def __eq__(self, other):
@@ -45,6 +47,18 @@ def Pointer(): return Type("Pointer", [])
 def List(contentT): return Type("MLList", contentT)
 def Fn(retT, *argT): return Type("Function", retT, *argT)
 def Set(contentT): return Type("Set", contentT)
+def Tuple(*elemT): return Type("Tuple", *elemT)
+
+# util for flattening tuple variables
+def genVar(v, declarations):
+  if v.type.name == "Tuple":
+    for i in range(len(v.type.args)):
+      genVar(Var(
+        v.args[0] + "_" + str(i),
+        v.type.args[i]
+      ), declarations)
+  else:
+    declarations.append((v.args[0], v.type))
 
 class Expr:
   class Kind(Enum):
@@ -78,12 +92,17 @@ class Expr:
     Choose = "choose"
     FnDecl = "fndecl"
 
+    Tuple = "tuple"
+    TupleSel = "tuplesel"
+
 
   def __init__(self, kind, type, args):
     self.kind = kind
     self.args = args
     self.type = type
 
+  def mapArgs(self, f):
+    return Expr(self.kind, self.type, [f(a) for a in self.args])
 
   @staticmethod
   def findCommonExprs(e, cnts):
@@ -119,7 +138,7 @@ class Expr:
   @staticmethod
   def printSynth(e):
     cnts = Expr.findCommonExprs(e.args[1], {})
-    commonExprs = list(filter(lambda k: cnts[k] > 1 or k.kind == Expr.Kind.Choose, cnts.keys()))
+    commonExprs = list(filter(lambda k: (cnts[k] > 1 and k.type.name != "Tuple") or k.kind == Expr.Kind.Choose, cnts.keys()))
     rewritten = Expr.replaceExprs(e.args[1], commonExprs)
 
     # rewrite common exprs to use each other
@@ -146,7 +165,14 @@ class Expr:
 
       body = decls + "\n" + "(" + defs + ")"
 
-      args = " ".join("(%s %s)" % (a.name if isinstance(a,ValueRef) else str(a), parseTypeRef(a.type)) for a in e.args[2:])
+      declarations = []
+      for a in e.args[2:]:
+        if isinstance(a, ValueRef):
+          declarations.append((a.name, parseTypeRef(a.type)))
+        else:
+          genVar(a, declarations)
+
+      args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
       return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
 
   def __repr__(self):
@@ -154,7 +180,9 @@ class Expr:
     listFns = {'list_get': 'list-ref-noerr','list_append': 'list-append', 'list_empty': 'list-empty', 'list_tail': 'list-tail-noerr', 'list_length': 'length' ,'list_take': 'list-take-noerr', 'list_prepend': 'list-prepend', 'list_eq': 'equal?' , 'list_concat': 'list-concat' }
     kind = self.kind
     if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-      if kind == Expr.Kind.Lit and self.type == Bool():
+      if kind == Expr.Kind.Var and self.type.name == "Tuple":
+        return " ".join([self.args[0] + "_" + str(i) for i in range(len(self.type.args))])
+      elif kind == Expr.Kind.Lit and self.type == Bool():
         if self.args[0] == True:
           return "true"
         else:
@@ -215,9 +243,15 @@ class Expr:
     elif kind == Expr.Kind.FnDecl:
 
       if printMode == PrintMode.SMT:
-        args = " ".join(["(%s %s)" % (a.name, parseTypeRef(a.type)) if isinstance(a, ValueRef) and a.name != "" else
-                       "(%s %s)" % (a.args[0], parseTypeRef(a.type)  ) for a in self.args[2:]])
-        
+        declarations = []
+        for a in self.args[2:]:
+          if isinstance(a, ValueRef):
+            declarations.append((a.name, parseTypeRef(a.type)))
+          else:
+            genVar(a, declarations)
+
+        args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
+
         return "(define-fun-rec %s (%s) %s\n%s)" % (self.args[0], args, self.type if self.type.name != "Function" else self.type.args[0], self.args[1])
       else:
         
@@ -226,6 +260,20 @@ class Expr:
                        "%s" % (a.args[0]) for a in self.args[2:]])
 
         return "(define-bounded (%s %s) \n%s)" % (self.args[0], args, self.args[1])
+    elif kind == Expr.Kind.Tuple:
+      raise Exception("Tuples should be flattened")
+    elif kind == Expr.Kind.TupleSel:
+      if self.args[0].kind == Expr.Kind.Var:
+        return "%s_%s" % (self.args[0].args[0], self.args[1])
+      elif self.args[0].kind == Expr.Kind.Tuple:
+        return self.args[0].args[self.args[1].args[0]].__repr__()
+      else:
+        raise Exception("Tuple selection requires static tuples and index")
+    elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
+      return And(*[
+        Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
+        for i in range(len(self.args[0].type.args))
+      ]).__repr__()
     else:
       if printMode == PrintMode.SMT: value = self.kind.value
       elif printMode == PrintMode.RosetteVC :
@@ -319,6 +367,9 @@ def Call(name, returnT, *args): return Expr(Expr.Kind.Call, returnT, [name, *arg
 def Assert(e): return Expr(Expr.Kind.Assert, Bool(), [e])
 def Constraint(e): return Expr(Expr.Kind.Constraint, Bool(), [e])
 
+def MakeTuple(*args): return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
+def TupleSel(t, i): return Expr(Expr.Kind.TupleSel, t.type.args[i], [t, IntLit(i)])
+
 def Axiom(e, *vars): return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
 
 # the body of a synth-fun
@@ -403,12 +454,14 @@ class MLValueRef:
 def parseTypeRef(t: TypeRef):
   # ty.name returns empty string. possibly bug
   tyStr = str(t)
-  
+
+  if isinstance(t, Type): return t
+
   if tyStr == "i64": return Int()
   elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int": return Int()
   elif tyStr == "i1" or tyStr == "Bool": return Bool()
   elif tyStr == "%struct.list*" or tyStr == "%struct.list**" or tyStr == "(MLList Int)": return Type("MLList", Int())
-  elif tyStr == "%struct.set*": return Set(Int())
+  elif tyStr.startswith("%struct.set"): return Set(Int())
   elif tyStr == "(Function Bool)": return Type("Function", Bool())
   elif tyStr == "(Function Int)": return Type("Function", Int())
   else: raise Exception("NYI %s" % t)

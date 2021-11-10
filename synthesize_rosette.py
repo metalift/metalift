@@ -2,6 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 import ir
+from analysis import CodeInfo
 from ir import printMode,PrintMode
 from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit, ValueRef, Var, parseTypeRef
 from rosette_translator import toRosette
@@ -149,7 +150,10 @@ def filterBody(funDef,funCall, inCall):
 def toSynthesize(loopAndPsInfo,lang):
 	synthNames = []
 	for i in loopAndPsInfo:
-		synthNames.append(i.name)
+		if isinstance(i, CodeInfo):
+			synthNames.append(i.name)
+		else:
+			synthNames.append(i.args[0])
 	for l in lang:
 		if l.args[1] == "":
 			synthNames.append(l.args[0])
@@ -177,7 +181,8 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 		#####parsing output of rosette synthesis#####
 		varTypes = {}
 		for i in loopAndPsInfo:
-			varTypes[i.name] = generateTypes(i.readVars + i.modifiedVars)
+			if isinstance(i, CodeInfo):
+				varTypes[i.name] = generateTypes(i.modifiedVars + i.readVars)
 		for i in lang:
 			varTypes[i.args[0]] = generateTypes(i.args[2:])
 		
@@ -232,7 +237,8 @@ def synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 		else:
 			print("verification failed")
 			invGuess.append(resultSynth[1])
-			
+			print(invGuess)
+			raise Exception()
 
 	return candidatesSMT
 

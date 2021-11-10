@@ -3,6 +3,7 @@ import ir
 import re
 import pyparsing as pp
 from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite, List, Bool, PrintMode, printMode
+from llvmlite.binding import ValueRef
 
 #param for bounding the input list length
 n = 2
@@ -13,29 +14,44 @@ def generateAST(expr):
 	ast = parser.parseString(expr, parseAll=True).asList()
 	return ast
 
+def genVar(v, decls, vars_all):
+	if v.type.name == "Int":
+		decls.append("(define-symbolic %s integer?)"%(v))
+		vars_all.append(v.args[0])
+		
+	elif v.type.name == "Bool":
+		decls.append("(define-symbolic %s boolean?)"%(v))
+		vars_all.append(v.args[0])
+	
+	elif v.type.name == "MLList":
+		tmp = [v.args[0]+"_"+str(i) for i in range(n)]
+		tmp.append(v.args[0]+'-len')
+		vars_all = vars_all + tmp
+		if v.type.args[0].name == "Int":
+			decls.append("(define-symbolic %s integer?)"%(" ".join(tmp)))
+			decls.append('(define %s (take %s %s))'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1]))
+		elif v.type.args[0].name == "Bool":
+			decls.append("(define-symbolic %s boolean?)"%(" ".join(tmp)))
+			decls.append('(define %s (take %s %s))'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1]))
+	elif v.type.name == "Tuple":
+		elem_names = []
+		for i, t in enumerate(v.type.args):
+			elem_name = v.args[0] + "_" + str(i)
+			genVar(Var(elem_name, t), decls, vars_all)
+			elem_names.append(elem_name)
+
+		# decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
+	else:
+		raise Exception(f"Unknown type: {v.type}")
+
 def generateVars(vars):
-	decls = ""
+	decls = []
 	vars_all = []
 	for v in list(vars):
-		if v.type.name == "Int":
-			decls += "(define-symbolic %s integer?)\n"%(v)
-			vars_all.append(v.args[0])
-			
-		elif v.type.name == "Bool":
-			decls += "(define-symbolic %s boolean?)\n"%(v)
-			vars_all.append(v.args[0])
+		genVar(v, decls, vars_all)
 		
-		elif v.type.name == "MLList":
-			tmp = [v.args[0]+"_"+str(i) for i in range(n)]
-			tmp.append(v.args[0]+'-len')
-			vars_all = vars_all + tmp
-			if v.type.args[0].name == "Int":
-				decls += "(define-symbolic %s integer?)\n"%(" ".join(tmp))
-				decls += '(define %s (take %s %s))\n'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1])
-			elif v.type.args[0].name == "Bool":
-				decls += "(define-symbolic %s boolean?)\n"%(" ".join(tmp))
-				decls += '(define %s (take %s %s))\n'%(v.args[0],"(list " + " ".join(tmp[:n]) + ")", tmp[-1])
-	return decls,vars_all
+	return "\n".join(decls),vars_all
+
 def generateSynth(vars, invariant_guesses, loopAndPsInfo):
 	
 	listvars = "(list " + " ".join(vars) + ")"
@@ -53,12 +69,10 @@ def generateInvPs(loopAndPsInfo):
 	
 	decls = ""
 	for i in loopAndPsInfo:
-		if isinstance(i,CodeInfo):
-			inpVars = " ".join(["%s"%(v.name) for v in ((i.modifiedVars)+(i.readVars))])
-			decls += "(define (%s %s) (%s %s #:depth 10))\n"%(i.name,inpVars,i.name+"_gram",inpVars)
-		else:
-			inpVars = " ".join(["%s"%(str(v)) for v in i.args[2:]])
-			decls += "(define (%s %s) (%s %s #:depth 10))\n"%(i.args[0],inpVars,i.args[0]+"_gram",inpVars)
+		all_args = i.modifiedVars + i.readVars if isinstance(i, CodeInfo) else i.args[2:]
+		func_name = i.name if isinstance(i, CodeInfo) else i.args[0]
+		arg_names = " ".join([a.name if isinstance(a, ValueRef) else str(a) for a in all_args])
+		decls += "(define (%s %s) (%s %s #:depth 10))\n"%(func_name,arg_names,func_name+"_gram",arg_names)
 	return decls			
 
 

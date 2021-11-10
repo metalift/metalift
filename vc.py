@@ -40,18 +40,19 @@ class Block:
 
 class VC:
 
-  def __init__(self):
+  def __init__(self, fnName="ps"):
     self.vars = set()
     self.havocNum = 0
     self.preds = dict()
+    self.fnName = fnName
 
   def makeVar(self, name, ty):
     if isinstance(ty, TypeRef): ty = parseTypeRef(ty)
     elif isinstance(ty, Type): pass
     else: raise Exception("NYI %s with type %s" % (name, ty))
 
-    e = Var(name, ty)
-    found = any(v.args[0] == name and v.type == ty for v in self.vars)
+    e = Var(self.fnName + "_" + name, ty)
+    found = any(v.args[0] == e.args[0] and v.type == ty for v in self.vars)
     if not found: self.vars.add(e)
 
     return e
@@ -198,7 +199,7 @@ class VC:
         elif t == "i8": s.mem[i] = Lit(False, Bool())
         elif t == "i1": s.mem[i] = Lit(False, Bool())
         elif t == "%struct.list*": s.mem[i] = Lit(0, List(Int()))
-        elif t == "%struct.set*": s.mem[i] = Lit(0, Set(Int()))
+        elif t.startswith("%struct.set"): s.mem[i] = Lit(0, Set(Int()))
         else: raise Exception("NYI: %s" % i)
 
       elif opcode == "load":
@@ -301,6 +302,9 @@ class VC:
   @staticmethod
   def evalMLInst(i, reg, mem):
     if isinstance(i, ValueRef): return reg[i]
+    if isinstance(i, Expr):
+      if i.kind == Expr.Kind.Lit: return i
+      else: return i.mapArgs(lambda x: VC.evalMLInst(x, reg, mem))
     elif isinstance(i, str): return i
     elif i.opcode == "load": return mem[i.operands[0]]
     elif i.opcode == "not": return Not(VC.evalMLInst(i.operands[0], reg, mem))
