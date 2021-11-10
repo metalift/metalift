@@ -2,6 +2,7 @@ import subprocess
 import pyparsing as pp
 import os
 import ir
+from analysis import CodeInfo
 from ir import printMode,PrintMode
 from ir import Expr, parseTypeRef, Constraint, MLInst_Assert, Call, FnDecl, Bool, Not, Add, Sub, Mul, Le, Lt, Ge, Gt, And, Or, Implies, Eq, Int, Bool, List, Ite, IntLit, ValueRef, Var, parseTypeRef
 from rosette_translator import toRosette
@@ -149,7 +150,10 @@ def filterBody(funDef,funCall, inCall):
 def toSynthesize(loopAndPsInfo,lang):
 	synthNames = []
 	for i in loopAndPsInfo:
-		synthNames.append(i.name)
+		if isinstance(i, CodeInfo):
+			synthNames.append(i.name)
+		else:
+			synthNames.append(i.args[0])
 	for l in lang:
 		if l.args[1] == "":
 			synthNames.append(l.args[0])

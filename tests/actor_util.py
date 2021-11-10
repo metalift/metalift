@@ -64,7 +64,7 @@ def synthesize_actor(
           observeEquivalence(afterState, afterStateForPS)
         )
       )
-    ), ps.operands[2:]
+    ), list(ps.operands[2:])
 
   (vcVarsStateTransition, invAndPsStateTransition, predsStateTransition, vcStateTransition, loopAndPsInfoStateTransition) = analyze(
     filename, fnNameBase + "_next_state", loopsFile,
@@ -98,7 +98,7 @@ def synthesize_actor(
         observeEquivalence(beforeState, beforeStateForQuery)
       ),
       ps
-    ), ps.operands[2:]
+    ), list(ps.operands[2:])
 
   (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
     filename, fnNameBase + "_response", loopsFile,
@@ -131,8 +131,7 @@ def synthesize_actor(
 
   combinedPreds = predsStateTransition + predsQuery
 
-  combinedLoopAndPsInfo = loopAndPsInfoStateTransition + loopAndPsInfoQuery
-
+  combinedLoopAndPsInfo = loopAndPsInfoStateTransition + loopAndPsInfoQuery + invAndPsEquivalence
   combinedVC = And(
     vcStateTransition,
     vcQuery,

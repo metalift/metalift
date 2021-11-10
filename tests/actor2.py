@@ -18,8 +18,7 @@ def grammarEquivalence():
 
   equivalent = Eq(
     inputState,
-    Call(
-      "-", Int(),
+    Sub(
       TupleSel(synthState, 0),
       TupleSel(synthState, 1)
     )
@@ -36,7 +35,7 @@ def supportedCommand(synthState, args):
   return Ite(
     Eq(add, IntLit(1)),
     BoolLit(True),
-    Call(">", Bool(), TupleSel(synthState, 0), TupleSel(synthState, 1))
+    Gt(TupleSel(synthState, 0), TupleSel(synthState, 1))
   )
 
 def grammarQuery(ci: CodeInfo):
@@ -47,8 +46,7 @@ def grammarQuery(ci: CodeInfo):
 
   summary = Eq(
     outputVar,
-    Call(
-      "-", Int(),
+    Sub(
       TupleSel(inputState, 0),
       TupleSel(inputState, 1)
     )
