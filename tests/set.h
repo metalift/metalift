@@ -5,4 +5,4 @@ typedef struct set {} set;
 set* set_create();
 set* set_add(set* s, int x);
 set* set_remove(set* s, int x);
-bool set_contains(set* s, int v);
+int set_contains(set* s, int v);

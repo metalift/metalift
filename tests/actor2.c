@@ -12,6 +12,6 @@ int test_next_state(int state, int add) {
   return state;
 }
 
-int test_response(int state, int add) {
-  return 123;
+int test_response(int state) {
+  return state;
 }
