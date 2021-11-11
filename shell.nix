@@ -1,7 +1,11 @@
-with import <nixpkgs> {};
+let
+  pkgs = import <nixpkgs> {};
+  unstable = import <nixos-unstable> {};
+in
+with pkgs;
 
 let
-  cvc5 = import (./cvc5.nix);
+  cvc5 = callPackage ./cvc5.nix { unstable = unstable; };
 in
 mkShell {
   venvDir = "./.venv";

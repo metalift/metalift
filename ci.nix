@@ -1,7 +1,12 @@
-with import (fetchTarball https://github.com/NixOS/nixpkgs/archive/nixos-21.05.tar.gz) { };
+let pkgs = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/nixos-21.05.tar.gz) { };
+in
+with pkgs;
 
 let
-  cvc5 = import (./cvc5.nix);
+  unstable = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz) { };
+in
+let
+  cvc5 = callPackage ./cvc5.nix { unstable = unstable; };
 in [
   (python38.withPackages (p: with p; [
     llvmlite

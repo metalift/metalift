@@ -1,8 +1,6 @@
-with import (fetchTarball https://github.com/NixOS/nixpkgs/archive/nixos-21.05.tar.gz) { };
+{ pkgs, unstable }:
+with pkgs;
 
-let
-  unstable = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz) { };
-in
 let
   symfpu = stdenv.mkDerivation rec {
     pname = "symfpu";
