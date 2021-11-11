@@ -45,7 +45,7 @@ def grammar(ci: CodeInfo):
 
 def targetLang():
   x = Var("x", Int())
-  sum_n = FnDecl("sum_n", Int(), Ite(Ge(x, IntLit(1)), Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)), x)
+  sum_n = FnDecl("_sum_n", Int(), Ite(Ge(x, IntLit(1)), Add(x, Call("_sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)), x)
   return [sum_n]
 
 

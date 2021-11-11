@@ -15,6 +15,9 @@ jobs:
         key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
         nix_file: 'ci.nix'
 
+    - name: Install Rosette
+      run: raco pkg install --auto rosette
+
     - name: Build LLVM Pass
       run: |
         cd llvm-pass
@@ -30,6 +33,14 @@ jobs:
         ./compile-all
         cd ..
 
+    - name: Test Core Examples
+      run: |
+        python -m tests.ite1 tests/ite1.ll test tests/ite1.loops cvc5
+        python -m tests.while4 tests/while4.ll test tests/while4.loops cvc5
+        python -m tests.set1 tests/set1.ll test tests/set1.loops cvc5
+        python -m tests.fma_dsl tests/fma_dsl.ll test tests/fma_dsl.loops cvc5
+
     - name: Test Actor Examples
       run: |
         python -m tests.actor1 tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor2 tests/actor2.ll test tests/actor2.loops cvc5
