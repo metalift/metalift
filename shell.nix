@@ -1,17 +1,16 @@
 with import <nixpkgs> {};
 
 let
-  unstable = import <nixos-unstable> {};
-  pythonPackages = python38Packages;
   cvc5 = import (./cvc5.nix);
 in
 mkShell {
   venvDir = "./.venv";
   buildInputs = [
-    pythonPackages.python
-    pythonPackages.llvmlite
-    pythonPackages.pyparsing
-    (cvc5)
+    (python38.withPackages (p: with p; [
+      llvmlite
+      pyparsing
+    ]))
+    cvc5
     llvm_10
     clang_10
     racket
