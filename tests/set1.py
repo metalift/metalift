@@ -7,7 +7,7 @@ from ir import Choose, And, Or, Not, Gt, Ge, Eq, Le, Le, Sub, Synth, Call, Int, 
 if False:
   from synthesize_rosette import synthesize
 else:
-  from synthesis import synthesize
+  from synthesize_cvc5 import synthesize
 
 def grammar(ci: CodeInfo):
   name = ci.name

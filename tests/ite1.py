@@ -8,7 +8,7 @@ from rosette_translator import toRosette
 if True:
   from synthesize_rosette import synthesize
 else:
-  from synthesis import synthesize
+  from synthesize_cvc5 import synthesize
 
 def grammar(ci: CodeInfo):
   name = ci.name

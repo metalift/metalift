@@ -8,7 +8,7 @@ from .actor_util import synthesize_actor
 if False:
   from synthesize_rosette import synthesize
 else:
-  from synthesis import synthesize
+  from synthesize_cvc5 import synthesize
 
 synthStateType = Tuple(Set(Int()), Set(Int()))
 
