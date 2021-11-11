@@ -27,28 +27,6 @@ def extractFuns(targetLang):
 		returnType.append(t.type)
 	return funName, returnType
 
-def generateDecls(loopInfo):
-	invpsDecls = {}
-	for l in loopInfo:
-		funName = '(define-fun ' + l.name + '('
-		for h in l.modifiedVars:
-			funName += '( ' + h.name + " " + str(parseTypeRef(h.type)) + ' ) '
-		for f in l.readVars:
-			funName += '( ' + f.name + " " + str(parseTypeRef(f.type)) + ' ) '
-		funName += ') Bool '
-		invpsDecls[l.name] = funName
-	return invpsDecls
-
-def generateCand(synthDecls, line, funName, returnType):
-	candidates, candidatesExpr = [], {}
-	ast  = generateAST(line)
-	for k in synthDecls.keys():
-		for a in ast[0]:
-			if k in a:
-				candidatesExpr[a[0]] = toExpr(a[1],funName, returnType)
-				candidates.append(synthDecls[k] + ' ('  + ' '.join(list(flatten(a[1]))) + '))')
-	return candidates
-
 def generateCandidates(invAndPs, line, funName, returnType):
 	candidates, candidatesExpr = [], {}
 	ast  = generateAST(line)
@@ -57,7 +35,10 @@ def generateCandidates(invAndPs, line, funName, returnType):
 		for a in ast[0]:
 			if name in a:
 				candidatesExpr[a[0]] = toExpr(a[1],funName, returnType)
-				candidates.append(FnDecl(ce.args[0], ce.type, '(' +  ' '.join(list(flatten(a[1]))) + ')', *ce.args[2:]))
+				if isinstance(a[1], str):
+					candidates.append(FnDecl(ce.args[0], ce.type, a[1], *ce.args[2:]))
+				else:
+					candidates.append(FnDecl(ce.args[0], ce.type, '(' +  ' '.join(list(flatten(a[1]))) + ')', *ce.args[2:]))
 	return candidates, candidatesExpr
 
 def toExpr(ast, funName, returnType):
@@ -73,53 +54,7 @@ def toExpr(ast, funName, returnType):
 	else:
 		return ast
 
-def callCVC(funDef, vars, loopInfo, preds, vc, cvcPath, basename):
-	synthDir = './synthesisLogs/'
-	if not os.path.exists(synthDir):
-		os.mkdir(synthDir)
-	sygusFile = synthDir + basename + ".sl"
-
-	# Generate sygus file for synthesis
-	toSMT("", funDef, vars, preds, vc, sygusFile, True)
-
-	logfile = synthDir + basename + '_logs.txt'
-	synthLogs = open(logfile,'a')
-	#Run synthesis subprocess
-	proc = subprocess.Popen([cvcPath, '--lang=sygus2', '--output=sygus' ,  sygusFile],stdout=synthLogs)#,stderr=subprocess.DEVNULL)
-
-	funDecls, funName, returnType = extractFuns(funDef)
-	funs = "\n".join(d for d in funDecls)
-	synthDecls = generateDecls(loopInfo)
-	logfileVerif = open(logfile,"r")
-	while True:
-		line = logfileVerif.readline()
-		if 'sygus-candidate' in line:
-			print("Current PS and INV Guess ", line)
-			candidates = "\n".join(d for d in generateCand(synthDecls, line, funName, returnType))
-			smtFile = synthDir + basename + ".smt"
-			toSMT(funs, vars, candidates, vc, smtFile, False)
-
-			#run external verification subprocess
-			procVerify = subprocess.Popen([cvcPath, '--lang=smt', '--fmf-fun', '--tlimit=10000' ,  smtFile],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
-			output = procVerify.stdout.readline()
-			output = output.decode("utf-8")
-			if output.count('unsat') == 1:
-				print("UNSAT\n")
-				print("Verified PS and INV Candidates ", candidates)
-				break
-			else:
-				print("CVC4 verification Result for Current Guess")
-				print("SAT\n")
-
-
-def synthesize(invAndPs, vars, preds, vc, ansFile, cvcPath, basename):
-	grammars = open(ansFile, mode="r").read()
-
-	callCVC(grammars, vars, invAndPs, preds, vc, cvcPath, basename)
-
-
-
-def synthesize_new(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
+def synthesize(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
 	synthDir = './synthesisLogs/'
 	if not os.path.exists(synthDir):
 		os.mkdir(synthDir)

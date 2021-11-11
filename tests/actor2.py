@@ -8,7 +8,7 @@ from .actor_util import synthesize_actor
 if False:
   from synthesize_rosette import synthesize
 else:
-  from synthesis import synthesize_new as synthesize
+  from synthesize_cvc5 import synthesize
 
 synthStateType = Tuple(Int(), Int())
 
@@ -26,8 +26,12 @@ def grammarEquivalence():
 
   return Synth("equivalence", equivalent, inputState, synthState)
 
-def stateInvariant(synthState):
-  return BoolLit(True)
+def grammarStateInvariant():
+  synthState = Var("synthState", synthStateType)
+
+  valid = Choose(BoolLit(True))
+
+  return Synth("stateInvariant", valid, synthState)
 
 def supportedCommand(synthState, args):
   add = args[0]
@@ -44,12 +48,14 @@ def grammarQuery(ci: CodeInfo):
   inputState = ci.readVars[0]
   outputVar = ci.modifiedVars[0]
 
+  inputInt = Choose(
+    TupleSel(inputState, 0),
+    TupleSel(inputState, 1)
+  )
+
   summary = Eq(
     outputVar,
-    Sub(
-      TupleSel(inputState, 0),
-      TupleSel(inputState, 1)
-    )
+    Sub(inputInt, inputInt)
   )
 
   return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
@@ -115,7 +121,7 @@ def targetLang():
 if __name__ == "__main__":
   synthesize_actor(
     synthStateType, initState,
-    stateInvariant, supportedCommand,
+    grammarStateInvariant, supportedCommand,
     grammar, grammarQuery, grammarEquivalence,
     targetLang,
     synthesize

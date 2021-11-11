@@ -155,7 +155,7 @@ class Expr:
       return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
     elif printMode == PrintMode.SMT:
       decls = "((rv %s) %s)" % (e.type, " ".join("(%s %s)" % ("v%d" % i, parseTypeRef(e.type)) for i, e in enumerate(commonExprs)))
-      defs = "(rv %s %s)\n" % (e.type, rewritten if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
+      defs = "(rv %s %s)\n" % (e.type, rewritten if rewritten.kind == Expr.Kind.Choose
                                                  else "(%s)" % rewritten)
       defs = defs + "\n".join("(%s %s %s)" % (
         "v%d" % i,
