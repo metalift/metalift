@@ -9,6 +9,7 @@ in [
   ]))
 
   cvc5
+  cmake
   llvm_10
   clang_10
   racket

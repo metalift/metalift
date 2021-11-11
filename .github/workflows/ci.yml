@@ -20,8 +20,8 @@ jobs:
         cd llvm-pass
         mkdir build
         cd build
-        cmake ..
-        make 
+        nix-shell -p llvm_10 --run "cmake .."
+        nix-shell -p llvm_10 --run "make"
         cd ..
 
     - name: Build Test Inputs
