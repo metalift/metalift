@@ -7,7 +7,7 @@ from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDec
 if True:
   from synthesize_rosette import synthesize
 else:
-  from synthesis import synthesize_new as synthesize
+  from synthesis import synthesize
 
 # # programmatically generated grammar
     # (synth-fun inv0 ((tmp Int) (tmp1 Int) ) Bool

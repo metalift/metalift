@@ -8,7 +8,7 @@ from .actor_util import synthesize_actor
 if False:
   from synthesize_rosette import synthesize
 else:
-  from synthesis import synthesize_new as synthesize
+  from synthesis import synthesize
 
 synthStateType = Tuple(Set(Int()), Set(Int()))
 
@@ -27,9 +27,19 @@ def grammarEquivalence():
 
   return Synth("equivalence", equivalent, inputState, synthState)
 
-def stateInvariant(synthState):
-  # delete set is a subset of the insert set
-  return Call("subset", Bool(), TupleSel(synthState, 1), TupleSel(synthState, 0))
+def grammarStateInvariant():
+  synthState = Var("synthState", synthStateType)
+
+  stateSet1 = TupleSel(synthState, 0)
+  stateSet2 = TupleSel(synthState, 1)
+  setIn = Choose(stateSet1, stateSet2)
+
+  valid = Choose(
+    BoolLit(True),
+    Call("subset", Bool(), setIn, setIn)
+  )
+
+  return Synth("stateInvariant", valid, synthState)
 
 def supportedCommand(synthState, args):
   add = args[0]
@@ -144,7 +154,7 @@ def targetLang():
 if __name__ == "__main__":
   synthesize_actor(
     synthStateType, initState,
-    stateInvariant, supportedCommand,
+    grammarStateInvariant, supportedCommand,
     grammar, grammarQuery, grammarEquivalence,
     targetLang,
     synthesize

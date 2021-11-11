@@ -12,9 +12,16 @@ def observeEquivalence(inputState, synthState):
     synthState
   )
 
+def stateInvariant(synthState):
+  return Call(
+    "stateInvariant",
+    Bool(),
+    synthState
+  )
+
 def synthesize_actor(
   synthStateType, initState,
-  stateInvariant, supportedCommand,
+  grammarStateInvariant, supportedCommand,
   grammar, grammarQuery, grammarEquivalence,
   targetLang,
   synthesize
@@ -123,15 +130,19 @@ def synthesize_actor(
   invAndPsEquivalence = [grammarEquivalence()]
   # end equivalence
 
+  # begin state invariant
+  invAndPsStateInvariant = [grammarStateInvariant()]
+  # end state invariant
+
   print("====== synthesis")
   
   combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(extraVarsInitstateInvariantVC)
 
-  combinedInvAndPs = invAndPsStateTransition + invAndPsQuery + invAndPsEquivalence
+  combinedInvAndPs = invAndPsStateTransition + invAndPsQuery + invAndPsEquivalence + invAndPsStateInvariant
 
   combinedPreds = predsStateTransition + predsQuery
 
-  combinedLoopAndPsInfo = loopAndPsInfoStateTransition + loopAndPsInfoQuery + invAndPsEquivalence
+  combinedLoopAndPsInfo = loopAndPsInfoStateTransition + loopAndPsInfoQuery + invAndPsEquivalence + invAndPsStateInvariant
   combinedVC = And(
     vcStateTransition,
     vcQuery,
