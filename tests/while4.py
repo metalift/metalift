@@ -13,7 +13,6 @@ from ir import (
     Call,
     Int,
     IntLit,
-    Or,
     FnDecl,
     Var,
     Add,

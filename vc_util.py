@@ -1,28 +1,5 @@
 import re
-from ir import (
-    Expr,
-    Type,
-    parseTypeRef,
-    Var,
-    Call,
-    Lit,
-    Bool,
-    Int,
-    List,
-    Set,
-    Eq,
-    Lt,
-    Le,
-    Not,
-    Or,
-    And,
-    Implies,
-    Synth,
-    Ite,
-    Add,
-    Sub,
-    BoolLit,
-)
+from ir import Lit, Bool, Int
 
 
 def parseOperand(op, reg, hasType=True):

@@ -2,27 +2,7 @@ from analysis import CodeInfo, analyze
 import ir
 import re
 import pyparsing as pp
-from ir import (
-    Choose,
-    And,
-    Ge,
-    Eq,
-    Le,
-    Sub,
-    Synth,
-    Call,
-    Int,
-    IntLit,
-    Or,
-    FnDecl,
-    Var,
-    Add,
-    Ite,
-    List,
-    Bool,
-    PrintMode,
-    printMode,
-)
+from ir import Var, PrintMode
 from llvmlite.binding import ValueRef
 
 # param for bounding the input list length

@@ -4,23 +4,12 @@ import sys
 from analysis import CodeInfo, analyze
 from ir import (
     Choose,
-    And,
-    Or,
-    Not,
     Gt,
-    Ge,
     Eq,
     Le,
     Le,
-    Sub,
     Synth,
-    Call,
-    Int,
     IntLit,
-    FnDecl,
-    Var,
-    Add,
-    Implies,
     Ite,
 )
 from rosette_translator import toRosette

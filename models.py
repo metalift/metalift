@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from ir import Expr, Type, Set, parseTypeRef, Int, Bool, Var, Call, IntLit, Ite
+from ir import Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite
 from vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])

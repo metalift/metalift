@@ -3,14 +3,11 @@ import pyparsing as pp
 import os
 
 from ir import (
-    Expr,
-    parseTypeRef,
     genVar,
     Constraint,
     MLInst_Assert,
     Call,
     FnDecl,
-    Bool,
     Not,
     Add,
     Sub,
@@ -23,9 +20,6 @@ from ir import (
     Or,
     Implies,
     Eq,
-    TupleSel,
-    Int,
-    Var,
 )
 
 

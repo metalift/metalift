@@ -20,11 +20,8 @@ from ir import (
     Ite,
     List,
     Gt,
-    Bool,
     Lt,
     Fn,
-    printMode,
-    PrintMode,
     Mul,
 )
 from synthesize_rosette import synthesize

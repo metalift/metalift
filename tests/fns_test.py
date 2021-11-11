@@ -1,27 +1,15 @@
-import os
-import sys
 import ir
 from ir import (
-    Choose,
-    And,
-    Ge,
     Eq,
-    Le,
-    Sub,
-    Synth,
     Call,
     Int,
     IntLit,
     FnDecl,
     Var,
-    Add,
     Ite,
     List,
-    Gt,
     Bool,
-    Lt,
     Fn,
-    printMode,
     PrintMode,
 )
 

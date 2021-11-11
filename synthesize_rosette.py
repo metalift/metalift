@@ -3,11 +3,10 @@ import pyparsing as pp
 import os
 import ir
 from analysis import CodeInfo
-from ir import printMode, PrintMode
 from ir import (
+    PrintMode,
     Expr,
     parseTypeRef,
-    Constraint,
     MLInst_Assert,
     Call,
     FnDecl,
