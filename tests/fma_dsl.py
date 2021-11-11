@@ -54,7 +54,9 @@ def grammar(ci: CodeInfo):
         inputVars = Choose(*ci.readVars, IntLit(0))
         rv = ci.modifiedVars[0]
         var_or_add = Add(inputVars, inputVars)
-        var_or_fma = Choose(*ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add))
+        var_or_fma = Choose(
+            *ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
+        )
         summary = Eq(rv, Add(var_or_fma, var_or_fma))
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -71,12 +73,7 @@ def targetLang():
         ),
         x,
     )
-    fma = FnDecl(
-        "_fma",
-        Int(),
-        Add(x, Mul(y, z)),
-        x, y, z
-    )
+    fma = FnDecl("_fma", Int(), Add(x, Mul(y, z)), x, y, z)
     return [sum_n, fma]
 
 

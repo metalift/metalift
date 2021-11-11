@@ -13,7 +13,9 @@ mkShell {
     (python38.withPackages (p: with p; [
       llvmlite
       pyparsing
+      black
     ]))
+
     cvc5
     llvm_10
     clang_10
