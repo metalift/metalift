@@ -2,21 +2,22 @@ from analysis import CodeInfo, analyze
 import ir
 import re
 import pyparsing as pp
-from ir import Var, PrintMode
+from ir import Expr, Var, PrintMode
 from llvmlite.binding import ValueRef
+from typing import Any, List, Sequence, Set, Tuple, Union
 
 # param for bounding the input list length
 n = 2
 
 
-def generateAST(expr):
+def generateAST(expr: str) -> List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
-    return ast
+    return ast  # type: ignore
 
 
-def genVar(v, decls, vars_all):
+def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
     if v.type.name == "Int":
         decls.append("(define-symbolic %s integer?)" % (v))
         vars_all.append(v.args[0])
@@ -53,16 +54,19 @@ def genVar(v, decls, vars_all):
         raise Exception(f"Unknown type: {v.type}")
 
 
-def generateVars(vars):
-    decls = []
-    vars_all = []
+def generateVars(vars: Set[Expr]) -> Tuple[str, List[str]]:
+    decls: List[str] = []
+    vars_all: List[str] = []
     for v in list(vars):
         genVar(v, decls, vars_all)
 
     return "\n".join(decls), vars_all
 
 
-def generateSynth(vars, invariant_guesses, loopAndPsInfo):
+def generateSynth(
+    vars: List[str],
+    invariant_guesses: List[Any],
+) -> str:
 
     listvars = "(list " + " ".join(vars) + ")"
     if invariant_guesses:
@@ -82,7 +86,7 @@ def generateSynth(vars, invariant_guesses, loopAndPsInfo):
     return synth_fun
 
 
-def generateInvPs(loopAndPsInfo):
+def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
 
     decls = ""
     for i in loopAndPsInfo:
@@ -102,7 +106,16 @@ def generateInvPs(loopAndPsInfo):
     return decls
 
 
-def toRosette(filename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, invGuess):
+def toRosette(
+    filename: str,
+    targetLang: List[Expr],
+    vars: Set[Expr],
+    invAndPs: List[Expr],
+    preds: List[Expr],
+    vc: Expr,
+    loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
+    invGuess: List[Any],
+) -> None:
 
     f = open(filename, "w")
     print(
@@ -145,7 +158,7 @@ def toRosette(filename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, in
     print("(define (assertions)\n (assert %s))\n" % (vc), file=f)
 
     # synthesis function
-    print(generateSynth(vars_all, invGuess, loopAndPsInfo), file=f)
+    print(generateSynth(vars_all, invGuess), file=f)
     f.close()
 
     # print(loopAndPsInfo)

@@ -1,8 +1,11 @@
 import re
-from ir import Lit, Bool, Int
+
+from llvmlite.binding import ValueRef
+from ir import Expr, Lit, Bool, Int
+from typing import Dict
 
 
-def parseOperand(op, reg, hasType=True):
+def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) -> Expr:
     # op is a ValueRef, and if it has a name then it's a register
     if op.name:  # a reg
         try:
@@ -14,7 +17,7 @@ def parseOperand(op, reg, hasType=True):
                     return reg[regKey]
             raise KeyError("")
     elif hasType:  # i32 0
-        val = re.search("\w+ (\S+)", str(op)).group(1)
+        val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
             return Lit(True, Bool())
         elif val == "false":

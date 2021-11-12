@@ -73,7 +73,7 @@ def targetLang():
         ),
         x,
     )
-    fma = FnDecl("_fma", Int(), Add(x, Mul(y, z)), x, y, z)
+    fma = FnDecl("fma", Int(), Add(x, Mul(y, z)), x, y, z)
     return [sum_n, fma]
 
 

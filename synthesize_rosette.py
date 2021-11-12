@@ -4,6 +4,7 @@ import os
 import ir
 from analysis import CodeInfo
 from ir import (
+    Type,
     PrintMode,
     Expr,
     parseTypeRef,
@@ -28,22 +29,25 @@ from ir import (
     List,
     Ite,
     IntLit,
-    ValueRef,
     Var,
     parseTypeRef,
 )
 from rosette_translator import toRosette
+from llvmlite.binding import ValueRef
+
+import typing
+from typing import Any, Callable, Dict, Optional, Set, Union
 
 
 # utils for converting rosette output to IR
-def generateAST(expr):
+def generateAST(expr: str) -> typing.List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
-    return ast
+    return ast  # type: ignore
 
 
-def parseOutput(resultSynth):
+def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
     output = []
     for i in range(len(resultSynth)):
         s = ""
@@ -59,9 +63,11 @@ def parseOutput(resultSynth):
     return output
 
 
-def toExpr(ast, fnsType, varType):
+def toExpr(
+    ast: typing.List[Any], fnsType: Dict[Any, Any], varType: Dict[str, Type]
+) -> Expr:
 
-    expr_bi = {
+    expr_bi: Dict[str, Callable[..., Expr]] = {
         "equal?": Eq,
         "+": Add,
         "-": Sub,
@@ -85,7 +91,7 @@ def toExpr(ast, fnsType, varType):
                 toExpr(ast[1], fnsType, varType), toExpr(ast[2], fnsType, varType)
             )
         elif ast[0] in expr_uni.keys():
-            return expr_uni[ast[0]](toExpr(ast[1]), fnsType, varType)
+            return expr_uni[ast[0]](toExpr(ast[1], fnsType, varType))
         elif ast[0] == "if":
             return Ite(
                 toExpr(ast[1], fnsType, varType),
@@ -135,6 +141,8 @@ def toExpr(ast, fnsType, varType):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
             retT = fnsType[ast[0]]
             return Call(ast[0], retT, *arg_eval)
+        else:
+            raise Exception(f"Unexpected function name: {ast[0]}")
     else:
         if ast.isnumeric():
 
@@ -148,7 +156,7 @@ def toExpr(ast, fnsType, varType):
             return Var(ast, varType[ast])
 
 
-def generateTypes(lang):
+def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
     fnsType = {}
 
     for l in lang:
@@ -166,10 +174,15 @@ def generateTypes(lang):
     return fnsType
 
 
-def parseCandidates(candidate, inCalls, fnsType, fnCalls):
+def parseCandidates(
+    candidate: Union[Expr, str],
+    inCalls: typing.List[Any],
+    fnsType: Dict[Any, Any],
+    fnCalls: typing.List[Any],
+) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
 
     if isinstance(candidate, str):
-        pass
+        return None
     else:
 
         if candidate.kind.value == "call":
@@ -184,7 +197,7 @@ def parseCandidates(candidate, inCalls, fnsType, fnCalls):
         return inCalls, fnCalls
 
 
-def filterArgs(argList):
+def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
         if a.type.name != "Function":
@@ -192,7 +205,7 @@ def filterArgs(argList):
     return newArgs
 
 
-def filterBody(funDef, funCall, inCall):
+def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
 
     if funDef.kind.value in [
         "+",
@@ -245,7 +258,9 @@ def filterBody(funDef, funCall, inCall):
         return funDef
 
 
-def toSynthesize(loopAndPsInfo, lang):
+def toSynthesize(
+    loopAndPsInfo: typing.List[CodeInfo], lang: typing.List[Expr]
+) -> typing.List[str]:
     synthNames = []
     for i in loopAndPsInfo:
         if isinstance(i, CodeInfo):
@@ -258,8 +273,17 @@ def toSynthesize(loopAndPsInfo, lang):
     return synthNames
 
 
-def synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
-    invGuess = []
+def synthesize(
+    basename: str,
+    lang: typing.List[Expr],
+    vars: Set[Expr],
+    invAndPs: typing.List[Expr],
+    preds: typing.List[Expr],
+    vc: Expr,
+    loopAndPsInfo: typing.List[CodeInfo],
+    cvcPath: str,
+) -> typing.List[Expr]:
+    invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
@@ -281,8 +305,8 @@ def synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
         for i in loopAndPsInfo:
             if isinstance(i, CodeInfo):
                 varTypes[i.name] = generateTypes(i.modifiedVars + i.readVars)
-        for i in lang:
-            varTypes[i.args[0]] = generateTypes(i.args[2:])
+        for l_i in lang:
+            varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
 
         if resultSynth[0] == "#t":
             output = parseOutput(resultSynth[1:])
@@ -294,12 +318,15 @@ def synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
                         candidateDict[n] = toExpr(
                             generateAST(r[1:])[0], fnsType, varTypes[n]
                         )
+        else:
+            raise Exception("Synthesis failed")
         #####candidateDict --> definitions of all functions to be synthesized#####
 
         #####identifying call sites for inlining #####
-        inCalls, fnCalls = [], []
+        inCalls: typing.List[Any] = []
+        fnCalls: typing.List[Any] = []
         for ce in loopAndPsInfo:
-            inCalls, fnCalls = parseCandidates(
+            inCalls, fnCalls = parseCandidates(  # type: ignore
                 candidateDict[ce.name], inCalls, fnsType, fnCalls
             )
         inCalls = list(set(inCalls))
@@ -308,14 +335,14 @@ def synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
 
         ##### generating function definitions of all the functions to be synthesized#####
         candidatesSMT = []
-        for idx, ce in enumerate(loopAndPsInfo):
+        for ce in loopAndPsInfo:
             candidatesSMT.append(
                 FnDecl(
                     ce.name,
                     ce.retT,
                     candidateDict[ce.name],
                     *ce.modifiedVars,
-                    *ce.readVars
+                    *ce.readVars,
                 )
             )
         for l in lang:
@@ -353,7 +380,16 @@ def synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
     return candidatesSMT
 
 
-def toSMT(targetLang, vars, invAndPs, preds, vc, outFile, inCalls, fnCalls):
+def toSMT(
+    targetLang: typing.List[Any],
+    vars: Set[Expr],
+    invAndPs: typing.List[Expr],
+    preds: Union[str, typing.List[Any]],
+    vc: Expr,
+    outFile: str,
+    inCalls: typing.List[Any],
+    fnCalls: typing.List[Any],
+) -> None:
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
 

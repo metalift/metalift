@@ -10,11 +10,11 @@ in
 mkShell {
   venvDir = "./.venv";
   buildInputs = [
-    (python38.withPackages (p: with p; [
-      llvmlite
-      pyparsing
-      black
-    ]))
+    python38Packages.venvShellHook
+    python38Packages.llvmlite
+    python38Packages.pyparsing
+    python38Packages.black
+    python38Packages.mypy
 
     cvc5
     llvm_10

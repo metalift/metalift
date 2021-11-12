@@ -8,6 +8,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jpetrucciani/mypy-check@master
+        with:
+          mypy_flags: --ignore-missing-imports --strict
   build:
     runs-on: ubuntu-latest
 
@@ -44,6 +51,7 @@ jobs:
         python -m tests.while4 tests/while4.ll test tests/while4.loops cvc5
         python -m tests.set1 tests/set1.ll test tests/set1.loops cvc5
         python -m tests.fma_dsl tests/fma_dsl.ll test tests/fma_dsl.loops cvc5
+        python -m tests.count tests/Count.ll test tests/Count.loops cvc5
 
     - name: Test Actor Examples
       run: |
