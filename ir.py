@@ -147,11 +147,6 @@ class Expr:
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs) for arg in e.args]
-                if (
-                    printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC
-                ) and e.kind == Expr.Kind.Call:
-                    if e.type.name != "Function":
-                        newArgs[0] = "_" + newArgs[0] # type: ignore
                 return Expr(e.kind, e.type, newArgs)
             else:
                 return e  # ValueRef or TypeRef

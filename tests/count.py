@@ -88,7 +88,7 @@ def grammar(ci: CodeInfo):
         b = Choose(And(And(c, d), e))
         return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
 
-    elif name.startswith("ps"):  # ps
+    elif name.startswith("test"):  # ps
         rv = ci.modifiedVars[0]
         m = Choose(Call("lm", Fn(Int())))
         r = Choose(Call("lr", Fn(Int())))
@@ -114,6 +114,8 @@ def grammar(ci: CodeInfo):
             ),
         )
         return Synth(name, choices, *ci.modifiedVars, *ci.readVars)
+    else:
+        raise Exception(f"Unknown function {name}")
 
 
 def grammarFns(fns):
