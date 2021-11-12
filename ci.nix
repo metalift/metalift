@@ -11,7 +11,6 @@ in [
   (python38.withPackages (p: with p; [
     llvmlite
     pyparsing
-    mypy
   ]))
 
   cvc5
