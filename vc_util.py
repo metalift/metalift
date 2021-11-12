@@ -2,7 +2,6 @@ import re
 
 from llvmlite.binding import ValueRef
 from ir import Expr, Lit, Bool, Int
-from llvmlite.binding.value import ValueRef
 from typing import Dict
 
 

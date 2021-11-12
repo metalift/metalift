@@ -1,7 +1,6 @@
 from enum import Enum
 
 from llvmlite.binding import ValueRef, TypeRef
-from llvmlite.binding.value import TypeRef, ValueRef
 
 import typing
 from typing import Any, Callable, Dict, Union
