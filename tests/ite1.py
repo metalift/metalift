@@ -2,17 +2,7 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import (
-    Choose,
-    Gt,
-    Eq,
-    Le,
-    Le,
-    Synth,
-    IntLit,
-    Ite,
-)
-from rosette_translator import toRosette
+from ir import *
 
 if True:
     from synthesize_rosette import synthesize

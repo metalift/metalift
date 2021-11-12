@@ -3,28 +3,7 @@ import subprocess
 import pyparsing as pp
 import os
 
-from ir import (
-    Expr,
-    Tuple,
-    Type,
-    genVar,
-    Constraint,
-    MLInst_Assert,
-    Call,
-    FnDecl,
-    Not,
-    Add,
-    Sub,
-    Mul,
-    Le,
-    Lt,
-    Ge,
-    Gt,
-    And,
-    Or,
-    Implies,
-    Eq,
-)
+from ir import *
 
 import typing
 from typing import Any, Callable, Dict, Generator, Union

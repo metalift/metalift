@@ -1,7 +1,7 @@
 #include "list.h"
 #include <iostream>
 
-List<int> test(List<int> in)
+extern "C" List<int> test(List<int> in)
 {
   List<int> out = newList<int>();
   for (int i = 0; i < listLength(in); ++i)

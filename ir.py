@@ -621,51 +621,6 @@ def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Exp
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
 
-def toRosette(
-    targetLang: Any,
-    invAndPs: Any,
-    vars: typing.List[Expr],
-    preds: typing.List[Expr],
-    vc: Expr,
-) -> str:
-    global printMode
-    printMode = PrintMode.Rosette
-
-    # out.write("\n\n".join([str(t) for t in targetLang]))
-
-    # out.write("\n\n%s\n\n" % invAndPs)
-
-    varsStr = ""
-    for v in vars:
-        if v.type == Int():
-            varsStr = varsStr + "(define %s (sym-int))\n" % v.args[0]
-        elif v.type == Bool():
-            varsStr = varsStr + "(define %s (sym-bool))\n" % v.args[0]
-        elif v.type == List(Int()):
-            varsStr = varsStr + "(define %s (sym-list 2))\n" % v.args[0]
-        else:
-            raise Exception("NYI: %s" % v)
-
-    # vars = "\n".join(["(declare-const %s %s)" % (v.args[0], v.type) for v in vars])  # name and type
-
-    # a list of Exprs - print name, args, return type
-    predsStr = "\n".join(
-        [
-            "(define-fun %s (%s) (%s) )"
-            % (
-                p.args[0],
-                " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]),
-                p.type,
-            )
-            for p in preds
-        ]
-    )
-
-    assertions = "(define (assertions)\n (assert %s))" % vc
-
-    return varsStr + "\n" + predsStr + "\n" + assertions
-
-
 # class to represent the extra instructions that are inserted into the llvm code during analysis
 class MLInst:
     class Kind:  # not defined as an enum as computeVC switches on the opcode str

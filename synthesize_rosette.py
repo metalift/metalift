@@ -3,40 +3,12 @@ import pyparsing as pp
 import os
 import ir
 from analysis import CodeInfo
-from ir import (
-    Type,
-    PrintMode,
-    Expr,
-    parseTypeRef,
-    MLInst_Assert,
-    Call,
-    FnDecl,
-    Bool,
-    Not,
-    Add,
-    Sub,
-    Mul,
-    Le,
-    Lt,
-    Ge,
-    Gt,
-    And,
-    Or,
-    Implies,
-    Eq,
-    Int,
-    Bool,
-    List,
-    Ite,
-    IntLit,
-    Var,
-    parseTypeRef,
-)
+from ir import *
 from rosette_translator import toRosette
 from llvmlite.binding import ValueRef
 
 import typing
-from typing import Any, Callable, Dict, Optional, Set, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 
 # utils for converting rosette output to IR
@@ -276,7 +248,7 @@ def toSynthesize(
 def synthesize(
     basename: str,
     lang: typing.List[Expr],
-    vars: Set[Expr],
+    vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
     preds: typing.List[Expr],
     vc: Expr,
@@ -382,7 +354,7 @@ def synthesize(
 
 def toSMT(
     targetLang: typing.List[Any],
-    vars: Set[Expr],
+    vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
     preds: Union[str, typing.List[Any]],
     vc: Expr,

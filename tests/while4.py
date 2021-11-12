@@ -2,22 +2,7 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import (
-    Choose,
-    And,
-    Ge,
-    Eq,
-    Le,
-    Sub,
-    Synth,
-    Call,
-    Int,
-    IntLit,
-    FnDecl,
-    Var,
-    Add,
-    Ite,
-)
+from ir import *
 
 if True:
     from synthesize_rosette import synthesize
