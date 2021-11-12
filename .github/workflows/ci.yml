@@ -8,6 +8,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jpetrucciani/mypy-check@master
+        with:
+          mypy_flags: --ignore-missing-imports --strict
   build:
     runs-on: ubuntu-latest
 
