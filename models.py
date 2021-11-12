@@ -1,25 +1,29 @@
 from collections import namedtuple
+from typing import Any, Callable, Dict
 
-from ir import Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite
+from llvmlite.binding import ValueRef
+
+from ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite
 from vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
 
+RegsType = Dict[ValueRef, Expr]
 
-def newlist(regs, *args):
+def newlist(regs: RegsType, *args: ValueRef) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_new", parseTypeRef(args[0].type)))])
     return ReturnValue(Var("list_empty", Type("MLList", Int())), None)
 
 
-def listLength(regs, *args):
+def listLength(regs: RegsType, *args: ValueRef) -> ReturnValue:
     return ReturnValue(Call("list_length", Int(), regs[args[0]]), None)
 
 
-def listGet(regs, *args):
+def listGet(regs: RegsType, *args: ValueRef) -> ReturnValue:
     return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
 
 
-def listAppend(regs, *args):
+def listAppend(regs: RegsType, *args: ValueRef) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
     return ReturnValue(
         Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
@@ -27,7 +31,7 @@ def listAppend(regs, *args):
     )
 
 
-def listConcat(regs, *args):
+def listConcat(regs: RegsType, *args: ValueRef) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
     return ReturnValue(
         Call("list_concat", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
@@ -35,7 +39,7 @@ def listConcat(regs, *args):
     )
 
 
-fnModels = {
+fnModels: Dict[str, Callable[..., ReturnValue]] = {
     # mangled names for non template version of list.h
     # "_Z7newListv": newlist,
     # "_Z10listLengthP4list": listLength,
@@ -48,7 +52,7 @@ fnModels = {
     "_Z7listGetIiET_P4listIS0_Ei": listGet,
     "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
     # names for set.h
-    "set_create": lambda _: ReturnValue(
+    "set_create": lambda _, *args: ReturnValue(
         Var("(as emptyset (Set Int))", Set(Int())), None
     ),
     "set_add": lambda regs, *args: ReturnValue(

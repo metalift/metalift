@@ -1,27 +1,24 @@
 from enum import Enum
 
 from llvmlite.binding import ValueRef, TypeRef
+from llvmlite.binding.value import TypeRef, ValueRef
 
+import typing
+from typing import Any, Callable, Dict, Union
 
 class PrintMode(Enum):
     SMT = 0
     Rosette = 1
     RosetteVC = 2
 
-
 printMode = PrintMode.SMT
 
-
-class Type:  # (Enum):
-    # Bool = "Bool"
-    # Int = "Int"
-
-    def __init__(self, name, *args):
+class Type:
+    def __init__(self, name: str, *args: "Type") -> None:
         self.name = name
         self.args = args
 
-    def __repr__(self):
-        # return self.value
+    def __repr__(self) -> str:
         if self.name == "Int":
             return "Int"
         elif self.name == "Bool":
@@ -31,7 +28,7 @@ class Type:  # (Enum):
         else:
             return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Type):
             if self.name != other.name or len(self.args) != len(other.args):
                 return False
@@ -44,43 +41,43 @@ class Type:  # (Enum):
                 )
         return NotImplemented
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         x = self.__eq__(other)
         if x is not NotImplemented:
             return not x
         return NotImplemented
 
 
-def Int():
-    return Type("Int", [])
+def Int() -> Type:
+    return Type("Int")
 
 
-def Bool():
-    return Type("Bool", [])
+def Bool() -> Type:
+    return Type("Bool")
 
 
-def Pointer():
-    return Type("Pointer", [])
+def Pointer() -> Type:
+    return Type("Pointer")
 
 
-def List(contentT):
+def List(contentT: Type) -> Type:
     return Type("MLList", contentT)
 
 
-def Fn(retT, *argT):
+def Fn(retT: Type, *argT: Type) -> Type:
     return Type("Function", retT, *argT)
 
 
-def Set(contentT):
+def Set(contentT: Type) -> Type:
     return Type("Set", contentT)
 
 
-def Tuple(*elemT):
+def Tuple(*elemT: Type) -> Type:
     return Type("Tuple", *elemT)
 
 
 # util for flattening tuple variables
-def genVar(v, declarations):
+def genVar(v: "Expr", declarations: typing.List[Union[typing.Tuple[str, Type], Any]]) -> None:
     if v.type.name == "Tuple":
         for i in range(len(v.type.args)):
             genVar(Var(v.args[0] + "_" + str(i), v.type.args[i]), declarations)
@@ -123,16 +120,16 @@ class Expr:
         Tuple = "tuple"
         TupleSel = "tuplesel"
 
-    def __init__(self, kind, type, args):
+    def __init__(self, kind: Kind, type: Type, args: Any) -> None:
         self.kind = kind
         self.args = args
         self.type = type
 
-    def mapArgs(self, f):
+    def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         return Expr(self.kind, self.type, [f(a) for a in self.args])
 
     @staticmethod
-    def findCommonExprs(e, cnts):
+    def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
         if e not in cnts:
             cnts[e] = 1
             for i in range(len(e.args)):
@@ -145,7 +142,7 @@ class Expr:
         return cnts
 
     @staticmethod
-    def replaceExprs(e, commonExprs, skipTop=False):
+    def replaceExprs(e: Union[bool, "Expr", ValueRef, int, str], commonExprs: typing.List[Union["Expr", Any]], skipTop: bool=False) -> Union["Expr", ValueRef]:
         # skipTop is used to ignore the top-level match when simplifying a common expr
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
@@ -154,18 +151,19 @@ class Expr:
                     printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC
                 ) and e.kind == Expr.Kind.Call:
                     if e.type.name != "Function":
-                        newArgs[0] = "_" + newArgs[0]
+                        newArgs[0] = "_" + newArgs[0] # type: ignore
                 return Expr(e.kind, e.type, newArgs)
             else:
                 return e  # ValueRef or TypeRef
         else:
+            assert isinstance(e, Expr)
             if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
                 return Var("(v%d)" % commonExprs.index(e), e.type)
             else:
                 return Var("v%d" % commonExprs.index(e), e.type)
 
     @staticmethod
-    def printSynth(e):
+    def printSynth(e: "Expr") -> str:
         cnts = Expr.findCommonExprs(e.args[1], {})
         commonExprs = list(
             filter(
@@ -198,7 +196,7 @@ class Expr:
             )
 
             return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
-        elif printMode == PrintMode.SMT:
+        else: # printMode == PrintMode.SMT
             decls = "((rv %s) %s)" % (
                 e.type,
                 " ".join(
@@ -232,7 +230,7 @@ class Expr:
             args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
             return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         global printMode
         listFns = {
             "list_get": "list-ref-noerr",
@@ -404,16 +402,16 @@ class Expr:
             if self.args[0].kind == Expr.Kind.Var:
                 return "%s_%s" % (self.args[0].args[0], self.args[1])
             elif self.args[0].kind == Expr.Kind.Tuple:
-                return self.args[0].args[self.args[1].args[0]].__repr__()
+                return repr(self.args[0].args[self.args[1].args[0]])
             else:
                 raise Exception("Tuple selection requires static tuples and index")
         elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
-            return And(
+            return repr(And(
                 *[
                     Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
                     for i in range(len(self.args[0].type.args))
                 ]
-            ).__repr__()
+            ))
         else:
             if printMode == PrintMode.SMT:
                 value = self.kind.value
@@ -507,7 +505,7 @@ class Expr:
     #     return not x
     #   return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(
             tuple(
                 sorted({"kind": self.kind, "type": self.type, "args": tuple(self.args)})
@@ -515,112 +513,112 @@ class Expr:
         )
 
 
-def Var(name, ty):
+def Var(name: str, ty: Type) -> Expr:
     return Expr(Expr.Kind.Var, ty, [name])
 
 
-def Lit(val, ty):
+def Lit(val: Union[bool, int], ty: Type) -> Expr:
     return Expr(Expr.Kind.Lit, ty, [val])
 
 
-def IntLit(val):
+def IntLit(val: int) -> Expr:
     return Lit(val, Int())
 
 
-def BoolLit(val):
+def BoolLit(val: bool) -> Expr:
     return Lit(val, Bool())
 
 
-def Add(*args):
+def Add(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Add, Int(), args)
 
 
-def Sub(*args):
+def Sub(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Sub, Int(), args)
 
 
-def Mul(*args):
+def Mul(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Mul, Int(), args)
 
 
-def Eq(e1, e2):
+def Eq(e1: Expr, e2: Expr) -> Expr:
     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 
 
-def Lt(e1, e2):
+def Lt(e1: Expr, e2: Expr) -> Expr:
     return Expr(Expr.Kind.Lt, Bool(), [e1, e2])
 
 
-def Le(e1, e2):
+def Le(e1: Expr, e2: Expr) -> Expr:
     return Expr(Expr.Kind.Le, Bool(), [e1, e2])
 
 
-def Gt(e1, e2):
+def Gt(e1: Expr, e2: Expr) -> Expr:
     return Expr(Expr.Kind.Gt, Bool(), [e1, e2])
 
 
-def Ge(e1, e2):
+def Ge(e1: Expr, e2: Expr) -> Expr:
     return Expr(Expr.Kind.Ge, Bool(), [e1, e2])
 
 
-def And(*args):
+def And(*args: Expr) -> Expr:
     return Expr(Expr.Kind.And, Bool(), args)
 
 
-def Or(*args):
+def Or(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Or, Bool(), args)
 
 
-def Not(e):
+def Not(e: Expr) -> Expr:
     return Expr(Expr.Kind.Not, Bool(), [e])
 
 
-def Implies(e1, e2):
+def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
     return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
 
 
-def Ite(c, e1, e2):
+def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
 
-def Call(name, returnT, *args):
+def Call(name: str, returnT: Type, *args: Expr) -> Expr:
     return Expr(Expr.Kind.Call, returnT, [name, *args])
 
 
-def Assert(e):
+def Assert(e: Expr) -> Expr:
     return Expr(Expr.Kind.Assert, Bool(), [e])
 
 
-def Constraint(e):
+def Constraint(e: Expr) -> Expr:
     return Expr(Expr.Kind.Constraint, Bool(), [e])
 
 
-def MakeTuple(*args):
+def MakeTuple(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
 
 
-def TupleSel(t, i):
+def TupleSel(t: Expr, i: int) -> Expr:
     return Expr(Expr.Kind.TupleSel, t.type.args[i], [t, IntLit(i)])
 
 
-def Axiom(e, *vars):
+def Axiom(e: Expr, *vars: Expr) -> Expr:
     return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
 
 
 # the body of a synth-fun
-def Synth(name, body, *args):
+def Synth(name: str, body: Expr, *args: Expr) -> Expr:
     return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
 
 
-def Choose(*args):
+def Choose(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Choose, args[0].type, args)
 
 
-def FnDecl(name, returnT, body, *args):
+def FnDecl(name: str, returnT: Type, body: str, *args: Expr) -> Expr:
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
 
-def toRosette(targetLang, invAndPs, vars, preds, vc):
+def toRosette(targetLang: Any, invAndPs: Any, vars: typing.List[Expr], preds: typing.List[Expr], vc: Expr) -> str:
     global printMode
     printMode = PrintMode.Rosette
 
@@ -672,11 +670,11 @@ class MLInst:
         Or = "or"
         Return = "return"
 
-    def __init__(self, opcode, *operands):
+    def __init__(self, opcode: str, *operands: Union["MLInst", ValueRef]) -> None:
         self.opcode = opcode
         self.operands = operands
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.opcode == MLInst.Kind.Call:
             return "call %s %s(%s)" % (
                 self.operands[0],
@@ -700,52 +698,42 @@ class MLInst:
             )
 
 
-def MLInst_Assert(val):
+def MLInst_Assert(val: Expr) -> MLInst:
     return MLInst(MLInst.Kind.Assert, val)
 
 
-def MLInst_Assume(val):
+def MLInst_Assume(val: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assume, val)
 
 
-def MLInst_Call(name, retType, *args):
+def MLInst_Call(name: str, retType: Type, *args: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Call, name, retType, *args)
 
 
-def MLInst_Eq(v1, v2):
+def MLInst_Eq(v1: Union[MLInst, ValueRef], v2: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Eq, v1, v2)
 
 
-def MLInst_Havoc(*args):
+def MLInst_Havoc(*args: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Havoc, *args)
 
 
-def MLInst_Load(val):
+def MLInst_Load(val: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Load, val)
 
 
-def MLInst_Not(val):
+def MLInst_Not(val: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Not, val)
 
 
-def MLInst_Or(val):
+def MLInst_Or(val: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Or, val)
 
 
-def MLInst_Return(val):
+def MLInst_Return(val: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Return, val)
 
-
-class MLValueRef:
-    def __init__(self, name, ty):
-        self.name = name
-        self.ty = ty
-
-    def __str__(self):
-        return self.name
-
-
-def parseTypeRef(t: TypeRef):
+def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     # ty.name returns empty string. possibly bug
     tyStr = str(t)
 
