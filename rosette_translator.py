@@ -2,8 +2,9 @@ from analysis import CodeInfo, analyze
 import ir
 import re
 import pyparsing as pp
-from ir import Var, PrintMode
+from ir import Expr, Var, PrintMode
 from llvmlite.binding import ValueRef
+from typing import Any, List, Set, Tuple, Union
 
 # param for bounding the input list length
 n = 2
@@ -16,7 +17,9 @@ def generateAST(expr):
     return ast
 
 
-def genVar(v, decls, vars_all):
+def genVar(
+    v: Expr, decls: List[Union[Any, str]], vars_all: List[Union[Any, str]]
+) -> None:
     if v.type.name == "Int":
         decls.append("(define-symbolic %s integer?)" % (v))
         vars_all.append(v.args[0])
@@ -53,7 +56,7 @@ def genVar(v, decls, vars_all):
         raise Exception(f"Unknown type: {v.type}")
 
 
-def generateVars(vars):
+def generateVars(vars: Set[Expr]) -> Tuple[str, List[str]]:
     decls = []
     vars_all = []
     for v in list(vars):
@@ -62,7 +65,9 @@ def generateVars(vars):
     return "\n".join(decls), vars_all
 
 
-def generateSynth(vars, invariant_guesses, loopAndPsInfo):
+def generateSynth(
+    vars: List[str], invariant_guesses: List[Any], loopAndPsInfo: List[CodeInfo]
+) -> str:
 
     listvars = "(list " + " ".join(vars) + ")"
     if invariant_guesses:
@@ -82,7 +87,7 @@ def generateSynth(vars, invariant_guesses, loopAndPsInfo):
     return synth_fun
 
 
-def generateInvPs(loopAndPsInfo):
+def generateInvPs(loopAndPsInfo: List[CodeInfo]) -> str:
 
     decls = ""
     for i in loopAndPsInfo:
@@ -102,7 +107,16 @@ def generateInvPs(loopAndPsInfo):
     return decls
 
 
-def toRosette(filename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, invGuess):
+def toRosette(
+    filename: str,
+    targetLang: List[Any],
+    vars: Set[Expr],
+    invAndPs: List[Expr],
+    preds: List[Any],
+    vc: Expr,
+    loopAndPsInfo: List[CodeInfo],
+    invGuess: List[Any],
+) -> None:
 
     f = open(filename, "w")
     print(

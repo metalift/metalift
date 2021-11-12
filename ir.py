@@ -680,7 +680,7 @@ class MLInst:
         Or = "or"
         Return = "return"
 
-    def __init__(self, opcode: str, *operands: Union["MLInst", ValueRef]) -> None:
+    def __init__(self, opcode: str, *operands: Union["MLInst", Expr, ValueRef]) -> None:
         self.opcode = opcode
         self.operands = operands
 
@@ -708,11 +708,11 @@ class MLInst:
             )
 
 
-def MLInst_Assert(val: Expr) -> MLInst:
+def MLInst_Assert(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assert, val)
 
 
-def MLInst_Assume(val: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Assume(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assume, val)
 
 
@@ -720,27 +720,29 @@ def MLInst_Call(name: str, retType: Type, *args: Union[MLInst, ValueRef]) -> MLI
     return MLInst(MLInst.Kind.Call, name, retType, *args)
 
 
-def MLInst_Eq(v1: Union[MLInst, ValueRef], v2: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Eq(
+    v1: Union[MLInst, Expr, ValueRef], v2: Union[MLInst, Expr, ValueRef]
+) -> MLInst:
     return MLInst(MLInst.Kind.Eq, v1, v2)
 
 
-def MLInst_Havoc(*args: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Havoc(*args: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Havoc, *args)
 
 
-def MLInst_Load(val: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Load(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Load, val)
 
 
-def MLInst_Not(val: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Not(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Not, val)
 
 
-def MLInst_Or(val: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Or(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Or, val)
 
 
-def MLInst_Return(val: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Return, val)
 
 

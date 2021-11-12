@@ -3,6 +3,11 @@ from collections import namedtuple
 from llvmlite import binding as llvm
 
 from ir import (
+    Expr,
+    MLInst_Eq,
+    MLInst_Or,
+    MLInst_Return,
+    Type,
     MLInst,
     Bool,
     MLInst_Call,
@@ -13,9 +18,22 @@ from ir import (
     MLInst_Not,
 )
 from vc import Block, VC
+from llvmlite.binding import ValueRef
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 
-def setupBlocks(blks):
+def setupBlocks(blks: Iterable[ValueRef]) -> Dict[str, Block]:
     bbs = dict((b.name, Block(b.name, list(b.instructions))) for b in blks)
 
     for b in bbs.values():
@@ -41,7 +59,7 @@ def setupBlocks(blks):
 
 
 # replace ret void with ret sret argument if srets are used
-def parseSrets(fnArgs, blks):
+def parseSrets(fnArgs: List[ValueRef], blks: Iterable[Block]) -> None:
     sret = None
     for a in fnArgs:
         if b"sret" in a.attributes:
@@ -57,7 +75,7 @@ def parseSrets(fnArgs, blks):
                 if len(ops):
                     raise Exception("return val not void: %s" % b.instructions[-1])
                 else:
-                    b.instructions[-1] = MLInst.Return(sret)
+                    b.instructions[-1] = MLInst_Return(sret)
 
 
 # previous attempt in rewriting all STL vector fn calls
@@ -97,8 +115,18 @@ def parseSrets(fnArgs, blks):
 #           newInst = MLInstruction("call", ops[0], "listDestruct")
 #           b.instructions[i] = newInst
 
+LoopInfo = NamedTuple(
+    "LoopInfo",
+    [
+        ("header", List[str]),
+        ("body", List[str]),
+        ("exits", List[str]),
+        ("latches", List[str]),
+    ],
+)
 
-def parseLoops(filename, fnName):
+
+def parseLoops(filename: str, fnName: str) -> List[LoopInfo]:
     with open(filename, mode="r") as f:
         foundLines = []
         found = False
@@ -110,18 +138,16 @@ def parseLoops(filename, fnName):
             ):
                 found = True
             elif found:
-                m = re.match("Loop at depth \d+ containing: (\S+)", l.strip())
-                if m:
-                    foundLines.append(m.group(1))
+                loopMatch = re.match("Loop at depth \d+ containing: (\S+)", l.strip())
+                if loopMatch:
+                    foundLines.append(loopMatch.group(1))
                 elif re.match(
                     "Printing analysis 'Natural Loop Information' for function '\S+':",
                     l,
                 ):
                     found = False
 
-        LoopInfo = namedtuple("LoopInfo", ["header", "body", "exits", "latches"])
-
-        loops = []
+        loops: List[LoopInfo] = []
         for m in foundLines:
             header = []
             body = []
@@ -130,7 +156,7 @@ def parseLoops(filename, fnName):
 
             blks = m.replace("%", "").split(",")
             for b in blks:
-                name = re.search("([^<]+)", b).group(0)
+                name: str = re.search("([^<]+)", b).group(0)  # type: ignore
                 print("name: %s" % b)
                 if "<header>" in b:
                     header.append(name)
@@ -143,23 +169,29 @@ def parseLoops(filename, fnName):
 
             loops.append(LoopInfo(header, body, exits, latches))
 
-        for l in loops:
+        for loop in loops:
             print(
                 "found loop: header: %s, body: %s, exits: %s, latches: %s"
-                % (l.header, l.body, l.exits, l.latches)
+                % (loop.header, loop.body, loop.exits, loop.latches)
             )
 
         return loops
 
 
 class CodeInfo:
-    def __init__(self, name, retT, modifiedVars, readVars):
+    def __init__(
+        self,
+        name: str,
+        retT: Type,
+        modifiedVars: List[ValueRef],
+        readVars: List[ValueRef],
+    ) -> None:
         self.name = name
         self.retT = retT
         self.modifiedVars = modifiedVars
         self.readVars = readVars
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "name: %s\nret type: %s\nmod vars: %s\nread args: %s" % (
             self.name,
             self.retT,
@@ -171,7 +203,13 @@ class CodeInfo:
 invNum = 0
 
 
-def processLoops(header, body, exits, latches, fnArgs):
+def processLoops(
+    header: Block,
+    body: List[Block],
+    exits: List[Block],
+    latches: List[Block],
+    fnArgs: List[ValueRef],
+) -> CodeInfo:
     havocs = []
     for blk in [header, *body, *exits, *latches]:
         for i in blk.instructions:
@@ -223,10 +261,15 @@ def processLoops(header, body, exits, latches, fnArgs):
         for i in l.instructions:
             print("%s" % i)
 
-    return CodeInfo(inv.operands[0], Bool(), havocs, fnArgs)
+    return CodeInfo(inv.operands[0], Bool(), havocs, fnArgs)  # type: ignore
 
 
-def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None, fnName="ps"):
+def processBranches(
+    blocksMap: Dict[str, Block],
+    fnArgs: List[ValueRef],
+    wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
+    fnName: str = "ps",
+) -> List[CodeInfo]:
     retCodeInfo = []
     for b in blocksMap.values():
         opcode = b.instructions[-1].opcode
@@ -249,7 +292,7 @@ def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None, fnName="ps"):
             blocksMap[ops[1].name].instructions.insert(
                 0,
                 MLInst_Assume(
-                    MLInst_Not(MLInstOr(*[MLInst.Eq(ops[0], v) for v in vals]))
+                    MLInst_Not(MLInst_Or(*[MLInst_Eq(ops[0], v) for v in vals]))
                 ),
             )
 
@@ -258,9 +301,11 @@ def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None, fnName="ps"):
             filteredArgs = list(
                 filter(lambda a: b"sret" not in a.attributes, fnArgs)
             )  # remove the sret args
-            ps = MLInst_Call(fnName, Bool(), returnArg, *filteredArgs)
+            ps: Union[MLInst, Expr] = MLInst_Call(
+                fnName, Bool(), returnArg, *filteredArgs
+            )
             if wrapSummaryCheck:
-                ps, transformedArgs = wrapSummaryCheck(ps)
+                ps, transformedArgs = wrapSummaryCheck(cast(MLInst, ps))
                 returnArg = transformedArgs[0]
                 filteredArgs = transformedArgs[1:]
             b.instructions.insert(-1, MLInst_Assert(ps))
@@ -270,7 +315,9 @@ def processBranches(blocksMap, fnArgs, wrapSummaryCheck=None, fnName="ps"):
 
 
 # run all code analysis
-def analyze(filename, fnName, loopsFile, wrapSummaryCheck=None):
+def analyze(
+    filename: str, fnName: str, loopsFile: str, wrapSummaryCheck: None = None
+) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
 
@@ -279,12 +326,12 @@ def analyze(filename, fnName, loopsFile, wrapSummaryCheck=None):
 
     parseSrets(list(fn.arguments), blocksMap.values())
 
-    loops = parseLoops(loopsFile, fnName) if loopsFile else None
+    loops = parseLoops(loopsFile, fnName)
     loopAndPsInfo = []
     for l in loops:
         # assume for now there is only one header block
         if len(l.header) > 1:
-            raise Exception("multiple loop headers: %s" % l)
+            raise Exception("multiple loop headers: %s" % l)  # type: ignore
         loopAndPsInfo.append(
             processLoops(
                 blocksMap[l.header[0]],

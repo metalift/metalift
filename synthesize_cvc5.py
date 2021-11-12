@@ -1,3 +1,4 @@
+from analysis import CodeInfo
 import subprocess
 import pyparsing as pp
 import os
@@ -124,7 +125,7 @@ def synthesize(
     invAndPs: typing.List[Expr],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
-    loopAndPsInfo: Any,
+    loopAndPsInfo: typing.List[CodeInfo],
     cvcPath: str,
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
@@ -182,7 +183,7 @@ def synthesize(
                 print("CVC4 verification Result for Current Guess")
                 print("SAT\n")
         else:
-            raise Exception(f"Unexpected SyGuS output: {line}")
+            continue
 
     raise Exception("SyGuS failed")
 
