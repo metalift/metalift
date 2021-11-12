@@ -1,33 +1,8 @@
 import os
 import sys
-import subprocess
 from analysis import CodeInfo, analyze
-import ir
-from ir import (
-    Choose,
-    And,
-    Ge,
-    Eq,
-    Le,
-    Sub,
-    Synth,
-    Call,
-    Int,
-    IntLit,
-    FnDecl,
-    Var,
-    Add,
-    Ite,
-    List,
-    Gt,
-    Lt,
-    Fn,
-    Mul,
-)
+from ir import *
 from synthesize_rosette import synthesize
-from rosette_translator import toRosette, generateInvPs
-import pyparsing as pp
-from synthesize_rosette import generateTypes, toExpr
 
 # # programmatically generated grammar
 def grammar(ci: CodeInfo):

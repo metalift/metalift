@@ -2,25 +2,8 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import (
-    Choose,
-    And,
-    Ge,
-    Eq,
-    Le,
-    Sub,
-    Synth,
-    Call,
-    Int,
-    IntLit,
-    Or,
-    FnDecl,
-    Var,
-    Add,
-    Ite,
-)
+from ir import *
 from synthesize_rosette import synthesize
-from rosette_translator import toRosette
 
 # # programmatically generated grammar
 
