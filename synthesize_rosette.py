@@ -29,7 +29,6 @@ from ir import (
     List,
     Ite,
     IntLit,
-    ValueRef,
     Var,
     parseTypeRef,
 )
@@ -45,7 +44,7 @@ def generateAST(expr: str) -> typing.List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
-    return ast
+    return ast  # type: ignore
 
 
 def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
@@ -92,7 +91,7 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType), toExpr(ast[2], fnsType, varType)
             )
         elif ast[0] in expr_uni.keys():
-            return expr_uni[ast[0]](toExpr(ast[1]), fnsType, varType)
+            return expr_uni[ast[0]](toExpr(ast[1], fnsType, varType))
         elif ast[0] == "if":
             return Ite(
                 toExpr(ast[1], fnsType, varType),
@@ -142,6 +141,8 @@ def toExpr(
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
             retT = fnsType[ast[0]]
             return Call(ast[0], retT, *arg_eval)
+        else:
+            raise Exception(f"Unexpected function name: {ast[0]}")
     else:
         if ast.isnumeric():
 
@@ -181,7 +182,7 @@ def parseCandidates(
 ) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
 
     if isinstance(candidate, str):
-        pass
+        return None
     else:
 
         if candidate.kind.value == "call":
@@ -282,7 +283,7 @@ def synthesize(
     loopAndPsInfo: typing.List[CodeInfo],
     cvcPath: str,
 ) -> typing.List[Expr]:
-    invGuess = []
+    invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
@@ -304,8 +305,8 @@ def synthesize(
         for i in loopAndPsInfo:
             if isinstance(i, CodeInfo):
                 varTypes[i.name] = generateTypes(i.modifiedVars + i.readVars)
-        for i in lang:
-            varTypes[i.args[0]] = generateTypes(i.args[2:])
+        for l_i in lang:
+            varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
 
         if resultSynth[0] == "#t":
             output = parseOutput(resultSynth[1:])
@@ -322,9 +323,10 @@ def synthesize(
         #####candidateDict --> definitions of all functions to be synthesized#####
 
         #####identifying call sites for inlining #####
-        inCalls, fnCalls = [], []
+        inCalls: typing.List[Any] = []
+        fnCalls: typing.List[Any] = []
         for ce in loopAndPsInfo:
-            inCalls, fnCalls = parseCandidates(
+            inCalls, fnCalls = parseCandidates(  # type: ignore
                 candidateDict[ce.name], inCalls, fnsType, fnCalls
             )
         inCalls = list(set(inCalls))
@@ -340,7 +342,7 @@ def synthesize(
                     ce.retT,
                     candidateDict[ce.name],
                     *ce.modifiedVars,
-                    *ce.readVars
+                    *ce.readVars,
                 )
             )
         for l in lang:
@@ -382,7 +384,7 @@ def toSMT(
     targetLang: typing.List[Any],
     vars: Set[Expr],
     invAndPs: typing.List[Expr],
-    preds: typing.List[Any],
+    preds: Union[str, typing.List[Any]],
     vc: Expr,
     outFile: str,
     inCalls: typing.List[Any],

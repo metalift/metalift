@@ -113,7 +113,7 @@ def toRosette(
     invAndPs: List[Expr],
     preds: List[Expr],
     vc: Expr,
-    loopAndPsInfo: List[Union[CodeInfo, Expr]],
+    loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
     invGuess: List[Any],
 ) -> None:
 

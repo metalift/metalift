@@ -618,7 +618,7 @@ def Choose(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Choose, args[0].type, args)
 
 
-def FnDecl(name: str, returnT: Type, body: str, *args: Expr) -> Expr:
+def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
 
