@@ -3,6 +3,9 @@ import pyparsing as pp
 import os
 
 from ir import (
+    Expr,
+    Tuple,
+    Type,
     genVar,
     Constraint,
     MLInst_Assert,
@@ -22,8 +25,11 @@ from ir import (
     Eq,
 )
 
+import typing
+from typing import Any, Callable, Dict, Generator, Union
 
-def flatten(L):
+
+def flatten(L: typing.List[Any]) -> Generator[str, str, None]:
     for l in L:
         if isinstance(l, list):
             yield "("
@@ -31,16 +37,19 @@ def flatten(L):
             yield ")"
         else:
             yield l
+    return None
 
 
-def generateAST(expr):
+def generateAST(expr: str) -> typing.List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(pp.Suppress("(exit)") | s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
-    return ast
+    return ast  # type: ignore
 
 
-def extractFuns(targetLang):
+def extractFuns(
+    targetLang: typing.List[Expr],
+) -> typing.Tuple[typing.List[str], typing.List[Type]]:
     funName, returnType = (
         [],
         [],
@@ -51,7 +60,12 @@ def extractFuns(targetLang):
     return funName, returnType
 
 
-def generateCandidates(invAndPs, line, funName, returnType):
+def generateCandidates(
+    invAndPs: typing.List[Expr],
+    line: str,
+    funName: typing.List[str],
+    returnType: typing.List[Type],
+) -> typing.Tuple[typing.List[Expr], Dict[str, Expr]]:
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
     for ce in invAndPs:
@@ -67,14 +81,16 @@ def generateCandidates(invAndPs, line, funName, returnType):
                             ce.args[0],
                             ce.type,
                             "(" + " ".join(list(flatten(a[1]))) + ")",
-                            *ce.args[2:]
+                            *ce.args[2:],
                         )
                     )
     return candidates, candidatesExpr
 
 
-def toExpr(ast, funName, returnType):
-    expr_bi = {
+def toExpr(
+    ast: typing.List[Any], funName: typing.List[str], returnType: typing.List[Type]
+) -> Expr:
+    expr_bi: Dict[str, Callable[..., Expr]] = {
         "=": Eq,
         "+": Add,
         "-": Sub,
@@ -98,10 +114,19 @@ def toExpr(ast, funName, returnType):
         index = funName.index(ast[0])
         return Call(ast[0], returnType[index], toExpr(ast[1], funName, returnType))
     else:
-        return ast
+        return ast  # type: ignore
 
 
-def synthesize(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath):
+def synthesize(
+    basename: str,
+    targetLang: typing.List[Expr],
+    vars: typing.List[Expr],
+    invAndPs: typing.List[Expr],
+    preds: Union[str, typing.List[Expr]],
+    vc: Expr,
+    loopAndPsInfo: Any,
+    cvcPath: str,
+) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
@@ -146,21 +171,32 @@ def synthesize(basename, targetLang, vars, invAndPs, preds, vc, loopAndPsInfo, c
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
             )
-            output = procVerify.stdout.readline()
+            output = procVerify.stdout.readline()  # type: ignore
             output = output.decode("utf-8")
             if output.count("unsat") == 1:
                 print("UNSAT\n")
                 print("Verified PS and INV Candidates ", candDef)
 
                 return candidates
-
             else:
                 print("CVC4 verification Result for Current Guess")
                 print("SAT\n")
+        else:
+            raise Exception(f"Unexpected SyGuS output: {line}")
+
+    raise Exception("SyGuS failed")
 
 
 # print to a file
-def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
+def toSMT(
+    targetLang: typing.List[Expr],
+    invAndPs: str,
+    vars: typing.List[Expr],
+    preds: Union[str, typing.List[Expr]],
+    vc: Expr,
+    outFile: str,
+    isSynthesis: bool,
+) -> None:
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
         out.write("\n\n".join([str(t) for t in targetLang]))
@@ -169,14 +205,14 @@ def toSMT(targetLang, invAndPs, vars, preds, vc, outFile, isSynthesis):
 
         var_decl_command = "declare-var" if isSynthesis else "declare-const"
 
-        declarations = []
+        declarations: typing.List[typing.Tuple[str, Type]] = []
         for v in vars:
             genVar(v, declarations)
 
-        v = "\n".join(
+        declsString = "\n".join(
             ["(%s %s %s)" % (var_decl_command, d[0], d[1]) for d in declarations]
         )  # name and type
-        out.write("%s\n\n" % v)
+        out.write("%s\n\n" % declsString)
 
         if isinstance(preds, str):
             out.write("%s\n\n" % preds)

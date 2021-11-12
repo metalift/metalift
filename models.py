@@ -10,6 +10,7 @@ ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
 
 RegsType = Dict[ValueRef, Expr]
 
+
 def newlist(regs: RegsType, *args: ValueRef) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_new", parseTypeRef(args[0].type)))])
     return ReturnValue(Var("list_empty", Type("MLList", Int())), None)

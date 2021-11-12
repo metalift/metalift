@@ -6,7 +6,7 @@ from llvmlite.binding.value import ValueRef
 from typing import Dict
 
 
-def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool=True) -> Expr:
+def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) -> Expr:
     # op is a ValueRef, and if it has a name then it's a register
     if op.name:  # a reg
         try:
@@ -18,7 +18,7 @@ def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool=True) ->
                     return reg[regKey]
             raise KeyError("")
     elif hasType:  # i32 0
-        val = re.search("\w+ (\S+)", str(op)).group(1) # type: ignore
+        val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
             return Lit(True, Bool())
         elif val == "false":

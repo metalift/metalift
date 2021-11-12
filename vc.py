@@ -63,7 +63,7 @@ class VC:
     preds: Dict[str, Expr]
     vars: typing.Set[Expr]
 
-    def __init__(self, fnName: str="ps") -> None:
+    def __init__(self, fnName: str = "ps") -> None:
         self.vars = set()
         self.havocNum = 0
         self.preds = dict()
@@ -89,7 +89,12 @@ class VC:
         self.preds[name] = Call(name, returnT, *newArgs)
         return Call(name, returnT, *args)
 
-    def computeVC(self, blocksMap: Dict[str, Block], firstBlockName: str, arguments: typing.List[ValueRef]) -> typing.Tuple[typing.Set[Expr], typing.List[Expr], typing.List[Expr], Expr]:
+    def computeVC(
+        self,
+        blocksMap: Dict[str, Block],
+        firstBlockName: str,
+        arguments: typing.List[ValueRef],
+    ) -> typing.Tuple[typing.Set[Expr], typing.List[Expr], typing.List[Expr], Expr]:
         initBlock = blocksMap[firstBlockName]
         for arg in arguments:
             v = self.makeVar(arg.name, arg.type)
@@ -112,7 +117,7 @@ class VC:
                     self.compute(b)
                     done = False
 
-        blockVCs: List[Expr] = [b.state.vc for b in blocksMap.values()] # type: ignore
+        blockVCs: List[Expr] = [b.state.vc for b in blocksMap.values()]  # type: ignore
 
         body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
 
@@ -133,8 +138,15 @@ class VC:
         return self.vars, invAndPs, preds, body
 
     # merge either the registers or mem dict passed in containers
-    def merge(self, containers: typing.List[typing.Tuple[str, typing.List[Expr], Dict[ValueRef, Expr]]]) -> Dict[ValueRef, Expr]:
-        groups: Dict[ValueRef, Dict[Expr, typing.List[typing.List[Expr]]]] = defaultdict(lambda: defaultdict(list))
+    def merge(
+        self,
+        containers: typing.List[
+            typing.Tuple[str, typing.List[Expr], Dict[ValueRef, Expr]]
+        ],
+    ) -> Dict[ValueRef, Expr]:
+        groups: Dict[
+            ValueRef, Dict[Expr, typing.List[typing.List[Expr]]]
+        ] = defaultdict(lambda: defaultdict(list))
         for pname, path, container in containers:
             for k, v in container.items():
                 # groups[k][v].append(self.makeVar(pname, bool))
@@ -174,7 +186,9 @@ class VC:
 
         else:  # merge
             s = State()
-            s.regs = self.merge([(p.name, p.state.assumes, p.state.regs) for p in preds])
+            s.regs = self.merge(
+                [(p.name, p.state.assumes, p.state.regs) for p in preds]
+            )
             s.mem = self.merge([(p.name, p.state.assumes, p.state.mem) for p in preds])
 
             s.args = preds[0].state.args
@@ -191,7 +205,15 @@ class VC:
 
             return s
 
-    def formVC(self, blockName: str, regs: Dict[ValueRef, Expr], assigns: typing.Set[ValueRef], assumes: typing.List[Expr], asserts: typing.List[Union[Any, Expr]], succs: typing.List[Union[Any, Block]]) -> Expr:
+    def formVC(
+        self,
+        blockName: str,
+        regs: Dict[ValueRef, Expr],
+        assigns: typing.Set[ValueRef],
+        assumes: typing.List[Expr],
+        asserts: typing.List[Union[Any, Expr]],
+        succs: typing.List[Union[Any, Block]],
+    ) -> Expr:
         # concat all assignments
         if not assigns:
             assignE = None
@@ -215,7 +237,7 @@ class VC:
         elif not assignE and assumeE:
             lhs = assumeE
         else:
-            lhs = And(assignE, assumeE) # type: ignore
+            lhs = And(assignE, assumeE)  # type: ignore
 
         if not succs:
             succE = None
@@ -238,11 +260,11 @@ class VC:
         elif not succE and assertE:
             rhs = assertE
         else:
-            rhs = And(succE, assertE) # type: ignore
+            rhs = And(succE, assertE)  # type: ignore
 
         vc = Eq(
             self.makeVar(blockName, Bool()),
-            rhs if not lhs else Implies(lhs, rhs) # type: ignore
+            rhs if not lhs else Implies(lhs, rhs),  # type: ignore
         )
 
         return vc
@@ -261,9 +283,9 @@ class VC:
 
             if opcode == "alloca":
                 # alloca <type>, align <num> or alloca <type>
-                t = re.search("alloca ([^$|,]+)", str(i)).group( # type: ignore
+                t = re.search("alloca ([^$|,]+)", str(i)).group(  # type: ignore
                     1
-                ) # bug: ops[0] always return i32 1 regardless of type
+                )  # bug: ops[0] always return i32 1 regardless of type
                 if t == "i32":
                     s.mem[i] = Lit(0, Int())
                 elif t == "i8":
@@ -296,7 +318,7 @@ class VC:
                     s.regs[i] = Mul(op1, op2)
 
             elif opcode == "icmp":
-                cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(i).strip()).group(1) # type: ignore
+                cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(i).strip()).group(1)  # type: ignore
                 op1 = VC.parseOperand(ops[0], s.regs)
                 op2 = VC.parseOperand(ops[1], s.regs)
 
@@ -359,7 +381,7 @@ class VC:
                 asserts.append(e)
 
             elif opcode == "assume":
-                s.assumes.append(VC.evalMLInst(ops[0], s.regs, s.mem)) # type: ignore
+                s.assumes.append(VC.evalMLInst(ops[0], s.regs, s.mem))  # type: ignore
                 # if isinstance(ops[0], MLInstruction):
                 #   s.assumes.append(VC.evalMLInst(ops[0], s.regs, s.mem))
                 # elif isinstance(ops[0], ValueRef):
@@ -384,31 +406,37 @@ class VC:
 
     # evaluate a ML instruction. returns an IR Expr
     @staticmethod
-    def evalMLInst(i: Union[ValueRef, MLInst, str, Expr], reg: Dict[ValueRef, Expr], mem: Dict[ValueRef, Expr]) -> Union[str, ValueRef, Expr]:
+    def evalMLInst(
+        i: Union[ValueRef, MLInst, str, Expr],
+        reg: Dict[ValueRef, Expr],
+        mem: Dict[ValueRef, Expr],
+    ) -> Union[str, ValueRef, Expr]:
         if isinstance(i, ValueRef):
             return reg[i]
         if isinstance(i, Expr):
             if i.kind == Expr.Kind.Lit:
                 return i
             else:
-                return i.mapArgs(lambda x: VC.evalMLInst(x, reg, mem)) # type: ignore
+                return i.mapArgs(lambda x: VC.evalMLInst(x, reg, mem))  # type: ignore
         elif isinstance(i, str):
             return i
         elif i.opcode == "load":
             return mem[i.operands[0]]
         elif i.opcode == "not":
-            return Not(VC.evalMLInst(i.operands[0], reg, mem)) # type: ignore
+            return Not(VC.evalMLInst(i.operands[0], reg, mem))  # type: ignore
         elif i.opcode == "or":
-            return Or(VC.evalMLInst(i.operands[0], reg, mem)) # type: ignore
+            return Or(VC.evalMLInst(i.operands[0], reg, mem))  # type: ignore
         elif i.opcode == "call":
             return Call(
-                i.operands[0], # type: ignore
-                i.operands[1], # type: ignore
-                *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]] # type: ignore
+                i.operands[0],  # type: ignore
+                i.operands[1],  # type: ignore
+                *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]]  # type: ignore
             )
         else:
             raise Exception("NYI: %s" % i)
 
     @staticmethod
-    def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool=True) -> Expr:
+    def parseOperand(
+        op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True
+    ) -> Expr:
         return vc_util.parseOperand(op, reg, hasType)

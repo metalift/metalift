@@ -6,12 +6,15 @@ from llvmlite.binding.value import TypeRef, ValueRef
 import typing
 from typing import Any, Callable, Dict, Union
 
+
 class PrintMode(Enum):
     SMT = 0
     Rosette = 1
     RosetteVC = 2
 
+
 printMode = PrintMode.SMT
+
 
 class Type:
     def __init__(self, name: str, *args: "Type") -> None:
@@ -77,7 +80,7 @@ def Tuple(*elemT: Type) -> Type:
 
 
 # util for flattening tuple variables
-def genVar(v: "Expr", declarations: typing.List[Union[typing.Tuple[str, Type], Any]]) -> None:
+def genVar(v: "Expr", declarations: typing.List[typing.Tuple[str, Type]]) -> None:
     if v.type.name == "Tuple":
         for i in range(len(v.type.args)):
             genVar(Var(v.args[0] + "_" + str(i), v.type.args[i]), declarations)
@@ -142,7 +145,11 @@ class Expr:
         return cnts
 
     @staticmethod
-    def replaceExprs(e: Union[bool, "Expr", ValueRef, int, str], commonExprs: typing.List[Union["Expr", Any]], skipTop: bool=False) -> Union["Expr", ValueRef]:
+    def replaceExprs(
+        e: Union[bool, "Expr", ValueRef, int, str],
+        commonExprs: typing.List[Union["Expr", Any]],
+        skipTop: bool = False,
+    ) -> Union["Expr", ValueRef]:
         # skipTop is used to ignore the top-level match when simplifying a common expr
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
@@ -191,7 +198,7 @@ class Expr:
             )
 
             return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
-        else: # printMode == PrintMode.SMT
+        else:  # printMode == PrintMode.SMT
             decls = "((rv %s) %s)" % (
                 e.type,
                 " ".join(
@@ -401,12 +408,14 @@ class Expr:
             else:
                 raise Exception("Tuple selection requires static tuples and index")
         elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
-            return repr(And(
-                *[
-                    Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
-                    for i in range(len(self.args[0].type.args))
-                ]
-            ))
+            return repr(
+                And(
+                    *[
+                        Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
+                        for i in range(len(self.args[0].type.args))
+                    ]
+                )
+            )
         else:
             if printMode == PrintMode.SMT:
                 value = self.kind.value
@@ -613,7 +622,13 @@ def FnDecl(name: str, returnT: Type, body: str, *args: Expr) -> Expr:
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
 
-def toRosette(targetLang: Any, invAndPs: Any, vars: typing.List[Expr], preds: typing.List[Expr], vc: Expr) -> str:
+def toRosette(
+    targetLang: Any,
+    invAndPs: Any,
+    vars: typing.List[Expr],
+    preds: typing.List[Expr],
+    vc: Expr,
+) -> str:
     global printMode
     printMode = PrintMode.Rosette
 
@@ -727,6 +742,7 @@ def MLInst_Or(val: Union[MLInst, ValueRef]) -> MLInst:
 
 def MLInst_Return(val: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Return, val)
+
 
 def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     # ty.name returns empty string. possibly bug
