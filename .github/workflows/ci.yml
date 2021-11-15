@@ -1,0 +1,62 @@
+name: Metalift CI
+
+on: push
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: psf/black@stable
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jpetrucciani/mypy-check@master
+        with:
+          mypy_flags: --ignore-missing-imports --strict
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache install Nix packages
+      uses: rikhuijzer/cache-install@v1.0.8
+      with:
+        key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
+        nix_file: 'ci.nix'
+
+    - name: Install Rosette
+      run: raco pkg install --auto rosette
+
+    - name: Build LLVM Pass
+      run: |
+        cd llvm-pass
+        mkdir build
+        cd build
+        nix-shell -p llvm_10 --run "cmake .."
+        nix-shell -p llvm_10 --run "make"
+        cd ..
+
+    - name: Build Test Inputs
+      run: |
+        cd tests
+        ./compile-all
+        cd ..
+
+    - name: Test Core Examples
+      run: |
+        python -m tests.ite1 tests/ite1.ll test tests/ite1.loops cvc5
+        python -m tests.while3 tests/while3.ll test tests/while3.loops cvc5
+        python -m tests.while4 tests/while4.ll test tests/while4.loops cvc5
+        python -m tests.set1 tests/set1.ll test tests/set1.loops cvc5
+        python -m tests.list1 tests/list1.ll test tests/list1.loops cvc5
+        python -m tests.list1_fns tests/list1.ll test tests/list1.loops cvc5
+        python -m tests.fma_dsl tests/fma_dsl.ll test tests/fma_dsl.loops cvc5
+        python -m tests.count tests/Count.ll test tests/Count.loops cvc5
+
+    - name: Test Actor Examples
+      run: |
+        python -m tests.actor1 tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor2 tests/actor2.ll test tests/actor2.loops cvc5

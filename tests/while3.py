@@ -2,9 +2,8 @@ import os
 import sys
 
 from analysis import CodeInfo, analyze
-from ir import Choose, And, Ge, Eq, Le, Sub, Synth, Call, Int, IntLit, Or, FnDecl, Var, Add, Ite
+from ir import *
 from synthesize_rosette import synthesize
-from rosette_translator import toRosette
 
 # # programmatically generated grammar
 
@@ -24,51 +23,65 @@ from rosette_translator import toRosette
 #    (E Int (tmp1 tmp2))
 #    (F Int (1))))
 
+
 def grammar(ci: CodeInfo):
-  name = ci.name
+    name = ci.name
 
-  if name.startswith("inv"):
-    f = Choose(IntLit(0), IntLit(1), IntLit(2))
-    e = Choose(*ci.modifiedVars)
-    d = And(Ge(e, IntLit(1)), And(Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f)))))
-    c = Choose(Ge(IntLit(1), ci.readVars[0]),Le(IntLit(1), ci.readVars[0]))
-    b = Or(c, d)
+    if name.startswith("inv"):
+        f = Choose(IntLit(0), IntLit(1), IntLit(2))
+        e = Choose(*ci.modifiedVars)
+        d = And(
+            Ge(e, IntLit(1)),
+            And(Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f)))),
+        )
+        c = Choose(Ge(IntLit(1), ci.readVars[0]), Le(IntLit(1), ci.readVars[0]))
+        b = Or(c, d)
 
-    return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
+        return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
 
-  else:  # ps
-    arg = ci.readVars[0]
-    rv = ci.modifiedVars[0]
+    else:  # ps
+        arg = ci.readVars[0]
+        rv = ci.modifiedVars[0]
 
-    choices = Choose(IntLit(1), IntLit(2), IntLit(3))
-    b = Or(Ge(choices, arg), Eq(rv, Call("sum_n", Int(), Sub(arg, choices))))
-    return Synth(name, b, *ci.modifiedVars, *ci.readVars)
+        choices = Choose(IntLit(1), IntLit(2), IntLit(3))
+        b = Or(Ge(choices, arg), Eq(rv, Call("sum_n", Int(), Sub(arg, choices))))
+        return Synth(name, b, *ci.modifiedVars, *ci.readVars)
+
 
 def targetLang():
-  x = Var("x", Int())
-  sum_n = FnDecl("sum_n", Int(), Ite(Ge(x, IntLit(1)), Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)), x)
-  return [sum_n]
+    x = Var("x", Int())
+    sum_n = FnDecl(
+        "sum_n",
+        Int(),
+        Ite(
+            Ge(x, IntLit(1)), Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)
+        ),
+        x,
+    )
+    return [sum_n]
 
 
 if __name__ == "__main__":
-  filename = sys.argv[1]
-  basename = os.path.splitext(os.path.basename(filename))[0]
+    filename = sys.argv[1]
+    basename = os.path.splitext(os.path.basename(filename))[0]
 
-  fnName = sys.argv[2]
-  loopsFile = sys.argv[3]
-  cvcPath = sys.argv[4]
+    fnName = sys.argv[2]
+    loopsFile = sys.argv[3]
+    cvcPath = sys.argv[4]
 
-  (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+    (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 
-  print("====== synthesis")
-  invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-  
-  lang = targetLang()
+    print("====== synthesis")
+    invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
-  #rosette synthesizer  + CVC verfication
-  candidates = synthesize(basename,lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
-  print("====== verified candidates")
-  for c in candidates:print(c,"\n")
+    lang = targetLang()
 
-  #TODO codegen
+    # rosette synthesizer  + CVC verfication
+    candidates = synthesize(
+        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+    )
+    print("====== verified candidates")
+    for c in candidates:
+        print(c, "\n")
 
+    # TODO codegen

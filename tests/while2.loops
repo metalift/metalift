@@ -1,2 +1,0 @@
-Printing analysis 'Natural Loop Information' for function 'test':
-Loop at depth 1 containing: %bb1<header><exiting>,%bb4<latch>
