@@ -1,29 +1,49 @@
 import sys
 import os
 
-from analysis import analyze
+from analysis import CodeInfo, analyze
 from ir import *
 
+from llvmlite.binding import ValueRef
 
-def observeEquivalence(inputState, synthState):
+import typing
+from typing import Callable, Union
+
+
+def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
 
 
-def stateInvariant(synthState):
+def stateInvariant(synthState: Expr) -> Expr:
     return Call("stateInvariant", Bool(), synthState)
 
 
+SynthesizeFun = Callable[
+    [
+        str,
+        typing.List[Expr],
+        typing.Set[Expr],
+        typing.List[Expr],
+        typing.List[Expr],
+        Expr,
+        typing.List[Union[CodeInfo, Expr]],
+        str,
+    ],
+    typing.List[Expr],
+]
+
+
 def synthesize_actor(
-    synthStateType,
-    initState,
-    grammarStateInvariant,
-    supportedCommand,
-    grammar,
-    grammarQuery,
-    grammarEquivalence,
-    targetLang,
-    synthesize,
-):
+    synthStateType: Type,
+    initState: Callable[[], Expr],
+    grammarStateInvariant: Callable[[], Expr],
+    supportedCommand: Callable[[Expr, ValueRef], Expr],
+    grammar: Callable[[CodeInfo], Expr],
+    grammarQuery: Callable[[CodeInfo], Expr],
+    grammarEquivalence: Callable[[], Expr],
+    targetLang: Callable[[], typing.List[Expr]],
+    synthesize: SynthesizeFun,
+) -> typing.List[Expr]:
     filename = sys.argv[1]
     basename = os.path.splitext(os.path.basename(filename))[0]
 
@@ -34,12 +54,12 @@ def synthesize_actor(
     # begin state transition
     extraVarsStateTransition = set()
 
-    def summaryWrapStateTransition(ps):
+    def summaryWrapStateTransition(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
-        beforeState = origArgs[0]
-        afterState = origReturn
+        beforeState = typing.cast(ValueRef, origArgs[0])
+        afterState = typing.cast(ValueRef, origReturn)
 
         beforeStateForPS = Var(beforeState.name + "_for_ps", synthStateType)
         extraVarsStateTransition.add(beforeStateForPS)
@@ -71,7 +91,7 @@ def synthesize_actor(
                     ),
                 ),
             ),
-            list(ps.operands[2:]),
+            list(ps.operands[2:]),  # type: ignore
         )
 
     (
@@ -94,11 +114,11 @@ def synthesize_actor(
     # begin query
     extraVarsQuery = set()
 
-    def summaryWrapQuery(ps):
+    def summaryWrapQuery(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
-        beforeState = origArgs[0]
+        beforeState = typing.cast(ValueRef, origArgs[0])
 
         beforeStateForQuery = Var(beforeState.name + "_for_query", synthStateType)
         extraVarsQuery.add(beforeStateForQuery)
@@ -116,7 +136,7 @@ def synthesize_actor(
                 ),
                 ps,
             ),
-            list(ps.operands[2:]),
+            list(ps.operands[2:]),  # type: ignore
         )
 
     (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
@@ -159,17 +179,17 @@ def synthesize_actor(
 
     combinedPreds = predsStateTransition + predsQuery
 
-    combinedLoopAndPsInfo = (
+    combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition
         + loopAndPsInfoQuery
-        + invAndPsEquivalence
-        + invAndPsStateInvariant
+        + invAndPsEquivalence  # type: ignore
+        + invAndPsStateInvariant  # type: ignore
     )
     combinedVC = And(vcStateTransition, vcQuery, initstateInvariantVC)
 
     lang = targetLang()
 
-    candidates = synthesize(
+    return synthesize(
         basename,
         lang,
         combinedVCVars,

@@ -3,7 +3,7 @@ import sys
 
 from analysis import CodeInfo
 from ir import *
-from .actor_util import synthesize_actor
+from actor_util import synthesize_actor
 
 if False:
     from synthesize_rosette import synthesize
@@ -17,10 +17,11 @@ def grammarEquivalence():
     inputState = Var("inputState", Set(Int()))
     synthState = Var("synthState", synthStateType)
 
-    equivalent = Eq(
-        inputState,
-        Call("setminus", Set(Int()), TupleSel(synthState, 0), TupleSel(synthState, 1)),
-    )
+    setIn = Choose(inputState, TupleSel(synthState, 0), TupleSel(synthState, 1))
+
+    setIn = Choose(setIn, Call("setminus", Set(Int()), setIn, setIn))
+
+    equivalent = Eq(setIn, setIn)
 
     return Synth("equivalence", equivalent, inputState, synthState)
 
@@ -28,9 +29,7 @@ def grammarEquivalence():
 def grammarStateInvariant():
     synthState = Var("synthState", synthStateType)
 
-    stateSet1 = TupleSel(synthState, 0)
-    stateSet2 = TupleSel(synthState, 1)
-    setIn = Choose(stateSet1, stateSet2)
+    setIn = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
 
     valid = Choose(BoolLit(True), Call("subset", Bool(), setIn, setIn))
 
@@ -97,8 +96,6 @@ def grammar(ci: CodeInfo):
 
         outputState = ci.modifiedVars[0]
 
-        emptySet = Call("as emptyset (Set Int)", Set(Int()))
-
         intLit = Choose(IntLit(0), IntLit(1))
 
         condition = Eq(inputAdd, intLit)
@@ -109,7 +106,7 @@ def grammar(ci: CodeInfo):
             Call("singleton", Set(Int()), inputValue),
         )
 
-        setTransform = Choose(setIn, Call("union", Set(Int()), setIn, setIn))
+        setTransform = Call("union", Set(Int()), setIn, setIn)
 
         chosenTransform = Choose(
             setTransform, Ite(condition, setTransform, setTransform)
