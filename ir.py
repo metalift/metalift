@@ -286,7 +286,6 @@ class Expr:
                         self.args[0].startswith("list")
                         and printMode == PrintMode.RosetteVC
                     ):
-                        noParens = len(self.args) == 1
                         callStr = (
                             "("
                             + "%s"
@@ -310,8 +309,9 @@ class Expr:
                     ):
                         return "%s" % (self.args[0])
                     else:
+                        noParens = len(self.args) == 1
                         return (
-                            "("
+                            ("" if noParens else "(")
                             + " ".join(
                                 [
                                     a.name
@@ -320,7 +320,7 @@ class Expr:
                                     for a in self.args
                                 ]
                             )
-                            + ")"
+                            + ("" if noParens else ")")
                         )
                 else:
                     return " ".join(

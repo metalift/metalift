@@ -196,7 +196,7 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
-    noVerify: bool = True,
+    noVerify: bool = False,
 ) -> typing.List[Expr]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
