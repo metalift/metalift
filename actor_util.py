@@ -79,7 +79,7 @@ def synthesize_actor(
                 And(
                     stateInvariant(beforeStateForPS),
                     And(
-                        supportedCommand(beforeStateForPS, origArgs[1:]),
+                        supportedCommand(beforeState, beforeStateForPS, origArgs[1:]),
                         observeEquivalence(beforeState, beforeStateForPS),
                     ),
                 ),

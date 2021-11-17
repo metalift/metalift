@@ -36,15 +36,20 @@ def grammarStateInvariant():
     return Synth("stateInvariant", valid, synthState)
 
 
-def supportedCommand(synthState, args):
+def supportedCommand(inputState, synthState, args):
     add = args[0]
     value = args[1]
 
     return Ite(
         Eq(add, IntLit(1)),
-        # insertion works if the elem is not in the deletion set
-        # (which means it's in both sets)
-        Not(Call("member", Bool(), value, TupleSel(synthState, 1))),
+        # insertion works if the elem is not in both sets
+        # so the sets are saturated
+        Not(
+            And(
+                Call("member", Bool(), value, TupleSel(synthState, 0)),
+                Call("member", Bool(), value, TupleSel(synthState, 1)),
+            )
+        ),
         # deletion can work even if not in the insertion set
         # because we can just add the element to both sets
         # which results in an observed-equivalent final state

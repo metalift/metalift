@@ -31,14 +31,8 @@ def grammarStateInvariant():
     return Synth("stateInvariant", valid, synthState)
 
 
-def supportedCommand(synthState, args):
-    add = args[0]
-
-    return Ite(
-        Eq(add, IntLit(1)),
-        BoolLit(True),
-        Gt(TupleSel(synthState, 0), TupleSel(synthState, 1)),
-    )
+def supportedCommand(inputState, synthState, args):
+    return BoolLit(True)
 
 
 def grammarQuery(ci: CodeInfo):
