@@ -37,7 +37,7 @@ def synthesize_actor(
     synthStateType: Type,
     initState: Callable[[], Expr],
     grammarStateInvariant: Callable[[], Expr],
-    supportedCommand: Callable[[Expr, ValueRef], Expr],
+    supportedCommand: Callable[[Expr, Expr, typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
     grammarEquivalence: Callable[[], Expr],
