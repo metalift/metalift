@@ -259,8 +259,9 @@ class Expr:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if printMode == PrintMode.SMT:
+                noParens = len(self.args) == 1
                 return (
-                    "("
+                    ("" if noParens else "(")
                     + " ".join(
                         [
                             a.name
@@ -269,7 +270,7 @@ class Expr:
                             for a in self.args
                         ]
                     )
-                    + ")"
+                    + ("" if noParens else ")")
                 )
             else:
                 if isinstance(self.args[0], str):
@@ -278,25 +279,13 @@ class Expr:
                     ) and printMode == PrintMode.RosetteVC:
                         callStr = "( " + "%s " % (str(self.args[0]))
                         for a in self.args[1:]:
-                            if isinstance(a, ValueRef) and a.name != "":
-                                callStr += "%s " % (a.name)
-                            else:
-                                strExp = str(a)
-                                if (strExp) in listFns.keys() and "list_empty" in (
-                                    strExp
-                                ):
-                                    callStr += "(" + listFns[strExp] + ")" + " "
-                                elif (strExp) in listFns.keys():
-                                    callStr += listFns[strExp] + " "
-                                else:
-                                    callStr += strExp + " "
+                            callStr += str(a) + " "
                         callStr += ")"
                         return callStr
                     elif (
                         self.args[0].startswith("list")
                         and printMode == PrintMode.RosetteVC
                     ):
-
                         callStr = (
                             "("
                             + "%s"
@@ -320,8 +309,10 @@ class Expr:
                     ):
                         return "%s" % (self.args[0])
                     else:
-                        if "list_empty" in self.args or len(self.args) == 1:
-                            return " ".join(
+                        noParens = len(self.args) == 1
+                        return (
+                            ("" if noParens else "(")
+                            + " ".join(
                                 [
                                     a.name
                                     if isinstance(a, ValueRef) and a.name != ""
@@ -329,20 +320,8 @@ class Expr:
                                     for a in self.args
                                 ]
                             )
-                        else:
-
-                            return (
-                                "("
-                                + " ".join(
-                                    [
-                                        a.name
-                                        if isinstance(a, ValueRef) and a.name != ""
-                                        else str(a)
-                                        for a in self.args
-                                    ]
-                                )
-                                + ")"
-                            )
+                            + ("" if noParens else ")")
+                        )
                 else:
                     return " ".join(
                         [

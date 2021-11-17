@@ -183,8 +183,8 @@ class CodeInfo:
         self,
         name: str,
         retT: Type,
-        modifiedVars: List[ValueRef],
-        readVars: List[ValueRef],
+        modifiedVars: List[Union[ValueRef, Expr]],
+        readVars: List[Union[ValueRef, Expr]],
     ) -> None:
         self.name = name
         self.retT = retT
@@ -195,8 +195,11 @@ class CodeInfo:
         return "name: %s\nret type: %s\nmod vars: %s\nread args: %s" % (
             self.name,
             self.retT,
-            [v.name for v in self.modifiedVars],
-            [v.name for v in self.readVars],
+            [
+                v.name if isinstance(v, ValueRef) else v.args[0]
+                for v in self.modifiedVars
+            ],
+            [v.name if isinstance(v, ValueRef) else v.args[0] for v in self.readVars],
         )
 
 
@@ -316,7 +319,10 @@ def processBranches(
 
 # run all code analysis
 def analyze(
-    filename: str, fnName: str, loopsFile: str, wrapSummaryCheck: None = None
+    filename: str,
+    fnName: str,
+    loopsFile: str,
+    wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
 ) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())

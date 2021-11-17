@@ -3,9 +3,9 @@ import sys
 
 from analysis import CodeInfo
 from ir import *
-from .actor_util import synthesize_actor
+from actor_util import synthesize_actor
 
-if False:
+if True:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize
@@ -17,7 +17,8 @@ def grammarEquivalence():
     inputState = Var("inputState", Int())
     synthState = Var("synthState", synthStateType)
 
-    equivalent = Eq(inputState, Sub(TupleSel(synthState, 0), TupleSel(synthState, 1)))
+    synthElem = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
+    equivalent = Eq(inputState, Sub(synthElem, synthElem))
 
     return Synth("equivalence", equivalent, inputState, synthState)
 
@@ -25,19 +26,13 @@ def grammarEquivalence():
 def grammarStateInvariant():
     synthState = Var("synthState", synthStateType)
 
-    valid = Choose(BoolLit(True))
+    valid = Choose(BoolLit(True), BoolLit(False))
 
     return Synth("stateInvariant", valid, synthState)
 
 
-def supportedCommand(synthState, args):
-    add = args[0]
-
-    return Ite(
-        Eq(add, IntLit(1)),
-        BoolLit(True),
-        Gt(TupleSel(synthState, 0), TupleSel(synthState, 1)),
-    )
+def supportedCommand(inputState, synthState, args):
+    return BoolLit(True)
 
 
 def grammarQuery(ci: CodeInfo):

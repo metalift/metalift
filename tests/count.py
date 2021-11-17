@@ -183,7 +183,15 @@ if __name__ == "__main__":
             fnsGrammar.append(grammarFns(l))
 
     candidates = synthesize(
-        basename, lang, vars, invAndPs + fnsGrammar, preds, vc, loopAndPsInfo, cvcPath
+        basename,
+        lang,
+        vars,
+        invAndPs + fnsGrammar,
+        preds,
+        vc,
+        loopAndPsInfo,
+        cvcPath,
+        noVerify=True,
     )
     print("====== verified candidates")
     for c in candidates:

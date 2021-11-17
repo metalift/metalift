@@ -5,6 +5,7 @@ import ir
 from analysis import CodeInfo
 from ir import *
 from rosette_translator import toRosette
+from smt_util import toSMT
 from llvmlite.binding import ValueRef
 
 import typing
@@ -117,14 +118,15 @@ def toExpr(
             raise Exception(f"Unexpected function name: {ast[0]}")
     else:
         if ast.isnumeric():
-
             return IntLit(ast)
+        elif ast == "true":
+            return BoolLit(True)
+        elif ast == "false":
+            return BoolLit(False)
         elif ast in fnsType.keys():
-
             retT = fnsType[ast]
             return Call(ast, retT)
         else:
-
             return Var(ast, varType[ast])
 
 
@@ -132,7 +134,6 @@ def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
     fnsType = {}
 
     for l in lang:
-
         if l.type.name == "Function":
             if not isinstance(l, ValueRef):
                 fnsType[l.args[0]] = l.type
@@ -140,7 +141,11 @@ def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
                 fnsType[l.name] = parseTypeRef(l.type)
         else:
             if not isinstance(l, ValueRef):
-                fnsType[l.args[0]] = l.type
+                if l.type.name == "Tuple":
+                    for i in range(len(l.type.args)):
+                        fnsType[l.args[0] + "_" + str(i)] = l.type.args[i]
+                else:
+                    fnsType[l.args[0]] = l.type
             else:
                 fnsType[l.name] = parseTypeRef(l.type)
     return fnsType
@@ -152,11 +157,9 @@ def parseCandidates(
     fnsType: Dict[Any, Any],
     fnCalls: typing.List[Any],
 ) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
-
-    if isinstance(candidate, str):
-        return None
+    if isinstance(candidate, str) or candidate.kind == Expr.Kind.Lit:
+        return inCalls, fnCalls
     else:
-
         if candidate.kind.value == "call":
             if candidate.args[0] in fnsType.keys():
                 fnCalls.append(candidate.args[0])
@@ -169,69 +172,8 @@ def parseCandidates(
         return inCalls, fnCalls
 
 
-def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
-    newArgs = []
-    for a in argList:
-        if a.type.name != "Function":
-            newArgs.append(a)
-    return newArgs
-
-
-def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
-
-    if funDef.kind.value in [
-        "+",
-        "-",
-        "*",
-        "=",
-        "<",
-        "=",
-        ">=",
-        "<=",
-        "and",
-        "or",
-        "=>",
-    ]:
-        newArgs = [
-            filterBody(funDef.args[0], funCall, inCall),
-            filterBody(funDef.args[1], funCall, inCall),
-        ]
-        return Expr(funDef.kind, funDef.type, newArgs)
-    elif funDef.kind.value == "not":
-        return Not(filterBody(funDef.args[0], funCall, inCall))
-    elif funDef.kind.value == "ite":
-        return Ite(
-            filterBody(funDef.args[0], funCall, inCall),
-            filterBody(funDef.args[1], funCall, inCall),
-            filterBody(funDef.args[2], funCall, inCall),
-        )
-
-    elif funDef.kind.value == "call":
-
-        if funDef.type.name == "Function":
-            newArgs = []
-
-            for i in range(1, len(funDef.args)):
-                newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            return Call(inCall, funDef.type, *newArgs)
-
-        elif funDef.args[0] == funCall:
-            newArgs = []
-            for i in range(1, len(funDef.args)):
-                if funDef.args[i].type.name != "Function":
-                    newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            return Call(funCall + "_" + inCall, funDef.type, *newArgs)
-        else:
-            newArgs = []
-            for i in range(1, len(funDef.args)):
-                newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            return Call(funDef.args[0], funDef.type, *newArgs)
-    else:
-        return funDef
-
-
 def toSynthesize(
-    loopAndPsInfo: typing.List[CodeInfo], lang: typing.List[Expr]
+    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]], lang: typing.List[Expr]
 ) -> typing.List[str]:
     synthNames = []
     for i in loopAndPsInfo:
@@ -252,8 +194,9 @@ def synthesize(
     invAndPs: typing.List[Expr],
     preds: typing.List[Expr],
     vc: Expr,
-    loopAndPsInfo: typing.List[CodeInfo],
+    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    noVerify: bool = False,
 ) -> typing.List[Expr]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -269,14 +212,17 @@ def synthesize(
         synthNames = toSynthesize(loopAndPsInfo, lang)
         procSynthesis = subprocess.run(["racket", synthFile], stdout=subprocess.PIPE)
         resultSynth = procSynthesis.stdout.decode("utf-8").split("\n")
-        print(resultSynth)
         ##### End of Synthesis #####
 
         #####parsing output of rosette synthesis#####
         varTypes = {}
         for i in loopAndPsInfo:
             if isinstance(i, CodeInfo):
-                varTypes[i.name] = generateTypes(i.modifiedVars + i.readVars)
+                varTypes[i.name] = generateTypes(
+                    i.modifiedVars + i.readVars + list(vars)
+                )
+            else:
+                varTypes[i.args[0]] = generateTypes(i.args[2:])
         for l_i in lang:
             varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
 
@@ -299,7 +245,10 @@ def synthesize(
         fnCalls: typing.List[Any] = []
         for ce in loopAndPsInfo:
             inCalls, fnCalls = parseCandidates(  # type: ignore
-                candidateDict[ce.name], inCalls, fnsType, fnCalls
+                candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
+                inCalls,
+                fnsType,
+                fnCalls,
             )
         inCalls = list(set(inCalls))
         fnCalls = list(set(fnCalls))
@@ -308,13 +257,18 @@ def synthesize(
         ##### generating function definitions of all the functions to be synthesized#####
         candidatesSMT = []
         for ce in loopAndPsInfo:
+            allVars = (
+                ce.modifiedVars + ce.readVars
+                if isinstance(ce, CodeInfo)
+                else ce.args[2:]
+            )
+            ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
             candidatesSMT.append(
                 FnDecl(
-                    ce.name,
-                    ce.retT,
-                    candidateDict[ce.name],
-                    *ce.modifiedVars,
-                    *ce.readVars,
+                    ceName,
+                    ce.retT if isinstance(ce, CodeInfo) else ce.type,
+                    candidateDict[ceName],
+                    *allVars,
                 )
             )
         for l in lang:
@@ -327,21 +281,27 @@ def synthesize(
         ir.printMode = PrintMode.SMT
         toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
 
-        procVerify = subprocess.run(
-            [cvcPath, "--lang=smt", "--tlimit=100000", verifFile],
-            stdout=subprocess.PIPE,
-        )
-
-        if procVerify.returncode < 0:
-            resultVerify = "SAT/UNKNOW"
+        if noVerify:
+            print("Not verifying solution")
+            resultVerify = "unsat"
         else:
-            procOutput = procVerify.stdout
-            resultVerify = procOutput.decode("utf-8").split("\n")[0]
+            procVerify = subprocess.run(
+                [cvcPath, "--lang=smt", "--tlimit=100000", verifFile],
+                stdout=subprocess.PIPE,
+            )
 
-        print("Vefication Output ", resultVerify)
-        break
+            if procVerify.returncode < 0:
+                resultVerify = "SAT/UNKNOWN"
+            else:
+                procOutput = procVerify.stdout
+                resultVerify = procOutput.decode("utf-8").split("\n")[0]
+
+        print("Vefication Output:", resultVerify)
         if resultVerify == "unsat":
-            print("Candidates Verified")
+            print(
+                "Verified PS and INV Candidates ",
+                "\n\n".join([str(c) for c in candidatesSMT]),
+            )
             break
         else:
             print("verification failed")
@@ -350,94 +310,3 @@ def synthesize(
             raise Exception()
 
     return candidatesSMT
-
-
-def toSMT(
-    targetLang: typing.List[Any],
-    vars: typing.Set[Expr],
-    invAndPs: typing.List[Expr],
-    preds: Union[str, typing.List[Any]],
-    vc: Expr,
-    outFile: str,
-    inCalls: typing.List[Any],
-    fnCalls: typing.List[Any],
-) -> None:
-    # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
-    with open(outFile, mode="w") as out:
-
-        out.write(open("./utils/list-axioms.smt", "r").read())
-
-        if inCalls:
-
-            fnDecls = []
-            for i in inCalls:
-                for t in targetLang:
-                    if i[1] == t.args[0]:
-                        fnDecls.append(t)
-
-            for i in inCalls:
-                for t in targetLang:
-                    if i[0] == t.args[0]:
-                        # parse body
-                        newBody = filterBody(t.args[1], i[0], i[1])
-
-                        # remove function type args
-                        newArgs = filterArgs(t.args[2:])
-                        fnDecls.append(
-                            FnDecl(t.args[0] + "_" + i[1], t.type, newBody, *newArgs)
-                        )
-
-            out.write("\n\n".join([str(t) for t in fnDecls]))
-
-            candidates = []
-
-            for cand in invAndPs:
-                newBody = cand.args[1]
-                for idx, i in enumerate(inCalls):
-                    newBody = filterBody(newBody, i[0], i[1])
-                candidates.append(
-                    FnDecl(cand.args[0], cand.type, newBody, *cand.args[2:])
-                )
-            out.write("\n\n".join(["\n%s\n" % (cand) for cand in candidates]))
-        elif fnCalls:
-            out.write(
-                "\n\n".join(
-                    ["\n%s\n" % (t) if t.args[0] in fnCalls else "" for t in targetLang]
-                )
-            )
-            out.write("\n\n".join(["\n%s\n" % (cand) for cand in invAndPs]))
-        else:
-            out.write("\n\n".join(["\n%s\n" % (cand) for cand in invAndPs]))
-
-        v = "\n".join(
-            ["(declare-const %s %s)" % (v.args[0], v.type) for v in vars]
-        )  # name and type
-        out.write("\n%s\n\n" % v)
-
-        ##### ToDo write axioms using the construct
-        if "count" in outFile:
-            out.write(open("./utils/map_reduce_axioms.txt", "r").read())
-
-        if isinstance(preds, str):
-            out.write("%s\n\n" % preds)
-
-        # a list of Exprs - print name, args, return type
-        elif isinstance(preds, list):
-            preds = "\n".join(
-                [
-                    "(define-fun %s (%s) (%s) )"
-                    % (
-                        p.args[0],
-                        " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]),
-                        p.type,
-                    )
-                    for p in preds
-                ]
-            )
-            out.write("%s\n\n" % preds)
-
-        else:
-            raise Exception("unknown type passed in for preds: %s" % preds)
-
-        out.write("%s\n\n" % MLInst_Assert(Not(vc)))
-        out.write("(check-sat)\n(get-model)")
