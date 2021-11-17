@@ -5,7 +5,7 @@ from analysis import CodeInfo
 from ir import *
 from actor_util import synthesize_actor
 
-if True:
+if False:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize

@@ -83,10 +83,8 @@ def toSMT(
         if inCalls:
 
             fnDecls = []
-            for i in inCalls:
-                for t in targetLang:
-                    if i[1] == t.args[0]:
-                        fnDecls.append(t)
+            for t in targetLang:
+                fnDecls.append(t)
 
             for i in inCalls:
                 for t in targetLang:

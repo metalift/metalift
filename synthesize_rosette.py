@@ -196,6 +196,7 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    noVerify: bool = True,
 ) -> typing.List[Expr]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -280,18 +281,22 @@ def synthesize(
         ir.printMode = PrintMode.SMT
         toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
 
-        procVerify = subprocess.run(
-            [cvcPath, "--lang=smt", "--tlimit=100000", verifFile],
-            stdout=subprocess.PIPE,
-        )
-
-        if procVerify.returncode < 0:
-            resultVerify = "SAT/UNKNOW"
+        if noVerify:
+            print("Not verifying solution")
+            resultVerify = "unsat"
         else:
-            procOutput = procVerify.stdout
-            resultVerify = procOutput.decode("utf-8").split("\n")[0]
+            procVerify = subprocess.run(
+                [cvcPath, "--lang=smt", "--tlimit=100000", verifFile],
+                stdout=subprocess.PIPE,
+            )
 
-        print("Vefication Output ", resultVerify)
+            if procVerify.returncode < 0:
+                resultVerify = "SAT/UNKNOWN"
+            else:
+                procOutput = procVerify.stdout
+                resultVerify = procOutput.decode("utf-8").split("\n")[0]
+
+        print("Vefication Output:", resultVerify)
         if resultVerify == "unsat":
             print(
                 "Verified PS and INV Candidates ",

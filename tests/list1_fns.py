@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # toRosette(basename+".rkt",lang,vars, invAndPs, preds, vc, loopAndPsInfo,[])
 
     candidates = synthesize(
-        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True
     )
     # print("====== verified candidates")
     # for c in candidates:print(c,"\n")
