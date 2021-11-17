@@ -11,6 +11,7 @@ from ir import (
     IntLit,
     Ite,
     Set,
+    Var,
 )
 
 if False:
@@ -30,7 +31,7 @@ def grammar(ci: CodeInfo):
         inputValue = ci.readVars[2]
         outputVar = ci.modifiedVars[0]
 
-        emptySet = Call("as emptyset (Set Int)", Set(Int()))
+        emptySet = Var("(as emptyset (Set Int))", Set(Int()))
 
         intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
         intValue = Choose(inputValue, intLit)
