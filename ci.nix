@@ -17,5 +17,4 @@ in [
   cmake
   llvm_10
   clang_10
-  racket
 ]
