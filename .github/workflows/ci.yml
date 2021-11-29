@@ -27,6 +27,14 @@ jobs:
         key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
         nix_file: 'ci.nix'
 
+    - name: Install Racket
+      uses: Bogdanp/setup-racket@v1.7
+      with:
+        architecture: 'x64'
+        distribution: 'full'
+        variant: 'CS'
+        version: 'stable'
+
     - name: Install Rosette
       run: raco pkg install --auto rosette
 
