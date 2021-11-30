@@ -602,7 +602,10 @@ def Choose(*args: Expr) -> Expr:
 def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
-def FnDeclNonRecursive(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
+
+def FnDeclNonRecursive(
+    name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+) -> Expr:
     return Expr(Expr.Kind.FnDeclNonRecursive, returnT, [name, body, *args])
 
 

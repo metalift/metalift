@@ -36,11 +36,11 @@ SynthesizeFun = Callable[
 def synthesize_actor(
     synthStateType: Type,
     initState: Callable[[], Expr],
-    grammarStateInvariant: Callable[[], Expr],
+    grammarStateInvariant: Callable[[Expr], Expr],
     supportedCommand: Callable[[Expr, Expr, typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
-    grammarEquivalence: Callable[[], Expr],
+    grammarEquivalence: Callable[[Expr, Expr], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
 ) -> typing.List[Expr]:
@@ -162,26 +162,28 @@ def synthesize_actor(
     # end init state
 
     # begin equivalence
-    inputStateForEquivalence = Var("inputState", stateType)
+    inputStateForEquivalence = Var("inputState", stateType)  # type: ignore
     synthStateForEquivalence = Var("synthState", synthStateType)
 
-    invAndPsEquivalence = [Synth(
-        "equivalence",
-        grammarEquivalence(
+    invAndPsEquivalence = [
+        Synth(
+            "equivalence",
+            grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
             inputStateForEquivalence,
-            synthStateForEquivalence
-        ),
-        inputStateForEquivalence, synthStateForEquivalence
-    )]
+            synthStateForEquivalence,
+        )
+    ]
     # end equivalence
 
     # begin state invariant
     synthStateForInvariant = Var("synthState", synthStateType)
-    invAndPsStateInvariant = [Synth(
-        "stateInvariant",
-        grammarStateInvariant(synthStateForInvariant),
-        synthStateForInvariant
-    )]
+    invAndPsStateInvariant = [
+        Synth(
+            "stateInvariant",
+            grammarStateInvariant(synthStateForInvariant),
+            synthStateForInvariant,
+        )
+    ]
     # end state invariant
 
     print("====== synthesis")

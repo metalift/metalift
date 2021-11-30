@@ -67,37 +67,30 @@ def grammar(ci: CodeInfo):
 
         intTransform = Choose(intIn, Add(intIn, intLit))
 
-        intTransform = Choose(
-            intTransform, Ite(condition, intTransform, intTransform)
-        )
+        intTransform = Choose(intTransform, Ite(condition, intTransform, intTransform))
 
-        summary = Eq(outputState, MakeTuple(*[
-            synthStateStructure[i][1](
-                TupleSel(inputState, i),
-                intTransform
-            )
-            for i in range(len(synthStateStructure))
-        ]))
+        summary = Eq(
+            outputState,
+            MakeTuple(
+                *[
+                    synthStateStructure[i][1](TupleSel(inputState, i), intTransform)
+                    for i in range(len(synthStateStructure))
+                ]
+            ),
+        )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 def initState():
-    return MakeTuple(*[
-        elem[2]
-        for elem in synthStateStructure
-    ])
+    return MakeTuple(*[elem[2] for elem in synthStateStructure])
 
 
 def targetLang():
     maxA = Var("a", Int())
     maxB = Var("b", Int())
     return [
-        FnDeclNonRecursive(
-            "max", Int(),
-            Ite(Ge(maxA, maxB), maxA, maxB),
-            maxA, maxB
-        ),
+        FnDeclNonRecursive("max", Int(), Ite(Ge(maxA, maxB), maxA, maxB), maxA, maxB),
     ]
 
 

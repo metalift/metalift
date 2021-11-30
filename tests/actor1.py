@@ -14,6 +14,7 @@ else:
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
+
 def grammarEquivalence(inputState, synthState):
     setIn = Choose(inputState, TupleSel(synthState, 0), TupleSel(synthState, 1))
 
@@ -109,26 +110,23 @@ def grammar(ci: CodeInfo):
 
         setTransform = setIn
 
-        setTransform = Choose(
-            setTransform, Ite(condition, setTransform, setTransform)
-        )
+        setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
-        summary = Eq(outputState, MakeTuple(*[
-            synthStateStructure[i][1](
-                TupleSel(inputState, i),
-                setTransform
-            )
-            for i in range(len(synthStateStructure))
-        ]))
+        summary = Eq(
+            outputState,
+            MakeTuple(
+                *[
+                    synthStateStructure[i][1](TupleSel(inputState, i), setTransform)
+                    for i in range(len(synthStateStructure))
+                ]
+            ),
+        )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 def initState():
-    return MakeTuple(*[
-        elem[2]
-        for elem in synthStateStructure
-    ])
+    return MakeTuple(*[elem[2] for elem in synthStateStructure])
 
 
 def targetLang():
