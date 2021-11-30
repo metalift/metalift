@@ -18,7 +18,7 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 def grammarEquivalence(inputState, synthState):
     setIn = Choose(inputState, TupleSel(synthState, 0), TupleSel(synthState, 1))
 
-    setIn = Choose(setIn, Call("setminus", Set(Int()), setIn, setIn))
+    setIn = Choose(setIn, Call("set.minus", Set(Int()), setIn, setIn))
 
     equivalent = Eq(setIn, setIn)
 
@@ -28,7 +28,7 @@ def grammarEquivalence(inputState, synthState):
 def grammarStateInvariant(synthState):
     setIn = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
 
-    valid = Choose(BoolLit(True), Call("subset", Bool(), setIn, setIn))
+    valid = Choose(BoolLit(True), Call("set.subset", Bool(), setIn, setIn))
 
     return valid
 
@@ -43,8 +43,8 @@ def supportedCommand(inputState, synthState, args):
         # so the sets are saturated
         Not(
             And(
-                Call("member", Bool(), value, TupleSel(synthState, 0)),
-                Call("member", Bool(), value, TupleSel(synthState, 1)),
+                Call("set.member", Bool(), value, TupleSel(synthState, 0)),
+                Call("set.member", Bool(), value, TupleSel(synthState, 1)),
             )
         ),
         # deletion can work even if not in the insertion set
@@ -66,7 +66,7 @@ def grammarQuery(ci: CodeInfo):
     inputValue = ci.readVars[1]
 
     setIn = Choose(stateSet1, stateSet2)
-    setContains = Call("member", Bool(), inputValue, setIn)
+    setContains = Call("set.member", Bool(), inputValue, setIn)
 
     setContainTransformed = Choose(setContains, Not(setContains))
 
@@ -105,7 +105,7 @@ def grammar(ci: CodeInfo):
         setIn = Choose(
             stateSet1,
             stateSet2,
-            Call("singleton", Set(Int()), inputValue),
+            Call("set.singleton", Set(Int()), inputValue),
         )
 
         setTransform = setIn

@@ -9,6 +9,6 @@ MaxInt: Lattice = (ir.Int(), lambda a, b: ir.Call("max", ir.Int(), a, b), ir.Int
 def Set(innerType: ir.Type) -> Lattice:
     return (
         ir.Set(innerType),
-        lambda a, b: ir.Call("union", ir.Set(innerType), a, b),
-        ir.Var(f"(as emptyset (Set {innerType}))", ir.Set(innerType)),
+        lambda a, b: ir.Call("set.union", ir.Set(innerType), a, b),
+        ir.Var(f"(as set.empty (Set {innerType}))", ir.Set(innerType)),
     )

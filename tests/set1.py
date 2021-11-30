@@ -31,19 +31,19 @@ def grammar(ci: CodeInfo):
         inputValue = ci.readVars[2]
         outputVar = ci.modifiedVars[0]
 
-        emptySet = Var("(as emptyset (Set Int))", Set(Int()))
+        emptySet = Var("(as set.empty (Set Int))", Set(Int()))
 
         intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
         intValue = Choose(inputValue, intLit)
 
         condition = Eq(inputAdd, intLit)
 
-        setIn = Choose(inputS, emptySet, Call("singleton", Set(Int()), intValue))
+        setIn = Choose(inputS, emptySet, Call("set.singleton", Set(Int()), intValue))
 
         setTransform = Choose(
             setIn,
-            Call("union", Set(Int()), setIn, setIn),
-            Call("setminus", Set(Int()), setIn, setIn),
+            Call("set.union", Set(Int()), setIn, setIn),
+            Call("set.minus", Set(Int()), setIn, setIn),
         )
 
         chosenTransform = Ite(condition, setTransform, setTransform)
