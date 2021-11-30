@@ -53,13 +53,18 @@ def synthesize_actor(
 
     # begin state transition
     extraVarsStateTransition = set()
+    stateType = None
 
     def summaryWrapStateTransition(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
+        nonlocal stateType
+
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
         beforeState = typing.cast(ValueRef, origArgs[0])
         afterState = typing.cast(ValueRef, origReturn)
+
+        stateType = parseTypeRef(beforeState.type)
 
         beforeStateForPS = Var(beforeState.name + "_for_ps", synthStateType)
         extraVarsStateTransition.add(beforeStateForPS)
@@ -157,11 +162,26 @@ def synthesize_actor(
     # end init state
 
     # begin equivalence
-    invAndPsEquivalence = [grammarEquivalence()]
+    inputStateForEquivalence = Var("inputState", stateType)
+    synthStateForEquivalence = Var("synthState", synthStateType)
+
+    invAndPsEquivalence = [Synth(
+        "equivalence",
+        grammarEquivalence(
+            inputStateForEquivalence,
+            synthStateForEquivalence
+        ),
+        inputStateForEquivalence, synthStateForEquivalence
+    )]
     # end equivalence
 
     # begin state invariant
-    invAndPsStateInvariant = [grammarStateInvariant()]
+    synthStateForInvariant = Var("synthState", synthStateType)
+    invAndPsStateInvariant = [Synth(
+        "stateInvariant",
+        grammarStateInvariant(synthStateForInvariant),
+        synthStateForInvariant
+    )]
     # end state invariant
 
     print("====== synthesis")

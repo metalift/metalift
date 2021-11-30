@@ -153,7 +153,8 @@ def toRosette(
     print(varDecls, file=f)
 
     # Vc definition
-    print("(current-bitwidth %d)" % (6), file=f)
+    # print("(current-bitwidth %d)" % (6), file=f)
+    print("(current-bitwidth #f)", file=f)
     ir.printMode = PrintMode.RosetteVC
     print("(define (assertions)\n (assert %s))\n" % (vc), file=f)
 

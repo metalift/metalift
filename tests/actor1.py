@@ -4,36 +4,32 @@ import sys
 from analysis import CodeInfo
 from ir import *
 from actor_util import synthesize_actor
+import actors.lattices as lat
 
 if False:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize
 
-synthStateType = Tuple(Set(Int()), Set(Int()))
+synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
+synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
-
-def grammarEquivalence():
-    inputState = Var("inputState", Set(Int()))
-    synthState = Var("synthState", synthStateType)
-
+def grammarEquivalence(inputState, synthState):
     setIn = Choose(inputState, TupleSel(synthState, 0), TupleSel(synthState, 1))
 
     setIn = Choose(setIn, Call("setminus", Set(Int()), setIn, setIn))
 
     equivalent = Eq(setIn, setIn)
 
-    return Synth("equivalence", equivalent, inputState, synthState)
+    return equivalent
 
 
-def grammarStateInvariant():
-    synthState = Var("synthState", synthStateType)
-
+def grammarStateInvariant(synthState):
     setIn = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
 
     valid = Choose(BoolLit(True), Call("subset", Bool(), setIn, setIn))
 
-    return Synth("stateInvariant", valid, synthState)
+    return valid
 
 
 def supportedCommand(inputState, synthState, args):
@@ -111,22 +107,28 @@ def grammar(ci: CodeInfo):
             Call("singleton", Set(Int()), inputValue),
         )
 
-        setTransform = Call("union", Set(Int()), setIn, setIn)
+        setTransform = setIn
 
-        chosenTransform = Choose(
+        setTransform = Choose(
             setTransform, Ite(condition, setTransform, setTransform)
         )
 
-        summary = Eq(outputState, MakeTuple(chosenTransform, chosenTransform))
+        summary = Eq(outputState, MakeTuple(*[
+            synthStateStructure[i][1](
+                TupleSel(inputState, i),
+                setTransform
+            )
+            for i in range(len(synthStateStructure))
+        ]))
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 def initState():
-    return MakeTuple(
-        Var("(as emptyset (Set Int))", Set(Int())),
-        Var("(as emptyset (Set Int))", Set(Int())),
-    )
+    return MakeTuple(*[
+        elem[2]
+        for elem in synthStateStructure
+    ])
 
 
 def targetLang():
