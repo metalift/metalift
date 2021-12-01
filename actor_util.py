@@ -7,7 +7,7 @@ from ir import *
 from llvmlite.binding import ValueRef
 
 import typing
-from typing import Callable, Union
+from typing import Callable, Union, Protocol
 
 
 def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
@@ -18,29 +18,31 @@ def stateInvariant(synthState: Expr) -> Expr:
     return Call("stateInvariant", Bool(), synthState)
 
 
-SynthesizeFun = Callable[
-    [
-        str,
-        typing.List[Expr],
-        typing.Set[Expr],
-        typing.List[Expr],
-        typing.List[Expr],
-        Expr,
-        typing.List[Union[CodeInfo, Expr]],
-        str,
-    ],
-    typing.List[Expr],
-]
+class SynthesizeFun(Protocol):
+    def __call__(
+        self,
+        basename: str,
+        targetLang: typing.List[Expr],
+        vars: typing.Set[Expr],
+        invAndPs: typing.List[Expr],
+        preds: Union[str, typing.List[Expr]],
+        vc: Expr,
+        loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+        cvcPath: str,
+        noVerify: bool = False,
+        unboundedInts: bool = False,
+    ) -> typing.List[Expr]:
+        ...
 
 
 def synthesize_actor(
     synthStateType: Type,
     initState: Callable[[], Expr],
-    grammarStateInvariant: Callable[[], Expr],
+    grammarStateInvariant: Callable[[Expr], Expr],
     supportedCommand: Callable[[Expr, Expr, typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
-    grammarEquivalence: Callable[[], Expr],
+    grammarEquivalence: Callable[[Expr, Expr], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
 ) -> typing.List[Expr]:
@@ -53,13 +55,18 @@ def synthesize_actor(
 
     # begin state transition
     extraVarsStateTransition = set()
+    stateType = None
 
     def summaryWrapStateTransition(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
+        nonlocal stateType
+
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
         beforeState = typing.cast(ValueRef, origArgs[0])
         afterState = typing.cast(ValueRef, origReturn)
+
+        stateType = parseTypeRef(beforeState.type)
 
         beforeStateForPS = Var(beforeState.name + "_for_ps", synthStateType)
         extraVarsStateTransition.add(beforeStateForPS)
@@ -157,11 +164,28 @@ def synthesize_actor(
     # end init state
 
     # begin equivalence
-    invAndPsEquivalence = [grammarEquivalence()]
+    inputStateForEquivalence = Var("inputState", stateType)  # type: ignore
+    synthStateForEquivalence = Var("synthState", synthStateType)
+
+    invAndPsEquivalence = [
+        Synth(
+            "equivalence",
+            grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
+            inputStateForEquivalence,
+            synthStateForEquivalence,
+        )
+    ]
     # end equivalence
 
     # begin state invariant
-    invAndPsStateInvariant = [grammarStateInvariant()]
+    synthStateForInvariant = Var("synthState", synthStateType)
+    invAndPsStateInvariant = [
+        Synth(
+            "stateInvariant",
+            grammarStateInvariant(synthStateForInvariant),
+            synthStateForInvariant,
+        )
+    ]
     # end state invariant
 
     print("====== synthesis")
@@ -198,4 +222,5 @@ def synthesize_actor(
         combinedVC,
         combinedLoopAndPsInfo,
         cvcPath,
+        unboundedInts=True,
     )

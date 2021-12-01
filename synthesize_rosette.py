@@ -197,6 +197,7 @@ def synthesize(
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
     noVerify: bool = False,
+    unboundedInts: bool = False,
 ) -> typing.List[Expr]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -207,7 +208,17 @@ def synthesize(
         synthFile = synthDir + basename + ".rkt"
 
         ##### synthesis procedure #####
-        toRosette(synthFile, lang, vars, invAndPs, preds, vc, loopAndPsInfo, invGuess)
+        toRosette(
+            synthFile,
+            lang,
+            vars,
+            invAndPs,
+            preds,
+            vc,
+            loopAndPsInfo,
+            invGuess,
+            unboundedInts,
+        )
 
         synthNames = toSynthesize(loopAndPsInfo, lang)
         procSynthesis = subprocess.run(["racket", synthFile], stdout=subprocess.PIPE)

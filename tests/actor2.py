@@ -4,31 +4,28 @@ import sys
 from analysis import CodeInfo
 from ir import *
 from actor_util import synthesize_actor
+import actors.lattices as lat
 
 if True:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize
 
-synthStateType = Tuple(Int(), Int())
+synthStateStructure = [lat.MaxInt, lat.MaxInt]
+synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 
-def grammarEquivalence():
-    inputState = Var("inputState", Int())
-    synthState = Var("synthState", synthStateType)
-
+def grammarEquivalence(inputState, synthState):
     synthElem = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
     equivalent = Eq(inputState, Sub(synthElem, synthElem))
 
-    return Synth("equivalence", equivalent, inputState, synthState)
+    return equivalent
 
 
-def grammarStateInvariant():
-    synthState = Var("synthState", synthStateType)
-
+def grammarStateInvariant(synthState):
     valid = Choose(BoolLit(True), BoolLit(False))
 
-    return Synth("stateInvariant", valid, synthState)
+    return valid
 
 
 def supportedCommand(inputState, synthState, args):
@@ -62,29 +59,39 @@ def grammar(ci: CodeInfo):
 
         outputState = ci.modifiedVars[0]
 
-        condition = Eq(inputAdd, Choose(IntLit(0), IntLit(1)))
-
         intLit = Choose(IntLit(0), IntLit(1))
+
+        condition = Eq(inputAdd, intLit)
 
         intIn = Choose(stateVal1, stateVal2)
 
         intTransform = Choose(intIn, Add(intIn, intLit))
 
-        chosenTransform = Choose(
-            intTransform, Ite(condition, intTransform, intTransform)
-        )
+        intTransform = Choose(intTransform, Ite(condition, intTransform, intTransform))
 
-        summary = Eq(outputState, MakeTuple(chosenTransform, chosenTransform))
+        summary = Eq(
+            outputState,
+            MakeTuple(
+                *[
+                    synthStateStructure[i][1](TupleSel(inputState, i), intTransform)
+                    for i in range(len(synthStateStructure))
+                ]
+            ),
+        )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 def initState():
-    return MakeTuple(IntLit(0), IntLit(0))
+    return MakeTuple(*[elem[2] for elem in synthStateStructure])
 
 
 def targetLang():
-    return []
+    maxA = Var("a", Int())
+    maxB = Var("b", Int())
+    return [
+        FnDeclNonRecursive("max", Int(), Ite(Ge(maxA, maxB), maxA, maxB), maxA, maxB),
+    ]
 
 
 if __name__ == "__main__":

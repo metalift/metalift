@@ -80,12 +80,9 @@ def toSMT(
         if not isSynthesis:
             out.write(open("./utils/list-axioms.smt", "r").read())
 
+        out.write("\n\n".join([str(t) for t in targetLang]))
         if inCalls:
-
             fnDecls = []
-            for t in targetLang:
-                fnDecls.append(t)
-
             for i in inCalls:
                 for t in targetLang:
                     if i[0] == t.args[0]:
@@ -98,8 +95,6 @@ def toSMT(
                             FnDecl(t.args[0] + "_" + i[1], t.type, newBody, *newArgs)
                         )
 
-            out.write("\n\n".join([str(t) for t in fnDecls]))
-
             candidates = []
 
             for cand in invAndPs:
@@ -111,11 +106,6 @@ def toSMT(
                 )
             out.write("\n\n".join(["\n%s\n" % (cand) for cand in candidates]))
         elif fnCalls:
-            out.write(
-                "\n\n".join(
-                    ["\n%s\n" % (t) if t.args[0] in fnCalls else "" for t in targetLang]
-                )
-            )
             out.write("\n\n".join(["\n%s\n" % (cand) for cand in invAndPs]))
         else:
             if isinstance(invAndPs, str):

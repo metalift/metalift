@@ -118,6 +118,7 @@ class Expr:
         Synth = "synth"
         Choose = "choose"
         FnDecl = "fndecl"
+        FnDeclNonRecursive = "fndeclnonrecursive"
 
         Tuple = "tuple"
         TupleSel = "tuplesel"
@@ -342,8 +343,7 @@ class Expr:
             else:
                 raise Exception("NYI: %s" % self)
 
-        elif kind == Expr.Kind.FnDecl:
-
+        elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if printMode == PrintMode.SMT:
                 declarations = []
                 for a in self.args[2:]:
@@ -354,7 +354,10 @@ class Expr:
 
                 args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                return "(define-fun-rec %s (%s) %s\n%s)" % (
+                def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+
+                return "(%s %s (%s) %s\n%s)" % (
+                    def_str,
                     self.args[0],
                     args,
                     self.type if self.type.name != "Function" else self.type.args[0],
@@ -598,6 +601,12 @@ def Choose(*args: Expr) -> Expr:
 
 def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
+
+
+def FnDeclNonRecursive(
+    name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+) -> Expr:
+    return Expr(Expr.Kind.FnDeclNonRecursive, returnT, [name, body, *args])
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
