@@ -7,8 +7,7 @@ from ir import *
 from llvmlite.binding import ValueRef
 
 import typing
-from typing import Callable, Union
-from typing_extensions import Protocol
+from typing import Callable, Union, Protocol
 
 
 def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
