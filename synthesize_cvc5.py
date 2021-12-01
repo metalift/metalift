@@ -105,8 +105,10 @@ def synthesize(
     invAndPs: typing.List[Expr],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
-    loopAndPsInfo: typing.List[CodeInfo],
+    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    noVerify: bool = False,  # currently ignored
+    unboundedInts: bool = False,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):

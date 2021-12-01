@@ -8,6 +8,7 @@ from llvmlite.binding import ValueRef
 
 import typing
 from typing import Callable, Union
+from typing_extensions import Protocol
 
 
 def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
@@ -18,19 +19,21 @@ def stateInvariant(synthState: Expr) -> Expr:
     return Call("stateInvariant", Bool(), synthState)
 
 
-SynthesizeFun = Callable[
-    [
-        str,
-        typing.List[Expr],
-        typing.Set[Expr],
-        typing.List[Expr],
-        typing.List[Expr],
-        Expr,
-        typing.List[Union[CodeInfo, Expr]],
-        str,
-    ],
-    typing.List[Expr],
-]
+class SynthesizeFun(Protocol):
+    def __call__(
+        self,
+        basename: str,
+        targetLang: typing.List[Expr],
+        vars: typing.Set[Expr],
+        invAndPs: typing.List[Expr],
+        preds: Union[str, typing.List[Expr]],
+        vc: Expr,
+        loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+        cvcPath: str,
+        noVerify: bool = False,
+        unboundedInts: bool = False,
+    ) -> typing.List[Expr]:
+        ...
 
 
 def synthesize_actor(
@@ -220,4 +223,5 @@ def synthesize_actor(
         combinedVC,
         combinedLoopAndPsInfo,
         cvcPath,
+        unboundedInts=True,
     )
