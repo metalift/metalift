@@ -34,10 +34,7 @@ def grammarQuery(ci: CodeInfo):
     inputState = ci.readVars[0]
     outputVar = ci.modifiedVars[0]
 
-    summary = Eq(
-        outputVar,
-        auto_grammar(parseTypeRef(outputVar.type), 2, inputState)
-    )
+    summary = Eq(outputVar, auto_grammar(parseTypeRef(outputVar.type), 2, inputState))
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 

@@ -162,7 +162,9 @@ def synthesize_actor(
 
         afterState = typing.cast(ValueRef, origReturn)
 
-        afterStateForInitState = Var(afterState.name + "_for_init_state", synthStateType)
+        afterStateForInitState = Var(
+            afterState.name + "_for_init_state", synthStateType
+        )
         extraVarsInitState.add(afterStateForInitState)
 
         newReturn = afterStateForInitState
@@ -171,10 +173,7 @@ def synthesize_actor(
 
         return (
             Implies(
-                Eq(
-                    afterStateForInitState,
-                    initState()
-                ),
+                Eq(afterStateForInitState, initState()),
                 And(
                     stateInvariant(afterStateForInitState),
                     observeEquivalence(afterState, afterStateForInitState),
@@ -183,8 +182,17 @@ def synthesize_actor(
             list(ps.operands[2:]),  # type: ignore
         )
 
-    (vcVarsInitState, invAndPsInitState, predsInitState, vcInitState, loopAndPsInfoInitState) = analyze(
-        filename, fnNameBase + "_init_state", loopsFile, wrapSummaryCheck=summaryWrapInitState
+    (
+        vcVarsInitState,
+        invAndPsInitState,
+        predsInitState,
+        vcInitState,
+        loopAndPsInfoInitState,
+    ) = analyze(
+        filename,
+        fnNameBase + "_init_state",
+        loopsFile,
+        wrapSummaryCheck=summaryWrapInitState,
     )
 
     vcVarsInitState = vcVarsInitState.union(extraVarsInitState)

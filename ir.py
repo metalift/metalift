@@ -50,11 +50,7 @@ class Type:
         return NotImplemented
 
     def __hash__(self) -> int:
-        return hash(
-            tuple(
-                sorted({"name": self.name, "args": tuple(self.args)})
-            )
-        )
+        return hash(tuple(sorted({"name": self.name, "args": tuple(self.args)})))
 
 
 def Int() -> Type:
@@ -380,7 +376,11 @@ class Expr:
                     ]
                 )
 
-                def_str = "define" if kind == Expr.Kind.FnDeclNonRecursive else "define-bounded"
+                def_str = (
+                    "define"
+                    if kind == Expr.Kind.FnDeclNonRecursive
+                    else "define-bounded"
+                )
 
                 return "(%s (%s %s) \n%s)" % (
                     def_str,
