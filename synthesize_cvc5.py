@@ -4,6 +4,7 @@ import pyparsing as pp
 import os
 
 from ir import *
+from smt_util import toSMT
 
 import typing
 from typing import Any, Callable, Dict, Generator, Union
@@ -100,12 +101,14 @@ def toExpr(
 def synthesize(
     basename: str,
     targetLang: typing.List[Expr],
-    vars: typing.List[Expr],
+    vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
-    loopAndPsInfo: typing.List[CodeInfo],
+    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    noVerify: bool = False,  # currently ignored
+    unboundedInts: bool = False,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
@@ -115,11 +118,13 @@ def synthesize(
     # Generate sygus file for synthesis
     toSMT(
         targetLang,
-        "\n\n".join([str(i) for i in invAndPs]),
         vars,
+        invAndPs,
         preds,
         vc,
         sygusFile,
+        [],
+        [],
         True,
     )
 
@@ -141,9 +146,8 @@ def synthesize(
         elif "sygus-candidate" in line:
             print("Current PS and INV Guess ", line)
             candidates, _ = generateCandidates(invAndPs, line, funName, returnType)
-            candDef = "\n\n".join(str(d) for d in candidates)
             smtFile = synthDir + basename + ".smt"
-            toSMT(targetLang, candDef, vars, preds, vc, smtFile, False)
+            toSMT(targetLang, vars, candidates, preds, vc, smtFile, [], [], False)
 
             # run external verification subprocess
             procVerify = subprocess.Popen(
@@ -155,7 +159,10 @@ def synthesize(
             output = output.decode("utf-8")
             if output.count("unsat") == 1:
                 print("UNSAT\n")
-                print("Verified PS and INV Candidates ", candDef)
+                print(
+                    "Verified PS and INV Candidates ",
+                    "\n\n".join([str(c) for c in candidates]),
+                )
 
                 return candidates
             else:
@@ -165,59 +172,3 @@ def synthesize(
             continue
 
     raise Exception("SyGuS failed")
-
-
-# print to a file
-def toSMT(
-    targetLang: typing.List[Expr],
-    invAndPs: str,
-    vars: typing.List[Expr],
-    preds: Union[str, typing.List[Expr]],
-    vc: Expr,
-    outFile: str,
-    isSynthesis: bool,
-) -> None:
-    # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
-    with open(outFile, mode="w") as out:
-        out.write("\n\n".join([str(t) for t in targetLang]))
-
-        out.write("\n\n%s\n\n" % invAndPs)
-
-        var_decl_command = "declare-var" if isSynthesis else "declare-const"
-
-        declarations: typing.List[typing.Tuple[str, Type]] = []
-        for v in vars:
-            genVar(v, declarations)
-
-        declsString = "\n".join(
-            ["(%s %s %s)" % (var_decl_command, d[0], d[1]) for d in declarations]
-        )  # name and type
-        out.write("%s\n\n" % declsString)
-
-        if isinstance(preds, str):
-            out.write("%s\n\n" % preds)
-
-        # a list of Exprs - print name, args, return type
-        elif isinstance(preds, list):
-            preds = "\n".join(
-                [
-                    "(define-fun %s (%s) (%s) )"
-                    % (
-                        p.args[0],
-                        " ".join("(%s %s)" % (a.args[0], a.type) for a in p.args[1:]),
-                        p.type,
-                    )
-                    for p in preds
-                ]
-            )
-            out.write("%s\n\n" % preds)
-
-        else:
-            raise Exception("unknown type passed in for preds: %s" % preds)
-
-        if isSynthesis:
-            out.write("%s\n\n" % Constraint(vc))
-            out.write("(check-synth)")
-        else:
-            out.write("%s\n\n" % MLInst_Assert(Not(vc)))
-            out.write("(check-sat)\n(get-model)")

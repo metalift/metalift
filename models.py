@@ -13,7 +13,7 @@ RegsType = Dict[ValueRef, Expr]
 
 def newlist(regs: RegsType, *args: ValueRef) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_new", parseTypeRef(args[0].type)))])
-    return ReturnValue(Var("list_empty", Type("MLList", Int())), None)
+    return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
 
 def listLength(regs: RegsType, *args: ValueRef) -> ReturnValue:
@@ -54,11 +54,11 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
     # names for set.h
     "set_create": lambda _, *args: ReturnValue(
-        Var("(as emptyset (Set Int))", Set(Int())), None
+        Var("(as set.empty (Set Int))", Set(Int())), None
     ),
     "set_add": lambda regs, *args: ReturnValue(
         Call(
-            "insert",
+            "set.insert",
             Set(Int()),
             parseOperand(args[1], regs),
             parseOperand(args[0], regs),
@@ -67,17 +67,17 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     ),
     "set_remove": lambda regs, *args: ReturnValue(
         Call(
-            "setminus",
+            "set.minus",
             Set(Int()),
             parseOperand(args[0], regs),
-            Call("singleton", Set(Int()), parseOperand(args[1], regs)),
+            Call("set.singleton", Set(Int()), parseOperand(args[1], regs)),
         ),
         None,
     ),
     "set_contains": lambda regs, *args: ReturnValue(
         Ite(
             Call(
-                "member",
+                "set.member",
                 Set(Int()),
                 parseOperand(args[1], regs),
                 parseOperand(args[0], regs),

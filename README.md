@@ -34,4 +34,26 @@ Example synthesis usage: `main.py tests/while4.ll tests/while4-grammar.sl tests/
 Example verification usage (using pre-generated answer): `main.py tests/while4.ll tests/while4-ans.smt tests/out.smt test tests/while4.loops`
 This prints the verification file to out.smt that can be run using an external solver (e.g., z3)
 
+## Set up with Nix
+To get a development environment up and running, one option is to use [Nix](https://nixos.org/), which can automatically pull and build the necessary dependencies. First, you'll need to [install Nix](https://nixos.org/download.html). Note that this _will_ require temporary root access as Nix sets up a daemon to handle builds, and will set up a separate volume for storing build artifacts if on macOS.
 
+Once you've got Nix installed, you'll need to add the unstable channel to pull bleeding-edge packages as dependencies for cvc5.
+
+```bash
+# if on macOS
+$ sudo -i nix-channel --add https://nixos.org/channels/nixos-unstable nixos-unstable
+$ sudo -i nix-channel --update
+
+# otherwise
+$ sudo nix-channel --add https://nixos.org/channels/nixos-unstable nixos-unstable
+$ sudo nix-channel --update
+```
+
+Then, all you have to do is navigate to the Metalift directory and run the following command:
+```bash
+$ nix-shell
+```
+
+This will build all of Metalift's dependencies and drop you into a temporary shell with all the dependencies available.
+
+**Note**: you still will need to install Racket and Rosette separately. There _is_ a solution for doing this through Nix, but it requires [nix-ld](https://github.com/Mic92/nix-ld) to be installed and is generally not recommended unless you run NixOS.

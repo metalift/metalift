@@ -49,6 +49,9 @@ class Type:
             return not x
         return NotImplemented
 
+    def __hash__(self) -> int:
+        return hash(tuple(sorted({"name": self.name, "args": tuple(self.args)})))
+
 
 def Int() -> Type:
     return Type("Int")
@@ -118,6 +121,7 @@ class Expr:
         Synth = "synth"
         Choose = "choose"
         FnDecl = "fndecl"
+        FnDeclNonRecursive = "fndeclnonrecursive"
 
         Tuple = "tuple"
         TupleSel = "tuplesel"
@@ -259,8 +263,9 @@ class Expr:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if printMode == PrintMode.SMT:
+                noParens = len(self.args) == 1
                 return (
-                    "("
+                    ("" if noParens else "(")
                     + " ".join(
                         [
                             a.name
@@ -269,7 +274,7 @@ class Expr:
                             for a in self.args
                         ]
                     )
-                    + ")"
+                    + ("" if noParens else ")")
                 )
             else:
                 if isinstance(self.args[0], str):
@@ -278,25 +283,13 @@ class Expr:
                     ) and printMode == PrintMode.RosetteVC:
                         callStr = "( " + "%s " % (str(self.args[0]))
                         for a in self.args[1:]:
-                            if isinstance(a, ValueRef) and a.name != "":
-                                callStr += "%s " % (a.name)
-                            else:
-                                strExp = str(a)
-                                if (strExp) in listFns.keys() and "list_empty" in (
-                                    strExp
-                                ):
-                                    callStr += "(" + listFns[strExp] + ")" + " "
-                                elif (strExp) in listFns.keys():
-                                    callStr += listFns[strExp] + " "
-                                else:
-                                    callStr += strExp + " "
+                            callStr += str(a) + " "
                         callStr += ")"
                         return callStr
                     elif (
                         self.args[0].startswith("list")
                         and printMode == PrintMode.RosetteVC
                     ):
-
                         callStr = (
                             "("
                             + "%s"
@@ -320,8 +313,10 @@ class Expr:
                     ):
                         return "%s" % (self.args[0])
                     else:
-                        if "list_empty" in self.args or len(self.args) == 1:
-                            return " ".join(
+                        noParens = len(self.args) == 1
+                        return (
+                            ("" if noParens else "(")
+                            + " ".join(
                                 [
                                     a.name
                                     if isinstance(a, ValueRef) and a.name != ""
@@ -329,20 +324,8 @@ class Expr:
                                     for a in self.args
                                 ]
                             )
-                        else:
-
-                            return (
-                                "("
-                                + " ".join(
-                                    [
-                                        a.name
-                                        if isinstance(a, ValueRef) and a.name != ""
-                                        else str(a)
-                                        for a in self.args
-                                    ]
-                                )
-                                + ")"
-                            )
+                            + ("" if noParens else ")")
+                        )
                 else:
                     return " ".join(
                         [
@@ -363,8 +346,7 @@ class Expr:
             else:
                 raise Exception("NYI: %s" % self)
 
-        elif kind == Expr.Kind.FnDecl:
-
+        elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if printMode == PrintMode.SMT:
                 declarations = []
                 for a in self.args[2:]:
@@ -375,14 +357,16 @@ class Expr:
 
                 args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                return "(define-fun-rec %s (%s) %s\n%s)" % (
+                def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+
+                return "(%s %s (%s) %s\n%s)" % (
+                    def_str,
                     self.args[0],
                     args,
                     self.type if self.type.name != "Function" else self.type.args[0],
                     self.args[1],
                 )
             else:
-
                 args = " ".join(
                     [
                         "%s" % (a.name)
@@ -392,7 +376,14 @@ class Expr:
                     ]
                 )
 
-                return "(define-bounded (%s %s) \n%s)" % (
+                def_str = (
+                    "define"
+                    if kind == Expr.Kind.FnDeclNonRecursive
+                    else "define-bounded"
+                )
+
+                return "(%s (%s %s) \n%s)" % (
+                    def_str,
                     self.args[0],
                     args,
                     self.args[1],
@@ -621,6 +612,12 @@ def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Exp
     return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
 
 
+def FnDeclNonRecursive(
+    name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+) -> Expr:
+    return Expr(Expr.Kind.FnDeclNonRecursive, returnT, [name, body, *args])
+
+
 # class to represent the extra instructions that are inserted into the llvm code during analysis
 class MLInst:
     class Kind:  # not defined as an enum as computeVC switches on the opcode str
@@ -702,10 +699,10 @@ def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
 
 def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     # ty.name returns empty string. possibly bug
-    tyStr = str(t)
-
     if isinstance(t, Type):
         return t
+
+    tyStr = str(t)
 
     if tyStr == "i64":
         return Int()

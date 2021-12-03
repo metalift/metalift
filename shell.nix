@@ -19,7 +19,6 @@ mkShell {
     cvc5
     llvm_10
     clang_10
-    racket
   ];
 
   hardeningDisable = [ "fortify" ];
