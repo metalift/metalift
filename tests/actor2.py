@@ -5,6 +5,7 @@ from analysis import CodeInfo
 from ir import *
 from actor_util import synthesize_actor
 import actors.lattices as lat
+from auto_grammar import auto_grammar
 
 if True:
     from synthesize_rosette import synthesize
@@ -16,16 +17,11 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState):
-    synthElem = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
-    equivalent = Eq(inputState, Sub(synthElem, synthElem))
-
-    return equivalent
+    return auto_grammar(Bool(), 2, inputState, synthState)
 
 
 def grammarStateInvariant(synthState):
-    valid = Choose(BoolLit(True), BoolLit(False))
-
-    return valid
+    return auto_grammar(Bool(), 1, synthState)
 
 
 def supportedCommand(inputState, synthState, args):
@@ -38,9 +34,10 @@ def grammarQuery(ci: CodeInfo):
     inputState = ci.readVars[0]
     outputVar = ci.modifiedVars[0]
 
-    inputInt = Choose(TupleSel(inputState, 0), TupleSel(inputState, 1))
-
-    summary = Eq(outputVar, Sub(inputInt, inputInt))
+    summary = Eq(
+        outputVar,
+        auto_grammar(parseTypeRef(outputVar.type), 2, inputState)
+    )
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 

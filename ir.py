@@ -49,6 +49,13 @@ class Type:
             return not x
         return NotImplemented
 
+    def __hash__(self) -> int:
+        return hash(
+            tuple(
+                sorted({"name": self.name, "args": tuple(self.args)})
+            )
+        )
+
 
 def Int() -> Type:
     return Type("Int")
@@ -364,7 +371,6 @@ class Expr:
                     self.args[1],
                 )
             else:
-
                 args = " ".join(
                     [
                         "%s" % (a.name)
@@ -374,7 +380,10 @@ class Expr:
                     ]
                 )
 
-                return "(define-bounded (%s %s) \n%s)" % (
+                def_str = "define" if kind == Expr.Kind.FnDeclNonRecursive else "define-bounded"
+
+                return "(%s (%s %s) \n%s)" % (
+                    def_str,
                     self.args[0],
                     args,
                     self.args[1],
@@ -690,10 +699,10 @@ def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
 
 def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     # ty.name returns empty string. possibly bug
-    tyStr = str(t)
-
     if isinstance(t, Type):
         return t
+
+    tyStr = str(t)
 
     if tyStr == "i64":
         return Int()
