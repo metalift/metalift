@@ -11,7 +11,7 @@ int last_time = 0; */
     int mark;
 }; */
 
-int test(int counter, int last_time, int bytes, int time, int mark)
+int test(int counter, int last_time, int bytes, int time, int mark, int _unused1, int _unused2)
 {
     // Decrement counter according to drain rate
     // counter = counter - (time - last_time) * DRAIN_RATE;
@@ -27,6 +27,7 @@ int test(int counter, int last_time, int bytes, int time, int mark)
 
     // Store last time
     last_time = time;
-
-    return bytes + mark + time + counter + last_time;
+    int sum = 0;
+    sum = bytes + mark + time + counter + last_time;
+    return sum;
 }

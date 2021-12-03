@@ -22,6 +22,8 @@ from ir import (
     Add,
     Mul,
     Ite,
+    Tuple,
+    TupleSel
 )
 from synthesize_rosette import synthesize
 from rosette_translator import toRosette
@@ -37,15 +39,18 @@ def grammar(ci: CodeInfo):
         raise RuntimeError("no invariants for loop-less grammar")
     else:  # ps
         domino = DominoLang()
-        domino.vars = [Choose(*ci.readVars) for _ in range(7)]
+        domino.vars = ci.readVars
+        # domino.vars = [Choose(*ci.readVars) for _ in range(7)]
         rv = ci.modifiedVars[0]
-        options = Choose(*list(domino.generate().values()))
+        generated = domino.generate()
+        print(generated)
+        options = Choose(*list(generated.values()))
         summary = Eq(rv, options)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 class DominoLang(object):
-    def __init__(self) -> None:
+    def __init__(self, vars) -> None:
         super().__init__()
         self.vars = None
         self._consts = [0, 10, 20]
@@ -69,6 +74,12 @@ class DominoLang(object):
             "rel_op": (lambda x, y: Choose(Eq(x, y), Le(x, y), Ge(x, y), Not(Eq(x, y))))
         }
 
+    def reduce_with_op(self, arr, op):
+        out = arr[0]
+        for item in arr[1:]:
+            out = op(item, out)
+        return out
+
     def generate_templates(self):
         lib = {
             **self._generate_const(),
@@ -77,13 +88,20 @@ class DominoLang(object):
             **self._generate_mux(),
         }
 
-        state_1, state_2, pkt_1, pkt_2, pkt_3, pkt_4, pkt_5 = self.vars[:7]
         Mux2, Mux3 = lib["Mux2"], lib["Mux3"]
         Opt = lib["Opt"]
         C = lib["C"]
 
+        state_1, state_2, pkt_1, pkt_2, pkt_3, pkt_4, pkt_5 = self.vars[:7]
+
+        state_1 = Choose(state_1, state_2)
+        pkt_1 = Choose(pkt_1, pkt_2, pkt_3, pkt_4, pkt_5)
+        pkt_2 = Choose(pkt_1, pkt_2, pkt_3, pkt_4, pkt_5)
+        pkt_3 = Choose(pkt_1, pkt_2, pkt_3, pkt_4, pkt_5)
+
         # atom_template(int state_1, int state_2, int pkt_1, int pkt_2, int pkt_3, int pkt_4, int pkt_5)
-        hash_fn = Add
+        hash_fn = lambda *arr: self.reduce_with_op(arr, Add)
+        hash_fn = lambda x: x
         return {
             "if_else_raw": hash_fn(
                 Ite(
@@ -91,7 +109,6 @@ class DominoLang(object):
                     Add(Opt(state_1), Mux3(pkt_1, pkt_2, C)),
                     Add(Opt(state_1), Mux3(pkt_1, pkt_2, C)),
                 ),
-                *self.vars[1:7]
             ),
             "mul_acc": hash_fn(
                 Add(
@@ -99,7 +116,6 @@ class DominoLang(object):
                     Mux2(pkt_2, pkt_3),
                     Mux2(pkt_2, pkt_3),
                 ),
-                *self.vars[1:7]
             ),
             # FnDecl("nested_ifs", Int(), hash_fn(None, *self.vars[1:7]), self.vars[:7]), # TODO
             # FnDecl("pair", Int(), hash_fn(None, *self.vars[1:7]), self.vars[:7]), # TODO
@@ -109,22 +125,20 @@ class DominoLang(object):
                     Add(Opt(state_1), Mux3(pkt_1, pkt_2, C)),
                     state_1,
                 ),
-                *self.vars[1:7]
             ),
-            "raw": hash_fn(Add(Opt(state_1), Mux2(pkt_1, C)), *self.vars[1:7]),
-            "rw": hash_fn(Mux2(pkt_1, C), *self.vars[1:7]),
+            "raw": hash_fn(Add(Opt(state_1), Mux2(pkt_1, C))),
+            "rw": hash_fn(Mux2(pkt_1, C)),
             "sub": hash_fn(
                 Ite(
                     lib["rel_op"](Opt(state_1), Mux3(pkt_1, pkt_2, C)),
                     Add(Opt(state_1), lib["arith_op"](Mux3(pkt_1, pkt_2, C), Mux3(pkt_1, pkt_2, C))),
                     Add(Opt(state_1), lib["arith_op"](Mux3(pkt_1, pkt_2, C), Mux3(pkt_1, pkt_2, C))),
                 ),
-                *self.vars[1:7]
             ),
         }
 
-    def generate(self):
-        return self.generate_templates()
+    def generate(self, depth=3):
+        atoms = self.generate_templates()
 
 
 def targetLang():

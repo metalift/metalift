@@ -15,9 +15,8 @@ struct Packet
     int rtt;
 };
 
-void func(struct Packet pkt)
-{
-    input_traffic_Bytes += pkt.size_bytes;
+int func(int size_bytes, int rtt, int _input_traffic_Bytes, int _sum_rtt_Tr, int _num_pkts_with_rtt) {
+    input_traffic_Bytes += size_bytes;
     if (pkt.rtt < MAX_ALLOWABLE_RTT)
     {
         sum_rtt_Tr += pkt.rtt;
