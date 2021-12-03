@@ -155,12 +155,49 @@ def synthesize_actor(
     # end query
 
     # begin init state
-    extraVarsInitstateInvariantVC = set()
-    initStateVar = Var("initState", synthStateType)
-    extraVarsInitstateInvariantVC.add(initStateVar)
-    initstateInvariantVC = Implies(
-        Eq(initStateVar, initState()), stateInvariant(initStateVar)
+    extraVarsInitState = set()
+
+    def summaryWrapInitState(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
+        origReturn = ps.operands[2]
+
+        afterState = typing.cast(ValueRef, origReturn)
+
+        afterStateForInitState = Var(
+            afterState.name + "_for_init_state", synthStateType
+        )
+        extraVarsInitState.add(afterStateForInitState)
+
+        newReturn = afterStateForInitState
+
+        ps.operands = tuple(list(ps.operands[:2]) + [newReturn])
+
+        return (
+            Implies(
+                Eq(afterStateForInitState, initState()),
+                And(
+                    stateInvariant(afterStateForInitState),
+                    observeEquivalence(afterState, afterStateForInitState),
+                ),
+            ),
+            list(ps.operands[2:]),  # type: ignore
+        )
+
+    (
+        vcVarsInitState,
+        invAndPsInitState,
+        predsInitState,
+        vcInitState,
+        loopAndPsInfoInitState,
+    ) = analyze(
+        filename,
+        fnNameBase + "_init_state",
+        loopsFile,
+        wrapSummaryCheck=summaryWrapInitState,
     )
+
+    vcVarsInitState = vcVarsInitState.union(extraVarsInitState)
+    loopAndPsInfoInitState = []
+    invAndPsInitState = []
     # end init state
 
     # begin equivalence
@@ -190,26 +227,26 @@ def synthesize_actor(
 
     print("====== synthesis")
 
-    combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(
-        extraVarsInitstateInvariantVC
-    )
+    combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(vcVarsInitState)
 
     combinedInvAndPs = (
         invAndPsStateTransition
         + invAndPsQuery
+        + invAndPsInitState
         + invAndPsEquivalence
         + invAndPsStateInvariant
     )
 
-    combinedPreds = predsStateTransition + predsQuery
+    combinedPreds = predsStateTransition + predsQuery + predsInitState
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition
         + loopAndPsInfoQuery
+        + loopAndPsInfoInitState
         + invAndPsEquivalence  # type: ignore
         + invAndPsStateInvariant  # type: ignore
     )
-    combinedVC = And(vcStateTransition, vcQuery, initstateInvariantVC)
+    combinedVC = And(vcStateTransition, vcQuery, vcInitState)
 
     lang = targetLang()
 

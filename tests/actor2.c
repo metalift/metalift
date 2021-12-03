@@ -1,5 +1,10 @@
 #include "set.h"
 
+int test_init_state() {
+  int out = 0;
+  return out;
+}
+
 int test_next_state(int state, int add) {
   if (add == 1) {
     state = state + 1;
