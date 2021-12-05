@@ -120,11 +120,12 @@ def toRosette(
 
     f = open(filename, "w")
     print(
-        '#lang rosette\n(require "../utils/bounded.rkt")\n(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n',
+        '#lang rosette\n' + 
+        '(require "../utils/bounded.rkt")\n' + 
+        '(require "../utils/utils.rkt")\n' + 
+        '(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n',
         file=f,
     )
-    # structure for rosette functions
-    print(open("./utils/utils.rkt", "r").read(), file=f)
 
     # struct declarations and function definition of target constructs
     ir.printMode = PrintMode.RosetteVC
