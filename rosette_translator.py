@@ -120,10 +120,10 @@ def toRosette(
 
     f = open(filename, "w")
     print(
-        '#lang rosette\n' + 
-        '(require "../utils/bounded.rkt")\n' + 
-        '(require "../utils/utils.rkt")\n' + 
-        '(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n',
+        "#lang rosette\n"
+        + '(require "../utils/bounded.rkt")\n'
+        + '(require "../utils/utils.rkt")\n'
+        + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n",
         file=f,
     )
 

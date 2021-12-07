@@ -14,10 +14,6 @@ def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
 
 
-def stateInvariant(synthState: Expr) -> Expr:
-    return Call("stateInvariant", Bool(), synthState)
-
-
 class SynthesizeFun(Protocol):
     def __call__(
         self,
@@ -84,18 +80,12 @@ def synthesize_actor(
         return (
             Implies(
                 And(
-                    stateInvariant(beforeStateForPS),
-                    And(
-                        supportedCommand(beforeState, beforeStateForPS, origArgs[1:]),
-                        observeEquivalence(beforeState, beforeStateForPS),
-                    ),
+                    supportedCommand(beforeState, beforeStateForPS, origArgs[1:]),
+                    observeEquivalence(beforeState, beforeStateForPS),
                 ),
                 Implies(
                     ps,
-                    And(
-                        stateInvariant(afterStateForPS),
-                        observeEquivalence(afterState, afterStateForPS),
-                    ),
+                    observeEquivalence(afterState, afterStateForPS),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -137,10 +127,7 @@ def synthesize_actor(
 
         return (
             Implies(
-                And(
-                    stateInvariant(beforeStateForQuery),
-                    observeEquivalence(beforeState, beforeStateForQuery),
-                ),
+                observeEquivalence(beforeState, beforeStateForQuery),
                 ps,
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -174,10 +161,7 @@ def synthesize_actor(
         return (
             Implies(
                 Eq(afterStateForInitState, initState()),
-                And(
-                    stateInvariant(afterStateForInitState),
-                    observeEquivalence(afterState, afterStateForInitState),
-                ),
+                observeEquivalence(afterState, afterStateForInitState),
             ),
             list(ps.operands[2:]),  # type: ignore
         )
@@ -207,23 +191,15 @@ def synthesize_actor(
     invAndPsEquivalence = [
         Synth(
             "equivalence",
-            grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
+            And(
+                grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
+                grammarStateInvariant(synthStateForEquivalence),
+            ),
             inputStateForEquivalence,
             synthStateForEquivalence,
         )
     ]
     # end equivalence
-
-    # begin state invariant
-    synthStateForInvariant = Var("synthState", synthStateType)
-    invAndPsStateInvariant = [
-        Synth(
-            "stateInvariant",
-            grammarStateInvariant(synthStateForInvariant),
-            synthStateForInvariant,
-        )
-    ]
-    # end state invariant
 
     print("====== synthesis")
 
@@ -234,7 +210,6 @@ def synthesize_actor(
         + invAndPsQuery
         + invAndPsInitState
         + invAndPsEquivalence
-        + invAndPsStateInvariant
     )
 
     combinedPreds = predsStateTransition + predsQuery + predsInitState
@@ -244,7 +219,6 @@ def synthesize_actor(
         + loopAndPsInfoQuery
         + loopAndPsInfoInitState
         + invAndPsEquivalence  # type: ignore
-        + invAndPsStateInvariant  # type: ignore
     )
     combinedVC = And(vcStateTransition, vcQuery, vcInitState)
 
