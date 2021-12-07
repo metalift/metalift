@@ -1,6 +1,3 @@
-import os
-import sys
-
 from analysis import CodeInfo
 from ir import *
 from actor_util import synthesize_actor
@@ -21,7 +18,7 @@ def grammarEquivalence(inputState, synthState):
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), 1, synthState)
+    return BoolLit(True)
 
 
 def supportedCommand(inputState, synthState, args):

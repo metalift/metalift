@@ -1,10 +1,8 @@
-import os
-import sys
-
 from analysis import CodeInfo
 from ir import *
 from actor_util import synthesize_actor
 import actors.lattices as lat
+from auto_grammar import auto_grammar
 
 if False:
     from synthesize_rosette import synthesize
@@ -16,21 +14,11 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState):
-    setIn = Choose(inputState, TupleSel(synthState, 0), TupleSel(synthState, 1))
-
-    setIn = Choose(setIn, Call("set.minus", Set(Int()), setIn, setIn))
-
-    equivalent = Eq(setIn, setIn)
-
-    return equivalent
+    return auto_grammar(Bool(), 3, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
-    setIn = Choose(TupleSel(synthState, 0), TupleSel(synthState, 1))
-
-    valid = Choose(BoolLit(True), Call("set.subset", Bool(), setIn, setIn))
-
-    return valid
+    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
 def supportedCommand(inputState, synthState, args):
@@ -74,9 +62,7 @@ def grammarQuery(ci: CodeInfo):
         setContainTransformed, And(setContainTransformed, setContainTransformed)
     )
 
-    intLit = Choose(IntLit(0), IntLit(1))
-
-    out = Ite(setContainTransformed, intLit, intLit)
+    out = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
     summary = Eq(outputVar, out)
 
@@ -98,9 +84,7 @@ def grammar(ci: CodeInfo):
 
         outputState = ci.modifiedVars[0]
 
-        intLit = Choose(IntLit(0), IntLit(1))
-
-        condition = Eq(inputAdd, intLit)
+        condition = Eq(inputAdd, IntLit(1))
 
         setIn = Choose(
             stateSet1,

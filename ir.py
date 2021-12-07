@@ -263,7 +263,7 @@ class Expr:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if printMode == PrintMode.SMT:
-                noParens = len(self.args) == 1
+                noParens = kind == Expr.Kind.Call and len(self.args) == 1
                 return (
                     ("" if noParens else "(")
                     + " ".join(
