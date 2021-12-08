@@ -249,12 +249,7 @@ class Expr:
         }
         kind = self.kind
         if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-            if kind == Expr.Kind.Var and self.type.name == "Tuple":
-                return self.args[0]
-                # return " ".join(
-                #     [self.args[0] + "_" + str(i) for i in range(len(self.type.args))]
-                # )
-            elif kind == Expr.Kind.Lit and self.type == Bool():
+            if kind == Expr.Kind.Lit and self.type == Bool():
                 if self.args[0] == True:
                     return "true"
                 else:
