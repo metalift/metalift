@@ -282,9 +282,6 @@ def synthesize(
                     *allVars,
                 )
             )
-        for l in lang:
-            if l.args[1] == "":
-                l.args[1] = candidateDict[l.args[0]]
 
         ##### verification of synthesized ps/inv
         print("====== verification")

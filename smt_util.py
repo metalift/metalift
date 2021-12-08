@@ -1,5 +1,4 @@
 from ir import *
-
 import typing
 from typing import Any, Union
 
@@ -75,9 +74,13 @@ def toSMT(
     fnCalls: typing.List[Any],
     isSynthesis: bool = False,
 ) -> None:
+
+    setPrintMode(PrintMode.SMT)
+
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
         if not isSynthesis:
+            out.write(open("./utils/tuples.smt", "r").read())
             out.write(open("./utils/list-axioms.smt", "r").read())
 
         out.write("\n\n".join([str(t) for t in targetLang]))
@@ -115,7 +118,7 @@ def toSMT(
 
         declarations: typing.List[typing.Tuple[str, Type]] = []
         for v in vars:
-            genVar(v, declarations)
+            declarations.append((v.args[0], v.type))
 
         var_decl_command = "declare-var" if isSynthesis else "declare-const"
         out.write(
