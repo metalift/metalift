@@ -731,7 +731,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     elif tyStr == "(Function Int)":
         return Type("Function", Int())
     elif tyStr.startswith("%struct.tup"):
-        #ToDo FIX return type for multiple values
+        # ToDo FIX return type for multiple values
         return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)

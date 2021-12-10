@@ -54,7 +54,9 @@ def mktuple(regs: RegsType, *args: ValueRef) -> ReturnValue:
 
 
 def tupleGet(regs: RegsType, *args: ValueRef) -> ReturnValue:
-    return ReturnValue(Call("tupleGet", Int(), regs[args[0]], parseOperand(args[1], regs)), None)
+    return ReturnValue(
+        Call("tupleGet", Int(), regs[args[0]], parseOperand(args[1], regs)), None
+    )
 
 
 fnModels: Dict[str, Callable[..., ReturnValue]] = {
