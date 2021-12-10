@@ -10,9 +10,11 @@ from smt_util import toSMT
 def tuple_mult(t):
     return Call("tuple_mult", Int(), t)
 
+
 # postcondition for tuples1.c
 def summary(r, x, y):
     return Eq(r, Add(tuple_mult(MakeTuple(x, x)), tuple_mult(MakeTuple(y, y))))
+
 
 def grammar(ci: CodeInfo):
     name = ci.name
@@ -22,6 +24,7 @@ def grammar(ci: CodeInfo):
         r = ci.modifiedVars[0]
         (x, y) = ci.readVars
         return Synth(name, summary(r, x, y), *ci.modifiedVars, *ci.readVars)
+
 
 def targetLang():
     x = Var("x", Tuple(Int(), Int()))
@@ -37,7 +40,7 @@ if __name__ == "__main__":
     loopsFile = sys.argv[3]
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
-    
+
     print("====== synthesis")
     invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
@@ -47,8 +50,17 @@ if __name__ == "__main__":
     synthDir = "./tests/"
     synthFile = synthDir + basename + ".rkt"
 
-    toRosette(synthFile, lang, vars, invAndPs, preds, vc, loopAndPsInfo, invGuess, unboundedInts)
-
+    toRosette(
+        synthFile,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        invGuess,
+        unboundedInts,
+    )
 
     ### SMT
     print("====== verification")
@@ -68,9 +80,7 @@ if __name__ == "__main__":
 
     for ce in loopAndPsInfo:
         allVars = (
-            ce.modifiedVars + ce.readVars
-            if isinstance(ce, CodeInfo)
-            else ce.args[2:]
+            ce.modifiedVars + ce.readVars if isinstance(ce, CodeInfo) else ce.args[2:]
         )
         ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
         candidatesSMT.append(

@@ -296,6 +296,8 @@ class VC:
                     s.mem[i] = Lit(0, List(Int()))
                 elif t.startswith("%struct.set"):
                     s.mem[i] = Lit(0, Set(Int()))
+                elif t.startswith("%struct.tup"):
+                    s.mem[i] = Lit(0, Tuple(Int(), Int()))
                 else:
                     raise Exception("NYI: %s" % i)
 

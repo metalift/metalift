@@ -40,6 +40,23 @@ def listConcat(regs: RegsType, *args: ValueRef) -> ReturnValue:
     )
 
 
+def newTuple(regs: RegsType, *args: ValueRef) -> ReturnValue:
+    return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
+
+
+def mktuple(regs: RegsType, *args: ValueRef) -> ReturnValue:
+    regVals = [regs[args[i]] for i in range(len(args))]
+    retVals = [Int() for i in range(len(args))]
+    return ReturnValue(
+        Call("make-tuple", Type("Tuple", *retVals), *regVals),
+        None,
+    )
+
+
+def tupleGet(regs: RegsType, *args: ValueRef) -> ReturnValue:
+    return ReturnValue(Call("tupleGet", Int(), regs[args[0]], parseOperand(args[1], regs)), None)
+
+
 fnModels: Dict[str, Callable[..., ReturnValue]] = {
     # mangled names for non template version of list.h
     # "_Z7newListv": newlist,
@@ -87,4 +104,10 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
+    # mangled names for tuple.h
+    "_Z8newTupleIiiEP3tupIT_T0_Ev": newTuple,
+    "_Z7mktupleIiiEP3tupIT_T0_ES1_S2_": mktuple,
+    "_Z7mktupleIJiiEEP3tupIJDpT_EES2_": mktuple,
+    "_Z7mktupleIJiiiEEP3tupIJDpT_EES2_": mktuple,
+    "_ZL8tupleGetIJiiEEDaP3tupIJDpT_EEi": tupleGet,
 }

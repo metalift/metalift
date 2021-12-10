@@ -19,6 +19,7 @@ def setPrintMode(mode):
     global printMode
     printMode = mode
 
+
 class Type:
     def __init__(self, name: str, *args: "Type") -> None:
         self.name = name
@@ -85,9 +86,10 @@ def Set(contentT: Type) -> Type:
 def Tuple(*elemT: Type) -> Type:
     return Type("Tuple", *elemT)
 
-# first two types are not optional                            
-def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type: 
-    return Type("Tuple", e1T, e2T, *elemT)    
+
+# first two types are not optional
+def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
+    return Type("Tuple", e1T, e2T, *elemT)
 
 
 class Expr:
@@ -585,18 +587,23 @@ def Constraint(e: Expr) -> Expr:
 def MakeTuple(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
 
-# tuple accessors                                             
-def First(t: Expr) -> Expr:                                   
-    return Call("first", Int(), t)                            
-                                                            
-def Second(t: Expr) -> Expr:                                  
+
+# tuple accessors
+def First(t: Expr) -> Expr:
+    return Call("first", Int(), t)
+
+
+def Second(t: Expr) -> Expr:
     return Call("second", Int(), t)
+
 
 def Third(t: Expr) -> Expr:
     return Call("third", Int(), t)
 
+
 def Fourth(t: Expr) -> Expr:
     return Call("fourth", Int(), t)
+
 
 def Axiom(e: Expr, *vars: Expr) -> Expr:
     return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
@@ -723,5 +730,8 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Type("Function", Bool())
     elif tyStr == "(Function Int)":
         return Type("Function", Int())
+    elif tyStr.startswith("%struct.tup"):
+        #ToDo FIX return type for multiple values
+        return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
