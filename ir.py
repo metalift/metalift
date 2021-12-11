@@ -82,11 +82,6 @@ def Fn(retT: Type, *argT: Type) -> Type:
 def Set(contentT: Type) -> Type:
     return Type("Set", contentT)
 
-
-def Tuple(*elemT: Type) -> Type:
-    return Type("Tuple", *elemT)
-
-
 # first two types are not optional
 def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
     return Type("Tuple", e1T, e2T, *elemT)
@@ -126,6 +121,7 @@ class Expr:
         FnDeclNonRecursive = "fndeclnonrecursive"
 
         Tuple = "tuple"
+        TupleGet = "tupleGet"
 
     def __init__(self, kind: Kind, type: Type, args: Any) -> None:
         self.kind = kind
@@ -392,8 +388,13 @@ class Expr:
                 return str(Call("make-tuple", self.type, *self.args))
             else:
                 args = " ".join(["%s" % arg for arg in self.args])
-                return "(tuple2 %s)" % args
+                return "(tuple%d %s)" % (len(self.args), args)
 
+        elif kind == Expr.Kind.TupleGet:
+            if printMode == PrintMode.RosetteVC:
+                return "(tupleGet %s)" % " ".join(["%s" % arg for arg in self.args])
+            else:
+                return "(tupleGet%d %s)" % (self.args[1].args[0], self.args[0])  # args[1] must be an int literal
         # elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
         #     return repr(
         #         And(
@@ -583,26 +584,12 @@ def Assert(e: Expr) -> Expr:
 def Constraint(e: Expr) -> Expr:
     return Expr(Expr.Kind.Constraint, Bool(), [e])
 
-
+## tuple functions
 def MakeTuple(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
 
-
-# tuple accessors
-def First(t: Expr) -> Expr:
-    return Call("first", Int(), t)
-
-
-def Second(t: Expr) -> Expr:
-    return Call("second", Int(), t)
-
-
-def Third(t: Expr) -> Expr:
-    return Call("third", Int(), t)
-
-
-def Fourth(t: Expr) -> Expr:
-    return Call("fourth", Int(), t)
+def TupleGet(t: Expr, i: Lit) -> Expr:
+    return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
 
 
 def Axiom(e: Expr, *vars: Expr) -> Expr:

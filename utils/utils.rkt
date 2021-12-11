@@ -31,3 +31,6 @@
 
 (define (make-tuple e1 . es)
   (cons e1 es))
+
+(define (tupleGet t i)
+  (list-ref-noerr t i))

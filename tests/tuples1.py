@@ -28,7 +28,7 @@ def grammar(ci: CodeInfo):
 
 def targetLang():
     x = Var("x", Tuple(Int(), Int()))
-    tuple_mult = FnDecl("tuple_mult", Int(), Mul(First(x), Second(x)), x)
+    tuple_mult = FnDecl("tuple_mult", Int(), Mul(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))), x)
     return [tuple_mult]
 
 
