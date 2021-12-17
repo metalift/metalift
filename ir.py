@@ -394,7 +394,8 @@ class Expr:
             if printMode == PrintMode.RosetteVC:
                 return "(tupleGet %s)" % " ".join(["%s" % arg for arg in self.args])
             else:
-                return "(tupleGet%d %s)" % (self.args[1].args[0], self.args[0])  # args[1] must be an int literal
+                # example: generate (tuple2_get0 t)
+                return "(tuple%d_get%d %s)" % (len(self.args[0].type.args), self.args[1].args[0], self.args[0])  # args[1] must be an int literal
         # elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
         #     return repr(
         #         And(
