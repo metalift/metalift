@@ -108,7 +108,15 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
             )
+        elif ast[0] == "make-tuple":
+            retT = [Int() for i in range(len(ast[1]))]
+            arg_eval = []
+            for alen in range(1, len(ast)):
+                arg_eval.append(toExpr(ast[alen], fnsType, varType))
+            return Call("tuple%d" % (len(ast) - 1), Tuple(*arg_eval), *arg_eval)
+
         elif ast[0] in fnsType.keys():
+
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))

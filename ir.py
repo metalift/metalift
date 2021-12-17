@@ -82,6 +82,7 @@ def Fn(retT: Type, *argT: Type) -> Type:
 def Set(contentT: Type) -> Type:
     return Type("Set", contentT)
 
+
 # first two types are not optional
 def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
     return Type("Tuple", e1T, e2T, *elemT)
@@ -395,7 +396,11 @@ class Expr:
                 return "(tupleGet %s)" % " ".join(["%s" % arg for arg in self.args])
             else:
                 # example: generate (tuple2_get0 t)
-                return "(tuple%d_get%d %s)" % (len(self.args[0].type.args), self.args[1].args[0], self.args[0])  # args[1] must be an int literal
+                return "(tuple%d_get%d %s)" % (
+                    len(self.args[0].type.args),
+                    self.args[1].args[0],
+                    self.args[0],
+                )  # args[1] must be an int literal
         # elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
         #     return repr(
         #         And(
@@ -585,9 +590,11 @@ def Assert(e: Expr) -> Expr:
 def Constraint(e: Expr) -> Expr:
     return Expr(Expr.Kind.Constraint, Bool(), [e])
 
+
 ## tuple functions
 def MakeTuple(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
+
 
 def TupleGet(t: Expr, i: Lit) -> Expr:
     return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
