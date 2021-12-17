@@ -1,7 +1,7 @@
 from enum import Enum
 
 from llvmlite.binding import ValueRef, TypeRef
-
+from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Union
 
@@ -258,18 +258,39 @@ class Expr:
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if printMode == PrintMode.SMT:
                 noParens = kind == Expr.Kind.Call and len(self.args) == 1
-                return (
+                retVal = []
+
+                if self.args[0] == "tupleGet":
+                    argvals = self.args[:-1]
+                else:
+                    argvals = self.args
+                for idx,a in enumerate(argvals):
+                    if isinstance(a, ValueRef) and a.name != "":
+                        retVal.append(a.name) 
+                    elif (str(a)) == "make-tuple":
+                        retVal.append("tuple%d"%(len(self.args[idx+1:])))
+                    elif (str(a)) == "tupleGet":
+                        
+                        if self.args[idx+1].args[0] == "make-tuple":
+                            retVal.append("tuple%d_get%d"%(len(self.args[idx+1].args) -1,self.args[idx+2].args[0]))
+                        else:
+                            #HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
+                            freq = Counter(self.args[idx+1].args[0].split("_")[1])
+                            retVal.append("tuple%d_get%d"%(freq["i"],self.args[idx+2].args[0]))
+
+                    else:
+
+                        retVal.append(str(a))
+                            
+                retT = (
                     ("" if noParens else "(")
-                    + " ".join(
-                        [
-                            a.name
-                            if isinstance(a, ValueRef) and a.name != ""
-                            else str(a)
-                            for a in self.args
-                        ]
+                    + " ".join( retVal
                     )
                     + ("" if noParens else ")")
                 )
+                
+                return retT
+                
             else:
                 if isinstance(self.args[0], str):
                     if (

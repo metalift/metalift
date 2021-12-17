@@ -114,4 +114,5 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "_Z8tupleGetIJiiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tupleGet,
     "_Z8tupleGetIJiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tupleGet,
     "_ZL8tupleGetIJiiEEDaP3tupIJDpT_EEi": tupleGet,
+    "_Z8tupleGetIJiiiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi":tupleGet
 }
