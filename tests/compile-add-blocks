@@ -16,7 +16,7 @@ if [[ $file == *.c ]]
 then
   clang -O0 -I $include_path -c -emit-llvm -S $file -o $clang_out
 else
-  clang++ -O0 -I $include_path -c -emit-llvm -S $file -o $clang_out
+  clang++ -std=c++17 -O0 -I $include_path -c -emit-llvm -S $file -o $clang_out
 fi
 
 #opt -lowerswitch -instnamer -S $clang_out > tmp.ll
