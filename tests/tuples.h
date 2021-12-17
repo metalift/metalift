@@ -14,7 +14,7 @@ Tuple<T...> newTuple()
   return new tup<T...>();
 }
 template <class...T>
-Tuple<T...> mktuple(T...args) 
+Tuple<T...> MakeTuple(T...args) 
 {
   Tuple<T...> r = newTuple<T...>();
   r->contents = std::make_tuple(args...);

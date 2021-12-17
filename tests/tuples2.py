@@ -20,8 +20,8 @@ def grammar(ci: CodeInfo):
         r = ci.modifiedVars[0]
         (x, y) = ci.readVars
         summary = Choose(
-            Eq(r, Add(tuple_add(MakeTuple(x,x)), tuple_add(MakeTuple(y,y)))),
-            Eq(r, Sub(tuple_add(MakeTuple(x,x)), tuple_add(MakeTuple(y,y)))),
+            Eq(r, Add(tuple_add(MakeTuple(x, x)), tuple_add(MakeTuple(y, y)))),
+            Eq(r, Sub(tuple_add(MakeTuple(x, x)), tuple_add(MakeTuple(y, y)))),
         )
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
