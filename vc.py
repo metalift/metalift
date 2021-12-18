@@ -296,6 +296,9 @@ class VC:
                     s.mem[i] = Lit(0, List(Int()))
                 elif t.startswith("%struct.set"):
                     s.mem[i] = Lit(0, Set(Int()))
+                elif t.startswith("%struct.tup."):
+                    retType = [Int() for i in range(int(t[-2]) + 1)]
+                    s.mem[i] = Lit(0, Tuple(*retType))
                 elif t.startswith("%struct.tup"):
                     s.mem[i] = Lit(0, Tuple(Int(), Int()))
                 else:
