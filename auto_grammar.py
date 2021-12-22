@@ -37,17 +37,17 @@ def get_expansions(
 
     if enable_sets:
         out[Set(Int())] = [
-            lambda get: Call("set.minus", Set(Int()), get(Set(Int())), get(Set(Int()))),
-            lambda get: Call("set.union", Set(Int()), get(Set(Int())), get(Set(Int()))),
-            lambda get: Call("set.singleton", Set(Int()), get(Int())),
+            lambda get: Call("set-minus", Set(Int()), get(Set(Int())), get(Set(Int()))),
+            lambda get: Call("set-union", Set(Int()), get(Set(Int())), get(Set(Int()))),
+            lambda get: Call("set-singleton", Set(Int()), get(Int())),
         ]
 
         out[Bool()].append(lambda get: Eq(get(Set(Int())), get(Set(Int()))))
         out[Bool()].append(
-            lambda get: Call("set.subset", Bool(), get(Set(Int())), get(Set(Int())))
+            lambda get: Call("set-subset", Bool(), get(Set(Int())), get(Set(Int())))
         )
         out[Bool()].append(
-            lambda get: Call("set.member", Bool(), get(Int()), get(Set(Int())))
+            lambda get: Call("set-member", Bool(), get(Int()), get(Set(Int())))
         )
 
     return out

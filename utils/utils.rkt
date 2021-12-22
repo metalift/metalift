@@ -34,3 +34,26 @@
 
 (define (tupleGet t i)
   (list-ref-noerr t i))
+
+; set functions
+
+(define (set-singleton v)
+  (list v))
+
+(define (set-create)
+  (list))
+
+(define (set-union s1 s2)
+  (append s1 s2))
+
+(define (set-member v s1)
+   (member v s1) [1])
+
+(define (set-insert v s1)
+  (cons v s1))
+
+(define (set-subset s1 s2)
+  (andmap (lambda (v) (set-member v s2)) s1))
+
+(define (set-minus s1 s2)
+  (filter (lambda (v) (not (set-member v s2))) s1))

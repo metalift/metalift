@@ -253,6 +253,8 @@ class Expr:
                     return "true"
                 else:
                     return "false"
+            elif self.args[0] == "(set-create)" and printMode == PrintMode.SMT:
+                return (f"(as set.empty {str(self.type)})")
             else:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
@@ -288,9 +290,9 @@ class Expr:
                                 "tuple%d_get%d"
                                 % (freq["i"], self.args[idx + 2].args[0])
                             )
-
+                    elif (str(a)).startswith("set-"):
+                        retVal.append("set.%s" % (str(a)[4:]))
                     else:
-
                         retVal.append(str(a))
 
                 retT = (

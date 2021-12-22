@@ -31,8 +31,8 @@ def supportedCommand(inputState, synthState, args):
         # so the sets are saturated
         Not(
             And(
-                Call("set.member", Bool(), value, TupleGet(synthState, IntLit(0))),
-                Call("set.member", Bool(), value, TupleGet(synthState, IntLit(1))),
+                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(0))),
+                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(1))),
             )
         ),
         # deletion can work even if not in the insertion set
@@ -54,7 +54,7 @@ def grammarQuery(ci: CodeInfo):
     inputValue = ci.readVars[1]
 
     setIn = Choose(stateSet1, stateSet2)
-    setContains = Call("set.member", Bool(), inputValue, setIn)
+    setContains = Call("set-member", Bool(), inputValue, setIn)
 
     setContainTransformed = Choose(setContains, Not(setContains))
 
