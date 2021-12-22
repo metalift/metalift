@@ -31,8 +31,8 @@ def supportedCommand(inputState, synthState, args):
         # so the sets are saturated
         Not(
             And(
-                Call("set.member", Bool(), value, TupleSel(synthState, 0)),
-                Call("set.member", Bool(), value, TupleSel(synthState, 1)),
+                Call("set.member", Bool(), value, TupleGet(synthState, IntLit(0))),
+                Call("set.member", Bool(), value, TupleGet(synthState, IntLit(1))),
             )
         ),
         # deletion can work even if not in the insertion set
@@ -48,8 +48,8 @@ def grammarQuery(ci: CodeInfo):
     inputState = ci.readVars[0]
     outputVar = ci.modifiedVars[0]
 
-    stateSet1 = TupleSel(inputState, 0)
-    stateSet2 = TupleSel(inputState, 1)
+    stateSet1 = TupleGet(inputState, IntLit(0))
+    stateSet2 = TupleGet(inputState, IntLit(1))
 
     inputValue = ci.readVars[1]
 
@@ -76,8 +76,8 @@ def grammar(ci: CodeInfo):
         raise Exception("no invariant")
     else:  # ps
         inputState = ci.readVars[0]
-        stateSet1 = TupleSel(inputState, 0)
-        stateSet2 = TupleSel(inputState, 1)
+        stateSet1 = TupleGet(inputState, IntLit(0))
+        stateSet2 = TupleGet(inputState, IntLit(1))
 
         inputAdd = ci.readVars[1]
         inputValue = ci.readVars[2]
@@ -100,7 +100,9 @@ def grammar(ci: CodeInfo):
             outputState,
             MakeTuple(
                 *[
-                    synthStateStructure[i][1](TupleSel(inputState, i), setTransform)
+                    synthStateStructure[i][1](
+                        TupleGet(inputState, IntLit(i)), setTransform
+                    )
                     for i in range(len(synthStateStructure))
                 ]
             ),

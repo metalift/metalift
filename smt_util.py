@@ -79,8 +79,8 @@ def toSMT(
 
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
+        out.write(open("./utils/tuples.smt", "r").read())
         if not isSynthesis:
-            out.write(open("./utils/tuples.smt", "r").read())
             out.write(open("./utils/list-axioms.smt", "r").read())
 
         out.write("\n\n".join([str(t) for t in targetLang]))

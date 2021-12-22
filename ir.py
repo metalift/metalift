@@ -15,7 +15,7 @@ class PrintMode(Enum):
 printMode = PrintMode.SMT
 
 # for external functions to call
-def setPrintMode(mode):
+def setPrintMode(mode: PrintMode) -> None:
     global printMode
     printMode = mode
 
@@ -281,7 +281,9 @@ class Expr:
                             )
                         else:
                             # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
-                            freq = Counter(self.args[idx + 1].args[0].split("_")[1])
+                            freq: typing.Counter[str] = Counter(
+                                self.args[idx + 1].args[0].split("_")[1]
+                            )
                             retVal.append(
                                 "tuple%d_get%d"
                                 % (freq["i"], self.args[idx + 2].args[0])
@@ -625,7 +627,7 @@ def MakeTuple(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
 
 
-def TupleGet(t: Expr, i: Lit) -> Expr:
+def TupleGet(t: Expr, i: Expr) -> Expr:
     return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
 
 
