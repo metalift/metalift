@@ -72,9 +72,7 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "_Z7listGetIiET_P4listIS0_Ei": listGet,
     "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
     # names for set.h
-    "set_create": lambda _, *args: ReturnValue(
-        Var("(set-create)", Set(Int())), None
-    ),
+    "set_create": lambda _, *args: ReturnValue(Var("(set-create)", Set(Int())), None),
     "set_add": lambda regs, *args: ReturnValue(
         Call(
             "set-insert",

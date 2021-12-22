@@ -254,7 +254,7 @@ class Expr:
                 else:
                     return "false"
             elif self.args[0] == "(set-create)" and printMode == PrintMode.SMT:
-                return (f"(as set.empty {str(self.type)})")
+                return f"(as set.empty {str(self.type)})"
             else:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:

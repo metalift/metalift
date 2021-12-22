@@ -126,11 +126,7 @@ def toExpr(
         elif ast[0] == "set-union":
             s1 = toExpr(ast[1], fnsType, varType)
             s2 = toExpr(ast[2], fnsType, varType)
-            return Call(
-                ast[0],
-                s1.type,
-                s1, s2
-            )  # type: ignore
+            return Call(ast[0], s1.type, s1, s2)
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
