@@ -15,7 +15,9 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 def grammarEquivalence(inputState, synthState):
     # return auto_grammar(Bool(), 3, inputState, synthState, enable_sets=True)
-    set_choice = Choose(TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1)))
+    set_choice = Choose(
+        TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
+    )
     return Eq(
         inputState,
         Call(
@@ -29,7 +31,9 @@ def grammarEquivalence(inputState, synthState):
 
 def grammarStateInvariant(synthState):
     # return auto_grammar(Bool(), 1, synthState, enable_sets=True)
-    set_choice = Choose(TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1)))
+    set_choice = Choose(
+        TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
+    )
     return Call(
         "set-subset",
         Bool(),
