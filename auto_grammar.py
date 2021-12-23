@@ -91,6 +91,9 @@ def auto_grammar(
             for expansion in expansion_list:
                 new_elements.append(expansion(lambda t: pool[t]))
             next_pool[t] = Choose(pool[t], Choose(*new_elements))
+        for t in pool.keys():
+            if not (t in next_pool):
+                next_pool[t] = pool[t]
 
         pool = next_pool
 

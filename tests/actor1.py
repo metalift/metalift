@@ -4,7 +4,7 @@ from actor_util import synthesize_actor
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 
-if True:
+if False:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize
@@ -14,11 +14,26 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 3, inputState, synthState, enable_sets=True)
+    # return auto_grammar(Bool(), 3, inputState, synthState, enable_sets=True)
+    return Eq(
+        inputState,
+        Call(
+            "set-minus",
+            Set(Int()),
+            TupleGet(synthState, IntLit(0)),
+            TupleGet(synthState, IntLit(1)),
+        ),
+    )
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
+    # return auto_grammar(Bool(), 1, synthState, enable_sets=True)
+    return Call(
+        "set-subset",
+        Bool(),
+        TupleGet(synthState, IntLit(1)),
+        TupleGet(synthState, IntLit(0)),
+    )
 
 
 def supportedCommand(inputState, synthState, args):
