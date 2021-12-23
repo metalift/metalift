@@ -43,14 +43,15 @@
 (define (set-create)
   (list))
 
+; todo: use merge-sort
 (define (set-union s1 s2)
-  (append s1 s2))
+  (sort (remove-duplicates (append s1 s2)) <))
 
 (define (set-member v s1)
-   (member v s1) [1])
+  (ormap (lambda (c) (equal? v c)) s1))
 
 (define (set-insert v s1)
-  (cons v s1))
+  (set-union (set-singleton v) s1))
 
 (define (set-subset s1 s2)
   (andmap (lambda (v) (set-member v s2)) s1))

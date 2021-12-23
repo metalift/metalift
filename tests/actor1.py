@@ -4,7 +4,7 @@ from actor_util import synthesize_actor
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 
-if False:
+if True:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize
@@ -89,7 +89,7 @@ def grammar(ci: CodeInfo):
         setIn = Choose(
             stateSet1,
             stateSet2,
-            Call("set.singleton", Set(Int()), inputValue),
+            Call("set-singleton", Set(Int()), inputValue),
         )
 
         setTransform = setIn

@@ -29,7 +29,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
     elif v.type.name == "MLList" or v.type.name == "Set":
         tmp = [v.args[0] + "_" + str(i) for i in range(n)]
         tmp.append(v.args[0] + "-len")
-        vars_all = vars_all + tmp
+        vars_all.extend(tmp)
         if v.type.args[0].name == "Int":
             decls.append("(define-symbolic %s integer?)" % (" ".join(tmp)))
         elif v.type.args[0].name == "Bool":

@@ -123,7 +123,7 @@ def toExpr(
         elif ast[0] == "set-singleton":
             v = toExpr(ast[1], fnsType, varType)
             return Call(ast[0], Set(v.type), v)
-        elif ast[0] == "set-union":
+        elif ast[0] == "set-union" or ast[0] == "set-minus":
             s1 = toExpr(ast[1], fnsType, varType)
             s2 = toExpr(ast[2], fnsType, varType)
             return Call(ast[0], s1.type, s1, s2)
