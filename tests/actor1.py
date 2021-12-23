@@ -14,32 +14,11 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState):
-    # return auto_grammar(Bool(), 3, inputState, synthState, enable_sets=True)
-    set_choice = Choose(
-        TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
-    )
-    return Eq(
-        inputState,
-        Call(
-            "set-minus",
-            Set(Int()),
-            set_choice,
-            set_choice,
-        ),
-    )
+    return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
-    # return auto_grammar(Bool(), 1, synthState, enable_sets=True)
-    set_choice = Choose(
-        TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
-    )
-    return Call(
-        "set-subset",
-        Bool(),
-        set_choice,
-        set_choice,
-    )
+    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
 def supportedCommand(inputState, synthState, args):
