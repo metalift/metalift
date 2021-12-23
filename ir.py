@@ -451,7 +451,10 @@ class Expr:
                 if k == Expr.Kind.And:
                     value = "&&"
                 elif k == Expr.Kind.Eq:
-                    value = "equal?"
+                    if self.args[0].type.name == "Set":
+                        value = "set-eq"
+                    else:
+                        value = "equal?"
                 elif k == Expr.Kind.Ite:
                     value = "if"
                 else:

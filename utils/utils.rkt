@@ -43,9 +43,25 @@
 (define (set-create)
   (list))
 
-; todo: use merge-sort
+(define (merge as bs)
+  (match* (as bs)
+    [((list) bs)  bs]
+    [(as (list))  as]
+    [((list a as ...) (list b bs ...))
+     (if (= a b)
+      (merge (cons a as) bs)
+      (if (< a b)
+         (cons a (merge as (cons b bs)))
+         (cons b (merge (cons a as) bs)))
+     )]))
+
+; todo: eliminate once input sets don't have duplicates
+(define (set-eq s1 s2)
+  (equal? (sort (remove-duplicates s1) <) (sort (remove-duplicates s2) <)))
+
+; todo: use merge-sort and constrain input sets to not have duplicate elements
 (define (set-union s1 s2)
-  (sort (remove-duplicates (append s1 s2)) <))
+  (append s1 s2))
 
 (define (set-member v s1)
   (ormap (lambda (c) (equal? v c)) s1))
