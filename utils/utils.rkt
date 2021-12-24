@@ -26,3 +26,11 @@
 
 (define (list-concat l1 l2)
   (append l1 l2))
+
+; tuple functions
+
+(define (make-tuple e1 . es)
+  (cons e1 es))
+
+(define (tupleGet t i)
+  (list-ref-noerr t i))

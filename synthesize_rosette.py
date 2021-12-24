@@ -108,17 +108,29 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
             )
+        elif ast[0] == "make-tuple":
+            retT = [Int() for i in range(len(ast[1]))]
+            arg_eval = []
+            for alen in range(1, len(ast)):
+                arg_eval.append(toExpr(ast[alen], fnsType, varType))
+            return Call("tuple%d" % (len(ast) - 1), Tuple(arg_eval[0], arg_eval[1], *arg_eval[2:]), *arg_eval)  # type: ignore
+        elif ast[0] == "tupleGet":
+            foo = toExpr(ast[2], fnsType, varType)
+            return TupleGet(
+                toExpr(ast[1], fnsType, varType),
+                toExpr(ast[2], fnsType, varType),
+            )
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
             retT = fnsType[ast[0]]
-            return Call(ast[0], retT, *arg_eval)
+            return Call(ast[0], retT, *arg_eval)  # type: ignore
         else:
             raise Exception(f"Unexpected function name: {ast[0]}")
     else:
         if ast.isnumeric():
-            return IntLit(ast)
+            return IntLit(int(ast))
         elif ast == "true":
             return BoolLit(True)
         elif ast == "false":
@@ -141,11 +153,7 @@ def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
                 fnsType[l.name] = parseTypeRef(l.type)
         else:
             if not isinstance(l, ValueRef):
-                if l.type.name == "Tuple":
-                    for i in range(len(l.type.args)):
-                        fnsType[l.args[0] + "_" + str(i)] = l.type.args[i]
-                else:
-                    fnsType[l.args[0]] = l.type
+                fnsType[l.args[0]] = l.type
             else:
                 fnsType[l.name] = parseTypeRef(l.type)
     return fnsType
@@ -282,9 +290,6 @@ def synthesize(
                     *allVars,
                 )
             )
-        for l in lang:
-            if l.args[1] == "":
-                l.args[1] = candidateDict[l.args[0]]
 
         ##### verification of synthesized ps/inv
         print("====== verification")

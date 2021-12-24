@@ -72,7 +72,7 @@ def auto_grammar(
             for i, t in enumerate(input_type.args):
                 if not t in input_pool:
                     input_pool[t] = []
-                input_pool[t].append(TupleSel(input, i))
+                input_pool[t].append(TupleGet(input, IntLit(i)))
         else:
             if not input_type in input_pool:
                 input_pool[input_type] = []

@@ -40,6 +40,25 @@ def listConcat(regs: RegsType, *args: ValueRef) -> ReturnValue:
     )
 
 
+def newTuple(regs: RegsType, *args: ValueRef) -> ReturnValue:
+    return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
+
+
+def MakeTuple(regs: RegsType, *args: ValueRef) -> ReturnValue:
+    regVals = [regs[args[i]] for i in range(len(args))]
+    retVals = [Int() for i in range(len(args))]
+    return ReturnValue(
+        Call("make-tuple", Type("Tuple", *retVals), *regVals),
+        None,
+    )
+
+
+def tupleGet(regs: RegsType, *args: ValueRef) -> ReturnValue:
+    return ReturnValue(
+        Call("tupleGet", Int(), regs[args[0]], parseOperand(args[1], regs)), None
+    )
+
+
 fnModels: Dict[str, Callable[..., ReturnValue]] = {
     # mangled names for non template version of list.h
     # "_Z7newListv": newlist,
@@ -87,4 +106,12 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
+    # mangled names for tuple.h
+    "_Z8newTupleIiiEP3tupIT_T0_Ev": newTuple,
+    "_Z9MakeTupleIJiiEEP3tupIJDpT_EES2_": MakeTuple,
+    "_Z9MakeTupleIJiiiEEP3tupIJDpT_EES2_": MakeTuple,
+    "_Z8tupleGetIJiiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tupleGet,
+    "_Z8tupleGetIJiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tupleGet,
+    "_ZL8tupleGetIJiiEEDaP3tupIJDpT_EEi": tupleGet,
+    "_Z8tupleGetIJiiiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tupleGet,
 }

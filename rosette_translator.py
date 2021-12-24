@@ -49,7 +49,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
             genVar(Var(elem_name, t), decls, vars_all)
             elem_names.append(elem_name)
 
-        # decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
+        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     else:
         raise Exception(f"Unknown type: {v.type}")
 

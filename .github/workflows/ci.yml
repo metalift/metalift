@@ -66,5 +66,4 @@ jobs:
 
     - name: Test Actor Examples
       run: |
-        python -m tests.actor1 tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 tests/actor2.ll test tests/actor2.loops cvc5

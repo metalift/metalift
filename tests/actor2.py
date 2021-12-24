@@ -43,8 +43,8 @@ def grammar(ci: CodeInfo):
         raise Exception("no invariant")
     else:  # ps
         inputState = ci.readVars[0]
-        stateVal1 = TupleSel(inputState, 0)
-        stateVal2 = TupleSel(inputState, 1)
+        stateVal1 = TupleGet(inputState, IntLit(0))
+        stateVal2 = TupleGet(inputState, IntLit(1))
 
         inputAdd = ci.readVars[1]
 
@@ -64,7 +64,9 @@ def grammar(ci: CodeInfo):
             outputState,
             MakeTuple(
                 *[
-                    synthStateStructure[i][1](TupleSel(inputState, i), intTransform)
+                    synthStateStructure[i][1](
+                        TupleGet(inputState, IntLit(i)), intTransform
+                    )
                     for i in range(len(synthStateStructure))
                 ]
             ),
