@@ -301,6 +301,9 @@ class VC:
                     s.mem[i] = Lit(0, Tuple(*retType))
                 elif t.startswith("%struct.tup"):
                     s.mem[i] = Lit(0, Tuple(Int(), Int()))
+                elif t.startswith("%struct."):  # not a tuple or set, assume to be user defined type
+                    tname = re.search("%struct.(.+)", t).group(1)
+                    s.mem[i] = Object(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 
@@ -361,7 +364,21 @@ class VC:
                             assigns.add(k)
 
                 else:
-                    raise Exception("NYI: %s, name: %s" % (i, fnName))
+                    f = re.search("ML_([^_]+)_([^_]+)_(.+)", fnName)
+                    if f:
+                        className = f.group(1)  # might not be needed
+                        op = f.group(2)
+                        field = f.group(3)
+                        if op == "set":
+                            obj = ops[0]
+                            s.mem[obj].args[field] = s.regs[ops[1]]
+                        elif op == "get":
+                            obj = ops[0]
+                            s.regs[i] = s.mem[obj].args[field]
+                        else:
+                            raise Exception("NYI: %s, name: %s" % (i, fnName))
+                    else:
+                        raise Exception("NYI: %s, name: %s" % (i, fnName))
 
             elif opcode == "assert":
                 e = VC.evalMLInst(ops[0], s.regs, s.mem)
