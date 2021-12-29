@@ -120,6 +120,25 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
             )
+        elif ast[0] == "set-singleton":
+            v = toExpr(ast[1], fnsType, varType)
+            return Call(ast[0], Set(v.type), v)
+        elif ast[0] == "set-eq":
+            s1 = toExpr(ast[1], fnsType, varType)
+            s2 = toExpr(ast[2], fnsType, varType)
+            return Eq(s1, s2)
+        elif ast[0] == "set-union" or ast[0] == "set-minus":
+            s1 = toExpr(ast[1], fnsType, varType)
+            s2 = toExpr(ast[2], fnsType, varType)
+            return Call(ast[0], s1.type, s1, s2)
+        elif ast[0] == "set-subset":
+            s1 = toExpr(ast[1], fnsType, varType)
+            s2 = toExpr(ast[2], fnsType, varType)
+            return Call(ast[0], Bool(), s1, s2)
+        elif ast[0] == "set-member":
+            v = toExpr(ast[1], fnsType, varType)
+            s = toExpr(ast[2], fnsType, varType)
+            return Call(ast[0], Bool(), v, s)
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):

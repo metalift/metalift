@@ -72,12 +72,10 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "_Z7listGetIiET_P4listIS0_Ei": listGet,
     "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
     # names for set.h
-    "set_create": lambda _, *args: ReturnValue(
-        Var("(as set.empty (Set Int))", Set(Int())), None
-    ),
+    "set_create": lambda _, *args: ReturnValue(Var("(set-create)", Set(Int())), None),
     "set_add": lambda regs, *args: ReturnValue(
         Call(
-            "set.insert",
+            "set-insert",
             Set(Int()),
             parseOperand(args[1], regs),
             parseOperand(args[0], regs),
@@ -86,17 +84,17 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     ),
     "set_remove": lambda regs, *args: ReturnValue(
         Call(
-            "set.minus",
+            "set-minus",
             Set(Int()),
             parseOperand(args[0], regs),
-            Call("set.singleton", Set(Int()), parseOperand(args[1], regs)),
+            Call("set-singleton", Set(Int()), parseOperand(args[1], regs)),
         ),
         None,
     ),
     "set_contains": lambda regs, *args: ReturnValue(
         Ite(
             Call(
-                "set.member",
+                "set-member",
                 Set(Int()),
                 parseOperand(args[1], regs),
                 parseOperand(args[0], regs),

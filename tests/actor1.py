@@ -4,7 +4,7 @@ from actor_util import synthesize_actor
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 
-if False:
+if True:
     from synthesize_rosette import synthesize
 else:
     from synthesize_cvc5 import synthesize
@@ -14,7 +14,7 @@ synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 3, inputState, synthState, enable_sets=True)
+    return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
@@ -31,8 +31,8 @@ def supportedCommand(inputState, synthState, args):
         # so the sets are saturated
         Not(
             And(
-                Call("set.member", Bool(), value, TupleGet(synthState, IntLit(0))),
-                Call("set.member", Bool(), value, TupleGet(synthState, IntLit(1))),
+                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(0))),
+                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(1))),
             )
         ),
         # deletion can work even if not in the insertion set
@@ -54,7 +54,7 @@ def grammarQuery(ci: CodeInfo):
     inputValue = ci.readVars[1]
 
     setIn = Choose(stateSet1, stateSet2)
-    setContains = Call("set.member", Bool(), inputValue, setIn)
+    setContains = Call("set-member", Bool(), inputValue, setIn)
 
     setContainTransformed = Choose(setContains, Not(setContains))
 
@@ -89,7 +89,7 @@ def grammar(ci: CodeInfo):
         setIn = Choose(
             stateSet1,
             stateSet2,
-            Call("set.singleton", Set(Int()), inputValue),
+            Call("set-singleton", Set(Int()), inputValue),
         )
 
         setTransform = setIn
