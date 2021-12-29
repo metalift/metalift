@@ -67,8 +67,8 @@ def Bool() -> Type:
     return Type("Bool")
 
 
-def Pointer() -> Type:
-    return Type("Pointer")
+def Pointer(t: Type) -> Type:
+    return Type("Pointer", t)
 
 
 def List(contentT: Type) -> Type:
@@ -92,6 +92,7 @@ class Expr:
     class Kind(Enum):
         Var = "var"
         Lit = "lit"
+        Object = "obj"
 
         Add = "+"
         Sub = "-"
@@ -562,6 +563,10 @@ def Var(name: str, ty: Type) -> Expr:
 
 def Lit(val: Union[bool, int], ty: Type) -> Expr:
     return Expr(Expr.Kind.Lit, ty, [val])
+
+
+def Object(ty: Type) -> Expr:
+    return Expr(Expr.Kind.Object, ty, {})
 
 
 def IntLit(val: int) -> Expr:
