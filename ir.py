@@ -30,6 +30,8 @@ class Type:
             return "Int"
         elif self.name == "Bool":
             return "Bool"
+        elif self.name == "String":
+            return "String"
         elif self.name == "Tuple":
             args = " ".join(str(a) for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
@@ -65,6 +67,11 @@ def Int() -> Type:
 
 def Bool() -> Type:
     return Type("Bool")
+
+
+# for string literals
+def String() -> Type:
+    return Type("String")
 
 
 def Pointer(t: Type) -> Type:
@@ -677,13 +684,17 @@ class MLInst:
         Or = "or"
         Return = "return"
 
-    def __init__(self, opcode: str, *operands: Union["MLInst", Expr, ValueRef]) -> None:
+    def __init__(self, opcode: str, *operands: Union["MLInst", Expr, ValueRef], name: str = "") -> None:
         self.opcode = opcode
         self.operands = operands
+        self.name = name
 
     def __str__(self) -> str:
+        prefix = "%s = " % self.name if self.name else ""
+
         if self.opcode == MLInst.Kind.Call:
-            return "call %s %s(%s)" % (
+            return "%scall %s %s(%s)" % (
+                prefix,
                 self.operands[0],
                 self.operands[1],
                 " ".join(
