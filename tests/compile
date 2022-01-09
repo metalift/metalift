@@ -25,4 +25,4 @@ mv tmp.ll $clang_out
 
 loops_out=${file/.$ext/.loops}
 echo "output loops info to:" $loops_out
-opt -analyze -loops $clang_out > $loops_out
+opt -enable-new-pm=0 -analyze -loops $clang_out > $loops_out
