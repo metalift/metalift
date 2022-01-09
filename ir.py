@@ -1,7 +1,7 @@
 from enum import Enum
 
 from llvmlite.binding import ValueRef, TypeRef
-
+from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Union
 
@@ -13,6 +13,11 @@ class PrintMode(Enum):
 
 
 printMode = PrintMode.SMT
+
+# for external functions to call
+def setPrintMode(mode: PrintMode) -> None:
+    global printMode
+    printMode = mode
 
 
 class Type:
@@ -26,7 +31,8 @@ class Type:
         elif self.name == "Bool":
             return "Bool"
         elif self.name == "Tuple":
-            raise Exception("Tuples should be flattened")
+            args = " ".join(str(a) for a in self.args)
+            return "(Tuple%d %s)" % (len(self.args), args)
         else:
             return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
 
@@ -77,17 +83,9 @@ def Set(contentT: Type) -> Type:
     return Type("Set", contentT)
 
 
-def Tuple(*elemT: Type) -> Type:
-    return Type("Tuple", *elemT)
-
-
-# util for flattening tuple variables
-def genVar(v: "Expr", declarations: typing.List[typing.Tuple[str, Type]]) -> None:
-    if v.type.name == "Tuple":
-        for i in range(len(v.type.args)):
-            genVar(Var(v.args[0] + "_" + str(i), v.type.args[i]), declarations)
-    else:
-        declarations.append((v.args[0], v.type))
+# first two types are not optional
+def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
+    return Type("Tuple", e1T, e2T, *elemT)
 
 
 class Expr:
@@ -124,7 +122,7 @@ class Expr:
         FnDeclNonRecursive = "fndeclnonrecursive"
 
         Tuple = "tuple"
-        TupleSel = "tuplesel"
+        TupleGet = "tupleGet"
 
     def __init__(self, kind: Kind, type: Type, args: Any) -> None:
         self.kind = kind
@@ -230,7 +228,7 @@ class Expr:
                 if isinstance(a, ValueRef):
                     declarations.append((a.name, parseTypeRef(a.type)))
                 else:
-                    genVar(a, declarations)
+                    declarations.append((a.args[0], a.type))
 
             args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
             return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
@@ -250,32 +248,61 @@ class Expr:
         }
         kind = self.kind
         if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-            if kind == Expr.Kind.Var and self.type.name == "Tuple":
-                return " ".join(
-                    [self.args[0] + "_" + str(i) for i in range(len(self.type.args))]
-                )
-            elif kind == Expr.Kind.Lit and self.type == Bool():
+            if kind == Expr.Kind.Lit and self.type == Bool():
                 if self.args[0] == True:
                     return "true"
                 else:
                     return "false"
+            elif self.args[0] == "(set-create)" and printMode == PrintMode.SMT:
+                return f"(as set.empty {str(self.type)})"
             else:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if printMode == PrintMode.SMT:
-                noParens = len(self.args) == 1
-                return (
+                noParens = kind == Expr.Kind.Call and len(self.args) == 1
+                retVal = []
+
+                if self.args[0] == "tupleGet":
+                    argvals = self.args[:-1]
+                else:
+                    argvals = self.args
+                for idx, a in enumerate(argvals):
+                    if isinstance(a, ValueRef) and a.name != "":
+                        retVal.append(a.name)
+                    elif (str(a)) == "make-tuple":
+                        retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
+                    elif (str(a)) == "tupleGet":
+
+                        if self.args[idx + 1].args[0] == "make-tuple":
+                            retVal.append(
+                                "tuple%d_get%d"
+                                % (
+                                    len(self.args[idx + 1].args) - 1,
+                                    self.args[idx + 2].args[0],
+                                )
+                            )
+                        else:
+                            # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
+                            freq: typing.Counter[str] = Counter(
+                                self.args[idx + 1].args[0].split("_")[1]
+                            )
+                            retVal.append(
+                                "tuple%d_get%d"
+                                % (freq["i"], self.args[idx + 2].args[0])
+                            )
+                    elif (str(a)).startswith("set-"):
+                        retVal.append("set.%s" % (str(a)[4:]))
+                    else:
+                        retVal.append(str(a))
+
+                retT = (
                     ("" if noParens else "(")
-                    + " ".join(
-                        [
-                            a.name
-                            if isinstance(a, ValueRef) and a.name != ""
-                            else str(a)
-                            for a in self.args
-                        ]
-                    )
+                    + " ".join(retVal)
                     + ("" if noParens else ")")
                 )
+
+                return retT
+
             else:
                 if isinstance(self.args[0], str):
                     if (
@@ -353,7 +380,7 @@ class Expr:
                     if isinstance(a, ValueRef):
                         declarations.append((a.name, parseTypeRef(a.type)))
                     else:
-                        genVar(a, declarations)
+                        declarations.append((a.args[0], a.type))
 
                 args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
@@ -389,23 +416,33 @@ class Expr:
                     self.args[1],
                 )
         elif kind == Expr.Kind.Tuple:
-            raise Exception("Tuples should be flattened")
-        elif kind == Expr.Kind.TupleSel:
-            if self.args[0].kind == Expr.Kind.Var:
-                return "%s_%s" % (self.args[0].args[0], self.args[1])
-            elif self.args[0].kind == Expr.Kind.Tuple:
-                return repr(self.args[0].args[self.args[1].args[0]])
+            if printMode == PrintMode.RosetteVC:
+                # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
+                # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
+                return str(Call("make-tuple", self.type, *self.args))
             else:
-                raise Exception("Tuple selection requires static tuples and index")
-        elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
-            return repr(
-                And(
-                    *[
-                        Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
-                        for i in range(len(self.args[0].type.args))
-                    ]
-                )
-            )
+                args = " ".join(["%s" % arg for arg in self.args])
+                return "(tuple%d %s)" % (len(self.args), args)
+
+        elif kind == Expr.Kind.TupleGet:
+            if printMode == PrintMode.RosetteVC:
+                return "(tupleGet %s)" % " ".join(["%s" % arg for arg in self.args])
+            else:
+                # example: generate (tuple2_get0 t)
+                return "(tuple%d_get%d %s)" % (
+                    len(self.args[0].type.args),
+                    self.args[1].args[0],
+                    self.args[0],
+                )  # args[1] must be an int literal
+        # elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
+        #     return repr(
+        #         And(
+        #             *[
+        #                 Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
+        #                 for i in range(len(self.args[0].type.args))
+        #             ]
+        #         )
+        #     )
         else:
             if printMode == PrintMode.SMT:
                 value = self.kind.value
@@ -414,7 +451,10 @@ class Expr:
                 if k == Expr.Kind.And:
                     value = "&&"
                 elif k == Expr.Kind.Eq:
-                    value = "equal?"
+                    if self.args[0].type.name == "Set":
+                        value = "set-eq"
+                    else:
+                        value = "equal?"
                 elif k == Expr.Kind.Ite:
                     value = "if"
                 else:
@@ -587,12 +627,13 @@ def Constraint(e: Expr) -> Expr:
     return Expr(Expr.Kind.Constraint, Bool(), [e])
 
 
+## tuple functions
 def MakeTuple(*args: Expr) -> Expr:
     return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
 
 
-def TupleSel(t: Expr, i: int) -> Expr:
-    return Expr(Expr.Kind.TupleSel, t.type.args[i], [t, IntLit(i)])
+def TupleGet(t: Expr, i: Expr) -> Expr:
+    return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
 
 
 def Axiom(e: Expr, *vars: Expr) -> Expr:
@@ -720,5 +761,11 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Type("Function", Bool())
     elif tyStr == "(Function Int)":
         return Type("Function", Int())
+    elif tyStr.startswith("%struct.tup."):
+        retType = [Int() for i in range(int(tyStr[-2]) + 1)]
+        return Tuple(*retType)
+    elif tyStr.startswith("%struct.tup"):
+        # ToDo FIX return type for multiple values
+        return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)

@@ -26,22 +26,18 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
         decls.append("(define-symbolic %s boolean?)" % (v))
         vars_all.append(v.args[0])
 
-    elif v.type.name == "MLList":
+    elif v.type.name == "MLList" or v.type.name == "Set":
         tmp = [v.args[0] + "_" + str(i) for i in range(n)]
         tmp.append(v.args[0] + "-len")
-        vars_all = vars_all + tmp
+        vars_all.extend(tmp)
         if v.type.args[0].name == "Int":
             decls.append("(define-symbolic %s integer?)" % (" ".join(tmp)))
-            decls.append(
-                "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
-            )
         elif v.type.args[0].name == "Bool":
             decls.append("(define-symbolic %s boolean?)" % (" ".join(tmp)))
-            decls.append(
-                "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
-            )
+        decls.append(
+            "(define %s (take %s %s))"
+            % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
+        )
     elif v.type.name == "Tuple":
         elem_names = []
         for i, t in enumerate(v.type.args):
@@ -49,7 +45,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
             genVar(Var(elem_name, t), decls, vars_all)
             elem_names.append(elem_name)
 
-        # decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
+        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     else:
         raise Exception(f"Unknown type: {v.type}")
 
@@ -120,11 +116,12 @@ def toRosette(
 
     f = open(filename, "w")
     print(
-        '#lang rosette\n(require "../utils/bounded.rkt")\n(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n',
+        "#lang rosette\n"
+        + '(require "../utils/bounded.rkt")\n'
+        + '(require "../utils/utils.rkt")\n'
+        + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n",
         file=f,
     )
-    # structure for rosette functions
-    print(open("./utils/utils.rkt", "r").read(), file=f)
 
     # struct declarations and function definition of target constructs
     ir.printMode = PrintMode.RosetteVC
