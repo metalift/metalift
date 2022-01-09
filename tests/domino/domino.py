@@ -23,7 +23,7 @@ from ir import (
     Mul,
     Ite,
     Tuple,
-    TupleSel
+    TupleSel,
 )
 from synthesize_rosette import synthesize
 from rosette_translator import toRosette
@@ -131,8 +131,14 @@ class DominoLang(object):
             "sub": hash_fn(
                 Ite(
                     lib["rel_op"](Opt(state_1), Mux3(pkt_1, pkt_2, C)),
-                    Add(Opt(state_1), lib["arith_op"](Mux3(pkt_1, pkt_2, C), Mux3(pkt_1, pkt_2, C))),
-                    Add(Opt(state_1), lib["arith_op"](Mux3(pkt_1, pkt_2, C), Mux3(pkt_1, pkt_2, C))),
+                    Add(
+                        Opt(state_1),
+                        lib["arith_op"](Mux3(pkt_1, pkt_2, C), Mux3(pkt_1, pkt_2, C)),
+                    ),
+                    Add(
+                        Opt(state_1),
+                        lib["arith_op"](Mux3(pkt_1, pkt_2, C), Mux3(pkt_1, pkt_2, C)),
+                    ),
                 ),
             ),
         }
@@ -142,9 +148,7 @@ class DominoLang(object):
 
 
 def targetLang():
-    return [
-        FnDecl("name", Int(), Choose(IntLit(0), IntLit(1)))
-    ]
+    return [FnDecl("name", Int(), Choose(IntLit(0), IntLit(1)))]
 
 
 if __name__ == "__main__":
@@ -162,7 +166,6 @@ if __name__ == "__main__":
 
     print("====== grammar")
     invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-
 
     # rosette synthesizer  + CVC verfication
     print("====== synthesis")
