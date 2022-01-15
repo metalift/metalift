@@ -253,8 +253,11 @@ class Expr:
                     return "true"
                 else:
                     return "false"
-            elif self.args[0] == "(set-create)" and printMode == PrintMode.SMT:
-                return f"(as set.empty {str(self.type)})"
+            elif self.args[0] == "(set-create)":
+                if printMode == PrintMode.SMT:
+                    return f"(as set.empty {str(self.type)})"
+                else:
+                    raise Exception("set-create not supported")
             else:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:

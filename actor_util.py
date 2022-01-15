@@ -11,6 +11,9 @@ from llvmlite.binding import ValueRef
 import typing
 from typing import Callable, Union, Protocol
 
+import subprocess
+from synthesize_cvc5 import generateAST, toExpr
+
 
 def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
@@ -31,6 +34,7 @@ class SynthesizeFun(Protocol):
         unboundedInts: bool = False,
     ) -> typing.List[Expr]:
         ...
+
 
 def check_aci():
     filename = sys.argv[1]
@@ -65,12 +69,20 @@ def check_aci():
         wrapAfterState = afterState
 
         if not nextVc:
-            finalState_0 = Var(fnNameBase + "_next_state" + "_0_cmd1_" + wrapAfterState.name, parseTypeRef(wrapAfterState.type))
-            finalState_1 = Var(fnNameBase + "_next_state" + "_1_cmd1_" + wrapAfterState.name, parseTypeRef(wrapAfterState.type))
+            finalState_0 = Var(
+                fnNameBase + "_next_state" + "_0_cmd1_" + wrapAfterState.name,
+                parseTypeRef(wrapAfterState.type),
+            )
+            finalState_1 = Var(
+                fnNameBase + "_next_state" + "_1_cmd1_" + wrapAfterState.name,
+                parseTypeRef(wrapAfterState.type),
+            )
             nextVc = Eq(finalState_0, finalState_1)
 
         return (
-            Implies(Eq(prevAfterState, beforeState), nextVc) if prevAfterState else nextVc,
+            Implies(Eq(prevAfterState, beforeState), nextVc)
+            if prevAfterState
+            else nextVc,
             list(ps.operands[2:]),  # type: ignore
         )
 
@@ -85,13 +97,22 @@ def check_aci():
         fnNameBase + "_next_state",
         loopsFile,
         wrapSummaryCheck=summaryWrapStateTransition,
-        fnNameSuffix="_0_cmd0"
+        fnNameSuffix="_0_cmd0",
     )
 
-    beforeState_0_cmd0 = Var(fnNameBase + "_next_state" + "_0_cmd0_" + wrapBeforeState.name, parseTypeRef(wrapBeforeState.type))
-    wrapAfterState = Var(fnNameBase + "_next_state" + "_0_cmd0_" + wrapAfterState.name, parseTypeRef(wrapAfterState.type))
+    beforeState_0_cmd0 = Var(
+        fnNameBase + "_next_state" + "_0_cmd0_" + wrapBeforeState.name,
+        parseTypeRef(wrapBeforeState.type),
+    )
+    wrapAfterState = Var(
+        fnNameBase + "_next_state" + "_0_cmd0_" + wrapAfterState.name,
+        parseTypeRef(wrapAfterState.type),
+    )
     afterState_0_cmd0 = wrapAfterState
-    transitionArgs_0_cmd0 = [Var(fnNameBase + "_next_state" + "_0_cmd0_" + v.name, parseTypeRef(v.type)) for v in wrapTransitionArgs]
+    transitionArgs_0_cmd0 = [
+        Var(fnNameBase + "_next_state" + "_0_cmd0_" + v.name, parseTypeRef(v.type))
+        for v in wrapTransitionArgs
+    ]
 
     (
         vcVarsStateTransition_0_cmd1,
@@ -104,13 +125,22 @@ def check_aci():
         fnNameBase + "_next_state",
         loopsFile,
         wrapSummaryCheck=summaryWrapStateTransition,
-        fnNameSuffix="_0_cmd1"
+        fnNameSuffix="_0_cmd1",
     )
 
-    beforeState_0_cmd1 = Var(fnNameBase + "_next_state" + "_0_cmd1_" + wrapBeforeState.name, parseTypeRef(wrapBeforeState.type))
-    wrapAfterState = Var(fnNameBase + "_next_state" + "_0_cmd1_" + wrapAfterState.name, parseTypeRef(wrapAfterState.type))
+    beforeState_0_cmd1 = Var(
+        fnNameBase + "_next_state" + "_0_cmd1_" + wrapBeforeState.name,
+        parseTypeRef(wrapBeforeState.type),
+    )
+    wrapAfterState = Var(
+        fnNameBase + "_next_state" + "_0_cmd1_" + wrapAfterState.name,
+        parseTypeRef(wrapAfterState.type),
+    )
     afterState_0_cmd1 = wrapAfterState
-    transitionArgs_0_cmd1 = [Var(fnNameBase + "_next_state" + "_0_cmd1_" + v.name, parseTypeRef(v.type)) for v in wrapTransitionArgs]
+    transitionArgs_0_cmd1 = [
+        Var(fnNameBase + "_next_state" + "_0_cmd1_" + v.name, parseTypeRef(v.type))
+        for v in wrapTransitionArgs
+    ]
 
     wrapAfterState = None
 
@@ -125,13 +155,22 @@ def check_aci():
         fnNameBase + "_next_state",
         loopsFile,
         wrapSummaryCheck=summaryWrapStateTransition,
-        fnNameSuffix="_1_cmd0"
+        fnNameSuffix="_1_cmd0",
     )
 
-    beforeState_1_cmd0 = Var(fnNameBase + "_next_state" + "_1_cmd0_" + wrapBeforeState.name, parseTypeRef(wrapBeforeState.type))
-    wrapAfterState = Var(fnNameBase + "_next_state" + "_1_cmd0_" + wrapAfterState.name, parseTypeRef(wrapAfterState.type))
+    beforeState_1_cmd0 = Var(
+        fnNameBase + "_next_state" + "_1_cmd0_" + wrapBeforeState.name,
+        parseTypeRef(wrapBeforeState.type),
+    )
+    wrapAfterState = Var(
+        fnNameBase + "_next_state" + "_1_cmd0_" + wrapAfterState.name,
+        parseTypeRef(wrapAfterState.type),
+    )
     afterState_1_cmd0 = wrapAfterState
-    transitionArgs_1_cmd0 = [Var(fnNameBase + "_next_state" + "_1_cmd0_" + v.name, parseTypeRef(v.type)) for v in wrapTransitionArgs]
+    transitionArgs_1_cmd0 = [
+        Var(fnNameBase + "_next_state" + "_1_cmd0_" + v.name, parseTypeRef(v.type))
+        for v in wrapTransitionArgs
+    ]
 
     (
         vcVarsStateTransition_1_cmd1,
@@ -144,15 +183,28 @@ def check_aci():
         fnNameBase + "_next_state",
         loopsFile,
         wrapSummaryCheck=summaryWrapStateTransition,
-        fnNameSuffix="_1_cmd1"
+        fnNameSuffix="_1_cmd1",
     )
 
-    beforeState_1_cmd1 = Var(fnNameBase + "_next_state" + "_1_cmd1_" + wrapBeforeState.name, parseTypeRef(wrapBeforeState.type))
-    wrapAfterState = Var(fnNameBase + "_next_state" + "_1_cmd1_" + wrapAfterState.name, parseTypeRef(wrapAfterState.type))
+    beforeState_1_cmd1 = Var(
+        fnNameBase + "_next_state" + "_1_cmd1_" + wrapBeforeState.name,
+        parseTypeRef(wrapBeforeState.type),
+    )
+    wrapAfterState = Var(
+        fnNameBase + "_next_state" + "_1_cmd1_" + wrapAfterState.name,
+        parseTypeRef(wrapAfterState.type),
+    )
     afterState_1_cmd1 = wrapAfterState
-    transitionArgs_1_cmd1 = [Var(fnNameBase + "_next_state" + "_1_cmd1_" + v.name, parseTypeRef(v.type)) for v in wrapTransitionArgs]
+    transitionArgs_1_cmd1 = [
+        Var(fnNameBase + "_next_state" + "_1_cmd1_" + v.name, parseTypeRef(v.type))
+        for v in wrapTransitionArgs
+    ]
 
-    combinedVCVars = vcVarsStateTransition_0_cmd0.union(vcVarsStateTransition_0_cmd1).union(vcVarsStateTransition_1_cmd0).union(vcVarsStateTransition_1_cmd1)
+    combinedVCVars = (
+        vcVarsStateTransition_0_cmd0.union(vcVarsStateTransition_0_cmd1)
+        .union(vcVarsStateTransition_1_cmd0)
+        .union(vcVarsStateTransition_1_cmd1)
+    )
 
     combinedInvAndPs = (
         invAndPsStateTransition_0_cmd0
@@ -161,7 +213,12 @@ def check_aci():
         + invAndPsStateTransition_1_cmd1
     )
 
-    combinedPreds = predsStateTransition_0_cmd0 + predsStateTransition_0_cmd1 + predsStateTransition_1_cmd0 + predsStateTransition_1_cmd1
+    combinedPreds = (
+        predsStateTransition_0_cmd0
+        + predsStateTransition_0_cmd1
+        + predsStateTransition_1_cmd0
+        + predsStateTransition_1_cmd1
+    )
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition_0_cmd0
@@ -184,14 +241,23 @@ def check_aci():
                     Eq(a1, a2)
                     for a1, a2 in zip(transitionArgs_0_cmd1, transitionArgs_1_cmd0)
                 ]
-            )
+            ),
         ),
-        nextVc
+        nextVc,
     )
     # end state transition
 
     ir.printMode = PrintMode.SMT
-    toSMT([], combinedVCVars, [], combinedPreds, combinedVC, "test.smt", [], [])
+    toSMT(
+        [],
+        combinedVCVars,
+        [],
+        combinedPreds,
+        combinedVC,
+        "./synthesisLogs/aci-test.smt",
+        [],
+        [],
+    )
     print(beforeState_0_cmd0)
     print(beforeState_1_cmd0)
 
@@ -209,11 +275,47 @@ def check_aci():
     print(transitionArgs_1_cmd0)
     print(transitionArgs_1_cmd1)
 
+    procVerify = subprocess.run(
+        [
+            cvcPath,
+            "--lang=smt",
+            "--produce-models",
+            "--tlimit=100000",
+            "./synthesisLogs/aci-test.smt",
+        ],
+        stdout=subprocess.PIPE,
+    )
+
+    procOutput = procVerify.stdout
+    resultVerify = procOutput.decode("utf-8").split("\n")
+
+    def lookup_var(v):
+        for line in resultVerify:
+            if line.startswith("(define-fun " + v.args[0] + " "):
+                return toExpr(generateAST(line)[0][4], [], [])
+
+    if resultVerify[0] == "sat" or resultVerify[0] == "unknown":
+        print("Counterexample Found")
+        print(f"Command 1: {[lookup_var(v) for v in transitionArgs_0_cmd0]}")
+        print(f"Command 2: {[lookup_var(v) for v in transitionArgs_0_cmd1]}")
+        print(f"Initial State: {lookup_var(beforeState_0_cmd0)}")
+        print()
+        print(f"After Command 1:")
+        print(f"Actor 1: {lookup_var(afterState_0_cmd0)}")
+        print(f"Actor 2: {lookup_var(afterState_1_cmd0)}")
+        print()
+        print(f"After Command 2:")
+        print(f"Actor 1: {lookup_var(afterState_0_cmd1)}")
+        print(f"Actor 2: {lookup_var(afterState_1_cmd1)}")
+    else:
+        print("Actor is commutative")
+
     # print(afterState_0)
     # print(beforeState_1)
     # print(afterState_1)
     # print(transitionArgs_0)
     # print(transitionArgs_1)
+
 
 def synthesize_actor(
     synthStateType: Type,
