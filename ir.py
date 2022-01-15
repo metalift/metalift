@@ -257,7 +257,7 @@ class Expr:
                 if printMode == PrintMode.SMT:
                     return f"(as set.empty {str(self.type)})"
                 else:
-                    raise Exception("set-create not supported")
+                    return f"(set-create)"
             else:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:

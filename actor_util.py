@@ -36,13 +36,8 @@ class SynthesizeFun(Protocol):
         ...
 
 
-def check_aci() -> None:
-    filename = sys.argv[1]
+def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> None:
     basename = os.path.splitext(os.path.basename(filename))[0]
-
-    fnNameBase = sys.argv[2]
-    loopsFile = sys.argv[3]
-    cvcPath = sys.argv[4]
 
     # begin state transition
     wrapBeforeState: Any = None
@@ -319,6 +314,10 @@ def check_aci() -> None:
 
 
 def synthesize_actor(
+    filename: str,
+    fnNameBase: str,
+    loopsFile: str,
+    cvcPath: str,
     synthStateType: Type,
     initState: Callable[[], Expr],
     grammarStateInvariant: Callable[[Expr], Expr],
@@ -328,13 +327,9 @@ def synthesize_actor(
     grammarEquivalence: Callable[[Expr, Expr], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
+    unboundedInts: bool = False,
 ) -> typing.List[Expr]:
-    filename = sys.argv[1]
     basename = os.path.splitext(os.path.basename(filename))[0]
-
-    fnNameBase = sys.argv[2]
-    loopsFile = sys.argv[3]
-    cvcPath = sys.argv[4]
 
     # begin state transition
     extraVarsStateTransition = set()
@@ -520,5 +515,5 @@ def synthesize_actor(
         combinedVC,
         combinedLoopAndPsInfo,
         cvcPath,
-        unboundedInts=True,
+        unboundedInts=unboundedInts,
     )
