@@ -1,6 +1,6 @@
 from analysis import CodeInfo
 from ir import *
-from actor_util import synthesize_actor
+from actor_util import synthesize_actor, check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 
@@ -120,14 +120,15 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    synthesize_actor(
-        synthStateType,
-        initState,
-        grammarStateInvariant,
-        supportedCommand,
-        grammar,
-        grammarQuery,
-        grammarEquivalence,
-        targetLang,
-        synthesize,
-    )
+    check_aci()
+    # synthesize_actor(
+    #     synthStateType,
+    #     initState,
+    #     grammarStateInvariant,
+    #     supportedCommand,
+    #     grammar,
+    #     grammarQuery,
+    #     grammarEquivalence,
+    #     targetLang,
+    #     synthesize,
+    # )
