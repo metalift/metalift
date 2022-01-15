@@ -9,7 +9,7 @@ from smt_util import toSMT
 from llvmlite.binding import ValueRef
 
 import typing
-from typing import Callable, Union, Protocol
+from typing import Any, Callable, Union, Protocol
 
 import subprocess
 from synthesize_cvc5 import generateAST, toExpr
@@ -36,7 +36,7 @@ class SynthesizeFun(Protocol):
         ...
 
 
-def check_aci():
+def check_aci() -> None:
     filename = sys.argv[1]
     basename = os.path.splitext(os.path.basename(filename))[0]
 
@@ -45,10 +45,10 @@ def check_aci():
     cvcPath = sys.argv[4]
 
     # begin state transition
-    wrapBeforeState = None
-    wrapAfterState = None
-    wrapTransitionArgs = None
-    nextVc = None
+    wrapBeforeState: Any = None
+    wrapAfterState: Any = None
+    wrapTransitionArgs: Any = None
+    nextVc: Any = None
 
     def summaryWrapStateTransition(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
         nonlocal wrapBeforeState
@@ -221,7 +221,7 @@ def check_aci():
     )
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
-        loopAndPsInfoStateTransition_0_cmd0
+        loopAndPsInfoStateTransition_0_cmd0  # type: ignore
         + loopAndPsInfoStateTransition_0_cmd1
         + loopAndPsInfoStateTransition_1_cmd0
         + loopAndPsInfoStateTransition_1_cmd1
@@ -289,10 +289,11 @@ def check_aci():
     procOutput = procVerify.stdout
     resultVerify = procOutput.decode("utf-8").split("\n")
 
-    def lookup_var(v):
+    def lookup_var(v: Expr) -> Expr:
         for line in resultVerify:
             if line.startswith("(define-fun " + v.args[0] + " "):
                 return toExpr(generateAST(line)[0][4], [], [])
+        raise Exception("Could not find variable " + v.args[0])
 
     if resultVerify[0] == "sat" or resultVerify[0] == "unknown":
         print("Counterexample Found")

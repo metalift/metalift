@@ -106,7 +106,7 @@ def toExpr(
         if ast.isnumeric():
             return IntLit(int(ast))
         else:
-            return ast  # type: ignore
+            return ast
 
 
 def synthesize(
