@@ -186,7 +186,14 @@ if __name__ == "__main__":
     lang = targetLang()
 
     candidates = synthesize(
-        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath,
+        basename,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        cvcPath,
     )
     print("====== verified candidates")
     for c in candidates:
