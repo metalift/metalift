@@ -306,12 +306,6 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
     else:
         print("Actor is commutative")
 
-    # print(afterState_0)
-    # print(beforeState_1)
-    # print(afterState_1)
-    # print(transitionArgs_0)
-    # print(transitionArgs_1)
-
 
 def synthesize_actor(
     filename: str,
