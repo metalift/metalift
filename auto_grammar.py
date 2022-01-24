@@ -4,20 +4,13 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-literals = {
-    Int(): [
-        # TODO(shadaj): seed from the program
-        IntLit(i)
-        for i in range(2)
-    ],
-    Bool(): [BoolLit(True), BoolLit(False)],
-}
-
 
 def get_expansions(
     enable_sets: bool = False,
 ) -> Dict[Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]]:
-    out = {
+    out: Dict[
+        Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
+    ] = {
         Int(): [
             lambda get: Add(get(Int()), get(Int())),
             lambda get: Sub(get(Int()), get(Int())),
@@ -40,6 +33,7 @@ def get_expansions(
             lambda get: Call("set-minus", Set(Int()), get(Set(Int())), get(Set(Int()))),
             lambda get: Call("set-union", Set(Int()), get(Set(Int())), get(Set(Int()))),
             lambda get: Call("set-singleton", Set(Int()), get(Int())),
+            lambda get: Call("set-insert", Set(Int()), get(Int()), get(Set(Int()))),
         ]
 
         out[Bool()].append(lambda get: Eq(get(Set(Int())), get(Set(Int()))))
@@ -57,13 +51,15 @@ def auto_grammar(
     out_type: Type,
     depth: int,
     *inputs: Union[Expr, ValueRef],
-    enable_sets: bool = False
+    enable_sets: bool = False,
+    enable_ite: bool = False,
 ) -> Expr:
     expansions = get_expansions(enable_sets)
 
     pool = {}
-    for t, literal in literals.items():
-        pool[t] = Choose(*literal)
+
+    if enable_sets:
+        pool[Set(Int())] = Call("set-create", Set(Int()))
 
     input_pool: Dict[Type, typing.List[Expr]] = {}
     for input in inputs:
@@ -84,25 +80,37 @@ def auto_grammar(
         else:
             pool[t] = Choose(*exprs)
 
+    at_depth = {
+        0: pool,
+    }
+
     for i in range(depth):
         next_pool = {}
         for t, expansion_list in expansions.items():
             new_elements = []
             for expansion in expansion_list:
-                new_elements.append(expansion(lambda t: pool[t]))
-            next_pool[t] = Choose(pool[t], Choose(*new_elements))
+                try:
+                    new_elements.append(expansion(lambda t: pool[t]))
+                except KeyError:
+                    pass
+
+            if enable_ite and Bool() in pool and t in pool:
+                new_elements.append(Ite(pool[Bool()], pool[t], pool[t]))
+
+            if len(new_elements) > 0:
+                if t in pool:
+                    next_pool[t] = Choose(pool[t], *new_elements)
+                else:
+                    next_pool[t] = Choose(*new_elements)
+
         for t in pool.keys():
             if not (t in next_pool):
-                next_pool[t] = pool[t]
+                if enable_ite and Bool() in pool:
+                    next_pool[t] = Choose(pool[t], Ite(pool[Bool()], pool[t], pool[t]))
+                else:
+                    next_pool[t] = pool[t]
 
+        at_depth[i + 1] = next_pool
         pool = next_pool
 
-    # for t in pool:
-    #   if t != Bool():
-    #     pool[t] = Choose(pool[t], Ite(
-    #       pool[Bool()],
-    #       pool[t],
-    #       pool[t]
-    #     ))
-
-    return pool[out_type]
+    return Choose(*[p[out_type] for p in at_depth.values() if out_type in p])

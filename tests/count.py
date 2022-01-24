@@ -22,9 +22,9 @@ def grammar(ci: CodeInfo):
                         Call(
                             "list_take", List(Int()), ci.readVars[0], ci.modifiedVars[1]
                         ),
-                        Call("lm", Fn(Int())),
+                        Var("lm", Fn(Int())),
                     ),
-                    Call("lr", Fn(Int())),
+                    Var("lr", Fn(Int())),
                 ),
             ),
             Ge(
@@ -38,9 +38,9 @@ def grammar(ci: CodeInfo):
                         Call(
                             "list_take", List(Int()), ci.readVars[0], ci.modifiedVars[1]
                         ),
-                        Call("lm", Fn(Int())),
+                        Var("lm", Fn(Int())),
                     ),
-                    Call("lr", Fn(Int())),
+                    Var("lr", Fn(Int())),
                 ),
             ),
         )
@@ -65,8 +65,8 @@ def grammar(ci: CodeInfo):
 
     elif name.startswith("test"):  # ps
         rv = ci.modifiedVars[0]
-        m = Choose(Call("lm", Fn(Int())))
-        r = Choose(Call("lr", Fn(Int())))
+        m = Choose(Var("lm", Fn(Int())))
+        r = Choose(Var("lr", Fn(Int())))
 
         choices = Choose(
             Eq(
@@ -74,8 +74,8 @@ def grammar(ci: CodeInfo):
                 Call(
                     "reduce",
                     Int(),
-                    Call("map", List(Int()), ci.readVars[0], Call("lm", Fn(Int()))),
-                    Call("lr", Fn(Int())),
+                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int()))),
+                    Var("lr", Fn(Int())),
                 ),
             ),
             Gt(
@@ -83,8 +83,8 @@ def grammar(ci: CodeInfo):
                 Call(
                     "reduce",
                     Int(),
-                    Call("map", List(Int()), ci.readVars[0], Call("lm", Fn(Int()))),
-                    Call("lr", Fn(Int())),
+                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int()))),
+                    Var("lr", Fn(Int())),
                 ),
             ),
         )

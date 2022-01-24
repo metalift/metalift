@@ -10,5 +10,5 @@ def Set(innerType: ir.Type) -> Lattice:
     return (
         ir.Set(innerType),
         lambda a, b: ir.Call("set-union", ir.Set(innerType), a, b),
-        ir.Var(f"(set-create)", ir.Set(innerType)),
+        ir.Call(f"set-create", ir.Set(innerType)),
     )
