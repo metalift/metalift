@@ -12,8 +12,8 @@ def get_expansions(
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
         Int(): [
-            # lambda get: Add(get(Int()), get(Int())),
-            # lambda get: Sub(get(Int()), get(Int())),
+            lambda get: Add(get(Int()), get(Int())),
+            lambda get: Sub(get(Int()), get(Int())),
             # lambda get: Mul(get(Int()), get(Int())),
         ],
         Bool(): [
@@ -21,8 +21,8 @@ def get_expansions(
             lambda get: Or(get(Bool()), get(Bool())),
             lambda get: Not(get(Bool())),
             lambda get: Eq(get(Int()), get(Int())),
-            # lambda get: Lt(get(Int()), get(Int())),
-            # lambda get: Gt(get(Int()), get(Int())),
+            lambda get: Lt(get(Int()), get(Int())),
+            lambda get: Gt(get(Int()), get(Int())),
             # lambda get: Le(get(Int()), get(Int())),
             # lambda get: Ge(get(Int()), get(Int())),
         ],
@@ -98,11 +98,17 @@ def auto_grammar(
                 new_elements.append(Ite(pool[Bool()], pool[t], pool[t]))
 
             if len(new_elements) > 0:
-                next_pool[t] = Choose(*new_elements)
+                if t in pool:
+                    next_pool[t] = Choose(pool[t], *new_elements)
+                else:
+                    next_pool[t] = Choose(*new_elements)
 
         for t in pool.keys():
-            if (not (t in next_pool)) and enable_ite and Bool() in pool:
-                next_pool[t] = Ite(pool[Bool()], pool[t], pool[t])
+            if not (t in next_pool):
+                if enable_ite and Bool() in pool:
+                    next_pool[t] = Choose(pool[t], Ite(pool[Bool()], pool[t], pool[t]))
+                else:
+                    next_pool[t] = pool[t]
 
         at_depth[i + 1] = next_pool
         pool = next_pool
