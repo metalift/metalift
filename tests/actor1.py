@@ -48,15 +48,11 @@ def grammarQuery(ci: CodeInfo):
     inputState = ci.readVars[0]
     outputVar = ci.modifiedVars[0]
 
-    stateSet1 = TupleGet(inputState, IntLit(0))
-    stateSet2 = TupleGet(inputState, IntLit(1))
-
     inputValue = ci.readVars[1]
 
-    setIn = Choose(stateSet1, stateSet2)
-    setContains = Call("set-member", Bool(), inputValue, setIn)
-
-    setContainTransformed = Choose(setContains, Not(setContains))
+    setContainTransformed = auto_grammar(
+        Bool(), 2, inputState, inputValue, enable_sets=True
+    )
 
     setContainTransformed = Choose(
         setContainTransformed, And(setContainTransformed, setContainTransformed)
@@ -76,24 +72,13 @@ def grammar(ci: CodeInfo):
         raise Exception("no invariant")
     else:  # ps
         inputState = ci.readVars[0]
-        stateSet1 = TupleGet(inputState, IntLit(0))
-        stateSet2 = TupleGet(inputState, IntLit(1))
-
         inputAdd = ci.readVars[1]
         inputValue = ci.readVars[2]
 
         outputState = ci.modifiedVars[0]
 
         condition = Eq(inputAdd, IntLit(1))
-
-        setIn = Choose(
-            stateSet1,
-            stateSet2,
-            Call("set-singleton", Set(Int()), inputValue),
-        )
-
-        setTransform = setIn
-
+        setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
         setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
         summary = Eq(
