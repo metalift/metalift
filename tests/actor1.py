@@ -47,9 +47,7 @@ def grammarQuery(ci: CodeInfo):
 
     outputVar = ci.modifiedVars[0]
 
-    setContainTransformed = auto_grammar(
-        Bool(), 3, *ci.readVars, enable_sets=True
-    )
+    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
 
     out = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
