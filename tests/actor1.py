@@ -45,17 +45,10 @@ def supportedCommand(inputState, synthState, args):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    inputState = ci.readVars[0]
     outputVar = ci.modifiedVars[0]
 
-    inputValue = ci.readVars[1]
-
     setContainTransformed = auto_grammar(
-        Bool(), 2, inputState, inputValue, enable_sets=True
-    )
-
-    setContainTransformed = Choose(
-        setContainTransformed, And(setContainTransformed, setContainTransformed)
+        Bool(), 3, *ci.readVars, enable_sets=True
     )
 
     out = Ite(setContainTransformed, IntLit(1), IntLit(0))
