@@ -31,7 +31,7 @@ def grammar(ci: CodeInfo):
         inputValue = ci.readVars[2]
         outputVar = ci.modifiedVars[0]
 
-        emptySet = Var("(set-create)", Set(Int()))
+        emptySet = Call("set-create", Set(Int()))
 
         intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
         intValue = Choose(inputValue, intLit)

@@ -120,6 +120,12 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
             )
+        elif ast[0] == "set-create":
+            return Call(ast[0], Set(Int()))
+        elif ast[0] == "set-insert":
+            v = toExpr(ast[1], fnsType, varType)
+            s1 = toExpr(ast[2], fnsType, varType)
+            return Call(ast[0], Set(v.type), v, s1)
         elif ast[0] == "set-singleton":
             v = toExpr(ast[1], fnsType, varType)
             return Call(ast[0], Set(v.type), v)

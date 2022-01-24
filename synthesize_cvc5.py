@@ -99,7 +99,7 @@ def toExpr(
             v = toExpr(ast[1], funName, returnType)
             return Call("set-" + ast[0][4:], Set(v.type), v)
         elif ast[0] == "as" and ast[1] == "set.empty":
-            return Var("(set-create)", Set(Int()))  # TODO(shadaj): parse the type
+            return Call("set-create", Set(Int()))  # TODO(shadaj): parse the type
         else:
             return ast  # type: ignore
     else:

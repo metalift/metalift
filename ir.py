@@ -170,8 +170,7 @@ class Expr:
         cnts = Expr.findCommonExprs(e.args[1], {})
         commonExprs = list(
             filter(
-                lambda k: (cnts[k] > 1 and k.type.name != "Tuple")
-                or k.kind == Expr.Kind.Choose,
+                lambda k: k.kind == Expr.Kind.Choose,
                 cnts.keys(),
             )
         )
@@ -253,17 +252,15 @@ class Expr:
                     return "true"
                 else:
                     return "false"
-            elif self.args[0] == "(set-create)":
-                if printMode == PrintMode.SMT:
-                    return f"(as set.empty {str(self.type)})"
-                else:
-                    return f"(set-create)"
             else:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if printMode == PrintMode.SMT:
                 noParens = kind == Expr.Kind.Call and len(self.args) == 1
                 retVal = []
+
+                if self.args[0] == "set-create":
+                    return f"(as set.empty {str(self.type)})"
 
                 if self.args[0] == "tupleGet":
                     argvals = self.args[:-1]
@@ -343,9 +340,8 @@ class Expr:
                     ):
                         return "%s" % (self.args[0])
                     else:
-                        noParens = len(self.args) == 1
                         return (
-                            ("" if noParens else "(")
+                            "("
                             + " ".join(
                                 [
                                     a.name
@@ -354,7 +350,7 @@ class Expr:
                                     for a in self.args
                                 ]
                             )
-                            + ("" if noParens else ")")
+                            + ")"
                         )
                 else:
                     return " ".join(
@@ -649,7 +645,10 @@ def Synth(name: str, body: Expr, *args: Expr) -> Expr:
 
 
 def Choose(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.Choose, args[0].type, args)
+    if len(args) == 1:
+        return args[0]
+    else:
+        return Expr(Expr.Kind.Choose, args[0].type, args)
 
 
 def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
