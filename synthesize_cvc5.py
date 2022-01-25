@@ -85,17 +85,25 @@ def toExpr(
         "=>": Implies,
     }
     expr_uni = {"not": Not}
-    if ast[0] in expr_bi.keys():
-        return expr_bi[ast[0]](
-            toExpr(ast[1], funName, returnType), toExpr(ast[2], funName, returnType)
-        )
-    elif ast[0] in expr_uni.keys():
-        return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
-    elif ast[0] in funName:
-        index = funName.index(ast[0])
-        return Call(ast[0], returnType[index], toExpr(ast[1], funName, returnType))
+    if isinstance(ast, list):
+        if ast[0] in expr_bi.keys():
+            return expr_bi[ast[0]](
+                toExpr(ast[1], funName, returnType), toExpr(ast[2], funName, returnType)
+            )
+        elif ast[0] in expr_uni.keys():
+            return expr_uni[ast[0]](toExpr(ast[1], funName, returnType))
+        elif ast[0] in funName:
+            index = funName.index(ast[0])
+            return Call(ast[0], returnType[index], toExpr(ast[1], funName, returnType))
+        elif ast[0].startswith("set."):
+            v = toExpr(ast[1], funName, returnType)
+            return Call("set-" + ast[0][4:], Set(v.type), v)
+        elif ast[0] == "as" and ast[1] == "set.empty":
+            return Call("set-create", Set(Int()))  # TODO(shadaj): parse the type
+        else:
+            return ast  # type: ignore
     else:
-        return ast  # type: ignore
+        return ast
 
 
 def synthesize(

@@ -22,17 +22,17 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "cvc5";
-  version = "cvc5-0.0.4";
+  version = "cvc5-0.0.5";
 
   src = fetchFromGitHub {
     owner  = "cvc5";
     repo   = "cvc5";
     rev    = version;
-    sha256 = "0i4qh9qavhmfz9xd2ifb5yk38p6v1qvgikqwb5jz55ns4459iff0";
+    sha256 = "0igsn3djlhyyzmqvhr0amzs8x27r323fly6hdd6z6m1gn9bha1rq";
   };
 
   nativeBuildInputs = [ pkg-config cmake ];
-  buildInputs = [ unstable.cadical.dev symfpu gmp git python3.pkgs.toml gtest libantlr3c antlr3_4 boost jdk python3 ];
+  buildInputs = [ unstable.cadical.dev symfpu gmp libpoly git python3.pkgs.toml gtest libantlr3c antlr3_4 boost jdk python3 ];
 
   preConfigure = ''
     patchShebangs ./src/
@@ -42,5 +42,6 @@ stdenv.mkDerivation rec {
     "-DCMAKE_BUILD_TYPE=Production"
     "-DBUILD_SHARED_LIBS=1"
     "-DANTLR3_JAR=${antlr3_4}/lib/antlr/antlr-3.4-complete.jar"
+    "-DUSE_POLY=ON"
   ];
 }
