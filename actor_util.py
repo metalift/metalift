@@ -83,10 +83,10 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
 
     (
         vcVarsStateTransition_0_cmd0,
-        invAndPsStateTransition_0_cmd0,
+        _,
         predsStateTransition_0_cmd0,
         nextVc,
-        loopAndPsInfoStateTransition_0_cmd0,
+        _,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -111,10 +111,10 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
 
     (
         vcVarsStateTransition_0_cmd1,
-        invAndPsStateTransition_0_cmd1,
+        _,
         predsStateTransition_0_cmd1,
         nextVc,
-        loopAndPsInfoStateTransition_0_cmd1,
+        _,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -141,10 +141,10 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
 
     (
         vcVarsStateTransition_1_cmd0,
-        invAndPsStateTransition_1_cmd0,
+        _,
         predsStateTransition_1_cmd0,
         nextVc,
-        loopAndPsInfoStateTransition_1_cmd0,
+        _,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -169,10 +169,10 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
 
     (
         vcVarsStateTransition_1_cmd1,
-        invAndPsStateTransition_1_cmd1,
+        _,
         predsStateTransition_1_cmd1,
         nextVc,
-        loopAndPsInfoStateTransition_1_cmd1,
+        _,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -201,25 +201,11 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
         .union(vcVarsStateTransition_1_cmd1)
     )
 
-    combinedInvAndPs = (
-        invAndPsStateTransition_0_cmd0
-        + invAndPsStateTransition_0_cmd1
-        + invAndPsStateTransition_1_cmd0
-        + invAndPsStateTransition_1_cmd1
-    )
-
     combinedPreds = (
         predsStateTransition_0_cmd0
         + predsStateTransition_0_cmd1
         + predsStateTransition_1_cmd0
         + predsStateTransition_1_cmd1
-    )
-
-    combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
-        loopAndPsInfoStateTransition_0_cmd0  # type: ignore
-        + loopAndPsInfoStateTransition_0_cmd1
-        + loopAndPsInfoStateTransition_1_cmd0
-        + loopAndPsInfoStateTransition_1_cmd1
     )
 
     combinedVC = Implies(
@@ -253,22 +239,6 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
         [],
         [],
     )
-    print(beforeState_0_cmd0)
-    print(beforeState_1_cmd0)
-
-    print(afterState_0_cmd0)
-    print(afterState_1_cmd0)
-
-    print(beforeState_0_cmd1)
-    print(beforeState_1_cmd1)
-
-    print(afterState_0_cmd1)
-    print(afterState_1_cmd1)
-
-    print(transitionArgs_0_cmd0)
-    print(transitionArgs_0_cmd1)
-    print(transitionArgs_1_cmd0)
-    print(transitionArgs_1_cmd1)
 
     procVerify = subprocess.run(
         [
@@ -420,24 +390,69 @@ def synthesize_actor(
     # begin init state
     extraVarsInitState = set()
 
-    def summaryWrapInitState(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
-        origReturn = ps.operands[2]
+    synthInitState = Var("synth_init_state", synthStateType)
 
+    origInitState: Expr = None  # type: ignore
+
+    extraVarsInitState.add(synthInitState)
+
+    def summaryWrapStateTransitionForInitStateCheck(
+        ps: MLInst,
+    ) -> typing.Tuple[Expr, typing.List[Expr]]:
+        origReturn = ps.operands[2]
+        origArgs = ps.operands[3:]
+
+        beforeState = typing.cast(ValueRef, origArgs[0])
+        nonlocal origInitState
+        origInitState = Var("orig_init_state", parseTypeRef(beforeState.type))
+        extraVarsInitState.add(origInitState)
         afterState = typing.cast(ValueRef, origReturn)
 
-        afterStateForInitState = Var(
-            afterState.name + "_for_init_state", synthStateType
+        afterStateForPS = Var(
+            afterState.name + "_for_init_state_transition", synthStateType
         )
-        extraVarsInitState.add(afterStateForInitState)
+        extraVarsInitState.add(afterStateForPS)
 
-        newReturn = afterStateForInitState
+        newReturn = afterStateForPS
 
-        ps.operands = tuple(list(ps.operands[:2]) + [newReturn])
+        newArgs = list(origArgs)
+        newArgs[0] = synthInitState
+
+        ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
 
         return (
             Implies(
-                Eq(afterStateForInitState, initState()),
-                observeEquivalence(afterState, afterStateForInitState),
+                Eq(origInitState, beforeState),
+                Implies(
+                    ps,
+                    observeEquivalence(afterState, afterStateForPS),
+                ),
+            ),
+            list(ps.operands[2:]),  # type: ignore
+        )
+
+    (vcVarsInitStateTransition, _, predsInitStateTransition, initStateTransitionVc, _,) = analyze(
+        filename,
+        fnNameBase + "_next_state",
+        loopsFile,
+        wrapSummaryCheck=summaryWrapStateTransitionForInitStateCheck,
+        fnNameSuffix="_init_state",
+    )
+
+    def summaryWrapInitState(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
+        origReturn = ps.operands[2]
+
+        returnedInitState = typing.cast(ValueRef, origReturn)
+
+        return (
+            Implies(
+                Eq(synthInitState, initState()),
+                And(
+                    observeEquivalence(returnedInitState, synthInitState),
+                    Implies(
+                        Eq(returnedInitState, origInitState), initStateTransitionVc
+                    ),
+                ),
             ),
             list(ps.operands[2:]),  # type: ignore
         )
@@ -479,7 +494,11 @@ def synthesize_actor(
 
     print("====== synthesis")
 
-    combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(vcVarsInitState)
+    combinedVCVars = (
+        vcVarsStateTransition.union(vcVarsQuery)
+        .union(vcVarsInitStateTransition)
+        .union(vcVarsInitState)
+    )
 
     combinedInvAndPs = (
         invAndPsStateTransition
@@ -488,7 +507,7 @@ def synthesize_actor(
         + invAndPsEquivalence
     )
 
-    combinedPreds = predsStateTransition + predsQuery + predsInitState
+    combinedPreds = predsStateTransition + predsQuery + predsInitStateTransition + predsInitState
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition
