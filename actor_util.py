@@ -431,7 +431,13 @@ def synthesize_actor(
             list(ps.operands[2:]),  # type: ignore
         )
 
-    (vcVarsInitStateTransition, _, predsInitStateTransition, initStateTransitionVc, _,) = analyze(
+    (
+        vcVarsInitStateTransition,
+        _,
+        predsInitStateTransition,
+        initStateTransitionVc,
+        _,
+    ) = analyze(
         filename,
         fnNameBase + "_next_state",
         loopsFile,
@@ -507,7 +513,9 @@ def synthesize_actor(
         + invAndPsEquivalence
     )
 
-    combinedPreds = predsStateTransition + predsQuery + predsInitStateTransition + predsInitState
+    combinedPreds = (
+        predsStateTransition + predsQuery + predsInitStateTransition + predsInitState
+    )
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition
