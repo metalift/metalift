@@ -783,7 +783,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         raise Exception("NYI %s" % t)
 
 # XXX: move this to a separate file
-def toRosetteType(t: Type):
+def toRosetteType(t: Type) -> str:
     if t == Int():
         return "integer?"
     elif t == Bool():
