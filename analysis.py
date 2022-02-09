@@ -323,6 +323,7 @@ def analyze(
     fnName: str,
     loopsFile: str,
     wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
+    uninterpFuncs = []
 ) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
@@ -361,7 +362,7 @@ def analyze(
 
     print("====== compute vc")
     (vars, invAndPs, preds, vc) = VC(fnName).computeVC(
-        blocksMap, list(fn.blocks)[0].name, list(fn.arguments)
+        blocksMap, list(fn.blocks)[0].name, list(fn.arguments), uninterpFuncs
     )
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)

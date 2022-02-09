@@ -374,46 +374,56 @@ class Expr:
 
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if printMode == PrintMode.SMT:
-                declarations = []
-                for a in self.args[2:]:
-                    if isinstance(a, ValueRef):
-                        declarations.append((a.name, parseTypeRef(a.type)))
-                    else:
-                        declarations.append((a.args[0], a.type))
+                if self.args[1] is None:  # uninterpreted function
+                    args_type = " ".join("(%s)" % parseTypeRef(a.type) for a in self.args[2:])
+                    return "(declare-fun %s (%s) %s)" % (self.args[0], args_type, parseTypeRef(self.type))
 
-                args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
+                else:
+                    declarations = []
+                    for a in self.args[2:]:
+                        if isinstance(a, ValueRef):
+                            declarations.append((a.name, parseTypeRef(a.type)))
+                        else:
+                            declarations.append((a.args[0], a.type))
 
-                def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                return "(%s %s (%s) %s\n%s)" % (
-                    def_str,
-                    self.args[0],
-                    args,
-                    self.type if self.type.name != "Function" else self.type.args[0],
-                    self.args[1],
-                )
-            else:
-                args = " ".join(
-                    [
-                        "%s" % (a.name)
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else "%s" % (a.args[0])
-                        for a in self.args[2:]
-                    ]
-                )
+                    def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
 
-                def_str = (
-                    "define"
-                    if kind == Expr.Kind.FnDeclNonRecursive
-                    else "define-bounded"
-                )
+                    return "(%s %s (%s) %s\n%s)" % (
+                        def_str,
+                        self.args[0],
+                        args,
+                        self.type if self.type.name != "Function" else self.type.args[0],
+                        self.args[1],
+                    )
+            else:   # printMode == PrintMode.Rosette
+                if self.args[1] is None:  # uninterpreted function
+                    args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
+                    return "(define-symbolic %s (~> %s %s))" % (self.args[0], args_type, toRosetteType(self.type))
 
-                return "(%s (%s %s) \n%s)" % (
-                    def_str,
-                    self.args[0],
-                    args,
-                    self.args[1],
-                )
+                else:
+                    args = " ".join(
+                        [
+                            "%s" % (a.name)
+                            if isinstance(a, ValueRef) and a.name != ""
+                            else "%s" % (a.args[0])
+                            for a in self.args[2:]
+                        ]
+                    )
+
+                    def_str = (
+                        "define"
+                        if kind == Expr.Kind.FnDeclNonRecursive
+                        else "define-bounded"
+                    )
+
+                    return "(%s (%s %s) \n%s)" % (
+                        def_str,
+                        self.args[0],
+                        args,
+                        self.args[1],
+                    )
         elif kind == Expr.Kind.Tuple:
             if printMode == PrintMode.RosetteVC:
                 # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
@@ -771,3 +781,12 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
+
+# XXX: move this to a separate file
+def toRosetteType(t: Type):
+    if t == Int():
+        return "integer?"
+    elif t == Bool():
+        return "boolean?"
+    else:
+        raise Exception("NYI: %s" % t)

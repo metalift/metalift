@@ -22,6 +22,7 @@ class State:
     args: typing.List[Expr]
     vc: Optional[Expr]
     assumes: typing.List[Expr]
+    uninterpFuncs: typing.List[str]
 
     def __init__(self) -> None:
         self.regs = {}
@@ -29,6 +30,7 @@ class State:
         self.args = []
         self.vc = None
         self.assumes = []
+        self.uninterpFuncs = []
 
     def __repr__(self) -> str:
         # keys are ValueRef objs
@@ -94,6 +96,7 @@ class VC:
         blocksMap: Dict[str, Block],
         firstBlockName: str,
         arguments: typing.List[ValueRef],
+        uninterpFuncs: typing.List[str] = []
     ) -> typing.Tuple[typing.Set[Expr], typing.List[Expr], typing.List[Expr], Expr]:
         initBlock = blocksMap[firstBlockName]
         for arg in arguments:
@@ -101,6 +104,7 @@ class VC:
             initBlock.state.regs[arg] = v
             initBlock.state.args.append(v)
             initBlock.state.assumes.append(BoolLit(True))
+            initBlock.state.uninterpFuncs.extend(uninterpFuncs)
 
         # simple loop assuming the blocks are in predecessor order
         # for b in blocksMap.values():
@@ -182,6 +186,7 @@ class VC:
             s.mem = dict([(k, deepcopy(v)) for k, v in src.mem.items()])
             s.args = deepcopy(src.args)
             s.assumes = deepcopy(src.assumes)
+            s.uninterpFuncs = deepcopy(src.uninterpFuncs)
             return s
 
         else:  # merge
@@ -202,6 +207,11 @@ class VC:
                 for p in preds
             ]
             s.assumes.append(Or(*assumeE) if len(assumeE) > 1 else assumeE[0])
+
+            if any( p.state.uninterpFuncs != preds[0].state.uninterpFuncs for p in preds ):
+                raise Exception("preds have different number of uninterpreted functions: %s" %
+                                "; ".join([str(p.state.uninterpFuncs) for p in preds]))
+            s.uninterpFuncs.extend(preds[0].state.uninterpFuncs)
 
             return s
 
@@ -359,6 +369,10 @@ class VC:
                         for k, v in rv.assigns:
                             s.regs[k] = v
                             assigns.add(k)
+
+                elif fnName in s.uninterpFuncs:
+                    s.regs[i] = Call(fnName, parseTypeRef(i.type), *[s.regs[op] for op in ops[:-1]])
+                    assigns.add(i)
 
                 else:
                     raise Exception("NYI: %s, name: %s" % (i, fnName))
