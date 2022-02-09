@@ -323,7 +323,7 @@ def analyze(
     fnName: str,
     loopsFile: str,
     wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
-    uninterpFuncs = []
+    uninterpFuncs: List[str] = [],
 ) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
