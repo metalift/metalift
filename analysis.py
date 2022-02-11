@@ -406,7 +406,6 @@ def analyze(
         list(fn.arguments),
         globalVars,
         uninterpFuncs
-
     )
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)

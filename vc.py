@@ -220,8 +220,8 @@ class VC:
                                 "; ".join([str(p.state.uninterpFuncs) for p in preds]))
             s.uninterpFuncs.extend(preds[0].state.uninterpFuncs)
 
-            if all(p.gvars == preds[0].gvars for p in preds):
-                s.gvars = preds[0].gvars
+            if all(p.state.gvars == preds[0].state.gvars for p in preds):
+                s.gvars = preds[0].state.gvars
             else:
                 raise Exception("globals are not the same in states to be merged: %s" % str(preds))
 

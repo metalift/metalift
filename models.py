@@ -92,8 +92,8 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "setField": setField,
 
     # names for set.h
-    "set_create": lambda _, *args: ReturnValue(Call("set-create", Set(Int())), None),
-    "set_add": lambda regs, *args: ReturnValue(
+    "set_create": lambda regs, mem, gvars, *args: ReturnValue(Call("set-create", Set(Int())), None),
+    "set_add": lambda regs, mem, gvars, *args: ReturnValue(
         Call(
             "set-insert",
             Set(Int()),
@@ -102,7 +102,7 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
-    "set_remove": lambda regs, *args: ReturnValue(
+    "set_remove": lambda regs, mem, gvars, *args: ReturnValue(
         Call(
             "set-minus",
             Set(Int()),
@@ -111,7 +111,7 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
-    "set_contains": lambda regs, *args: ReturnValue(
+    "set_contains": lambda regs, mem, gvars, *args: ReturnValue(
         Ite(
             Call(
                 "set-member",
