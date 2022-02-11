@@ -8,13 +8,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
+        with:
+           black_args: --extend-exclude "tests|value.py" --check --diff .
   mypy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: jpetrucciani/mypy-check@master
         with:
-          mypy_flags: --ignore-missing-imports --strict
+          mypy_flags: --ignore-missing-imports --strict --exclude value.py
   build:
     runs-on: ubuntu-latest
 

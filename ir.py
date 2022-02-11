@@ -30,6 +30,8 @@ class Type:
             return "Int"
         elif self.name == "Bool":
             return "Bool"
+        elif self.name == "String":
+            return "String"
         elif self.name == "Tuple":
             args = " ".join(str(a) for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
@@ -67,8 +69,13 @@ def Bool() -> Type:
     return Type("Bool")
 
 
-def Pointer() -> Type:
-    return Type("Pointer")
+# for string literals
+def String() -> Type:
+    return Type("String")
+
+
+def Pointer(t: Type) -> Type:
+    return Type("Pointer", t)
 
 
 def List(contentT: Type) -> Type:
@@ -92,6 +99,7 @@ class Expr:
     class Kind(Enum):
         Var = "var"
         Lit = "lit"
+        Object = "obj"
 
         Add = "+"
         Sub = "-"
@@ -375,8 +383,14 @@ class Expr:
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if printMode == PrintMode.SMT:
                 if self.args[1] is None:  # uninterpreted function
-                    args_type = " ".join("(%s)" % parseTypeRef(a.type) for a in self.args[2:])
-                    return "(declare-fun %s (%s) %s)" % (self.args[0], args_type, parseTypeRef(self.type))
+                    args_type = " ".join(
+                        "(%s)" % parseTypeRef(a.type) for a in self.args[2:]
+                    )
+                    return "(declare-fun %s (%s) %s)" % (
+                        self.args[0],
+                        args_type,
+                        parseTypeRef(self.type),
+                    )
 
                 else:
                     declarations = []
@@ -388,19 +402,29 @@ class Expr:
 
                     args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                    def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    def_str = (
+                        "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    )
 
                     return "(%s %s (%s) %s\n%s)" % (
                         def_str,
                         self.args[0],
                         args,
-                        self.type if self.type.name != "Function" else self.type.args[0],
+                        self.type
+                        if self.type.name != "Function"
+                        else self.type.args[0],
                         self.args[1],
                     )
-            else:   # printMode == PrintMode.Rosette
+            else:  # printMode == PrintMode.Rosette
                 if self.args[1] is None:  # uninterpreted function
-                    args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
-                    return "(define-symbolic %s (~> %s %s))" % (self.args[0], args_type, toRosetteType(self.type))
+                    args_type = " ".join(
+                        ["%s" % toRosetteType(a.type) for a in self.args[2:]]
+                    )
+                    return "(define-symbolic %s (~> %s %s))" % (
+                        self.args[0],
+                        args_type,
+                        toRosetteType(self.type),
+                    )
 
                 else:
                     args = " ".join(
@@ -560,8 +584,12 @@ def Var(name: str, ty: Type) -> Expr:
     return Expr(Expr.Kind.Var, ty, [name])
 
 
-def Lit(val: Union[bool, int], ty: Type) -> Expr:
+def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
     return Expr(Expr.Kind.Lit, ty, [val])
+
+
+def Object(ty: Type) -> Expr:
+    return Expr(Expr.Kind.Object, ty, {})
 
 
 def IntLit(val: int) -> Expr:
@@ -684,13 +712,19 @@ class MLInst:
         Or = "or"
         Return = "return"
 
-    def __init__(self, opcode: str, *operands: Union["MLInst", Expr, ValueRef]) -> None:
+    def __init__(
+        self, opcode: str, *operands: Union["MLInst", Expr, ValueRef], name: str = ""
+    ) -> None:
         self.opcode = opcode
         self.operands = operands
+        self.name = name
 
     def __str__(self) -> str:
+        prefix = "%s = " % self.name if self.name else ""
+
         if self.opcode == MLInst.Kind.Call:
-            return "call %s %s(%s)" % (
+            return "%scall %s %s(%s)" % (
+                prefix,
                 self.operands[0],
                 self.operands[1],
                 " ".join(
@@ -781,6 +815,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
+
 
 # XXX: move this to a separate file
 def toRosetteType(t: Type) -> str:
