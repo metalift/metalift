@@ -568,7 +568,7 @@ def Var(name: str, ty: Type) -> Expr:
     return Expr(Expr.Kind.Var, ty, [name])
 
 
-def Lit(val: Union[bool, int], ty: Type) -> Expr:
+def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
     return Expr(Expr.Kind.Lit, ty, [val])
 
 

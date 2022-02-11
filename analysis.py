@@ -321,7 +321,9 @@ def parseGlobals (global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
     globalVars = {}
     for g in global_variables:
         if re.search("\[. x i8\]\*", str(g.type)):  # strings have type [n x i8]*
-            v = re.search('"(.+)"', str(g)).group(1).replace("\\00", "")
+            o = re.search('"(.+)"', str(g))
+            if o: v = o.group(1).replace("\\00", "")
+            else: raise Exception("failed to match on type: %s" % str(g.type))
             globalVars[g.name] = v
 
     print("globals:")
@@ -330,7 +332,7 @@ def parseGlobals (global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
     return globalVars
 
 
-def parseObjectFuncs (blocksMap: Dict[str, Block]) -> Dict[str, Block]:
+def parseObjectFuncs (blocksMap: Dict[str, Block]) -> None:
     p = re.compile("ML_(\w+)_(set|get)_(\w+)")
     for b in blocksMap.values():
         for i in b.instructions:

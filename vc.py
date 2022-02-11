@@ -325,7 +325,9 @@ class VC:
                 elif t.startswith("%struct.tup"):
                     s.mem[i] = Lit(0, Tuple(Int(), Int()))
                 elif t.startswith("%struct."):  # not a tuple or set, assume to be user defined type
-                    tname = re.search("%struct.(.+)", t).group(1)
+                    o = re.search("%struct.(.+)", t)
+                    if o: tname = o.group(1)
+                    else: raise Exception("failed to match struct %s: " % t)
                     s.mem[i] = Object(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
