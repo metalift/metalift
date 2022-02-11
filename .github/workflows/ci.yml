@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
         with:
-          lint_flags: --extend-exclude "tests|value.py"
+           black_args: --extend-exclude "tests|value.py"
   mypy:
     runs-on: ubuntu-latest
     steps:
