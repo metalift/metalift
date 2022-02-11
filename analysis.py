@@ -16,7 +16,9 @@ from ir import (
     MLInst_Assume,
     MLInst_Havoc,
     MLInst_Not,
-    String, Lit)
+    String,
+    Lit,
+)
 from vc import Block, VC
 from llvmlite.binding import ValueRef
 from typing import (
@@ -317,22 +319,24 @@ def processBranches(
     return retCodeInfo
 
 
-def parseGlobals (global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
+def parseGlobals(global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
     globalVars = {}
     for g in global_variables:
         if re.search("\[. x i8\]\*", str(g.type)):  # strings have type [n x i8]*
             o = re.search('"(.+)"', str(g))
-            if o: v = o.group(1).replace("\\00", "")
-            else: raise Exception("failed to match on type: %s" % str(g.type))
+            if o:
+                v = o.group(1).replace("\\00", "")
+            else:
+                raise Exception("failed to match on type: %s" % str(g.type))
             globalVars[g.name] = v
 
     print("globals:")
-    for (k,v) in globalVars.items():
-        print("%s -> %s" % (k,v))
+    for (k, v) in globalVars.items():
+        print("%s -> %s" % (k, v))
     return globalVars
 
 
-def parseObjectFuncs (blocksMap: Dict[str, Block]) -> None:
+def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
     p = re.compile("ML_(\w+)_(set|get)_(\w+)")
     for b in blocksMap.values():
         for i in b.instructions:
@@ -348,7 +352,12 @@ def parseObjectFuncs (blocksMap: Dict[str, Block]) -> None:
                     fieldName = r.group(3)
                     if op == "set":
                         # newInst = MLInst_Call("setField", i.type, Lit(fieldName, String()), ops[0], ops[1])
-                        i.operands = [Lit(fieldName, String()), ops[0], ops[1], "setField"]
+                        i.operands = [
+                            Lit(fieldName, String()),
+                            ops[0],
+                            ops[1],
+                            "setField",
+                        ]
                     else:
                         # i.operands = ["getField", i.type, Lit(fieldName, String()), ops[0], "getField"]
                         i.operands = [Lit(fieldName, String()), ops[0], "getField"]
@@ -407,7 +416,7 @@ def analyze(
         list(fn.blocks)[0].name,
         list(fn.arguments),
         globalVars,
-        uninterpFuncs
+        uninterpFuncs,
     )
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)

@@ -12,20 +12,28 @@ RegsType = Dict[ValueRef, Expr]
 GVarsType = Dict[str, str]
 
 
-def newlist(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def newlist(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_new", parseTypeRef(args[0].type)))])
     return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
 
-def listLength(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def listLength(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     return ReturnValue(Call("list_length", Int(), regs[args[0]]), None)
 
 
-def listGet(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def listGet(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
 
 
-def listAppend(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def listAppend(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
     return ReturnValue(
         Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
@@ -33,7 +41,9 @@ def listAppend(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef)
     )
 
 
-def listConcat(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def listConcat(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
     return ReturnValue(
         Call("list_concat", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
@@ -41,11 +51,15 @@ def listConcat(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef)
     )
 
 
-def newTuple(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def newTuple(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
 
 
-def MakeTuple(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def MakeTuple(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     regVals = [regs[args[i]] for i in range(len(args))]
     retVals = [Int() for i in range(len(args))]
     return ReturnValue(
@@ -54,25 +68,30 @@ def MakeTuple(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) 
     )
 
 
-def tupleGet(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def tupleGet(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     return ReturnValue(
         Call("tupleGet", Int(), regs[args[0]], parseOperand(args[1], regs)), None
     )
 
 
-def getField(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def getField(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     (fieldName, obj) = args
     val = mem[obj].args[fieldName.args[0]]
     # regs[i] = mem[obj].args[fieldName.args[0]
     return ReturnValue(val, None)
 
 
-def setField(regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef) -> ReturnValue:
+def setField(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
     (fieldName, obj, val) = args
     mem[obj].args[fieldName.args[0]] = regs[val]
     # XXX: not tracking memory writes as assigns for now. This might be fine for now since all return vals must be loaded to regs
     return ReturnValue(None, None)
-
 
 
 fnModels: Dict[str, Callable[..., ReturnValue]] = {
@@ -87,12 +106,12 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "_Z10listLengthIiEiP4listIT_E": listLength,
     "_Z7listGetIiET_P4listIS0_Ei": listGet,
     "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
-
     "getField": getField,
     "setField": setField,
-
     # names for set.h
-    "set_create": lambda regs, mem, gvars, *args: ReturnValue(Call("set-create", Set(Int())), None),
+    "set_create": lambda regs, mem, gvars, *args: ReturnValue(
+        Call("set-create", Set(Int())), None
+    ),
     "set_add": lambda regs, mem, gvars, *args: ReturnValue(
         Call(
             "set-insert",

@@ -383,8 +383,14 @@ class Expr:
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if printMode == PrintMode.SMT:
                 if self.args[1] is None:  # uninterpreted function
-                    args_type = " ".join("(%s)" % parseTypeRef(a.type) for a in self.args[2:])
-                    return "(declare-fun %s (%s) %s)" % (self.args[0], args_type, parseTypeRef(self.type))
+                    args_type = " ".join(
+                        "(%s)" % parseTypeRef(a.type) for a in self.args[2:]
+                    )
+                    return "(declare-fun %s (%s) %s)" % (
+                        self.args[0],
+                        args_type,
+                        parseTypeRef(self.type),
+                    )
 
                 else:
                     declarations = []
@@ -396,19 +402,29 @@ class Expr:
 
                     args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                    def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    def_str = (
+                        "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    )
 
                     return "(%s %s (%s) %s\n%s)" % (
                         def_str,
                         self.args[0],
                         args,
-                        self.type if self.type.name != "Function" else self.type.args[0],
+                        self.type
+                        if self.type.name != "Function"
+                        else self.type.args[0],
                         self.args[1],
                     )
-            else:   # printMode == PrintMode.Rosette
+            else:  # printMode == PrintMode.Rosette
                 if self.args[1] is None:  # uninterpreted function
-                    args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
-                    return "(define-symbolic %s (~> %s %s))" % (self.args[0], args_type, toRosetteType(self.type))
+                    args_type = " ".join(
+                        ["%s" % toRosetteType(a.type) for a in self.args[2:]]
+                    )
+                    return "(define-symbolic %s (~> %s %s))" % (
+                        self.args[0],
+                        args_type,
+                        toRosetteType(self.type),
+                    )
 
                 else:
                     args = " ".join(
@@ -696,7 +712,9 @@ class MLInst:
         Or = "or"
         Return = "return"
 
-    def __init__(self, opcode: str, *operands: Union["MLInst", Expr, ValueRef], name: str = "") -> None:
+    def __init__(
+        self, opcode: str, *operands: Union["MLInst", Expr, ValueRef], name: str = ""
+    ) -> None:
         self.opcode = opcode
         self.operands = operands
         self.name = name
@@ -797,6 +815,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
+
 
 # XXX: move this to a separate file
 def toRosetteType(t: Type) -> str:

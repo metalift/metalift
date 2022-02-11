@@ -215,16 +215,22 @@ class VC:
             ]
             s.assumes.append(Or(*assumeE) if len(assumeE) > 1 else assumeE[0])
 
-            if any( p.state.uninterpFuncs != preds[0].state.uninterpFuncs for p in preds ):
-                raise Exception("preds have different number of uninterpreted functions: %s" %
-                                "; ".join([str(p.state.uninterpFuncs) for p in preds]))
+            if any(
+                p.state.uninterpFuncs != preds[0].state.uninterpFuncs for p in preds
+            ):
+                raise Exception(
+                    "preds have different number of uninterpreted functions: %s"
+                    % "; ".join([str(p.state.uninterpFuncs) for p in preds])
+                )
             s.uninterpFuncs.extend(preds[0].state.uninterpFuncs)
 
             if all(p.state.gvars == preds[0].state.gvars for p in preds):
                 s.gvars = preds[0].state.gvars
 
             else:
-                raise Exception("globals are not the same in states to be merged: %s" % str(preds))
+                raise Exception(
+                    "globals are not the same in states to be merged: %s" % str(preds)
+                )
 
             return s
 
@@ -324,10 +330,14 @@ class VC:
                     s.mem[i] = Lit(0, Tuple(*retType))
                 elif t.startswith("%struct.tup"):
                     s.mem[i] = Lit(0, Tuple(Int(), Int()))
-                elif t.startswith("%struct."):  # not a tuple or set, assume to be user defined type
+                elif t.startswith(
+                    "%struct."
+                ):  # not a tuple or set, assume to be user defined type
                     o = re.search("%struct.(.+)", t)
-                    if o: tname = o.group(1)
-                    else: raise Exception("failed to match struct %s: " % t)
+                    if o:
+                        tname = o.group(1)
+                    else:
+                        raise Exception("failed to match struct %s: " % t)
                     s.mem[i] = Object(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
@@ -393,7 +403,9 @@ class VC:
                             assigns.add(k)
 
                 elif fnName in s.uninterpFuncs:
-                    s.regs[i] = Call(fnName, parseTypeRef(i.type), *[s.regs[op] for op in ops[:-1]])
+                    s.regs[i] = Call(
+                        fnName, parseTypeRef(i.type), *[s.regs[op] for op in ops[:-1]]
+                    )
                     assigns.add(i)
 
                 # elif fnName == "setField":
