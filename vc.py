@@ -222,6 +222,7 @@ class VC:
 
             if all(p.state.gvars == preds[0].state.gvars for p in preds):
                 s.gvars = preds[0].state.gvars
+
             else:
                 raise Exception("globals are not the same in states to be merged: %s" % str(preds))
 
