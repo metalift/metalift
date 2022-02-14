@@ -13,6 +13,8 @@ else:
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
+fastDebug = False
+
 
 def grammarEquivalence(inputState, synthState):
     return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
@@ -47,7 +49,7 @@ def grammarQuery(ci: CodeInfo):
 
     synthState = ci.readVars[0]
 
-    if False:
+    if not fastDebug:
         setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
     else:  # hardcoded for quick debugging
         setContainTransformed = Call(
@@ -125,6 +127,9 @@ if __name__ == "__main__":
             cvcPath,
         )
     else:
+        if mode == "synth-debug":
+            fastDebug = True
+
         synthesize_actor(
             filename,
             fnNameBase,
