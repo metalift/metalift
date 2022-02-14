@@ -322,17 +322,26 @@ def synthesize(
         ir.printMode = PrintMode.SMT
         toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
 
+        verifyLogs: typing.List[str] = []
+
         if noVerify:
             print("Not verifying solution")
             resultVerify = "unsat"
         else:
             procVerify = subprocess.run(
-                [cvcPath, "--lang=smt", "--tlimit=100000", verifFile],
+                [
+                    cvcPath,
+                    "--lang=smt",
+                    "--produce-models",
+                    "--tlimit=100000",
+                    verifFile,
+                ],
                 stdout=subprocess.PIPE,
             )
 
             if procVerify.returncode < 0:
                 resultVerify = "SAT/UNKNOWN"
+                verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
             else:
                 procOutput = procVerify.stdout
                 resultVerify = procOutput.decode("utf-8").split("\n")[0]
@@ -346,6 +355,7 @@ def synthesize(
             break
         else:
             print("verification failed")
+            print("\n".join(verifyLogs))
             invGuess.append(resultSynth[1])
             print(invGuess)
             raise Exception()
