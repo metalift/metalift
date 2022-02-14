@@ -285,7 +285,7 @@ def synthesize_actor(
     synthStateType: Type,
     initState: Callable[[], Expr],
     grammarStateInvariant: Callable[[Expr], Expr],
-    supportedCommand: Callable[[Expr, Expr, typing.Any], Expr],
+    supportedCommand: Callable[[Expr, typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
     grammarEquivalence: Callable[[Expr, Expr], Expr],
@@ -333,9 +333,7 @@ def synthesize_actor(
                 Eq(beforeStateOrigLink, beforeStateOrig),
                 Implies(
                     And(
-                        supportedCommand(
-                            beforeStateOrig, beforeStateForPS, origArgs[1:]
-                        ),
+                        supportedCommand(beforeStateForPS, origArgs[1:]),
                         observeEquivalence(beforeStateOrig, beforeStateForPS),
                     ),
                     Implies(
@@ -463,9 +461,12 @@ def synthesize_actor(
         return (
             Implies(
                 Eq(origInitState, beforeState),
-                Implies(
-                    ps,
-                    observeEquivalence(afterState, afterStateForPS),
+                And(
+                    supportedCommand(synthInitState, origArgs[1:]),
+                    Implies(
+                        ps,
+                        observeEquivalence(afterState, afterStateForPS),
+                    ),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore

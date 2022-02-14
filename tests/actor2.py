@@ -22,7 +22,7 @@ def grammarStateInvariant(synthState):
     return BoolLit(True)
 
 
-def supportedCommand(inputState, synthState, args):
+def supportedCommand(synthState, args):
     return BoolLit(True)
 
 

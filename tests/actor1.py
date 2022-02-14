@@ -22,7 +22,7 @@ def grammarStateInvariant(synthState):
     return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
-def supportedCommand(inputState, synthState, args):
+def supportedCommand(synthState, args):
     add = args[0]
     value = args[1]
 
