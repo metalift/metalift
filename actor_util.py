@@ -330,17 +330,13 @@ def synthesize_actor(
 
         return (
             Implies(
-                Eq(beforeStateOrigLink, beforeStateOrig),
-                Implies(
-                    And(
-                        supportedCommand(beforeStateForPS, origArgs[1:]),
-                        observeEquivalence(beforeStateOrig, beforeStateForPS),
-                    ),
-                    Implies(
-                        ps,
-                        observeEquivalence(afterStateOrig, afterStateForPS),
-                    ),
+                And(
+                    Eq(beforeStateOrigLink, beforeStateOrig),
+                    supportedCommand(beforeStateForPS, origArgs[1:]),
+                    observeEquivalence(beforeStateOrig, beforeStateForPS),
+                    ps,  # type: ignore
                 ),
+                observeEquivalence(afterStateOrig, afterStateForPS),
             ),
             list(ps.operands[2:]),  # type: ignore
         )
@@ -459,14 +455,14 @@ def synthesize_actor(
         ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
 
         return (
-            Implies(
-                Eq(origInitState, beforeState),
-                And(
-                    supportedCommand(synthInitState, origArgs[1:]),
-                    Implies(
-                        ps,
-                        observeEquivalence(afterState, afterStateForPS),
+            And(
+                supportedCommand(synthInitState, origArgs[1:]),
+                Implies(
+                    And(
+                        Eq(origInitState, beforeState),
+                        ps,  # type: ignore
                     ),
+                    observeEquivalence(afterState, afterStateForPS),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -493,12 +489,13 @@ def synthesize_actor(
 
         return (
             Implies(
-                Eq(synthInitState, initState()),
+                And(
+                    Eq(synthInitState, initState()),
+                    Eq(returnedInitState, origInitState),
+                ),
                 And(
                     observeEquivalence(returnedInitState, synthInitState),
-                    Implies(
-                        Eq(returnedInitState, origInitState), initStateTransitionVc
-                    ),
+                    initStateTransitionVc,
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
