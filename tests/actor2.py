@@ -19,10 +19,14 @@ def grammarEquivalence(inputState, synthState):
 
 
 def grammarStateInvariant(synthState):
-    return BoolLit(True)
+    return auto_grammar(Bool(), 1, synthState)
 
 
-def supportedCommand(synthState, args):
+def grammarSupportedCommand(synthState, args):
+    return auto_grammar(Bool(), 1, synthState, *args)
+
+
+def inOrder(cmd1, cmd2):
     return BoolLit(True)
 
 
@@ -111,7 +115,8 @@ if __name__ == "__main__":
             synthStateType,
             initState,
             grammarStateInvariant,
-            supportedCommand,
+            grammarSupportedCommand,
+            inOrder,
             grammar,
             grammarQuery,
             grammarEquivalence,

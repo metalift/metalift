@@ -22,24 +22,21 @@ def grammarStateInvariant(synthState):
     return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
-def supportedCommand(synthState, args):
+def grammarSupportedCommand(synthState, args):
     add = args[0]
-    value = args[1]
 
     return Ite(
         Eq(add, IntLit(1)),
-        # insertion works if the elem is not in both sets
-        # so the sets are saturated
-        Not(
-            And(
-                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(0))),
-                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(1))),
-            )
-        ),
-        # deletion can work even if not in the insertion set
-        # because we can just add the element to both sets
-        # which results in an observed-equivalent final state
-        BoolLit(True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+    )
+
+
+def inOrder(arg1, arg2):
+    return Ite(
+        Eq(arg1[0], IntLit(1)),  # if first command is insert
+        BoolLit(True),  # second can be insert or remove
+        Eq(arg2[0], IntLit(0)),  # but if remove, must be remove next
     )
 
 
@@ -48,7 +45,24 @@ def grammarQuery(ci: CodeInfo):
 
     outputVar = ci.modifiedVars[0]
 
-    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    synthState = ci.readVars[0]
+
+    if False:
+        setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    else:  # hardcoded for quick debugging
+        setContainTransformed = Call(
+            "set-member",
+            Bool(),
+            ci.readVars[1],
+            Call(
+                "set-minus",
+                Set(Int()),
+                Choose(
+                    TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
+                ),
+                TupleGet(synthState, IntLit(1)),
+            ),
+        )
 
     out = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -119,7 +133,8 @@ if __name__ == "__main__":
             synthStateType,
             initState,
             grammarStateInvariant,
-            supportedCommand,
+            grammarSupportedCommand,
+            inOrder,
             grammar,
             grammarQuery,
             grammarEquivalence,
