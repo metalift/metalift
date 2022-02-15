@@ -47,7 +47,7 @@ if __name__ == "__main__":
     cvcPath = ""
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
-        filename, fnName, loopsFile, None, uninterpFuncs = [uninterpFnName]
+        filename, fnName, loopsFile, None, uninterpFuncs=[uninterpFnName]
     )
 
     print("====== synthesis")
