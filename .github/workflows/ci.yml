@@ -62,14 +62,19 @@ jobs:
 
     - name: Test Core Examples
       run: |
-        python -m tests.ite1 tests/ite1.ll test tests/ite1.loops cvc5
-        python -m tests.while3 tests/while3.ll test tests/while3.loops cvc5
-        python -m tests.while4 tests/while4.ll test tests/while4.loops cvc5
-        python -m tests.set1 tests/set1.ll test tests/set1.loops cvc5
-        python -m tests.list1 tests/list1.ll test tests/list1.loops cvc5
-        python -m tests.list1_fns tests/list1.ll test tests/list1.loops cvc5
-        python -m tests.fma_dsl tests/fma_dsl.ll test tests/fma_dsl.loops cvc5
-        python -m tests.count tests/Count.ll test tests/Count.loops cvc5
+        python -m tests.count
+        python -m tests.fma_dsl
+        python -m tests.ite1
+        python -m tests.ite3
+        python -m tests.list1
+        python -m tests.list1_fns
+        python -m tests.set1
+        python -m tests.tuples1
+        python -m tests.tuples2
+        python -m tests.tuples3
+        python -m tests.uninterp
+        python -m tests.while3
+        python -m tests.while4
 
     - name: Test Actor Examples
       run: |
