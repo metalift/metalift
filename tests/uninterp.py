@@ -59,7 +59,17 @@ if __name__ == "__main__":
     synthDir = "./tests/"
     synthFile = synthDir + basename + ".rkt"
 
-    toRosette(synthFile, lang, vars, invAndPs, preds, vc, loopAndPsInfo, invGuess, unboundedInts,)
+    toRosette(
+        synthFile,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        invGuess,
+        unboundedInts,
+    )
 
     ### SMT
     print("====== verification")
@@ -78,10 +88,18 @@ if __name__ == "__main__":
     candidateDict[fnName] = summary(r, x, y)
 
     for ce in loopAndPsInfo:
-        allVars = (ce.modifiedVars + ce.readVars if isinstance(ce, CodeInfo) else ce.args[2:])
+        allVars = (
+            ce.modifiedVars + ce.readVars if isinstance(ce, CodeInfo) else ce.args[2:]
+        )
         ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
-        candidatesSMT.append(FnDecl(ceName, ce.retT if isinstance(ce, CodeInfo) else ce.type,
-                                    candidateDict[ceName], *allVars,))
+        candidatesSMT.append(
+            FnDecl(
+                ceName,
+                ce.retT if isinstance(ce, CodeInfo) else ce.type,
+                candidateDict[ceName],
+                *allVars,
+            )
+        )
 
     verifFile = synthDir + basename + ".smt"
 

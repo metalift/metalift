@@ -586,7 +586,6 @@ class Expr:
             )
         )
 
-
     def toSMT(self) -> str:
         kind = self.kind
         if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
@@ -629,8 +628,7 @@ class Expr:
                             self.args[idx + 1].args[0].split("_")[1]
                         )
                         retVal.append(
-                            "tuple%d_get%d"
-                            % (freq["i"], self.args[idx + 2].args[0])
+                            "tuple%d_get%d" % (freq["i"], self.args[idx + 2].args[0])
                         )
                 elif (str(a)).startswith("set-"):
                     retVal.append("set.%s" % (str(a)[4:]))
@@ -638,9 +636,7 @@ class Expr:
                     retVal.append(str(a))
 
             retT = (
-                ("" if noParens else "(")
-                + " ".join(retVal)
-                + ("" if noParens else ")")
+                ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
             )
 
             return retT
@@ -673,17 +669,13 @@ class Expr:
 
                 args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                def_str = (
-                    "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
-                )
+                def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
 
                 return "(%s %s (%s) %s\n%s)" % (
                     def_str,
                     self.args[0],
                     args,
-                    self.type
-                    if self.type.name != "Function"
-                    else self.type.args[0],
+                    self.type if self.type.name != "Function" else self.type.args[0],
                     self.args[1],
                 )
 
@@ -707,9 +699,7 @@ class Expr:
                 + " "
                 + " ".join(
                     [
-                        a.name
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else str(a)
+                        a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                         for a in self.args
                     ]
                 )
@@ -739,13 +729,13 @@ class Expr:
                 return str(self.args[0])
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if isinstance(self.args[0], str):
-                if (self.args[0].startswith("inv") or self.args[0].startswith("ps")):
+                if self.args[0].startswith("inv") or self.args[0].startswith("ps"):
                     callStr = "( " + "%s " % (str(self.args[0]))
                     for a in self.args[1:]:
                         callStr += str(a) + " "
                     callStr += ")"
                     return callStr
-                elif (self.args[0].startswith("list")):
+                elif self.args[0].startswith("list"):
                     callStr = (
                         "("
                         + "%s"
@@ -772,21 +762,19 @@ class Expr:
                     return (
                         "("
                         + " ".join(
-                        [
-                            a.name
-                            if isinstance(a, ValueRef) and a.name != ""
-                            else str(a)
-                            for a in self.args
-                        ]
-                    )
+                            [
+                                a.name
+                                if isinstance(a, ValueRef) and a.name != ""
+                                else str(a)
+                                for a in self.args
+                            ]
+                        )
                         + ")"
                     )
             else:
                 return " ".join(
                     [
-                        a.name
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else str(a)
+                        a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
                         for a in self.args
                     ]
                 )
