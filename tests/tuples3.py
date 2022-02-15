@@ -33,13 +33,12 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    filename = sys.argv[1]
-    basename = os.path.splitext(os.path.basename(filename))[0]
+    filename = "tests/tuples3.ll"
+    basename = "tuples3"
 
-    fnName = sys.argv[2]
-    loopsFile = sys.argv[3]
-
-    cvcPath = sys.argv[4]
+    fnName = "_Z4testii"
+    loopsFile = "tests/tuples3.loops"
+    cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 

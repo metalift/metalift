@@ -30,13 +30,13 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    filename = sys.argv[1]
-    basename = os.path.splitext(os.path.basename(filename))[0]
+    filename = "tests/struct1.ll"
+    basename = "struct1"
 
-    fnName = sys.argv[2]
-    loopsFile = sys.argv[3]
+    fnName = "test"
+    loopsFile = "tests/struct1.loops"
 
-    cvcPath = sys.argv[4]
+    cvcPath = ""
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 

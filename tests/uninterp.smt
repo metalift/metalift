@@ -113,19 +113,19 @@
 (define-fun-rec test ((tmp9 Int) (arg Int) (arg1 Int)) Bool
 (= tmp9 (+ (uninterp arg arg) (uninterp arg1 arg1))))
 
-(declare-const test_tmp4 Int)
 (declare-const test_tmp3 Int)
+(declare-const test_arg1 Int)
+(declare-const test_tmp5 Int)
 (declare-const test_tmp6 Int)
 (declare-const test_arg Int)
-(declare-const test_tmp8 Int)
 (declare-const test_tmp7 Int)
-(declare-const test_tmp5 Int)
-(declare-const test_arg1 Int)
+(declare-const test_tmp4 Int)
+(declare-const test_tmp8 Int)
 (declare-const test_bb Bool)
 
 
 
-(assert (not (=> (and (= test_bb (=> (and (and (= test_tmp3 test_arg) (= test_tmp4 test_arg) (= test_tmp6 test_arg1) (= test_tmp8 (uninterp test_arg1 test_arg1)) (= test_tmp7 test_arg1) (= test_tmp5 (uninterp test_arg test_arg))) (and true true true)) (test (+ (uninterp test_arg test_arg) (uninterp test_arg1 test_arg1)) test_arg test_arg1)))) test_bb)))
+(assert (not (=> (and (= test_bb (=> (and (and (= test_tmp3 test_arg) (= test_tmp5 (uninterp test_arg test_arg)) (= test_tmp6 test_arg1) (= test_tmp7 test_arg1) (= test_tmp4 test_arg) (= test_tmp8 (uninterp test_arg1 test_arg1))) (and true true true)) (test (+ (uninterp test_arg test_arg) (uninterp test_arg1 test_arg1)) test_arg test_arg1)))) test_bb)))
 
 (check-sat)
 (get-model)
