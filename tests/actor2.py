@@ -4,11 +4,12 @@ from actor_util import synthesize_actor, check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
+import os
 
-if True:
-    from synthesize_rosette import synthesize
-else:
+if os.environ.get("SYNTH_CVC5") == "1":
     from synthesize_cvc5 import synthesize
+else:
+    from synthesize_rosette import synthesize
 
 synthStateStructure = [lat.MaxInt, lat.MaxInt]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
