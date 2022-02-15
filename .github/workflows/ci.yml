@@ -14,9 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jpetrucciani/mypy-check@master
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
         with:
-          mypy_flags: --ignore-missing-imports --strict --exclude value.py
+          python-version: 3.8
+      - name: Install Dependencies
+        run: pip install mypy
+      - name: Run mypy
+        run: mypy --ignore-missing-imports --strict --exclude value.py .
   build:
     runs-on: ubuntu-latest
 
@@ -68,5 +73,5 @@ jobs:
 
     - name: Test Actor Examples
       run: |
-        python -m tests.actor1 tests/actor1.ll test tests/actor1.loops cvc5
-        python -m tests.actor2 tests/actor2.ll test tests/actor2.loops cvc5
+        python -m tests.actor1 synth-debug tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5

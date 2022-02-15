@@ -370,6 +370,7 @@ def analyze(
     fnName: str,
     loopsFile: str,
     wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
+    fnNameSuffix: str = "",
     uninterpFuncs: List[str] = [],
 ) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
@@ -411,7 +412,7 @@ def analyze(
             print("%s" % i)
 
     print("====== compute vc")
-    (vars, invAndPs, preds, vc) = VC(fnName).computeVC(
+    (vars, invAndPs, preds, vc) = VC(fnName + fnNameSuffix).computeVC(
         blocksMap,
         list(fn.blocks)[0].name,
         list(fn.arguments),

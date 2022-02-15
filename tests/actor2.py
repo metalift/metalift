@@ -1,8 +1,9 @@
 from analysis import CodeInfo
 from ir import *
-from actor_util import synthesize_actor
+from actor_util import synthesize_actor, check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
+import sys
 
 if True:
     from synthesize_rosette import synthesize
@@ -18,10 +19,14 @@ def grammarEquivalence(inputState, synthState):
 
 
 def grammarStateInvariant(synthState):
-    return BoolLit(True)
+    return auto_grammar(Bool(), 1, synthState)
 
 
-def supportedCommand(inputState, synthState, args):
+def grammarSupportedCommand(synthState, args):
+    return auto_grammar(Bool(), 1, synthState, *args)
+
+
+def inOrder(cmd1, cmd2):
     return BoolLit(True)
 
 
@@ -88,14 +93,34 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    synthesize_actor(
-        synthStateType,
-        initState,
-        grammarStateInvariant,
-        supportedCommand,
-        grammar,
-        grammarQuery,
-        grammarEquivalence,
-        targetLang,
-        synthesize,
-    )
+    mode = sys.argv[1]
+    filename = sys.argv[2]
+    fnNameBase = sys.argv[3]
+    loopsFile = sys.argv[4]
+    cvcPath = sys.argv[5]
+
+    if mode == "aci":
+        check_aci(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+        )
+    else:
+        synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
+            initState,
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            grammar,
+            grammarQuery,
+            grammarEquivalence,
+            targetLang,
+            synthesize,
+            unboundedInts=True,
+        )

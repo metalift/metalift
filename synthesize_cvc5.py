@@ -103,7 +103,10 @@ def toExpr(
         else:
             return ast  # type: ignore
     else:
-        return ast
+        if ast.isnumeric():
+            return IntLit(int(ast))
+        else:
+            return ast
 
 
 def synthesize(

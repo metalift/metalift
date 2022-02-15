@@ -1,8 +1,9 @@
 from analysis import CodeInfo
 from ir import *
-from actor_util import synthesize_actor
+from actor_util import synthesize_actor, check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
+import sys
 
 if True:
     from synthesize_rosette import synthesize
@@ -11,6 +12,8 @@ else:
 
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+
+fastDebug = False
 
 
 def grammarEquivalence(inputState, synthState):
@@ -21,24 +24,21 @@ def grammarStateInvariant(synthState):
     return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
-def supportedCommand(inputState, synthState, args):
+def grammarSupportedCommand(synthState, args):
     add = args[0]
-    value = args[1]
 
     return Ite(
         Eq(add, IntLit(1)),
-        # insertion works if the elem is not in both sets
-        # so the sets are saturated
-        Not(
-            And(
-                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(0))),
-                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(1))),
-            )
-        ),
-        # deletion can work even if not in the insertion set
-        # because we can just add the element to both sets
-        # which results in an observed-equivalent final state
-        BoolLit(True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+    )
+
+
+def inOrder(arg1, arg2):
+    return Ite(
+        Eq(arg1[0], IntLit(1)),  # if first command is insert
+        BoolLit(True),  # second can be insert or remove
+        Eq(arg2[0], IntLit(0)),  # but if remove, must be remove next
     )
 
 
@@ -47,7 +47,24 @@ def grammarQuery(ci: CodeInfo):
 
     outputVar = ci.modifiedVars[0]
 
-    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    synthState = ci.readVars[0]
+
+    if not fastDebug:
+        setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    else:  # hardcoded for quick debugging
+        setContainTransformed = Call(
+            "set-member",
+            Bool(),
+            ci.readVars[1],
+            Call(
+                "set-minus",
+                Set(Int()),
+                Choose(
+                    TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
+                ),
+                TupleGet(synthState, IntLit(1)),
+            ),
+        )
 
     out = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -96,14 +113,36 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    synthesize_actor(
-        synthStateType,
-        initState,
-        grammarStateInvariant,
-        supportedCommand,
-        grammar,
-        grammarQuery,
-        grammarEquivalence,
-        targetLang,
-        synthesize,
-    )
+    mode = sys.argv[1]
+    filename = sys.argv[2]
+    fnNameBase = sys.argv[3]
+    loopsFile = sys.argv[4]
+    cvcPath = sys.argv[5]
+
+    if mode == "aci":
+        check_aci(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+        )
+    else:
+        if mode == "synth-debug":
+            fastDebug = True
+
+        synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
+            initState,
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            grammar,
+            grammarQuery,
+            grammarEquivalence,
+            targetLang,
+            synthesize,
+        )
