@@ -12,7 +12,10 @@ else:
     from synthesize_rosette import synthesize
 
 synthStateStructure = [lat.Set(Int())]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure], Int()) # TODO(shadaj): automate insertion of dummy
+synthStateType = Tuple(
+    *[a[0] for a in synthStateStructure], Int()
+)  # TODO(shadaj): automate insertion of dummy
+
 
 def grammarEquivalence(inputState, synthState):
     return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
@@ -82,7 +85,7 @@ def grammar(ci: CodeInfo):
                     )
                     for i in range(len(synthStateStructure))
                 ],
-                IntLit(0), # TODO(shadaj): automate insertion of dummy
+                IntLit(0),  # TODO(shadaj): automate insertion of dummy
             ),
         )
 
@@ -92,7 +95,7 @@ def grammar(ci: CodeInfo):
 def initState():
     return MakeTuple(
         *[elem[2] for elem in synthStateStructure],
-        IntLit(0), # TODO(shadaj): automate insertion of dummy
+        IntLit(0),  # TODO(shadaj): automate insertion of dummy
     )
 
 
