@@ -494,7 +494,7 @@ class VC:
             return Call(
                 i.operands[0],  # type: ignore
                 i.operands[1],  # type: ignore
-                *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]]  # type: ignore
+                *[VC.evalMLInst(a, reg, mem) for a in i.operands[2:]],  # type: ignore
             )
         else:
             raise Exception("NYI: %s" % i)
