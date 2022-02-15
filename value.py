@@ -1,3 +1,6 @@
+# akcheung: replace llvmlite's value.py with this file
+# on osx this is /Library/Frameworks/Python.framework/Versions/3.xxx/lib/python3.xxx/site-packages/llvmlite/binding
+
 from ctypes import POINTER, c_char_p, c_int, c_size_t, c_uint, c_bool, c_void_p
 import enum
 # akcheung
