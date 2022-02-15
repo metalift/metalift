@@ -341,10 +341,10 @@ def synthesize(
 
             if procVerify.returncode < 0:
                 resultVerify = "SAT/UNKNOWN"
-                verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
             else:
                 procOutput = procVerify.stdout
                 resultVerify = procOutput.decode("utf-8").split("\n")[0]
+            verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
 
         print("Vefication Output:", resultVerify)
         if resultVerify == "unsat":
@@ -354,7 +354,10 @@ def synthesize(
             )
             break
         else:
-            print("verification failed")
+            print(
+                "verification failed",
+                "\n\n".join([str(c) for c in candidatesSMT]),
+            )
             print("\n".join(verifyLogs))
             invGuess.append(resultSynth[1])
             print(invGuess)
