@@ -11,6 +11,7 @@ from smt_util import toSMT
 def summary(r, x, y):
     return Eq(r, Call("my_add", Int(), x, y))
 
+
 def grammar(ci: CodeInfo):
     name = ci.name
     if name.startswith("inv"):

@@ -113,7 +113,13 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
-            return Call("tuple%d" % (len(ast) - 1), Tuple(arg_eval[0], arg_eval[1], *arg_eval[2:]), *arg_eval)  # type: ignore
+            return Call(
+                "tuple%d" % (len(ast) - 1),
+                Tuple(
+                    arg_eval[0].type, arg_eval[1].type, *[e.type for e in arg_eval[2:]]
+                ),
+                *arg_eval,
+            )
         elif ast[0] == "tupleGet":
             foo = toExpr(ast[2], fnsType, varType)
             return TupleGet(

@@ -261,7 +261,7 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
     def lookup_var(v: Expr) -> Expr:
         for line in resultVerify:
             if line.startswith("(define-fun " + v.args[0] + " "):
-                return toExpr(generateAST(line)[0][4], [], [])
+                return toExpr(generateAST(line)[0][4], [], [], {}, {})
         raise Exception("Could not find variable " + v.args[0])
 
     if resultVerify[0] == "sat" or resultVerify[0] == "unknown":
