@@ -30,6 +30,8 @@ class Type:
             return "Int"
         elif self.name == "Bool":
             return "Bool"
+        elif self.name == "String":
+            return "String"
         elif self.name == "Tuple":
             args = " ".join(str(a) for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
@@ -67,8 +69,13 @@ def Bool() -> Type:
     return Type("Bool")
 
 
-def Pointer() -> Type:
-    return Type("Pointer")
+# for string literals
+def String() -> Type:
+    return Type("String")
+
+
+def Pointer(t: Type) -> Type:
+    return Type("Pointer", t)
 
 
 def List(contentT: Type) -> Type:
@@ -92,6 +99,7 @@ class Expr:
     class Kind(Enum):
         Var = "var"
         Lit = "lit"
+        Object = "obj"
 
         Add = "+"
         Sub = "-"
@@ -374,46 +382,72 @@ class Expr:
 
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if printMode == PrintMode.SMT:
-                declarations = []
-                for a in self.args[2:]:
-                    if isinstance(a, ValueRef):
-                        declarations.append((a.name, parseTypeRef(a.type)))
-                    else:
-                        declarations.append((a.args[0], a.type))
+                if self.args[1] is None:  # uninterpreted function
+                    args_type = " ".join(
+                        "(%s)" % parseTypeRef(a.type) for a in self.args[2:]
+                    )
+                    return "(declare-fun %s (%s) %s)" % (
+                        self.args[0],
+                        args_type,
+                        parseTypeRef(self.type),
+                    )
 
-                args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
+                else:
+                    declarations = []
+                    for a in self.args[2:]:
+                        if isinstance(a, ValueRef):
+                            declarations.append((a.name, parseTypeRef(a.type)))
+                        else:
+                            declarations.append((a.args[0], a.type))
 
-                def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
 
-                return "(%s %s (%s) %s\n%s)" % (
-                    def_str,
-                    self.args[0],
-                    args,
-                    self.type if self.type.name != "Function" else self.type.args[0],
-                    self.args[1],
-                )
-            else:
-                args = " ".join(
-                    [
-                        "%s" % (a.name)
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else "%s" % (a.args[0])
-                        for a in self.args[2:]
-                    ]
-                )
+                    def_str = (
+                        "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                    )
 
-                def_str = (
-                    "define"
-                    if kind == Expr.Kind.FnDeclNonRecursive
-                    else "define-bounded"
-                )
+                    return "(%s %s (%s) %s\n%s)" % (
+                        def_str,
+                        self.args[0],
+                        args,
+                        self.type
+                        if self.type.name != "Function"
+                        else self.type.args[0],
+                        self.args[1],
+                    )
+            else:  # printMode == PrintMode.Rosette
+                if self.args[1] is None:  # uninterpreted function
+                    args_type = " ".join(
+                        ["%s" % toRosetteType(a.type) for a in self.args[2:]]
+                    )
+                    return "(define-symbolic %s (~> %s %s))" % (
+                        self.args[0],
+                        args_type,
+                        toRosetteType(self.type),
+                    )
 
-                return "(%s (%s %s) \n%s)" % (
-                    def_str,
-                    self.args[0],
-                    args,
-                    self.args[1],
-                )
+                else:
+                    args = " ".join(
+                        [
+                            "%s" % (a.name)
+                            if isinstance(a, ValueRef) and a.name != ""
+                            else "%s" % (a.args[0])
+                            for a in self.args[2:]
+                        ]
+                    )
+
+                    def_str = (
+                        "define"
+                        if kind == Expr.Kind.FnDeclNonRecursive
+                        else "define-bounded"
+                    )
+
+                    return "(%s (%s %s) \n%s)" % (
+                        def_str,
+                        self.args[0],
+                        args,
+                        self.args[1],
+                    )
         elif kind == Expr.Kind.Tuple:
             if printMode == PrintMode.RosetteVC:
                 # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
@@ -550,8 +584,12 @@ def Var(name: str, ty: Type) -> Expr:
     return Expr(Expr.Kind.Var, ty, [name])
 
 
-def Lit(val: Union[bool, int], ty: Type) -> Expr:
+def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
     return Expr(Expr.Kind.Lit, ty, [val])
+
+
+def Object(ty: Type) -> Expr:
+    return Expr(Expr.Kind.Object, ty, {})
 
 
 def IntLit(val: int) -> Expr:
@@ -674,13 +712,19 @@ class MLInst:
         Or = "or"
         Return = "return"
 
-    def __init__(self, opcode: str, *operands: Union["MLInst", Expr, ValueRef]) -> None:
+    def __init__(
+        self, opcode: str, *operands: Union["MLInst", Expr, ValueRef], name: str = ""
+    ) -> None:
         self.opcode = opcode
         self.operands = operands
+        self.name = name
 
     def __str__(self) -> str:
+        prefix = "%s = " % self.name if self.name else ""
+
         if self.opcode == MLInst.Kind.Call:
-            return "call %s %s(%s)" % (
+            return "%scall %s %s(%s)" % (
+                prefix,
                 self.operands[0],
                 self.operands[1],
                 " ".join(
@@ -771,3 +815,13 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Tuple(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
+
+
+# XXX: move this to a separate file
+def toRosetteType(t: Type) -> str:
+    if t == Int():
+        return "integer?"
+    elif t == Bool():
+        return "boolean?"
+    else:
+        raise Exception("NYI: %s" % t)

@@ -16,6 +16,8 @@ from ir import (
     MLInst_Assume,
     MLInst_Havoc,
     MLInst_Not,
+    String,
+    Lit,
 )
 from vc import Block, VC
 from llvmlite.binding import ValueRef
@@ -317,6 +319,51 @@ def processBranches(
     return retCodeInfo
 
 
+def parseGlobals(global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
+    globalVars = {}
+    for g in global_variables:
+        if re.search("\[. x i8\]\*", str(g.type)):  # strings have type [n x i8]*
+            o = re.search('"(.+)"', str(g))
+            if o:
+                v = o.group(1).replace("\\00", "")
+            else:
+                raise Exception("failed to match on type: %s" % str(g.type))
+            globalVars[g.name] = v
+
+    print("globals:")
+    for (k, v) in globalVars.items():
+        print("%s -> %s" % (k, v))
+    return globalVars
+
+
+def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
+    p = re.compile("ML_(\w+)_(set|get)_(\w+)")
+    for b in blocksMap.values():
+        for i in b.instructions:
+            opcode = i.opcode
+            ops = list(i.operands)
+
+            if opcode == "call":
+                fnName = ops[-1].name
+                r = p.search(fnName)
+                if r:
+                    className = r.group(1)  # not used
+                    op = r.group(2)
+                    fieldName = r.group(3)
+                    if op == "set":
+                        # newInst = MLInst_Call("setField", i.type, Lit(fieldName, String()), ops[0], ops[1])
+                        i.operands = [
+                            Lit(fieldName, String()),
+                            ops[0],
+                            ops[1],
+                            "setField",
+                        ]
+                    else:
+                        # i.operands = ["getField", i.type, Lit(fieldName, String()), ops[0], "getField"]
+                        i.operands = [Lit(fieldName, String()), ops[0], "getField"]
+                        # print("inst: %s" % i)
+
+
 # run all code analysis
 def analyze(
     filename: str,
@@ -324,6 +371,7 @@ def analyze(
     loopsFile: str,
     wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
     fnNameSuffix: str = "",
+    uninterpFuncs: List[str] = [],
 ) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
@@ -332,6 +380,8 @@ def analyze(
     blocksMap = setupBlocks(fn.blocks)
 
     parseSrets(list(fn.arguments), blocksMap.values())
+    globalVars = parseGlobals(ref.global_variables)
+    parseObjectFuncs(blocksMap)
 
     loops = parseLoops(loopsFile, fnName)
     loopAndPsInfo = []
@@ -355,6 +405,7 @@ def analyze(
     )
 
     print("====== after transforms")
+
     for b in blocksMap.values():
         print("blk: %s" % b.name)
         for i in b.instructions:
@@ -362,7 +413,11 @@ def analyze(
 
     print("====== compute vc")
     (vars, invAndPs, preds, vc) = VC(fnName + fnNameSuffix).computeVC(
-        blocksMap, list(fn.blocks)[0].name, list(fn.arguments)
+        blocksMap,
+        list(fn.blocks)[0].name,
+        list(fn.arguments),
+        globalVars,
+        uninterpFuncs,
     )
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)

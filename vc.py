@@ -22,6 +22,8 @@ class State:
     args: typing.List[Expr]
     vc: Optional[Expr]
     assumes: typing.List[Expr]
+    uninterpFuncs: typing.List[str]
+    gvars: Dict[str, str]
 
     def __init__(self) -> None:
         self.regs = {}
@@ -29,6 +31,8 @@ class State:
         self.args = []
         self.vc = None
         self.assumes = []
+        self.uninterpFuncs = []
+        self.gvars = {}
 
     def __repr__(self) -> str:
         # keys are ValueRef objs
@@ -94,13 +98,19 @@ class VC:
         blocksMap: Dict[str, Block],
         firstBlockName: str,
         arguments: typing.List[ValueRef],
+        gvars: Dict[str, str],
+        uninterpFuncs: typing.List[str] = [],
     ) -> typing.Tuple[typing.Set[Expr], typing.List[Expr], typing.List[Expr], Expr]:
+
         initBlock = blocksMap[firstBlockName]
+        initBlock.state.assumes.append(BoolLit(True))
+        initBlock.state.gvars = gvars
         for arg in arguments:
             v = self.makeVar(arg.name, arg.type)
             initBlock.state.regs[arg] = v
             initBlock.state.args.append(v)
             initBlock.state.assumes.append(BoolLit(True))
+            initBlock.state.uninterpFuncs.extend(uninterpFuncs)
 
         # simple loop assuming the blocks are in predecessor order
         # for b in blocksMap.values():
@@ -182,6 +192,8 @@ class VC:
             s.mem = dict([(k, deepcopy(v)) for k, v in src.mem.items()])
             s.args = deepcopy(src.args)
             s.assumes = deepcopy(src.assumes)
+            s.uninterpFuncs = deepcopy(src.uninterpFuncs)
+            s.gvars = deepcopy(src.gvars)
             return s
 
         else:  # merge
@@ -202,6 +214,23 @@ class VC:
                 for p in preds
             ]
             s.assumes.append(Or(*assumeE) if len(assumeE) > 1 else assumeE[0])
+
+            if any(
+                p.state.uninterpFuncs != preds[0].state.uninterpFuncs for p in preds
+            ):
+                raise Exception(
+                    "preds have different number of uninterpreted functions: %s"
+                    % "; ".join([str(p.state.uninterpFuncs) for p in preds])
+                )
+            s.uninterpFuncs.extend(preds[0].state.uninterpFuncs)
+
+            if all(p.state.gvars == preds[0].state.gvars for p in preds):
+                s.gvars = preds[0].state.gvars
+
+            else:
+                raise Exception(
+                    "globals are not the same in states to be merged: %s" % str(preds)
+                )
 
             return s
 
@@ -301,6 +330,15 @@ class VC:
                     s.mem[i] = Lit(0, Tuple(*retType))
                 elif t.startswith("%struct.tup"):
                     s.mem[i] = Lit(0, Tuple(Int(), Int()))
+                elif t.startswith(
+                    "%struct."
+                ):  # not a tuple or set, assume to be user defined type
+                    o = re.search("%struct.(.+)", t)
+                    if o:
+                        tname = o.group(1)
+                    else:
+                        raise Exception("failed to match struct %s: " % t)
+                    s.mem[i] = Object(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 
@@ -345,13 +383,17 @@ class VC:
                 pass
 
             elif opcode == "bitcast" or opcode == "sext":
-                s.regs[i] = VC.parseOperand(ops[0], s.regs)
+                # XXX: this is a hack. bitcast should operate on reg values.
+                # this is because we currently do not assign out numerical addresses that are stored in regs
+                if ops[0] in s.regs:
+                    s.regs[i] = VC.parseOperand(ops[0], s.regs)
+                else:
+                    s.mem[i] = VC.parseOperand(ops[0], s.mem)
 
             elif opcode == "call":  # last arg is fn to be called
                 fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
                 if fnName in models.fnModels:
-                    rv = models.fnModels[fnName](s.regs, *ops[:-1])
-                    # print("ret: %s, %s" % (r.val, r.assigns))
+                    rv = models.fnModels[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
                     if rv.val:
                         s.regs[i] = rv.val
                         assigns.add(i)
@@ -359,6 +401,23 @@ class VC:
                         for k, v in rv.assigns:
                             s.regs[k] = v
                             assigns.add(k)
+
+                elif fnName in s.uninterpFuncs:
+                    s.regs[i] = Call(
+                        fnName, parseTypeRef(i.type), *[s.regs[op] for op in ops[:-1]]
+                    )
+                    assigns.add(i)
+
+                # elif fnName == "setField":
+                #     (fieldName, obj, val, fname) = ops
+                #     print("%s %s to %s" % (fname, obj, val))
+                #     s.mem[obj].args[fieldName.args[0]] = s.regs[val]
+                #
+                # elif fnName == "getField":
+                #     (fieldName, obj, fname) = ops
+                #     print("get %s %s" % (fname, s.mem[obj].args[fieldName.args[0]]))
+                #     s.regs[i] = s.mem[obj].args[fieldName.args[0]]
+                #     print("get to %s %s" % (i, s.regs[i]))
 
                 else:
                     raise Exception("NYI: %s, name: %s" % (i, fnName))
