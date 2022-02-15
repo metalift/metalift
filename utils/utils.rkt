@@ -1,4 +1,6 @@
-#lang rosette
+#lang rosette/safe
+
+(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)
 
 (provide (all-defined-out))
 
@@ -61,7 +63,7 @@
 
 ; todo: use merge-sort and constrain input sets to not have duplicate elements
 (define (set-union s1 s2)
-  (sort (remove-duplicates (append s1 s2)) <))
+  (merge s1 s2))
 
 (define (set-member v s1)
   (ormap (lambda (c) (equal? v c)) s1))
