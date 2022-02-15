@@ -38,7 +38,7 @@ if __name__ == "__main__":
     filename = "tests/tuples1.ll"
     basename = "tuples1"
 
-    fnName = "test"
+    fnName = "_Z4testii"
     loopsFile = "tests/tuples1.loops"
 
     cvcPath = "cvc5"
