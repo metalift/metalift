@@ -12,9 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jpetrucciani/mypy-check@master
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
         with:
-          mypy_flags: --ignore-missing-imports --strict
+          python-version: 3.8
+      - name: Install Dependencies
+        run: pip install mypy
+      - name: Run mypy
+        run: mypy --ignore-missing-imports --strict .
   build:
     runs-on: ubuntu-latest
 
