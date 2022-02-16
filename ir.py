@@ -733,7 +733,7 @@ class Expr:
                     callStr = "( " + "%s " % (str(self.args[0]))
                     for a in self.args[1:]:
                         callStr += str(a) + " "
-                        callStr += ")"
+                    callStr += ")"
                     return callStr
                 elif self.args[0].startswith("list"):
                     callStr = (
@@ -754,8 +754,10 @@ class Expr:
                     callStr += ")"
                     return callStr
 
-                elif self.type.name == "Function":
-                    return "%s" % (self.args[0])
+                # elif (
+                #     self.type.name == "Function"
+                # ):
+                #     return "%s" % (self.args[0])
                 else:
                     return (
                         "("
