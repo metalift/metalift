@@ -11,10 +11,10 @@ if os.environ.get("SYNTH_CVC5") == "1":
 else:
     from synthesize_rosette import synthesize
 
-synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure])
-
-fastDebug = False
+synthStateStructure = [lat.Set(Int())]
+synthStateType = Tuple(
+    *[a[0] for a in synthStateStructure], Int()
+)  # TODO(shadaj): automate insertion of dummy
 
 
 def grammarEquivalence(inputState, synthState):
@@ -36,10 +36,11 @@ def grammarSupportedCommand(synthState, args):
 
 
 def inOrder(arg1, arg2):
+    # adds win
     return Ite(
         Eq(arg1[0], IntLit(1)),  # if first command is insert
-        BoolLit(True),  # second can be insert or remove
-        Eq(arg2[0], IntLit(0)),  # but if remove, must be remove next
+        Eq(arg2[0], IntLit(1)),  # second must be insert
+        BoolLit(True),  # but if remove, can be anything next
     )
 
 
@@ -50,22 +51,7 @@ def grammarQuery(ci: CodeInfo):
 
     synthState = ci.readVars[0]
 
-    if not fastDebug:
-        setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
-    else:  # hardcoded for quick debugging
-        setContainTransformed = Call(
-            "set-member",
-            Bool(),
-            ci.readVars[1],
-            Call(
-                "set-minus",
-                Set(Int()),
-                Choose(
-                    TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
-                ),
-                TupleGet(synthState, IntLit(1)),
-            ),
-        )
+    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
 
     out = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -98,7 +84,8 @@ def grammar(ci: CodeInfo):
                         TupleGet(inputState, IntLit(i)), setTransform
                     )
                     for i in range(len(synthStateStructure))
-                ]
+                ],
+                IntLit(0),  # TODO(shadaj): automate insertion of dummy
             ),
         )
 
@@ -106,7 +93,10 @@ def grammar(ci: CodeInfo):
 
 
 def initState():
-    return MakeTuple(*[elem[2] for elem in synthStateStructure])
+    return MakeTuple(
+        *[elem[2] for elem in synthStateStructure],
+        IntLit(0),  # TODO(shadaj): automate insertion of dummy
+    )
 
 
 def targetLang():
@@ -128,9 +118,6 @@ if __name__ == "__main__":
             cvcPath,
         )
     else:
-        if mode == "synth-debug":
-            fastDebug = True
-
         synthesize_actor(
             filename,
             fnNameBase,
