@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
         with:
-           black_args: --extend-exclude "tests|value.py" --check --diff .
+           black_args: --check --diff .
   mypy:
     runs-on: ubuntu-latest
     steps:
@@ -78,5 +78,6 @@ jobs:
 
     - name: Test Actor Examples
       run: |
-        python -m tests.actor1 synth tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
