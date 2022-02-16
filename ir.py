@@ -266,7 +266,8 @@ class Expr:
 
             # rewrite common exprs to use each other
             commonExprs = [
-                Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True) for e in commonExprs
+                Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True)
+                for e in commonExprs
             ]
 
             decls = "((rv %s) %s)" % (
