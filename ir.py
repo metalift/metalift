@@ -9,15 +9,6 @@ from typing import Any, Callable, Dict, Union
 class PrintMode(Enum):
     SMT = 0
     Rosette = 1
-    RosetteVC = 2
-
-
-printMode = PrintMode.SMT
-
-# for external functions to call
-def setPrintMode(mode: PrintMode) -> None:
-    global printMode
-    printMode = mode
 
 
 class Type:
@@ -157,410 +148,29 @@ class Expr:
     def replaceExprs(
         e: Union[bool, "Expr", ValueRef, int, str],
         commonExprs: typing.List[Union["Expr", Any]],
+        mode: PrintMode,
         skipTop: bool = False,
     ) -> Union["Expr", ValueRef]:
         # skipTop is used to ignore the top-level match when simplifying a common expr
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
-                newArgs = [Expr.replaceExprs(arg, commonExprs) for arg in e.args]
+                newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
                 return Expr(e.kind, e.type, newArgs)
             else:
                 return e  # ValueRef or TypeRef
         else:
             assert isinstance(e, Expr)
-            if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
+            if mode == PrintMode.Rosette:
                 return Var("(v%d)" % commonExprs.index(e), e.type)
             else:
                 return Var("v%d" % commonExprs.index(e), e.type)
 
-    @staticmethod
-    def printSynth(e: "Expr") -> str:
-        cnts = Expr.findCommonExprs(e.args[1], {})
-        commonExprs = list(
-            filter(
-                lambda k: k.kind == Expr.Kind.Choose,
-                cnts.keys(),
-            )
-        )
-        rewritten = Expr.replaceExprs(e.args[1], commonExprs)
-
-        # rewrite common exprs to use each other
-        commonExprs = [
-            Expr.replaceExprs(e, commonExprs, skipTop=True) for e in commonExprs
-        ]
-
-        if printMode == PrintMode.Rosette or printMode == PrintMode.RosetteVC:
-            args = " ".join(
-                "%s" % (a.name) if isinstance(a, ValueRef) else str(a)
-                for a in e.args[2:]
-            )
-
-            defs = "[rv (choose %s)]\n" % (
-                rewritten
-                if rewritten.kind == Expr.Kind.Var or rewritten.kind == Expr.Kind.Lit
-                else "%s" % rewritten
-            )
-
-            defs = defs + "\n".join(
-                "%s %s)]" % ("[v%d (choose" % i, e) for i, e in enumerate(commonExprs)
-            )
-
-            return "(define-grammar (%s_gram %s)\n %s\n)" % (e.args[0], args, defs)
-        else:  # printMode == PrintMode.SMT
-            decls = "((rv %s) %s)" % (
-                e.type,
-                " ".join(
-                    "(%s %s)" % ("v%d" % i, parseTypeRef(e.type))
-                    for i, e in enumerate(commonExprs)
-                ),
-            )
-            defs = "(rv %s %s)\n" % (
-                e.type,
-                rewritten if rewritten.kind == Expr.Kind.Choose else "(%s)" % rewritten,
-            )
-            defs = defs + "\n".join(
-                "(%s %s %s)"
-                % (
-                    "v%d" % i,
-                    parseTypeRef(e.type),
-                    e if e.kind == Expr.Kind.Choose else f"({e})",
-                )
-                for i, e in enumerate(commonExprs)
-            )
-
-            body = decls + "\n" + "(" + defs + ")"
-
-            declarations = []
-            for a in e.args[2:]:
-                if isinstance(a, ValueRef):
-                    declarations.append((a.name, parseTypeRef(a.type)))
-                else:
-                    declarations.append((a.args[0], a.type))
-
-            args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
-            return "(synth-fun %s (%s) %s\n%s)" % (e.args[0], args, e.type, body)
-
     def __repr__(self) -> str:
-        global printMode
-        if printMode == PrintMode.SMT:
-            return self.toSMT()
-        else:
-            return self.toRosette()
-
-    def __repr__old(self) -> str:
-        global printMode
-        listFns = {
-            "list_get": "list-ref-noerr",
-            "list_append": "list-append",
-            "list_empty": "list-empty",
-            "list_tail": "list-tail-noerr",
-            "list_length": "length",
-            "list_take": "list-take-noerr",
-            "list_prepend": "list-prepend",
-            "list_eq": "equal?",
-            "list_concat": "list-concat",
-        }
-        kind = self.kind
-        if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-            if kind == Expr.Kind.Lit and self.type == Bool():
-                if self.args[0] == True:
-                    return "true"
-                else:
-                    return "false"
-            else:
-                return str(self.args[0])
-        elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
-            if printMode == PrintMode.SMT:
-                noParens = kind == Expr.Kind.Call and len(self.args) == 1
-                retVal = []
-
-                if self.args[0] == "set-create":
-                    return f"(as set.empty {str(self.type)})"
-
-                if self.args[0] == "tupleGet":
-                    argvals = self.args[:-1]
-                else:
-                    argvals = self.args
-                for idx, a in enumerate(argvals):
-                    if isinstance(a, ValueRef) and a.name != "":
-                        retVal.append(a.name)
-                    elif (str(a)) == "make-tuple":
-                        retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
-                    elif (str(a)) == "tupleGet":
-
-                        if self.args[idx + 1].args[0] == "make-tuple":
-                            retVal.append(
-                                "tuple%d_get%d"
-                                % (
-                                    len(self.args[idx + 1].args) - 1,
-                                    self.args[idx + 2].args[0],
-                                )
-                            )
-                        else:
-                            # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
-                            freq: typing.Counter[str] = Counter(
-                                self.args[idx + 1].args[0].split("_")[1]
-                            )
-                            retVal.append(
-                                "tuple%d_get%d"
-                                % (freq["i"], self.args[idx + 2].args[0])
-                            )
-                    elif (str(a)).startswith("set-"):
-                        retVal.append("set.%s" % (str(a)[4:]))
-                    else:
-                        retVal.append(str(a))
-
-                retT = (
-                    ("" if noParens else "(")
-                    + " ".join(retVal)
-                    + ("" if noParens else ")")
-                )
-
-                return retT
-
-            else:
-                if isinstance(self.args[0], str):
-                    if (
-                        self.args[0].startswith("inv") or self.args[0].startswith("ps")
-                    ) and printMode == PrintMode.RosetteVC:
-                        callStr = "( " + "%s " % (str(self.args[0]))
-                        for a in self.args[1:]:
-                            callStr += str(a) + " "
-                        callStr += ")"
-                        return callStr
-                    elif (
-                        self.args[0].startswith("list")
-                        and printMode == PrintMode.RosetteVC
-                    ):
-                        callStr = (
-                            "("
-                            + "%s"
-                            % (
-                                listFns[self.args[0]]
-                                if self.args[0] in listFns.keys()
-                                else self.args[0]
-                            )
-                            + " "
-                        )
-                        for a in self.args[1:]:
-                            if isinstance(a, ValueRef) and a.name != "":
-                                callStr += "%s " % (a.name)
-                            else:
-                                callStr += str(a) + " "
-                        callStr += ")"
-                        return callStr
-
-                    elif (
-                        self.type.name == "Function" and printMode == PrintMode.Rosette
-                    ):
-                        return "%s" % (self.args[0])
-                    else:
-                        return (
-                            "("
-                            + " ".join(
-                                [
-                                    a.name
-                                    if isinstance(a, ValueRef) and a.name != ""
-                                    else str(a)
-                                    for a in self.args
-                                ]
-                            )
-                            + ")"
-                        )
-                else:
-                    return " ".join(
-                        [
-                            a.name
-                            if isinstance(a, ValueRef) and a.name != ""
-                            else str(a)
-                            for a in self.args
-                        ]
-                    )
-
-        elif kind == Expr.Kind.Synth:
-            return Expr.printSynth(self)
-
-        elif kind == Expr.Kind.Axiom:
-            if printMode == PrintMode.SMT:
-                vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
-                return "(assert (forall ( %s ) ) %s) " % (" ".join(vs), self.args[0])
-            else:
-                raise Exception("NYI: %s" % self)
-
-        elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
-            if printMode == PrintMode.SMT:
-                if self.args[1] is None:  # uninterpreted function
-                    args_type = " ".join(
-                        "(%s)" % parseTypeRef(a.type) for a in self.args[2:]
-                    )
-                    return "(declare-fun %s (%s) %s)" % (
-                        self.args[0],
-                        args_type,
-                        parseTypeRef(self.type),
-                    )
-
-                else:
-                    declarations = []
-                    for a in self.args[2:]:
-                        if isinstance(a, ValueRef):
-                            declarations.append((a.name, parseTypeRef(a.type)))
-                        else:
-                            declarations.append((a.args[0], a.type))
-
-                    args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
-
-                    def_str = (
-                        "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
-                    )
-
-                    return "(%s %s (%s) %s\n%s)" % (
-                        def_str,
-                        self.args[0],
-                        args,
-                        self.type
-                        if self.type.name != "Function"
-                        else self.type.args[0],
-                        self.args[1],
-                    )
-            else:  # printMode == PrintMode.Rosette
-                if self.args[1] is None:  # uninterpreted function
-                    args_type = " ".join(
-                        ["%s" % toRosetteType(a.type) for a in self.args[2:]]
-                    )
-                    return "(define-symbolic %s (~> %s %s))" % (
-                        self.args[0],
-                        args_type,
-                        toRosetteType(self.type),
-                    )
-
-                else:
-                    args = " ".join(
-                        [
-                            "%s" % (a.name)
-                            if isinstance(a, ValueRef) and a.name != ""
-                            else "%s" % (a.args[0])
-                            for a in self.args[2:]
-                        ]
-                    )
-
-                    def_str = (
-                        "define"
-                        if kind == Expr.Kind.FnDeclNonRecursive
-                        else "define-bounded"
-                    )
-
-                    return "(%s (%s %s) \n%s)" % (
-                        def_str,
-                        self.args[0],
-                        args,
-                        self.args[1],
-                    )
-        elif kind == Expr.Kind.Tuple:
-            if printMode == PrintMode.RosetteVC:
-                # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
-                # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
-                return str(Call("make-tuple", self.type, *self.args))
-            else:
-                args = " ".join(["%s" % arg for arg in self.args])
-                return "(tuple%d %s)" % (len(self.args), args)
-
-        elif kind == Expr.Kind.TupleGet:
-            if printMode == PrintMode.RosetteVC:
-                return "(tupleGet %s)" % " ".join(["%s" % arg for arg in self.args])
-            else:
-                # example: generate (tuple2_get0 t)
-                return "(tuple%d_get%d %s)" % (
-                    len(self.args[0].type.args),
-                    self.args[1].args[0],
-                    self.args[0],
-                )  # args[1] must be an int literal
-        # elif kind == Expr.Kind.Eq and self.args[0].type.name == "Tuple":
-        #     return repr(
-        #         And(
-        #             *[
-        #                 Eq(TupleSel(self.args[0], i), TupleSel(self.args[1], i))
-        #                 for i in range(len(self.args[0].type.args))
-        #             ]
-        #         )
-        #     )
-        else:
-            if printMode == PrintMode.SMT:
-                value = self.kind.value
-            elif printMode == PrintMode.RosetteVC:
-                k = self.kind
-                if k == Expr.Kind.And:
-                    value = "&&"
-                elif k == Expr.Kind.Eq:
-                    if self.args[0].type.name == "Set":
-                        value = "set-eq"
-                    else:
-                        value = "equal?"
-                elif k == Expr.Kind.Ite:
-                    value = "if"
-                else:
-                    value = self.kind.value
-            else:
-                k = self.kind
-                if k == Expr.Kind.And:
-                    value = "_and"
-                elif k == Expr.Kind.Eq:
-                    value = "_eq"
-                elif k == Expr.Kind.Or:
-                    value = "_or"
-                elif k == Expr.Kind.Implies:
-                    value = "_implies"
-                elif k == Expr.Kind.Not:
-                    value = "_not"
-                elif k == Expr.Kind.Ite:
-                    value = "_if"
-                elif k == Expr.Kind.Add:
-                    value = "_add"
-                elif k == Expr.Kind.Sub:
-                    value = "_sub"
-                elif k == Expr.Kind.Mul:
-                    value = "_mul"
-                elif k == Expr.Kind.Le:
-                    value = "_lte"
-                elif k == Expr.Kind.Lt:
-                    value = "_lt"
-                elif k == Expr.Kind.Ge:
-                    value = "_gte"
-                elif k == Expr.Kind.Gt:
-                    value = "_gt"
-
-                else:
-                    value = self.kind.value
-
-            if printMode == PrintMode.SMT or printMode == PrintMode.Rosette:
-                return (
-                    "("
-                    + value
-                    + " "
-                    + " ".join(
-                        [
-                            a.name
-                            if isinstance(a, ValueRef) and a.name != ""
-                            else str(a)
-                            for a in self.args
-                        ]
-                    )
-                    + ")"
-                )
-            else:
-                retStr = "(" + value + " "
-                for a in self.args:
-                    if isinstance(a, ValueRef) and a.name != "":
-                        retStr += "%s" % (a.name) + " "
-                    else:
-                        strExp = str(a)
-                        if (strExp) in listFns.keys() and "list_empty" in (strExp):
-                            retStr += "(" + listFns[strExp] + ")" + " "
-                        elif (strExp) in listFns.keys():
-                            retStr += listFns[strExp]
-                        else:
-                            retStr += strExp + " "
-                retStr += ")"
-                return retStr
+        return "(%s:%s %s)" % (
+            self.kind.name,
+            self.type,
+            " ".join(str(a) for a in self.args),
+        )
 
     # commented out so that common exprs can be detected
     #
@@ -596,6 +206,7 @@ class Expr:
                     return "false"
             else:
                 return str(self.args[0])
+
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             noParens = kind == Expr.Kind.Call and len(self.args) == 1
             retVal = []
@@ -607,13 +218,13 @@ class Expr:
                 argvals = self.args[:-1]
             else:
                 argvals = self.args
+
             for idx, a in enumerate(argvals):
                 if isinstance(a, ValueRef) and a.name != "":
                     retVal.append(a.name)
                 elif (str(a)) == "make-tuple":
                     retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
                 elif (str(a)) == "tupleGet":
-
                     if self.args[idx + 1].args[0] == "make-tuple":
                         retVal.append(
                             "tuple%d_get%d"
@@ -632,8 +243,10 @@ class Expr:
                         )
                 elif (str(a)).startswith("set-"):
                     retVal.append("set.%s" % (str(a)[4:]))
-                else:
+                elif isinstance(a, str):
                     retVal.append(str(a))
+                else:
+                    retVal.append(a.toSMT())
 
             retT = (
                 ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
@@ -642,7 +255,54 @@ class Expr:
             return retT
 
         elif kind == Expr.Kind.Synth:
-            return Expr.printSynth(self)
+            cnts = Expr.findCommonExprs(self.args[1], {})
+            commonExprs = list(
+                filter(
+                    lambda k: k.kind == Expr.Kind.Choose,
+                    cnts.keys(),
+                )
+            )
+            rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)
+
+            # rewrite common exprs to use each other
+            commonExprs = [
+                Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True) for e in commonExprs
+            ]
+
+            decls = "((rv %s) %s)" % (
+                self.type,
+                " ".join(
+                    "(%s %s)" % ("v%d" % i, parseTypeRef(e.type))
+                    for i, e in enumerate(commonExprs)
+                ),
+            )
+            defs = "(rv %s %s)\n" % (
+                self.type,
+                rewritten.toSMT()
+                if rewritten.kind == Expr.Kind.Choose
+                else "(%s)" % rewritten.toSMT(),
+            )
+            defs = defs + "\n".join(
+                "(%s %s %s)"
+                % (
+                    "v%d" % i,
+                    parseTypeRef(e.type),
+                    e.toSMT() if e.kind == Expr.Kind.Choose else f"({e.toSMT()})",
+                )
+                for i, e in enumerate(commonExprs)
+            )
+
+            body = decls + "\n" + "(" + defs + ")"
+
+            declarations = []
+            for a in self.args[2:]:
+                if isinstance(a, ValueRef):
+                    declarations.append((a.name, parseTypeRef(a.type)))
+                else:
+                    declarations.append((a.args[0].toSMT(), a.type))
+
+            args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
+            return "(synth-fun %s (%s) %s\n%s)" % (self.args[0], args, self.type, body)
 
         elif kind == Expr.Kind.Axiom:
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
@@ -676,11 +336,13 @@ class Expr:
                     self.args[0],
                     args,
                     self.type if self.type.name != "Function" else self.type.args[0],
-                    self.args[1],
+                    self.args[1]
+                    if isinstance(self.args[1], str)
+                    else self.args[1].toSMT(),
                 )
 
         elif kind == Expr.Kind.Tuple:
-            args = " ".join(["%s" % arg for arg in self.args])
+            args = " ".join(["%s" % arg.toSMT() for arg in self.args])
             return "(tuple%d %s)" % (len(self.args), args)
 
         elif kind == Expr.Kind.TupleGet:
@@ -688,7 +350,7 @@ class Expr:
             return "(tuple%d_get%d %s)" % (
                 len(self.args[0].type.args),
                 self.args[1].args[0],
-                self.args[0],
+                self.args[0].toSMT(),
             )  # args[1] must be an int literal
 
         else:
@@ -699,7 +361,11 @@ class Expr:
                 + " "
                 + " ".join(
                     [
-                        a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+                        a.name
+                        if isinstance(a, ValueRef) and a.name != ""
+                        else a.toSMT()
+                        if isinstance(a, Expr)
+                        else str(a)
                         for a in self.args
                     ]
                 )
@@ -727,14 +393,16 @@ class Expr:
                     return "false"
             else:
                 return str(self.args[0])
+
         elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
             if isinstance(self.args[0], str):
                 if self.args[0].startswith("inv") or self.args[0].startswith("ps"):
                     callStr = "( " + "%s " % (str(self.args[0]))
                     for a in self.args[1:]:
-                        callStr += str(a) + " "
+                        callStr += a.toRosette() + " "
                     callStr += ")"
                     return callStr
+
                 elif self.args[0].startswith("list"):
                     callStr = (
                         "("
@@ -750,7 +418,7 @@ class Expr:
                         if isinstance(a, ValueRef) and a.name != "":
                             callStr += "%s " % (a.name)
                         else:
-                            callStr += str(a) + " "
+                            callStr += a.toRosette() + " "
                     callStr += ")"
                     return callStr
 
@@ -766,6 +434,8 @@ class Expr:
                                 a.name
                                 if isinstance(a, ValueRef) and a.name != ""
                                 else str(a)
+                                if isinstance(a, str)
+                                else a.toRosette()
                                 for a in self.args
                             ]
                         )
@@ -774,13 +444,48 @@ class Expr:
             else:
                 return " ".join(
                     [
-                        a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+                        a.name
+                        if isinstance(a, ValueRef) and a.name != ""
+                        else str(a)
+                        if isinstance(a, str)
+                        else a.toRosette()
                         for a in self.args
                     ]
                 )
 
         elif kind == Expr.Kind.Synth:
-            return Expr.printSynth(self)
+            cnts = Expr.findCommonExprs(self.args[1], {})
+            commonExprs = list(
+                filter(
+                    lambda k: k.kind == Expr.Kind.Choose,
+                    cnts.keys(),
+                )
+            )
+            rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
+
+            # rewrite common exprs to use each other
+            commonExprs = [
+                Expr.replaceExprs(e, commonExprs, PrintMode.Rosette, skipTop=True)
+                for e in commonExprs
+            ]
+
+            args = " ".join(
+                "%s" % a.name
+                if isinstance(a, ValueRef)
+                else str(a)
+                if isinstance(a, str)
+                else a.toRosette()
+                for a in self.args[2:]
+            )
+
+            defs = "[rv (choose %s)]\n" % rewritten.toRosette()
+
+            defs = defs + "\n".join(
+                "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
+                for i, e in enumerate(commonExprs)
+            )
+
+            return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
         elif kind == Expr.Kind.Axiom:
             raise Exception("NYI: %s" % self)
@@ -816,16 +521,18 @@ class Expr:
                     def_str,
                     self.args[0],
                     args,
-                    self.args[1],
+                    self.args[1].toRosette(),
                 )
 
         elif kind == Expr.Kind.Tuple:
             # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
             # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
-            return str(Call("make-tuple", self.type, *self.args))
+            return Call("make-tuple", self.type, *self.args).toRosette()
 
         elif kind == Expr.Kind.TupleGet:
-            return "(tupleGet %s)" % " ".join(["%s" % arg for arg in self.args])
+            return "(tupleGet %s)" % " ".join(
+                ["%s" % arg.toRosette() for arg in self.args]
+            )
 
         else:
             if kind == Expr.Kind.And:
@@ -845,7 +552,7 @@ class Expr:
                 if isinstance(a, ValueRef) and a.name != "":
                     retStr += "%s" % (a.name) + " "
                 else:
-                    strExp = str(a)
+                    strExp = a.toRosette() if isinstance(a, Expr) else str(a)
                     if (strExp) in listFns.keys() and "list_empty" in (strExp):
                         retStr += "(" + listFns[strExp] + ")" + " "
                     elif (strExp) in listFns.keys():
@@ -1093,7 +800,6 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         raise Exception("NYI %s" % t)
 
 
-# XXX: move this to a separate file
 def toRosetteType(t: Type) -> str:
     if t == Int():
         return "integer?"

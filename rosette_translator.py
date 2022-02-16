@@ -2,7 +2,7 @@ from analysis import CodeInfo, analyze
 import ir
 import re
 import pyparsing as pp
-from ir import Expr, Var, PrintMode
+from ir import Expr, Var
 from llvmlite.binding import ValueRef
 from typing import Any, List, Sequence, Set, Tuple, Union
 
@@ -19,11 +19,11 @@ def generateAST(expr: str) -> List[Any]:
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
     if v.type.name == "Int":
-        decls.append("(define-symbolic %s integer?)" % (v))
+        decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
     elif v.type.name == "Bool":
-        decls.append("(define-symbolic %s boolean?)" % (v))
+        decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
     elif v.type.name == "MLList" or v.type.name == "Set":
@@ -75,7 +75,7 @@ def generateSynth(
     if invariant_guesses:
         blocking_constraints = []
         for inv in invariant_guesses:
-            blocking_constraints.append("(assert (!(eq? inv %s)))" % (inv))
+            blocking_constraints.append("(assert (!(eq? inv %s)))" % inv.toRosette())
         asserts = " ".join(blocking_constraints)
         synth_fun = (
             "(define sol\n (synthesize\n #:forall %s\n #:guarantee (begin (assertions) %s)))\n (sat? sol)\n %s"
@@ -98,7 +98,7 @@ def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
         )
         func_name = i.name if isinstance(i, CodeInfo) else i.args[0]
         arg_names = " ".join(
-            [a.name if isinstance(a, ValueRef) else str(a) for a in all_args]
+            [a.name if isinstance(a, ValueRef) else a.toRosette() for a in all_args]
         )
         decls += "(define (%s %s) (%s %s #:depth 10))\n" % (
             func_name,
@@ -131,17 +131,14 @@ def toRosette(
     )
 
     # struct declarations and function definition of target constructs
-    ir.printMode = PrintMode.RosetteVC
-
     for t in targetLang:
         if t.args[1] != "":
-            print("\n", t, "\n", file=f)
+            print("\n", t.toRosette(), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
     # inv and ps grammar definition
-    ir.printMode = PrintMode.RosetteVC
     for g in invAndPs:
-        print(g, "\n", file=f)
+        print(g.toRosette(), "\n", file=f)
 
     # inv and ps declaration
     print(generateInvPs(loopAndPsInfo), file=f)
@@ -162,8 +159,8 @@ def toRosette(
         print("(current-bitwidth #f)", file=f)
     else:
         print("(current-bitwidth %d)" % (6), file=f)
-    ir.printMode = PrintMode.RosetteVC
-    print("(define (assertions)\n (assert %s))\n" % (vc), file=f)
+
+    print("(define (assertions)\n (assert %s))\n" % vc.toRosette(), file=f)
 
     # synthesis function
     print(generateSynth(vars_all, invGuess), file=f)

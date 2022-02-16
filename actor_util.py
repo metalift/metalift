@@ -232,7 +232,6 @@ def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> N
     )
     # end state transition
 
-    ir.printMode = PrintMode.SMT
     toSMT(
         [],
         combinedVCVars,

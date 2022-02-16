@@ -75,15 +75,14 @@ def toSMT(
     isSynthesis: bool = False,
 ) -> None:
 
-    setPrintMode(PrintMode.SMT)
-
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
         out.write(open("./utils/tuples.smt", "r").read())
         if not isSynthesis:
             out.write(open("./utils/list-axioms.smt", "r").read())
 
-        out.write("\n\n".join([str(t) for t in targetLang]))
+        out.write("\n\n".join([t.toSMT() for t in targetLang]))
+
         if inCalls:
             fnDecls = []
             for i in inCalls:
@@ -107,14 +106,14 @@ def toSMT(
                 candidates.append(
                     FnDecl(cand.args[0], cand.type, newBody, *cand.args[2:])
                 )
-            out.write("\n\n".join(["\n%s\n" % (cand) for cand in candidates]))
+            out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
         elif fnCalls:
-            out.write("\n\n".join(["\n%s\n" % (cand) for cand in invAndPs]))
+            out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in invAndPs]))
         else:
             if isinstance(invAndPs, str):
                 out.write("\n\n%s\n\n" % invAndPs)
             else:
-                out.write("\n\n".join(["\n%s\n" % (cand) for cand in invAndPs]))
+                out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in invAndPs]))
 
         declarations: typing.List[typing.Tuple[str, Type]] = []
         for v in vars:
@@ -154,8 +153,8 @@ def toSMT(
             raise Exception("unknown type passed in for preds: %s" % preds)
 
         if isSynthesis:
-            out.write("%s\n\n" % Constraint(vc))
+            out.write("%s\n\n" % Constraint(vc).toSMT())
             out.write("(check-synth)")
         else:
-            out.write("%s\n\n" % MLInst_Assert(Not(vc)))
+            out.write("%s\n\n" % MLInst_Assert(Not(vc).toSMT()))
             out.write("(check-sat)\n(get-model)")

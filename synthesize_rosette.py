@@ -325,7 +325,6 @@ def synthesize(
         ##### verification of synthesized ps/inv
         print("====== verification")
         verifFile = synthDir + basename + ".smt"
-        ir.printMode = PrintMode.SMT
         toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
 
         verifyLogs: typing.List[str] = []
@@ -352,7 +351,7 @@ def synthesize(
                 resultVerify = procOutput.decode("utf-8").split("\n")[0]
             verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
 
-        print("Vefication Output:", resultVerify)
+        print("Verification Output:", resultVerify)
         if resultVerify == "unsat":
             print(
                 "Verified PS and INV Candidates ",
