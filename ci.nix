@@ -15,6 +15,6 @@ in [
 
   cvc5
   cmake
-  llvm_11
-  clang_11
+  llvm_10
+  clang_10
 ]
