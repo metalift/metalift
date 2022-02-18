@@ -166,11 +166,20 @@ class Expr:
                 return Var("v%d" % commonExprs.index(e), e.type)
 
     def __repr__(self) -> str:
-        return "(%s:%s %s)" % (
-            self.kind.name,
-            self.type,
-            " ".join(str(a) for a in self.args),
-        )
+        if self.kind == Expr.Kind.Var:
+            return self.args[0]  # type: ignore
+        elif self.kind == Expr.Kind.Call:
+            return "(%s:%s %s)" % (
+                self.args[0],
+                self.type,
+                " ".join(str(a) for a in self.args[1:]),
+            )
+        else:
+            return "(%s:%s %s)" % (
+                self.kind.name,
+                self.type,
+                " ".join(str(a) for a in self.args),
+            )
 
     # commented out so that common exprs can be detected
     #
@@ -300,7 +309,7 @@ class Expr:
                 if isinstance(a, ValueRef):
                     declarations.append((a.name, parseTypeRef(a.type)))
                 else:
-                    declarations.append((a.args[0].toSMT(), a.type))
+                    declarations.append((a.args[0], a.type))
 
             args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
             return "(synth-fun %s (%s) %s\n%s)" % (self.args[0], args, self.type, body)
