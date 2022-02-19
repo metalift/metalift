@@ -11,15 +11,14 @@ mkShell {
   venvDir = "./.venv";
   buildInputs = [
     (python38.withPackages (p: with p; [
-      llvmlite
       pyparsing
       black
       mypy
     ]))
 
     cvc5
-    llvm_10
-    clang_10
+    llvm_11
+    clang_11
   ];
 
   hardeningDisable = [ "fortify" ];
@@ -29,4 +28,6 @@ mkShell {
   ];
 
   NIX_LD = lib.fileContents "${stdenv.cc}/nix-support/dynamic-linker";
+
+  PYTHONPATH="llvmlite";
 }

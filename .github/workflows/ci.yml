@@ -54,6 +54,12 @@ jobs:
         nix-shell -p llvm_10 --run "make"
         cd ..
 
+    - name: Build llvmlite
+      run: |
+        cd llvmlite
+        python setup.py build
+        cd ..
+
     - name: Build Test Inputs
       run: |
         cd tests
@@ -75,6 +81,7 @@ jobs:
         python -m tests.uninterp
         python -m tests.while3
         python -m tests.while4
+        python -m tests.struct1
 
     - name: Test Actor Examples
       run: |
