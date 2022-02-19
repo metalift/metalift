@@ -70,6 +70,7 @@ jobs:
 
     - name: Test Core Examples
       run: |
+        export PYTHONPATH="llvmlite"
         python -m tests.count
         python -m tests.fma_dsl
         python -m tests.ite1
