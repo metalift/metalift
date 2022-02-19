@@ -27,6 +27,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: "recursive"
 
     - name: Cache install Nix packages
       uses: rikhuijzer/cache-install@v1.0.8
@@ -56,7 +58,6 @@ jobs:
 
     - name: Build llvmlite
       run: |
-        git submodule update --init --recursive
         cd llvmlite
         python setup.py build
         cd ..
