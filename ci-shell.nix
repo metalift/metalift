@@ -4,6 +4,9 @@ let
 in
 with pkgs;
 
+let
+  cvc5 = callPackage ./cvc5.nix { unstable = unstable; };
+in
 mkShell {
   venvDir = "./.venv";
   buildInputs = [
@@ -11,6 +14,7 @@ mkShell {
       pyparsing
     ]))
 
+    cvc5
     cmake
     llvm_11
     clang_11
