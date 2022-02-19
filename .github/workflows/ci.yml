@@ -35,6 +35,7 @@ jobs:
       with:
         key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
         nix_file: 'ci.nix'
+        nix_version: 'nixos-21.11'
 
     - name: Install Racket
       uses: Bogdanp/setup-racket@v1.7
@@ -48,7 +49,7 @@ jobs:
       run: raco pkg install --auto rosette
 
     - name: Build LLVM Pass
-      shell: nix-shell --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd llvm-pass
         mkdir build
@@ -58,14 +59,14 @@ jobs:
         cd ..
 
     - name: Build llvmlite
-      shell: nix-shell -p llvm_11 --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd llvmlite
         python setup.py build
         cd ..
 
     - name: Build Test Inputs
-      shell: nix-shell -p llvm_11 --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd tests
         ./compile-all
@@ -91,7 +92,7 @@ jobs:
         python -m tests.struct1
 
     - name: Test Actor Examples
-      shell: nix-shell -p llvm_11 --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
