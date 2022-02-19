@@ -52,14 +52,14 @@ jobs:
         cd llvm-pass
         mkdir build
         cd build
-        nix-shell -p llvm_10 --run "cmake .."
-        nix-shell -p llvm_10 --run "make"
+        nix-shell -p llvm_11 --run "cmake .."
+        nix-shell -p llvm_11 --run "make"
         cd ..
 
     - name: Build llvmlite
       run: |
         cd llvmlite
-        python setup.py build
+        nix-shell -p llvm_11 --run "python setup.py build"
         cd ..
 
     - name: Build Test Inputs
