@@ -30,29 +30,22 @@ jobs:
       with:
         submodules: "recursive"
 
-    - name: Prep Nix store
-      run: |
-        sudo mkdir /nix
-        sudo chown $USER /nix
-
-    - name: Cache Nix store
-      uses: actions/cache@v2
-      with:
-        path: |
-          /nix/store/**
-          /nix/var/nix/*/*
-          /nix/var/nix/db/*
-          /nix/var/nix/db/*/**
-          !/nix/var/nix/daemon-socket/socket
-          !/nix/var/nix/userpool/*
-          !/nix/var/nix/gc.lock
-          !/nix/var/nix/db/big-lock
-          !/nix/var/nix/db/reserved
-        key: nix-store-cache-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('cvc5.nix') }}
-
-    - uses: cachix/install-nix-action@v15
+    - uses: cachix/install-nix-action@v16
       with:
         nix_path: nixpkgs=channel:nixos-21.11
+
+    - name: Cache Nix store
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: ~/nix-cache
+        key: nix-cache
+
+    - name: Load Nix cache
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: |
+        ls ~/nix-cache/*.nar | sudo xargs -I@ bash -c "nix-store --import < @"
+        rm -rf ~/nix-cache
 
     - name: Install Racket
       uses: Bogdanp/setup-racket@v1.7
@@ -113,3 +106,6 @@ jobs:
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+
+    - name: Save Nix cache
+      run: ./ci-util/cache-nix.sh
