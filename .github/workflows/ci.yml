@@ -32,27 +32,14 @@ jobs:
 
     - name: Prep Nix store
       run: |
-        # Create with liberal rights, otherwise cache action will complain
-        # about permission errors.
-        sudo mkdir -p /nix/store
-        sudo chmod -R 777 /nix
+        sudo mkdir /nix
+        sudo chown $USER /nix
 
     - name: Cache Nix store
       uses: actions/cache@v2
       with:
-        path: |
-          # See https://github.com/actions/cache/pull/726
-          /nix/store/**
-          # Missing something?
-          /nix/var/nix/*/*
-          /nix/var/nix/db/*
-          /nix/var/nix/db/*/**
-          !/nix/var/nix/daemon-socket/socket
-          !/nix/var/nix/userpool/*
-          !/nix/var/nix/gc.lock
-          !/nix/var/nix/db/big-lock
-          !/nix/var/nix/db/reserved
-        key: nix-store-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('cvc5.nix') }}
+        path: /nix
+        key: nix-store-cache-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('cvc5.nix') }}
 
     - uses: cachix/install-nix-action@v15
       with:
