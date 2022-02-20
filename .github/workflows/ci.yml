@@ -39,7 +39,10 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          /nix
+          /nix/store/**
+          /nix/var/nix/*/*
+          /nix/var/nix/db/*
+          /nix/var/nix/db/*/**
           !/nix/var/nix/daemon-socket/socket
           !/nix/var/nix/userpool/*
           !/nix/var/nix/gc.lock
