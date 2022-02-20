@@ -27,12 +27,36 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Cache install Nix packages
-      uses: rikhuijzer/cache-install@v1.0.8
       with:
-        key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
-        nix_file: 'ci.nix'
+        submodules: "recursive"
+
+    - name: Prep Nix store
+      run: |
+        # Create with liberal rights, otherwise cache action will complain
+        # about permission errors.
+        sudo mkdir -p /nix/store
+        sudo chmod -R 777 /nix
+
+    - name: Cache Nix store
+      uses: actions/cache@v2
+      with:
+        path: |
+          # See https://github.com/actions/cache/pull/726
+          /nix/store/**
+          # Missing something?
+          /nix/var/nix/*/*
+          /nix/var/nix/db/*
+          /nix/var/nix/db/*/**
+          !/nix/var/nix/daemon-socket/socket
+          !/nix/var/nix/userpool/*
+          !/nix/var/nix/gc.lock
+          !/nix/var/nix/db/big-lock
+          !/nix/var/nix/db/reserved
+        key: nix-store-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('cvc5.nix') }}
+
+    - uses: cachix/install-nix-action@v15
+      with:
+        nix_path: nixpkgs=channel:nixos-21.11
 
     - name: Install Racket
       uses: Bogdanp/setup-racket@v1.7
@@ -46,21 +70,31 @@ jobs:
       run: raco pkg install --auto rosette
 
     - name: Build LLVM Pass
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd llvm-pass
         mkdir build
         cd build
-        nix-shell -p llvm_10 --run "cmake .."
-        nix-shell -p llvm_10 --run "make"
+        cmake ..
+        make
+        cd ..
+
+    - name: Build llvmlite
+      shell: nix-shell ci-shell.nix --run "bash {0}"
+      run: |
+        cd llvmlite
+        python setup.py build
         cd ..
 
     - name: Build Test Inputs
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd tests
         ./compile-all
         cd ..
 
     - name: Test Core Examples
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         python -m tests.count
         python -m tests.fma_dsl
@@ -75,8 +109,10 @@ jobs:
         python -m tests.uninterp
         python -m tests.while3
         python -m tests.while4
+        python -m tests.struct1
 
     - name: Test Actor Examples
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
