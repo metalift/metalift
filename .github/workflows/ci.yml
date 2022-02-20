@@ -34,10 +34,18 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-21.11
 
-    - uses: cachix/cachix-action@v10
+    - name: Cache Nix store
+      id: cache
+      uses: actions/cache@v2
       with:
-        name: metalift
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        path: ~/nix-cache
+        key: nix-cache
+
+    - name: Load Nix cache
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: |
+        ls ~/nix-cache/*.nar | sudo xargs -I@ bash -c "nix-store --import < @"
+        rm -rf ~/nix-cache
 
     - name: Install Racket
       uses: Bogdanp/setup-racket@v1.7
@@ -98,3 +106,6 @@ jobs:
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+
+    - name: Save Nix cache
+      run: ./ci-util/cache-nix.sh
