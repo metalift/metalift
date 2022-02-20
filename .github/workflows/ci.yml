@@ -94,7 +94,7 @@ jobs:
         cd ..
 
     - name: Test Core Examples
-      shell: nix-shell -p llvm_11 --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         export PYTHONPATH="llvmlite"
         python -m tests.count
