@@ -30,29 +30,14 @@ jobs:
       with:
         submodules: "recursive"
 
-    - name: Prep Nix store
-      run: |
-        sudo mkdir /nix
-        sudo chown $USER /nix
-
-    - name: Cache Nix store
-      uses: actions/cache@v2
-      with:
-        path: |
-          /nix/store/**
-          /nix/var/nix/*/*
-          /nix/var/nix/db/*
-          /nix/var/nix/db/*/**
-          !/nix/var/nix/daemon-socket/socket
-          !/nix/var/nix/userpool/*
-          !/nix/var/nix/gc.lock
-          !/nix/var/nix/db/big-lock
-          !/nix/var/nix/db/reserved
-        key: nix-store-cache-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('cvc5.nix') }}
-
-    - uses: cachix/install-nix-action@v15
+    - uses: cachix/install-nix-action@v16
       with:
         nix_path: nixpkgs=channel:nixos-21.11
+
+    - uses: cachix/cachix-action@v10
+      with:
+        name: metalift
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
     - name: Install Racket
       uses: Bogdanp/setup-racket@v1.7
