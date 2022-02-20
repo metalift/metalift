@@ -49,11 +49,11 @@ def grammarQuery(ci: CodeInfo):
 
     outputVar = ci.modifiedVars[0]
 
-    synthState = ci.readVars[0]
-
     if not fastDebug:
         setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
     else:  # hardcoded for quick debugging
+        synthState = ci.readVars[0]
+
         setContainTransformed = Call(
             "set-member",
             Bool(),
