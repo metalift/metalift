@@ -5,3 +5,5 @@ llvm-pass/build/
 synthesisLogs/
 tests/*.ll
 tests/*.loops
+tests/struct1.rkt
+tests/struct1.smt
