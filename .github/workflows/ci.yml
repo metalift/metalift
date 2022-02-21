@@ -44,7 +44,7 @@ jobs:
     - name: Load Nix cache
       if: steps.cache.outputs.cache-hit == 'true'
       run: |
-        ls ~/nix-cache/*.nar | sudo xargs -I@ bash -c "nix-store --import < @"
+        ls ~/nix-cache/*.nar | xargs -I@ bash -c "nix-store --import < @"
         rm -rf ~/nix-cache
 
     - name: Install Racket
