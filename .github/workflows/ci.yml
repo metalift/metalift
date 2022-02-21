@@ -39,12 +39,12 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/nix-cache
-        key: nix-cache
+        key: nix-ci-shell-cache
 
     - name: Load Nix cache
       if: steps.cache.outputs.cache-hit == 'true'
       run: |
-        ls ~/nix-cache/*.nar | sudo xargs -I@ bash -c "nix-store --import < @"
+        nix-store --import < ~/nix-cache/cache.nar
         rm -rf ~/nix-cache
 
     - name: Install Racket
