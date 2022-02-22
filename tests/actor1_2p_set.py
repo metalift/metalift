@@ -11,33 +11,66 @@ if os.environ.get("SYNTH_CVC5") == "1":
 else:
     from synthesize_rosette import synthesize
 
-synthStateStructure = [lat.MaxInt, lat.MaxInt]
+synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+
+fastDebug = False
 
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 2, inputState, synthState)
+    return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), 1, synthState)
+    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
 def grammarSupportedCommand(synthState, args):
-    return auto_grammar(Bool(), 1, synthState, *args)
+    add = args[0]
+
+    return Ite(
+        Eq(add, IntLit(1)),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+    )
 
 
-def inOrder(cmd1, cmd2):
-    return BoolLit(True)
+def inOrder(arg1, arg2):
+    # removes win
+    return Ite(
+        Eq(arg1[0], IntLit(1)),  # if first command is insert
+        BoolLit(True),  # second can be insert or remove
+        Eq(arg2[0], IntLit(0)),  # but if remove, must be remove next
+    )
 
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    inputState = ci.readVars[0]
     outputVar = ci.modifiedVars[0]
 
-    summary = Eq(outputVar, auto_grammar(parseTypeRef(outputVar.type), 2, inputState))
+    if not fastDebug:
+        setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    else:  # hardcoded for quick debugging
+        synthState = ci.readVars[0]
+
+        setContainTransformed = Call(
+            "set-member",
+            Bool(),
+            ci.readVars[1],
+            Call(
+                "set-minus",
+                Set(Int()),
+                Choose(
+                    TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
+                ),
+                TupleGet(synthState, IntLit(1)),
+            ),
+        )
+
+    out = Ite(setContainTransformed, IntLit(1), IntLit(0))
+
+    summary = Eq(outputVar, out)
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -49,29 +82,21 @@ def grammar(ci: CodeInfo):
         raise Exception("no invariant")
     else:  # ps
         inputState = ci.readVars[0]
-        stateVal1 = TupleGet(inputState, IntLit(0))
-        stateVal2 = TupleGet(inputState, IntLit(1))
-
         inputAdd = ci.readVars[1]
+        inputValue = ci.readVars[2]
 
         outputState = ci.modifiedVars[0]
 
-        intLit = Choose(IntLit(0), IntLit(1))
-
-        condition = Eq(inputAdd, intLit)
-
-        intIn = Choose(stateVal1, stateVal2)
-
-        intTransform = Choose(intIn, Add(intIn, intLit))
-
-        intTransform = Choose(intTransform, Ite(condition, intTransform, intTransform))
+        condition = Eq(inputAdd, IntLit(1))
+        setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
+        setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
         summary = Eq(
             outputState,
             MakeTuple(
                 *[
                     synthStateStructure[i][1](
-                        TupleGet(inputState, IntLit(i)), intTransform
+                        TupleGet(inputState, IntLit(i)), setTransform
                     )
                     for i in range(len(synthStateStructure))
                 ]
@@ -86,11 +111,7 @@ def initState():
 
 
 def targetLang():
-    maxA = Var("a", Int())
-    maxB = Var("b", Int())
-    return [
-        FnDeclNonRecursive("max", Int(), Ite(Ge(maxA, maxB), maxA, maxB), maxA, maxB),
-    ]
+    return []
 
 
 if __name__ == "__main__":
@@ -108,6 +129,9 @@ if __name__ == "__main__":
             cvcPath,
         )
     else:
+        if mode == "synth-debug":
+            fastDebug = True
+
         synthesize_actor(
             filename,
             fnNameBase,
@@ -123,5 +147,4 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            unboundedInts=True,
         )

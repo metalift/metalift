@@ -58,6 +58,7 @@ def auto_grammar(
 
     pool = {}
 
+    pool[Bool()] = Choose(BoolLit(False), BoolLit(True))
     if enable_sets:
         pool[Set(Int())] = Call("set-create", Set(Int()))
 

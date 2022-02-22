@@ -1,16 +1,20 @@
 from analysis import CodeInfo
 from ir import *
-from actor_util import synthesize_actor
+from actors.synthesis import synthesize_actor, check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
+import sys
+import os
 
-if True:
-    from synthesize_rosette import synthesize
-else:
+if os.environ.get("SYNTH_CVC5") == "1":
     from synthesize_cvc5 import synthesize
+else:
+    from synthesize_rosette import synthesize
 
-synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+synthStateStructure = [lat.Set(Int())]
+synthStateType = Tuple(
+    *[a[0] for a in synthStateStructure], Int()
+)  # TODO(shadaj): automate insertion of dummy
 
 
 def grammarEquivalence(inputState, synthState):
@@ -21,24 +25,22 @@ def grammarStateInvariant(synthState):
     return auto_grammar(Bool(), 1, synthState, enable_sets=True)
 
 
-def supportedCommand(inputState, synthState, args):
+def grammarSupportedCommand(synthState, args):
     add = args[0]
-    value = args[1]
 
     return Ite(
         Eq(add, IntLit(1)),
-        # insertion works if the elem is not in both sets
-        # so the sets are saturated
-        Not(
-            And(
-                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(0))),
-                Call("set-member", Bool(), value, TupleGet(synthState, IntLit(1))),
-            )
-        ),
-        # deletion can work even if not in the insertion set
-        # because we can just add the element to both sets
-        # which results in an observed-equivalent final state
-        BoolLit(True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+        auto_grammar(Bool(), 1, synthState, enable_sets=True),
+    )
+
+
+def inOrder(arg1, arg2):
+    # adds win
+    return Ite(
+        Eq(arg1[0], IntLit(1)),  # if first command is insert
+        Eq(arg2[0], IntLit(1)),  # second must be insert
+        BoolLit(True),  # but if remove, can be anything next
     )
 
 
@@ -80,7 +82,8 @@ def grammar(ci: CodeInfo):
                         TupleGet(inputState, IntLit(i)), setTransform
                     )
                     for i in range(len(synthStateStructure))
-                ]
+                ],
+                IntLit(0),  # TODO(shadaj): automate insertion of dummy
             ),
         )
 
@@ -88,7 +91,10 @@ def grammar(ci: CodeInfo):
 
 
 def initState():
-    return MakeTuple(*[elem[2] for elem in synthStateStructure])
+    return MakeTuple(
+        *[elem[2] for elem in synthStateStructure],
+        IntLit(0),  # TODO(shadaj): automate insertion of dummy
+    )
 
 
 def targetLang():
@@ -96,14 +102,33 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    synthesize_actor(
-        synthStateType,
-        initState,
-        grammarStateInvariant,
-        supportedCommand,
-        grammar,
-        grammarQuery,
-        grammarEquivalence,
-        targetLang,
-        synthesize,
-    )
+    mode = sys.argv[1]
+    filename = sys.argv[2]
+    fnNameBase = sys.argv[3]
+    loopsFile = sys.argv[4]
+    cvcPath = sys.argv[5]
+
+    if mode == "aci":
+        check_aci(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+        )
+    else:
+        synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
+            initState,
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            grammar,
+            grammarQuery,
+            grammarEquivalence,
+            targetLang,
+            synthesize,
+        )

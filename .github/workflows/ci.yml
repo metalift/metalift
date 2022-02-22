@@ -8,24 +8,44 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
+        with:
+           black_args: --check --diff .
   mypy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jpetrucciani/mypy-check@master
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
         with:
-          mypy_flags: --ignore-missing-imports --strict
+          python-version: 3.8
+      - name: Install Dependencies
+        run: pip install mypy
+      - name: Run mypy
+        run: mypy .
   build:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Cache install Nix packages
-      uses: rikhuijzer/cache-install@v1.0.8
       with:
-        key: nix-${{ hashFiles('ci.nix') }}-${{ hashFiles('cvc5.nix') }}
-        nix_file: 'ci.nix'
+        submodules: "recursive"
+
+    - uses: cachix/install-nix-action@v16
+      with:
+        nix_path: nixpkgs=channel:nixos-21.11
+
+    - name: Cache Nix store
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: ~/nix-cache
+        key: nix-ci-shell-cache
+
+    - name: Load Nix cache
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: |
+        nix-store --import < ~/nix-cache/cache.nar
+        rm -rf ~/nix-cache
 
     - name: Install Racket
       uses: Bogdanp/setup-racket@v1.7
@@ -39,32 +59,53 @@ jobs:
       run: raco pkg install --auto rosette
 
     - name: Build LLVM Pass
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd llvm-pass
         mkdir build
         cd build
-        nix-shell -p llvm_10 --run "cmake .."
-        nix-shell -p llvm_10 --run "make"
+        cmake ..
+        make
+        cd ..
+
+    - name: Build llvmlite
+      shell: nix-shell ci-shell.nix --run "bash {0}"
+      run: |
+        cd llvmlite
+        python setup.py build
         cd ..
 
     - name: Build Test Inputs
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
         cd tests
         ./compile-all
         cd ..
 
     - name: Test Core Examples
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
-        python -m tests.ite1 tests/ite1.ll test tests/ite1.loops cvc5
-        python -m tests.while3 tests/while3.ll test tests/while3.loops cvc5
-        python -m tests.while4 tests/while4.ll test tests/while4.loops cvc5
-        python -m tests.set1 tests/set1.ll test tests/set1.loops cvc5
-        python -m tests.list1 tests/list1.ll test tests/list1.loops cvc5
-        python -m tests.list1_fns tests/list1.ll test tests/list1.loops cvc5
-        python -m tests.fma_dsl tests/fma_dsl.ll test tests/fma_dsl.loops cvc5
-        python -m tests.count tests/Count.ll test tests/Count.loops cvc5
+        python -m tests.count
+        python -m tests.fma_dsl
+        python -m tests.ite1
+        python -m tests.ite3
+        python -m tests.list1
+        python -m tests.list1_fns
+        python -m tests.set1
+        python -m tests.tuples1
+        python -m tests.tuples2
+        python -m tests.tuples3
+        python -m tests.uninterp
+        python -m tests.while3
+        python -m tests.while4
+        python -m tests.struct1
 
     - name: Test Actor Examples
+      shell: nix-shell ci-shell.nix --run "bash {0}"
       run: |
-        python -m tests.actor1 tests/actor1.ll test tests/actor1.loops cvc5
-        python -m tests.actor2 tests/actor2.ll test tests/actor2.loops cvc5
+        python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+
+    - name: Save Nix cache
+      run: ./ci-util/cache-nix.sh

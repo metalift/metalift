@@ -32,12 +32,12 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    filename = sys.argv[1]
-    basename = os.path.splitext(os.path.basename(filename))[0]
+    filename = "tests/ite1.ll"
+    basename = "ite1"
 
-    fnName = sys.argv[2]
-    loopsFile = sys.argv[3]
-    cvcPath = sys.argv[4]
+    fnName = "test"
+    loopsFile = "tests/ite1.loops"
+    cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 

@@ -60,12 +60,12 @@ def targetLang():
 
 
 if __name__ == "__main__":
-    filename = sys.argv[1]
-    basename = os.path.splitext(os.path.basename(filename))[0]
+    filename = "tests/fma_dsl.ll"
+    basename = "fma_dsl"
 
-    fnName = sys.argv[2]
-    loopsFile = sys.argv[3]
-    cvcPath = sys.argv[4]
+    fnName = "test"
+    loopsFile = "tests/fma_dsl.loops"
+    cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 

@@ -113,7 +113,13 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
-            return Call("tuple%d" % (len(ast) - 1), Tuple(arg_eval[0], arg_eval[1], *arg_eval[2:]), *arg_eval)  # type: ignore
+            return Call(
+                "tuple%d" % (len(ast) - 1),
+                Tuple(
+                    arg_eval[0].type, arg_eval[1].type, *[e.type for e in arg_eval[2:]]
+                ),
+                *arg_eval,
+            )
         elif ast[0] == "tupleGet":
             foo = toExpr(ast[2], fnsType, varType)
             return TupleGet(
@@ -319,15 +325,22 @@ def synthesize(
         ##### verification of synthesized ps/inv
         print("====== verification")
         verifFile = synthDir + basename + ".smt"
-        ir.printMode = PrintMode.SMT
         toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
+
+        verifyLogs: typing.List[str] = []
 
         if noVerify:
             print("Not verifying solution")
             resultVerify = "unsat"
         else:
             procVerify = subprocess.run(
-                [cvcPath, "--lang=smt", "--tlimit=100000", verifFile],
+                [
+                    cvcPath,
+                    "--lang=smt",
+                    "--produce-models",
+                    "--tlimit=100000",
+                    verifFile,
+                ],
                 stdout=subprocess.PIPE,
             )
 
@@ -336,8 +349,9 @@ def synthesize(
             else:
                 procOutput = procVerify.stdout
                 resultVerify = procOutput.decode("utf-8").split("\n")[0]
+            verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
 
-        print("Vefication Output:", resultVerify)
+        print("Verification Output:", resultVerify)
         if resultVerify == "unsat":
             print(
                 "Verified PS and INV Candidates ",
@@ -345,7 +359,11 @@ def synthesize(
             )
             break
         else:
-            print("verification failed")
+            print(
+                "verification failed",
+                "\n\n".join([str(c) for c in candidatesSMT]),
+            )
+            print("\n".join(verifyLogs))
             invGuess.append(resultSynth[1])
             print(invGuess)
             raise Exception()
