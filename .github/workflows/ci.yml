@@ -59,7 +59,7 @@ jobs:
       run: raco pkg install --auto rosette
 
     - name: Build LLVM Pass
-      shell: nix-shell ci-shell.nix --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         cd llvm-pass
         mkdir build
@@ -69,21 +69,21 @@ jobs:
         cd ..
 
     - name: Build llvmlite
-      shell: nix-shell ci-shell.nix --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         cd llvmlite
         python setup.py build
         cd ..
 
     - name: Build Test Inputs
-      shell: nix-shell ci-shell.nix --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         cd tests
         ./compile-all
         cd ..
 
     - name: Test Core Examples
-      shell: nix-shell ci-shell.nix --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         python -m tests.count
         python -m tests.fma_dsl
@@ -101,7 +101,7 @@ jobs:
         python -m tests.struct1
 
     - name: Test Actor Examples
-      shell: nix-shell ci-shell.nix --run "bash {0}"
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
