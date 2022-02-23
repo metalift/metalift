@@ -679,7 +679,7 @@ def Choose(*args: Expr) -> Expr:
     if len(args) == 1:
         return args[0]
     else:
-        if not all(a.type == args[0].type for a in args):
+        if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a) for a in args)
