@@ -27,8 +27,7 @@ List<T> newList()
 template <class T>
 List<T> newListOf(int len, T args...) {
   List<T> ret = new list<T>();
-  std::va_list args;
-
+  int count;
   va_start(args, count);
   for (int i = 0; i < count; ++i)
   {

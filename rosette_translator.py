@@ -7,7 +7,7 @@ from llvmlite.binding import ValueRef
 from typing import Any, List, Sequence, Set, Tuple, Union
 
 # param for bounding the input list length
-n = 2
+n = 3
 
 
 def generateAST(expr: str) -> List[Any]:
