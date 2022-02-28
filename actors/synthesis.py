@@ -120,8 +120,8 @@ def synthesize_actor(
     stateTypeOrig: Type = None  # type: ignore
     beforeStateOrigLink: Expr = None  # type: ignore
     beforeStateForPSLink: Expr = None  # type: ignore
-    secondStateTransitionArgs: List[Expr] = None  # type: ignore
-    op_arg_types: List[Type] = []  # type: ignore
+    secondStateTransitionArgs: typing.List[Expr] = []
+    op_arg_types: typing.List[Type] = []
 
     def summaryWrapStateTransition(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
         nonlocal stateTypeOrig
@@ -134,7 +134,7 @@ def synthesize_actor(
         origArgs = ps.operands[3:]
 
         for i in range(len(origArgs) - 1):
-            op_arg_types.append(parseTypeRef(origArgs[i + 1].type))
+            op_arg_types.append(parseTypeRef(origArgs[i + 1].type)) # type: ignore
 
         secondStateTransitionArgs = [
             Var(f"second_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
@@ -363,7 +363,7 @@ def synthesize_actor(
 
     synthStateForSupported = Var(f"supported_synthState", synthStateType)
     argList = [
-        Var(f"supported_arg_{i}", secondStateTransitionArgs[i].type)  # type: ignore
+        Var(f"supported_arg_{i}", secondStateTransitionArgs[i].type)
         for i in range(len(secondStateTransitionArgs))
     ]
     invAndPsSupported = [
