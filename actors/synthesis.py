@@ -53,68 +53,6 @@ def synthesize_actor(
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
 
-    # begin state transition (equivalence)
-    extraVarsStateTransitionEquivalence = set()
-
-    def summaryWrapStateTransitionEquivalence(
-        ps: MLInst,
-    ) -> typing.Tuple[Expr, typing.List[Expr]]:
-        origReturn = ps.operands[2]
-        origArgs = ps.operands[3:]
-
-        beforeStateOrig = typing.cast(ValueRef, origArgs[0])
-        afterStateOrig = typing.cast(ValueRef, origReturn)
-
-        beforeStateForPS = Var(
-            beforeStateOrig.name + "_for_ps_equivalence", synthStateType
-        )
-        extraVarsStateTransitionEquivalence.add(beforeStateForPS)
-
-        afterStateForPS = Var(
-            afterStateOrig.name + "_for_ps_equivalence", synthStateType
-        )
-        extraVarsStateTransitionEquivalence.add(afterStateForPS)
-
-        newReturn = afterStateForPS
-
-        newArgs = list(origArgs)
-        newArgs[0] = beforeStateForPS
-
-        ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
-
-        return (
-            Implies(
-                And(
-                    observeEquivalence(beforeStateOrig, beforeStateForPS),
-                    supportedCommand(beforeStateForPS, origArgs[1:]),
-                    ps,  # type: ignore
-                ),
-                And(
-                    observeEquivalence(afterStateOrig, afterStateForPS),
-                ),
-            ),
-            list(ps.operands[2:]),  # type: ignore
-        )
-
-    (
-        vcVarsStateTransitionEquivalence,
-        _,
-        predsStateTransitionEquivalence,
-        vcStateTransitionEquivalence,
-        _,
-    ) = analyze(
-        filename,
-        fnNameBase + "_next_state",
-        loopsFile,
-        wrapSummaryCheck=summaryWrapStateTransitionEquivalence,
-        fnNameSuffix="_equivalence",
-    )
-
-    vcVarsStateTransitionEquivalence = vcVarsStateTransitionEquivalence.union(
-        extraVarsStateTransitionEquivalence
-    )
-    # end state transition (equivalence)
-
     # begin state transition (in order)
     extraVarsStateTransition = set()
     stateTypeOrig: Type = None  # type: ignore
@@ -237,10 +175,15 @@ def synthesize_actor(
                     Eq(afterStateOrig, beforeStateOrigLink),
                     Eq(afterStateForPS, beforeStateForPSLink),
                     supportedCommand(beforeStateForPS, origArgs[1:]),
-                    inOrder(origArgs[1:], secondStateTransitionArgs),
                     ps,  # type: ignore
                 ),
-                vcStateTransitionInOrder2,
+                And(
+                    observeEquivalence(afterStateOrig, afterStateForPS),
+                    Implies(
+                        inOrder(origArgs[1:], secondStateTransitionArgs),
+                        vcStateTransitionInOrder2,
+                    )
+                ),
             ),
             list(ps.operands[2:]),  # type: ignore
         )
@@ -379,9 +322,7 @@ def synthesize_actor(
     print("====== synthesis")
 
     combinedVCVars = (
-        vcVarsStateTransitionEquivalence.union(
-            vcVarsStateTransitionInOrder2.union(vcVarsPriorStateTransition)
-        )
+        vcVarsStateTransitionInOrder2.union(vcVarsPriorStateTransition)
         .union(vcVarsQuery)
         .union(vcVarsInitState)
     )
@@ -395,8 +336,7 @@ def synthesize_actor(
     )
 
     combinedPreds = (
-        predsStateTransitionEquivalence
-        + predsStateTransitionInOrder2
+        predsStateTransitionInOrder2
         + predsPriorStateTransitionInOrder
         + predsQuery
         + predsInitState
@@ -410,7 +350,7 @@ def synthesize_actor(
         + invAndPsSupported  # type: ignore
     )
     combinedVC = And(
-        vcStateTransitionEquivalence, vcStateTransitionInOrder, vcQuery, vcInitState
+        vcStateTransitionInOrder, vcQuery, vcInitState
     )
 
     lang = targetLang()
