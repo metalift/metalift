@@ -3,5 +3,6 @@ line-length = 88
 target-version = ['py38']
 extend-exclude = '''
 ^/value.py|
-^/tests
+^/tests|
+^/llvmlite
 '''
