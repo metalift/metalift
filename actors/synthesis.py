@@ -134,7 +134,7 @@ def synthesize_actor(
         origArgs = ps.operands[3:]
 
         for i in range(len(origArgs) - 1):
-            op_arg_types.append(parseTypeRef(origArgs[i + 1].type)) # type: ignore
+            op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
 
         secondStateTransitionArgs = [
             Var(f"second_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
