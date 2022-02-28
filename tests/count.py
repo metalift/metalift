@@ -124,8 +124,8 @@ def targetLang():
     lm_fn = Var("f", Fn(Int(), Int()))
     lr_fn = Var("f", Fn(Int(), Int(), Int()))
 
-    mapper = FnDecl("lm", Int(), "", arg2)
-    reducer = FnDecl("lr", Int(), "", arg2, arg3)
+    mapper = FnDecl("lm", Int(), None, arg2)
+    reducer = FnDecl("lr", Int(), None, arg2, arg3)
     map_fn = FnDecl(
         "map",
         List(Int()),
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     lang = targetLang()
     fnsGrammar = []
     for l in lang:
-        if l.args[1] == "":
+        if l.args[1] == None:
             fnsGrammar.append(grammarFns(l))
 
     candidates = synthesize(

@@ -222,7 +222,7 @@ def toSynthesize(
         else:
             synthNames.append(i.args[0])
     for l in lang:
-        if l.args[1] == "":
+        if l.args[1] == None:
             synthNames.append(l.args[0])
     return synthNames
 
@@ -308,9 +308,7 @@ def synthesize(
         ##### generating function definitions of all the functions to be synthesized#####
         candidatesSMT = []
         for synthFun in invAndPs:
-            print(synthFun)
             allVars = synthFun.args[2:]
-            print(synthFun.args[2:])
             ceName = synthFun.args[0]
             candidatesSMT.append(
                 FnDecl(

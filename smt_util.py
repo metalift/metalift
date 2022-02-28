@@ -55,59 +55,49 @@ def toSMT(
         if not isSynthesis:
             out.write(open("./utils/list-axioms.smt", "r").read())
 
-        if inCalls:
-            early_candidates_names = set()
+        early_candidates_names = set()
 
-            fnDecls = []
-            for t in targetLang:
-                found_inline = False
-                for i in inCalls:
-                    if i[0] == t.args[0]:
-                        found_inline = True
-                        early_candidates_names.add(i[1])
-                        # parse body
-                        newBody = filterBody(t.args[1], i[0], i[1])
+        fnDecls = []
+        for t in targetLang:
+            found_inline = False
+            for i in inCalls:
+                if i[0] == t.args[0]:
+                    found_inline = True
+                    early_candidates_names.add(i[1])
+                    # parse body
+                    newBody = filterBody(t.args[1], i[0], i[1])
 
-                        # remove function type args
-                        newArgs = filterArgs(t.args[2:])
-                        fnDecls.append(
-                            FnDecl(
-                                t.args[0] + "_" + i[1],
-                                t.type.args[0],
-                                newBody,
-                                *newArgs,
-                            )
+                    # remove function type args
+                    newArgs = filterArgs(t.args[2:])
+                    fnDecls.append(
+                        FnDecl(
+                            t.args[0] + "_" + i[1],
+                            t.type.args[0],
+                            newBody,
+                            *newArgs,
                         )
+                    )
 
-                if not found_inline:
-                    out.write(t.toSMT() + "\n\n")
+            if not found_inline and t.args[1] != None:
+                out.write(t.toSMT() + "\n\n")
 
-            early_candidates = []
-            candidates = []
+        early_candidates = []
+        candidates = []
 
-            for cand in invAndPs:
-                newBody = cand.args[1]
-                for i in inCalls:
-                    newBody = filterBody(newBody, i[0], i[1])
+        for cand in invAndPs:
+            newBody = cand.args[1]
+            for i in inCalls:
+                newBody = filterBody(newBody, i[0], i[1])
 
-                decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
-                if cand.args[0] in early_candidates_names:
-                    early_candidates.append(decl)
-                else:
-                    candidates.append(decl)
-
-            out.write(
-                "\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates])
-            )
-            out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fnDecls]))
-            out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
-        elif fnCalls:
-            out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in invAndPs]))
-        else:
-            if isinstance(invAndPs, str):
-                out.write("\n\n%s\n\n" % invAndPs)
+            decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
+            if cand.args[0] in early_candidates_names:
+                early_candidates.append(decl)
             else:
-                out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in invAndPs]))
+                candidates.append(decl)
+
+        out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
+        out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fnDecls]))
+        out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
         declarations: typing.List[typing.Tuple[str, Type]] = []
         for v in vars:
