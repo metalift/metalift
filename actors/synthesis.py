@@ -182,7 +182,7 @@ def synthesize_actor(
                     Implies(
                         inOrder(origArgs[1:], secondStateTransitionArgs),
                         vcStateTransitionInOrder2,
-                    )
+                    ),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -349,9 +349,7 @@ def synthesize_actor(
         + invAndPsEquivalence  # type: ignore
         + invAndPsSupported  # type: ignore
     )
-    combinedVC = And(
-        vcStateTransitionInOrder, vcQuery, vcInitState
-    )
+    combinedVC = And(vcStateTransitionInOrder, vcQuery, vcInitState)
 
     lang = targetLang()
 
