@@ -696,7 +696,11 @@ def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Exp
 def FnDeclNonRecursive(
     name: str, returnT: Type, body: Union[Expr, str], *args: Expr
 ) -> Expr:
-    return Expr(Expr.Kind.FnDeclNonRecursive, returnT, [name, body, *args])
+    return Expr(
+        Expr.Kind.FnDeclNonRecursive,
+        Fn(returnT, *[a.type for a in args]),
+        [name, body, *args],
+    )
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
