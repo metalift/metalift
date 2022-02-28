@@ -132,7 +132,7 @@ def toRosette(
 
     # struct declarations and function definition of target constructs
     for t in targetLang:
-        if t.args[1] != "":
+        if t.args[1] != None:
             print("\n", t.toRosette(), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
@@ -145,7 +145,7 @@ def toRosette(
 
     fnsDecls = []
     for t in targetLang:
-        if t.args[1] == "":
+        if t.args[1] == None:
             fnsDecls.append(t)
     if fnsDecls:
         print(generateInvPs(fnsDecls), file=f)
