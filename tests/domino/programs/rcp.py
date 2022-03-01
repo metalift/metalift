@@ -18,15 +18,17 @@ def grammar(ci: CodeInfo):
     if name.startswith("inv"):
         raise RuntimeError("no invariants for loop-less grammar")
     else:  # ps
+        domino.set_constants([1, 10, 20])
         domino.set_vars(ci.readVars)
         generated = domino.generate(
             depth=2,
             restrict_to_atoms=[
                 # "get_empty_list",
                 "mul_acc",
-                "nested_ifs",
-                "add_2_state_vars",
-                # "add_3_state_vars",
+                # "nested_ifs",
+                "pred_raw",
+                # "add_2_state_vars",
+                "add_3_state_vars",
                 "if_else_raw",
                 "stateless_arith",
             ],
