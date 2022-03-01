@@ -60,7 +60,9 @@ def toSMT(
         fnDecls = []
         axioms = []
         for t in targetLang:
-            if t.kind == Expr.Kind.FnDecl and t.args[0] in fnCalls:
+            if (
+                t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
+            ) and t.args[0] in fnCalls:
                 found_inline = False
                 for i in inCalls:
                     if i[0] == t.args[0]:
@@ -73,6 +75,13 @@ def toSMT(
                         newArgs = filterArgs(t.args[2:])
                         fnDecls.append(
                             FnDecl(
+                                t.args[0] + "_" + i[1],
+                                t.type.args[0],
+                                newBody,
+                                *newArgs,
+                            )
+                            if t.kind == Expr.Kind.FnDecl
+                            else FnDeclNonRecursive(
                                 t.args[0] + "_" + i[1],
                                 t.type.args[0],
                                 newBody,
