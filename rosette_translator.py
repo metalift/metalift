@@ -7,7 +7,8 @@ from llvmlite.binding import ValueRef
 from typing import Any, List, Sequence, Set, Tuple, Union
 
 # param for bounding the input list length
-n = 3
+DEFAULT_MAX_LIST_LENGTH = 2
+MAX_LIST_LENGTH = DEFAULT_MAX_LIST_LENGTH
 
 
 def generateAST(expr: str) -> List[Any]:
@@ -27,7 +28,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
         vars_all.append(v.args[0])
 
     elif v.type.name == "MLList" or v.type.name == "Set":
-        tmp = [v.args[0] + "_" + str(i) for i in range(n)]
+        tmp = [v.args[0] + "_" + str(i) for i in range(MAX_LIST_LENGTH)]
         tmp.append(v.args[0] + "-len")
         vars_all.extend(tmp)
         if v.type.args[0].name == "Int":
@@ -38,12 +39,12 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
         if v.type.name == "Set":
             decls.append(
                 "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
+                % (v.args[0], "(list " + " ".join(tmp[:MAX_LIST_LENGTH]) + ")", tmp[-1])
             )
         else:
             decls.append(
                 "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
+                % (v.args[0], "(list " + " ".join(tmp[:MAX_LIST_LENGTH]) + ")", tmp[-1])
             )
     elif v.type.name == "Tuple":
         elem_names = []

@@ -15,28 +15,28 @@ int last_time = 0; */
 extern "C" List<int> test(int counter, int last_time, int mark, int bytes,
                           int time) {
     // Decrement counter according to drain rate
-    counter = counter - (time - last_time) * DRAIN_RATE;
+    // counter = counter - (time - last_time) * DRAIN_RATE;
 
-    // if (counter < 0)
-    //     counter = 0;
-    // else
-    //     counter = counter;
+    if (counter < 0)
+        counter = 0;
+    else
+        counter = counter;
 
-    // // Increment counter
-    // counter += bytes;
+    // Increment counter
+    counter += bytes;
 
-    // // If we are above the ECN_THRESH, mark
-    // if (counter > ECN_THRESH)
-    //     mark = 1;
-    // else
-    //     mark = mark;
+    // If we are above the ECN_THRESH, mark
+    if (counter > ECN_THRESH)
+        mark = 1;
+    else
+        mark = mark;
 
-    // // Store last time
-    // last_time = p.time;
+    // Store last time
+    last_time = time;
 
     List<int> out = newList<int>();
     out = listAppend(out, counter);
-    // out = listAppend(out, last_time);
+    out = listAppend(out, last_time);
     out = listAppend(out, mark);
     return out;
 }

@@ -27,6 +27,7 @@ from ir import (
     List,
     Bool,
 )
+import rosette_translator
 from synthesize_rosette import synthesize
 
 
@@ -272,30 +273,34 @@ class DominoLang(object):
 
     @staticmethod
     def driver_function(grammar: Callable):
-        filename = sys.argv[1]
-        basename = os.path.splitext(os.path.basename(filename))[0]
+        rosette_translator.MAX_LIST_LENGTH = 3
+        try:
+            filename = sys.argv[1]
+            basename = os.path.splitext(os.path.basename(filename))[0]
 
-        fnName = sys.argv[2]
-        loopsFile = sys.argv[3]
-        cvcPath = sys.argv[4]
+            fnName = sys.argv[2]
+            loopsFile = sys.argv[3]
+            cvcPath = sys.argv[4]
 
-        (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
-            filename, fnName, loopsFile
-        )
+            (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
+                filename, fnName, loopsFile
+            )
 
-        print("====== lang")
-        lang = DominoLang.targetLang()
+            print("====== lang")
+            lang = DominoLang.targetLang()
 
-        print("====== grammar")
-        invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+            print("====== grammar")
+            invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
-        # rosette synthesizer  + CVC verfication
-        print("====== synthesis")
-        candidates = synthesize(
-            basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
-        )
-        print("====== verified candidates")
-        print("\n\n".join(str(c) for c in candidates))
+            # rosette synthesizer  + CVC verfication
+            print("====== synthesis")
+            candidates = synthesize(
+                basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+            )
+            print("====== verified candidates")
+            print("\n\n".join(str(c) for c in candidates))
+        finally:
+            rosette_translator.MAX_LIST_LENGTH = rosette_translator.DEFAULT_MAX_LIST_LENGTH
 
 
 if __name__ == "__main__":
