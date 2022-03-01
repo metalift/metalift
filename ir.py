@@ -316,7 +316,7 @@ class Expr:
 
         elif kind == Expr.Kind.Axiom:
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
-            return "(assert (forall ( %s ) ) %s) " % (" ".join(vs), self.args[0])
+            return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
@@ -498,8 +498,7 @@ class Expr:
             return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
         elif kind == Expr.Kind.Axiom:
-            raise Exception("NYI: %s" % self)
-
+            return ""  # axioms are only for verification
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(

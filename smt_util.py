@@ -58,31 +58,45 @@ def toSMT(
         early_candidates_names = set()
 
         fnDecls = []
+        axioms = []
         for t in targetLang:
-            found_inline = False
-            for i in inCalls:
-                if i[0] == t.args[0]:
-                    found_inline = True
-                    early_candidates_names.add(i[1])
-                    # parse body
-                    newBody = filterBody(t.args[1], i[0], i[1])
+            if (
+                t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
+            ) and t.args[0] in fnCalls:
+                found_inline = False
+                for i in inCalls:
+                    if i[0] == t.args[0]:
+                        found_inline = True
+                        early_candidates_names.add(i[1])
+                        # parse body
+                        newBody = filterBody(t.args[1], i[0], i[1])
 
-                    # remove function type args
-                    newArgs = filterArgs(t.args[2:])
-                    fnDecls.append(
-                        FnDecl(
-                            t.args[0] + "_" + i[1],
-                            t.type.args[0],
-                            newBody,
-                            *newArgs,
+                        # remove function type args
+                        newArgs = filterArgs(t.args[2:])
+                        fnDecls.append(
+                            FnDecl(
+                                t.args[0] + "_" + i[1],
+                                t.type.args[0],
+                                newBody,
+                                *newArgs,
+                            )
+                            if t.kind == Expr.Kind.FnDecl
+                            else FnDeclNonRecursive(
+                                t.args[0] + "_" + i[1],
+                                t.type.args[0],
+                                newBody,
+                                *newArgs,
+                            )
                         )
-                    )
 
-            if not found_inline and t.args[1] != None:
-                out.write(t.toSMT() + "\n\n")
+                if not found_inline and t.args[1] != None:
+                    out.write(t.toSMT() + "\n\n")
+            elif t.kind == Expr.Kind.Axiom:
+                axioms.append(t)
 
         early_candidates = []
         candidates = []
+        filtered_axioms = []
 
         for cand in invAndPs:
             newBody = cand.args[1]
@@ -95,8 +109,16 @@ def toSMT(
             else:
                 candidates.append(decl)
 
+        for axiom in axioms:
+            newBody = axiom.args[0]
+            for i in inCalls:
+                newBody = filterBody(newBody, i[0], i[1])
+
+            filtered_axioms.append(Axiom(newBody, *axiom.args[1:]))
+
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
         out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fnDecls]))
+        out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
         declarations: typing.List[typing.Tuple[str, Type]] = []
