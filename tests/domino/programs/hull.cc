@@ -12,8 +12,8 @@ int last_time = 0; */
     int mark;
 }; */
 
-extern "C" List<int> test(int counter, int last_time, int mark, int bytes, int time)
-{
+extern "C" List<int> test(int counter, int last_time, int mark, int bytes,
+                          int time) {
     // Decrement counter according to drain rate
     // counter = counter - (time - last_time) * DRAIN_RATE;
 
