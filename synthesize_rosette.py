@@ -155,7 +155,7 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
-            retT = fnsType[ast[0]]
+            retT = fnsType[ast[0]].args[0]
             return Call(ast[0], retT, *arg_eval)  # type: ignore
         else:
             raise Exception(f"Unexpected function name: {ast[0]}")
@@ -167,8 +167,7 @@ def toExpr(
         elif ast == "false":
             return BoolLit(False)
         elif ast in fnsType.keys():
-            retT = fnsType[ast]
-            return Call(ast, retT)
+            return Var(ast, fnsType[ast])
         else:
             return Var(ast, varType[ast])
 
@@ -199,12 +198,14 @@ def parseCandidates(
     if isinstance(candidate, str) or candidate.kind == Expr.Kind.Lit:
         return inCalls, fnCalls
     else:
-        if candidate.kind.value == "call":
+        if candidate.kind == Expr.Kind.Call:
             if candidate.args[0] in fnsType.keys():
                 fnCalls.append(candidate.args[0])
             for ar in candidate.args:
                 if not isinstance(ar, str):
                     if ar.type.name == "Function":
+                        # TODO(shadaj): this logic doesn't correctly handle
+                        # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))
         for a in candidate.args:
             parseCandidates(a, inCalls, fnsType, fnCalls)
@@ -221,7 +222,7 @@ def toSynthesize(
         else:
             synthNames.append(i.args[0])
     for l in lang:
-        if l.args[1] == "":
+        if l.args[1] == None:
             synthNames.append(l.args[0])
     return synthNames
 
@@ -306,17 +307,13 @@ def synthesize(
 
         ##### generating function definitions of all the functions to be synthesized#####
         candidatesSMT = []
-        for ce in loopAndPsInfo:
-            allVars = (
-                ce.modifiedVars + ce.readVars
-                if isinstance(ce, CodeInfo)
-                else ce.args[2:]
-            )
-            ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
+        for synthFun in invAndPs:
+            allVars = synthFun.args[2:]
+            ceName = synthFun.args[0]
             candidatesSMT.append(
                 FnDecl(
                     ceName,
-                    ce.retT if isinstance(ce, CodeInfo) else ce.type,
+                    synthFun.args[1].type,
                     candidateDict[ceName],
                     *allVars,
                 )

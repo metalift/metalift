@@ -679,17 +679,28 @@ def Choose(*args: Expr) -> Expr:
     if len(args) == 1:
         return args[0]
     else:
+        if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
+            raise Exception(
+                "Choose args are of different types: %s"
+                % " ".join(str(a) for a in args)
+            )
         return Expr(Expr.Kind.Choose, args[0].type, args)
 
 
 def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
-    return Expr(Expr.Kind.FnDecl, returnT, [name, body, *args])
+    return Expr(
+        Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
+    )
 
 
 def FnDeclNonRecursive(
     name: str, returnT: Type, body: Union[Expr, str], *args: Expr
 ) -> Expr:
-    return Expr(Expr.Kind.FnDeclNonRecursive, returnT, [name, body, *args])
+    return Expr(
+        Expr.Kind.FnDeclNonRecursive,
+        Fn(returnT, *[a.type for a in args]),
+        [name, body, *args],
+    )
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
