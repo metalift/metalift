@@ -498,7 +498,7 @@ class Expr:
             return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
         elif kind == Expr.Kind.Axiom:
-            return "" # axioms are only for verification
+            return ""  # axioms are only for verification
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
