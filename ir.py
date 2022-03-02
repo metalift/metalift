@@ -571,6 +571,102 @@ class Expr:
             retStr += ")"
             return retStr
 
+    def countVariableUses(self, into: Dict[str, int]) -> None:
+        if self.kind == Expr.Kind.Var:
+            if not (self.args[0] in into):
+                into[self.args[0]] = 0
+            into[self.args[0]] += 1
+        else:
+            for a in self.args:
+                if isinstance(a, Expr):
+                    a.countVariableUses(into)
+
+    def collectKnowledge(
+        self,
+        constrained_elsewhere: typing.Set[str],
+        into: Dict[str, "Expr"],
+        conflicts: Dict[str, bool],
+    ) -> None:
+        if self.kind == Expr.Kind.Eq:
+            if self.args[0].kind == Expr.Kind.Var and (
+                not self.args[0].args[0] in constrained_elsewhere
+            ):
+                if self.args[0].args[0] in into or self.args[0].args[0] in conflicts:
+                    conflicts[self.args[0].args[0]] = True
+                    del into[self.args[0].args[0]]
+                else:
+                    into[self.args[0].args[0]] = self.args[1]
+            elif self.args[1].kind == Expr.Kind.Var and (
+                not self.args[1].args[0] in constrained_elsewhere
+            ):
+                if self.args[1].args[0] in into or self.args[1].args[0] in conflicts:
+                    conflicts[self.args[1].args[0]] = True
+                    del into[self.args[1].args[0]]
+                else:
+                    into[self.args[1].args[0]] = self.args[0]
+        elif self.kind == Expr.Kind.And:
+            for a in self.args:
+                if isinstance(a, Expr):
+                    a.collectKnowledge(constrained_elsewhere, into, conflicts)
+        else:
+            return
+
+    def rewrite(self, mappings: Dict[str, "Expr"]) -> "Expr":
+        if self.kind == Expr.Kind.Var:
+            if self.args[0] in mappings:
+                return mappings[self.args[0]]
+            else:
+                return self
+        else:
+            return self.mapArgs(
+                lambda a: a.rewrite(mappings) if isinstance(a, Expr) else a
+            )
+
+    def optimizeUselessEquality(
+        self, counts: Dict[str, int], new_vars: typing.Set["Expr"]
+    ) -> "Expr":
+        if self.kind == Expr.Kind.Eq:
+            replacement_var = Var("useless_equality_%d" % len(new_vars), Bool())
+            if self.args[0].kind == Expr.Kind.Var and counts[self.args[0].args[0]] == 1:
+                new_vars.add(replacement_var)
+                return replacement_var
+            elif (
+                self.args[1].kind == Expr.Kind.Var and counts[self.args[1].args[0]] == 1
+            ):
+                new_vars.add(replacement_var)
+                return replacement_var
+            elif (
+                self.args[0].kind == Expr.Kind.Var
+                and self.args[1].kind == Expr.Kind.Var
+            ):
+                if self.args[0].args[0] == self.args[1].args[0]:
+                    return BoolLit(True)
+        elif self.kind == Expr.Kind.Implies:
+            local_counts: Dict[str, int] = {}
+            self.countVariableUses(local_counts)
+            constrained_elsewhere = set(counts.keys())
+            for key in local_counts.keys():
+                if local_counts[key] == counts[key]:
+                    constrained_elsewhere.remove(key)
+            rewrites: Dict[str, "Expr"] = {}
+            self.args[0].collectKnowledge(constrained_elsewhere, rewrites, {})
+
+            counts_rhs: Dict[str, int] = {}
+            self.args[1].countVariableUses(counts_rhs)
+
+            for rewrite_var in list(rewrites.keys()):
+                if not (rewrites[rewrite_var].kind == Expr.Kind.Var):
+                    if rewrite_var in counts_rhs and counts_rhs[rewrite_var] > 1:
+                        del rewrites[rewrite_var]
+
+            self = Implies(self.args[0], self.args[1].rewrite(rewrites))
+
+        return self.mapArgs(
+            lambda a: a.optimizeUselessEquality(counts, new_vars)
+            if isinstance(a, Expr)
+            else a
+        )
+
 
 def Var(name: str, ty: Type) -> Expr:
     return Expr(Expr.Kind.Var, ty, [name])
@@ -605,6 +701,7 @@ def Mul(*args: Expr) -> Expr:
 
 
 def Eq(e1: Expr, e2: Expr) -> Expr:
+    assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 
 
@@ -625,7 +722,20 @@ def Ge(e1: Expr, e2: Expr) -> Expr:
 
 
 def And(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.And, Bool(), args)
+    filtered_args = []
+    for arg in args:
+        if isinstance(arg, Expr) and arg.kind == Expr.Kind.Lit:
+            if arg.args[0] == False:
+                return BoolLit(False)
+        else:
+            filtered_args.append(arg)
+
+    if len(filtered_args) == 0:
+        return BoolLit(True)
+    elif len(filtered_args) == 1:
+        return filtered_args[0]
+    else:
+        return Expr(Expr.Kind.And, Bool(), filtered_args)
 
 
 def Or(*args: Expr) -> Expr:

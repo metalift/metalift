@@ -72,7 +72,25 @@
   (set-union (set-singleton v) s1))
 
 (define (set-subset s1 s2)
-  (andmap (lambda (v) (set-member v s2)) s1))
+  (match* (s1 s2)
+    [((list) bs)  #t]
+    [(as (list))  #f]
+    [((list a as ...) (list b bs ...))
+     (if (= a b)
+      (set-subset as bs)
+      (if (< a b)
+         #f
+         (set-subset (cons a as) bs))
+     )]))
 
 (define (set-minus s1 s2)
-  (filter (lambda (v) (not (set-member v s2))) s1))
+  (match* (s1 s2)
+    [((list) bs)  (list)]
+    [(as (list))  as]
+    [((list a as ...) (list b bs ...))
+     (if (= a b)
+      (set-minus as bs)
+      (if (< a b)
+         (cons a (set-minus as bs))
+         (set-minus (cons a as) bs))
+     )]))

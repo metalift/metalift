@@ -247,6 +247,24 @@ def synthesize(
     while True:
         synthFile = synthDir + basename + ".rkt"
 
+        prev_vc = vc.toSMT()
+        new_vars: typing.Set[Expr] = set()
+        while True:
+            expr_count: Dict[str, int] = {}
+            vc.countVariableUses(expr_count)
+
+            vc = vc.optimizeUselessEquality(expr_count, new_vars)
+
+            if vc.toSMT() == prev_vc:
+                break  # run to fixpoint
+            else:
+                prev_vc = vc.toSMT()
+
+        vars = vars.union(new_vars)
+        for var in list(vars):
+            if var.args[0] not in expr_count:
+                vars.remove(var)
+
         ##### synthesis procedure #####
         toRosette(
             synthFile,
