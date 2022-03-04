@@ -9,6 +9,8 @@ from smt_util import toSMT
 import typing
 from typing import Any, Callable, Dict, Generator, Union
 
+from synthesis_common import generateTypes, parseCandidates
+
 
 def flatten(L: typing.List[Any]) -> Generator[str, str, None]:
     for l in L:
@@ -237,31 +239,75 @@ def synthesize(
                 break
             elif "sygus-candidate" in line:
                 print("Current PS and INV Guess ", line)
-                candidates, _ = generateCandidates(invAndPs, line, funName, returnType)
-                smtFile = synthDir + basename + ".smt"
-                toSMT(targetLang, vars, candidates, preds, vc, smtFile, [], [], False)
+                candidatesSMT, candidateDict = generateCandidates(
+                    invAndPs, line, funName, returnType
+                )
+
+                fnsType = generateTypes(targetLang)
+
+                inCalls: typing.List[Any] = []
+                fnCalls: typing.List[Any] = []
+                for ce in loopAndPsInfo:
+                    inCalls, fnCalls = parseCandidates(  # type: ignore
+                        candidateDict[
+                            ce.name if isinstance(ce, CodeInfo) else ce.args[0]
+                        ],
+                        inCalls,
+                        fnsType,
+                        fnCalls,
+                    )
+                inCalls = list(set(inCalls))
+                fnCalls = list(set(fnCalls))
+
+                verifFile = synthDir + basename + ".smt"
+                toSMT(
+                    targetLang,
+                    vars,
+                    candidatesSMT,
+                    preds,
+                    vc,
+                    verifFile,
+                    inCalls,
+                    fnCalls,
+                    False,
+                )
 
                 # run external verification subprocess
-                procVerify = subprocess.Popen(
-                    [cvcPath, "--lang=smt", "--fmf-fun", "--tlimit=10000", smtFile],
+                procVerify = subprocess.run(
+                    [
+                        cvcPath,
+                        "--lang=smt",
+                        "--produce-models",
+                        "--tlimit=100000",
+                        verifFile,
+                    ],
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
                 )
-                output = procVerify.stdout.readline()  # type: ignore
-                output = output.decode("utf-8")
-                if output.count("unsat") == 1:
-                    print("UNSAT\n")
+
+                if procVerify.returncode < 0:
+                    resultVerify = "SAT/UNKNOWN"
+                else:
+                    procOutput = procVerify.stdout
+                    resultVerify = procOutput.decode("utf-8").split("\n")[0]
+                verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
+
+                print("Verification Output:", resultVerify)
+                if resultVerify == "unsat":
                     print(
                         "Verified PS and INV Candidates ",
-                        "\n\n".join([str(c) for c in candidates]),
+                        "\n\n".join([str(c) for c in candidatesSMT]),
                     )
-
-                    return candidates
+                    break
                 else:
-                    print("CVC4 verification Result for Current Guess")
-                    print("SAT\n")
+                    print(
+                        "verification failed",
+                        "\n\n".join([str(c) for c in candidatesSMT]),
+                    )
+                    print("\n".join(verifyLogs))
+                    raise Exception("Verification failed")
             else:
                 code = proc.poll()
+                # print(code)
                 if code is not None and code > 0:
                     break
 

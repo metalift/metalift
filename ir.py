@@ -352,7 +352,12 @@ class Expr:
                 )
 
         elif kind == Expr.Kind.Tuple:
-            args = " ".join(["%s" % arg.toSMT() for arg in self.args])
+            args = " ".join(
+                [
+                    arg.name if isinstance(arg, ValueRef) else arg.toSMT()
+                    for arg in self.args
+                ]
+            )
             return "(tuple%d %s)" % (len(self.args), args)
 
         elif kind == Expr.Kind.TupleGet:
