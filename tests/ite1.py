@@ -4,10 +4,10 @@ import sys
 from analysis import CodeInfo, analyze
 from ir import *
 
-if True:
-    from synthesize_rosette import synthesize
-else:
+if os.environ.get("SYNTH_CVC5") == "1":
     from synthesize_cvc5 import synthesize
+else:
+    from synthesize_rosette import synthesize
 
 
 def grammar(ci: CodeInfo):
