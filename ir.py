@@ -571,6 +571,26 @@ class Expr:
             retStr += ")"
             return retStr
 
+    def simplify(self) -> "Expr":
+        self = self.mapArgs(lambda a: a.simplify() if isinstance(a, Expr) else a)
+        if self.kind == Expr.Kind.And:
+            filtered_args: typing.List[Expr] = []
+            for arg in self.args:
+                if isinstance(arg, Expr) and arg.kind == Expr.Kind.Lit:
+                    if arg.args[0] == False:
+                        return BoolLit(False)
+                else:
+                    filtered_args.append(arg)
+
+            if len(filtered_args) == 0:
+                return BoolLit(True)
+            elif len(filtered_args) == 1:
+                return filtered_args[0]
+            else:
+                return Expr(Expr.Kind.And, Bool(), filtered_args)
+        else:
+            return self
+
     def countVariableUses(self, into: Dict[str, int]) -> None:
         if self.kind == Expr.Kind.Var:
             if not (self.args[0] in into):
@@ -671,7 +691,7 @@ class Expr:
             lambda a: a.optimizeUselessEquality(counts, new_vars)
             if isinstance(a, Expr)
             else a
-        )
+        ).simplify()
 
 
 def Var(name: str, ty: Type) -> Expr:
@@ -728,20 +748,7 @@ def Ge(e1: Expr, e2: Expr) -> Expr:
 
 
 def And(*args: Expr) -> Expr:
-    filtered_args = []
-    for arg in args:
-        if isinstance(arg, Expr) and arg.kind == Expr.Kind.Lit:
-            if arg.args[0] == False:
-                return BoolLit(False)
-        else:
-            filtered_args.append(arg)
-
-    if len(filtered_args) == 0:
-        return BoolLit(True)
-    elif len(filtered_args) == 1:
-        return filtered_args[0]
-    else:
-        return Expr(Expr.Kind.And, Bool(), filtered_args)
+    return Expr(Expr.Kind.And, Bool(), args)
 
 
 def Or(*args: Expr) -> Expr:
