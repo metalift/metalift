@@ -24,6 +24,9 @@ jobs:
         run: mypy .
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        synth_cvc5: ["0", "1"]
 
     steps:
     - uses: actions/checkout@v2
@@ -48,6 +51,7 @@ jobs:
         rm -rf ~/nix-cache
 
     - name: Install Racket
+      if: matrix.synth_cvc5 == '0'
       uses: Bogdanp/setup-racket@v1.7
       with:
         architecture: 'x64'
@@ -56,6 +60,7 @@ jobs:
         version: 'stable'
 
     - name: Install Rosette
+      if: matrix.synth_cvc5 == '0'
       run: raco pkg install --auto rosette
 
     - name: Build LLVM Pass
@@ -85,20 +90,29 @@ jobs:
     - name: Test Core Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
-        python -m tests.count
-        python -m tests.fma_dsl
         python -m tests.ite1
         python -m tests.ite3
-        python -m tests.list1
-        python -m tests.list1_fns
         python -m tests.set1
         python -m tests.tuples1
         python -m tests.tuples2
         python -m tests.tuples3
-        python -m tests.uninterp
         python -m tests.while3
         python -m tests.while4
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
+
+    - name: Test Rosette-only Examples
+      if: matrix.synth_cvc5 == '0'
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
+      run: |
+        python -m tests.fma_dsl
+        python -m tests.count
+        python -m tests.list1
+        python -m tests.list1_fns
+        python -m tests.uninterp
         python -m tests.struct1
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
     - name: Test Actor Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
@@ -106,6 +120,8 @@ jobs:
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
     - name: Save Nix cache
       run: ./ci-util/cache-nix.sh

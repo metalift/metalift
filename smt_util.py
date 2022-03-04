@@ -103,7 +103,11 @@ def toSMT(
             for i in inCalls:
                 newBody = filterBody(newBody, i[0], i[1])
 
-            decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
+            if cand.kind == Expr.Kind.Synth:
+                decl = Synth(cand.args[0], newBody, *cand.args[2:])
+            else:
+                decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
+
             if cand.args[0] in early_candidates_names:
                 early_candidates.append(decl)
             else:
