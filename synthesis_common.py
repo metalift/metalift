@@ -92,7 +92,6 @@ def verify_synth_result(
         [
             cvcPath,
             "--lang=smt",
-            "--fmf-fun",
             "--produce-models",
             "--tlimit=100000",
             verifFile,

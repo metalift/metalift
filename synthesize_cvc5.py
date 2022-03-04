@@ -242,7 +242,7 @@ def synthesize(
                 candidatesSMT, candidateDict = generateCandidates(
                     invAndPs, line, funName, returnType
                 )
-
+            elif line.strip() == "(":
                 fnsType = generateTypes(targetLang)
 
                 resultVerify, verifyLogs = verify_synth_result(
@@ -267,7 +267,12 @@ def synthesize(
                     )
                     return candidatesSMT
                 else:
-                    print()
+                    print(
+                        "verification failed",
+                        "\n\n".join([str(c) for c in candidatesSMT]),
+                    )
+                    print("\n".join(verifyLogs))
+                    raise Exception("Verification failed")
             else:
                 code = proc.poll()
                 if code is not None and code > 0:

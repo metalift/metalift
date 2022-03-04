@@ -294,7 +294,7 @@ def synthesize(
                 "Verified PS and INV Candidates ",
                 "\n\n".join([str(c) for c in candidatesSMT]),
             )
-            break
+            return candidatesSMT
         else:
             print(
                 "verification failed",
@@ -304,5 +304,3 @@ def synthesize(
             invGuess.append(resultSynth[1])
             print(invGuess)
             raise Exception("Verification failed")
-
-    return candidatesSMT
