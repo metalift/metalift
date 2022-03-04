@@ -261,7 +261,8 @@ def synthesize(
                     print("CVC4 verification Result for Current Guess")
                     print("SAT\n")
             else:
-                if proc.poll() is not None:
+                code = proc.poll()
+                if code is not None and code > 0:
                     break
 
         raise Exception("SyGuS failed")
