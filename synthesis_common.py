@@ -1,8 +1,12 @@
+import subprocess
+from analysis import CodeInfo
 from ir import *
 from llvmlite.binding import ValueRef
 
 import typing
 from typing import Optional, Dict, Union, Any
+
+from smt_util import toSMT
 
 
 def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
@@ -43,3 +47,64 @@ def parseCandidates(
         for a in candidate.args:
             parseCandidates(a, inCalls, fnsType, fnCalls)
         return inCalls, fnCalls
+
+
+def verify_synth_result(
+    basename: str,
+    targetLang: typing.List[Expr],
+    vars: typing.Set[Expr],
+    preds: Union[str, typing.List[Expr]],
+    vc: Expr,
+    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+    cvcPath: str,
+    synthDir: str,
+    candidatesSMT: typing.List[Expr],
+    candidateDict: Dict[str, Expr],
+    fnsType: Dict[str, Type],
+) -> typing.Tuple[str, typing.List[str]]:
+    inCalls: typing.List[Any] = []
+    fnCalls: typing.List[Any] = []
+    for ce in loopAndPsInfo:
+        inCalls, fnCalls = parseCandidates(  # type: ignore
+            candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
+            inCalls,
+            fnsType,
+            fnCalls,
+        )
+    inCalls = list(set(inCalls))
+    fnCalls = list(set(fnCalls))
+
+    verifFile = synthDir + basename + ".smt"
+    toSMT(
+        targetLang,
+        vars,
+        candidatesSMT,
+        preds,
+        vc,
+        verifFile,
+        inCalls,
+        fnCalls,
+        False,
+    )
+
+    # run external verification subprocess
+    procVerify = subprocess.run(
+        [
+            cvcPath,
+            "--lang=smt",
+            "--fmf-fun",
+            "--produce-models",
+            "--tlimit=100000",
+            verifFile,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+
+    if procVerify.returncode < 0:
+        resultVerify = "SAT/UNKNOWN"
+    else:
+        procOutput = procVerify.stdout
+        resultVerify = procOutput.decode("utf-8").split("\n")[0]
+    verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
+    return resultVerify, verifyLogs

@@ -6,7 +6,7 @@ from analysis import CodeInfo
 from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT
-from synthesis_common import generateTypes, parseCandidates
+from synthesis_common import generateTypes, verify_synth_result
 
 import typing
 from typing import Any, Callable, Dict, Optional, Union
@@ -251,20 +251,6 @@ def synthesize(
             raise Exception("Synthesis failed")
         #####candidateDict --> definitions of all functions to be synthesized#####
 
-        #####identifying call sites for inlining #####
-        inCalls: typing.List[Any] = []
-        fnCalls: typing.List[Any] = []
-        for ce in loopAndPsInfo:
-            inCalls, fnCalls = parseCandidates(  # type: ignore
-                candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
-                inCalls,
-                fnsType,
-                fnCalls,
-            )
-        inCalls = list(set(inCalls))
-        fnCalls = list(set(fnCalls))
-        #####fncalls --> functions from the target language used in ps and invariants, incalls --> call sites for inlining#####
-
         ##### generating function definitions of all the functions to be synthesized#####
         candidatesSMT = []
         for synthFun in invAndPs:
@@ -281,8 +267,6 @@ def synthesize(
 
         ##### verification of synthesized ps/inv
         print("====== verification")
-        verifFile = synthDir + basename + ".smt"
-        toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
 
         verifyLogs: typing.List[str] = []
 
@@ -290,23 +274,19 @@ def synthesize(
             print("Not verifying solution")
             resultVerify = "unsat"
         else:
-            procVerify = subprocess.run(
-                [
-                    cvcPath,
-                    "--lang=smt",
-                    "--produce-models",
-                    "--tlimit=100000",
-                    verifFile,
-                ],
-                stdout=subprocess.PIPE,
+            resultVerify, verifyLogs = verify_synth_result(
+                basename,
+                lang,
+                vars,
+                preds,
+                vc,
+                loopAndPsInfo,
+                cvcPath,
+                synthDir,
+                candidatesSMT,
+                candidateDict,
+                fnsType,
             )
-
-            if procVerify.returncode < 0:
-                resultVerify = "SAT/UNKNOWN"
-            else:
-                procOutput = procVerify.stdout
-                resultVerify = procOutput.decode("utf-8").split("\n")[0]
-            verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
 
         print("Verification Output:", resultVerify)
         if resultVerify == "unsat":
