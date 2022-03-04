@@ -373,6 +373,8 @@ class VC:
                     r = Le(op1, op2)
                 elif cond == "slt" or cond == "ult":
                     r = Lt(op1, op2)
+                elif cond == "sge":
+                    r = Ge(op1, op2)
                 else:
                     raise Exception("NYI %s" % cond)
 
