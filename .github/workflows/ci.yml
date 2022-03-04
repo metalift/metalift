@@ -99,6 +99,7 @@ jobs:
         python -m tests.while3
         python -m tests.while4
         python -m tests.struct1
+        python -m tests.arith
 
     - name: Test Actor Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
