@@ -4,10 +4,7 @@ import sys
 from analysis import CodeInfo, analyze
 from ir import *
 
-if os.environ.get("SYNTH_CVC5") == "1":
-    from synthesize_cvc5 import synthesize
-else:
-    from synthesize_rosette import synthesize
+from synthesize_auto import synthesize
 
 # # programmatically generated grammar
 

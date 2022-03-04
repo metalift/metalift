@@ -197,7 +197,7 @@ def synthesize(
     targetLang: typing.List[Expr],
     vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
-    preds: Union[str, typing.List[Expr]],
+    preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
@@ -238,7 +238,7 @@ def synthesize(
             if "fail" in line:
                 break
             elif "sygus-candidate" in line:
-                print("Current PS and INV Guess ", line.strip())
+                print("Current PS and INV Guess:", line.strip())
                 candidatesSMT, candidateDict = generateCandidates(
                     invAndPs, line, funName, returnType
                 )

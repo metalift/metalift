@@ -6,10 +6,7 @@ from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT
 
-if os.environ.get("SYNTH_CVC5") == "1":
-    from synthesize_cvc5 import synthesize
-else:
-    from synthesize_rosette import synthesize
+from synthesize_auto import synthesize
 
 
 def tuple_add(t):

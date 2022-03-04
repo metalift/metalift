@@ -189,7 +189,7 @@ def toSynthesize(
 
 def synthesize(
     basename: str,
-    lang: typing.List[Expr],
+    targetLang: typing.List[Expr],
     vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
     preds: typing.List[Expr],
@@ -210,7 +210,7 @@ def synthesize(
         ##### synthesis procedure #####
         toRosette(
             synthFile,
-            lang,
+            targetLang,
             vars,
             invAndPs,
             preds,
@@ -220,7 +220,7 @@ def synthesize(
             unboundedInts,
         )
 
-        synthNames = toSynthesize(loopAndPsInfo, lang)
+        synthNames = toSynthesize(loopAndPsInfo, targetLang)
         procSynthesis = subprocess.run(["racket", synthFile], stdout=subprocess.PIPE)
         resultSynth = procSynthesis.stdout.decode("utf-8").split("\n")
         ##### End of Synthesis #####
@@ -234,13 +234,13 @@ def synthesize(
                 )
             else:
                 varTypes[i.args[0]] = generateTypes(i.args[2:])
-        for l_i in lang:
+        for l_i in targetLang:
             varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
 
         if resultSynth[0] == "#t":
             output = parseOutput(resultSynth[1:])
             candidateDict = {}
-            fnsType = generateTypes(lang)
+            fnsType = generateTypes(targetLang)
             for n in synthNames:
                 for r in output:
                     if "define (" + n in r:
@@ -276,7 +276,7 @@ def synthesize(
         else:
             resultVerify, verifyLogs = verify_synth_result(
                 basename,
-                lang,
+                targetLang,
                 vars,
                 preds,
                 vc,

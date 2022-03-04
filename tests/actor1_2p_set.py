@@ -7,10 +7,7 @@ from auto_grammar import auto_grammar
 import sys
 import os
 
-if os.environ.get("SYNTH_CVC5") == "1":
-    from synthesize_cvc5 import synthesize
-else:
-    from synthesize_rosette import synthesize
+from synthesize_auto import synthesize
 
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
