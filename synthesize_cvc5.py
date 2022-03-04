@@ -63,17 +63,14 @@ def generateCandidates(
                         args[v.name] = parseTypeRef(v.type)
 
                 candidatesExpr[a[0]] = toExpr(a[1], funName, returnType, args, {})
-                if isinstance(a[1], str):
-                    candidates.append(FnDecl(ce.args[0], ce.type, a[1], *ce.args[2:]))
-                else:
-                    candidates.append(
-                        FnDecl(
-                            ce.args[0],
-                            ce.type,
-                            "(" + " ".join(list(flatten(a[1]))) + ")",
-                            *ce.args[2:],
-                        )
+                candidates.append(
+                    FnDecl(
+                        ce.args[0],
+                        ce.type,
+                        candidatesExpr[a[0]],
+                        *ce.args[2:],
                     )
+                )
     return candidates, candidatesExpr
 
 
@@ -112,8 +109,11 @@ def toExpr(
             index = funName.index(ast[0])
             return Call(
                 ast[0],
-                returnType[index],
-                toExpr(ast[1], funName, returnType, varType, letVars),
+                returnType[index].args[0],
+                *[
+                    toExpr(arg, funName, returnType, varType, letVars)
+                    for arg in ast[1:]
+                ],
             )
         elif ast[0] == "let":
             newLetVars = dict(letVars)
