@@ -98,7 +98,6 @@ jobs:
         python -m tests.tuples3
         python -m tests.while3
         python -m tests.while4
-        python -m tests.fma_dsl
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
@@ -106,6 +105,7 @@ jobs:
       if: matrix.synth_cvc5 == '0'
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
+        python -m tests.fma_dsl
         python -m tests.count
         python -m tests.list1
         python -m tests.list1_fns
