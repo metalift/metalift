@@ -165,7 +165,7 @@ def toExpr(
         elif ast[0] == "set.union" or ast[0] == "set.minus":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
-            if ast[0] == "set-union":
+            if ast[0] == "set.union":
                 return Call("set-union", s1.type, s1, s2)
             else:
                 return Call("set-minus", s1.type, s1, s2)
