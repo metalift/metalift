@@ -59,7 +59,6 @@ if __name__ == "__main__":
         vc,
         loopAndPsInfo,
         cvcPath,
-        noVerify=False,
     )
 
     print("====== verified candidates")

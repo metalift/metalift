@@ -1,6 +1,7 @@
 from analysis import CodeInfo
 from ir import *
-from actors.synthesis import synthesize_actor, check_aci
+from actors.synthesis import synthesize_actor
+from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
@@ -48,8 +49,6 @@ def grammarQuery(ci: CodeInfo):
     name = ci.name
 
     outputVar = ci.modifiedVars[0]
-
-    synthState = ci.readVars[0]
 
     setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
 

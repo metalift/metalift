@@ -22,9 +22,9 @@ def grammar(ci: CodeInfo):
                         Call(
                             "list_take", List(Int()), ci.readVars[0], ci.modifiedVars[1]
                         ),
-                        Var("lm", Fn(Int())),
+                        Var("lm", Fn(Int(), Int())),
                     ),
-                    Var("lr", Fn(Int())),
+                    Var("lr", Fn(Int(), Int(), Int())),
                 ),
             ),
             Ge(
@@ -38,9 +38,9 @@ def grammar(ci: CodeInfo):
                         Call(
                             "list_take", List(Int()), ci.readVars[0], ci.modifiedVars[1]
                         ),
-                        Var("lm", Fn(Int())),
+                        Var("lm", Fn(Int(), Int())),
                     ),
-                    Var("lr", Fn(Int())),
+                    Var("lr", Fn(Int(), Int(), Int())),
                 ),
             ),
         )
@@ -65,8 +65,8 @@ def grammar(ci: CodeInfo):
 
     elif name.startswith("test"):  # ps
         rv = ci.modifiedVars[0]
-        m = Choose(Var("lm", Fn(Int())))
-        r = Choose(Var("lr", Fn(Int())))
+        m = Choose(Var("lm", Fn(Int(), Int())))
+        r = Choose(Var("lr", Fn(Int(), Int(), Int())))
 
         choices = Choose(
             Eq(
@@ -74,8 +74,8 @@ def grammar(ci: CodeInfo):
                 Call(
                     "reduce",
                     Int(),
-                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int()))),
-                    Var("lr", Fn(Int())),
+                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int(), Int()))),
+                    Var("lr", Fn(Int(), Int(), Int())),
                 ),
             ),
             Gt(
@@ -83,8 +83,8 @@ def grammar(ci: CodeInfo):
                 Call(
                     "reduce",
                     Int(),
-                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int()))),
-                    Var("lr", Fn(Int())),
+                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int(), Int()))),
+                    Var("lr", Fn(Int(), Int(), Int())),
                 ),
             ),
         )
@@ -101,7 +101,7 @@ def grammarFns(fns):
     else:
         v = Choose(fns.args[2:][0], fns.args[2:][1])
         choices = Choose(Add(v, v), Sub(v, v), Mul(v, v))
-        return Synth(fns.args[0], choices, *fns.args[1:])
+        return Synth(fns.args[0], choices, *fns.args[2:])
 
 
 def targetLang():
@@ -121,11 +121,11 @@ def targetLang():
     arg2 = Var("val", Int())
     arg3 = Var("val2", Int())
 
-    lm_fn = Var("f", Fn(Int()))
-    lr_fn = Var("f", Fn(Int()))
+    lm_fn = Var("f", Fn(Int(), Int()))
+    lr_fn = Var("f", Fn(Int(), Int(), Int()))
 
-    mapper = FnDecl("lm", Fn(Int()), "", arg2)
-    reducer = FnDecl("lr", Fn(Int()), "", arg2, arg3)
+    mapper = FnDecl("lm", Int(), None, arg2)
+    reducer = FnDecl("lr", Int(), None, arg2, arg3)
     map_fn = FnDecl(
         "map",
         List(Int()),
@@ -135,13 +135,14 @@ def targetLang():
             Call(
                 "list_prepend",
                 List(Int()),
-                Call(lm_fn.args[0], Fn(Int()), list_get(data, IntLit(0))),
+                Call(lm_fn.args[0], Fn(Int(), Int()), list_get(data, IntLit(0))),
                 Call("map", List(Int()), list_tail(data, IntLit(1)), lm_fn),
             ),
         ),
         data,
         lm_fn,
     )
+
     reduce_fn = FnDecl(
         "reduce",
         Int(),
@@ -150,7 +151,7 @@ def targetLang():
             IntLit(0),
             Call(
                 lr_fn.args[0],
-                Fn(Int()),
+                Fn(Int(), Int(), Int()),
                 list_get(data, IntLit(0)),
                 Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn),
             ),
@@ -159,7 +160,65 @@ def targetLang():
         lr_fn,
     )
 
-    return [map_fn, reduce_fn, mapper, reducer]
+    mr_axiom_data = Var("data", List(Int()))
+    mr_axiom_index = Var("index", Int())
+    map_reduce_axiom = Axiom(
+        Implies(
+            And(Ge(mr_axiom_index, IntLit(0)), Lt(mr_axiom_index, list_length(mr_axiom_data))),
+            Eq(
+                Call(
+                    "reduce",
+                    Int(),
+                    Call(
+                        "map",
+                        List(Int()),
+                        Call(
+                            "list_take",
+                            List(Int()),
+                            mr_axiom_data,
+                            Add(mr_axiom_index, IntLit(1))
+                        ),
+                        Var("lm", Fn(Int(), Int()))
+                    ),
+                    Var("lr", Fn(Int(), Int(), Int())),
+                ),
+                Call(
+                    "lr",
+                    Int(),
+                    Call(
+                        "reduce",
+                        Int(),
+                        Call(
+                            "map",
+                            List(Int()),
+                            Call(
+                                "list_take",
+                                List(Int()),
+                                mr_axiom_data,
+                                mr_axiom_index
+                            ),
+                            Var("lm", Fn(Int(), Int()))
+                        ),
+                        Var("lr", Fn(Int(), Int(), Int())),
+                    ),
+                    Call(
+                        "lm",
+                        Int(),
+                        Call(
+                            "list_get",
+                            Int(),
+                            mr_axiom_data,
+                            mr_axiom_index
+                        )
+                    ),
+                ),
+            ),
+        ),
+        mr_axiom_data,
+        mr_axiom_index,
+    )
+
+    return [map_fn, reduce_fn, map_reduce_axiom, mapper, reducer]
 
 
 if __name__ == "__main__":
@@ -179,7 +238,7 @@ if __name__ == "__main__":
     lang = targetLang()
     fnsGrammar = []
     for l in lang:
-        if l.args[1] == "":
+        if l.args[1] == None:
             fnsGrammar.append(grammarFns(l))
 
     candidates = synthesize(
@@ -191,7 +250,6 @@ if __name__ == "__main__":
         vc,
         loopAndPsInfo,
         cvcPath,
-        noVerify=True,
     )
     print("====== verified candidates")
     for c in candidates:

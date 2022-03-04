@@ -12,35 +12,9 @@ def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
 
 
 def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
-    if funDef.kind.value in [
-        "+",
-        "-",
-        "*",
-        "=",
-        "<",
-        "=",
-        ">=",
-        "<=",
-        "and",
-        "or",
-        "=>",
-    ]:
-        newArgs = [
-            filterBody(funDef.args[0], funCall, inCall),
-            filterBody(funDef.args[1], funCall, inCall),
-        ]
-        return Expr(funDef.kind, funDef.type, newArgs)
-    elif funDef.kind.value == "not":
-        return Not(filterBody(funDef.args[0], funCall, inCall))
-    elif funDef.kind.value == "ite":
-        return Ite(
-            filterBody(funDef.args[0], funCall, inCall),
-            filterBody(funDef.args[1], funCall, inCall),
-            filterBody(funDef.args[2], funCall, inCall),
-        )
-
+    if funDef.kind == Expr.Kind.Var or funDef.kind == Expr.Kind.Lit:
+        return funDef
     elif funDef.kind.value == "call":
-
         if funDef.type.name == "Function":
             newArgs = []
 
@@ -60,7 +34,7 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
             return Call(funDef.args[0], funDef.type, *newArgs)
     else:
-        return funDef
+        return funDef.mapArgs(lambda x: filterBody(x, funCall, inCall))
 
 
 def toSMT(
@@ -81,39 +55,71 @@ def toSMT(
         if not isSynthesis:
             out.write(open("./utils/list-axioms.smt", "r").read())
 
-        out.write("\n\n".join([t.toSMT() for t in targetLang]))
+        early_candidates_names = set()
 
-        if inCalls:
-            fnDecls = []
-            for i in inCalls:
-                for t in targetLang:
+        fnDecls = []
+        axioms = []
+        for t in targetLang:
+            if (
+                t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
+            ) and t.args[0] in fnCalls:
+                found_inline = False
+                for i in inCalls:
                     if i[0] == t.args[0]:
+                        found_inline = True
+                        early_candidates_names.add(i[1])
                         # parse body
                         newBody = filterBody(t.args[1], i[0], i[1])
 
                         # remove function type args
                         newArgs = filterArgs(t.args[2:])
                         fnDecls.append(
-                            FnDecl(t.args[0] + "_" + i[1], t.type, newBody, *newArgs)
+                            FnDecl(
+                                t.args[0] + "_" + i[1],
+                                t.type.args[0],
+                                newBody,
+                                *newArgs,
+                            )
+                            if t.kind == Expr.Kind.FnDecl
+                            else FnDeclNonRecursive(
+                                t.args[0] + "_" + i[1],
+                                t.type.args[0],
+                                newBody,
+                                *newArgs,
+                            )
                         )
 
-            candidates = []
+                if not found_inline and t.args[1] != None:
+                    out.write(t.toSMT() + "\n\n")
+            elif t.kind == Expr.Kind.Axiom:
+                axioms.append(t)
 
-            for cand in invAndPs:
-                newBody = cand.args[1]
-                for idx, i in enumerate(inCalls):
-                    newBody = filterBody(newBody, i[0], i[1])
-                candidates.append(
-                    FnDecl(cand.args[0], cand.type, newBody, *cand.args[2:])
-                )
-            out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
-        elif fnCalls:
-            out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in invAndPs]))
-        else:
-            if isinstance(invAndPs, str):
-                out.write("\n\n%s\n\n" % invAndPs)
+        early_candidates = []
+        candidates = []
+        filtered_axioms = []
+
+        for cand in invAndPs:
+            newBody = cand.args[1]
+            for i in inCalls:
+                newBody = filterBody(newBody, i[0], i[1])
+
+            decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
+            if cand.args[0] in early_candidates_names:
+                early_candidates.append(decl)
             else:
-                out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in invAndPs]))
+                candidates.append(decl)
+
+        for axiom in axioms:
+            newBody = axiom.args[0]
+            for i in inCalls:
+                newBody = filterBody(newBody, i[0], i[1])
+
+            filtered_axioms.append(Axiom(newBody, *axiom.args[1:]))
+
+        out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
+        out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fnDecls]))
+        out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
+        out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
         declarations: typing.List[typing.Tuple[str, Type]] = []
         for v in vars:
