@@ -216,7 +216,7 @@ def synthesize(
         vc,
         sygusFile,
         [],
-        [],
+        [f.args[0] for f in targetLang],
         True,
     )
 
@@ -234,7 +234,6 @@ def synthesize(
         while True:
             line = logfileVerif.readline()
             if "fail" in line:
-                print("SyGuS failed")
                 break
             elif "sygus-candidate" in line:
                 print("Current PS and INV Guess ", line)
@@ -262,7 +261,8 @@ def synthesize(
                     print("CVC4 verification Result for Current Guess")
                     print("SAT\n")
             else:
-                continue
+                if proc.poll() is not None:
+                    break
 
         raise Exception("SyGuS failed")
     finally:
