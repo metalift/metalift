@@ -665,9 +665,6 @@ class Expr:
             local_counts: Dict[str, int] = {}
             self.countVariableUses(local_counts)
 
-            lhs_counts: Dict[str, int] = {}
-            self.args[0].countVariableUses(lhs_counts)
-
             constrained_elsewhere = set(counts.keys())
             for key in local_counts.keys():
                 if local_counts[key] == counts[key]:
@@ -679,13 +676,11 @@ class Expr:
             self.args[1].countVariableUses(counts_rhs)
 
             for rewrite_var in list(rewrites.keys()):
-                if lhs_counts[rewrite_var] > 1:
-                    del rewrites[rewrite_var]
-                elif not (rewrites[rewrite_var].kind == Expr.Kind.Var):
+                if not (rewrites[rewrite_var].kind == Expr.Kind.Var):
                     if rewrite_var in counts_rhs and counts_rhs[rewrite_var] > 1:
                         del rewrites[rewrite_var]
 
-            self = Implies(self.args[0], self.args[1].rewrite(rewrites))
+            self = self.rewrite(rewrites)
 
         return self.mapArgs(
             lambda a: a.optimizeUselessEquality(counts, new_vars)
