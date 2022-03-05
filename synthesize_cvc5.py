@@ -7,7 +7,7 @@ from ir import *
 from smt_util import toSMT
 
 import typing
-from typing import Any, Callable, Dict, Generator, Union
+from typing import IO, Any, Callable, Dict, Generator, Union
 
 from synthesis_common import generateTypes, verify_synth_result
 
@@ -222,19 +222,17 @@ def synthesize(
         True,
     )
 
-    logfile = synthDir + basename + "_logs.txt"
-    synthLogs = open(logfile, "w")
     # Run synthesis subprocess
     proc = subprocess.Popen(
         [cvcPath, "--lang=sygus2", "--output=sygus", "--no-sygus-pbe", sygusFile],
-        stdout=synthLogs,
+        stdout=subprocess.PIPE,
     )
 
     try:
         funName, returnType = extractFuns(targetLang)
-        logfileVerif = open(logfile, "r")
+        logfileVerif = typing.cast(IO[bytes], proc.stdout)
         while True:
-            line = logfileVerif.readline()
+            line = logfileVerif.readline().decode("utf-8")
             if "fail" in line:
                 break
             elif "sygus-candidate" in line:
