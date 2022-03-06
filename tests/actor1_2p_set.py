@@ -45,8 +45,6 @@ def inOrder(arg1, arg2):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    outputVar = ci.modifiedVars[0]
-
     if not fastDebug:
         setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
     else:  # hardcoded for quick debugging
@@ -66,11 +64,9 @@ def grammarQuery(ci: CodeInfo):
             ),
         )
 
-    out = Ite(setContainTransformed, IntLit(1), IntLit(0))
+    summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
-    summary = Eq(outputVar, out)
-
-    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+    return Synth(name, summary, *ci.readVars)
 
 
 def grammar(ci: CodeInfo):
@@ -83,22 +79,17 @@ def grammar(ci: CodeInfo):
         inputAdd = ci.readVars[1]
         inputValue = ci.readVars[2]
 
-        outputState = ci.modifiedVars[0]
-
         condition = Eq(inputAdd, IntLit(1))
         setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
         setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
-        summary = Eq(
-            outputState,
-            MakeTuple(
-                *[
-                    synthStateStructure[i][1](
-                        TupleGet(inputState, IntLit(i)), setTransform
-                    )
-                    for i in range(len(synthStateStructure))
-                ]
-            ),
+        summary = MakeTuple(
+            *[
+                synthStateStructure[i][1](
+                    TupleGet(inputState, IntLit(i)), setTransform
+                )
+                for i in range(len(synthStateStructure))
+            ]
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
@@ -109,6 +100,22 @@ def initState():
 
 
 def targetLang():
+    # reduce_fn = FnDecl(
+    #     "apply_state_transitions",
+    #     Int(),
+    #     Ite(
+    #         Eq(list_length(data), IntLit(0)),
+    #         IntLit(0),
+    #         Call(
+    #             lr_fn.args[0],
+    #             Fn(Int(), Int(), Int()),
+    #             list_get(data, IntLit(0)),
+    #             Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn),
+    #         ),
+    #     ),
+    #     data,
+    #     lr_fn,
+    # )
     return []
 
 

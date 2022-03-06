@@ -610,6 +610,10 @@ def Mul(*args: Expr) -> Expr:
 
 
 def Eq(e1: Expr, e2: Expr) -> Expr:
+    if not (parseTypeRef(e1.type) == parseTypeRef(e2.type)):
+        raise Exception(
+            f"Cannot compare values of different types: {parseTypeRef(e1.type)} and {parseTypeRef(e2.type)}"
+        )
     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 
 
@@ -646,6 +650,7 @@ def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 
 
 def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
+    assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
 

@@ -33,9 +33,8 @@ def grammarQuery(ci: CodeInfo):
     name = ci.name
 
     inputState = ci.readVars[0]
-    outputVar = ci.modifiedVars[0]
 
-    summary = Eq(outputVar, auto_grammar(parseTypeRef(outputVar.type), 2, inputState))
+    summary = auto_grammar(parseTypeRef(ci.retT), 2, inputState)
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -52,8 +51,6 @@ def grammar(ci: CodeInfo):
 
         inputAdd = ci.readVars[1]
 
-        outputState = ci.modifiedVars[0]
-
         intLit = Choose(IntLit(0), IntLit(1))
 
         condition = Eq(inputAdd, intLit)
@@ -64,16 +61,13 @@ def grammar(ci: CodeInfo):
 
         intTransform = Choose(intTransform, Ite(condition, intTransform, intTransform))
 
-        summary = Eq(
-            outputState,
-            MakeTuple(
-                *[
-                    synthStateStructure[i][1](
-                        TupleGet(inputState, IntLit(i)), intTransform
-                    )
-                    for i in range(len(synthStateStructure))
-                ]
-            ),
+        summary = MakeTuple(
+            *[
+                synthStateStructure[i][1](
+                    TupleGet(inputState, IntLit(i)), intTransform
+                )
+                for i in range(len(synthStateStructure))
+            ]
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)

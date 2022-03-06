@@ -101,8 +101,6 @@ def synthesize_actor(
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForPS
 
-        ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
-
         return (
             Implies(
                 And(
@@ -114,13 +112,13 @@ def synthesize_actor(
                             for a1, a2 in zip(origArgs[1:], secondStateTransitionArgs)
                         ]
                     ),
-                    ps,  # type: ignore
+                    Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     supportedCommand(beforeStateForPS, origArgs[1:]),
                 ),
             ),
-            list(ps.operands[2:]),  # type: ignore
+            [newReturn] + newArgs,  # type: ignore
         )
 
     (
@@ -136,6 +134,11 @@ def synthesize_actor(
         wrapSummaryCheck=summaryWrapStateTransition,
         fnNameSuffix="_2",
     )
+
+    loopAndPsInfoStateTransitionInOrder2[0].retT = (
+        loopAndPsInfoStateTransitionInOrder2[0].modifiedVars[0].type
+    )
+    loopAndPsInfoStateTransitionInOrder2[0].modifiedVars = []
 
     vcVarsStateTransitionInOrder2 = vcVarsStateTransitionInOrder2.union(
         extraVarsStateTransition
@@ -166,8 +169,6 @@ def synthesize_actor(
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForPS
 
-        ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
-
         return (
             Implies(
                 And(
@@ -175,7 +176,7 @@ def synthesize_actor(
                     Eq(afterStateOrig, beforeStateOrigLink),
                     Eq(afterStateForPS, beforeStateForPSLink),
                     supportedCommand(beforeStateForPS, origArgs[1:]),
-                    ps,  # type: ignore
+                    Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     observeEquivalence(afterStateOrig, afterStateForPS),
@@ -185,7 +186,7 @@ def synthesize_actor(
                     ),
                 ),
             ),
-            list(ps.operands[2:]),  # type: ignore
+            [newReturn] + newArgs,  # type: ignore
         )
 
     (
@@ -222,14 +223,12 @@ def synthesize_actor(
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForQuery
 
-        ps.operands = tuple(list(ps.operands[:2]) + [origReturn] + newArgs)
-
         return (
             Implies(
                 observeEquivalence(beforeState, beforeStateForQuery),
-                ps,
+                Eq(origReturn, Call("test_response", origReturn.type, *newArgs)),  # type: ignore
             ),
-            list(ps.operands[2:]),  # type: ignore
+            [origReturn] + newArgs,
         )
 
     (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
@@ -237,6 +236,8 @@ def synthesize_actor(
     )
 
     vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
+    loopAndPsInfoQuery[0].retT = loopAndPsInfoQuery[0].modifiedVars[0].type
+    loopAndPsInfoQuery[0].modifiedVars = []
     invAndPsQuery = [grammarQuery(ci) for ci in loopAndPsInfoQuery]
     # end query
 
