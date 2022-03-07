@@ -7,3 +7,5 @@ tests/*.ll
 tests/*.loops
 tests/struct1.rkt
 tests/struct1.smt
+tests/uninterp.rkt
+tests/uninterp.smt
