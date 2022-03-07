@@ -13,8 +13,129 @@ def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
 
 
+def opsListInvariant(synthState: Expr, synthStateType: Type, opType: Type) -> Expr:
+    return And(
+        Eq(
+            Call(
+                "apply_state_transitions",
+                synthStateType,
+                TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
+                Var(
+                    "test_next_state", Fn(synthStateType, synthStateType, *opType.args)
+                ),
+            ),
+            synthState,
+        ),
+        Call(
+            "ops_in_order",
+            Bool(),
+            TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
+        ),
+    )
+
+
 def supportedCommand(synthState: Expr, args: typing.Any) -> Expr:
     return Call("supportedCommand", Bool(), synthState, *args)
+
+
+def unpackOp(op: Expr) -> typing.List[Expr]:
+    if op.type.name == "Tuple":
+        return [TupleGet(op, IntLit(i)) for i in range(len(op.type.args))]
+    else:
+        return [op]
+
+
+def opListAdditionalFns(
+    synthStateType: Type,
+    opType: Type,
+    initState: Callable[[], Expr],
+    inOrder: Callable[[typing.Any, typing.Any], Expr],
+) -> typing.List[Expr]:
+    def list_length(l: Expr) -> Expr:
+        return Call("list_length", Int(), l)
+
+    def list_get(l: Expr, i: Expr) -> Expr:
+        return Call("list_get", opType, l, i)
+
+    def list_tail(l: Expr, i: Expr) -> Expr:
+        return Call("list_tail", List(opType), l, i)
+
+    data = Var("data", List(opType))
+    next_state_fn = Var(
+        "next_state_fn",
+        Fn(
+            synthStateType,
+            synthStateType,
+            *(opType.args if opType.name == "Tuple" else [opType]),
+        ),
+    )
+
+    reduce_fn = FnDecl(
+        "apply_state_transitions",
+        synthStateType,
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            MakeTuple(*initState().args, Call("list_empty", List(opType))),
+            CallValue(
+                next_state_fn,
+                Call(
+                    "apply_state_transitions",
+                    synthStateType,
+                    list_tail(data, IntLit(1)),
+                    next_state_fn,
+                ),
+                *(
+                    [
+                        TupleGet(list_get(data, IntLit(0)), IntLit(i))
+                        for i in range(len(opType.args))
+                    ]
+                    if opType.name == "Tuple"
+                    else [list_get(data, IntLit(0))]
+                ),
+            ),
+        ),
+        data,
+        next_state_fn,
+    )
+
+    next_op = Var("next_op", opType)
+    ops_in_order_helper = FnDecl(
+        "ops_in_order_helper",
+        Bool(),
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            BoolLit(True),
+            And(
+                inOrder(unpackOp(list_get(data, IntLit(0))), unpackOp(next_op)),
+                Call(
+                    "ops_in_order_helper",
+                    Bool(),
+                    list_get(data, IntLit(0)),
+                    list_tail(data, IntLit(1)),
+                ),
+            ),
+        ),
+        next_op,
+        data,
+    )
+
+    ops_in_order = FnDecl(
+        "ops_in_order",
+        Bool(),
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            BoolLit(True),
+            Call(
+                "ops_in_order_helper",
+                Bool(),
+                list_get(data, IntLit(0)),
+                list_tail(data, IntLit(1)),
+            ),
+        ),
+        data,
+    )
+
+    return [reduce_fn, ops_in_order_helper, ops_in_order]
 
 
 class SynthesizeFun(Protocol):
@@ -50,8 +171,35 @@ def synthesize_actor(
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
     unboundedInts: bool = False,
+    useOpList: bool = False,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
+
+    opType: Type = None  # type: ignore
+
+    def supportedCommandWithList(synthState: Expr, args: typing.Any) -> Expr:
+        return Ite(
+            Eq(
+                Call(
+                    "list_length",
+                    Int(),
+                    TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
+                ),
+                IntLit(0),
+            ),
+            BoolLit(True),
+            inOrder(
+                unpackOp(
+                    Call(
+                        "list_get",
+                        opType,
+                        TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
+                        IntLit(0),
+                    )
+                ),
+                args,
+            ),
+        )
 
     # begin state transition (in order)
     extraVarsStateTransition = set()
@@ -67,12 +215,17 @@ def synthesize_actor(
         nonlocal beforeStateForPSLink
         nonlocal secondStateTransitionArgs
         nonlocal op_arg_types
+        nonlocal opType
+        nonlocal synthStateType
 
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
         for i in range(len(origArgs) - 1):
             op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
+        opType = Tuple(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
+        if useOpList:
+            synthStateType = Tuple(*synthStateType.args, List(opType))
 
         secondStateTransitionArgs = [
             Var(f"second_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
@@ -101,8 +254,6 @@ def synthesize_actor(
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForPS
 
-        ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
-
         return (
             Implies(
                 And(
@@ -114,21 +265,21 @@ def synthesize_actor(
                             for a1, a2 in zip(origArgs[1:], secondStateTransitionArgs)
                         ]
                     ),
-                    ps,  # type: ignore
+                    Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     supportedCommand(beforeStateForPS, origArgs[1:]),
                 ),
             ),
-            list(ps.operands[2:]),  # type: ignore
+            [newReturn] + newArgs,  # type: ignore
         )
 
     (
         vcVarsStateTransitionInOrder2,
-        invAndPsStateTransitionInOrder2,
+        _,
         predsStateTransitionInOrder2,
         vcStateTransitionInOrder2,
-        loopAndPsInfoStateTransitionInOrder2,
+        _,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -140,9 +291,6 @@ def synthesize_actor(
     vcVarsStateTransitionInOrder2 = vcVarsStateTransitionInOrder2.union(
         extraVarsStateTransition
     )
-    invAndPsStateTransitionInOrder2 = [
-        grammar(ci) for ci in loopAndPsInfoStateTransitionInOrder2
-    ]
 
     extraVarsPriorStateTransitionInOrder = set()
 
@@ -166,34 +314,47 @@ def synthesize_actor(
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForPS
 
-        ps.operands = tuple(list(ps.operands[:2]) + [newReturn] + newArgs)
-
         return (
             Implies(
                 And(
                     observeEquivalence(beforeStateOrig, beforeStateForPS),
-                    Eq(afterStateOrig, beforeStateOrigLink),
-                    Eq(afterStateForPS, beforeStateForPSLink),
-                    supportedCommand(beforeStateForPS, origArgs[1:]),
-                    ps,  # type: ignore
+                    *(
+                        [
+                            opsListInvariant(beforeStateForPS, synthStateType, opType),
+                            supportedCommandWithList(beforeStateForPS, origArgs[1:]),
+                        ]
+                        if useOpList
+                        else [
+                            supportedCommand(beforeStateForPS, origArgs[1:]),
+                            Eq(afterStateOrig, beforeStateOrigLink),
+                            Eq(afterStateForPS, beforeStateForPSLink),
+                        ]
+                    ),
+                    Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     observeEquivalence(afterStateOrig, afterStateForPS),
-                    Implies(
-                        inOrder(origArgs[1:], secondStateTransitionArgs),
-                        vcStateTransitionInOrder2,
+                    *(
+                        [
+                            Implies(
+                                inOrder(origArgs[1:], secondStateTransitionArgs),
+                                vcStateTransitionInOrder2,
+                            )
+                        ]
+                        if not useOpList
+                        else []
                     ),
                 ),
             ),
-            list(ps.operands[2:]),  # type: ignore
+            [newReturn] + newArgs,  # type: ignore
         )
 
     (
         vcVarsPriorStateTransitionInOrder,
-        _,
+        invAndPsStateTransition,
         predsPriorStateTransitionInOrder,
         vcStateTransitionInOrder,
-        _,
+        loopAndPsInfoStateTransition,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -204,6 +365,38 @@ def synthesize_actor(
 
     vcVarsPriorStateTransition = vcVarsPriorStateTransitionInOrder.union(
         extraVarsPriorStateTransitionInOrder
+    )
+
+    loopAndPsInfoStateTransition[0].retT = (
+        loopAndPsInfoStateTransition[0].modifiedVars[0].type
+    )
+    loopAndPsInfoStateTransition[0].modifiedVars = []
+
+    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransition[0])
+
+    invAndPsStateTransition = (
+        [
+            Synth(
+                stateTransitionSynthNode.args[0],
+                MakeTuple(
+                    *stateTransitionSynthNode.args[1].args,
+                    Call(
+                        "list_prepend",
+                        List(opType),
+                        MakeTuple(*loopAndPsInfoStateTransition[0].readVars[1:])
+                        if len(loopAndPsInfoStateTransition[0].readVars[1:]) > 1
+                        else loopAndPsInfoStateTransition[0].readVars[1],
+                        TupleGet(
+                            loopAndPsInfoStateTransition[0].readVars[0],
+                            IntLit(len(synthStateType.args) - 1),
+                        ),
+                    ),
+                ),
+                *stateTransitionSynthNode.args[2:],
+            )
+        ]
+        if useOpList
+        else [stateTransitionSynthNode]
     )
     # end state transition (in order)
 
@@ -222,14 +415,12 @@ def synthesize_actor(
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForQuery
 
-        ps.operands = tuple(list(ps.operands[:2]) + [origReturn] + newArgs)
-
         return (
             Implies(
                 observeEquivalence(beforeState, beforeStateForQuery),
-                ps,
+                Eq(origReturn, Call("test_response", origReturn.type, *newArgs)),  # type: ignore
             ),
-            list(ps.operands[2:]),  # type: ignore
+            [origReturn] + newArgs,
         )
 
     (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
@@ -237,6 +428,8 @@ def synthesize_actor(
     )
 
     vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
+    loopAndPsInfoQuery[0].retT = loopAndPsInfoQuery[0].modifiedVars[0].type
+    loopAndPsInfoQuery[0].modifiedVars = []
     invAndPsQuery = [grammarQuery(ci) for ci in loopAndPsInfoQuery]
     # end query
 
@@ -260,11 +453,18 @@ def synthesize_actor(
         return (
             Implies(
                 And(
-                    Eq(synthInitState, initState()),
+                    Eq(
+                        synthInitState,
+                        MakeTuple(*initState().args, Call("list_empty", List(opType)))
+                        if useOpList
+                        else initState(),
+                    ),
                 ),
                 And(
                     observeEquivalence(returnedInitState, synthInitState),
-                    supportedCommand(synthInitState, init_op_arg_vars),
+                    opsListInvariant(synthInitState, synthStateType, opType)
+                    if useOpList
+                    else supportedCommand(synthInitState, init_op_arg_vars),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -297,7 +497,11 @@ def synthesize_actor(
             "equivalence",
             And(
                 grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
-                grammarStateInvariant(synthStateForEquivalence),
+                *(
+                    [grammarStateInvariant(synthStateForEquivalence)]
+                    if not useOpList
+                    else []
+                ),
             ),
             inputStateForEquivalence,
             synthStateForEquivalence,
@@ -309,26 +513,31 @@ def synthesize_actor(
         Var(f"supported_arg_{i}", secondStateTransitionArgs[i].type)
         for i in range(len(secondStateTransitionArgs))
     ]
-    invAndPsSupported = [
-        Synth(
-            "supportedCommand",
-            grammarSupportedCommand(synthStateForSupported, argList),
-            synthStateForSupported,
-            *argList,
-        )
-    ]
+    invAndPsSupported = (
+        [
+            Synth(
+                "supportedCommand",
+                grammarSupportedCommand(synthStateForSupported, argList),
+                synthStateForSupported,
+                *argList,
+            )
+        ]
+        if not useOpList
+        else []
+    )
     # end equivalence
 
     print("====== synthesis")
 
     combinedVCVars = (
-        vcVarsStateTransitionInOrder2.union(vcVarsPriorStateTransition)
+        (vcVarsStateTransitionInOrder2 if not useOpList else set())
+        .union(vcVarsPriorStateTransition)
         .union(vcVarsQuery)
         .union(vcVarsInitState)
     )
 
     combinedInvAndPs = (
-        invAndPsStateTransitionInOrder2
+        invAndPsStateTransition
         + invAndPsQuery
         + invAndPsInitState
         + invAndPsEquivalence
@@ -336,14 +545,14 @@ def synthesize_actor(
     )
 
     combinedPreds = (
-        predsStateTransitionInOrder2
+        (predsStateTransitionInOrder2 if not useOpList else [])
         + predsPriorStateTransitionInOrder
         + predsQuery
         + predsInitState
     )
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
-        loopAndPsInfoStateTransitionInOrder2
+        loopAndPsInfoStateTransition
         + loopAndPsInfoQuery
         + loopAndPsInfoInitState
         + invAndPsEquivalence  # type: ignore
@@ -352,6 +561,8 @@ def synthesize_actor(
     combinedVC = And(vcStateTransitionInOrder, vcQuery, vcInitState)
 
     lang = targetLang()
+    if useOpList:
+        lang = lang + opListAdditionalFns(synthStateType, opType, initState, inOrder)
 
     return synthesize(
         basename,
@@ -363,4 +574,5 @@ def synthesize_actor(
         combinedLoopAndPsInfo,
         cvcPath,
         unboundedInts=unboundedInts,
+        noVerify=useOpList,
     )

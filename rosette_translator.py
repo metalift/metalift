@@ -28,22 +28,22 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
 
     elif v.type.name == "MLList" or v.type.name == "Set":
         tmp = [v.args[0] + "_" + str(i) for i in range(n)]
-        tmp.append(v.args[0] + "-len")
-        vars_all.extend(tmp)
-        if v.type.args[0].name == "Int":
-            decls.append("(define-symbolic %s integer?)" % (" ".join(tmp)))
-        elif v.type.args[0].name == "Bool":
-            decls.append("(define-symbolic %s boolean?)" % (" ".join(tmp)))
+
+        for t in tmp:
+            genVar(Var(t, v.type.args[0]), decls, vars_all)
+
+        len_name = v.args[0] + "-len"
+        genVar(Var(len_name, ir.Int()), decls, vars_all)
 
         if v.type.name == "Set":
             decls.append(
                 "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
+                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", len_name)
             )
         else:
             decls.append(
                 "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", tmp[-1])
+                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", len_name)
             )
     elif v.type.name == "Tuple":
         elem_names = []

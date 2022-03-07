@@ -111,6 +111,7 @@ class Expr:
         Ite = "ite"
 
         Call = "call"
+        CallValue = "callvalue"
 
         Assert = "assert"
         Constraint = "constraint"
@@ -216,7 +217,11 @@ class Expr:
             else:
                 return str(self.args[0])
 
-        elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
+        elif (
+            kind == Expr.Kind.Call
+            or kind == Expr.Kind.CallValue
+            or kind == Expr.Kind.Choose
+        ):
             noParens = kind == Expr.Kind.Call and len(self.args) == 1
             retVal = []
 
@@ -409,16 +414,21 @@ class Expr:
             else:
                 return str(self.args[0])
 
-        elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
-            if isinstance(self.args[0], str):
-                if self.args[0].startswith("inv") or self.args[0].startswith("ps"):
+        elif (
+            kind == Expr.Kind.Call
+            or kind == Expr.Kind.CallValue
+            or kind == Expr.Kind.Choose
+        ):
+            if isinstance(self.args[0], str) or kind == Expr.Kind.CallValue:
+                if isinstance(self.args[0], str) and (
+                    self.args[0].startswith("inv") or self.args[0].startswith("ps")
+                ):
                     callStr = "( " + "%s " % (str(self.args[0]))
                     for a in self.args[1:]:
                         callStr += a.toRosette() + " "
                     callStr += ")"
                     return callStr
-
-                elif self.args[0].startswith("list"):
+                elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
                     callStr = (
                         "("
                         + "%s"
@@ -436,11 +446,6 @@ class Expr:
                             callStr += a.toRosette() + " "
                     callStr += ")"
                     return callStr
-
-                # elif (
-                #     self.type.name == "Function"
-                # ):
-                #     return "%s" % (self.args[0])
                 else:
                     return (
                         "("
@@ -448,7 +453,7 @@ class Expr:
                             [
                                 a.name
                                 if isinstance(a, ValueRef) and a.name != ""
-                                else str(a)
+                                else a
                                 if isinstance(a, str)
                                 else a.toRosette()
                                 for a in self.args
@@ -610,6 +615,10 @@ def Mul(*args: Expr) -> Expr:
 
 
 def Eq(e1: Expr, e2: Expr) -> Expr:
+    if not (parseTypeRef(e1.type) == parseTypeRef(e2.type)):
+        raise Exception(
+            f"Cannot compare values of different types: {parseTypeRef(e1.type)} and {parseTypeRef(e2.type)}"
+        )
     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 
 
@@ -646,11 +655,16 @@ def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 
 
 def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
+    assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
 
 def Call(name: str, returnT: Type, *args: Expr) -> Expr:
     return Expr(Expr.Kind.Call, returnT, [name, *args])
+
+
+def CallValue(value: Expr, *args: Expr) -> Expr:
+    return Expr(Expr.Kind.CallValue, value.type.args[0], [value, *args])
 
 
 def Assert(e: Expr) -> Expr:

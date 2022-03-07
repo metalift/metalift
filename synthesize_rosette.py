@@ -61,7 +61,7 @@ def toExpr(
             return toExpr(ast[1], fnsType, varType)
         elif ast[0] in expr_bi.keys():
             return expr_bi[ast[0]](
-                toExpr(ast[1], fnsType, varType), toExpr(ast[2], fnsType, varType)
+                *[toExpr(ast[i], fnsType, varType) for i in range(1, len(ast))]
             )
         elif ast[0] in expr_uni.keys():
             return expr_uni[ast[0]](toExpr(ast[1], fnsType, varType))
@@ -81,17 +81,35 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "list-append" or ast[0] == "append":
+            elem = toExpr(ast[2], fnsType, varType)
             return Call(
                 "list_append",
-                List(Int()),
+                List(elem.type),
                 toExpr(ast[1], fnsType, varType),
+                elem,
+            )
+        elif ast[0] == "list-prepend":
+            elem = toExpr(ast[1], fnsType, varType)
+            return Call(
+                "list_prepend",
+                List(elem.type),
+                elem,
+                toExpr(ast[2], fnsType, varType),
+            )
+        elif ast[0] == "list-ref-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType)
+            return Call(
+                "list_get",
+                list_expr.type.args[0],
+                list_expr,
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "list-tail-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType)
             return Call(
                 "list_tail",
-                List(Int()),
-                toExpr(ast[1], fnsType, varType),
+                list_expr.type,
+                list_expr,
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "list-concat":
@@ -121,7 +139,6 @@ def toExpr(
                 *arg_eval,
             )
         elif ast[0] == "tupleGet":
-            foo = toExpr(ast[2], fnsType, varType)
             return TupleGet(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
@@ -241,6 +258,13 @@ def synthesize(
             output = parseOutput(resultSynth[1:])
             candidateDict = {}
             fnsType = generateTypes(targetLang)
+            for synthFun in invAndPs:
+                allVars = synthFun.args[2:]
+                ceName = synthFun.args[0]
+                fnsType[ceName] = Fn(
+                    synthFun.args[1].type,
+                    *[v.type for v in allVars],
+                )
             for n in synthNames:
                 for r in output:
                     if "define (" + n in r:

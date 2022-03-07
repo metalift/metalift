@@ -135,7 +135,7 @@ def targetLang():
             Call(
                 "list_prepend",
                 List(Int()),
-                Call(lm_fn.args[0], Fn(Int(), Int()), list_get(data, IntLit(0))),
+                CallValue(lm_fn, list_get(data, IntLit(0))),
                 Call("map", List(Int()), list_tail(data, IntLit(1)), lm_fn),
             ),
         ),
@@ -149,9 +149,8 @@ def targetLang():
         Ite(
             Eq(list_length(data), IntLit(0)),
             IntLit(0),
-            Call(
-                lr_fn.args[0],
-                Fn(Int(), Int(), Int()),
+            CallValue(
+                lr_fn,
                 list_get(data, IntLit(0)),
                 Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn),
             ),
