@@ -91,12 +91,6 @@ def grammar(ci: CodeInfo):
                 )
                 for i in range(len(synthStateStructure))
             ],
-            Call(
-                "list_prepend",
-                List(opType),
-                MakeTuple(inputAdd, inputValue),
-                TupleGet(inputState, IntLit(2)),
-            )
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
@@ -104,8 +98,7 @@ def grammar(ci: CodeInfo):
 
 def initState():
     return MakeTuple(
-        *[elem[2] for elem in synthStateStructure],
-        Call("list_empty", List(opType))
+        *[elem[2] for elem in synthStateStructure]
     )
 
 def targetLang():
