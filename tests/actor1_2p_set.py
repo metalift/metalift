@@ -10,8 +10,7 @@ import os
 from synthesize_auto import synthesize
 
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
-opType = Tuple(Int(), Int())
-synthStateType = Tuple(*[a[0] for a in synthStateStructure], List(opType))
+synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
 fastDebug = False
 
@@ -129,7 +128,6 @@ if __name__ == "__main__":
             loopsFile,
             cvcPath,
             synthStateType,
-            opType,
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,

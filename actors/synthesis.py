@@ -152,7 +152,6 @@ def synthesize_actor(
     loopsFile: str,
     cvcPath: str,
     synthStateType: Type,
-    opType: Type,
     initState: Callable[[], Expr],
     grammarStateInvariant: Callable[[Expr], Expr],
     grammarSupportedCommand: Callable[[Expr, typing.Any], Expr],
@@ -166,6 +165,8 @@ def synthesize_actor(
     useOpList: bool = False,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
+
+    opType: Type = None  # type: ignore
 
     def supportedCommandWithList(synthState: Expr, args: typing.Any) -> Expr:
         return Ite(
@@ -205,12 +206,17 @@ def synthesize_actor(
         nonlocal beforeStateForPSLink
         nonlocal secondStateTransitionArgs
         nonlocal op_arg_types
+        nonlocal opType
+        nonlocal synthStateType
 
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
         for i in range(len(origArgs) - 1):
             op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
+        opType = Tuple(*op_arg_types)
+        if useOpList:
+            synthStateType = Tuple(*synthStateType.args, List(opType))
 
         secondStateTransitionArgs = [
             Var(f"second_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
