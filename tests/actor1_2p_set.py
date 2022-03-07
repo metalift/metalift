@@ -137,5 +137,4 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            useOpList=True
         )

@@ -111,8 +111,6 @@ jobs:
         python -m tests.list1_fns
         python -m tests.uninterp
         python -m tests.struct1
-      env:
-        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
     - name: Test Actor Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"

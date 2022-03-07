@@ -31,12 +31,16 @@ def parseCandidates(
     inCalls: typing.List[Any],
     fnsType: Dict[Any, Any],
     fnCalls: typing.List[Any],
+    inFunctionName: str,
 ) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
-    if isinstance(candidate, str) or candidate.kind == Expr.Kind.Lit:
+    if not isinstance(candidate, Expr):
         return inCalls, fnCalls
     else:
         if candidate.kind == Expr.Kind.Call:
-            if candidate.args[0] in fnsType.keys():
+            if (
+                candidate.args[0] in fnsType.keys()
+                and candidate.args[0] != inFunctionName
+            ):
                 fnCalls.append(candidate.args[0])
             for ar in candidate.args:
                 if not isinstance(ar, str):
@@ -45,7 +49,7 @@ def parseCandidates(
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))
         for a in candidate.args:
-            parseCandidates(a, inCalls, fnsType, fnCalls)
+            parseCandidates(a, inCalls, fnsType, fnCalls, inFunctionName)
         return inCalls, fnCalls
 
 
@@ -70,6 +74,7 @@ def verify_synth_result(
             inCalls,
             fnsType,
             fnCalls,
+            ce.name if isinstance(ce, CodeInfo) else ce.args[0],
         )
 
     for langFn in targetLang:
@@ -79,9 +84,10 @@ def verify_synth_result(
                 inCalls,
                 fnsType,
                 fnCalls,
+                langFn.args[0],
             )
 
-    inCalls, fnCalls = parseCandidates(vc, inCalls, fnsType, fnCalls)  # type: ignore
+    inCalls, fnCalls = parseCandidates(vc, inCalls, fnsType, fnCalls, None)  # type: ignore
 
     inCalls = list(set(inCalls))
     fnCalls = list(set(fnCalls))
