@@ -21,7 +21,7 @@
   (list))
 
 (define (list-prepend i l)
-  (append (list i) l))
+  (cons i l))
 
 (define (list-take-noerr l i)
   (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))

@@ -6,7 +6,7 @@ from analysis import CodeInfo
 from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT
-from llvmlite.binding import ValueRef
+from synthesis_common import generateTypes, verify_synth_result
 
 import typing
 from typing import Any, Callable, Dict, Optional, Union
@@ -61,7 +61,7 @@ def toExpr(
             return toExpr(ast[1], fnsType, varType)
         elif ast[0] in expr_bi.keys():
             return expr_bi[ast[0]](
-                toExpr(ast[1], fnsType, varType), toExpr(ast[2], fnsType, varType)
+                *[toExpr(ast[i], fnsType, varType) for i in range(1, len(ast))]
             )
         elif ast[0] in expr_uni.keys():
             return expr_uni[ast[0]](toExpr(ast[1], fnsType, varType))
@@ -81,17 +81,35 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "list-append" or ast[0] == "append":
+            elem = toExpr(ast[2], fnsType, varType)
             return Call(
                 "list_append",
-                List(Int()),
+                List(elem.type),
                 toExpr(ast[1], fnsType, varType),
+                elem,
+            )
+        elif ast[0] == "list-prepend":
+            elem = toExpr(ast[1], fnsType, varType)
+            return Call(
+                "list_prepend",
+                List(elem.type),
+                elem,
+                toExpr(ast[2], fnsType, varType),
+            )
+        elif ast[0] == "list-ref-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType)
+            return Call(
+                "list_get",
+                list_expr.type.args[0],
+                list_expr,
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "list-tail-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType)
             return Call(
                 "list_tail",
-                List(Int()),
-                toExpr(ast[1], fnsType, varType),
+                list_expr.type,
+                list_expr,
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "list-concat":
@@ -121,7 +139,6 @@ def toExpr(
                 *arg_eval,
             )
         elif ast[0] == "tupleGet":
-            foo = toExpr(ast[2], fnsType, varType)
             return TupleGet(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
@@ -172,46 +189,6 @@ def toExpr(
             return Var(ast, varType[ast])
 
 
-def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
-    fnsType = {}
-
-    for l in lang:
-        if l.type.name == "Function":
-            if not isinstance(l, ValueRef):
-                fnsType[l.args[0]] = l.type
-            else:
-                fnsType[l.name] = parseTypeRef(l.type)
-        else:
-            if not isinstance(l, ValueRef):
-                fnsType[l.args[0]] = l.type
-            else:
-                fnsType[l.name] = parseTypeRef(l.type)
-    return fnsType
-
-
-def parseCandidates(
-    candidate: Union[Expr, str],
-    inCalls: typing.List[Any],
-    fnsType: Dict[Any, Any],
-    fnCalls: typing.List[Any],
-) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
-    if isinstance(candidate, str) or candidate.kind == Expr.Kind.Lit:
-        return inCalls, fnCalls
-    else:
-        if candidate.kind == Expr.Kind.Call:
-            if candidate.args[0] in fnsType.keys():
-                fnCalls.append(candidate.args[0])
-            for ar in candidate.args:
-                if not isinstance(ar, str):
-                    if ar.type.name == "Function":
-                        # TODO(shadaj): this logic doesn't correctly handle
-                        # multiple function parameters
-                        inCalls.append((candidate.args[0], ar.args[0]))
-        for a in candidate.args:
-            parseCandidates(a, inCalls, fnsType, fnCalls)
-        return inCalls, fnCalls
-
-
 def toSynthesize(
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]], lang: typing.List[Expr]
 ) -> typing.List[str]:
@@ -229,7 +206,7 @@ def toSynthesize(
 
 def synthesize(
     basename: str,
-    lang: typing.List[Expr],
+    targetLang: typing.List[Expr],
     vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
     preds: typing.List[Expr],
@@ -268,7 +245,7 @@ def synthesize(
         ##### synthesis procedure #####
         toRosette(
             synthFile,
-            lang,
+            targetLang,
             vars,
             invAndPs,
             preds,
@@ -278,7 +255,7 @@ def synthesize(
             unboundedInts,
         )
 
-        synthNames = toSynthesize(loopAndPsInfo, lang)
+        synthNames = toSynthesize(loopAndPsInfo, targetLang)
         procSynthesis = subprocess.run(["racket", synthFile], stdout=subprocess.PIPE)
         resultSynth = procSynthesis.stdout.decode("utf-8").split("\n")
         ##### End of Synthesis #####
@@ -292,13 +269,20 @@ def synthesize(
                 )
             else:
                 varTypes[i.args[0]] = generateTypes(i.args[2:])
-        for l_i in lang:
+        for l_i in targetLang:
             varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
 
         if resultSynth[0] == "#t":
             output = parseOutput(resultSynth[1:])
             candidateDict = {}
-            fnsType = generateTypes(lang)
+            fnsType = generateTypes(targetLang)
+            for synthFun in invAndPs:
+                allVars = synthFun.args[2:]
+                ceName = synthFun.args[0]
+                fnsType[ceName] = Fn(
+                    synthFun.args[1].type,
+                    *[v.type for v in allVars],
+                )
             for n in synthNames:
                 for r in output:
                     if "define (" + n in r:
@@ -308,20 +292,6 @@ def synthesize(
         else:
             raise Exception("Synthesis failed")
         #####candidateDict --> definitions of all functions to be synthesized#####
-
-        #####identifying call sites for inlining #####
-        inCalls: typing.List[Any] = []
-        fnCalls: typing.List[Any] = []
-        for ce in loopAndPsInfo:
-            inCalls, fnCalls = parseCandidates(  # type: ignore
-                candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
-                inCalls,
-                fnsType,
-                fnCalls,
-            )
-        inCalls = list(set(inCalls))
-        fnCalls = list(set(fnCalls))
-        #####fncalls --> functions from the target language used in ps and invariants, incalls --> call sites for inlining#####
 
         ##### generating function definitions of all the functions to be synthesized#####
         candidatesSMT = []
@@ -339,8 +309,6 @@ def synthesize(
 
         ##### verification of synthesized ps/inv
         print("====== verification")
-        verifFile = synthDir + basename + ".smt"
-        toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
 
         verifyLogs: typing.List[str] = []
 
@@ -348,23 +316,19 @@ def synthesize(
             print("Not verifying solution")
             resultVerify = "unsat"
         else:
-            procVerify = subprocess.run(
-                [
-                    cvcPath,
-                    "--lang=smt",
-                    "--produce-models",
-                    "--tlimit=100000",
-                    verifFile,
-                ],
-                stdout=subprocess.PIPE,
+            resultVerify, verifyLogs = verify_synth_result(
+                basename,
+                targetLang,
+                vars,
+                preds,
+                vc,
+                loopAndPsInfo,
+                cvcPath,
+                synthDir,
+                candidatesSMT,
+                candidateDict,
+                fnsType,
             )
-
-            if procVerify.returncode < 0:
-                resultVerify = "SAT/UNKNOWN"
-            else:
-                procOutput = procVerify.stdout
-                resultVerify = procOutput.decode("utf-8").split("\n")[0]
-            verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
 
         print("Verification Output:", resultVerify)
         if resultVerify == "unsat":
@@ -372,7 +336,7 @@ def synthesize(
                 "Verified PS and INV Candidates ",
                 "\n\n".join([str(c) for c in candidatesSMT]),
             )
-            break
+            return candidatesSMT
         else:
             print(
                 "verification failed",
@@ -381,6 +345,4 @@ def synthesize(
             print("\n".join(verifyLogs))
             invGuess.append(resultSynth[1])
             print(invGuess)
-            raise Exception()
-
-    return candidatesSMT
+            raise Exception("Verification failed")

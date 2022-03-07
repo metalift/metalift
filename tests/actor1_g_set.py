@@ -7,10 +7,7 @@ from auto_grammar import auto_grammar
 import sys
 import os
 
-if os.environ.get("SYNTH_CVC5") == "1":
-    from synthesize_cvc5 import synthesize
-else:
-    from synthesize_rosette import synthesize
+from synthesize_auto import synthesize
 
 synthStateStructure = [lat.Set(Int())]
 synthStateType = Tuple(
@@ -48,13 +45,9 @@ def inOrder(arg1, arg2):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    outputVar = ci.modifiedVars[0]
-
     setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
 
-    out = Ite(setContainTransformed, IntLit(1), IntLit(0))
-
-    summary = Eq(outputVar, out)
+    summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -69,23 +62,18 @@ def grammar(ci: CodeInfo):
         inputAdd = ci.readVars[1]
         inputValue = ci.readVars[2]
 
-        outputState = ci.modifiedVars[0]
-
         condition = Eq(inputAdd, IntLit(1))
         setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
         setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
-        summary = Eq(
-            outputState,
-            MakeTuple(
-                *[
-                    synthStateStructure[i][1](
-                        TupleGet(inputState, IntLit(i)), setTransform
-                    )
-                    for i in range(len(synthStateStructure))
-                ],
-                IntLit(0),  # TODO(shadaj): automate insertion of dummy
-            ),
+        summary = MakeTuple(
+            *[
+                synthStateStructure[i][1](
+                    TupleGet(inputState, IntLit(i)), setTransform
+                )
+                for i in range(len(synthStateStructure))
+            ],
+            IntLit(0),  # TODO(shadaj): automate insertion of dummy
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
