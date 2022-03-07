@@ -39,7 +39,10 @@ def supportedCommand(synthState: Expr, args: typing.Any) -> Expr:
 
 
 def unpackOp(op: Expr) -> typing.List[Expr]:
-    return [TupleGet(op, IntLit(i)) for i in range(len(op.type.args))]
+    if op.type.name == "Tuple":
+        return [TupleGet(op, IntLit(i)) for i in range(len(op.type.args))]
+    else:
+        return [op]
 
 
 def opListAdditionalFns(
@@ -59,7 +62,12 @@ def opListAdditionalFns(
 
     data = Var("data", List(opType))
     next_state_fn = Var(
-        "next_state_fn", Fn(synthStateType, synthStateType, *opType.args)
+        "next_state_fn",
+        Fn(
+            synthStateType,
+            synthStateType,
+            *(opType.args if opType.name == "Tuple" else [opType]),
+        ),
     )
 
     reduce_fn = FnDecl(
@@ -76,10 +84,14 @@ def opListAdditionalFns(
                     list_tail(data, IntLit(1)),
                     next_state_fn,
                 ),
-                *[
-                    TupleGet(list_get(data, IntLit(0)), IntLit(i))
-                    for i in range(len(opType.args))
-                ],
+                *(
+                    [
+                        TupleGet(list_get(data, IntLit(0)), IntLit(i))
+                        for i in range(len(opType.args))
+                    ]
+                    if opType.name == "Tuple"
+                    else [list_get(data, IntLit(0))]
+                ),
             ),
         ),
         data,
@@ -211,7 +223,7 @@ def synthesize_actor(
 
         for i in range(len(origArgs) - 1):
             op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
-        opType = Tuple(*op_arg_types)
+        opType = Tuple(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
         if useOpList:
             synthStateType = Tuple(*synthStateType.args, List(opType))
 
@@ -371,7 +383,9 @@ def synthesize_actor(
                     Call(
                         "list_prepend",
                         List(opType),
-                        MakeTuple(*loopAndPsInfoStateTransition[0].readVars[1:]),
+                        MakeTuple(*loopAndPsInfoStateTransition[0].readVars[1:])
+                        if len(loopAndPsInfoStateTransition[0].readVars[1:]) > 1
+                        else loopAndPsInfoStateTransition[0].readVars[1],
                         TupleGet(
                             loopAndPsInfoStateTransition[0].readVars[0],
                             IntLit(len(synthStateType.args) - 1),

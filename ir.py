@@ -655,7 +655,7 @@ def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 
 
 def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
-    # assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
+    assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
 
