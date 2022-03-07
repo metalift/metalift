@@ -2,7 +2,7 @@
 (declare-datatypes ((MLList 1))
                    ((par (T) ((cons (head T) (tail (MLList T))) (nil)))))
 
-(define-sort T1 () (Tuple2 Int Int))
+(define-sort T1 () Int)
 
 
 ;(define-fun-rec list_length ((l (MLList T1))) Int
