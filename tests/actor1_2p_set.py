@@ -10,7 +10,14 @@ import os
 from synthesize_auto import synthesize
 
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+opType = Tuple(Int(), Int())
+synthStateType = Tuple(*[a[0] for a in synthStateStructure], List(opType))
+
+def unpackOp(op):
+    return [
+        TupleGet(op, IntLit(i))
+        for i in range(len(opType.args))
+    ]
 
 fastDebug = False
 
@@ -38,7 +45,7 @@ def inOrder(arg1, arg2):
     return Ite(
         Eq(arg1[0], IntLit(1)),  # if first command is insert
         BoolLit(True),  # second can be insert or remove
-        Eq(arg2[0], IntLit(0)),  # but if remove, must be remove next
+        Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
     )
 
 
@@ -89,34 +96,90 @@ def grammar(ci: CodeInfo):
                     TupleGet(inputState, IntLit(i)), setTransform
                 )
                 for i in range(len(synthStateStructure))
-            ]
+            ],
+            Call(
+                "list_prepend",
+                List(opType),
+                MakeTuple(inputAdd, inputValue),
+                TupleGet(inputState, IntLit(2)),
+            )
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 def initState():
-    return MakeTuple(*[elem[2] for elem in synthStateStructure])
-
+    return MakeTuple(
+        *[elem[2] for elem in synthStateStructure],
+        Call("list_empty", List(opType))
+    )
 
 def targetLang():
-    # reduce_fn = FnDecl(
-    #     "apply_state_transitions",
-    #     Int(),
-    #     Ite(
-    #         Eq(list_length(data), IntLit(0)),
-    #         IntLit(0),
-    #         Call(
-    #             lr_fn.args[0],
-    #             Fn(Int(), Int(), Int()),
-    #             list_get(data, IntLit(0)),
-    #             Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn),
-    #         ),
-    #     ),
-    #     data,
-    #     lr_fn,
-    # )
-    return []
+    def list_length(l):
+        return Call("list_length", Int(), l)
+
+    def list_empty():
+        return Call("list_empty", List(opType))
+
+    def list_get(l, i):
+        return Call("list_get", opType, l, i)
+
+    def list_tail(l, i):
+        return Call("list_tail", List(opType), l, i)
+
+    data = Var("data", List(opType))
+    next_state_fn = Var("next_state_fn", Fn(synthStateType, synthStateType, *opType.args))
+
+    reduce_fn = FnDecl(
+        "apply_state_transitions",
+        synthStateType,
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            initState(),
+            Call(
+                "next_state_fn",
+                # TODO(shadaj): this is a bogus hack
+                Fn(synthStateType, synthStateType, *opType.args),
+                # synthStateType,
+                Call("apply_state_transitions", synthStateType, list_tail(data, IntLit(1)), next_state_fn),
+                *[
+                    TupleGet(list_get(data, IntLit(0)), IntLit(i))
+                    for i in range(len(opType.args))
+                ]
+            ),
+        ),
+        data,
+        next_state_fn,
+    )
+
+    next_op = Var("next_op", opType)
+    ops_in_order_helper = FnDecl(
+        "ops_in_order_helper",
+        Bool(),
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            BoolLit(True),
+            And(
+                inOrder(unpackOp(list_get(data, IntLit(0))), unpackOp(next_op)),
+                Call("ops_in_order_helper", Bool(), list_get(data, IntLit(0)), list_tail(data, IntLit(1))),
+            )
+        ),
+        next_op,
+        data
+    )
+
+    ops_in_order = FnDecl(
+        "ops_in_order",
+        Bool(),
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            BoolLit(True),
+            Call("ops_in_order_helper", Bool(), list_get(data, IntLit(0)), list_tail(data, IntLit(1))),
+        ),
+        data
+    )
+
+    return [reduce_fn, ops_in_order_helper, ops_in_order]
 
 
 if __name__ == "__main__":
@@ -143,6 +206,7 @@ if __name__ == "__main__":
             loopsFile,
             cvcPath,
             synthStateType,
+            opType,
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,
@@ -152,4 +216,5 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
+            useOpList=True
         )

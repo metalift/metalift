@@ -2,7 +2,7 @@
 (declare-datatypes ((MLList 1))
                    ((par (T) ((cons (head T) (tail (MLList T))) (nil)))))
 
-(define-sort T1 () Int)
+(define-sort T1 () (Tuple2 Int Int))
 
 
 ;(define-fun-rec list_length ((l (MLList T1))) Int
@@ -67,7 +67,7 @@
                 (=> (>= end (list_length l))
                     (= (list_take l end) l))))
 
-(assert (forall ( (l (MLList Int)) ) (= (list_take l 0) (as nil (MLList Int)))))
+(assert (forall ( (l (MLList T1)) ) (= (list_take l 0) (as nil (MLList T1)))))
 
 ;(declare-fun list_concat ( (MLList T1) (MLList T1) ) (MLList T1))
 ;(assert (forall ((xs (MLList T1)) (ys (MLList T1)) (x T1))
@@ -75,8 +75,8 @@
 ;                 (= (list_concat xs ys) ys)
 ;                 (= (list_concat (cons x xs) ys) (cons x (list_concat xs ys))))))
 
-(define-fun-rec list_concat ((xs (MLList Int)) (ys (MLList Int))) (MLList Int)
-    (ite (= (as nil (MLList Int)) xs)
+(define-fun-rec list_concat ((xs (MLList T1)) (ys (MLList T1))) (MLList T1)
+    (ite (= (as nil (MLList T1)) xs)
          ys
          (cons (head xs) (list_concat (tail xs) ys))))
 
@@ -84,18 +84,18 @@
 ; list axioms
 
 ; l :: nil = l
-(assert (forall ( (l (MLList Int)) )
-                (= (list_concat l (as nil (MLList Int))) l)))
+(assert (forall ( (l (MLList T1)) )
+                (= (list_concat l (as nil (MLList T1))) l)))
 
 
 ; l[i:] = l[i] : l[i+1:]
-(assert (forall ( (l (MLList Int)) (i Int) (out (MLList Int)) )
+(assert (forall ( (l (MLList T1)) (i Int) (out (MLList T1)) )
                 (=> (and (>= i 0) (< i (list_length l)))
                     (= (list_tail l i)
                        (cons (list_get l i) (list_tail l (+ i 1)))))))
 
 ; xs :: (y : ys) = (xs : y) :: ys
-(assert (forall ( (xs (MLList Int)) (y Int) (ys (MLList Int)) )
+(assert (forall ( (xs (MLList T1)) (y T1) (ys (MLList T1)) )
                 (= (list_concat xs (cons y ys))
                    (list_concat (list_append xs y) ys))))
 

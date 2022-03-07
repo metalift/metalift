@@ -13,8 +13,29 @@ def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
 
 
+def opsListInvariant(synthState: Expr, synthStateType: Type, opType: Type) -> Expr:
+    return And(
+        Eq(
+            Call(
+                "apply_state_transitions",
+                synthStateType,
+                TupleGet(synthState, IntLit(2)),
+                Var(
+                    "test_next_state", Fn(synthStateType, synthStateType, *opType.args)
+                ),
+            ),
+            synthState,
+        ),
+        Call("ops_in_order", Bool(), TupleGet(synthState, IntLit(2))),
+    )
+
+
 def supportedCommand(synthState: Expr, args: typing.Any) -> Expr:
     return Call("supportedCommand", Bool(), synthState, *args)
+
+
+def unpackOp(op: Expr) -> typing.List[Expr]:
+    return [TupleGet(op, IntLit(i)) for i in range(len(op.type.args))]
 
 
 class SynthesizeFun(Protocol):
@@ -40,6 +61,7 @@ def synthesize_actor(
     loopsFile: str,
     cvcPath: str,
     synthStateType: Type,
+    opType: Type,
     initState: Callable[[], Expr],
     grammarStateInvariant: Callable[[Expr], Expr],
     grammarSupportedCommand: Callable[[Expr, typing.Any], Expr],
@@ -50,8 +72,21 @@ def synthesize_actor(
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
     unboundedInts: bool = False,
+    useOpList: bool = False,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
+
+    def supportedCommandWithList(synthState: Expr, args: typing.Any) -> Expr:
+        return Ite(
+            Eq(Call("list_length", Int(), TupleGet(synthState, IntLit(2))), IntLit(0)),
+            BoolLit(True),
+            inOrder(
+                unpackOp(
+                    Call("list_get", opType, TupleGet(synthState, IntLit(2)), IntLit(0))
+                ),
+                args,
+            ),
+        )
 
     # begin state transition (in order)
     extraVarsStateTransition = set()
@@ -173,16 +208,31 @@ def synthesize_actor(
             Implies(
                 And(
                     observeEquivalence(beforeStateOrig, beforeStateForPS),
-                    Eq(afterStateOrig, beforeStateOrigLink),
-                    Eq(afterStateForPS, beforeStateForPSLink),
-                    supportedCommand(beforeStateForPS, origArgs[1:]),
+                    *(
+                        [
+                            opsListInvariant(beforeStateForPS, synthStateType, opType),
+                            supportedCommandWithList(beforeStateForPS, origArgs[1:]),
+                        ]
+                        if useOpList
+                        else [
+                            supportedCommand(beforeStateForPS, origArgs[1:]),
+                            Eq(afterStateOrig, beforeStateOrigLink),
+                            Eq(afterStateForPS, beforeStateForPSLink),
+                        ]
+                    ),
                     Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     observeEquivalence(afterStateOrig, afterStateForPS),
-                    Implies(
-                        inOrder(origArgs[1:], secondStateTransitionArgs),
-                        vcStateTransitionInOrder2,
+                    *(
+                        [
+                            Implies(
+                                inOrder(origArgs[1:], secondStateTransitionArgs),
+                                vcStateTransitionInOrder2,
+                            )
+                        ]
+                        if not useOpList
+                        else []
                     ),
                 ),
             ),
@@ -265,7 +315,9 @@ def synthesize_actor(
                 ),
                 And(
                     observeEquivalence(returnedInitState, synthInitState),
-                    supportedCommand(synthInitState, init_op_arg_vars),
+                    opsListInvariant(synthInitState, synthStateType, opType)
+                    if useOpList
+                    else supportedCommand(synthInitState, init_op_arg_vars),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -298,7 +350,7 @@ def synthesize_actor(
             "equivalence",
             And(
                 grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
-                grammarStateInvariant(synthStateForEquivalence),
+                # grammarStateInvariant(synthStateForEquivalence),
             ),
             inputStateForEquivalence,
             synthStateForEquivalence,
@@ -310,14 +362,18 @@ def synthesize_actor(
         Var(f"supported_arg_{i}", secondStateTransitionArgs[i].type)
         for i in range(len(secondStateTransitionArgs))
     ]
-    invAndPsSupported = [
-        Synth(
-            "supportedCommand",
-            grammarSupportedCommand(synthStateForSupported, argList),
-            synthStateForSupported,
-            *argList,
-        )
-    ]
+    invAndPsSupported = (
+        [
+            Synth(
+                "supportedCommand",
+                grammarSupportedCommand(synthStateForSupported, argList),
+                synthStateForSupported,
+                *argList,
+            )
+        ]
+        if not useOpList
+        else []
+    )
     # end equivalence
 
     print("====== synthesis")
@@ -364,4 +420,5 @@ def synthesize_actor(
         combinedLoopAndPsInfo,
         cvcPath,
         unboundedInts=unboundedInts,
+        noVerify=useOpList,
     )

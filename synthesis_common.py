@@ -40,7 +40,7 @@ def parseCandidates(
                 fnCalls.append(candidate.args[0])
             for ar in candidate.args:
                 if not isinstance(ar, str):
-                    if ar.type.name == "Function":
+                    if ar.type.name == "Function" and ar.args[0] in fnsType.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))
@@ -71,6 +71,18 @@ def verify_synth_result(
             fnsType,
             fnCalls,
         )
+
+    for langFn in targetLang:
+        if langFn.args[1] != None:
+            inCalls, fnCalls = parseCandidates(  # type: ignore
+                langFn.args[1],
+                inCalls,
+                fnsType,
+                fnCalls,
+            )
+
+    inCalls, fnCalls = parseCandidates(vc, inCalls, fnsType, fnCalls)  # type: ignore
+
     inCalls = list(set(inCalls))
     fnCalls = list(set(fnCalls))
 

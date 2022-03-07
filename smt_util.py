@@ -120,6 +120,9 @@ def toSMT(
 
             filtered_axioms.append(Axiom(newBody, *axiom.args[1:]))
 
+        for i in inCalls:
+            vc = filterBody(vc, i[0], i[1])
+
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
         out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fnDecls]))
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
