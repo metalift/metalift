@@ -105,6 +105,10 @@ if __name__ == "__main__":
             cvcPath,
         )
     else:
+        useOpList = False
+        if mode == "synth-oplist":
+            useOpList = True
+
         synthesize_actor(
             filename,
             fnNameBase,
@@ -120,4 +124,5 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
+            useOpList=useOpList,
         )
