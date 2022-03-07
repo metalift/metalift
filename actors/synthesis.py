@@ -267,10 +267,10 @@ def synthesize_actor(
 
     (
         vcVarsStateTransitionInOrder2,
-        invAndPsStateTransitionInOrder2,
+        _,
         predsStateTransitionInOrder2,
         vcStateTransitionInOrder2,
-        loopAndPsInfoStateTransitionInOrder2,
+        _,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -279,40 +279,8 @@ def synthesize_actor(
         fnNameSuffix="_2",
     )
 
-    loopAndPsInfoStateTransitionInOrder2[0].retT = (
-        loopAndPsInfoStateTransitionInOrder2[0].modifiedVars[0].type
-    )
-    loopAndPsInfoStateTransitionInOrder2[0].modifiedVars = []
-
     vcVarsStateTransitionInOrder2 = vcVarsStateTransitionInOrder2.union(
         extraVarsStateTransition
-    )
-
-    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransitionInOrder2[0])
-
-    invAndPsStateTransitionInOrder2 = (
-        [
-            Synth(
-                stateTransitionSynthNode.args[0],
-                MakeTuple(
-                    *stateTransitionSynthNode.args[1].args,
-                    Call(
-                        "list_prepend",
-                        List(opType),
-                        MakeTuple(
-                            *loopAndPsInfoStateTransitionInOrder2[0].readVars[1:]
-                        ),
-                        TupleGet(
-                            loopAndPsInfoStateTransitionInOrder2[0].readVars[0],
-                            IntLit(len(synthStateType.args) - 1),
-                        ),
-                    ),
-                ),
-                *stateTransitionSynthNode.args[2:],
-            )
-        ]
-        if useOpList
-        else [stateTransitionSynthNode]
     )
 
     extraVarsPriorStateTransitionInOrder = set()
@@ -374,10 +342,10 @@ def synthesize_actor(
 
     (
         vcVarsPriorStateTransitionInOrder,
-        _,
+        invAndPsStateTransition,
         predsPriorStateTransitionInOrder,
         vcStateTransitionInOrder,
-        _,
+        loopAndPsInfoStateTransition,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
@@ -388,6 +356,36 @@ def synthesize_actor(
 
     vcVarsPriorStateTransition = vcVarsPriorStateTransitionInOrder.union(
         extraVarsPriorStateTransitionInOrder
+    )
+
+    loopAndPsInfoStateTransition[0].retT = (
+        loopAndPsInfoStateTransition[0].modifiedVars[0].type
+    )
+    loopAndPsInfoStateTransition[0].modifiedVars = []
+
+    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransition[0])
+
+    invAndPsStateTransition = (
+        [
+            Synth(
+                stateTransitionSynthNode.args[0],
+                MakeTuple(
+                    *stateTransitionSynthNode.args[1].args,
+                    Call(
+                        "list_prepend",
+                        List(opType),
+                        MakeTuple(*loopAndPsInfoStateTransition[0].readVars[1:]),
+                        TupleGet(
+                            loopAndPsInfoStateTransition[0].readVars[0],
+                            IntLit(len(synthStateType.args) - 1),
+                        ),
+                    ),
+                ),
+                *stateTransitionSynthNode.args[2:],
+            )
+        ]
+        if useOpList
+        else [stateTransitionSynthNode]
     )
     # end state transition (in order)
 
@@ -521,13 +519,14 @@ def synthesize_actor(
     print("====== synthesis")
 
     combinedVCVars = (
-        vcVarsStateTransitionInOrder2.union(vcVarsPriorStateTransition)
+        (vcVarsStateTransitionInOrder2 if not useOpList else set())
+        .union(vcVarsPriorStateTransition)
         .union(vcVarsQuery)
         .union(vcVarsInitState)
     )
 
     combinedInvAndPs = (
-        invAndPsStateTransitionInOrder2
+        invAndPsStateTransition
         + invAndPsQuery
         + invAndPsInitState
         + invAndPsEquivalence
@@ -535,14 +534,14 @@ def synthesize_actor(
     )
 
     combinedPreds = (
-        predsStateTransitionInOrder2
+        (predsStateTransitionInOrder2 if not useOpList else [])
         + predsPriorStateTransitionInOrder
         + predsQuery
         + predsInitState
     )
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
-        loopAndPsInfoStateTransitionInOrder2
+        loopAndPsInfoStateTransition
         + loopAndPsInfoQuery
         + loopAndPsInfoInitState
         + invAndPsEquivalence  # type: ignore
