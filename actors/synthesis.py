@@ -68,11 +68,8 @@ def opListAdditionalFns(
         Ite(
             Eq(list_length(data), IntLit(0)),
             MakeTuple(*initState().args, Call("list_empty", List(opType))),
-            Call(
-                "next_state_fn",
-                # TODO(shadaj): this is a bogus hack
-                Fn(synthStateType, synthStateType, *opType.args),
-                # synthStateType,
+            CallValue(
+                next_state_fn,
                 Call(
                     "apply_state_transitions",
                     synthStateType,

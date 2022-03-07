@@ -12,27 +12,24 @@ def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
 
 
 def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
-    if funDef.kind == Expr.Kind.Var or funDef.kind == Expr.Kind.Lit:
+    if (
+        (not isinstance(funDef, Expr))
+        or funDef.kind == Expr.Kind.Var
+        or funDef.kind == Expr.Kind.Lit
+    ):
         return funDef
-    elif funDef.kind.value == "call":
-        if funDef.type.name == "Function":
-            newArgs = []
-
-            for i in range(1, len(funDef.args)):
+    elif funDef.kind == Expr.Kind.Call and funDef.args[0] == funCall:
+        newArgs = []
+        for i in range(1, len(funDef.args)):
+            if funDef.args[i].type.name != "Function":
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            return Call(inCall, funDef.type, *newArgs)
+        return Call(funCall + "_" + inCall, funDef.type, *newArgs)
+    elif funDef.kind == Expr.Kind.CallValue:
+        newArgs = []
 
-        elif funDef.args[0] == funCall:
-            newArgs = []
-            for i in range(1, len(funDef.args)):
-                if funDef.args[i].type.name != "Function":
-                    newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            return Call(funCall + "_" + inCall, funDef.type, *newArgs)
-        else:
-            newArgs = []
-            for i in range(1, len(funDef.args)):
-                newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            return Call(funDef.args[0], funDef.type, *newArgs)
+        for i in range(1, len(funDef.args)):
+            newArgs.append(filterBody(funDef.args[i], funCall, inCall))
+        return Call(inCall, funDef.type, *newArgs)
     else:
         return funDef.mapArgs(lambda x: filterBody(x, funCall, inCall))
 
