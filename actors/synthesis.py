@@ -38,6 +38,93 @@ def unpackOp(op: Expr) -> typing.List[Expr]:
     return [TupleGet(op, IntLit(i)) for i in range(len(op.type.args))]
 
 
+def opListAdditionalFns(
+    synthStateType: Type,
+    opType: Type,
+    initState: Callable[[], Expr],
+    inOrder: Callable[[typing.Any, typing.Any], Expr],
+) -> typing.List[Expr]:
+    def list_length(l: Expr) -> Expr:
+        return Call("list_length", Int(), l)
+
+    def list_get(l: Expr, i: Expr) -> Expr:
+        return Call("list_get", opType, l, i)
+
+    def list_tail(l: Expr, i: Expr) -> Expr:
+        return Call("list_tail", List(opType), l, i)
+
+    data = Var("data", List(opType))
+    next_state_fn = Var(
+        "next_state_fn", Fn(synthStateType, synthStateType, *opType.args)
+    )
+
+    reduce_fn = FnDecl(
+        "apply_state_transitions",
+        synthStateType,
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            initState(),
+            Call(
+                "next_state_fn",
+                # TODO(shadaj): this is a bogus hack
+                Fn(synthStateType, synthStateType, *opType.args),
+                # synthStateType,
+                Call(
+                    "apply_state_transitions",
+                    synthStateType,
+                    list_tail(data, IntLit(1)),
+                    next_state_fn,
+                ),
+                *[
+                    TupleGet(list_get(data, IntLit(0)), IntLit(i))
+                    for i in range(len(opType.args))
+                ],
+            ),
+        ),
+        data,
+        next_state_fn,
+    )
+
+    next_op = Var("next_op", opType)
+    ops_in_order_helper = FnDecl(
+        "ops_in_order_helper",
+        Bool(),
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            BoolLit(True),
+            And(
+                inOrder(unpackOp(list_get(data, IntLit(0))), unpackOp(next_op)),
+                Call(
+                    "ops_in_order_helper",
+                    Bool(),
+                    list_get(data, IntLit(0)),
+                    list_tail(data, IntLit(1)),
+                ),
+            ),
+        ),
+        next_op,
+        data,
+    )
+
+    ops_in_order = FnDecl(
+        "ops_in_order",
+        Bool(),
+        Ite(
+            Eq(list_length(data), IntLit(0)),
+            BoolLit(True),
+            Call(
+                "ops_in_order_helper",
+                Bool(),
+                list_get(data, IntLit(0)),
+                list_tail(data, IntLit(1)),
+            ),
+        ),
+        data,
+    )
+
+    return [reduce_fn, ops_in_order_helper, ops_in_order]
+
+
 class SynthesizeFun(Protocol):
     def __call__(
         self,
@@ -75,6 +162,10 @@ def synthesize_actor(
     useOpList: bool = False,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
+
+    lang = targetLang()
+    if useOpList:
+        lang = lang + opListAdditionalFns(synthStateType, opType, initState, inOrder)
 
     def supportedCommandWithList(synthState: Expr, args: typing.Any) -> Expr:
         return Ite(
@@ -407,8 +498,6 @@ def synthesize_actor(
         + invAndPsSupported  # type: ignore
     )
     combinedVC = And(vcStateTransitionInOrder, vcQuery, vcInitState)
-
-    lang = targetLang()
 
     return synthesize(
         basename,

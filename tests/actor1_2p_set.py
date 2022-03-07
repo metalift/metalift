@@ -13,12 +13,6 @@ synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
 opType = Tuple(Int(), Int())
 synthStateType = Tuple(*[a[0] for a in synthStateStructure], List(opType))
 
-def unpackOp(op):
-    return [
-        TupleGet(op, IntLit(i))
-        for i in range(len(opType.args))
-    ]
-
 fastDebug = False
 
 
@@ -115,71 +109,7 @@ def initState():
     )
 
 def targetLang():
-    def list_length(l):
-        return Call("list_length", Int(), l)
-
-    def list_empty():
-        return Call("list_empty", List(opType))
-
-    def list_get(l, i):
-        return Call("list_get", opType, l, i)
-
-    def list_tail(l, i):
-        return Call("list_tail", List(opType), l, i)
-
-    data = Var("data", List(opType))
-    next_state_fn = Var("next_state_fn", Fn(synthStateType, synthStateType, *opType.args))
-
-    reduce_fn = FnDecl(
-        "apply_state_transitions",
-        synthStateType,
-        Ite(
-            Eq(list_length(data), IntLit(0)),
-            initState(),
-            Call(
-                "next_state_fn",
-                # TODO(shadaj): this is a bogus hack
-                Fn(synthStateType, synthStateType, *opType.args),
-                # synthStateType,
-                Call("apply_state_transitions", synthStateType, list_tail(data, IntLit(1)), next_state_fn),
-                *[
-                    TupleGet(list_get(data, IntLit(0)), IntLit(i))
-                    for i in range(len(opType.args))
-                ]
-            ),
-        ),
-        data,
-        next_state_fn,
-    )
-
-    next_op = Var("next_op", opType)
-    ops_in_order_helper = FnDecl(
-        "ops_in_order_helper",
-        Bool(),
-        Ite(
-            Eq(list_length(data), IntLit(0)),
-            BoolLit(True),
-            And(
-                inOrder(unpackOp(list_get(data, IntLit(0))), unpackOp(next_op)),
-                Call("ops_in_order_helper", Bool(), list_get(data, IntLit(0)), list_tail(data, IntLit(1))),
-            )
-        ),
-        next_op,
-        data
-    )
-
-    ops_in_order = FnDecl(
-        "ops_in_order",
-        Bool(),
-        Ite(
-            Eq(list_length(data), IntLit(0)),
-            BoolLit(True),
-            Call("ops_in_order_helper", Bool(), list_get(data, IntLit(0)), list_tail(data, IntLit(1))),
-        ),
-        data
-    )
-
-    return [reduce_fn, ops_in_order_helper, ops_in_order]
+    return []
 
 
 if __name__ == "__main__":
