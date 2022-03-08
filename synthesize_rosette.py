@@ -16,7 +16,10 @@ from typing import Any, Callable, Dict, Optional, Union
 def generateAST(expr: str) -> typing.List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
-    ast = parser.parseString(expr, parseAll=True).asList()
+    try:
+        ast = parser.parseString(expr, parseAll=True).asList()
+    except:
+        raise Exception(f"Failed to parse Rosette output: {expr}")
     return ast  # type: ignore
 
 
