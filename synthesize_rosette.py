@@ -282,8 +282,9 @@ def synthesize(
             for n in synthNames:
                 for r in output:
                     if "define (" + n in r:
+                        startIndex = r.find("(")
                         candidateDict[n] = toExpr(
-                            generateAST(r[1:])[0], fnsType, varTypes[n]
+                            generateAST(r[startIndex:])[0], fnsType, varTypes[n]
                         )
         else:
             raise Exception("Synthesis failed")
