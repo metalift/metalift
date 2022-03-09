@@ -112,12 +112,23 @@ jobs:
         python -m tests.uninterp
         python -m tests.struct1
 
-    - name: Test Actor Examples
+    - name: Test Actor Examples (direct)
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+      if: matrix.synth_cvc5 == '1'
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
+    
+    - name: Test Actor Examples (op-list)
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
+      run: |
+        python -m tests.actor1_g_set synth-oplist tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor1_2p_set synth-oplist tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor2 synth-oplist tests/actor2.ll test tests/actor2.loops cvc5
+      if: matrix.synth_cvc5 == '0'
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
