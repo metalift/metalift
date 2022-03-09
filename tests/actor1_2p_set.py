@@ -119,10 +119,16 @@ if __name__ == "__main__":
             cvcPath,
         )
     else:
+        useOpList = False
         if mode == "synth-debug":
             fastDebug = True
+        elif mode == "synth-oplist":
+            useOpList = True
+        elif mode == "synth-debug-oplist":
+            fastDebug = True
+            useOpList = True
 
-        synthesize_actor(
+        out = synthesize_actor(
             filename,
             fnNameBase,
             loopsFile,
@@ -137,4 +143,5 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
+            useOpList = useOpList,
         )

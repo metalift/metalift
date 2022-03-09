@@ -16,7 +16,10 @@ from typing import Any, Callable, Dict, Optional, Union
 def generateAST(expr: str) -> typing.List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
-    ast = parser.parseString(expr, parseAll=True).asList()
+    try:
+        ast = parser.parseString(expr, parseAll=True).asList()
+    except:
+        raise Exception(f"Failed to parse Rosette output: {expr}")
     return ast  # type: ignore
 
 
@@ -127,17 +130,10 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType),
             )
         elif ast[0] == "make-tuple":
-            retT = [Int() for i in range(len(ast[1]))]
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
-            return Call(
-                "tuple%d" % (len(ast) - 1),
-                Tuple(
-                    arg_eval[0].type, arg_eval[1].type, *[e.type for e in arg_eval[2:]]
-                ),
-                *arg_eval,
-            )
+            return MakeTuple(*arg_eval)
         elif ast[0] == "tupleGet":
             return TupleGet(
                 toExpr(ast[1], fnsType, varType),
@@ -173,7 +169,7 @@ def toExpr(
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType))
             retT = fnsType[ast[0]].args[0]
-            return Call(ast[0], retT, *arg_eval)  # type: ignore
+            return Call(ast[0], retT, *arg_eval)
         else:
             raise Exception(f"Unexpected function name: {ast[0]}")
     else:
@@ -286,8 +282,9 @@ def synthesize(
             for n in synthNames:
                 for r in output:
                     if "define (" + n in r:
+                        startIndex = r.find("(")
                         candidateDict[n] = toExpr(
-                            generateAST(r[1:])[0], fnsType, varTypes[n]
+                            generateAST(r[startIndex:])[0], fnsType, varTypes[n]
                         )
         else:
             raise Exception("Synthesis failed")
@@ -298,6 +295,11 @@ def synthesize(
         for synthFun in invAndPs:
             allVars = synthFun.args[2:]
             ceName = synthFun.args[0]
+
+            if ceName not in candidateDict:
+                # Rosette will not return a function if no choice needs to be made
+                candidateDict[ceName] = synthFun.args[1]
+
             candidatesSMT.append(
                 FnDecl(
                     ceName,

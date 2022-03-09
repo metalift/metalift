@@ -13,7 +13,9 @@ def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
 
 
-def opsListInvariant(synthState: Expr, synthStateType: Type, opType: Type) -> Expr:
+def opsListInvariant(
+    fnNameBase: str, synthState: Expr, synthStateType: Type, opType: Type
+) -> Expr:
     return And(
         Eq(
             Call(
@@ -21,7 +23,8 @@ def opsListInvariant(synthState: Expr, synthStateType: Type, opType: Type) -> Ex
                 synthStateType,
                 TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
                 Var(
-                    "test_next_state", Fn(synthStateType, synthStateType, *opType.args)
+                    f"{fnNameBase}_next_state",
+                    Fn(synthStateType, synthStateType, *opType.args),
                 ),
             ),
             synthState,
@@ -174,6 +177,7 @@ def synthesize_actor(
     useOpList: bool = False,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
+    origSynthStateType = synthStateType
 
     opType: Type = None  # type: ignore
 
@@ -265,7 +269,7 @@ def synthesize_actor(
                             for a1, a2 in zip(origArgs[1:], secondStateTransitionArgs)
                         ]
                     ),
-                    Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
+                    Eq(newReturn, Call(f"{fnNameBase}_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     supportedCommand(beforeStateForPS, origArgs[1:]),
@@ -320,7 +324,9 @@ def synthesize_actor(
                     observeEquivalence(beforeStateOrig, beforeStateForPS),
                     *(
                         [
-                            opsListInvariant(beforeStateForPS, synthStateType, opType),
+                            opsListInvariant(
+                                fnNameBase, beforeStateForPS, synthStateType, opType
+                            ),
                             supportedCommandWithList(beforeStateForPS, origArgs[1:]),
                         ]
                         if useOpList
@@ -330,7 +336,7 @@ def synthesize_actor(
                             Eq(afterStateForPS, beforeStateForPSLink),
                         ]
                     ),
-                    Eq(newReturn, Call("test_next_state", newReturn.type, *newArgs)),  # type: ignore
+                    Eq(newReturn, Call(f"{fnNameBase}_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
                     observeEquivalence(afterStateOrig, afterStateForPS),
@@ -418,7 +424,7 @@ def synthesize_actor(
         return (
             Implies(
                 observeEquivalence(beforeState, beforeStateForQuery),
-                Eq(origReturn, Call("test_response", origReturn.type, *newArgs)),  # type: ignore
+                Eq(origReturn, Call(f"{fnNameBase}_response", origReturn.type, *newArgs)),  # type: ignore
             ),
             [origReturn] + newArgs,
         )
@@ -462,7 +468,7 @@ def synthesize_actor(
                 ),
                 And(
                     observeEquivalence(returnedInitState, synthInitState),
-                    opsListInvariant(synthInitState, synthStateType, opType)
+                    opsListInvariant(fnNameBase, synthInitState, synthStateType, opType)
                     if useOpList
                     else supportedCommand(synthInitState, init_op_arg_vars),
                 ),
@@ -564,7 +570,7 @@ def synthesize_actor(
     if useOpList:
         lang = lang + opListAdditionalFns(synthStateType, opType, initState, inOrder)
 
-    return synthesize(
+    out = synthesize(
         basename,
         lang,
         combinedVCVars,
@@ -576,3 +582,58 @@ def synthesize_actor(
         unboundedInts=unboundedInts,
         noVerify=useOpList,
     )
+
+    if useOpList:
+        print("Re-synthesizing to identify invariants")
+        equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
+        state_transition_fn = [
+            x for x in out if x.args[0] == f"{fnNameBase}_next_state"
+        ][0]
+        query_fn = [x for x in out if x.args[0] == f"{fnNameBase}_response"][0]
+
+        state_transition_fn.args[2] = Var(
+            state_transition_fn.args[2].args[0],
+            Tuple(*state_transition_fn.args[2].type.args[:-1]),
+        )
+
+        state_transition_fn.args[1] = MakeTuple(
+            *[
+                e.rewrite(
+                    {state_transition_fn.args[2].args[0]: state_transition_fn.args[2]}
+                )
+                for e in state_transition_fn.args[1].args[:-1]
+            ]
+        )
+
+        query_fn.args[2] = Var(
+            query_fn.args[2].args[0], Tuple(*query_fn.args[2].type.args[:-1])
+        )
+
+        query_fn.args[1] = query_fn.args[1].rewrite(
+            {query_fn.args[2].args[0]: query_fn.args[2]}
+        )
+
+        return synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            origSynthStateType,
+            initState,
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            lambda _: Synth(
+                state_transition_fn.args[0],
+                state_transition_fn.args[1],
+                *state_transition_fn.args[2:],
+            ),
+            lambda _: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
+            lambda a, b: equivalence_fn.args[1],  # type: ignore
+            targetLang,
+            synthesize,
+            unboundedInts,
+            useOpList=False,
+        )
+    else:
+        return out
