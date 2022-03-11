@@ -7,6 +7,7 @@ from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT
 from synthesis_common import generateTypes, verify_synth_result
+import process_tracker
 
 import typing
 from typing import Any, Callable, Dict, Union, IO
@@ -254,6 +255,7 @@ def synthesize(
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)
         procSynthesis = subprocess.Popen(["racket", synthFile], stdout=subprocess.PIPE)
+        process_tracker.all_processes.append(procSynthesis)
 
         try:
             resultSynth = [
@@ -357,4 +359,4 @@ def synthesize(
                 print(invGuess)
                 raise Exception("Verification failed")
         finally:
-            procSynthesis.kill()
+            procSynthesis.terminate()

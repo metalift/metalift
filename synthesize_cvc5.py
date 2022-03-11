@@ -2,6 +2,7 @@ from analysis import CodeInfo
 import subprocess
 import pyparsing as pp
 import os
+import process_tracker
 
 from ir import *
 from smt_util import toSMT
@@ -229,6 +230,8 @@ def synthesize(
         stdout=subprocess.PIPE,
     )
 
+    process_tracker.all_processes.append(proc)
+
     try:
         funName, returnType = extractFuns(targetLang)
         logfileVerif = typing.cast(IO[bytes], proc.stdout)
@@ -280,4 +283,4 @@ def synthesize(
 
         raise Exception("SyGuS failed")
     finally:
-        proc.kill()
+        proc.terminate()

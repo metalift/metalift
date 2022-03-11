@@ -7,6 +7,7 @@ from auto_grammar import auto_grammar
 import sys
 import multiprocessing as mp
 import queue
+import process_tracker
 
 from synthesize_auto import synthesize
 
@@ -144,34 +145,38 @@ if __name__ == "__main__":
         next_res_type = None
         next_res = None
 
-        with mp.pool.ThreadPool() as pool:
-            while True:
-                while queue_size < mp.cpu_count():
-                    next_structure_type = next(structureCandidates, None)
-                    if next_structure_type is None:
-                        break
-                    else:
-                        print("Enqueueing", next_structure_type)
-                        def error_callback(e):
-                            raise e
-                        pool.apply_async(synthesize_crdt,
-                            args=(q, next_structure_type, useOpList, filename, fnNameBase, loopsFile, cvcPath, uid),
-                            error_callback=error_callback
-                        )
-                        uid += 1
-                        queue_size += 1
+        try:
+            with mp.pool.ThreadPool() as pool:
+                while True:
+                    while queue_size < mp.cpu_count():
+                        next_structure_type = next(structureCandidates, None)
+                        if next_structure_type is None:
+                            break
+                        else:
+                            print("Enqueueing", next_structure_type)
+                            def error_callback(e):
+                                raise e
+                            pool.apply_async(synthesize_crdt,
+                                args=(q, next_structure_type, useOpList, filename, fnNameBase, loopsFile, cvcPath, uid),
+                                error_callback=error_callback
+                            )
+                            uid += 1
+                            queue_size += 1
 
-                if queue_size == 0:
-                    raise Exception("no more structures")
-                else:
-                    (next_res_type, next_res) = q.get(block=True, timeout=None)
-                    queue_size -= 1
-                    if next_res != None:
-                        break
+                    if queue_size == 0:
+                        raise Exception("no more structures")
                     else:
-                        print("Failed to synthesize with structure", next_res_type)
+                        (next_res_type, next_res) = q.get(block=True, timeout=None)
+                        queue_size -= 1
+                        if next_res != None:
+                            break
+                        else:
+                            print("Failed to synthesize with structure", next_res_type)
 
-        print("\n========================= SYNTHESIS COMPLETE =========================\n")
-        print("State Structure:", next_res_type)
-        print("\nRuntime Logic:")
-        print("\n\n".join([c.toSMT() for c in next_res]))
+            print("\n========================= SYNTHESIS COMPLETE =========================\n")
+            print("State Structure:", next_res_type)
+            print("\nRuntime Logic:")
+            print("\n\n".join([c.toSMT() for c in next_res]))
+        finally:
+            for p in process_tracker.all_processes:
+                p.terminate()
