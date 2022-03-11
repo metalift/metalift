@@ -9,7 +9,7 @@ from smt_util import toSMT
 from synthesis_common import generateTypes, verify_synth_result
 
 import typing
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Union, IO
 
 
 # utils for converting rosette output to IR
@@ -253,100 +253,108 @@ def synthesize(
         )
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)
-        procSynthesis = subprocess.run(["racket", synthFile], stdout=subprocess.PIPE)
-        resultSynth = procSynthesis.stdout.decode("utf-8").split("\n")
-        ##### End of Synthesis #####
+        procSynthesis = subprocess.Popen(["racket", synthFile], stdout=subprocess.PIPE)
 
-        #####parsing output of rosette synthesis#####
-        varTypes = {}
-        for i in loopAndPsInfo:
-            if isinstance(i, CodeInfo):
-                varTypes[i.name] = generateTypes(
-                    i.modifiedVars + i.readVars + list(vars)
-                )
+        try:
+            resultSynth = [
+                l.decode("utf-8").strip()
+                for l in typing.cast(IO[bytes], procSynthesis.stdout).readlines()
+            ]
+
+            ##### End of Synthesis #####
+
+            #####parsing output of rosette synthesis#####
+            varTypes = {}
+            for i in loopAndPsInfo:
+                if isinstance(i, CodeInfo):
+                    varTypes[i.name] = generateTypes(
+                        i.modifiedVars + i.readVars + list(vars)
+                    )
+                else:
+                    varTypes[i.args[0]] = generateTypes(i.args[2:])
+            for l_i in targetLang:
+                varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
+
+            if resultSynth[0] == "#t":
+                output = parseOutput(resultSynth[1:])
+                candidateDict = {}
+                fnsType = generateTypes(targetLang)
+                for synthFun in invAndPs:
+                    allVars = synthFun.args[2:]
+                    ceName = synthFun.args[0]
+                    fnsType[ceName] = Fn(
+                        synthFun.args[1].type,
+                        *[v.type for v in allVars],
+                    )
+                for n in synthNames:
+                    for r in output:
+                        if "define (" + n in r:
+                            startIndex = r.find("(")
+                            candidateDict[n] = toExpr(
+                                generateAST(r[startIndex:])[0], fnsType, varTypes[n]
+                            )
             else:
-                varTypes[i.args[0]] = generateTypes(i.args[2:])
-        for l_i in targetLang:
-            varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
+                raise Exception("Synthesis failed")
+            #####candidateDict --> definitions of all functions to be synthesized#####
 
-        if resultSynth[0] == "#t":
-            output = parseOutput(resultSynth[1:])
-            candidateDict = {}
-            fnsType = generateTypes(targetLang)
+            ##### generating function definitions of all the functions to be synthesized#####
+            candidatesSMT = []
             for synthFun in invAndPs:
                 allVars = synthFun.args[2:]
                 ceName = synthFun.args[0]
-                fnsType[ceName] = Fn(
-                    synthFun.args[1].type,
-                    *[v.type for v in allVars],
+
+                if ceName not in candidateDict:
+                    # Rosette will not return a function if no choice needs to be made
+                    candidateDict[ceName] = synthFun.args[1]
+
+                candidatesSMT.append(
+                    FnDecl(
+                        ceName,
+                        synthFun.args[1].type,
+                        candidateDict[ceName],
+                        *allVars,
+                    )
                 )
-            for n in synthNames:
-                for r in output:
-                    if "define (" + n in r:
-                        startIndex = r.find("(")
-                        candidateDict[n] = toExpr(
-                            generateAST(r[startIndex:])[0], fnsType, varTypes[n]
-                        )
-        else:
-            raise Exception("Synthesis failed")
-        #####candidateDict --> definitions of all functions to be synthesized#####
 
-        ##### generating function definitions of all the functions to be synthesized#####
-        candidatesSMT = []
-        for synthFun in invAndPs:
-            allVars = synthFun.args[2:]
-            ceName = synthFun.args[0]
+            ##### verification of synthesized ps/inv
+            print("====== verification")
 
-            if ceName not in candidateDict:
-                # Rosette will not return a function if no choice needs to be made
-                candidateDict[ceName] = synthFun.args[1]
+            verifyLogs: typing.List[str] = []
 
-            candidatesSMT.append(
-                FnDecl(
-                    ceName,
-                    synthFun.args[1].type,
-                    candidateDict[ceName],
-                    *allVars,
+            if noVerify:
+                print("Not verifying solution")
+                resultVerify = "unsat"
+            else:
+                resultVerify, verifyLogs = verify_synth_result(
+                    basename,
+                    targetLang,
+                    vars,
+                    preds,
+                    vc,
+                    loopAndPsInfo,
+                    cvcPath,
+                    synthDir,
+                    candidatesSMT,
+                    candidateDict,
+                    fnsType,
+                    uid,
                 )
-            )
 
-        ##### verification of synthesized ps/inv
-        print("====== verification")
-
-        verifyLogs: typing.List[str] = []
-
-        if noVerify:
-            print("Not verifying solution")
-            resultVerify = "unsat"
-        else:
-            resultVerify, verifyLogs = verify_synth_result(
-                basename,
-                targetLang,
-                vars,
-                preds,
-                vc,
-                loopAndPsInfo,
-                cvcPath,
-                synthDir,
-                candidatesSMT,
-                candidateDict,
-                fnsType,
-                uid,
-            )
-
-        print("Verification Output:", resultVerify)
-        if resultVerify == "unsat":
-            print(
-                "Verified PS and INV Candidates ",
-                "\n\n".join([str(c) for c in candidatesSMT]),
-            )
-            return candidatesSMT
-        else:
-            print(
-                "verification failed",
-                "\n\n".join([str(c) for c in candidatesSMT]),
-            )
-            print("\n".join(verifyLogs))
-            invGuess.append(resultSynth[1])
-            print(invGuess)
-            raise Exception("Verification failed")
+            print("Verification Output:", resultVerify)
+            if resultVerify == "unsat":
+                print(
+                    "Verified PS and INV Candidates ",
+                    "\n\n".join([str(c) for c in candidatesSMT]),
+                )
+                return candidatesSMT
+            else:
+                print(
+                    "verification failed",
+                    "\n\n".join([str(c) for c in candidatesSMT]),
+                )
+                print("\n".join(verifyLogs))
+                invGuess.append(resultSynth[1])
+                print(invGuess)
+                raise Exception("Verification failed")
+        finally:
+            procSynthesis.kill()
