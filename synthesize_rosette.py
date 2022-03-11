@@ -257,7 +257,7 @@ def synthesize(
 
         try:
             resultSynth = [
-                l.decode("utf-8").strip()
+                l.decode("utf-8").rstrip("\n")
                 for l in typing.cast(IO[bytes], procSynthesis.stdout).readlines()
             ]
 
