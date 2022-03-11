@@ -228,6 +228,7 @@ def synthesize(
     proc = subprocess.Popen(
         [cvcPath, "--lang=sygus2", "--output=sygus", "--no-sygus-pbe", sygusFile],
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
     process_tracker.all_processes.append(proc)

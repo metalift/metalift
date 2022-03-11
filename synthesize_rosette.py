@@ -254,7 +254,9 @@ def synthesize(
         )
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)
-        procSynthesis = subprocess.Popen(["racket", synthFile], stdout=subprocess.PIPE)
+        procSynthesis = subprocess.Popen(
+            ["racket", synthFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         process_tracker.all_processes.append(procSynthesis)
 
         try:

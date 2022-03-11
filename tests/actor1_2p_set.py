@@ -1,3 +1,4 @@
+from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
@@ -5,9 +6,6 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
-import multiprocessing as mp
-import queue
-import process_tracker
 
 from synthesize_auto import synthesize
 
@@ -87,31 +85,6 @@ def targetLang():
     return []
 
 
-def synthesize_crdt(queue, synthStateStructure, useOpList, filename, fnNameBase, loopsFile, cvcPath, uid):
-    synthStateType = Tuple(*[a[0] for a in synthStateStructure])
-
-    try:
-        queue.put((synthStateType, synthesize_actor(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-            synthStateType,
-            lambda: initState(synthStateStructure),
-            grammarStateInvariant,
-            grammarSupportedCommand,
-            inOrder,
-            lambda ci: grammar(ci, synthStateStructure),
-            grammarQuery,
-            grammarEquivalence,
-            targetLang,
-            synthesize,
-            uid=uid,
-            useOpList=useOpList,
-        )))
-    except Exception as e:
-        queue.put((synthStateType, None))
-
 if __name__ == "__main__":
     mode = sys.argv[1]
     filename = sys.argv[2]
@@ -137,46 +110,16 @@ if __name__ == "__main__":
             [lat.Set(Int()), lat.Set(Int()), lat.Set(Int())],
         ])
 
-        m = mp.Manager()
-        q = queue.Queue()
-        queue_size = 0
-        uid = 0
-
-        next_res_type = None
-        next_res = None
-
-        try:
-            with mp.pool.ThreadPool() as pool:
-                while True:
-                    while queue_size < mp.cpu_count():
-                        next_structure_type = next(structureCandidates, None)
-                        if next_structure_type is None:
-                            break
-                        else:
-                            print("Enqueueing", next_structure_type)
-                            def error_callback(e):
-                                raise e
-                            pool.apply_async(synthesize_crdt,
-                                args=(q, next_structure_type, useOpList, filename, fnNameBase, loopsFile, cvcPath, uid),
-                                error_callback=error_callback
-                            )
-                            uid += 1
-                            queue_size += 1
-
-                    if queue_size == 0:
-                        raise Exception("no more structures")
-                    else:
-                        (next_res_type, next_res) = q.get(block=True, timeout=None)
-                        queue_size -= 1
-                        if next_res != None:
-                            break
-                        else:
-                            print("Failed to synthesize with structure", next_res_type)
-
-            print("\n========================= SYNTHESIS COMPLETE =========================\n")
-            print("State Structure:", next_res_type)
-            print("\nRuntime Logic:")
-            print("\n\n".join([c.toSMT() for c in next_res]))
-        finally:
-            for p in process_tracker.all_processes:
-                p.terminate()
+        search_crdt_structures(
+            initState,
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            grammar,
+            grammarQuery,
+            grammarEquivalence,
+            targetLang,
+            synthesize,
+            filename, fnNameBase, loopsFile, cvcPath, useOpList,
+            structureCandidates
+        )
