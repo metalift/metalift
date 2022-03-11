@@ -152,6 +152,7 @@ class SynthesizeFun(Protocol):
         vc: Expr,
         loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
         cvcPath: str,
+        uid: int = 0,
         noVerify: bool = False,
         unboundedInts: bool = False,
     ) -> typing.List[Expr]:
@@ -173,6 +174,7 @@ def synthesize_actor(
     grammarEquivalence: Callable[[Expr, Expr], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
+    uid: int = 0,
     unboundedInts: bool = False,
     useOpList: bool = False,
 ) -> typing.List[Expr]:
@@ -506,6 +508,7 @@ def synthesize_actor(
         combinedVC,
         combinedLoopAndPsInfo,
         cvcPath,
+        uid=uid,
         unboundedInts=unboundedInts,
         noVerify=useOpList,
     )
@@ -559,6 +562,7 @@ def synthesize_actor(
             lambda a, b: equivalence_fn.args[1],  # type: ignore
             targetLang,
             synthesize,
+            uid,
             unboundedInts,
             useOpList=False,
         )

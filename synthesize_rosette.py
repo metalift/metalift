@@ -209,6 +209,7 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    uid: int = 0,
     noVerify: bool = False,
     unboundedInts: bool = False,
 ) -> typing.List[Expr]:
@@ -218,7 +219,7 @@ def synthesize(
         os.mkdir(synthDir)
 
     while True:
-        synthFile = synthDir + basename + ".rkt"
+        synthFile = synthDir + basename + f"_{uid}" + ".rkt"
 
         prev_vc = vc.toSMT()
         new_vars: typing.Set[Expr] = set()
@@ -330,6 +331,7 @@ def synthesize(
                 candidatesSMT,
                 candidateDict,
                 fnsType,
+                uid,
             )
 
         print("Verification Output:", resultVerify)

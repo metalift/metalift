@@ -201,13 +201,14 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
-    sygusFile = synthDir + basename + ".sl"
+    sygusFile = synthDir + basename + f"_{uid}" + ".sl"
 
     # Generate sygus file for synthesis
     toSMT(
@@ -255,6 +256,7 @@ def synthesize(
                     candidatesSMT,
                     candidateDict,
                     fnsType,
+                    uid,
                 )
 
                 print("Verification Output:", resultVerify)

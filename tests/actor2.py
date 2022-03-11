@@ -78,11 +78,7 @@ def initState():
 
 
 def targetLang():
-    maxA = Var("a", Int())
-    maxB = Var("b", Int())
-    return [
-        FnDeclNonRecursive("max", Int(), Ite(Ge(maxA, maxB), maxA, maxB), maxA, maxB),
-    ]
+    return []
 
 
 if __name__ == "__main__":

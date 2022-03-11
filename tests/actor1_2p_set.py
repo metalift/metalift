@@ -5,14 +5,10 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
-import os
+import multiprocessing as mp
+import queue
 
 from synthesize_auto import synthesize
-
-synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure])
-
-fastDebug = False
 
 
 def grammarEquivalence(inputState, synthState):
@@ -45,31 +41,14 @@ def inOrder(arg1, arg2):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    if not fastDebug:
-        setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
-    else:  # hardcoded for quick debugging
-        synthState = ci.readVars[0]
-
-        setContainTransformed = Call(
-            "set-member",
-            Bool(),
-            ci.readVars[1],
-            Call(
-                "set-minus",
-                Set(Int()),
-                Choose(
-                    TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
-                ),
-                TupleGet(synthState, IntLit(1)),
-            ),
-        )
+    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo):
+def grammar(ci: CodeInfo, synthStateStructure):
     name = ci.name
 
     if name.startswith("inv"):
@@ -80,13 +59,16 @@ def grammar(ci: CodeInfo):
         inputValue = ci.readVars[2]
 
         condition = Eq(inputAdd, IntLit(1))
-        setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
-        setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
         summary = MakeTuple(
             *[
                 synthStateStructure[i][1](
-                    TupleGet(inputState, IntLit(i)), setTransform
+                    TupleGet(inputState, IntLit(i)),
+                    Ite(
+                        condition,
+                        auto_grammar(TupleGet(inputState, IntLit(i)).type, 1, inputValue, enable_sets=True),
+                        auto_grammar(TupleGet(inputState, IntLit(i)).type, 1, inputValue, enable_sets=True),
+                    )
                 )
                 for i in range(len(synthStateStructure))
             ],
@@ -95,7 +77,7 @@ def grammar(ci: CodeInfo):
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
-def initState():
+def initState(synthStateStructure):
     return MakeTuple(
         *[elem[2] for elem in synthStateStructure]
     )
@@ -103,6 +85,31 @@ def initState():
 def targetLang():
     return []
 
+
+def synthesize_crdt(queue, synthStateStructure, useOpList, filename, fnNameBase, loopsFile, cvcPath, uid):
+    synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+
+    try:
+        queue.put((synthStateType, synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
+            lambda: initState(synthStateStructure),
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            lambda ci: grammar(ci, synthStateStructure),
+            grammarQuery,
+            grammarEquivalence,
+            targetLang,
+            synthesize,
+            uid=uid,
+            useOpList=useOpList,
+        )))
+    except Exception as e:
+        queue.put((synthStateType, None))
 
 if __name__ == "__main__":
     mode = sys.argv[1]
@@ -120,28 +127,51 @@ if __name__ == "__main__":
         )
     else:
         useOpList = False
-        if mode == "synth-debug":
-            fastDebug = True
-        elif mode == "synth-oplist":
-            useOpList = True
-        elif mode == "synth-debug-oplist":
-            fastDebug = True
+        if mode == "synth-oplist":
             useOpList = True
 
-        out = synthesize_actor(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-            synthStateType,
-            initState,
-            grammarStateInvariant,
-            grammarSupportedCommand,
-            inOrder,
-            grammar,
-            grammarQuery,
-            grammarEquivalence,
-            targetLang,
-            synthesize,
-            useOpList = useOpList,
-        )
+        structureCandidates = iter([
+            [lat.MaxInt, lat.MaxInt],
+            [lat.Set(Int()), lat.Set(Int())],
+            [lat.Set(Int()), lat.Set(Int()), lat.Set(Int())],
+        ])
+
+        m = mp.Manager()
+        q = queue.Queue()
+        queue_size = 0
+        uid = 0
+
+        next_res_type = None
+        next_res = None
+
+        with mp.pool.ThreadPool() as pool:
+            while True:
+                while queue_size < mp.cpu_count():
+                    next_structure_type = next(structureCandidates, None)
+                    if next_structure_type is None:
+                        break
+                    else:
+                        print("Enqueueing", next_structure_type)
+                        def error_callback(e):
+                            raise e
+                        pool.apply_async(synthesize_crdt,
+                            args=(q, next_structure_type, useOpList, filename, fnNameBase, loopsFile, cvcPath, uid),
+                            error_callback=error_callback
+                        )
+                        uid += 1
+                        queue_size += 1
+
+                if queue_size == 0:
+                    raise Exception("no more structures")
+                else:
+                    (next_res_type, next_res) = q.get(block=True, timeout=None)
+                    queue_size -= 1
+                    if next_res != None:
+                        break
+                    else:
+                        print("Failed to synthesize with structure", next_res_type)
+
+        print("\n========================= SYNTHESIS COMPLETE =========================\n")
+        print("State Structure:", next_res_type)
+        print("\nRuntime Logic:")
+        print("\n\n".join([c.toSMT() for c in next_res]))

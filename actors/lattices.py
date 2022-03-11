@@ -3,7 +3,7 @@ import typing
 
 Lattice = typing.Tuple[ir.Type, typing.Callable[[ir.Expr, ir.Expr], ir.Expr], ir.Expr]
 
-MaxInt: Lattice = (ir.Int(), lambda a, b: ir.Call("max", ir.Int(), a, b), ir.IntLit(0))
+MaxInt: Lattice = (ir.Int(), lambda a, b: ir.Ite(ir.Ge(a, b), a, b), ir.IntLit(0))
 
 
 def Set(innerType: ir.Type) -> Lattice:
