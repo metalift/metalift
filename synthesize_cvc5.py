@@ -285,3 +285,4 @@ def synthesize(
         raise Exception("SyGuS failed")
     finally:
         proc.terminate()
+        proc.wait()

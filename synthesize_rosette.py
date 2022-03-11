@@ -366,3 +366,4 @@ def synthesize(
                 raise Exception("Verification failed")
         finally:
             procSynthesis.terminate()
+            procSynthesis.wait()
