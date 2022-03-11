@@ -128,7 +128,7 @@ LoopInfo = NamedTuple(
 )
 
 
-def parseLoops(filename: str, fnName: str) -> List[LoopInfo]:
+def parseLoops(filename: str, fnName: str, log: bool = True) -> List[LoopInfo]:
     with open(filename, mode="r") as f:
         foundLines = []
         found = False
@@ -159,7 +159,8 @@ def parseLoops(filename: str, fnName: str) -> List[LoopInfo]:
             blks = m.replace("%", "").split(",")
             for b in blks:
                 name: str = re.search("([^<]+)", b).group(0)  # type: ignore
-                print("name: %s" % b)
+                if log:
+                    print("name: %s" % b)
                 if "<header>" in b:
                     header.append(name)
                 if "<exiting>" in b:
@@ -171,11 +172,12 @@ def parseLoops(filename: str, fnName: str) -> List[LoopInfo]:
 
             loops.append(LoopInfo(header, body, exits, latches))
 
-        for loop in loops:
-            print(
-                "found loop: header: %s, body: %s, exits: %s, latches: %s"
-                % (loop.header, loop.body, loop.exits, loop.latches)
-            )
+        if log:
+            for loop in loops:
+                print(
+                    "found loop: header: %s, body: %s, exits: %s, latches: %s"
+                    % (loop.header, loop.body, loop.exits, loop.latches)
+                )
 
         return loops
 
@@ -319,7 +321,9 @@ def processBranches(
     return retCodeInfo
 
 
-def parseGlobals(global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
+def parseGlobals(
+    global_variables: List[ValueRef], log: bool = True
+) -> Dict[str, ValueRef]:
     globalVars = {}
     for g in global_variables:
         if re.search("\[. x i8\]\*", str(g.type)):  # strings have type [n x i8]*
@@ -330,9 +334,10 @@ def parseGlobals(global_variables: List[ValueRef]) -> Dict[str, ValueRef]:
                 raise Exception("failed to match on type: %s" % str(g.type))
             globalVars[g.name] = v
 
-    print("globals:")
-    for (k, v) in globalVars.items():
-        print("%s -> %s" % (k, v))
+    if log:
+        print("globals:")
+        for (k, v) in globalVars.items():
+            print("%s -> %s" % (k, v))
     return globalVars
 
 
@@ -372,6 +377,7 @@ def analyze(
     wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
     fnNameSuffix: str = "",
     uninterpFuncs: List[str] = [],
+    log: bool = True,
 ) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
@@ -380,10 +386,10 @@ def analyze(
     blocksMap = setupBlocks(fn.blocks)
 
     parseSrets(list(fn.arguments), blocksMap.values())
-    globalVars = parseGlobals(ref.global_variables)
+    globalVars = parseGlobals(ref.global_variables, log=log)
     parseObjectFuncs(blocksMap)
 
-    loops = parseLoops(loopsFile, fnName)
+    loops = parseLoops(loopsFile, fnName, log=log)
     loopAndPsInfo = []
     for l in loops:
         # assume for now there is only one header block
@@ -404,15 +410,17 @@ def analyze(
         blocksMap, list(fn.arguments), wrapSummaryCheck, fnName
     )
 
-    print("====== after transforms")
+    if log:
+        print("====== after transforms")
 
-    for b in blocksMap.values():
-        print("blk: %s" % b.name)
-        for i in b.instructions:
-            print("%s" % i)
+        for b in blocksMap.values():
+            print("blk: %s" % b.name)
+            for i in b.instructions:
+                print("%s" % i)
 
-    print("====== compute vc")
-    (vars, invAndPs, preds, vc) = VC(fnName + fnNameSuffix).computeVC(
+        print("====== compute vc")
+
+    (vars, invAndPs, preds, vc) = VC(fnName + fnNameSuffix, log=log).computeVC(
         blocksMap,
         list(fn.blocks)[0].name,
         list(fn.arguments),

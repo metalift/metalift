@@ -265,6 +265,10 @@ def synthesize(
                 for l in typing.cast(IO[bytes], procSynthesis.stdout).readlines()
             ]
 
+            exitCode = procSynthesis.wait()
+            if exitCode != 0:
+                raise Exception(f"Synthesis failed: exit code {exitCode}")
+
             ##### End of Synthesis #####
 
             #####parsing output of rosette synthesis#####

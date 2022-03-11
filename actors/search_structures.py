@@ -55,10 +55,14 @@ def synthesize_crdt(
                     synthesize,
                     uid=uid,
                     useOpList=useOpList,
+                    log=False,
                 ),
             )
         )
-    except Exception as e:
+    except:
+        import traceback
+
+        traceback.print_exc()
         queue.put((synthStateType, None))
 
 
@@ -89,12 +93,14 @@ def search_crdt_structures(
     try:
         with multiprocessing.pool.ThreadPool() as pool:
             while True:
-                while queue_size < mp.cpu_count():
+                while queue_size < (mp.cpu_count() // 2):
                     next_structure_type = next(structureCandidates, None)
                     if next_structure_type is None:
                         break
                     else:
-                        print("Enqueueing", next_structure_type)
+                        print(
+                            f"Enqueueing #{uid}:", [t[0] for t in next_structure_type]
+                        )
 
                         def error_callback(e: BaseException) -> None:
                             raise e

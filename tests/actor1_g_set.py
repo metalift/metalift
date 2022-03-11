@@ -29,11 +29,11 @@ def grammarSupportedCommand(synthState, args):
 
 
 def inOrder(arg1, arg2):
-    # removes win
+    # adds win
     return Ite(
         Eq(arg1[0], IntLit(1)),  # if first command is insert
-        BoolLit(True),  # second can be insert or remove
-        Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
+        Eq(arg2[0], IntLit(1)),  # second must be insert
+        BoolLit(True),  # but if remove, can be anything next
     )
 
 
