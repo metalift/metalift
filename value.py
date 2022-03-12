@@ -88,7 +88,8 @@ class ValueRef(ffi.ObjectRef):
         self._parents = parents
         ffi.ObjectRef.__init__(self, ptr)
         # akcheung
-        self.ops = None  # a hack to store the assigned operands
+        self.ops = None  # hack to store the assigned operands
+        self.my_type = None  # hack to let types be settable for type inference
 
     def __str__(self):
         # akcheung -- get string from LLVM but replace contents with actual operands. hack for set and get fields
@@ -228,11 +229,20 @@ class ValueRef(ffi.ObjectRef):
 
     @property
     def type(self):
-        """
-        This value's LLVM type.
-        """
-        # XXX what does this return?
-        return TypeRef(ffi.lib.LLVMPY_TypeOf(self))
+        # akcheung
+        if self.my_type:
+            return self.my_type
+        else:
+            """
+            This value's LLVM type.
+            """
+            # XXX what does this return?
+            return TypeRef(ffi.lib.LLVMPY_TypeOf(self))
+
+    # akcheung
+    @type.setter
+    def type(self, t):
+        self.my_type = t
 
     @property
     def is_declaration(self):
