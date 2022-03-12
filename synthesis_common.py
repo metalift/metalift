@@ -9,6 +9,14 @@ from typing import Optional, Dict, Union, Any
 from smt_util import toSMT
 
 
+class SynthesisFailed(Exception):
+    pass
+
+
+class VerificationFailed(Exception):
+    pass
+
+
 def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
     fnsType = {}
 

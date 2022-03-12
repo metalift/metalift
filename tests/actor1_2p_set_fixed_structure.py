@@ -147,4 +147,5 @@ if __name__ == "__main__":
             targetLang,
             synthesize,
             useOpList = useOpList,
+            listBound=2,
         )

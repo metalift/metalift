@@ -6,7 +6,12 @@ from analysis import CodeInfo
 from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT
-from synthesis_common import generateTypes, verify_synth_result
+from synthesis_common import (
+    SynthesisFailed,
+    VerificationFailed,
+    generateTypes,
+    verify_synth_result,
+)
 import process_tracker
 
 import typing
@@ -213,6 +218,7 @@ def synthesize(
     uid: int = 0,
     noVerify: bool = False,
     unboundedInts: bool = False,
+    listBound: int = 2,
 ) -> typing.List[Expr]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -222,23 +228,23 @@ def synthesize(
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
 
-        prev_vc = vc.toSMT()
-        new_vars: typing.Set[Expr] = set()
-        while True:
-            expr_count: Dict[str, int] = {}
-            vc.countVariableUses(expr_count)
+        # prev_vc = vc.toSMT()
+        # new_vars: typing.Set[Expr] = set()
+        # while True:
+        #     expr_count: Dict[str, int] = {}
+        #     vc.countVariableUses(expr_count)
 
-            vc = vc.optimizeUselessEquality(expr_count, new_vars)
+        #     vc = vc.optimizeUselessEquality(expr_count, new_vars)
 
-            if vc.toSMT() == prev_vc:
-                break  # run to fixpoint
-            else:
-                prev_vc = vc.toSMT()
+        #     if vc.toSMT() == prev_vc:
+        #         break  # run to fixpoint
+        #     else:
+        #         prev_vc = vc.toSMT()
 
-        vars = vars.union(new_vars)
-        for var in list(vars):
-            if var.args[0] not in expr_count:
-                vars.remove(var)
+        # vars = vars.union(new_vars)
+        # for var in list(vars):
+        #     if var.args[0] not in expr_count:
+        #         vars.remove(var)
 
         ##### synthesis procedure #####
         toRosette(
@@ -251,6 +257,7 @@ def synthesize(
             loopAndPsInfo,
             invGuess,
             unboundedInts,
+            listBound,
         )
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)
@@ -267,7 +274,7 @@ def synthesize(
 
             exitCode = procSynthesis.wait()
             if exitCode != 0:
-                raise Exception(f"Synthesis failed: exit code {exitCode}")
+                raise SynthesisFailed(f"Synthesis failed: exit code {exitCode}")
 
             ##### End of Synthesis #####
 
@@ -302,7 +309,7 @@ def synthesize(
                                 generateAST(r[startIndex:])[0], fnsType, varTypes[n]
                             )
             else:
-                raise Exception("Synthesis failed")
+                raise SynthesisFailed("Synthesis failed")
             #####candidateDict --> definitions of all functions to be synthesized#####
 
             ##### generating function definitions of all the functions to be synthesized#####
@@ -363,7 +370,7 @@ def synthesize(
                 print("\n".join(verifyLogs))
                 invGuess.append(resultSynth[1])
                 print(invGuess)
-                raise Exception("Verification failed")
+                raise VerificationFailed("Verification failed")
         finally:
             procSynthesis.terminate()
             procSynthesis.wait()
