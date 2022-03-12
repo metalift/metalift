@@ -29,8 +29,11 @@ opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll n
 This pass is called in `tests/compile-add-blocks`.
 
 
-### Patching llvmlite
-We made some patches to make llvmlite usable. Download the version of llvmlite from this repo, then peplace your llvmlite's value.py with the one in the repo.
+### llvmlite
+We made some patches to make llvmlite usable. Clone the submodule from this repo. If you need to make changes use the following to push:
+````
+git push origin HEAD:patched-metalift
+````
 
 
 ### Deprecated instructions from earlier version
