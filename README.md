@@ -29,6 +29,10 @@ opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll n
 This pass is called in `tests/compile-add-blocks`.
 
 
+### Patching llvmlite
+We made some patches to make llvmlite usable. Download the version of llvmlite from this repo, then peplace your llvmlite's value.py with the one in the repo.
+
+
 ### Deprecated instructions from earlier version
 
 To run synthesis, build [CVC5](https://github.com/cvc5/cvc5) from source, run `configure` with `debug` and then build.
