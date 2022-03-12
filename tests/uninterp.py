@@ -69,6 +69,7 @@ if __name__ == "__main__":
         loopAndPsInfo,
         invGuess,
         unboundedInts,
+        listBound=2
     )
 
     ### SMT

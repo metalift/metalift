@@ -10,7 +10,12 @@ from smt_util import toSMT
 import typing
 from typing import IO, Any, Callable, Dict, Generator, Union
 
-from synthesis_common import generateTypes, verify_synth_result
+from synthesis_common import (
+    SynthesisFailed,
+    VerificationFailed,
+    generateTypes,
+    verify_synth_result,
+)
 
 
 def flatten(L: typing.List[Any]) -> Generator[str, str, None]:
@@ -205,6 +210,7 @@ def synthesize(
     uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
+    listBound: int = 2,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
@@ -276,13 +282,13 @@ def synthesize(
                         "\n\n".join([str(c) for c in candidatesSMT]),
                     )
                     print("\n".join(verifyLogs))
-                    raise Exception("Verification failed")
+                    raise VerificationFailed("Verification failed")
             else:
                 code = proc.poll()
                 if code is not None and code > 0:
                     break
 
-        raise Exception("SyGuS failed")
+        raise SynthesisFailed("SyGuS failed")
     finally:
         proc.terminate()
         proc.wait()

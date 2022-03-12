@@ -8,6 +8,8 @@ from llvmlite.binding import ValueRef
 import typing
 from typing import Callable, Union, Protocol
 
+from synthesis_common import SynthesisFailed, VerificationFailed
+
 
 def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState)
@@ -155,6 +157,7 @@ class SynthesizeFun(Protocol):
         uid: int = 0,
         noVerify: bool = False,
         unboundedInts: bool = False,
+        listBound: int = 2,
     ) -> typing.List[Expr]:
         ...
 
@@ -177,6 +180,7 @@ def synthesize_actor(
     uid: int = 0,
     unboundedInts: bool = False,
     useOpList: bool = False,
+    listBound: int = 1,
     log: bool = True,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
@@ -507,19 +511,44 @@ def synthesize_actor(
     if useOpList:
         lang = lang + opListAdditionalFns(synthStateType, opType, initState, inOrder)
 
-    out = synthesize(
-        basename,
-        lang,
-        combinedVCVars,
-        combinedInvAndPs,
-        combinedPreds,
-        combinedVC,
-        combinedLoopAndPsInfo,
-        cvcPath,
-        uid=uid,
-        unboundedInts=unboundedInts,
-        noVerify=useOpList,
-    )
+    try:
+        out = synthesize(
+            basename,
+            lang,
+            combinedVCVars,
+            combinedInvAndPs,
+            combinedPreds,
+            combinedVC,
+            combinedLoopAndPsInfo,
+            cvcPath,
+            uid=uid,
+            unboundedInts=unboundedInts,
+            noVerify=useOpList,
+            listBound=listBound,
+        )
+    except VerificationFailed:
+        print("INCREASING LIST BOUND TO", listBound + 1)
+        return synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            origSynthStateType,
+            initState,
+            grammarStateInvariant,
+            grammarSupportedCommand,
+            inOrder,
+            grammar,
+            grammarQuery,
+            grammarEquivalence,
+            targetLang,
+            synthesize,
+            uid,
+            unboundedInts,
+            useOpList,
+            listBound=listBound + 1,
+            log=log,
+        )
 
     if useOpList:
         print("Re-synthesizing to identify invariants")
@@ -551,29 +580,54 @@ def synthesize_actor(
             {query_fn.args[2].args[0]: query_fn.args[2]}
         )
 
-        return synthesize_actor(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-            origSynthStateType,
-            initState,
-            grammarStateInvariant,
-            grammarSupportedCommand,
-            inOrder,
-            lambda _: Synth(
-                state_transition_fn.args[0],
-                state_transition_fn.args[1],
-                *state_transition_fn.args[2:],
-            ),
-            lambda _: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
-            lambda a, b: equivalence_fn.args[1],  # type: ignore
-            targetLang,
-            synthesize,
-            uid,
-            unboundedInts,
-            useOpList=False,
-            log=log,
-        )
+        try:
+            return synthesize_actor(
+                filename,
+                fnNameBase,
+                loopsFile,
+                cvcPath,
+                origSynthStateType,
+                initState,
+                grammarStateInvariant,
+                grammarSupportedCommand,
+                inOrder,
+                lambda _: Synth(
+                    state_transition_fn.args[0],
+                    state_transition_fn.args[1],
+                    *state_transition_fn.args[2:],
+                ),
+                lambda _: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
+                lambda a, b: equivalence_fn.args[1],  # type: ignore
+                targetLang,
+                synthesize,
+                uid,
+                unboundedInts,
+                useOpList=False,
+                listBound=listBound,
+                log=log,
+            )
+        except SynthesisFailed:
+            print("INCREASING LIST BOUND TO", listBound + 1)
+            return synthesize_actor(
+                filename,
+                fnNameBase,
+                loopsFile,
+                cvcPath,
+                origSynthStateType,
+                initState,
+                grammarStateInvariant,
+                grammarSupportedCommand,
+                inOrder,
+                grammar,
+                grammarQuery,
+                grammarEquivalence,
+                targetLang,
+                synthesize,
+                uid,
+                unboundedInts,
+                useOpList,
+                listBound=listBound + 1,
+                log=log,
+            )
     else:
         return out

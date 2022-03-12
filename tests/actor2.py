@@ -10,8 +10,6 @@ import os
 
 from synthesize_auto import synthesize
 
-rosette_translator.n = 4
-
 synthStateStructure = [lat.MaxInt, lat.MaxInt]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
 
@@ -120,4 +118,5 @@ if __name__ == "__main__":
             synthesize,
             unboundedInts=True,
             useOpList=useOpList,
+            listBound=2,
         )

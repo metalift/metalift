@@ -6,9 +6,6 @@ from ir import Expr, Var
 from llvmlite.binding import ValueRef
 from typing import Any, List, Sequence, Set, Tuple, Union
 
-# param for bounding the input list length
-n = 2
-
 
 def generateAST(expr: str) -> List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
@@ -17,7 +14,7 @@ def generateAST(expr: str) -> List[Any]:
     return ast  # type: ignore
 
 
-def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
+def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if v.type.name == "Int":
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
@@ -27,29 +24,29 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
         vars_all.append(v.args[0])
 
     elif v.type.name == "MLList" or v.type.name == "Set":
-        tmp = [v.args[0] + "_" + str(i) for i in range(n)]
+        tmp = [v.args[0] + "_" + str(i) for i in range(listBound)]
 
         for t in tmp:
-            genVar(Var(t, v.type.args[0]), decls, vars_all)
+            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
 
         len_name = v.args[0] + "-len"
-        genVar(Var(len_name, ir.Int()), decls, vars_all)
+        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
 
         if v.type.name == "Set":
             decls.append(
                 "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", len_name)
+                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
             )
         else:
             decls.append(
                 "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:n]) + ")", len_name)
+                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
             )
     elif v.type.name == "Tuple":
         elem_names = []
         for i, t in enumerate(v.type.args):
             elem_name = v.args[0] + "_" + str(i)
-            genVar(Var(elem_name, t), decls, vars_all)
+            genVar(Var(elem_name, t), decls, vars_all, listBound)
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
@@ -57,11 +54,11 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str]) -> None:
         raise Exception(f"Unknown type: {v.type}")
 
 
-def generateVars(vars: Set[Expr]) -> Tuple[str, List[str]]:
+def generateVars(vars: Set[Expr], listBound: int) -> Tuple[str, List[str]]:
     decls: List[str] = []
     vars_all: List[str] = []
     for v in list(vars):
-        genVar(v, decls, vars_all)
+        genVar(v, decls, vars_all, listBound)
 
     return "\n".join(decls), vars_all
 
@@ -119,6 +116,7 @@ def toRosette(
     loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
     invGuess: List[Any],
     unboundedInts: bool,
+    listBound: int,
 ) -> None:
 
     f = open(filename, "w")
@@ -151,7 +149,7 @@ def toRosette(
         print(generateInvPs(fnsDecls), file=f)
 
     # vars declaration
-    varDecls, vars_all = generateVars(vars)
+    varDecls, vars_all = generateVars(vars, listBound)
     print(varDecls, file=f)
 
     # Vc definition
