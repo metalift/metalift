@@ -152,6 +152,7 @@ class SynthesizeFun(Protocol):
         vc: Expr,
         loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
         cvcPath: str,
+        uid: int = 0,
         noVerify: bool = False,
         unboundedInts: bool = False,
     ) -> typing.List[Expr]:
@@ -173,8 +174,10 @@ def synthesize_actor(
     grammarEquivalence: Callable[[Expr, Expr], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
+    uid: int = 0,
     unboundedInts: bool = False,
     useOpList: bool = False,
+    log: bool = True,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
     origSynthStateType = synthStateType
@@ -302,6 +305,7 @@ def synthesize_actor(
         loopsFile,
         wrapSummaryCheck=summaryWrapPriorStateTransition,
         fnNameSuffix="_prior_state",
+        log=log,
     )
 
     vcVarsPriorStateTransition = vcVarsPriorStateTransitionInOrder.union(
@@ -365,7 +369,11 @@ def synthesize_actor(
         )
 
     (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
-        filename, fnNameBase + "_response", loopsFile, wrapSummaryCheck=summaryWrapQuery
+        filename,
+        fnNameBase + "_response",
+        loopsFile,
+        wrapSummaryCheck=summaryWrapQuery,
+        log=log,
     )
 
     vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
@@ -422,6 +430,7 @@ def synthesize_actor(
         fnNameBase + "_init_state",
         loopsFile,
         wrapSummaryCheck=summaryWrapInitState,
+        log=log,
     )
 
     vcVarsInitState = vcVarsInitState.union(extraVarsInitState)
@@ -468,7 +477,8 @@ def synthesize_actor(
     )
     # end equivalence
 
-    print("====== synthesis")
+    if log:
+        print("====== synthesis")
 
     combinedVCVars = vcVarsPriorStateTransition.union(vcVarsQuery).union(
         vcVarsInitState
@@ -506,6 +516,7 @@ def synthesize_actor(
         combinedVC,
         combinedLoopAndPsInfo,
         cvcPath,
+        uid=uid,
         unboundedInts=unboundedInts,
         noVerify=useOpList,
     )
@@ -559,8 +570,10 @@ def synthesize_actor(
             lambda a, b: equivalence_fn.args[1],  # type: ignore
             targetLang,
             synthesize,
+            uid,
             unboundedInts,
             useOpList=False,
+            log=log,
         )
     else:
         return out

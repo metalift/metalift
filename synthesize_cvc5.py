@@ -2,6 +2,7 @@ from analysis import CodeInfo
 import subprocess
 import pyparsing as pp
 import os
+import process_tracker
 
 from ir import *
 from smt_util import toSMT
@@ -201,13 +202,14 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
-    sygusFile = synthDir + basename + ".sl"
+    sygusFile = synthDir + basename + f"_{uid}" + ".sl"
 
     # Generate sygus file for synthesis
     toSMT(
@@ -226,7 +228,10 @@ def synthesize(
     proc = subprocess.Popen(
         [cvcPath, "--lang=sygus2", "--output=sygus", "--no-sygus-pbe", sygusFile],
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
+
+    process_tracker.all_processes.append(proc)
 
     try:
         funName, returnType = extractFuns(targetLang)
@@ -255,6 +260,7 @@ def synthesize(
                     candidatesSMT,
                     candidateDict,
                     fnsType,
+                    uid,
                 )
 
                 print("Verification Output:", resultVerify)
@@ -278,4 +284,5 @@ def synthesize(
 
         raise Exception("SyGuS failed")
     finally:
-        proc.kill()
+        proc.terminate()
+        proc.wait()

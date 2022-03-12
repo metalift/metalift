@@ -1,3 +1,4 @@
+from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
@@ -5,14 +6,8 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
-import os
 
 from synthesize_auto import synthesize
-
-synthStateStructure = [lat.Set(Int())]
-synthStateType = Tuple(
-    *[a[0] for a in synthStateStructure], Int()
-)  # TODO(shadaj): automate insertion of dummy
 
 
 def grammarEquivalence(inputState, synthState):
@@ -49,10 +44,10 @@ def grammarQuery(ci: CodeInfo):
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
-    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+    return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo):
+def grammar(ci: CodeInfo, synthStateStructure):
     name = ci.name
 
     if name.startswith("inv"):
@@ -63,28 +58,28 @@ def grammar(ci: CodeInfo):
         inputValue = ci.readVars[2]
 
         condition = Eq(inputAdd, IntLit(1))
-        setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
-        setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
 
         summary = MakeTuple(
             *[
                 synthStateStructure[i][1](
-                    TupleGet(inputState, IntLit(i)), setTransform
+                    TupleGet(inputState, IntLit(i)),
+                    Ite(
+                        condition,
+                        auto_grammar(TupleGet(inputState, IntLit(i)).type, 1, inputValue, enable_sets=True),
+                        auto_grammar(TupleGet(inputState, IntLit(i)).type, 1, inputValue, enable_sets=True),
+                    )
                 )
                 for i in range(len(synthStateStructure))
             ],
-            IntLit(0),  # TODO(shadaj): automate insertion of dummy
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
-def initState():
+def initState(synthStateStructure):
     return MakeTuple(
-        *[elem[2] for elem in synthStateStructure],
-        IntLit(0),  # TODO(shadaj): automate insertion of dummy
+        *[elem[2] for elem in synthStateStructure]
     )
-
 
 def targetLang():
     return []
@@ -109,12 +104,7 @@ if __name__ == "__main__":
         if mode == "synth-oplist":
             useOpList = True
 
-        synthesize_actor(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-            synthStateType,
+        search_crdt_structures(
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,
@@ -124,5 +114,6 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            useOpList=useOpList,
+            filename, fnNameBase, loopsFile, cvcPath, useOpList,
+            lat.gen_structures()
         )

@@ -7,7 +7,6 @@ from typing import Dict
 
 def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) -> Expr:
     # op is a ValueRef, and if it has a name then it's a register
-    print("it is: %s" % op)
     if op.name:  # a reg
         try:
             return reg[op]

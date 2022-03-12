@@ -65,6 +65,7 @@ def verify_synth_result(
     candidatesSMT: typing.List[Expr],
     candidateDict: Dict[str, Expr],
     fnsType: Dict[str, Type],
+    uid: int,
 ) -> typing.Tuple[str, typing.List[str]]:
     inCalls: typing.List[Any] = []
     fnCalls: typing.List[Any] = []
@@ -92,7 +93,7 @@ def verify_synth_result(
     inCalls = list(set(inCalls))
     fnCalls = list(set(fnCalls))
 
-    verifFile = synthDir + basename + ".smt"
+    verifFile = synthDir + basename + f"_{uid}" + ".smt"
     toSMT(
         targetLang,
         vars,
