@@ -4,10 +4,13 @@ from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
+import rosette_translator
 import sys
 import os
 
 from synthesize_auto import synthesize
+
+rosette_translator.n = 4
 
 synthStateStructure = [lat.MaxInt, lat.MaxInt]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
