@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Callable
 from enum import IntEnum
+import typing
 
 from analysis import CodeInfo, analyze
 from ir import (
@@ -77,7 +78,7 @@ class DominoLang(object):
         return [(var, DominoType.PRIMITIVE) for var in self.vars]
 
     @staticmethod
-    def targetLang():
+    def targetLang(uninterpFuncs: typing.List[typing.Tuple[str, int]] = []):
         arg = Var("n", Int())
         arg2 = Var("n2", Int())
         arg3 = Var("n3", Int())
@@ -123,9 +124,23 @@ class DominoLang(object):
             arg2,
             arg3,
         )
-        return [get_empty_list, add_to_list, add_2_to_list, add_3_to_list]
 
-    def generate_templates(self, vars):
+        lang = [get_empty_list, add_to_list, add_2_to_list, add_3_to_list]
+
+        for name, nargs in uninterpFuncs:
+            assert nargs <= 3, "Uninterpreted fn must have <= 3 arguments"
+            assert nargs > 0, "Uninterpreted fn must have at least one argument"
+            uninterpArgs = [arg, arg2, arg3][:nargs]
+            uninterp = FnDecl(name, Int(), None, *uninterpArgs)
+            lang.append(uninterp)
+
+        return lang
+
+    def generate_templates(
+        self,
+        vars,
+        uninterpFuncs: typing.List[typing.Tuple[str, int]] = [],
+    ):
         lib = {
             **self._generate_const(),
             **self._generate_arith_ops(),
@@ -145,8 +160,6 @@ class DominoLang(object):
             empty_list
         ]
         list_var = Choose(*list_var)
-
-        base_vars = Choose(*[var for (var, _) in self._get_vars()])
 
         state_1 = state_2 = primitive_var
         pkt_1 = pkt_2 = pkt_3 = pkt_4 = pkt_5 = primitive_var
@@ -168,10 +181,8 @@ class DominoLang(object):
         )  # Opt(state_1) + arith_op(Mux3(pkt_1, pkt_2, C()),  Mux3(pkt_1, pkt_2, C()));
 
         pkt_or_const = Mux3(pkt_1, pkt_2, C)
-        # pkt_or_const = Choose(base_vars, C)
-        # pkt_or_const = Choose(pkt_1, C)
 
-        return {
+        atoms = {
             "stateless_arith": (
                 lib["arith_op"](pkt_or_const, pkt_or_const),
                 DominoType.PRIMITIVE,
@@ -249,38 +260,21 @@ class DominoLang(object):
                 DominoType.LIST,
             ),
             "get_empty_list": (empty_list, DominoType.LIST),
-            "hack1": (
-                Ite(
-                    Le(
-                        Add(
-                            Ite(Ge(primitive_var, IntLit(0)), primitive_var, IntLit(0)),
-                            primitive_var,
-                        ),
-                        IntLit(20),
-                    ),
-                    primitive_var,
-                    IntLit(1),
-                ),
-                DominoType.PRIMITIVE,
-            ),
-            "hack2": (
-                Ite(
-                    Le(
-                        Ite(
-                            nested_if_pred(),
-                            Ite(nested_if_pred(), nested_if_val(), nested_if_val()),
-                            Ite(nested_if_pred(), nested_if_val(), nested_if_val()),
-                        ),
-                        C,
-                    ),
-                    nested_if_val(),
-                    nested_if_val(),
-                ),
-                DominoType.PRIMITIVE,
-            ),
         }
 
-    def generate(self, depth=1, restrict_to_atoms=None, only_list_returns=True):
+        for name, nargs in uninterpFuncs:
+            uninterp = Call(name, Int(), *([primitive_var] * nargs))
+            atoms[f"call_uninterp_{name}"] = uninterp
+
+        return atoms
+
+    def generate(
+        self,
+        depth=1,
+        restrict_to_atoms=None,
+        only_list_returns=True,
+        uninterpFuncs: typing.List[typing.Tuple[str, int]] = [],
+    ):
         restricted = (
             lambda atoms: {k: v for k, v in atoms.items() if k in restrict_to_atoms}
             if restrict_to_atoms is not None
@@ -291,7 +285,9 @@ class DominoLang(object):
         power_set = set(vars)
         for i in range(depth):
             vars = list(power_set)
-            atoms = restricted(self.generate_templates(vars))
+            atoms = restricted(
+                self.generate_templates(vars, uninterpFuncs=uninterpFuncs)
+            )
             power_set.update(atoms.values())
 
         return {
@@ -300,7 +296,12 @@ class DominoLang(object):
             if not only_list_returns or v[1] == DominoType.LIST
         }
 
-    def loopless_grammar(self, depth=2, atoms=None):
+    def loopless_grammar(
+        self,
+        depth=2,
+        atoms=None,
+        uninterpFuncs: typing.List[typing.Tuple[str, int]] = [],
+    ):
         def grammar(ci: CodeInfo):
             name = ci.name
 
@@ -309,7 +310,7 @@ class DominoLang(object):
             else:  # ps
                 self.set_vars(ci.readVars)
                 generated = self.generate(
-                    depth=depth, restrict_to_atoms=atoms
+                    depth=depth, restrict_to_atoms=atoms, uninterpFuncs=uninterpFuncs
                 )
                 options = Choose(*list(generated.values()))
                 print(generated)
@@ -324,7 +325,12 @@ class DominoLang(object):
         return grammar
 
     @staticmethod
-    def driver_function(grammar: Callable, fnName=sys.argv[2], listBound=3):
+    def driver_function(
+        grammar: Callable,
+        fnName=sys.argv[2],
+        listBound=3,
+        uninterpFuncs: typing.List[typing.Tuple[str, int]] = [],
+    ):
         filename = sys.argv[1]
         basename = os.path.splitext(os.path.basename(filename))[0]
 
@@ -332,11 +338,15 @@ class DominoLang(object):
         cvcPath = sys.argv[4]
 
         (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
-            filename, fnName, loopsFile
+            filename,
+            fnName,
+            loopsFile,
+            uninterpFuncs=[name for name, nargs in uninterpFuncs],
         )
 
         print("====== lang")
-        lang = DominoLang.targetLang()
+        lang = DominoLang.targetLang(uninterpFuncs=uninterpFuncs)
+        print(lang)
 
         print("====== grammar")
         invAndPs = [grammar(ci) for ci in loopAndPsInfo]
@@ -356,6 +366,22 @@ class DominoLang(object):
         )
         print("====== verified candidates")
         print("\n\n".join(str(c) for c in candidates))
+
+    def multiple_component_driver(self, components: typing.List):
+        for item in components:
+            component, grammar_kwargs = item[:2]
+            if len(item) > 2:
+                driver_kwargs = item[2]
+            else:
+                driver_kwargs = {}
+
+            if "uninterpFuncs" in driver_kwargs:
+                grammar_kwargs["uninterpFuncs"] = driver_kwargs["uninterpFuncs"]
+
+            grammar = self.loopless_grammar(**grammar_kwargs)
+            self.driver_function(
+                grammar, fnName=component, listBound=3, **driver_kwargs
+            )
 
 
 if __name__ == "__main__":
