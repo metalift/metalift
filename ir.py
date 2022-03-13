@@ -4,6 +4,7 @@ from llvmlite.binding import ValueRef, TypeRef
 from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Union
+import re
 
 
 class PrintMode(Enum):
@@ -937,7 +938,13 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
     elif (
-        tyStr == "%struct.list*" or tyStr == "%struct.list**" or tyStr == "(MLList Int)"
+        tyStr == "%struct.list*"
+        or tyStr == "%struct.list**"
+        or tyStr == "(MLList Int)"
+        or (
+            tyStr.startswith("%struct.list.")
+            and re.fullmatch(r"\%struct\.list\.\d+\*", tyStr) is not None
+        )
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):
