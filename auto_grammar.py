@@ -81,12 +81,8 @@ def auto_grammar(
         else:
             pool[t] = Choose(*exprs)
 
-    at_depth = {
-        0: pool,
-    }
-
     for i in range(depth):
-        next_pool = {}
+        next_pool = dict(pool)
         for t, expansion_list in expansions.items():
             new_elements = []
             for expansion in expansion_list:
@@ -98,20 +94,11 @@ def auto_grammar(
             if enable_ite and Bool() in pool and t in pool:
                 new_elements.append(Ite(pool[Bool()], pool[t], pool[t]))
 
-            if len(new_elements) > 0:
-                if t in pool:
-                    next_pool[t] = Choose(pool[t], *new_elements)
-                else:
-                    next_pool[t] = Choose(*new_elements)
+            if t in pool:
+                next_pool[t] = Choose(next_pool[t], *new_elements)
+            elif len(new_elements) > 0:
+                next_pool[t] = Choose(*new_elements)
 
-        for t in pool.keys():
-            if not (t in next_pool):
-                if enable_ite and Bool() in pool:
-                    next_pool[t] = Choose(pool[t], Ite(pool[Bool()], pool[t], pool[t]))
-                else:
-                    next_pool[t] = pool[t]
-
-        at_depth[i + 1] = next_pool
         pool = next_pool
 
-    return Choose(*[p[out_type] for p in at_depth.values() if out_type in p])
+    return pool[out_type]
