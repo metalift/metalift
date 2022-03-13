@@ -944,7 +944,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         or (
             tyStr.startswith("%struct.list.")
             and re.fullmatch(r"\%struct\.list\.\d+\*", tyStr) is not None
-        ) # e.g. for %struct.list.25*
+        )  # e.g. for %struct.list.25*
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):
