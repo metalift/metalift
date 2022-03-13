@@ -24,13 +24,13 @@ def grammarStateInvariant(synthState):
 
 
 def grammarSupportedCommand(synthState, args):
-    add = args[0]
+    conditions = [Eq(args[0], IntLit(1))]
 
-    return Ite(
-        Eq(add, IntLit(1)),
-        auto_grammar(Bool(), 1, synthState, enable_sets=True),
-        auto_grammar(Bool(), 1, synthState, enable_sets=True),
-    )
+    out = auto_grammar(Bool(), 2, synthState, *args[1:], enable_sets=True)
+    for c in conditions:
+        out = Ite(c, out, out)
+
+    return out
 
 
 def inOrder(arg1, arg2):
@@ -76,26 +76,25 @@ def grammar(ci: CodeInfo):
         raise Exception("no invariant")
     else:  # ps
         inputState = ci.readVars[0]
-        inputAdd = ci.readVars[1]
-        inputValue = ci.readVars[2]
+        args = ci.readVars[1:]
 
-        condition = Eq(inputAdd, IntLit(1))
+        conditions = [Eq(args[0], IntLit(1))]
+        def fold_conditions(out):
+            for c in conditions:
+                out = Ite(c, out, out)
+            return out
 
-        summary = MakeTuple(
+        out = MakeTuple(
             *[
                 synthStateStructure[i][1](
                     TupleGet(inputState, IntLit(i)),
-                    Ite(
-                        condition,
-                        auto_grammar(TupleGet(inputState, IntLit(i)).type, 1, inputValue, enable_sets=True),
-                        auto_grammar(TupleGet(inputState, IntLit(i)).type, 1, inputValue, enable_sets=True),
-                    )
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, 2, *args[1:], enable_sets=True))
                 )
                 for i in range(len(synthStateStructure))
             ],
         )
 
-        return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+        return Synth(name, out, *ci.modifiedVars, *ci.readVars)
 
 
 def initState():
