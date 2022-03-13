@@ -24,6 +24,9 @@ jobs:
         run: mypy .
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        synth_cvc5: ["0", "1"]
 
     steps:
     - uses: actions/checkout@v2
@@ -46,18 +49,28 @@ jobs:
       run: |
         nix-store --import < ~/nix-cache/cache.nar
         rm -rf ~/nix-cache
-
+    # https://github.com/Bogdanp/setup-racket-cache-example
+    - name: Cache Racket dependencies
+      if: matrix.synth_cvc5 == '0'
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/racket
+          ~/.local/share/racket
+        key: ${{ runner.os }}-racket-8.4
     - name: Install Racket
+      if: matrix.synth_cvc5 == '0'
       uses: Bogdanp/setup-racket@v1.7
       with:
         architecture: 'x64'
         distribution: 'full'
         variant: 'CS'
-        version: 'stable'
-
+        version: '8.4'
     - name: Install Rosette
-      run: raco pkg install --auto rosette
-
+      if: matrix.synth_cvc5 == '0'
+      run: |
+        raco pkg install --auto --skip-installed rosette
+        raco pkg update --auto rosette
     - name: Build LLVM Pass
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
@@ -85,27 +98,47 @@ jobs:
     - name: Test Core Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
-        python -m tests.count
-        python -m tests.fma_dsl
         python -m tests.ite1
         python -m tests.ite3
-        python -m tests.list1
-        python -m tests.list1_fns
         python -m tests.set1
         python -m tests.tuples1
         python -m tests.tuples2
         python -m tests.tuples3
-        python -m tests.uninterp
         python -m tests.while3
         python -m tests.while4
-        python -m tests.struct1
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
-    - name: Test Actor Examples
+    - name: Test Rosette-only Examples
+      if: matrix.synth_cvc5 == '0'
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
-        python -m tests.actor1_g_set synth tests/actor1.ll test tests/actor1.loops cvc5
-        python -m tests.actor1_2p_set synth tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.fma_dsl
+        python -m tests.count
+        python -m tests.list1
+        python -m tests.list1_fns
+        python -m tests.uninterp
+        python -m tests.struct1
+
+    - name: Test Actor Examples (direct)
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
+      run: |
+        python -m tests.actor1_g_set_fixed_structure synth tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor1_2p_set_fixed_structure synth tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+      if: matrix.synth_cvc5 == '1'
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
+    
+    - name: Test Actor Examples (op-list)
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
+      run: |
+        python -m tests.actor1_g_set_fixed_structure synth-oplist tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor1_2p_set_fixed_structure synth-oplist tests/actor1.ll test tests/actor1.loops cvc5
+        python -m tests.actor2 synth-oplist tests/actor2.ll test tests/actor2.loops cvc5
+      if: matrix.synth_cvc5 == '0'
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
     - name: Save Nix cache
       run: ./ci-util/cache-nix.sh

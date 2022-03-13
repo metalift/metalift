@@ -4,13 +4,11 @@ from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
+import rosette_translator
 import sys
 import os
 
-if os.environ.get("SYNTH_CVC5") == "1":
-    from synthesize_cvc5 import synthesize
-else:
-    from synthesize_rosette import synthesize
+from synthesize_auto import synthesize
 
 synthStateStructure = [lat.MaxInt, lat.MaxInt]
 synthStateType = Tuple(*[a[0] for a in synthStateStructure])
@@ -36,9 +34,8 @@ def grammarQuery(ci: CodeInfo):
     name = ci.name
 
     inputState = ci.readVars[0]
-    outputVar = ci.modifiedVars[0]
 
-    summary = Eq(outputVar, auto_grammar(parseTypeRef(outputVar.type), 2, inputState))
+    summary = auto_grammar(parseTypeRef(ci.retT), 2, inputState)
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -55,8 +52,6 @@ def grammar(ci: CodeInfo):
 
         inputAdd = ci.readVars[1]
 
-        outputState = ci.modifiedVars[0]
-
         intLit = Choose(IntLit(0), IntLit(1))
 
         condition = Eq(inputAdd, intLit)
@@ -67,16 +62,13 @@ def grammar(ci: CodeInfo):
 
         intTransform = Choose(intTransform, Ite(condition, intTransform, intTransform))
 
-        summary = Eq(
-            outputState,
-            MakeTuple(
-                *[
-                    synthStateStructure[i][1](
-                        TupleGet(inputState, IntLit(i)), intTransform
-                    )
-                    for i in range(len(synthStateStructure))
-                ]
-            ),
+        summary = MakeTuple(
+            *[
+                synthStateStructure[i][1](
+                    TupleGet(inputState, IntLit(i)), intTransform
+                )
+                for i in range(len(synthStateStructure))
+            ]
         )
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
@@ -87,11 +79,7 @@ def initState():
 
 
 def targetLang():
-    maxA = Var("a", Int())
-    maxB = Var("b", Int())
-    return [
-        FnDeclNonRecursive("max", Int(), Ite(Ge(maxA, maxB), maxA, maxB), maxA, maxB),
-    ]
+    return []
 
 
 if __name__ == "__main__":
@@ -109,6 +97,10 @@ if __name__ == "__main__":
             cvcPath,
         )
     else:
+        useOpList = False
+        if mode == "synth-oplist":
+            useOpList = True
+
         synthesize_actor(
             filename,
             fnNameBase,
@@ -125,4 +117,6 @@ if __name__ == "__main__":
             targetLang,
             synthesize,
             unboundedInts=True,
+            useOpList=useOpList,
+            listBound=2,
         )

@@ -105,7 +105,7 @@ def targetLang():
             Eq(Call("list_length", Int(), data), IntLit(0)),
             Call("list_empty", List(Int())),
             Ite(
-                Call(f.args[0], Fn(Bool()), Call("list_get", Int(), data, IntLit(0))),
+                CallValue(f, Call("list_get", Int(), data, IntLit(0))),
                 Call(
                     "list_append",
                     List(Int()),
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # toRosette(basename+".rkt",lang,vars, invAndPs, preds, vc, loopAndPsInfo,[])
 
     candidates = synthesize(
-        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True
+        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath,
     )
     # print("====== verified candidates")
     # for c in candidates:print(c,"\n")

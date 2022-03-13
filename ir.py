@@ -111,6 +111,7 @@ class Expr:
         Ite = "ite"
 
         Call = "call"
+        CallValue = "callvalue"
 
         Assert = "assert"
         Constraint = "constraint"
@@ -216,7 +217,11 @@ class Expr:
             else:
                 return str(self.args[0])
 
-        elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
+        elif (
+            kind == Expr.Kind.Call
+            or kind == Expr.Kind.CallValue
+            or kind == Expr.Kind.Choose
+        ):
             noParens = kind == Expr.Kind.Call and len(self.args) == 1
             retVal = []
 
@@ -316,7 +321,7 @@ class Expr:
 
         elif kind == Expr.Kind.Axiom:
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
-            return "(assert (forall ( %s ) ) %s) " % (" ".join(vs), self.args[0])
+            return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
@@ -352,7 +357,12 @@ class Expr:
                 )
 
         elif kind == Expr.Kind.Tuple:
-            args = " ".join(["%s" % arg.toSMT() for arg in self.args])
+            args = " ".join(
+                [
+                    arg.name if isinstance(arg, ValueRef) else arg.toSMT()
+                    for arg in self.args
+                ]
+            )
             return "(tuple%d %s)" % (len(self.args), args)
 
         elif kind == Expr.Kind.TupleGet:
@@ -404,16 +414,21 @@ class Expr:
             else:
                 return str(self.args[0])
 
-        elif kind == Expr.Kind.Call or kind == Expr.Kind.Choose:
-            if isinstance(self.args[0], str):
-                if self.args[0].startswith("inv") or self.args[0].startswith("ps"):
+        elif (
+            kind == Expr.Kind.Call
+            or kind == Expr.Kind.CallValue
+            or kind == Expr.Kind.Choose
+        ):
+            if isinstance(self.args[0], str) or kind == Expr.Kind.CallValue:
+                if isinstance(self.args[0], str) and (
+                    self.args[0].startswith("inv") or self.args[0].startswith("ps")
+                ):
                     callStr = "( " + "%s " % (str(self.args[0]))
                     for a in self.args[1:]:
                         callStr += a.toRosette() + " "
                     callStr += ")"
                     return callStr
-
-                elif self.args[0].startswith("list"):
+                elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
                     callStr = (
                         "("
                         + "%s"
@@ -431,11 +446,6 @@ class Expr:
                             callStr += a.toRosette() + " "
                     callStr += ")"
                     return callStr
-
-                # elif (
-                #     self.type.name == "Function"
-                # ):
-                #     return "%s" % (self.args[0])
                 else:
                     return (
                         "("
@@ -443,7 +453,7 @@ class Expr:
                             [
                                 a.name
                                 if isinstance(a, ValueRef) and a.name != ""
-                                else str(a)
+                                else a
                                 if isinstance(a, str)
                                 else a.toRosette()
                                 for a in self.args
@@ -498,8 +508,7 @@ class Expr:
             return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
         elif kind == Expr.Kind.Axiom:
-            raise Exception("NYI: %s" % self)
-
+            return ""  # axioms are only for verification
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
@@ -572,6 +581,123 @@ class Expr:
             retStr += ")"
             return retStr
 
+    def simplify(self) -> "Expr":
+        self = self.mapArgs(lambda a: a.simplify() if isinstance(a, Expr) else a)
+        if self.kind == Expr.Kind.And:
+            filtered_args: typing.List[Expr] = []
+            for arg in self.args:
+                if isinstance(arg, Expr) and arg.kind == Expr.Kind.Lit:
+                    if arg.args[0] == False:
+                        return BoolLit(False)
+                else:
+                    filtered_args.append(arg)
+
+            if len(filtered_args) == 0:
+                return BoolLit(True)
+            elif len(filtered_args) == 1:
+                return filtered_args[0]
+            else:
+                return Expr(Expr.Kind.And, Bool(), filtered_args)
+        else:
+            return self
+
+    def countVariableUses(self, into: Dict[str, int]) -> None:
+        if self.kind == Expr.Kind.Var:
+            if not (self.args[0] in into):
+                into[self.args[0]] = 0
+            into[self.args[0]] += 1
+        else:
+            for a in self.args:
+                if isinstance(a, Expr):
+                    a.countVariableUses(into)
+
+    def collectKnowledge(
+        self,
+        constrained_elsewhere: typing.Set[str],
+        into: Dict[str, "Expr"],
+        conflicts: Dict[str, bool],
+    ) -> None:
+        if self.kind == Expr.Kind.Eq:
+            if self.args[0].kind == Expr.Kind.Var and (
+                not self.args[0].args[0] in constrained_elsewhere
+            ):
+                if self.args[0].args[0] in into or self.args[0].args[0] in conflicts:
+                    conflicts[self.args[0].args[0]] = True
+                    del into[self.args[0].args[0]]
+                else:
+                    into[self.args[0].args[0]] = self.args[1]
+            elif self.args[1].kind == Expr.Kind.Var and (
+                not self.args[1].args[0] in constrained_elsewhere
+            ):
+                if self.args[1].args[0] in into or self.args[1].args[0] in conflicts:
+                    conflicts[self.args[1].args[0]] = True
+                    del into[self.args[1].args[0]]
+                else:
+                    into[self.args[1].args[0]] = self.args[0]
+        elif self.kind == Expr.Kind.And:
+            for a in self.args:
+                if isinstance(a, Expr):
+                    a.collectKnowledge(constrained_elsewhere, into, conflicts)
+        else:
+            return
+
+    def rewrite(self, mappings: Dict[str, "Expr"]) -> "Expr":
+        if self.kind == Expr.Kind.Var:
+            if self.args[0] in mappings:
+                return mappings[self.args[0]]
+            else:
+                return self
+        else:
+            return self.mapArgs(
+                lambda a: a.rewrite(mappings) if isinstance(a, Expr) else a
+            )
+
+    def optimizeUselessEquality(
+        self, counts: Dict[str, int], new_vars: typing.Set["Expr"]
+    ) -> "Expr":
+        if self.kind == Expr.Kind.Eq:
+            replacement_var = Var("useless_equality_%d" % len(new_vars), Bool())
+            if self.args[0].kind == Expr.Kind.Var and counts[self.args[0].args[0]] == 1:
+                new_vars.add(replacement_var)
+                return replacement_var
+            elif (
+                self.args[1].kind == Expr.Kind.Var and counts[self.args[1].args[0]] == 1
+            ):
+                new_vars.add(replacement_var)
+                return replacement_var
+            elif (
+                self.args[0].kind == Expr.Kind.Var
+                and self.args[1].kind == Expr.Kind.Var
+            ):
+                if self.args[0].args[0] == self.args[1].args[0]:
+                    return BoolLit(True)
+        elif self.kind == Expr.Kind.Implies:
+            local_counts: Dict[str, int] = {}
+            self.countVariableUses(local_counts)
+
+            constrained_elsewhere = set(counts.keys())
+            for key in local_counts.keys():
+                if local_counts[key] == counts[key]:
+                    constrained_elsewhere.remove(key)
+            rewrites: Dict[str, "Expr"] = {}
+            self.args[0].collectKnowledge(constrained_elsewhere, rewrites, {})
+
+            counts_rhs: Dict[str, int] = {}
+            self.args[1].countVariableUses(counts_rhs)
+
+            for rewrite_var in list(rewrites.keys()):
+                if not (rewrites[rewrite_var].kind == Expr.Kind.Var):
+                    if rewrite_var in counts_rhs and counts_rhs[rewrite_var] > 1:
+                        del rewrites[rewrite_var]
+
+            self = self.rewrite(rewrites)
+
+        return self.mapArgs(
+            lambda a: a.optimizeUselessEquality(counts, new_vars)
+            if isinstance(a, Expr)
+            else a
+        ).simplify()
+
 
 def Var(name: str, ty: Type) -> Expr:
     return Expr(Expr.Kind.Var, ty, [name])
@@ -606,6 +732,10 @@ def Mul(*args: Expr) -> Expr:
 
 
 def Eq(e1: Expr, e2: Expr) -> Expr:
+    if not (parseTypeRef(e1.type) == parseTypeRef(e2.type)):
+        raise Exception(
+            f"Cannot compare values of different types: {parseTypeRef(e1.type)} and {parseTypeRef(e2.type)}"
+        )
     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 
 
@@ -642,11 +772,16 @@ def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 
 
 def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
+    assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
 
 def Call(name: str, returnT: Type, *args: Expr) -> Expr:
     return Expr(Expr.Kind.Call, returnT, [name, *args])
+
+
+def CallValue(value: Expr, *args: Expr) -> Expr:
+    return Expr(Expr.Kind.CallValue, value.type.args[0], [value, *args])
 
 
 def Assert(e: Expr) -> Expr:

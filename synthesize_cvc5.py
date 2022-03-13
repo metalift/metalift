@@ -2,12 +2,20 @@ from analysis import CodeInfo
 import subprocess
 import pyparsing as pp
 import os
+import process_tracker
 
 from ir import *
 from smt_util import toSMT
 
 import typing
-from typing import Any, Callable, Dict, Generator, Union
+from typing import IO, Any, Callable, Dict, Generator, Union
+
+from synthesis_common import (
+    SynthesisFailed,
+    VerificationFailed,
+    generateTypes,
+    verify_synth_result,
+)
 
 
 def flatten(L: typing.List[Any]) -> Generator[str, str, None]:
@@ -61,17 +69,14 @@ def generateCandidates(
                         args[v.name] = parseTypeRef(v.type)
 
                 candidatesExpr[a[0]] = toExpr(a[1], funName, returnType, args, {})
-                if isinstance(a[1], str):
-                    candidates.append(FnDecl(ce.args[0], ce.type, a[1], *ce.args[2:]))
-                else:
-                    candidates.append(
-                        FnDecl(
-                            ce.args[0],
-                            ce.type,
-                            "(" + " ".join(list(flatten(a[1]))) + ")",
-                            *ce.args[2:],
-                        )
+                candidates.append(
+                    FnDecl(
+                        ce.args[0],
+                        ce.type,
+                        candidatesExpr[a[0]],
+                        *ce.args[2:],
                     )
+                )
     return candidates, candidatesExpr
 
 
@@ -110,8 +115,11 @@ def toExpr(
             index = funName.index(ast[0])
             return Call(
                 ast[0],
-                returnType[index],
-                toExpr(ast[1], funName, returnType, varType, letVars),
+                returnType[index].args[0],
+                *[
+                    toExpr(arg, funName, returnType, varType, letVars)
+                    for arg in ast[1:]
+                ],
             )
         elif ast[0] == "let":
             newLetVars = dict(letVars)
@@ -163,7 +171,7 @@ def toExpr(
         elif ast[0] == "set.union" or ast[0] == "set.minus":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
-            if ast[0] == "set-union":
+            if ast[0] == "set.union":
                 return Call("set-union", s1.type, s1, s2)
             else:
                 return Call("set-minus", s1.type, s1, s2)
@@ -195,17 +203,19 @@ def synthesize(
     targetLang: typing.List[Expr],
     vars: typing.Set[Expr],
     invAndPs: typing.List[Expr],
-    preds: Union[str, typing.List[Expr]],
+    preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
+    uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
+    listBound: int = 2,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
-    sygusFile = synthDir + basename + ".sl"
+    sygusFile = synthDir + basename + f"_{uid}" + ".sl"
 
     # Generate sygus file for synthesis
     toSMT(
@@ -216,54 +226,69 @@ def synthesize(
         vc,
         sygusFile,
         [],
-        [],
+        [f.args[0] for f in targetLang],
         True,
     )
 
-    logfile = synthDir + basename + "_logs.txt"
-    synthLogs = open(logfile, "w")
     # Run synthesis subprocess
     proc = subprocess.Popen(
         [cvcPath, "--lang=sygus2", "--output=sygus", "--no-sygus-pbe", sygusFile],
-        stdout=synthLogs,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
+
+    process_tracker.all_processes.append(proc)
 
     try:
         funName, returnType = extractFuns(targetLang)
-        logfileVerif = open(logfile, "r")
+        logfileVerif = typing.cast(IO[bytes], proc.stdout)
         while True:
-            line = logfileVerif.readline()
+            line = logfileVerif.readline().decode("utf-8")
             if "fail" in line:
-                print("SyGuS failed")
                 break
             elif "sygus-candidate" in line:
-                print("Current PS and INV Guess ", line)
-                candidates, _ = generateCandidates(invAndPs, line, funName, returnType)
-                smtFile = synthDir + basename + ".smt"
-                toSMT(targetLang, vars, candidates, preds, vc, smtFile, [], [], False)
-
-                # run external verification subprocess
-                procVerify = subprocess.Popen(
-                    [cvcPath, "--lang=smt", "--fmf-fun", "--tlimit=10000", smtFile],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
+                print("Current PS and INV Guess:", line.strip())
+                candidatesSMT, candidateDict = generateCandidates(
+                    invAndPs, line, funName, returnType
                 )
-                output = procVerify.stdout.readline()  # type: ignore
-                output = output.decode("utf-8")
-                if output.count("unsat") == 1:
-                    print("UNSAT\n")
+            elif line.strip() == "(":
+                fnsType = generateTypes(targetLang)
+
+                resultVerify, verifyLogs = verify_synth_result(
+                    basename,
+                    targetLang,
+                    vars,
+                    preds,
+                    vc,
+                    loopAndPsInfo,
+                    cvcPath,
+                    synthDir,
+                    candidatesSMT,
+                    candidateDict,
+                    fnsType,
+                    uid,
+                )
+
+                print("Verification Output:", resultVerify)
+                if resultVerify == "unsat":
                     print(
                         "Verified PS and INV Candidates ",
-                        "\n\n".join([str(c) for c in candidates]),
+                        "\n\n".join([str(c) for c in candidatesSMT]),
                     )
-
-                    return candidates
+                    return candidatesSMT
                 else:
-                    print("CVC4 verification Result for Current Guess")
-                    print("SAT\n")
+                    print(
+                        "verification failed",
+                        "\n\n".join([str(c) for c in candidatesSMT]),
+                    )
+                    print("\n".join(verifyLogs))
+                    raise VerificationFailed("Verification failed")
             else:
-                continue
+                code = proc.poll()
+                if code is not None and code > 0:
+                    break
 
-        raise Exception("SyGuS failed")
+        raise SynthesisFailed("SyGuS failed")
     finally:
-        proc.kill()
+        proc.terminate()
+        proc.wait()

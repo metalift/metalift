@@ -3,7 +3,8 @@ import sys
 
 from analysis import CodeInfo, analyze
 from ir import *
-from synthesize_rosette import synthesize
+
+from synthesize_auto import synthesize
 
 # # programmatically generated grammar
 
@@ -55,7 +56,7 @@ def targetLang():
         ),
         x,
     )
-    fma = FnDecl("fma", Int(), Add(x, Mul(y, z)), x, y, z)
+    fma = FnDeclNonRecursive("fma", Int(), Add(x, Mul(y, z)), x, y, z)
     return [sum_n, fma]
 
 

@@ -1,6 +1,0 @@
-
-(assert (forall ( (data (MLList Int)) (index Int) )
-                (=> (and (>= index 0) (< index (list_length data)))
-                    (= (reduce_lr (map_lm (list_take data (+ index 1))))
-                       (lr (reduce_lr (map_lm (list_take data index)))
-                                       (lm (list_get data index)))))))

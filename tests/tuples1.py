@@ -5,7 +5,8 @@ from analysis import CodeInfo, analyze
 from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT
-from synthesize_rosette import synthesize
+
+from synthesize_auto import synthesize
 
 
 def tuple_mult(t):
@@ -59,7 +60,6 @@ if __name__ == "__main__":
         vc,
         loopAndPsInfo,
         cvcPath,
-        noVerify=False,
     )
 
     print("====== verified candidates")

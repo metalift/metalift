@@ -135,22 +135,22 @@ def targetLang():
             Call(
                 "list_prepend",
                 List(Int()),
-                Call(lm_fn.args[0], Fn(Int(), Int()), list_get(data, IntLit(0))),
+                CallValue(lm_fn, list_get(data, IntLit(0))),
                 Call("map", List(Int()), list_tail(data, IntLit(1)), lm_fn),
             ),
         ),
         data,
         lm_fn,
     )
+
     reduce_fn = FnDecl(
         "reduce",
         Int(),
         Ite(
             Eq(list_length(data), IntLit(0)),
             IntLit(0),
-            Call(
-                lr_fn.args[0],
-                Fn(Int(), Int(), Int()),
+            CallValue(
+                lr_fn,
                 list_get(data, IntLit(0)),
                 Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn),
             ),
@@ -159,7 +159,65 @@ def targetLang():
         lr_fn,
     )
 
-    return [map_fn, reduce_fn, mapper, reducer]
+    mr_axiom_data = Var("data", List(Int()))
+    mr_axiom_index = Var("index", Int())
+    map_reduce_axiom = Axiom(
+        Implies(
+            And(Ge(mr_axiom_index, IntLit(0)), Lt(mr_axiom_index, list_length(mr_axiom_data))),
+            Eq(
+                Call(
+                    "reduce",
+                    Int(),
+                    Call(
+                        "map",
+                        List(Int()),
+                        Call(
+                            "list_take",
+                            List(Int()),
+                            mr_axiom_data,
+                            Add(mr_axiom_index, IntLit(1))
+                        ),
+                        Var("lm", Fn(Int(), Int()))
+                    ),
+                    Var("lr", Fn(Int(), Int(), Int())),
+                ),
+                Call(
+                    "lr",
+                    Int(),
+                    Call(
+                        "reduce",
+                        Int(),
+                        Call(
+                            "map",
+                            List(Int()),
+                            Call(
+                                "list_take",
+                                List(Int()),
+                                mr_axiom_data,
+                                mr_axiom_index
+                            ),
+                            Var("lm", Fn(Int(), Int()))
+                        ),
+                        Var("lr", Fn(Int(), Int(), Int())),
+                    ),
+                    Call(
+                        "lm",
+                        Int(),
+                        Call(
+                            "list_get",
+                            Int(),
+                            mr_axiom_data,
+                            mr_axiom_index
+                        )
+                    ),
+                ),
+            ),
+        ),
+        mr_axiom_data,
+        mr_axiom_index,
+    )
+
+    return [map_fn, reduce_fn, map_reduce_axiom, mapper, reducer]
 
 
 if __name__ == "__main__":
@@ -191,7 +249,6 @@ if __name__ == "__main__":
         vc,
         loopAndPsInfo,
         cvcPath,
-        noVerify=True,
     )
     print("====== verified candidates")
     for c in candidates:
