@@ -11,37 +11,46 @@ from domino import DominoLang
 
 domino = DominoLang()
 
-
-def grammar(ci: CodeInfo):
-    name = ci.name
-
-    if name.startswith("inv"):
-        raise RuntimeError("no invariants for loop-less grammar")
-    else:  # ps
-        domino.set_vars(ci.readVars)
-        generated = domino.generate(
-            depth=2,
-            restrict_to_atoms=[
-                # "get_empty_list",
-                "mul_acc",
-                "nested_ifs",
-                "sub",
-                # "add_2_state_vars",
-                "add_3_state_vars",
-                "if_else_raw",
-                "stateless_arith",
-            ],
-        )
-        options = Choose(*list(generated.values()))
-        print(generated)
-
-        rv = ci.modifiedVars[0]
-        summary = Choose(
-            # Eq(rv, options),
-            Call("list_eq", Bool(), rv, options),
-        )
-        return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+"""
+"mul_acc",
+"nested_ifs",
+"sub",
+"add_2_state_vars",
+"add_3_state_vars",
+"if_else_raw",
+"stateless_arith",
+"""
 
 
 if __name__ == "__main__":
-    domino.driver_function(grammar)
+    components = [
+        (
+            "stage0",
+            {
+                "depth": 3,
+                "atoms": [
+                    "add_state_var",
+                    "stateless_arith",
+                ],
+            },
+        ),
+        ("stage1", {"depth": 2, "atoms": ["sub", "stateless_arith", "add_state_var"]}),
+        (
+            "stage2",
+            {"depth": 2, "atoms": ["stateless_arith", "if_else_raw", "add_state_var"]},
+        ),
+        (
+            "stage3",
+            {"depth": 2, "atoms": ["stateless_arith", "if_else_raw", "add_state_var"]},
+        ),
+        (
+            "stage4",
+            {
+                "depth": 2,
+                "atoms": ["stateless_arith", "if_else_raw", "add_3_state_vars"],
+            },
+        ),
+    ]
+    for component, kwargs in components:
+        grammar = domino.loopless_grammar(**kwargs)
+        domino.driver_function(grammar, fnName=component, listBound=3)

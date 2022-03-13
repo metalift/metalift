@@ -249,6 +249,35 @@ class DominoLang(object):
                 DominoType.LIST,
             ),
             "get_empty_list": (empty_list, DominoType.LIST),
+            "hack1": (
+                Ite(
+                    Le(
+                        Add(
+                            Ite(Ge(primitive_var, IntLit(0)), primitive_var, IntLit(0)),
+                            primitive_var,
+                        ),
+                        IntLit(20),
+                    ),
+                    primitive_var,
+                    IntLit(1),
+                ),
+                DominoType.PRIMITIVE,
+            ),
+            "hack2": (
+                Ite(
+                    Le(
+                        Ite(
+                            nested_if_pred(),
+                            Ite(nested_if_pred(), nested_if_val(), nested_if_val()),
+                            Ite(nested_if_pred(), nested_if_val(), nested_if_val()),
+                        ),
+                        C,
+                    ),
+                    nested_if_val(),
+                    nested_if_val(),
+                ),
+                DominoType.PRIMITIVE,
+            ),
         }
 
     def generate(self, depth=1, restrict_to_atoms=None, only_list_returns=True):
@@ -271,36 +300,62 @@ class DominoLang(object):
             if not only_list_returns or v[1] == DominoType.LIST
         }
 
+    def loopless_grammar(self, depth=2, atoms=None):
+        def grammar(ci: CodeInfo):
+            name = ci.name
+
+            if name.startswith("inv"):
+                raise RuntimeError("no invariants for loop-less grammar")
+            else:  # ps
+                self.set_vars(ci.readVars)
+                generated = self.generate(
+                    depth=depth, restrict_to_atoms=atoms
+                )
+                options = Choose(*list(generated.values()))
+                print(generated)
+
+                rv = ci.modifiedVars[0]
+                summary = Choose(
+                    # Eq(rv, options),
+                    Call("list_eq", Bool(), rv, options),
+                )
+                return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+
+        return grammar
+
     @staticmethod
-    def driver_function(grammar: Callable):
-        rosette_translator.MAX_LIST_LENGTH = 3
-        try:
-            filename = sys.argv[1]
-            basename = os.path.splitext(os.path.basename(filename))[0]
+    def driver_function(grammar: Callable, fnName=sys.argv[2], listBound=3):
+        filename = sys.argv[1]
+        basename = os.path.splitext(os.path.basename(filename))[0]
 
-            fnName = sys.argv[2]
-            loopsFile = sys.argv[3]
-            cvcPath = sys.argv[4]
+        loopsFile = sys.argv[3]
+        cvcPath = sys.argv[4]
 
-            (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
-                filename, fnName, loopsFile
-            )
+        (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
+            filename, fnName, loopsFile
+        )
 
-            print("====== lang")
-            lang = DominoLang.targetLang()
+        print("====== lang")
+        lang = DominoLang.targetLang()
 
-            print("====== grammar")
-            invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+        print("====== grammar")
+        invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
-            # rosette synthesizer  + CVC verfication
-            print("====== synthesis")
-            candidates = synthesize(
-                basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
-            )
-            print("====== verified candidates")
-            print("\n\n".join(str(c) for c in candidates))
-        finally:
-            rosette_translator.MAX_LIST_LENGTH = rosette_translator.DEFAULT_MAX_LIST_LENGTH
+        # rosette synthesizer  + CVC verfication
+        print("====== synthesis")
+        candidates = synthesize(
+            basename,
+            lang,
+            vars,
+            invAndPs,
+            preds,
+            vc,
+            loopAndPsInfo,
+            cvcPath,
+            listBound=listBound,
+        )
+        print("====== verified candidates")
+        print("\n\n".join(str(c) for c in candidates))
 
 
 if __name__ == "__main__":
