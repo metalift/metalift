@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from domino import DominoLang
 
-domino = DominoLang()
+domino = DominoLang(constants=[0, 1, 2, 3, 5, 10])
 
 """
 "mul_acc",
@@ -24,11 +24,13 @@ domino = DominoLang()
 if __name__ == "__main__":
     components = [
         (
-            "stage0",
+            "stage0p1",
             {
                 "depth": 3,
                 "atoms": [
                     "add_state_var",
+                    # "sub",
+                    # "mul_acc",
                     "stateless_arith",
                 ],
             },
@@ -52,4 +54,4 @@ if __name__ == "__main__":
     ]
     for component, kwargs in components:
         grammar = domino.loopless_grammar(**kwargs)
-        domino.driver_function(grammar, fnName=component, listBound=3)
+        domino.driver_function(grammar, fnName=component, listBound=4)
