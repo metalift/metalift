@@ -10,23 +10,24 @@ import os
 from synthesize_auto import synthesize
 
 synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 fastDebug = False
+base_depth = 1
 
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth, synthState, enable_sets=True)
 
 
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    out = auto_grammar(Bool(), 2, synthState, *args[1:], enable_sets=True)
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_sets=True)
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -46,7 +47,7 @@ def grammarQuery(ci: CodeInfo):
     name = ci.name
 
     if not fastDebug:
-        setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+        setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_sets=True)
     else:  # hardcoded for quick debugging
         synthState = ci.readVars[0]
 
@@ -86,9 +87,9 @@ def grammar(ci: CodeInfo):
 
         out = MakeTuple(
             *[
-                synthStateStructure[i][1](
+                synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
-                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, 2, *args[1:], enable_sets=True))
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_sets=True))
                 )
                 for i in range(len(synthStateStructure))
             ],
@@ -99,7 +100,7 @@ def grammar(ci: CodeInfo):
 
 def initState():
     return MakeTuple(
-        *[elem[2] for elem in synthStateStructure]
+        *[elem.bottom() for elem in synthStateStructure]
     )
 
 def targetLang():

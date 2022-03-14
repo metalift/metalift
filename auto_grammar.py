@@ -54,6 +54,20 @@ def auto_grammar(
     enable_sets: bool = False,
     enable_ite: bool = False,
 ) -> Expr:
+    if out_type.name == "Tuple":
+        return MakeTuple(
+            *[
+                auto_grammar(
+                    t,
+                    depth,
+                    *inputs,
+                    enable_sets=enable_sets,
+                    enable_ite=enable_ite,
+                )
+                for t in out_type.args
+            ]
+        )
+
     expansions = get_expansions(enable_sets)
 
     pool = {}
@@ -63,17 +77,19 @@ def auto_grammar(
         pool[Set(Int())] = Call("set-create", Set(Int()))
 
     input_pool: Dict[Type, typing.List[Expr]] = {}
-    for input in inputs:
-        input_type = parseTypeRef(input.type)
+
+    def extract_inputs(input_type: Type, input: Expr) -> None:
         if input_type.name == "Tuple":
             for i, t in enumerate(input_type.args):
-                if not t in input_pool:
-                    input_pool[t] = []
-                input_pool[t].append(TupleGet(input, IntLit(i)))
+                extract_inputs(t, TupleGet(input, IntLit(i)))
         else:
             if not input_type in input_pool:
                 input_pool[input_type] = []
             input_pool[input_type].append(input)
+
+    for input in inputs:
+        input_type = parseTypeRef(input.type)
+        extract_inputs(input_type, input)
 
     for t, exprs in input_pool.items():
         if t in pool:
