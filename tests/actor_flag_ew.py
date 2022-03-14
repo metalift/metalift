@@ -14,18 +14,18 @@ base_depth = 1
 def grammarEquivalence(inputState, synthState):
     return auto_grammar(
         Bool(), base_depth + 1, inputState, synthState, IntLit(0), IntLit(1),
-        enable_ite=True
+        enable_ite=True, enable_arith=False
     )
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), base_depth, synthState)
+    return auto_grammar(Bool(), base_depth, synthState, enable_arith=False)
 
 
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    out = auto_grammar(Bool(), base_depth, synthState, *args[1:])
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_arith=False)
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -54,7 +54,7 @@ def opPrecondition(op):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars)
+    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_arith=False)
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -80,7 +80,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
-                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:]))
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_arith=False))
                 )
                 for i in range(len(synthStateStructure))
             ],

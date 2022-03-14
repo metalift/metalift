@@ -7,6 +7,7 @@ from llvmlite.binding import ValueRef
 
 def get_expansions(
     enable_sets: bool = False,
+    enable_arith: bool = True,
 ) -> Dict[Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]]:
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
@@ -15,7 +16,9 @@ def get_expansions(
             lambda get: Add(get(Int()), get(Int())),
             lambda get: Sub(get(Int()), get(Int())),
             # lambda get: Mul(get(Int()), get(Int())),
-        ],
+        ]
+        if enable_arith
+        else [],
         Bool(): [
             lambda get: And(get(Bool()), get(Bool())),
             lambda get: Or(get(Bool()), get(Bool())),
@@ -53,6 +56,7 @@ def auto_grammar(
     *inputs: Union[Expr, ValueRef],
     enable_sets: bool = False,
     enable_ite: bool = False,
+    enable_arith: bool = True,
 ) -> Expr:
     if out_type.name == "Tuple":
         return MakeTuple(
@@ -63,12 +67,13 @@ def auto_grammar(
                     *inputs,
                     enable_sets=enable_sets,
                     enable_ite=enable_ite,
+                    enable_arith=enable_arith,
                 )
                 for t in out_type.args
             ]
         )
 
-    expansions = get_expansions(enable_sets)
+    expansions = get_expansions(enable_sets, enable_arith)
 
     pool = {}
 
