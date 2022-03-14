@@ -264,7 +264,7 @@ class DominoLang(object):
 
         for name, nargs in uninterpFuncs:
             uninterp = Call(name, Int(), *([primitive_var] * nargs))
-            atoms[f"call_uninterp_{name}"] = uninterp
+            atoms[f"uninterp_call_{name}"] = (uninterp, DominoType.PRIMITIVE)
 
         return atoms
 
@@ -276,7 +276,11 @@ class DominoLang(object):
         uninterpFuncs: typing.List[typing.Tuple[str, int]] = [],
     ):
         restricted = (
-            lambda atoms: {k: v for k, v in atoms.items() if k in restrict_to_atoms}
+            lambda atoms: {
+                k: v
+                for k, v in atoms.items()
+                if k in restrict_to_atoms or k.startswith("uninterp_call")
+            }
             if restrict_to_atoms is not None
             else atoms
         )
@@ -362,6 +366,7 @@ class DominoLang(object):
             vc,
             loopAndPsInfo,
             cvcPath,
+            unboundedInts=True,
             listBound=listBound,
         )
         print("====== verified candidates")
@@ -379,8 +384,11 @@ class DominoLang(object):
                 grammar_kwargs["uninterpFuncs"] = driver_kwargs["uninterpFuncs"]
 
             grammar = self.loopless_grammar(**grammar_kwargs)
+
+            driver_kwargs["listBound"] = driver_kwargs.pop("listBound", 3)
+
             self.driver_function(
-                grammar, fnName=component, listBound=3, **driver_kwargs
+                grammar, fnName=component, **driver_kwargs
             )
 
 
