@@ -518,7 +518,7 @@ class Expr:
                 return "(define-symbolic %s (~> %s %s))" % (
                     self.args[0],
                     args_type,
-                    toRosetteType(self.type),
+                    toRosetteType(self.type.args[0]),
                 )
 
             else:

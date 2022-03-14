@@ -157,7 +157,7 @@ class SynthesizeFun(Protocol):
         uid: int = 0,
         noVerify: bool = False,
         unboundedInts: bool = False,
-        listBound: int = 2,
+        listBound: int = 1,
     ) -> typing.List[Expr]:
         ...
 
@@ -551,7 +551,7 @@ def synthesize_actor(
         )
 
     if useOpList:
-        print("Re-synthesizing to identify invariants")
+        print(f"Re-synthesizing to identify invariants (list bound: {listBound})")
         equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
         state_transition_fn = [
             x for x in out if x.args[0] == f"{fnNameBase}_next_state"
