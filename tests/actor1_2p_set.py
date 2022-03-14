@@ -1,3 +1,4 @@
+from email.mime import base
 from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
@@ -9,19 +10,20 @@ import sys
 
 from synthesize_auto import synthesize
 
+base_depth = 1
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth, synthState, enable_sets=True)
 
 
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    out = auto_grammar(Bool(), 2, synthState, *args[1:], enable_sets=True)
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_sets=True)
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -40,7 +42,7 @@ def inOrder(arg1, arg2):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_sets=True)
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -64,9 +66,9 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
         out = MakeTuple(
             *[
-                synthStateStructure[i][1](
+                synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
-                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, 2, *args[1:], enable_sets=True))
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_sets=True))
                 )
                 for i in range(len(synthStateStructure))
             ],
@@ -77,7 +79,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
 def initState(synthStateStructure):
     return MakeTuple(
-        *[elem[2] for elem in synthStateStructure]
+        *[elem.bottom() for elem in synthStateStructure]
     )
 
 def targetLang():
