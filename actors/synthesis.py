@@ -28,6 +28,10 @@ def opsListInvariant(
                     f"{fnNameBase}_next_state",
                     Fn(synthStateType, synthStateType, *opType.args),
                 ),
+                Var(
+                    f"{fnNameBase}_init_state",
+                    Fn(synthStateType),
+                ),
             ),
             synthState,
         ),
@@ -55,6 +59,7 @@ def opListAdditionalFns(
     opType: Type,
     initState: Callable[[], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
+    opPrecondition: Callable[[typing.Any], Expr],
 ) -> typing.List[Expr]:
     def list_length(l: Expr) -> Expr:
         return Call("list_length", Int(), l)
@@ -75,12 +80,14 @@ def opListAdditionalFns(
         ),
     )
 
+    init_state_fn = Var("init_state_fn", Fn(synthStateType))
+
     reduce_fn = FnDecl(
         "apply_state_transitions",
         synthStateType,
         Ite(
             Eq(list_length(data), IntLit(0)),
-            MakeTuple(*initState().args, Call("list_empty", List(opType))),
+            CallValue(init_state_fn),
             CallValue(
                 next_state_fn,
                 Call(
@@ -88,6 +95,7 @@ def opListAdditionalFns(
                     synthStateType,
                     list_tail(data, IntLit(1)),
                     next_state_fn,
+                    init_state_fn,
                 ),
                 *(
                     [
@@ -101,22 +109,26 @@ def opListAdditionalFns(
         ),
         data,
         next_state_fn,
+        init_state_fn,
     )
 
     next_op = Var("next_op", opType)
     ops_in_order_helper = FnDecl(
         "ops_in_order_helper",
         Bool(),
-        Ite(
-            Eq(list_length(data), IntLit(0)),
-            BoolLit(True),
-            And(
-                inOrder(unpackOp(list_get(data, IntLit(0))), unpackOp(next_op)),
-                Call(
-                    "ops_in_order_helper",
-                    Bool(),
-                    list_get(data, IntLit(0)),
-                    list_tail(data, IntLit(1)),
+        And(
+            opPrecondition(unpackOp(next_op)),
+            Ite(
+                Eq(list_length(data), IntLit(0)),
+                BoolLit(True),
+                And(
+                    inOrder(unpackOp(list_get(data, IntLit(0))), unpackOp(next_op)),
+                    Call(
+                        "ops_in_order_helper",
+                        Bool(),
+                        list_get(data, IntLit(0)),
+                        list_tail(data, IntLit(1)),
+                    ),
                 ),
             ),
         ),
@@ -172,6 +184,7 @@ def synthesize_actor(
     grammarStateInvariant: Callable[[Expr], Expr],
     grammarSupportedCommand: Callable[[Expr, typing.Any], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
+    opPrecondition: Callable[[typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
     grammarEquivalence: Callable[[Expr, Expr], Expr],
@@ -189,26 +202,29 @@ def synthesize_actor(
     opType: Type = None  # type: ignore
 
     def supportedCommandWithList(synthState: Expr, args: typing.Any) -> Expr:
-        return Ite(
-            Eq(
-                Call(
-                    "list_length",
-                    Int(),
-                    TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
-                ),
-                IntLit(0),
-            ),
-            BoolLit(True),
-            inOrder(
-                unpackOp(
+        return And(
+            opPrecondition(args),
+            Ite(
+                Eq(
                     Call(
-                        "list_get",
-                        opType,
+                        "list_length",
+                        Int(),
                         TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
-                        IntLit(0),
-                    )
+                    ),
+                    IntLit(0),
                 ),
-                args,
+                BoolLit(True),
+                inOrder(
+                    unpackOp(
+                        Call(
+                            "list_get",
+                            opType,
+                            TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
+                            IntLit(0),
+                        )
+                    ),
+                    args,
+                ),
             ),
         )
 
@@ -408,16 +424,17 @@ def synthesize_actor(
                 And(
                     Eq(
                         synthInitState,
-                        MakeTuple(*initState().args, Call("list_empty", List(opType)))
-                        if useOpList
-                        else initState(),
-                    ),
+                        Call(f"{fnNameBase}_init_state", synthStateType),
+                    )
                 ),
                 And(
                     observeEquivalence(returnedInitState, synthInitState),
                     opsListInvariant(fnNameBase, synthInitState, synthStateType, opType)
                     if useOpList
-                    else supportedCommand(synthInitState, init_op_arg_vars),
+                    else Implies(
+                        opPrecondition(init_op_arg_vars),
+                        supportedCommand(synthInitState, init_op_arg_vars),
+                    ),
                 ),
             ),
             list(ps.operands[2:]),  # type: ignore
@@ -438,8 +455,22 @@ def synthesize_actor(
     )
 
     vcVarsInitState = vcVarsInitState.union(extraVarsInitState)
-    loopAndPsInfoInitState = []
-    invAndPsInitState = []
+    loopAndPsInfoInitState[0].retT = loopAndPsInfoInitState[0].modifiedVars[0].type
+    loopAndPsInfoInitState[0].modifiedVars = []
+    initStateSynthNode = initState()
+    invAndPsInitState = [
+        Synth(
+            fnNameBase + "_init_state",
+            MakeTuple(
+                *initStateSynthNode.args,
+                Call("list_empty", List(opType)),
+            )
+            if useOpList
+            else MakeTuple(
+                *initStateSynthNode.args,
+            ),
+        )
+    ]
     # end init state
 
     # begin equivalence
@@ -509,7 +540,9 @@ def synthesize_actor(
 
     lang = targetLang()
     if useOpList:
-        lang = lang + opListAdditionalFns(synthStateType, opType, initState, inOrder)
+        lang = lang + opListAdditionalFns(
+            synthStateType, opType, initState, inOrder, opPrecondition
+        )
 
     try:
         out = synthesize(
@@ -538,6 +571,7 @@ def synthesize_actor(
             grammarStateInvariant,
             grammarSupportedCommand,
             inOrder,
+            opPrecondition,
             grammar,
             grammarQuery,
             grammarEquivalence,
@@ -557,6 +591,16 @@ def synthesize_actor(
             x for x in out if x.args[0] == f"{fnNameBase}_next_state"
         ][0]
         query_fn = [x for x in out if x.args[0] == f"{fnNameBase}_response"][0]
+        init_state_fn = [x for x in out if x.args[0] == f"{fnNameBase}_init_state"][0]
+
+        equivalence_fn.args[3] = Var(
+            equivalence_fn.args[3].args[0],
+            Tuple(*equivalence_fn.args[3].type.args[:-1]),
+        )
+
+        equivalence_fn.args[1] = equivalence_fn.args[1].rewrite(
+            {equivalence_fn.args[3].args[0]: equivalence_fn.args[3]}
+        )
 
         state_transition_fn.args[2] = Var(
             state_transition_fn.args[2].args[0],
@@ -580,6 +624,8 @@ def synthesize_actor(
             {query_fn.args[2].args[0]: query_fn.args[2]}
         )
 
+        init_state_fn.args[1] = MakeTuple(*init_state_fn.args[1].args[:-1])
+
         try:
             return synthesize_actor(
                 filename,
@@ -587,10 +633,11 @@ def synthesize_actor(
                 loopsFile,
                 cvcPath,
                 origSynthStateType,
-                initState,
+                lambda: init_state_fn.args[1],  # type: ignore
                 grammarStateInvariant,
                 grammarSupportedCommand,
                 inOrder,
+                opPrecondition,
                 lambda _: Synth(
                     state_transition_fn.args[0],
                     state_transition_fn.args[1],
@@ -618,6 +665,7 @@ def synthesize_actor(
                 grammarStateInvariant,
                 grammarSupportedCommand,
                 inOrder,
+                opPrecondition,
                 grammar,
                 grammarQuery,
                 grammarEquivalence,

@@ -1,4 +1,3 @@
-from email.mime import base
 from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
@@ -13,17 +12,20 @@ from synthesize_auto import synthesize
 base_depth = 1
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, enable_sets=True)
+    return auto_grammar(
+        Bool(), base_depth + 1, inputState, synthState, IntLit(0), IntLit(1),
+        enable_ite=True, enable_arith=False
+    )
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), base_depth, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth, synthState, enable_arith=False)
 
 
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_sets=True)
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_arith=False)
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -31,18 +33,28 @@ def grammarSupportedCommand(synthState, args):
 
 
 def inOrder(arg1, arg2):
-    # removes win
+    # adds win
     return Ite(
-        Eq(arg1[0], IntLit(1)),  # if first command is insert
-        BoolLit(True),  # second can be insert or remove
-        Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
+        Lt(arg1[1], arg2[1]),  # if clocks in order
+        BoolLit(True),
+        Ite(
+            Eq(arg1[1], arg2[1]), # if clocks concurrent
+            Ite(
+                Eq(arg1[0], IntLit(1)), # if first is enable
+                BoolLit(True), # second can be anything
+                Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
+            ),
+            BoolLit(False), # clocks out of order
+        )
     )
 
+def opPrecondition(op):
+    return Ge(op[1], IntLit(1))
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_sets=True)
+    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_arith=False)
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -68,7 +80,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
-                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_sets=True))
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_arith=False))
                 )
                 for i in range(len(synthStateStructure))
             ],
@@ -79,7 +91,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
 def initState(synthStateStructure):
     return MakeTuple(
-        *[elem.bottom() for elem in synthStateStructure]
+        *[auto_grammar(elem.ir_type(), 1, elem.bottom()) for elem in synthStateStructure]
     )
 
 def targetLang():
@@ -110,7 +122,7 @@ if __name__ == "__main__":
             grammarStateInvariant,
             grammarSupportedCommand,
             inOrder,
-            lambda _: BoolLit(True),
+            opPrecondition,
             grammar,
             grammarQuery,
             grammarEquivalence,
