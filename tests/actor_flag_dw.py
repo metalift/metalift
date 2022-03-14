@@ -9,9 +9,6 @@ import sys
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.CascadingTuple(lat.MaxInt(), lat.PosBool()), lat.MaxInt()]
-synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
-
 base_depth = 1
 
 def grammarEquivalence(inputState, synthState):
@@ -28,7 +25,7 @@ def grammarStateInvariant(synthState):
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    out = auto_grammar(Bool(), base_depth + 2, synthState, *args[1:], enable_arith=False)
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_arith=False)
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -44,8 +41,8 @@ def inOrder(arg1, arg2):
             Eq(arg1[1], arg2[1]), # if clocks concurrent
             Ite(
                 Eq(arg1[0], IntLit(1)), # if first is enable
-                Eq(arg2[0], IntLit(1)), # second must be enable
-                BoolLit(True), # but if remove, can be anything next
+                BoolLit(True), # second can be anything
+                Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
             ),
             BoolLit(False), # clocks out of order
         )
@@ -64,7 +61,7 @@ def grammarQuery(ci: CodeInfo):
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo):
+def grammar(ci: CodeInfo, synthStateStructure):
     name = ci.name
 
     if name.startswith("inv"):
@@ -92,7 +89,7 @@ def grammar(ci: CodeInfo):
         return Synth(name, out, *ci.modifiedVars, *ci.readVars)
 
 
-def initState():
+def initState(synthStateStructure):
     return MakeTuple(
         *[auto_grammar(elem.ir_type(), 1, elem.bottom()) for elem in synthStateStructure]
     )
@@ -120,12 +117,7 @@ if __name__ == "__main__":
         if mode == "synth-oplist":
             useOpList = True
 
-        out = synthesize_actor(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-            synthStateType,
+        search_crdt_structures(
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,
@@ -136,6 +128,6 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            useOpList = useOpList,
-            listBound=2,
+            filename, fnNameBase, loopsFile, cvcPath, useOpList,
+            lat.gen_structures()
         )

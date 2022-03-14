@@ -28,6 +28,10 @@ def opsListInvariant(
                     f"{fnNameBase}_next_state",
                     Fn(synthStateType, synthStateType, *opType.args),
                 ),
+                Var(
+                    f"{fnNameBase}_init_state",
+                    Fn(synthStateType),
+                ),
             ),
             synthState,
         ),
@@ -76,12 +80,14 @@ def opListAdditionalFns(
         ),
     )
 
+    init_state_fn = Var("init_state_fn", Fn(synthStateType))
+
     reduce_fn = FnDecl(
         "apply_state_transitions",
         synthStateType,
         Ite(
             Eq(list_length(data), IntLit(0)),
-            MakeTuple(*initState().args, Call("list_empty", List(opType))),
+            CallValue(init_state_fn),
             CallValue(
                 next_state_fn,
                 Call(
@@ -89,6 +95,7 @@ def opListAdditionalFns(
                     synthStateType,
                     list_tail(data, IntLit(1)),
                     next_state_fn,
+                    init_state_fn,
                 ),
                 *(
                     [
@@ -102,6 +109,7 @@ def opListAdditionalFns(
         ),
         data,
         next_state_fn,
+        init_state_fn,
     )
 
     next_op = Var("next_op", opType)
@@ -416,10 +424,8 @@ def synthesize_actor(
                 And(
                     Eq(
                         synthInitState,
-                        MakeTuple(*initState().args, Call("list_empty", List(opType)))
-                        if useOpList
-                        else initState(),
-                    ),
+                        Call(f"{fnNameBase}_init_state", synthStateType),
+                    )
                 ),
                 And(
                     observeEquivalence(returnedInitState, synthInitState),
@@ -449,8 +455,22 @@ def synthesize_actor(
     )
 
     vcVarsInitState = vcVarsInitState.union(extraVarsInitState)
-    loopAndPsInfoInitState = []
-    invAndPsInitState = []
+    loopAndPsInfoInitState[0].retT = loopAndPsInfoInitState[0].modifiedVars[0].type
+    loopAndPsInfoInitState[0].modifiedVars = []
+    initStateSynthNode = initState()
+    invAndPsInitState = [
+        Synth(
+            fnNameBase + "_init_state",
+            MakeTuple(
+                *initStateSynthNode.args,
+                Call("list_empty", List(opType)),
+            )
+            if useOpList
+            else MakeTuple(
+                *initStateSynthNode.args,
+            ),
+        )
+    ]
     # end init state
 
     # begin equivalence
@@ -571,6 +591,7 @@ def synthesize_actor(
             x for x in out if x.args[0] == f"{fnNameBase}_next_state"
         ][0]
         query_fn = [x for x in out if x.args[0] == f"{fnNameBase}_response"][0]
+        init_state_fn = [x for x in out if x.args[0] == f"{fnNameBase}_init_state"][0]
 
         equivalence_fn.args[3] = Var(
             equivalence_fn.args[3].args[0],
@@ -603,6 +624,8 @@ def synthesize_actor(
             {query_fn.args[2].args[0]: query_fn.args[2]}
         )
 
+        init_state_fn.args[1] = MakeTuple(*init_state_fn.args[1].args[:-1])
+
         try:
             return synthesize_actor(
                 filename,
@@ -610,7 +633,7 @@ def synthesize_actor(
                 loopsFile,
                 cvcPath,
                 origSynthStateType,
-                initState,
+                lambda: init_state_fn.args[1],  # type: ignore
                 grammarStateInvariant,
                 grammarSupportedCommand,
                 inOrder,

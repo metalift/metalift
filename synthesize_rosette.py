@@ -89,6 +89,8 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType),
                 toExpr(ast[2], fnsType, varType),
             )
+        elif ast[0] == "list-empty":
+            return Call("list_empty", List(Int()))
         elif ast[0] == "list-append" or ast[0] == "append":
             elem = toExpr(ast[2], fnsType, varType)
             return Call(

@@ -9,7 +9,7 @@ import sys
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.CascadingTuple(lat.MaxInt(), lat.PosBool()), lat.MaxInt()]
+synthStateStructure = [lat.CascadingTuple(lat.MaxInt(), lat.NegBool()), lat.MaxInt()]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 base_depth = 1
@@ -44,8 +44,8 @@ def inOrder(arg1, arg2):
             Eq(arg1[1], arg2[1]), # if clocks concurrent
             Ite(
                 Eq(arg1[0], IntLit(1)), # if first is enable
-                Eq(arg2[0], IntLit(1)), # second must be enable
-                BoolLit(True), # but if remove, can be anything next
+                BoolLit(True), # second can be anything
+                Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
             ),
             BoolLit(False), # clocks out of order
         )
