@@ -123,6 +123,7 @@ if __name__ == "__main__":
             grammarStateInvariant,
             grammarSupportedCommand,
             inOrder,
+            lambda _: BoolLit(True),
             grammar,
             grammarQuery,
             grammarEquivalence,
