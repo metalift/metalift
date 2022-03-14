@@ -60,7 +60,7 @@ jobs:
           ~/.local/share/racket
         key: ${{ runner.os }}-racket-8.4
     - name: Install Racket
-      if: (matrix.synth_cvc5 == '0') && (steps.cache-racket.outputs.cache-hit == 'false')
+      if: matrix.synth_cvc5 == '0'
       uses: Bogdanp/setup-racket@v1.7
       with:
         architecture: 'x64'
@@ -136,7 +136,6 @@ jobs:
       run: |
         python -m tests.actor1_g_set_fixed_structure synth-oplist tests/actor1.ll test tests/actor1.loops cvc5
         python -m tests.actor1_2p_set_fixed_structure synth-oplist tests/actor1.ll test tests/actor1.loops cvc5
-        python -m tests.actor_flag_ew_fixed_structure synth-oplist tests/actor_flag.ll test tests/actor_flag.loops cvc5
         python -m tests.actor2 synth-oplist tests/actor2.ll test tests/actor2.loops cvc5
       if: matrix.synth_cvc5 == '0'
       env:
