@@ -51,6 +51,7 @@ jobs:
         rm -rf ~/nix-cache
     # https://github.com/Bogdanp/setup-racket-cache-example
     - name: Cache Racket dependencies
+      id: cache-racket
       if: matrix.synth_cvc5 == '0'
       uses: actions/cache@v2
       with:
@@ -59,7 +60,7 @@ jobs:
           ~/.local/share/racket
         key: ${{ runner.os }}-racket-8.4
     - name: Install Racket
-      if: matrix.synth_cvc5 == '0'
+      if: (matrix.synth_cvc5 == '0') && (steps.cache-racket.outputs.cache-hit == 'false')
       uses: Bogdanp/setup-racket@v1.7
       with:
         architecture: 'x64'
