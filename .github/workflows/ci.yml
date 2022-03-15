@@ -24,6 +24,7 @@ jobs:
         run: mypy .
   build:
     runs-on: ubuntu-latest
+    needs: [lint, mypy]
     strategy:
       matrix:
         synth_cvc5: ["0", "1"]
