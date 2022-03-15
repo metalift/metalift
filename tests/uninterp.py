@@ -82,7 +82,7 @@ if __name__ == "__main__":
     ##### generating function definitions of all the functions to be synthesized#####
     candidatesSMT = []
     candidateDict = {}
-    r = Var("tmp9", Int())
+    r = Var("i9", Int())
     x = Var("arg", Int())
     y = Var("arg1", Int())
     # pretend that we have run synthesis and insert the result into candidateDict to print
