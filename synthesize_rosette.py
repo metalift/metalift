@@ -172,6 +172,15 @@ def toExpr(
             v = toExpr(ast[1], fnsType, varType)
             s = toExpr(ast[2], fnsType, varType)
             return Call(ast[0], Bool(), v, s)
+        elif ast[0] == "let":
+            var_value = toExpr(ast[1][0][1], fnsType, varType)
+            tmp_var_type = dict(varType)
+            tmp_var_type[ast[1][0][0]] = var_value.type
+            return Let(
+                Var(ast[1][0][0], var_value.type),
+                var_value,
+                toExpr(ast[2], fnsType, tmp_var_type),
+            )
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
