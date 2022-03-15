@@ -23,8 +23,8 @@ class MaxInt(Lattice):
         return self.int_type
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        a_var = ir.Var("a_merge", self.int_type)
-        b_var = ir.Var("b_merge", self.int_type)
+        a_var = ir.Var("max_merge_a", self.int_type)
+        b_var = ir.Var("max_merge_b", self.int_type)
         return ir.Let(
             a_var, a, ir.Let(b_var, b, ir.Ite(ir.Ge(a_var, b_var), a_var, b_var))
         )
@@ -80,8 +80,8 @@ class CascadingTuple(Lattice):
         return ir.Tuple(self.l1.ir_type(), self.l2.ir_type())
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        mergeA = ir.Var("merge_a", a.type)
-        mergeB = ir.Var("merge_b", b.type)
+        mergeA = ir.Var("cascade_merge_a", a.type)
+        mergeB = ir.Var("cascade_merge_b", b.type)
 
         keyA = ir.TupleGet(mergeA, ir.IntLit(0))
         keyB = ir.TupleGet(mergeB, ir.IntLit(0))
