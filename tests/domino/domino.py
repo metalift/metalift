@@ -62,7 +62,16 @@ class DominoLang(object):
 
     def _generate_rel_op(self):
         return {
-            "rel_op": (lambda x, y: Choose(Eq(x, y), Le(x, y), Ge(x, y), Not(Eq(x, y))))
+            "rel_op": (
+                lambda x, y: Choose(
+                    Eq(x, y),
+                    Le(x, y),
+                    Not(Le(x, y)),
+                    Ge(x, y),
+                    Not(Ge(x, y)),
+                    Not(Eq(x, y)),
+                )
+            )
         }
 
     def reduce_with_op(self, arr, op):
@@ -387,9 +396,7 @@ class DominoLang(object):
 
             driver_kwargs["listBound"] = driver_kwargs.pop("listBound", 3)
 
-            self.driver_function(
-                grammar, fnName=component, **driver_kwargs
-            )
+            self.driver_function(grammar, fnName=component, **driver_kwargs)
 
 
 if __name__ == "__main__":
