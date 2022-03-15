@@ -8,10 +8,9 @@ equality_supported_types = [Int(), ClockInt(), EnumInt(), OpaqueInt()]
 comparison_supported_types = [Int, ClockInt()]
 
 
-def get_expansions(
-    enable_sets: bool = False,
-    enable_arith: bool = True,
-) -> Dict[Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]]:
+def get_expansions() -> Dict[
+    Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
+]:
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
@@ -19,9 +18,7 @@ def get_expansions(
             lambda get: Add(get(Int()), get(Int())),
             lambda get: Sub(get(Int()), get(Int())),
             # lambda get: Mul(get(Int()), get(Int())),
-        ]
-        if enable_arith
-        else [],
+        ],
         Bool(): [
             lambda get: And(get(Bool()), get(Bool())),
             lambda get: Or(get(Bool()), get(Bool())),
@@ -43,21 +40,22 @@ def get_expansions(
         ],
     }
 
-    if enable_sets:
-        out[Set(Int())] = [
-            lambda get: Call("set-minus", Set(Int()), get(Set(Int())), get(Set(Int()))),
-            lambda get: Call("set-union", Set(Int()), get(Set(Int())), get(Set(Int()))),
-            lambda get: Call("set-singleton", Set(Int()), get(Int())),
-            lambda get: Call("set-insert", Set(Int()), get(Int()), get(Set(Int()))),
+    def gen_set_ops(t: Type) -> None:
+        out[Set(t)] = [
+            lambda get: Call("set-minus", Set(t), get(Set(t)), get(Set(t))),
+            lambda get: Call("set-union", Set(t), get(Set(t)), get(Set(t))),
+            lambda get: Call("set-singleton", Set(t), get(t)),
+            lambda get: Call("set-insert", Set(t), get(t), get(Set(t))),
         ]
 
-        out[Bool()].append(lambda get: Eq(get(Set(Int())), get(Set(Int()))))
+        out[Bool()].append(lambda get: Eq(get(Set(t)), get(Set(t))))
         out[Bool()].append(
-            lambda get: Call("set-subset", Bool(), get(Set(Int())), get(Set(Int())))
+            lambda get: Call("set-subset", Bool(), get(Set(t)), get(Set(t)))
         )
-        out[Bool()].append(
-            lambda get: Call("set-member", Bool(), get(Int()), get(Set(Int())))
-        )
+        out[Bool()].append(lambda get: Call("set-member", Bool(), get(t), get(Set(t))))
+
+    for t in equality_supported_types:
+        gen_set_ops(t)
 
     return out
 
@@ -66,9 +64,7 @@ def auto_grammar(
     out_type: Type,
     depth: int,
     *inputs: Union[Expr, ValueRef],
-    enable_sets: bool = False,
     enable_ite: bool = False,
-    enable_arith: bool = True,
 ) -> Expr:
     if out_type.name == "Tuple":
         return MakeTuple(
@@ -77,15 +73,13 @@ def auto_grammar(
                     t,
                     depth,
                     *inputs,
-                    enable_sets=enable_sets,
                     enable_ite=enable_ite,
-                    enable_arith=enable_arith,
                 )
                 for t in out_type.args
             ]
         )
 
-    expansions = get_expansions(enable_sets, enable_arith)
+    expansions = get_expansions()
 
     pool: Dict[Type, Expr] = {}
 
@@ -108,9 +102,11 @@ def auto_grammar(
         input_pool[Bool()] = []
     input_pool[Bool()] += [BoolLit(False), BoolLit(True)]
 
-    if enable_sets:
-        if Set(Int()) in input_pool:
-            input_pool[Set(Int())] += [Call("set-create", Set(Int()))]
+    for t in equality_supported_types:
+        if out_type == Set(t) and Set(t) not in input_pool:
+            input_pool[Set(t)] = []
+        if Set(t) in input_pool:
+            input_pool[Set(t)] += [Call("set-create", Set(t))]
 
     if out_type == EnumInt() and EnumInt() not in input_pool:
         input_pool[EnumInt()] = []

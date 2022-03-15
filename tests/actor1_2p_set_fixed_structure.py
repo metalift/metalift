@@ -17,17 +17,17 @@ base_depth = 1
 
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth + 1, inputState, synthState)
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), base_depth, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth, synthState)
 
 
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_sets=True)
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:])
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -47,7 +47,7 @@ def grammarQuery(ci: CodeInfo):
     name = ci.name
 
     if not fastDebug:
-        setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_sets=True)
+        setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars)
     else:  # hardcoded for quick debugging
         synthState = ci.readVars[0]
 
@@ -89,7 +89,7 @@ def grammar(ci: CodeInfo):
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
-                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_sets=True))
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:]))
                 )
                 for i in range(len(synthStateStructure))
             ],
@@ -109,10 +109,10 @@ def targetLang():
 
 if __name__ == "__main__":
     mode = sys.argv[1]
-    filename = sys.argv[2]
-    fnNameBase = sys.argv[3]
-    loopsFile = sys.argv[4]
-    cvcPath = sys.argv[5]
+    filename = "tests/actor1.ll"
+    fnNameBase = "test"
+    loopsFile = "tests/actor1.loops"
+    cvcPath = "cvc5"
 
     if mode == "aci":
         check_aci(

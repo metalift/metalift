@@ -101,10 +101,10 @@ def targetLang():
 
 if __name__ == "__main__":
     mode = sys.argv[1]
-    filename = sys.argv[2]
-    fnNameBase = sys.argv[3]
-    loopsFile = sys.argv[4]
-    cvcPath = sys.argv[5]
+    filename = "tests/actor_flag.ll"
+    fnNameBase = "test"
+    loopsFile = "tests/actor_flag.loops"
+    cvcPath = "cvc5"
 
     if mode == "aci":
         check_aci(
