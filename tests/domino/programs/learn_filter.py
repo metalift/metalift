@@ -28,12 +28,19 @@ if __name__ == "__main__":
             {
                 "depth": 2,
                 "atoms": [
-                    "add_3_state_vars",
-                    "stateless_arith",
+                    # "add_3_state_vars",
+                    # "add_2_state_vars",
+                    "add_state_var",
+                    # "stateless_arith",
                 ],
             },
             {
-                "uninterpFuncs": [("hash2a", 2), ("hash2b", 2), ("hash2c", 2)],
+                "uninterpFuncs": [
+                    ("uninterpHash2a", 2),
+                    # ("uninterpHash2b", 2),
+                    # ("uninterpHash2c", 2),
+                ],
+                "listBound": 2,
             },
         ),
         (
