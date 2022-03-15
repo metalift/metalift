@@ -88,6 +88,8 @@ def toSMT(
 
                 if not found_inline and t.args[1] != None:
                     out.write(t.toSMT() + "\n\n")
+                if not found_inline and "uninterp" in t.args[0] :
+                    out.write(t.toSMT() + "\n\n")
             elif (
                 t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
             ) and "uninterp" in t.args[0]:
