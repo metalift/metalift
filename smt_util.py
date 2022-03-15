@@ -139,7 +139,10 @@ def toSMT(
         out.write(
             "\n%s\n\n"
             % "\n".join(
-                ["(%s %s %s)" % (var_decl_command, v[0], v[1]) for v in declarations]
+                [
+                    "(%s %s %s)" % (var_decl_command, v[0], v[1].toSMT())
+                    for v in declarations
+                ]
             )
         )
 

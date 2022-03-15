@@ -15,7 +15,12 @@ def generateAST(expr: str) -> List[Any]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    if v.type.name == "Int":
+    if (
+        v.type.name == "Int"
+        or v.type.name == "ClockInt"
+        or v.type.name == "EnumInt"
+        or v.type.name == "OpaqueInt"
+    ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 

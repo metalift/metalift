@@ -484,7 +484,7 @@ class VC:
         mem: Dict[ValueRef, Expr],
     ) -> Union[str, ValueRef, Expr]:
         # TODO(shadaj): fix this hack
-        if str(i) == "i32 0":
+        if isinstance(i, ValueRef) and str(i) == "i32 0":
             return IntLit(0)
         if isinstance(i, ValueRef):
             return reg[i]

@@ -190,11 +190,16 @@ def synthesize_actor(
     grammarEquivalence: Callable[[Expr, Expr], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
+    stateTypeHint: typing.Optional[Type] = None,
+    opArgTypeHint: typing.Optional[typing.List[Type]] = None,
+    queryArgTypeHint: typing.Optional[typing.List[Type]] = None,
+    queryRetTypeHint: typing.Optional[Type] = None,
     uid: int = 0,
     unboundedInts: bool = False,
     useOpList: bool = False,
     listBound: int = 1,
     log: bool = True,
+    skipSynth: bool = False,
 ) -> typing.List[Expr]:
     basename = os.path.splitext(os.path.basename(filename))[0]
     origSynthStateType = synthStateType
@@ -230,16 +235,16 @@ def synthesize_actor(
 
     # begin state transition (in order)
     stateTypeOrig: Type = None  # type: ignore
-    secondStateTransitionArgs: typing.List[Expr] = []
+    stateTransitionArgs: typing.List[Expr] = []
     op_arg_types: typing.List[Type] = []
 
-    extraVarsPriorStateTransitionInOrder = set()
+    extraVarsStateTransition = set()
 
-    def summaryWrapPriorStateTransition(
+    def summaryWrapStateTransition(
         ps: MLInst,
     ) -> typing.Tuple[Expr, typing.List[Expr]]:
         nonlocal stateTypeOrig
-        nonlocal secondStateTransitionArgs
+        nonlocal stateTransitionArgs
         nonlocal op_arg_types
         nonlocal opType
         nonlocal synthStateType
@@ -253,23 +258,27 @@ def synthesize_actor(
         if useOpList:
             synthStateType = Tuple(*synthStateType.args, List(opType))
 
-        secondStateTransitionArgs = [
-            Var(f"second_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
+        stateTransitionArgs = [
+            Var(f"state_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
             for i in range(len(origArgs) - 1)
         ]
-        for arg in secondStateTransitionArgs:
-            extraVarsPriorStateTransitionInOrder.add(arg)
+        for arg in stateTransitionArgs:
+            extraVarsStateTransition.add(arg)
 
         beforeStateOrig = typing.cast(ValueRef, origArgs[0])
         afterStateOrig = typing.cast(ValueRef, origReturn)
 
         stateTypeOrig = parseTypeRef(beforeStateOrig.type)
 
-        beforeStateForPS = Var(beforeStateOrig.name + "_for_ps_prior", synthStateType)
-        extraVarsPriorStateTransitionInOrder.add(beforeStateForPS)
+        beforeStateForPS = Var(
+            beforeStateOrig.name + "_for_state_transition", synthStateType
+        )
+        extraVarsStateTransition.add(beforeStateForPS)
 
-        afterStateForPS = Var(afterStateOrig.name + "_for_ps_prior", synthStateType)
-        extraVarsPriorStateTransitionInOrder.add(afterStateForPS)
+        afterStateForPS = Var(
+            afterStateOrig.name + "_for_state_transition", synthStateType
+        )
+        extraVarsStateTransition.add(afterStateForPS)
 
         newReturn = afterStateForPS
 
@@ -299,10 +308,8 @@ def synthesize_actor(
                     *(
                         [
                             Implies(
-                                inOrder(origArgs[1:], secondStateTransitionArgs),
-                                supportedCommand(
-                                    afterStateForPS, secondStateTransitionArgs
-                                ),
+                                inOrder(origArgs[1:], stateTransitionArgs),
+                                supportedCommand(afterStateForPS, stateTransitionArgs),
                             )
                         ]
                         if not useOpList
@@ -314,23 +321,25 @@ def synthesize_actor(
         )
 
     (
-        vcVarsPriorStateTransitionInOrder,
+        vcVarsStateTransition,
         invAndPsStateTransition,
-        predsPriorStateTransitionInOrder,
-        vcStateTransitionInOrder,
+        predsStateTransition,
+        vcStateTransition,
         loopAndPsInfoStateTransition,
     ) = analyze(
         filename,
         fnNameBase + "_next_state",
         loopsFile,
-        wrapSummaryCheck=summaryWrapPriorStateTransition,
-        fnNameSuffix="_prior_state",
+        wrapSummaryCheck=summaryWrapStateTransition,
+        fnNameSuffix="_state_transition",
         log=log,
     )
 
-    vcVarsPriorStateTransition = vcVarsPriorStateTransitionInOrder.union(
-        extraVarsPriorStateTransitionInOrder
-    )
+    vcVarsStateTransition = vcVarsStateTransition.union(extraVarsStateTransition)
+
+    if opArgTypeHint:
+        for i in range(len(opArgTypeHint)):
+            loopAndPsInfoStateTransition[0].readVars[i + 1].my_type = opArgTypeHint[i]  # type: ignore
 
     loopAndPsInfoStateTransition[0].retT = (
         loopAndPsInfoStateTransition[0].modifiedVars[0].type
@@ -397,7 +406,16 @@ def synthesize_actor(
     )
 
     vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
-    loopAndPsInfoQuery[0].retT = loopAndPsInfoQuery[0].modifiedVars[0].type
+
+    if queryArgTypeHint:
+        for i in range(len(queryArgTypeHint) - 1):
+            loopAndPsInfoQuery[0].readVars[i + 1].my_type = queryArgTypeHint[i]  # type: ignore
+
+    loopAndPsInfoQuery[0].retT = (
+        loopAndPsInfoQuery[0].modifiedVars[0].type  # type: ignore
+        if queryRetTypeHint == None
+        else queryRetTypeHint
+    )
     loopAndPsInfoQuery[0].modifiedVars = []
     invAndPsQuery = [grammarQuery(ci) for ci in loopAndPsInfoQuery]
     # end query
@@ -474,7 +492,9 @@ def synthesize_actor(
     # end init state
 
     # begin equivalence
-    inputStateForEquivalence = Var("inputState", stateTypeOrig)
+    inputStateForEquivalence = Var(
+        "inputState", stateTypeOrig if stateTypeHint == None else stateTypeHint  # type: ignore
+    )
     synthStateForEquivalence = Var("synthState", synthStateType)
 
     invAndPsEquivalence = [
@@ -495,8 +515,13 @@ def synthesize_actor(
 
     synthStateForSupported = Var(f"supported_synthState", synthStateType)
     argList = [
-        Var(f"supported_arg_{i}", secondStateTransitionArgs[i].type)
-        for i in range(len(secondStateTransitionArgs))
+        Var(
+            f"supported_arg_{i}",
+            stateTransitionArgs[i].type
+            if (opArgTypeHint == None)
+            else opArgTypeHint[i],  # type: ignore
+        )
+        for i in range(len(stateTransitionArgs))
     ]
     invAndPsSupported = (
         [
@@ -515,9 +540,7 @@ def synthesize_actor(
     if log:
         print("====== synthesis")
 
-    combinedVCVars = vcVarsPriorStateTransition.union(vcVarsQuery).union(
-        vcVarsInitState
-    )
+    combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(vcVarsInitState)
 
     combinedInvAndPs = (
         invAndPsStateTransition
@@ -527,7 +550,7 @@ def synthesize_actor(
         + invAndPsSupported
     )
 
-    combinedPreds = predsPriorStateTransitionInOrder + predsQuery + predsInitState
+    combinedPreds = predsStateTransition + predsQuery + predsInitState
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition
@@ -536,13 +559,16 @@ def synthesize_actor(
         + invAndPsEquivalence  # type: ignore
         + invAndPsSupported  # type: ignore
     )
-    combinedVC = And(vcStateTransitionInOrder, vcQuery, vcInitState)
+    combinedVC = And(vcStateTransition, vcQuery, vcInitState)
 
     lang = targetLang()
     if useOpList:
         lang = lang + opListAdditionalFns(
             synthStateType, opType, initState, inOrder, opPrecondition
         )
+
+    if skipSynth:
+        return  # type: ignore
 
     try:
         out = synthesize(
@@ -577,9 +603,13 @@ def synthesize_actor(
             grammarEquivalence,
             targetLang,
             synthesize,
-            uid,
-            unboundedInts,
-            useOpList,
+            stateTypeHint=stateTypeHint,
+            opArgTypeHint=opArgTypeHint,
+            queryArgTypeHint=queryArgTypeHint,
+            queryRetTypeHint=queryRetTypeHint,
+            uid=uid,
+            unboundedInts=unboundedInts,
+            useOpList=useOpList,
             listBound=listBound + 1,
             log=log,
         )
@@ -647,8 +677,12 @@ def synthesize_actor(
                 lambda a, b: equivalence_fn.args[1],  # type: ignore
                 targetLang,
                 synthesize,
-                uid,
-                unboundedInts,
+                stateTypeHint=stateTypeHint,
+                opArgTypeHint=opArgTypeHint,
+                queryArgTypeHint=queryArgTypeHint,
+                queryRetTypeHint=queryRetTypeHint,
+                uid=uid,
+                unboundedInts=unboundedInts,
                 useOpList=False,
                 listBound=listBound,
                 log=log,
@@ -671,9 +705,13 @@ def synthesize_actor(
                 grammarEquivalence,
                 targetLang,
                 synthesize,
-                uid,
-                unboundedInts,
-                useOpList,
+                stateTypeHint=stateTypeHint,
+                opArgTypeHint=opArgTypeHint,
+                queryArgTypeHint=queryArgTypeHint,
+                queryRetTypeHint=queryRetTypeHint,
+                uid=uid,
+                unboundedInts=unboundedInts,
+                useOpList=useOpList,
                 listBound=listBound + 1,
                 log=log,
             )
