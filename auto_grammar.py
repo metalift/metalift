@@ -106,7 +106,9 @@ def auto_grammar(
             input_pool[Set(t)] = []
         if Set(t) in input_pool:
             input_pool[Set(t)] += [Call("set-create", Set(t))]
-            expansions[Set(t)] += [(lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t)]
+            expansions[Set(t)] += [
+                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t)
+            ]
 
     if out_type == EnumInt() and EnumInt() not in input_pool:
         input_pool[EnumInt()] = []
