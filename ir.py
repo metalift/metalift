@@ -325,13 +325,11 @@ class Expr:
 
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
-                args_type = " ".join(
-                    "(%s)" % parseTypeRef(a.type) for a in self.args[2:]
-                )
+                args_type = " ".join("%s" % parseTypeRef(a.type) for a in self.args[2:])
                 return "(declare-fun %s (%s) %s)" % (
                     self.args[0],
                     args_type,
-                    parseTypeRef(self.type),
+                    parseTypeRef(self.type.args[0]),
                 )
 
             else:
