@@ -9,28 +9,30 @@ import os
 
 from synthesize_auto import synthesize
 
+base_depth = 1
+
 synthStateStructure = [lat.Set(Int())]
 synthStateType = Tuple(
-    *[a[0] for a in synthStateStructure], Int()
+    *[a.ir_type() for a in synthStateStructure], Int()
 )  # TODO(shadaj): automate insertion of dummy
 
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 2, inputState, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, enable_sets=True)
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), 1, synthState, enable_sets=True)
+    return auto_grammar(Bool(), base_depth, synthState, enable_sets=True)
 
 
 def grammarSupportedCommand(synthState, args):
-    add = args[0]
+    conditions = [Eq(args[0], IntLit(1))]
 
-    return Ite(
-        Eq(add, IntLit(1)),
-        auto_grammar(Bool(), 1, synthState, enable_sets=True),
-        auto_grammar(Bool(), 1, synthState, enable_sets=True),
-    )
+    out = auto_grammar(Bool(), base_depth, synthState, *args[1:], enable_sets=True)
+    for c in conditions:
+        out = Ite(c, out, out)
+
+    return out
 
 
 def inOrder(arg1, arg2):
@@ -45,7 +47,7 @@ def inOrder(arg1, arg2):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(Bool(), 3, *ci.readVars, enable_sets=True)
+    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars, enable_sets=True)
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -59,17 +61,19 @@ def grammar(ci: CodeInfo):
         raise Exception("no invariant")
     else:  # ps
         inputState = ci.readVars[0]
-        inputAdd = ci.readVars[1]
-        inputValue = ci.readVars[2]
+        args = ci.readVars[1:]
 
-        condition = Eq(inputAdd, IntLit(1))
-        setTransform = auto_grammar(Set(Int()), 1, inputValue, enable_sets=True)
-        setTransform = Choose(setTransform, Ite(condition, setTransform, setTransform))
+        conditions = [Eq(args[0], IntLit(1))]
+        def fold_conditions(out):
+            for c in conditions:
+                out = Ite(c, out, out)
+            return out
 
         summary = MakeTuple(
             *[
-                synthStateStructure[i][1](
-                    TupleGet(inputState, IntLit(i)), setTransform
+                synthStateStructure[i].merge(
+                    TupleGet(inputState, IntLit(i)),
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:], enable_sets=True))
                 )
                 for i in range(len(synthStateStructure))
             ],
@@ -81,7 +85,7 @@ def grammar(ci: CodeInfo):
 
 def initState():
     return MakeTuple(
-        *[elem[2] for elem in synthStateStructure],
+        *[elem.bottom() for elem in synthStateStructure],
         IntLit(0),  # TODO(shadaj): automate insertion of dummy
     )
 
@@ -119,6 +123,7 @@ if __name__ == "__main__":
             grammarStateInvariant,
             grammarSupportedCommand,
             inOrder,
+            lambda _: BoolLit(True),
             grammar,
             grammarQuery,
             grammarEquivalence,

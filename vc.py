@@ -483,6 +483,9 @@ class VC:
         reg: Dict[ValueRef, Expr],
         mem: Dict[ValueRef, Expr],
     ) -> Union[str, ValueRef, Expr]:
+        # TODO(shadaj): fix this hack
+        if str(i) == "i32 0":
+            return IntLit(0)
         if isinstance(i, ValueRef):
             return reg[i]
         if isinstance(i, Expr):

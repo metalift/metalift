@@ -10,8 +10,8 @@ import os
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.MaxInt, lat.MaxInt]
-synthStateType = Tuple(*[a[0] for a in synthStateStructure])
+synthStateStructure = [lat.MaxInt(), lat.MaxInt()]
+synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState):
@@ -64,7 +64,7 @@ def grammar(ci: CodeInfo):
 
         summary = MakeTuple(
             *[
-                synthStateStructure[i][1](
+                synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)), intTransform
                 )
                 for i in range(len(synthStateStructure))
@@ -75,7 +75,7 @@ def grammar(ci: CodeInfo):
 
 
 def initState():
-    return MakeTuple(*[elem[2] for elem in synthStateStructure])
+    return MakeTuple(*[elem.bottom() for elem in synthStateStructure])
 
 
 def targetLang():
@@ -111,6 +111,7 @@ if __name__ == "__main__":
             grammarStateInvariant,
             grammarSupportedCommand,
             inOrder,
+            lambda _: BoolLit(True),
             grammar,
             grammarQuery,
             grammarEquivalence,

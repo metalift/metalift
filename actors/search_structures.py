@@ -3,23 +3,27 @@ from __future__ import annotations
 import multiprocessing as mp
 import multiprocessing.pool
 import queue
+import traceback
 
+from actors.lattices import Lattice
 from analysis import CodeInfo
 import process_tracker
 import ir
 from ir import Expr
 from actors.synthesis import SynthesizeFun, synthesize_actor
+from synthesis_common import SynthesisFailed
 
 from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
 def synthesize_crdt(
     queue: queue.Queue[Tuple[Any, Optional[List[Expr]]]],
-    synthStateStructure: Any,
+    synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
     grammarStateInvariant: Callable[[Expr], Expr],
     grammarSupportedCommand: Callable[[Expr, Any], Expr],
     inOrder: Callable[[Any, Any], Expr],
+    opPrecondition: Callable[[Any], Expr],
     grammar: Callable[[CodeInfo, Any], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
     grammarEquivalence: Callable[[Expr, Expr], Expr],
@@ -32,12 +36,12 @@ def synthesize_crdt(
     cvcPath: str,
     uid: int,
 ) -> None:
-    synthStateType = ir.Tuple(*[a[0] for a in synthStateStructure])
+    synthStateType = ir.Tuple(*[a.ir_type() for a in synthStateStructure])
 
     try:
         queue.put(
             (
-                synthStateType,
+                synthStateStructure,
                 synthesize_actor(
                     filename,
                     fnNameBase,
@@ -48,6 +52,7 @@ def synthesize_crdt(
                     grammarStateInvariant,
                     grammarSupportedCommand,
                     inOrder,
+                    opPrecondition,
                     lambda ci: grammar(ci, synthStateStructure),
                     grammarQuery,
                     grammarEquivalence,
@@ -59,11 +64,11 @@ def synthesize_crdt(
                 ),
             )
         )
+    except SynthesisFailed:
+        queue.put((synthStateStructure, None))
     except:
-        import traceback
-
         traceback.print_exc()
-        queue.put((synthStateType, None))
+        queue.put((synthStateStructure, None))
 
 
 def search_crdt_structures(
@@ -71,6 +76,7 @@ def search_crdt_structures(
     grammarStateInvariant: Callable[[Expr], Expr],
     grammarSupportedCommand: Callable[[Expr, Any], Expr],
     inOrder: Callable[[Any, Any], Expr],
+    opPrecondition: Callable[[Any], Expr],
     grammar: Callable[[CodeInfo, Any], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
     grammarEquivalence: Callable[[Expr, Expr], Expr],
@@ -98,9 +104,7 @@ def search_crdt_structures(
                     if next_structure_type is None:
                         break
                     else:
-                        print(
-                            f"Enqueueing #{uid}:", [t[0] for t in next_structure_type]
-                        )
+                        print(f"Enqueueing #{uid}:", next_structure_type)
 
                         def error_callback(e: BaseException) -> None:
                             raise e
@@ -114,6 +118,7 @@ def search_crdt_structures(
                                 grammarStateInvariant,
                                 grammarSupportedCommand,
                                 inOrder,
+                                opPrecondition,
                                 grammar,
                                 grammarQuery,
                                 grammarEquivalence,
