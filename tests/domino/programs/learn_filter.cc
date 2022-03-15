@@ -18,13 +18,13 @@ extern "C" int uninterpReadFilter3At(int idx) { return -30000003; }
  */
 extern "C" List<int> stage0(int sport, int dport) {
     int filter1_idx = uninterpHash2a(sport, dport);
-    // int filter2_idx = uninterpHash2b(sport, dport);
-    // int filter3_idx = uninterpHash2c(sport, dport);
+    int filter2_idx = uninterpHash2b(sport, dport);
+    int filter3_idx = uninterpHash2c(sport, dport);
 
     List<int> out = newList<int>();
     out = listAppend(out, filter1_idx);
-    // out = listAppend(out, filter2_idx);
-    // out = listAppend(out, filter3_idx);
+    out = listAppend(out, filter2_idx);
+    out = listAppend(out, filter3_idx);
     return out;
 }
 
@@ -38,8 +38,20 @@ extern "C" List<int> stage1(int filter1_idx, int filter2_idx, int filter3_idx) {
 
 extern "C" List<int> stage2(int val_at_filter1, int val_at_filter2,
                             int val_at_filter3) {
-    int member =
-        val_at_filter1 != 0 && val_at_filter2 != 0 && val_at_filter3 != 0;
+    int member;
+    if (val_at_filter1 != 0) {
+        if (val_at_filter2 != 0) {
+            if (val_at_filter3 != 0) {
+                member = 1;
+            } else {
+                member = 0;
+            }
+        } else {
+            member = 0;
+        }
+    } else {
+        member = 0;
+    }
 
     List<int> out = newList<int>();
     out = listAppend(out, member);

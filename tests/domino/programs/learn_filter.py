@@ -28,28 +28,44 @@ if __name__ == "__main__":
             {
                 "depth": 2,
                 "atoms": [
-                    # "add_3_state_vars",
+                    "add_3_state_vars",
                     # "add_2_state_vars",
-                    "add_state_var",
+                    # "add_state_var",
                     # "stateless_arith",
                 ],
             },
             {
                 "uninterpFuncs": [
                     ("uninterpHash2a", 2),
-                    # ("uninterpHash2b", 2),
-                    # ("uninterpHash2c", 2),
+                    ("uninterpHash2b", 2),
+                    ("uninterpHash2c", 2),
                 ],
-                "listBound": 2,
+                "listBound": 3,
             },
         ),
         (
             "stage1",
-            {"depth": 2, "atoms": ["sub", "stateless_arith", "add_3_state_vars"]},
+            {
+                "depth": 2,
+                "atoms": [
+                    "add_3_state_vars",
+                    # "add_2_state_vars",
+                    # "add_state_var",
+                    # "stateless_arith",
+                ],
+            },
+            {
+                "uninterpFuncs": [
+                    ("uninterpReadFilter1At", 1),
+                    ("uninterpReadFilter2At", 1),
+                    ("uninterpReadFilter3At", 1),
+                ],
+                "listBound": 3,
+            },
         ),
         (
             "stage2",
-            {"depth": 2, "atoms": ["stateless_arith", "if_else_raw", "add_state_var"]},
+            {"depth": 3, "atoms": ["if_else_raw", "add_state_var"]},
         ),
     ]
 
