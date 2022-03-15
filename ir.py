@@ -16,18 +16,46 @@ class Type:
         self.name = name
         self.args = args
 
-    def __repr__(self) -> str:
-        if self.name == "Int":
+    def toSMT(self) -> str:
+        if (
+            self.name == "Int"
+            or self.name == "ClockInt"
+            or self.name == "EnumInt"
+            or self.name == "OpaqueInt"
+        ):
             return "Int"
         elif self.name == "Bool":
             return "Bool"
         elif self.name == "String":
             return "String"
         elif self.name == "Tuple":
-            args = " ".join(str(a) for a in self.args)
+            args = " ".join(a.toSMT() for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
         else:
+            return "(%s %s)" % (
+                self.name,
+                " ".join(
+                    [a.toSMT() if isinstance(a, Type) else str(a) for a in self.args]
+                ),
+            )
+
+    def __repr__(self) -> str:
+        if len(self.args) == 0:
+            return self.name
+        else:
             return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
+
+    def erase(self) -> "Type":
+        if (
+            self.name == "ClockInt"
+            or self.name == "EnumInt"
+            or self.name == "OpaqueInt"
+        ):
+            return Int()
+        else:
+            return Type(
+                self.name, *[a.erase() if isinstance(a, Type) else a for a in self.args]
+            )
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Type):
@@ -54,6 +82,18 @@ class Type:
 
 def Int() -> Type:
     return Type("Int")
+
+
+def ClockInt() -> Type:
+    return Type("ClockInt")
+
+
+def EnumInt() -> Type:
+    return Type("EnumInt")
+
+
+def OpaqueInt() -> Type:
+    return Type("OpaqueInt")
 
 
 def Bool() -> Type:
@@ -109,6 +149,7 @@ class Expr:
         Implies = "=>"
 
         Ite = "ite"
+        Let = "let"
 
         Call = "call"
         CallValue = "callvalue"
@@ -285,14 +326,14 @@ class Expr:
             ]
 
             decls = "((rv %s) %s)" % (
-                self.type,
+                self.type.toSMT(),
                 " ".join(
-                    "(%s %s)" % ("v%d" % i, parseTypeRef(e.type))
+                    "(%s %s)" % ("v%d" % i, parseTypeRef(e.type).toSMT())
                     for i, e in enumerate(commonExprs)
                 ),
             )
             defs = "(rv %s %s)\n" % (
-                self.type,
+                self.type.toSMT(),
                 rewritten.toSMT()
                 if rewritten.kind == Expr.Kind.Choose
                 else "(%s)" % rewritten.toSMT(),
@@ -301,7 +342,7 @@ class Expr:
                 "(%s %s %s)"
                 % (
                     "v%d" % i,
-                    parseTypeRef(e.type),
+                    parseTypeRef(e.type).toSMT(),
                     e.toSMT() if e.kind == Expr.Kind.Choose else f"({e.toSMT()})",
                 )
                 for i, e in enumerate(commonExprs)
@@ -316,8 +357,13 @@ class Expr:
                 else:
                     declarations.append((a.args[0], a.type))
 
-            args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
-            return "(synth-fun %s (%s) %s\n%s)" % (self.args[0], args, self.type, body)
+            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
+            return "(synth-fun %s (%s) %s\n%s)" % (
+                self.args[0],
+                args,
+                self.type.toSMT(),
+                body,
+            )
 
         elif kind == Expr.Kind.Axiom:
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
@@ -326,7 +372,7 @@ class Expr:
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
-                    "(%s)" % parseTypeRef(a.type) for a in self.args[2:]
+                    parseTypeRef(a.type).toSMT() for a in self.args[2:]
                 )
                 return "(declare-fun %s (%s) %s)" % (
                     self.args[0],
@@ -342,7 +388,7 @@ class Expr:
                     else:
                         declarations.append((a.args[0], a.type))
 
-                args = " ".join("(%s %s)" % (d[0], d[1]) for d in declarations)
+                args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
 
                 def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
 
@@ -350,7 +396,9 @@ class Expr:
                     def_str,
                     self.args[0],
                     args,
-                    self.type if self.type.name != "Function" else self.type.args[0],
+                    (
+                        self.type if self.type.name != "Function" else self.type.args[0]
+                    ).toSMT(),
                     self.args[1]
                     if isinstance(self.args[1], str)
                     else self.args[1].toSMT(),
@@ -372,7 +420,12 @@ class Expr:
                 self.args[1].args[0],
                 self.args[0].toSMT(),
             )  # args[1] must be an int literal
-
+        elif kind == Expr.Kind.Let:
+            return "(let ((%s %s)) %s)" % (
+                self.args[0].toSMT(),
+                self.args[1].toSMT(),
+                self.args[2].toSMT(),
+            )
         else:
             value = self.kind.value
             return (
@@ -552,7 +605,8 @@ class Expr:
             return "(tupleGet %s)" % " ".join(
                 ["%s" % arg.toRosette() for arg in self.args]
             )
-
+        elif kind == Expr.Kind.Let:
+            return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette()}]) {self.args[2].toRosette()})"
         else:
             if kind == Expr.Kind.And:
                 value = "&&"
@@ -715,6 +769,10 @@ def IntLit(val: int) -> Expr:
     return Lit(val, Int())
 
 
+def EnumIntLit(val: int) -> Expr:
+    return Lit(val, EnumInt())
+
+
 def BoolLit(val: bool) -> Expr:
     return Lit(val, Bool())
 
@@ -732,9 +790,9 @@ def Mul(*args: Expr) -> Expr:
 
 
 def Eq(e1: Expr, e2: Expr) -> Expr:
-    if not (parseTypeRef(e1.type) == parseTypeRef(e2.type)):
+    if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
         raise Exception(
-            f"Cannot compare values of different types: {parseTypeRef(e1.type)} and {parseTypeRef(e2.type)}"
+            f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
         )
     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
 
@@ -772,8 +830,15 @@ def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 
 
 def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
-    assert parseTypeRef(e1.type) == parseTypeRef(e2.type)
+    if parseTypeRef(e1.type).erase() != parseTypeRef(e2.type).erase():
+        raise Exception(
+            f"Cannot return different types from ite: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+        )
     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
+
+
+def Let(v: Expr, e: Expr, e2: Expr) -> Expr:
+    return Expr(Expr.Kind.Let, e2.type, [v, e, e2])
 
 
 def Call(name: str, returnT: Type, *args: Expr) -> Expr:

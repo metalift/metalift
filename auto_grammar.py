@@ -4,6 +4,9 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
+equality_supported_types = [Int(), ClockInt(), EnumInt(), OpaqueInt()]
+comparison_supported_types = [Int, ClockInt()]
+
 
 def get_expansions(
     enable_sets: bool = False,
@@ -23,9 +26,18 @@ def get_expansions(
             lambda get: And(get(Bool()), get(Bool())),
             lambda get: Or(get(Bool()), get(Bool())),
             lambda get: Not(get(Bool())),
-            lambda get: Eq(get(Int()), get(Int())),
-            lambda get: Lt(get(Int()), get(Int())),
-            lambda get: Gt(get(Int()), get(Int())),
+            *[
+                (lambda t: lambda get: Eq(get(t), get(t)))(t)
+                for t in equality_supported_types
+            ],
+            *[
+                (lambda t: lambda get: Lt(get(t), get(t)))(t)
+                for t in comparison_supported_types
+            ],
+            *[
+                (lambda t: lambda get: Gt(get(t), get(t)))(t)
+                for t in comparison_supported_types
+            ],
             # lambda get: Le(get(Int()), get(Int())),
             # lambda get: Ge(get(Int()), get(Int())),
         ],
@@ -75,11 +87,7 @@ def auto_grammar(
 
     expansions = get_expansions(enable_sets, enable_arith)
 
-    pool = {}
-
-    pool[Bool()] = Choose(BoolLit(False), BoolLit(True))
-    if enable_sets:
-        pool[Set(Int())] = Call("set-create", Set(Int()))
+    pool: Dict[Type, Expr] = {}
 
     input_pool: Dict[Type, typing.List[Expr]] = {}
 
@@ -95,6 +103,19 @@ def auto_grammar(
     for input in inputs:
         input_type = parseTypeRef(input.type)
         extract_inputs(input_type, input)
+
+    if not Bool() in input_pool:
+        input_pool[Bool()] = []
+    input_pool[Bool()] += [BoolLit(False), BoolLit(True)]
+
+    if enable_sets:
+        if Set(Int()) in input_pool:
+            input_pool[Set(Int())] += [Call("set-create", Set(Int()))]
+
+    if out_type == EnumInt() and EnumInt() not in input_pool:
+        input_pool[EnumInt()] = []
+    if EnumInt() in input_pool:
+        input_pool[EnumInt()] += [EnumIntLit(i) for i in range(4)]
 
     for t, exprs in input_pool.items():
         if t in pool:
@@ -112,13 +133,14 @@ def auto_grammar(
                 except KeyError:
                     pass
 
-            if enable_ite and Bool() in pool and t in pool:
-                new_elements.append(Ite(pool[Bool()], pool[t], pool[t]))
-
             if t in pool:
                 next_pool[t] = Choose(next_pool[t], *new_elements)
             elif len(new_elements) > 0:
                 next_pool[t] = Choose(*new_elements)
+
+        if enable_ite and Bool() in pool:
+            for t in pool.keys():
+                next_pool[t] = Choose(next_pool[t], Ite(pool[Bool()], pool[t], pool[t]))
 
         pool = next_pool
 

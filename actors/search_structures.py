@@ -30,6 +30,10 @@ def synthesize_crdt(
     targetLang: Callable[[], List[Expr]],
     synthesize: SynthesizeFun,
     useOpList: bool,
+    stateTypeHint: Optional[ir.Type],
+    opArgTypeHint: Optional[List[ir.Type]],
+    queryArgTypeHint: Optional[List[ir.Type]],
+    queryRetTypeHint: Optional[ir.Type],
     filename: str,
     fnNameBase: str,
     loopsFile: str,
@@ -60,6 +64,10 @@ def synthesize_crdt(
                     synthesize,
                     uid=uid,
                     useOpList=useOpList,
+                    stateTypeHint=stateTypeHint,
+                    opArgTypeHint=opArgTypeHint,
+                    queryArgTypeHint=queryArgTypeHint,
+                    queryRetTypeHint=queryRetTypeHint,
                     log=False,
                 ),
             )
@@ -88,6 +96,10 @@ def search_crdt_structures(
     cvcPath: str,
     useOpList: bool,
     structureCandidates: Iterator[Any],
+    stateTypeHint: Optional[ir.Type] = None,
+    opArgTypeHint: Optional[List[ir.Type]] = None,
+    queryArgTypeHint: Optional[List[ir.Type]] = None,
+    queryRetTypeHint: Optional[ir.Type] = None,
 ) -> None:
     q: queue.Queue[Tuple[Any, Optional[List[Expr]]]] = queue.Queue()
     queue_size = 0
@@ -104,11 +116,44 @@ def search_crdt_structures(
                     if next_structure_type is None:
                         break
                     else:
-                        print(f"Enqueueing #{uid}:", next_structure_type)
 
                         def error_callback(e: BaseException) -> None:
                             raise e
 
+                        try:
+                            synthStateType = ir.Tuple(
+                                *[a.ir_type() for a in next_structure_type]
+                            )
+                            synthesize_actor(
+                                filename,
+                                fnNameBase,
+                                loopsFile,
+                                cvcPath,
+                                synthStateType,
+                                lambda: initState(next_structure_type),
+                                grammarStateInvariant,
+                                grammarSupportedCommand,
+                                inOrder,
+                                opPrecondition,
+                                lambda ci: grammar(ci, next_structure_type),
+                                grammarQuery,
+                                grammarEquivalence,
+                                targetLang,
+                                synthesize,
+                                uid=uid,
+                                useOpList=useOpList,
+                                stateTypeHint=stateTypeHint,
+                                opArgTypeHint=opArgTypeHint,
+                                queryArgTypeHint=queryArgTypeHint,
+                                queryRetTypeHint=queryRetTypeHint,
+                                log=False,
+                                skipSynth=True,
+                            )
+                        except KeyError:
+                            # traceback.print_exc()
+                            continue
+
+                        print(f"Enqueueing #{uid}:", next_structure_type)
                         pool.apply_async(
                             synthesize_crdt,
                             args=(
@@ -125,6 +170,10 @@ def search_crdt_structures(
                                 targetLang,
                                 synthesize,
                                 useOpList,
+                                stateTypeHint,
+                                opArgTypeHint,
+                                queryArgTypeHint,
+                                queryRetTypeHint,
                                 filename,
                                 fnNameBase,
                                 loopsFile,

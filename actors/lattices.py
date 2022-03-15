@@ -17,14 +17,20 @@ class Lattice:
 
 @dataclass(frozen=True)
 class MaxInt(Lattice):
+    int_type: ir.Type = ir.Int()
+
     def ir_type(self) -> ir.Type:
-        return ir.Int()
+        return self.int_type
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        return ir.Ite(ir.Ge(a, b), a, b)
+        a_var = ir.Var("a_merge", self.int_type)
+        b_var = ir.Var("b_merge", self.int_type)
+        return ir.Let(
+            a_var, a, ir.Let(b_var, b, ir.Ite(ir.Ge(a_var, b_var), a_var, b_var))
+        )
 
     def bottom(self) -> ir.Expr:
-        return ir.IntLit(0)
+        return ir.Lit(0, self.int_type)
 
 
 @dataclass(frozen=True)
@@ -74,25 +80,37 @@ class CascadingTuple(Lattice):
         return ir.Tuple(self.l1.ir_type(), self.l2.ir_type())
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        keyA = ir.TupleGet(a, ir.IntLit(0))
-        keyB = ir.TupleGet(b, ir.IntLit(0))
-        valueA = ir.TupleGet(a, ir.IntLit(1))
-        valueB = ir.TupleGet(b, ir.IntLit(1))
+        mergeA = ir.Var("merge_a", a.type)
+        mergeB = ir.Var("merge_b", b.type)
+
+        keyA = ir.TupleGet(mergeA, ir.IntLit(0))
+        keyB = ir.TupleGet(mergeB, ir.IntLit(0))
+        valueA = ir.TupleGet(mergeA, ir.IntLit(1))
+        valueB = ir.TupleGet(mergeB, ir.IntLit(1))
 
         keyMerged = self.l1.merge(keyA, keyB)
         valueMerged = self.l2.merge(valueA, valueB)
 
-        return ir.MakeTuple(
-            keyMerged,
-            ir.Ite(
-                ir.Or(
-                    ir.Eq(keyA, keyB),
-                    ir.And(
-                        ir.Not(ir.Eq(keyA, keyMerged)), ir.Not(ir.Eq(keyB, keyMerged))
+        return ir.Let(
+            mergeA,
+            a,
+            ir.Let(
+                mergeB,
+                b,
+                ir.MakeTuple(
+                    keyMerged,
+                    ir.Ite(
+                        ir.Or(
+                            ir.Eq(keyA, keyB),
+                            ir.And(
+                                ir.Not(ir.Eq(keyA, keyMerged)),
+                                ir.Not(ir.Eq(keyB, keyMerged)),
+                            ),
+                        ),
+                        valueMerged,
+                        ir.Ite(ir.Eq(keyA, keyMerged), valueA, valueB),
                     ),
                 ),
-                valueMerged,
-                ir.Ite(ir.Eq(keyA, keyMerged), valueA, valueB),
             ),
         )
 
@@ -103,6 +121,9 @@ class CascadingTuple(Lattice):
 def gen_types(depth: int) -> typing.Iterator[ir.Type]:
     if depth == 1:
         yield ir.Int()
+        yield ir.ClockInt()
+        yield ir.EnumInt()
+        yield ir.OpaqueInt()
         yield ir.Bool()
     else:
         for innerType in gen_types(depth - 1):
@@ -110,23 +131,26 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
             # TODO: anything else?
 
 
-set_supported_elem = {ir.Int().name}
+int_like = {ir.Int().name, ir.ClockInt().name, ir.EnumInt().name, ir.OpaqueInt().name}
+set_supported_elem = int_like
 
 
 def gen_lattice_types(depth: int) -> typing.Iterator[typing.Any]:
     if depth == 1:
-        yield MaxInt()
         yield PosBool()
         yield NegBool()
-    else:
+
+    for innerType in gen_types(depth):
+        if innerType.name in int_like:
+            yield MaxInt(innerType)
+
+    if depth > 1:
         for innerType in gen_types(depth - 1):
             if innerType.name in set_supported_elem:
                 yield Set(innerType)
             # TODO: maps
 
-        for innerTypePair in itertools.combinations_with_replacement(
-            gen_lattice_types(depth - 1), 2
-        ):
+        for innerTypePair in itertools.permutations(gen_lattice_types(depth - 1), 2):
             yield CascadingTuple(*innerTypePair)
 
         for innerType in gen_lattice_types(depth - 1):
