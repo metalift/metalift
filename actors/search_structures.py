@@ -150,7 +150,7 @@ def search_crdt_structures(
                                 skipSynth=True,
                             )
                         except KeyError:
-                            # traceback.print_exc()
+                            # this is due to a grammar not being able to find a value
                             continue
 
                         print(f"Enqueueing #{uid}:", next_structure_type)
