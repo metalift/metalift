@@ -4,8 +4,8 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-equality_supported_types = [Int(), ClockInt(), EnumInt(), OpaqueInt()]
-comparison_supported_types = [Int, ClockInt()]
+equality_supported_types = [Int(), VectorClock(), EnumInt(), OpaqueInt()]
+comparison_supported_types = [Int, VectorClock()]
 
 
 def get_expansions() -> Dict[

@@ -4,6 +4,10 @@
 
 (provide (all-defined-out))
 
+; vector clock dummy
+(define (vector-clock-bottom)
+  0)
+
 ; list functions that have reasonable defaults rather than throwing errors
 
 (define (list-ref-noerr l i)

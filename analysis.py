@@ -405,9 +405,11 @@ def analyze(
             )
         )
 
+    # grab arguments once so that mutations in summary check are preserved
+    argumentsRef = list(fn.arguments)
     # add ps code info
     loopAndPsInfo = loopAndPsInfo + processBranches(
-        blocksMap, list(fn.arguments), wrapSummaryCheck, fnName
+        blocksMap, argumentsRef, wrapSummaryCheck, fnName
     )
 
     if log:
@@ -423,7 +425,7 @@ def analyze(
     (vars, invAndPs, preds, vc) = VC(fnName + fnNameSuffix, log=log).computeVC(
         blocksMap,
         list(fn.blocks)[0].name,
-        list(fn.arguments),
+        argumentsRef,
         globalVars,
         uninterpFuncs,
     )

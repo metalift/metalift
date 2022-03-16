@@ -252,9 +252,15 @@ def synthesize_actor(
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
 
-        for i in range(len(origArgs) - 1):
-            op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
+        if opArgTypeHint:
+            op_arg_types = opArgTypeHint
+            for i in range(len(origArgs) - 1):
+                origArgs[i + 1].type = opArgTypeHint[i]  # type: ignore
+        else:
+            for i in range(len(origArgs) - 1):
+                op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
         opType = Tuple(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
+
         if useOpList:
             synthStateType = Tuple(*synthStateType.args, List(opType))
 
@@ -339,7 +345,7 @@ def synthesize_actor(
 
     if opArgTypeHint:
         for i in range(len(opArgTypeHint)):
-            loopAndPsInfoStateTransition[0].readVars[i + 1].my_type = opArgTypeHint[i]  # type: ignore
+            loopAndPsInfoStateTransition[0].readVars[i + 1].type = opArgTypeHint[i]
 
     loopAndPsInfoStateTransition[0].retT = (
         loopAndPsInfoStateTransition[0].modifiedVars[0].type

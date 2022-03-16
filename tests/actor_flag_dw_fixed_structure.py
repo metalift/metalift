@@ -9,7 +9,7 @@ import sys
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.CascadingTuple(lat.MaxInt(ClockInt()), lat.NegBool()), lat.PosBool()]
+synthStateStructure = [lat.CascadingTuple(lat.MaxInt(VectorClock()), lat.NegBool()), lat.PosBool()]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 base_depth = 1
@@ -52,7 +52,7 @@ def inOrder(arg1, arg2):
     )
 
 def opPrecondition(op):
-    return Ge(op[1], IntLit(1))
+    return Gt(op[1], Lit(0, VectorClock()))
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
@@ -135,7 +135,7 @@ if __name__ == "__main__":
             targetLang,
             synthesize,
             stateTypeHint=EnumInt(),
-            opArgTypeHint=[EnumInt(), ClockInt()],
+            opArgTypeHint=[EnumInt(), VectorClock()],
             queryRetTypeHint=EnumInt(),
             useOpList = useOpList,
             listBound=2,

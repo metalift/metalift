@@ -49,7 +49,7 @@ def inOrder(arg1, arg2):
     )
 
 def opPrecondition(op):
-    return Ge(op[1], IntLit(1))
+    return Gt(op[1], Lit(0, VectorClock()))
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
@@ -129,6 +129,6 @@ if __name__ == "__main__":
             filename, fnNameBase, loopsFile, cvcPath, useOpList,
             lat.gen_structures(),
             stateTypeHint=EnumInt(),
-            opArgTypeHint=[EnumInt(), ClockInt()],
+            opArgTypeHint=[EnumInt(), VectorClock()],
             queryRetTypeHint=EnumInt(),
         )

@@ -17,7 +17,7 @@ def generateAST(expr: str) -> List[Any]:
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if (
         v.type.name == "Int"
-        or v.type.name == "ClockInt"
+        or v.type.name == "VectorClock"
         or v.type.name == "EnumInt"
         or v.type.name == "OpaqueInt"
     ):

@@ -17,13 +17,10 @@ class Type:
         self.args = args
 
     def toSMT(self) -> str:
-        if (
-            self.name == "Int"
-            or self.name == "ClockInt"
-            or self.name == "EnumInt"
-            or self.name == "OpaqueInt"
-        ):
+        if self.name == "Int" or self.name == "EnumInt" or self.name == "OpaqueInt":
             return "Int"
+        elif self.name == "VectorClock":
+            return "VectorClock"
         elif self.name == "Bool":
             return "Bool"
         elif self.name == "String":
@@ -47,7 +44,7 @@ class Type:
 
     def erase(self) -> "Type":
         if (
-            self.name == "ClockInt"
+            self.name == "VectorClock"
             or self.name == "EnumInt"
             or self.name == "OpaqueInt"
         ):
@@ -84,8 +81,8 @@ def Int() -> Type:
     return Type("Int")
 
 
-def ClockInt() -> Type:
-    return Type("ClockInt")
+def VectorClock() -> Type:
+    return Type("VectorClock")
 
 
 def EnumInt() -> Type:
@@ -255,6 +252,9 @@ class Expr:
                     return "true"
                 else:
                     return "false"
+            elif kind == Expr.Kind.Lit and self.type == VectorClock():
+                assert self.args[0] == 0
+                return "vector_clock_bottom"
             else:
                 return str(self.args[0])
 
@@ -426,6 +426,14 @@ class Expr:
                 self.args[1].toSMT(),
                 self.args[2].toSMT(),
             )
+        elif kind == Expr.Kind.Lt and self.args[0].type.name == "VectorClock":
+            return "(vc_lt %s %s)" % (self.args[0].toSMT(), self.args[1].toSMT())
+        elif kind == Expr.Kind.Le and self.args[0].type.name == "VectorClock":
+            return "(vc_le %s %s)" % (self.args[0].toSMT(), self.args[1].toSMT())
+        elif kind == Expr.Kind.Gt and self.args[0].type.name == "VectorClock":
+            return "(vc_gt %s %s)" % (self.args[0].toSMT(), self.args[1].toSMT())
+        elif kind == Expr.Kind.Ge and self.args[0].type.name == "VectorClock":
+            return "(vc_ge %s %s)" % (self.args[0].toSMT(), self.args[1].toSMT())
         else:
             value = self.kind.value
             return (
@@ -464,6 +472,9 @@ class Expr:
                     return "true"
                 else:
                     return "false"
+            elif kind == Expr.Kind.Lit and self.type == VectorClock():
+                assert self.args[0] == 0
+                return "(vector-clock-bottom)"
             else:
                 return str(self.args[0])
 
