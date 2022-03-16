@@ -10,10 +10,6 @@
 (= false (vc_lt vc vc))
 ))
 
-(assert (forall ((vc VectorClock))
-(= false (vc_lt vc vc))
-))
-
 (assert (forall ((vc1 VectorClock) (vc2 VectorClock))
 (=> (vc_lt vc1 vc2) (not (vc_lt vc2 vc1)))
 ))
