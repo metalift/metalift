@@ -8,6 +8,9 @@
 (define (vector-clock-bottom)
   0)
 
+(define (vector_clock_merge v1 v2)
+  (if (> v1 v2) v1 v2)) ; just max
+
 ; list functions that have reasonable defaults rather than throwing errors
 
 (define (list-ref-noerr l i)

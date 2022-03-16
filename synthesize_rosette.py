@@ -174,6 +174,13 @@ def toExpr(
             return Call(ast[0], Bool(), v, s)
         elif ast[0] == "vector-clock-bottom":
             return Lit(0, VectorClock())
+        elif ast[0] == "vector_clock_merge":
+            return Call(
+                "vector_clock_merge",
+                VectorClock(),
+                toExpr(ast[1], fnsType, varType),
+                toExpr(ast[2], fnsType, varType),
+            )
         elif ast[0] == "let":
             var_value = toExpr(ast[1][0][1], fnsType, varType)
             tmp_var_type = dict(varType)

@@ -26,3 +26,26 @@
 
 (define-fun vc_le ((vc1 VectorClock) (vc2 VectorClock)) Bool
 (not (vc_gt vc1 vc2)))
+
+(declare-fun vector_clock_merge ( VectorClock VectorClock ) VectorClock)
+(assert (forall ((vc VectorClock))
+(= vc (vector_clock_merge vc vc))
+))
+(assert (forall ((vc1 VectorClock) (vc2 VectorClock))
+(and
+  (vc_le vc1 (vector_clock_merge vc1 vc2))
+  (vc_le vc2 (vector_clock_merge vc1 vc2))
+)
+))
+(assert (forall ((vc1 VectorClock) (vc2 VectorClock))
+(=
+  (vector_clock_merge vc1 vc2)
+  (vector_clock_merge vc2 vc1)
+)
+))
+(assert (forall ((vc1 VectorClock) (vc2 VectorClock) (vc3 VectorClock))
+(=
+  (vector_clock_merge vc1 (vector_clock_merge vc2 vc3))
+  (vector_clock_merge (vector_clock_merge vc1 vc2) vc3)
+)
+))

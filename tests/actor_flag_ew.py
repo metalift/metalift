@@ -38,13 +38,13 @@ def inOrder(arg1, arg2):
         Lt(arg1[1], arg2[1]),  # if clocks in order
         BoolLit(True),
         Ite(
-            Eq(arg1[1], arg2[1]), # if clocks concurrent
-            Ite(
+            Gt(arg1[1], arg2[1]),
+            BoolLit(False), # clocks out of order
+            Ite( # if clocks concurrent
                 Eq(arg1[0], IntLit(1)), # if first is enable
                 Eq(arg2[0], IntLit(1)), # second must be enable
                 BoolLit(True), # but if remove, can be anything next
             ),
-            BoolLit(False), # clocks out of order
         )
     )
 

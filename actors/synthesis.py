@@ -265,7 +265,7 @@ def synthesize_actor(
             synthStateType = Tuple(*synthStateType.args, List(opType))
 
         stateTransitionArgs = [
-            Var(f"state_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
+            Var(f"state_transition_second_op_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
             for i in range(len(origArgs) - 1)
         ]
         for arg in stateTransitionArgs:

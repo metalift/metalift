@@ -617,7 +617,7 @@ class Expr:
                 ["%s" % arg.toRosette() for arg in self.args]
             )
         elif kind == Expr.Kind.Let:
-            return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette()}]) {self.args[2].toRosette()})"
+            return f"(let ([{self.args[0].toRosette()} {self.args[1].name if isinstance(self.args[1], ValueRef) else self.args[1].toRosette()}]) {self.args[2].toRosette()})"
         else:
             if kind == Expr.Kind.And:
                 value = "&&"

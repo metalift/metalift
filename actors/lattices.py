@@ -32,6 +32,20 @@ class MaxInt(Lattice):
     def bottom(self) -> ir.Expr:
         return ir.Lit(0, self.int_type)
 
+@dataclass(frozen=True)
+class VectorClockLattice(Lattice):
+    def ir_type(self) -> ir.Type:
+        return ir.VectorClock()
+    
+    def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
+        return ir.Call(
+            "vector_clock_merge",
+            ir.VectorClock(),
+            a, b
+        )
+    
+    def bottom(self) -> ir.Expr:
+        return ir.Lit(0, ir.VectorClock())
 
 @dataclass(frozen=True)
 class PosBool(Lattice):
@@ -133,7 +147,6 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
 
 int_like = {
     ir.Int().name,
-    ir.VectorClock().name,
     ir.EnumInt().name,
     ir.OpaqueInt().name,
 }

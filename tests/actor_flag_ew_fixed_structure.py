@@ -9,7 +9,7 @@ import sys
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.CascadingTuple(lat.MaxInt(VectorClock()), lat.PosBool()), lat.PosBool()]
+synthStateStructure = [lat.CascadingTuple(lat.VectorClockLattice(), lat.PosBool()), lat.PosBool()]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 base_depth = 1
@@ -36,18 +36,22 @@ def grammarSupportedCommand(synthState, args):
 
 
 def inOrder(arg1, arg2):
+    current_vector_clock = TupleGet(TupleGet(
+        Var("i11_for_state_transition", Tuple(Tuple(VectorClock(), Bool()), Bool())),
+        IntLit(0)
+    ), IntLit(0))
     # adds win
-    return Ite(
-        Lt(arg1[1], arg2[1]),  # if clocks in order
-        BoolLit(True),
+    return And(
+        Ge(arg2[1], current_vector_clock), # we cannot have an operation strictly from the past
+        Le(arg1[1], arg2[1]), # clocks must not be out of order
         Ite(
-            Eq(arg1[1], arg2[1]), # if clocks concurrent
-            Ite(
+            Lt(current_vector_clock, arg2[1]),  # if clocks in order    
+            BoolLit(True),
+            Ite( # if clocks concurrent
                 Eq(arg1[0], IntLit(1)), # if first is enable
                 Eq(arg2[0], IntLit(1)), # second must be enable
                 BoolLit(True), # but if remove, can be anything next
             ),
-            BoolLit(False), # clocks out of order
         )
     )
 

@@ -4,13 +4,16 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-equality_supported_types = [Int(), VectorClock(), EnumInt(), OpaqueInt()]
+equality_supported_types = [Int(), EnumInt(), OpaqueInt()]
 comparison_supported_types = [Int, VectorClock()]
 
 
 def get_expansions() -> Dict[
     Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
 ]:
+    concurrent_clock_a = Var("clock_a", VectorClock())
+    concurrent_clock_b = Var("clock_b", VectorClock())
+
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
@@ -27,6 +30,18 @@ def get_expansions() -> Dict[
                 (lambda t: lambda get: Eq(get(t), get(t)))(t)
                 for t in equality_supported_types
             ],
+            lambda get: Let(
+                concurrent_clock_a,
+                get(VectorClock()),
+                Let(
+                    concurrent_clock_b,
+                    get(VectorClock()),
+                    And(
+                        Le(concurrent_clock_a, concurrent_clock_b),
+                        Ge(concurrent_clock_a, concurrent_clock_b),
+                    )
+                )
+            ),
             *[
                 (lambda t: lambda get: Lt(get(t), get(t)))(t)
                 for t in comparison_supported_types
