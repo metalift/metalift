@@ -8,9 +8,9 @@ equality_supported_types = [Int(), ClockInt(), EnumInt(), OpaqueInt()]
 comparison_supported_types = [Int, ClockInt()]
 
 
-def get_expansions() -> Dict[
-    Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
-]:
+def get_expansions(
+    input_types: typing.List[Type],
+) -> Dict[Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]]:
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
@@ -20,6 +20,8 @@ def get_expansions() -> Dict[
             # lambda get: Mul(get(Int()), get(Int())),
         ],
         Bool(): [
+            lambda get: BoolLit(False),
+            lambda get: BoolLit(True),
             lambda get: And(get(Bool()), get(Bool())),
             lambda get: Or(get(Bool()), get(Bool())),
             lambda get: Not(get(Bool())),
@@ -55,6 +57,14 @@ def get_expansions() -> Dict[
 
     for t in equality_supported_types:
         gen_set_ops(t)
+        if Set(t) in input_types:
+            out[Set(t)] += [
+                (lambda t: lambda get: Call("set-create", Set(t)))(t),
+                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t),
+            ]
+
+    if EnumInt() in input_types:
+        out[EnumInt()] = [(lambda i: lambda get: EnumIntLit(i))(i) for i in range(4)]
 
     return out
 
@@ -78,10 +88,6 @@ def auto_grammar(
             ]
         )
 
-    expansions = get_expansions()
-
-    pool: Dict[Type, Expr] = {}
-
     input_pool: Dict[Type, typing.List[Expr]] = {}
 
     def extract_inputs(input_type: Type, input: Expr) -> None:
@@ -97,29 +103,21 @@ def auto_grammar(
         input_type = parseTypeRef(input.type)
         extract_inputs(input_type, input)
 
-    if not Bool() in input_pool:
-        input_pool[Bool()] = []
-    input_pool[Bool()] += [BoolLit(False), BoolLit(True)]
+    if out_type not in input_pool:
+        input_pool[out_type] = []
 
-    for t in equality_supported_types:
-        if out_type == Set(t) and Set(t) not in input_pool:
-            input_pool[Set(t)] = []
-        if Set(t) in input_pool:
-            input_pool[Set(t)] += [Call("set-create", Set(t))]
-            expansions[Set(t)] += [
-                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t)
-            ]
+    expansions = get_expansions(list(input_pool.keys()))
 
-    if out_type == EnumInt() and EnumInt() not in input_pool:
-        input_pool[EnumInt()] = []
-    if EnumInt() in input_pool:
-        input_pool[EnumInt()] += [EnumIntLit(i) for i in range(4)]
-
+    pool: Dict[Type, Expr] = {}
     for t, exprs in input_pool.items():
-        if t in pool:
-            pool[t] = Choose(pool[t], Choose(*exprs))
-        else:
-            pool[t] = Choose(*exprs)
+        zero_input_expansions = []
+        if t in expansions:
+            for e in expansions[t]:
+                try:
+                    zero_input_expansions.append(e(lambda t: dict()[t]))  # type: ignore
+                except KeyError:
+                    pass
+        pool[t] = Choose(*exprs, *zero_input_expansions)
 
     for i in range(depth):
         next_pool = dict(pool)
