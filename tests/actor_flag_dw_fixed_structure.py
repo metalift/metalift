@@ -9,10 +9,16 @@ import sys
 
 from synthesize_auto import synthesize
 
+synthStateStructure = [lat.CascadingTuple(lat.MaxInt(ClockInt()), lat.NegBool()), lat.PosBool()]
+synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
+
 base_depth = 1
 
 def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState)
+    return auto_grammar(
+        Bool(), base_depth + 1, inputState, synthState,
+        enable_ite=True
+    )
 
 
 def grammarStateInvariant(synthState):
@@ -20,9 +26,9 @@ def grammarStateInvariant(synthState):
 
 
 def grammarSupportedCommand(synthState, args):
-    conditions = [Eq(args[0], IntLit(1))]
+    conditions = [Eq(args[0], EnumIntLit(1))]
 
-    out = auto_grammar(Bool(), base_depth, synthState, *args[1:])
+    out = auto_grammar(Bool(), base_depth + 1, synthState, *args, enable_ite=True)
     for c in conditions:
         out = Ite(c, out, out)
 
@@ -32,23 +38,31 @@ def grammarSupportedCommand(synthState, args):
 def inOrder(arg1, arg2):
     # adds win
     return Ite(
-        Eq(arg1[0], IntLit(1)),  # if first command is insert
-        Eq(arg2[0], IntLit(1)),  # second must be insert
-        BoolLit(True),  # but if remove, can be anything next
+        Lt(arg1[1], arg2[1]),  # if clocks in order
+        BoolLit(True),
+        Ite(
+            Eq(arg1[1], arg2[1]), # if clocks concurrent
+            Ite(
+                Eq(arg1[0], IntLit(1)), # if first is enable
+                BoolLit(True), # second can be anything
+                Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
+            ),
+            BoolLit(False), # clocks out of order
+        )
     )
 
+def opPrecondition(op):
+    return Ge(op[1], IntLit(1))
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars)
-
-    summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
+    summary = auto_grammar(ci.retT, base_depth + 1, *ci.readVars, enable_ite=True)
 
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo, synthStateStructure):
+def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
@@ -57,7 +71,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
         inputState = ci.readVars[0]
         args = ci.readVars[1:]
 
-        conditions = [Eq(args[0], IntLit(1))]
+        conditions = [Eq(args[0], EnumIntLit(1))]
         def fold_conditions(out):
             for c in conditions:
                 out = Ite(c, out, out)
@@ -76,9 +90,9 @@ def grammar(ci: CodeInfo, synthStateStructure):
         return Synth(name, out, *ci.modifiedVars, *ci.readVars)
 
 
-def initState(synthStateStructure):
+def initState():
     return MakeTuple(
-        *[elem.bottom() for elem in synthStateStructure]
+        *[auto_grammar(elem.ir_type(), 1, elem.bottom()) for elem in synthStateStructure]
     )
 
 def targetLang():
@@ -87,9 +101,9 @@ def targetLang():
 
 if __name__ == "__main__":
     mode = sys.argv[1]
-    filename = "tests/actor1.ll"
+    filename = "tests/actor_flag.ll"
     fnNameBase = "test"
-    loopsFile = "tests/actor1.loops"
+    loopsFile = "tests/actor_flag.loops"
     cvcPath = "cvc5"
 
     if mode == "aci":
@@ -104,17 +118,25 @@ if __name__ == "__main__":
         if mode == "synth-oplist":
             useOpList = True
 
-        search_crdt_structures(
+        out = synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,
             inOrder,
-            lambda _: BoolLit(True),
+            opPrecondition,
             grammar,
             grammarQuery,
             grammarEquivalence,
             targetLang,
             synthesize,
-            filename, fnNameBase, loopsFile, cvcPath, useOpList,
-            lat.gen_structures()
+            stateTypeHint=EnumInt(),
+            opArgTypeHint=[EnumInt(), ClockInt()],
+            queryRetTypeHint=EnumInt(),
+            useOpList = useOpList,
+            listBound=2,
         )

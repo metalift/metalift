@@ -66,12 +66,14 @@ class Block:
 class VC:
     preds: Dict[str, Expr]
     vars: typing.Set[Expr]
+    log: bool
 
-    def __init__(self, fnName: str = "ps") -> None:
+    def __init__(self, fnName: str = "ps", log: bool = True) -> None:
         self.vars = set()
         self.havocNum = 0
         self.preds = dict()
         self.fnName = fnName
+        self.log = log
 
     def makeVar(self, name: str, ty: Union[TypeRef, Type]) -> Expr:
         if isinstance(ty, TypeRef):
@@ -180,7 +182,8 @@ class VC:
                     e = Ite(vp[1], vp[0], e)
 
                 merged[k] = e
-                print("merged[%s] = %s" % (k.name, e))
+                if self.log:
+                    print("merged[%s] = %s" % (k.name, e))
 
         return merged
 
@@ -303,9 +306,11 @@ class VC:
         assigns = set()
         asserts = list()
 
-        print("block: %s" % b.name)
+        if self.log:
+            print("block: %s" % b.name)
         for i in b.instructions:
-            print("inst: %s" % i)
+            if self.log:
+                print("inst: %s" % i)
 
             opcode = i.opcode
             ops = list(i.operands)
@@ -466,7 +471,8 @@ class VC:
 
         s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
 
-        print("final state: %s" % s)
+        if self.log:
+            print("final state: %s" % s)
         b.state = s
         return s
 
@@ -477,6 +483,9 @@ class VC:
         reg: Dict[ValueRef, Expr],
         mem: Dict[ValueRef, Expr],
     ) -> Union[str, ValueRef, Expr]:
+        # TODO(shadaj): fix this hack
+        if isinstance(i, ValueRef) and str(i) == "i32 0":
+            return IntLit(0)
         if isinstance(i, ValueRef):
             return reg[i]
         if isinstance(i, Expr):

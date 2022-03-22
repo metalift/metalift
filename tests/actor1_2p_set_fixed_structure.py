@@ -1,4 +1,3 @@
-from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
@@ -6,10 +5,16 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
+import os
 
 from synthesize_auto import synthesize
 
+synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
+synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
+
+fastDebug = False
 base_depth = 1
+
 
 def grammarEquivalence(inputState, synthState):
     return auto_grammar(Bool(), base_depth + 1, inputState, synthState)
@@ -30,25 +35,42 @@ def grammarSupportedCommand(synthState, args):
 
 
 def inOrder(arg1, arg2):
-    # adds win
+    # removes win
     return Ite(
         Eq(arg1[0], IntLit(1)),  # if first command is insert
-        Eq(arg2[0], IntLit(1)),  # second must be insert
-        BoolLit(True),  # but if remove, can be anything next
+        BoolLit(True),  # second can be insert or remove
+        Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
     )
 
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars)
+    if not fastDebug:
+        setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars)
+    else:  # hardcoded for quick debugging
+        synthState = ci.readVars[0]
+
+        setContainTransformed = Call(
+            "set-member",
+            Bool(),
+            ci.readVars[1],
+            Call(
+                "set-minus",
+                Set(Int()),
+                Choose(
+                    TupleGet(synthState, IntLit(0)), TupleGet(synthState, IntLit(1))
+                ),
+                TupleGet(synthState, IntLit(1)),
+            ),
+        )
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo, synthStateStructure):
+def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
@@ -76,7 +98,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
         return Synth(name, out, *ci.modifiedVars, *ci.readVars)
 
 
-def initState(synthStateStructure):
+def initState():
     return MakeTuple(
         *[elem.bottom() for elem in synthStateStructure]
     )
@@ -101,10 +123,20 @@ if __name__ == "__main__":
         )
     else:
         useOpList = False
-        if mode == "synth-oplist":
+        if mode == "synth-debug":
+            fastDebug = True
+        elif mode == "synth-oplist":
+            useOpList = True
+        elif mode == "synth-debug-oplist":
+            fastDebug = True
             useOpList = True
 
-        search_crdt_structures(
+        out = synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,
@@ -115,6 +147,6 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            filename, fnNameBase, loopsFile, cvcPath, useOpList,
-            lat.gen_structures()
+            useOpList = useOpList,
+            listBound=2,
         )

@@ -3,7 +3,8 @@ import sys
 
 from analysis import CodeInfo, analyze
 from ir import *
-from synthesize_rosette import synthesize
+
+from synthesize_auto import synthesize
 
 # # programmatically generated grammar
 

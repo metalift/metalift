@@ -1,4 +1,3 @@
-from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
@@ -6,10 +5,17 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
+import os
 
 from synthesize_auto import synthesize
 
 base_depth = 1
+
+synthStateStructure = [lat.Set(Int())]
+synthStateType = Tuple(
+    *[a.ir_type() for a in synthStateStructure], Int()
+)  # TODO(shadaj): automate insertion of dummy
+
 
 def grammarEquivalence(inputState, synthState):
     return auto_grammar(Bool(), base_depth + 1, inputState, synthState)
@@ -45,10 +51,10 @@ def grammarQuery(ci: CodeInfo):
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
-    return Synth(name, summary, *ci.readVars)
+    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
-def grammar(ci: CodeInfo, synthStateStructure):
+def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
@@ -63,7 +69,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
                 out = Ite(c, out, out)
             return out
 
-        out = MakeTuple(
+        summary = MakeTuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
@@ -71,15 +77,18 @@ def grammar(ci: CodeInfo, synthStateStructure):
                 )
                 for i in range(len(synthStateStructure))
             ],
+            IntLit(0),  # TODO(shadaj): automate insertion of dummy
         )
 
-        return Synth(name, out, *ci.modifiedVars, *ci.readVars)
+        return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
-def initState(synthStateStructure):
+def initState():
     return MakeTuple(
-        *[elem.bottom() for elem in synthStateStructure]
+        *[elem.bottom() for elem in synthStateStructure],
+        IntLit(0),  # TODO(shadaj): automate insertion of dummy
     )
+
 
 def targetLang():
     return []
@@ -104,7 +113,12 @@ if __name__ == "__main__":
         if mode == "synth-oplist":
             useOpList = True
 
-        search_crdt_structures(
+        synthesize_actor(
+            filename,
+            fnNameBase,
+            loopsFile,
+            cvcPath,
+            synthStateType,
             initState,
             grammarStateInvariant,
             grammarSupportedCommand,
@@ -115,6 +129,6 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            filename, fnNameBase, loopsFile, cvcPath, useOpList,
-            lat.gen_structures()
+            useOpList=useOpList,
+            listBound=2,
         )
