@@ -44,7 +44,6 @@ def get_expansions() -> Dict[
         out[Set(t)] = [
             lambda get: Call("set-minus", Set(t), get(Set(t)), get(Set(t))),
             lambda get: Call("set-union", Set(t), get(Set(t)), get(Set(t))),
-            lambda get: Call("set-singleton", Set(t), get(t)),
             lambda get: Call("set-insert", Set(t), get(t), get(Set(t))),
         ]
 
@@ -107,6 +106,9 @@ def auto_grammar(
             input_pool[Set(t)] = []
         if Set(t) in input_pool:
             input_pool[Set(t)] += [Call("set-create", Set(t))]
+            expansions[Set(t)] += [
+                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t)
+            ]
 
     if out_type == EnumInt() and EnumInt() not in input_pool:
         input_pool[EnumInt()] = []

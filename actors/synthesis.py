@@ -11,8 +11,10 @@ from typing import Callable, Union, Protocol
 from synthesis_common import SynthesisFailed, VerificationFailed
 
 
-def observeEquivalence(inputState: Expr, synthState: Expr) -> Expr:
-    return Call("equivalence", Bool(), inputState, synthState)
+def observeEquivalence(
+    inputState: Expr, synthState: Expr, queryParams: typing.List[Expr]
+) -> Expr:
+    return Call("equivalence", Bool(), inputState, synthState, *queryParams)
 
 
 def opsListInvariant(
@@ -187,7 +189,7 @@ def synthesize_actor(
     opPrecondition: Callable[[typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
     grammarQuery: Callable[[CodeInfo], Expr],
-    grammarEquivalence: Callable[[Expr, Expr], Expr],
+    grammarEquivalence: Callable[[Expr, Expr, typing.List[Expr]], Expr],
     targetLang: Callable[[], typing.List[Expr]],
     synthesize: SynthesizeFun,
     stateTypeHint: typing.Optional[Type] = None,
@@ -232,6 +234,28 @@ def synthesize_actor(
                 ),
             ),
         )
+
+    # analyze query just to grab the query parameters
+    queryParameterTypes = []
+
+    def extractQueryParameters(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
+        nonlocal queryParameterTypes
+
+        if queryArgTypeHint:
+            queryParameterTypes = queryArgTypeHint
+        else:
+            queryParameterTypes = [parseTypeRef(v.type) for v in ps.operands[4:]]  # type: ignore
+
+        return (ps, ps.operands)  # type: ignore
+
+    analyze(
+        filename,
+        fnNameBase + "_response",
+        loopsFile,
+        wrapSummaryCheck=extractQueryParameters,
+        log=False,
+    )
+    # end query param extraction
 
     # begin state transition (in order)
     stateTypeOrig: Type = None  # type: ignore
@@ -280,6 +304,13 @@ def synthesize_actor(
         )
         extraVarsStateTransition.add(afterStateForPS)
 
+        queryParamVars = [
+            Var(f"state_transition_query_param_{i}", queryParameterTypes[i])
+            for i in range(len(queryParameterTypes))
+        ]
+        for v in queryParamVars:
+            extraVarsStateTransition.add(v)
+
         newReturn = afterStateForPS
 
         newArgs = list(origArgs)
@@ -288,7 +319,9 @@ def synthesize_actor(
         return (
             Implies(
                 And(
-                    observeEquivalence(beforeStateOrig, beforeStateForPS),
+                    observeEquivalence(
+                        beforeStateOrig, beforeStateForPS, queryParamVars
+                    ),
                     *(
                         [
                             opsListInvariant(
@@ -304,7 +337,7 @@ def synthesize_actor(
                     Eq(newReturn, Call(f"{fnNameBase}_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
                 And(
-                    observeEquivalence(afterStateOrig, afterStateForPS),
+                    observeEquivalence(afterStateOrig, afterStateForPS, queryParamVars),
                     *(
                         [
                             Implies(
@@ -391,7 +424,7 @@ def synthesize_actor(
 
         return (
             Implies(
-                observeEquivalence(beforeState, beforeStateForQuery),
+                observeEquivalence(beforeState, beforeStateForQuery, newArgs[1:]),  # type: ignore
                 Eq(origReturn, Call(f"{fnNameBase}_response", origReturn.type, *newArgs)),  # type: ignore
             ),
             [origReturn] + newArgs,
@@ -437,6 +470,13 @@ def synthesize_actor(
 
         returnedInitState = typing.cast(ValueRef, origReturn)
 
+        queryParamVars = [
+            Var(f"init_state_equivalence_query_param_{i}", queryParameterTypes[i])
+            for i in range(len(queryParameterTypes))
+        ]
+        for v in queryParamVars:
+            extraVarsInitState.add(v)
+
         return (
             Implies(
                 And(
@@ -446,7 +486,9 @@ def synthesize_actor(
                     )
                 ),
                 And(
-                    observeEquivalence(returnedInitState, synthInitState),
+                    observeEquivalence(
+                        returnedInitState, synthInitState, queryParamVars
+                    ),
                     opsListInvariant(fnNameBase, synthInitState, synthStateType, opType)
                     if useOpList
                     else Implies(
@@ -497,11 +539,20 @@ def synthesize_actor(
     )
     synthStateForEquivalence = Var("synthState", synthStateType)
 
+    equivalenceQueryParams = [
+        Var(f"equivalence_query_param_{i}", queryParameterTypes[i])
+        for i in range(len(queryParameterTypes))
+    ]
+
     invAndPsEquivalence = [
         Synth(
             "equivalence",
             And(
-                grammarEquivalence(inputStateForEquivalence, synthStateForEquivalence),
+                grammarEquivalence(
+                    inputStateForEquivalence,
+                    synthStateForEquivalence,
+                    equivalenceQueryParams,
+                ),
                 *(
                     [grammarStateInvariant(synthStateForEquivalence)]
                     if not useOpList
@@ -510,6 +561,7 @@ def synthesize_actor(
             ),
             inputStateForEquivalence,
             synthStateForEquivalence,
+            *equivalenceQueryParams,
         )
     ]
 
@@ -674,7 +726,7 @@ def synthesize_actor(
                     *state_transition_fn.args[2:],
                 ),
                 lambda _: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
-                lambda a, b: equivalence_fn.args[1],  # type: ignore
+                lambda a, b, c: equivalence_fn.args[1],  # type: ignore
                 targetLang,
                 synthesize,
                 stateTypeHint=stateTypeHint,

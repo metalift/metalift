@@ -6,6 +6,9 @@ Do not use `main.py`.
 We currently support [Rosette](https://emina.github.io/rosette/) (and [cvc5](https://cvc5.github.io/) but cvc5 has been flaky) as the synthesis backend, and [Z3](https://github.com/Z3Prover/z3) as the verifier.
 
 ### LLVM instructions
+
+**We currently support LLVM 10**
+
 First, build the fork of `llvmlite` by pulling submodules (`git submodule update --init --recursive`) and running the build script:
 ```bash
 cd llvmlite
