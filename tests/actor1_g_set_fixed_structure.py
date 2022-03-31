@@ -17,8 +17,8 @@ synthStateType = Tuple(
 )  # TODO(shadaj): automate insertion of dummy
 
 
-def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState)
+def grammarEquivalence(inputState, synthState, queryParams):
+    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, *queryParams)
 
 
 def grammarStateInvariant(synthState):

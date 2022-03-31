@@ -14,8 +14,8 @@ synthStateStructure = [lat.MaxInt(), lat.MaxInt()]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 
-def grammarEquivalence(inputState, synthState):
-    return auto_grammar(Bool(), 2, inputState, synthState)
+def grammarEquivalence(inputState, synthState, queryParams):
+    return auto_grammar(Bool(), 2, inputState, synthState, *queryParams)
 
 
 def grammarStateInvariant(synthState):
