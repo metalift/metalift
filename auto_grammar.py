@@ -4,7 +4,7 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-equality_supported_types = [Int(), ClockInt(), EnumInt(), OpaqueInt()]
+equality_supported_types = [Bool(), Int(), ClockInt(), EnumInt(), OpaqueInt()]
 comparison_supported_types = [Int, ClockInt()]
 
 

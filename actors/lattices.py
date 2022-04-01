@@ -72,6 +72,32 @@ class Set(Lattice):
 
 
 @dataclass(frozen=True)
+class Map(Lattice):
+    keyType: ir.Type
+    valueType: Lattice
+
+    def ir_type(self) -> ir.Type:
+        return ir.Map(self.keyType, self.valueType.ir_type())
+
+    def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
+        v_a = ir.Var("map_merge_a", self.valueType.ir_type())
+        v_b = ir.Var("map_merge_b", self.valueType.ir_type())
+
+        return ir.Call(
+            "map-union",
+            ir.Map(self.keyType, self.valueType.ir_type()),
+            a,
+            b,
+            ir.Lambda(
+                self.valueType.ir_type(), self.valueType.merge(v_a, v_b), v_a, v_b
+            ),
+        )
+
+    def bottom(self) -> ir.Expr:
+        return ir.Call("map-create", self.ir_type())
+
+
+@dataclass(frozen=True)
 class CascadingTuple(Lattice):
     l1: Lattice
     l2: Lattice

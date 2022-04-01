@@ -95,6 +95,13 @@
 (define (map-create)
   (list))
 
+(define (map-normalize m)
+  (match* (m)
+    [((list)) (map-create)]
+    [((list a as ...))
+     (map-insert (map-normalize as) (car a) (cdr a) (lambda (a b) b))
+     ]))
+
 (define (map-eq s1 s2)
   (equal? s1 s2))
 
@@ -119,6 +126,9 @@
       (map-get as k default)
      )]))
 
+(define (map-singleton k v)
+  (list (cons k v)))
+
 (define (map-insert m k v value-merge)
   (map-union (list (cons k v)) m value-merge))
 
@@ -133,3 +143,10 @@
          (cons a (map-minus as (cons b bs)))
          (map-minus (cons a as) bs))
      )]))
+
+(define (map-fold-values m value-merge default)
+  (match* (m)
+    [((list)) default]
+    [((list a as ...))
+     (value-merge (cdr a) (map-fold-values as value-merge default))
+     ]))

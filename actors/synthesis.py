@@ -441,7 +441,7 @@ def synthesize_actor(
     vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
 
     if queryArgTypeHint:
-        for i in range(len(queryArgTypeHint) - 1):
+        for i in range(len(queryArgTypeHint)):
             loopAndPsInfoQuery[0].readVars[i + 1].my_type = queryArgTypeHint[i]  # type: ignore
 
     loopAndPsInfoQuery[0].retT = (

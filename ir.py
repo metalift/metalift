@@ -121,6 +121,10 @@ def Set(contentT: Type) -> Type:
     return Type("Set", contentT)
 
 
+def Map(keyT: Type, valT: Type) -> Type:
+    return Type("Map", keyT, valT)
+
+
 # first two types are not optional
 def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
     return Type("Tuple", e1T, e2T, *elemT)
@@ -161,6 +165,7 @@ class Expr:
         Choose = "choose"
         FnDecl = "fndecl"
         FnDeclNonRecursive = "fndeclnonrecursive"
+        Lambda = "lambda"
 
         Tuple = "tuple"
         TupleGet = "tupleGet"
@@ -267,7 +272,7 @@ class Expr:
             retVal = []
 
             if self.args[0] == "set-create":
-                return f"(as set.empty {str(self.type)})"
+                return f"(as set.empty {self.type.toSMT()})"
 
             if self.args[0] == "tupleGet":
                 argvals = self.args[:-1]
@@ -368,7 +373,9 @@ class Expr:
         elif kind == Expr.Kind.Axiom:
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
             return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
-
+        elif kind == Expr.Kind.Lambda:
+            # TODO(shadaj): extract during filtering assuming no captures
+            raise Exception("Lambda not supported")
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
@@ -562,6 +569,20 @@ class Expr:
 
         elif kind == Expr.Kind.Axiom:
             return ""  # axioms are only for verification
+        elif kind == Expr.Kind.Lambda:
+            args = " ".join(
+                [
+                    "%s" % (a.name)
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else "%s" % (a.args[0])
+                    for a in self.args[1:]
+                ]
+            )
+
+            return "(lambda (%s) %s)" % (
+                args,
+                self.args[0].toRosette(),
+            )
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
@@ -891,6 +912,10 @@ def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Exp
     return Expr(
         Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
     )
+
+
+def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
+    return Expr(Expr.Kind.Lambda, Fn(returnT, *[a.type for a in args]), [body, *args])
 
 
 def FnDeclNonRecursive(
