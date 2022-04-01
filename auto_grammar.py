@@ -34,7 +34,15 @@ def get_expansions(
                 for t in comparison_supported_types
             ],
             *[
+                (lambda t: lambda get: Le(get(t), get(t)))(t)
+                for t in comparison_supported_types
+            ],
+            *[
                 (lambda t: lambda get: Gt(get(t), get(t)))(t)
+                for t in comparison_supported_types
+            ],
+            *[
+                (lambda t: lambda get: Ge(get(t), get(t)))(t)
                 for t in comparison_supported_types
             ],
             # lambda get: Le(get(Int()), get(Int())),

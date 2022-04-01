@@ -9,7 +9,7 @@ import os
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.Map(OpaqueInt(), lat.PosBool()), lat.Map(OpaqueInt(), lat.PosBool())]
+synthStateStructure = [lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())), lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 fastDebug = False
@@ -23,13 +23,13 @@ def grammarEquivalence(inputState, synthState, queryParams):
         inputState, synthState, *queryParams,
         Call(
             "map-get",
-            Bool(),
+            ClockInt(),
             Choose(
                 TupleGet(synthState, IntLit(0)),
                 TupleGet(synthState, IntLit(1))
             ),
             queryParams[0],
-            BoolLit(False)
+            IntLit(0)
         )
     )
     return Choose(
@@ -45,26 +45,29 @@ def grammarStateInvariant(synthState):
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    merge_a = Var("merge_a", Bool())
-    merge_b = Var("merge_b", Bool())
+    merge_a = Var("merge_a", synthStateStructure[0].valueType.ir_type())
+    merge_b = Var("merge_b", synthStateStructure[0].valueType.ir_type())
+
+    set_max = Call( # does the remove set have any concurrent values?
+        "map-fold-values",
+        ClockInt(),
+        Choose(
+            TupleGet(synthState, IntLit(0)),
+            TupleGet(synthState, IntLit(1))
+        ),
+        Lambda(
+            Bool(),
+            synthStateStructure[0].valueType.merge(merge_a, merge_b),
+            merge_a, merge_b
+        ),
+        IntLit(0)
+    )
 
     out = auto_grammar(
-        Bool(), base_depth,
+        Bool(), base_depth + 1,
         synthState, *args[1:],
-        Call( # does the remove set have any true values?
-            "map-fold-values",
-            Bool(),
-            Choose(
-                TupleGet(synthState, IntLit(0)),
-                TupleGet(synthState, IntLit(1))
-            ),
-            Lambda(
-                Bool(),
-                Or(merge_a, merge_b),
-                merge_a, merge_b
-            ),
-            BoolLit(False)
-        )
+        set_max,
+        synthStateStructure[0].valueType.merge(set_max, set_max)
     )
 
     for c in conditions:
@@ -76,9 +79,17 @@ def grammarSupportedCommand(synthState, args):
 def inOrder(arg1, arg2):
     # removes win
     return Ite(
-        Eq(arg1[0], IntLit(1)),  # if first command is insert
-        BoolLit(True),  # second can be insert or remove
-        Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
+        Lt(arg1[-1], arg2[-1]),  # if clocks in order
+        BoolLit(True),
+        Ite(
+            Eq(arg1[-1], arg2[-1]), # if clocks concurrent
+            Ite(
+                Eq(arg1[0], IntLit(1)),  # if first command is insert
+                BoolLit(True),  # second can be insert or remove
+                Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
+            ),
+            BoolLit(False), # clocks out of order
+        )
     )
 
 
@@ -90,13 +101,13 @@ def grammarQuery(ci: CodeInfo):
         *ci.readVars,
         Call(
             "map-get",
-            Bool(),
+            ClockInt(),
             Choose(
                 TupleGet(ci.readVars[0], IntLit(0)),
                 TupleGet(ci.readVars[0], IntLit(1))
             ),
             ci.readVars[1],
-            BoolLit(False)
+            IntLit(0)
         )
     )
 
@@ -127,12 +138,12 @@ def grammar(ci: CodeInfo):
                     fold_conditions(auto_grammar(
                         TupleGet(inputState, IntLit(i)).type, base_depth,
                         *args[1:],
-                        Call("map-create", Map(OpaqueInt(), Bool())),
+                        Call("map-create", Map(OpaqueInt(), ClockInt())),
                         Call(
                             "map-singleton",
-                            Map(OpaqueInt(), Bool()),
+                            Map(OpaqueInt(), ClockInt()),
                             args[1],
-                            BoolLit(True)
+                            args[-1]
                         )
                     ))
                 )
