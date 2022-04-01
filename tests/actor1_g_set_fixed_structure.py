@@ -1,6 +1,7 @@
 from analysis import CodeInfo
 from ir import *
-from actors.synthesis import synthesize_actor
+# from actors.synthesis import synthesize_actor
+from actors.synthesis_counterexamples import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar

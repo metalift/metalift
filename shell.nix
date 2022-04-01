@@ -19,6 +19,7 @@ mkShell {
     cvc5
     llvm_11
     clang_11
+    cmake
   ];
 
   hardeningDisable = [ "fortify" ];

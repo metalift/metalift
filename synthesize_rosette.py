@@ -300,6 +300,7 @@ def synthesize(
                     varTypes[i.args[0]] = generateTypes(i.args[2:])
             for l_i in targetLang:
                 varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
+            print("\n\nVar Types: ", varTypes, "\n\n")
 
             if resultSynth[0] == "#t":
                 output = parseOutput(resultSynth[1:])
@@ -372,6 +373,8 @@ def synthesize(
                     "Verified PS and INV Candidates ",
                     "\n\n".join([str(c) for c in candidatesSMT]),
                 )
+                print("\nCandidates SMT:\n", "\n".join([str(candidate) for candidate in candidatesSMT]), "\n\n")
+                print("Candidates dict:", candidateDict, "\n\n")
                 return candidatesSMT
             else:
                 print(

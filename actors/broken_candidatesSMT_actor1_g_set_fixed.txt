@@ -1,0 +1,86 @@
+Original:
+
+(FnDecl:(Function (Tuple (Set Int) Int) (Tuple (Set Int) Int) i32 i32) test_next_state (Tuple:(Tuple (Set Int) Int) (set-union:(Set Int) (TupleGet:(Set Int) arg_for_state_transition (Lit:Int 0)) (Ite:(Set Int) (Eq:Bool arg1 (Lit:Int 1)) (set-singleton:(Set Int) arg2) (set-minus:(Set Int) (set-create:(Set Int) ) (set-create:(Set Int) )))) (Lit:Int 0)) arg_for_state_transition i32 %arg1 i32 %arg2)
+
+(FnDecl:(Function Int (Tuple (Set Int) Int) i32) test_response (Ite:Int (set-member:Bool arg1 (set-minus:(Set Int) (TupleGet:(Set Int) arg_for_query (Lit:Int 0)) (set-create:(Set Int) )))(Lit:Int 1) (Lit:Int 0)) arg_for_query i32 %arg1)
+
+(FnDecl:(Function (Tuple (Set Int) Int)) test_init_state (Tuple:(Tuple (Set Int) Int) (set-create:(Set Int) ) (Lit:Int 0)))
+
+(FnDecl:(Function Bool (Set Int) (Tuple (Set Int) Int)) equivalence (And:Bool (And:Bool (Eq:Bool (set-union:(Set Int) (set-create:(Set Int) ) inputState) (TupleGet:(Set Int) synthState (Lit:Int 0)))) (Or:Bool (Lit:Bool True) (Lit:Bool True))) inputState synthState)
+
+(FnDecl:(Function Bool (Tuple (Set Int) Int) Int Int) supportedCommand (Ite:Bool (Eq:Bool supported_arg_0 (Lit:Int 1)) (Eq:Bool supported_arg_1 supported_arg_1) (Eq:Bool (set-create:(Set Int) ) (TupleGet:(Set Int) supported_synthState (Lit:Int 0)))) supported_synthState supported_arg_0 supported_arg_1) 
+
+Split:
+(FnDecl:(Function (Tuple (Set Int) Int) (Tuple (Set Int) Int) i32 i32) test_next_state 
+(Tuple:
+  (Tuple (Set Int) Int) 
+  (set-minus:
+    (Set Int) 
+    (TupleGet:(Set Int) arg_for_state_transition (Lit:Int 0)) 
+    (Ite:(Set Int) 
+      (Eq:Bool arg1 (Lit:Int 1)) 
+      (set-singleton:
+        (Set Int) 
+        arg2
+      )          
+      (set-minus:
+        (Set Int) 
+        (set-create:(Set Int) ) 
+        (set-create:(Set Int) )
+      )
+    )
+  ) 
+  (Lit:Int 0)
+) arg_for_state_transition i32 %arg1 i32 %arg2)
+
+(FnDecl:(Function Int (Tuple (Set Int) Int) i32) test_response 
+(Ite:Int 
+  (set-member:
+    Bool 
+    arg1 
+    (set-minus:
+      (Set Int) 
+      (TupleGet:(Set Int) arg_for_query (Lit:Int 0)) 
+      (set-create:(Set Int) )
+    )
+  )
+  (Lit:Int 1) 
+  (Lit:Int 0)
+) arg_for_query i32 %arg1)
+
+(FnDecl:(Function (Tuple (Set Int) Int)) test_init_state 
+(Tuple:
+  (Tuple (Set Int) Int) 
+  (set-create:(Set Int) ) 
+  (Lit:Int 0)
+  )
+)
+
+(FnDecl:(Function Bool (Set Int) (Tuple (Set Int) Int)) equivalence 
+(And:Bool 
+  (And:Bool 
+    (Eq:Bool 
+      (set-union:
+        (Set Int) 
+        (set-create:(Set Int) ) 
+        inputState
+      ) 
+      (TupleGet:
+        (Set Int) 
+        synthState 
+        (Lit:Int 0)
+      ))) 
+  (Or:Bool 
+    (Lit:Bool True) 
+    (Lit:Bool True))
+) inputState synthState)
+
+(FnDecl:(Function Bool (Tuple (Set Int) Int) Int Int) supportedCommand 
+(Ite:Bool 
+  (Eq:Bool supported_arg_0 (Lit:Int 1)) 
+  (Eq:Bool supported_arg_1 supported_arg_1)
+  (Eq:Bool 
+    (set-create:(Set Int) ) 
+    (TupleGet:(Set Int) supported_synthState (Lit:Int 0))
+  )
+) supported_synthState supported_arg_0 supported_arg_1) 

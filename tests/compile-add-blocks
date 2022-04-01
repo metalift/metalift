@@ -10,6 +10,7 @@ clang_out=${file/.$ext/.ll}
 echo "output to:" $clang_out
 
 include_path="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+include_path=""
 
 #clang -g -I $include_path -c -emit-llvm -S $file -o $clang_out
 if [[ $file == *.c ]]
