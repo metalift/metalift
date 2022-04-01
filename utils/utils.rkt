@@ -130,7 +130,7 @@
   (list (cons k v)))
 
 (define (map-insert m k v value-merge)
-  (map-union (list (cons k v)) m value-merge))
+  (map-union (map-singleton k v) m value-merge))
 
 (define (map-minus m keys)
   (match* (m keys)

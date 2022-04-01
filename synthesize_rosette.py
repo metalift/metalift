@@ -46,7 +46,10 @@ def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
 
 
 def toExpr(
-    ast: typing.List[Any], fnsType: Dict[Any, Any], varType: Dict[str, Type]
+    ast: typing.List[Any],
+    fnsType: Dict[Any, Any],
+    varType: Dict[str, Type],
+    typeHint: typing.Optional[Type] = None,
 ) -> Expr:
 
     expr_bi: Dict[str, Callable[..., Expr]] = {
@@ -75,10 +78,18 @@ def toExpr(
         elif ast[0] in expr_uni.keys():
             return expr_uni[ast[0]](toExpr(ast[1], fnsType, varType))
         elif ast[0] == "if":
+            v1 = toExpr(ast[2], fnsType, varType)
+            v2 = toExpr(ast[3], fnsType, varType)
+
+            if v1.type == None:
+                v1.type = v2.type
+            if v2.type == None:
+                v2.type = v1.type
+
             return Ite(
                 toExpr(ast[1], fnsType, varType),
-                toExpr(ast[2], fnsType, varType),
-                toExpr(ast[3], fnsType, varType),
+                v1,
+                v2,
             )
         elif ast[0] == "length":
             return Call("list_length", Int(), toExpr(ast[1], fnsType, varType))
@@ -172,6 +183,56 @@ def toExpr(
             v = toExpr(ast[1], fnsType, varType)
             s = toExpr(ast[2], fnsType, varType)
             return Call(ast[0], Bool(), v, s)
+        elif ast[0] == "map-union":
+            m1 = toExpr(ast[1], fnsType, varType)
+            m2 = toExpr(ast[2], fnsType, varType)
+
+            if m1.type == None:
+                m1.type = m2.type
+            if m2.type == None:
+                m2.type = m1.type
+
+            uf = toExpr(
+                ast[3],
+                fnsType,
+                varType,
+                typeHint=Fn(m1.type.args[1], m1.type.args[1], m1.type.args[1]),
+            )
+
+            return Call(ast[0], m1.type, m1, m2, uf)
+        elif ast[0] == "map-fold-values":
+            m = toExpr(ast[1], fnsType, varType)
+            default = toExpr(ast[3], fnsType, varType)
+            uf = toExpr(
+                ast[2],
+                fnsType,
+                varType,
+                typeHint=Fn(default.type, m.type.args[1], default.type),
+            )
+
+            return Call(ast[0], default.type, m, uf, default)
+        elif ast[0] == "map-singleton":
+            k = toExpr(ast[1], fnsType, varType)
+            v = toExpr(ast[2], fnsType, varType)
+            return Call(ast[0], Map(k.type, v.type), k, v)
+        elif ast[0] == "map-create":
+            return Call(ast[0], Map(None, None))  # type: ignore
+        elif ast[0] == "map-get":
+            m = toExpr(ast[1], fnsType, varType)
+            k = toExpr(ast[2], fnsType, varType)
+            default = toExpr(ast[3], fnsType, varType)
+            return Call(ast[0], m.type.args[1], m, k, default)
+        elif ast[0] == "lambda":
+            arg_list = [
+                Var(n, t) for (t, n) in zip(typeHint.args[1:], ast[1])  # type: ignore
+            ]
+
+            varTypeUpdated = dict(varType)
+            for a in arg_list:
+                varTypeUpdated[a.args[0]] = a.type
+
+            body = toExpr(ast[2], fnsType, varTypeUpdated)
+            return Lambda(body.type, body, *arg_list)
         elif ast[0] == "let":
             var_value = toExpr(ast[1][0][1], fnsType, varType)
             tmp_var_type = dict(varType)
