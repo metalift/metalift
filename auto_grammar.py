@@ -45,8 +45,6 @@ def get_expansions(
                 (lambda t: lambda get: Ge(get(t), get(t)))(t)
                 for t in comparison_supported_types
             ],
-            # lambda get: Le(get(Int()), get(Int())),
-            # lambda get: Ge(get(Int()), get(Int())),
         ],
     }
 
@@ -73,6 +71,9 @@ def get_expansions(
 
     if EnumInt() in input_types:
         out[EnumInt()] = [(lambda i: lambda get: EnumIntLit(i))(i) for i in range(4)]
+
+    if ClockInt() in input_types:
+        out[ClockInt()] = [lambda get: Lit(0, ClockInt())]
 
     return out
 

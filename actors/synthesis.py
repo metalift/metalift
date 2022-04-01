@@ -331,6 +331,7 @@ def synthesize_actor(
                         ]
                         if useOpList
                         else [
+                            opPrecondition(origArgs[1:]),
                             supportedCommand(beforeStateForPS, origArgs[1:]),
                         ]
                     ),
