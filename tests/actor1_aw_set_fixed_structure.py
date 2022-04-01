@@ -17,28 +17,24 @@ base_depth = 1
 
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    return Eq(
+    core = auto_grammar(
+        Bool(), # query return type?
+        base_depth + 1,
+        inputState, synthState, *queryParams,
         Call(
-            "set-member",
+            "map-get",
             Bool(),
+            Choose(
+                TupleGet(synthState, IntLit(0)),
+                TupleGet(synthState, IntLit(1))
+            ),
             queryParams[0],
-            inputState
-        ),
-        auto_grammar(
-            Bool(),
-            base_depth + 1,
-            inputState, synthState, *queryParams,
-            Call(
-                "map-get",
-                Bool(),
-                Choose(
-                    TupleGet(synthState, IntLit(0)),
-                    TupleGet(synthState, IntLit(1))
-                ),
-                queryParams[0],
-                BoolLit(False)
-            )
+            BoolLit(False)
         )
+    )
+    return Choose(
+        core,
+        Eq(core, core)
     )
 
 
