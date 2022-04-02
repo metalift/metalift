@@ -4,7 +4,7 @@ import re
 import pyparsing as pp
 from ir import Expr, Var
 from llvmlite.binding import ValueRef
-from typing import Any, List, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
 
 def generateAST(expr: str) -> List[Any]:
@@ -139,6 +139,7 @@ def toRosette(
     invGuess: List[Any],
     unboundedInts: bool,
     listBound: int,
+    writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
 ) -> None:
 
     f = open(filename, "w")
@@ -158,7 +159,11 @@ def toRosette(
 
     # inv and ps grammar definition
     for g in invAndPs:
-        print(g.toRosette(), "\n", file=f)
+        writeTo = None
+        if writeChoicesTo != None:
+            writeChoicesTo[g.args[0]] = {}  # type: ignore
+            writeTo = writeChoicesTo[g.args[0]]  # type: ignore
+        print(g.toRosette(writeTo), "\n", file=f)
 
     # inv and ps declaration
     print(generateInvPs(loopAndPsInfo), file=f)

@@ -1,6 +1,7 @@
 from enum import Enum
+import enum
 
-from llvmlite.binding import ValueRef, TypeRef
+from llvmlite.binding import ValueRef, TypeRef, common
 from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Union
@@ -452,7 +453,9 @@ class Expr:
                 + ")"
             )
 
-    def toRosette(self) -> str:
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
         listFns = {
             "list_get": "list-ref-noerr",
             "list_append": "list-append",
@@ -559,6 +562,10 @@ class Expr:
             )
 
             defs = "[rv (choose %s)]\n" % rewritten.toRosette()
+
+            if writeChoicesTo != None:
+                for i, e in enumerate(commonExprs):
+                    writeChoicesTo[f"v{i}"] = e  # type: ignore
 
             defs = defs + "\n".join(
                 "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
