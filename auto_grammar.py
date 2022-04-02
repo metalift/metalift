@@ -50,6 +50,7 @@ def get_expansions(
         ]
 
         out[Bool()].append(lambda get: Eq(get(Set(t)), get(Set(t))))
+        out[Bool()].append(lambda get: Eq(get(Set(t)), Call("set-create", Set(t))))
         out[Bool()].append(
             lambda get: Call("set-subset", Bool(), get(Set(t)), get(Set(t)))
         )
@@ -91,7 +92,7 @@ def get_expansions(
             out[EnumInt()] = []
         out[EnumInt()] += [(lambda i: lambda get: EnumIntLit(i))(i) for i in range(4)]
 
-    if ClockInt() in available_types:
+    if ClockInt() in input_types:
         if ClockInt() not in out:
             out[ClockInt()] = []
         out[ClockInt()] += [lambda get: Lit(0, ClockInt())]

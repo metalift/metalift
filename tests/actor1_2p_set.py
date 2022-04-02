@@ -13,7 +13,31 @@ from synthesize_auto import synthesize
 base_depth = 1
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, *queryParams)
+    inputCalc = auto_grammar(
+        Bool(), # query return type?
+        base_depth,
+        inputState, *queryParams,
+    )
+
+    synthCalc = Eq(Call(
+        "test_response",
+        Int(), # query return type?
+        synthState, *queryParams,
+    ), IntLit(1))
+
+    random = auto_grammar(
+        Bool(),
+        base_depth,
+        inputState, synthState, *queryParams
+    )
+
+    return Choose(
+        random,
+        And(
+            Eq(inputCalc, synthCalc),
+            random
+        )
+    )
 
 
 def grammarStateInvariant(synthState):
@@ -117,5 +141,8 @@ if __name__ == "__main__":
             targetLang,
             synthesize,
             filename, fnNameBase, loopsFile, cvcPath, useOpList,
-            lat.gen_structures()
+            lat.gen_structures(),
+            stateTypeHint=Set(OpaqueInt()),
+            opArgTypeHint=[EnumInt(), OpaqueInt()],
+            queryArgTypeHint=[OpaqueInt()],
         )
