@@ -425,7 +425,18 @@ def synthesize_actor(
 
         return (
             Implies(
-                observeEquivalence(beforeState, beforeStateForQuery, newArgs[1:]),  # type: ignore
+                And(
+                    observeEquivalence(beforeState, beforeStateForQuery, newArgs[1:]),  # type: ignore
+                    *(
+                        [
+                            opsListInvariant(
+                                fnNameBase, beforeStateForQuery, synthStateType, opType
+                            ),
+                        ]
+                        if useOpList
+                        else []
+                    ),
+                ),
                 Eq(origReturn, Call(f"{fnNameBase}_response", origReturn.type, *newArgs)),  # type: ignore
             ),
             [origReturn] + newArgs,

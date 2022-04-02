@@ -21,16 +21,6 @@ def grammarEquivalence(inputState, synthState, queryParams):
         Bool(), # query return type?
         base_depth + 1,
         inputState, synthState, *queryParams,
-        Call(
-            "map-get",
-            ClockInt(),
-            Choose(
-                TupleGet(synthState, IntLit(0)),
-                TupleGet(synthState, IntLit(1))
-            ),
-            queryParams[0],
-            IntLit(0)
-        )
     )
     return Choose(
         core,
@@ -96,20 +86,7 @@ def inOrder(arg1, arg2):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    setContainTransformed = auto_grammar(
-        Bool(), base_depth + 1,
-        *ci.readVars,
-        Call(
-            "map-get",
-            ClockInt(),
-            Choose(
-                TupleGet(ci.readVars[0], IntLit(0)),
-                TupleGet(ci.readVars[0], IntLit(1))
-            ),
-            ci.readVars[1],
-            IntLit(0)
-        )
-    )
+    setContainTransformed = auto_grammar(Bool(), base_depth + 1, *ci.readVars)
 
     summary = Ite(setContainTransformed, IntLit(1), IntLit(0))
 
@@ -137,14 +114,7 @@ def grammar(ci: CodeInfo):
                     TupleGet(inputState, IntLit(i)),
                     fold_conditions(auto_grammar(
                         TupleGet(inputState, IntLit(i)).type, base_depth,
-                        *args[1:],
-                        Call("map-create", Map(OpaqueInt(), ClockInt())),
-                        Call(
-                            "map-singleton",
-                            Map(OpaqueInt(), ClockInt()),
-                            args[1],
-                            args[-1]
-                        )
+                        *args[1:]
                     ))
                 )
                 for i in range(len(synthStateStructure))
@@ -163,7 +133,7 @@ def targetLang():
     return []
 
 def opPrecondition(op):
-    return Ge(op[2], IntLit(1))
+    return Ge(op[-1], IntLit(1))
 
 if __name__ == "__main__":
     mode = sys.argv[1]
