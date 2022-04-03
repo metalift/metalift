@@ -180,7 +180,11 @@ def auto_grammar(
                 except KeyError:
                     pass
 
-            if t in next_pool and isinstance(next_pool[t], Expr) and next_pool[t].kind == Expr.Kind.Choose:
+            if (
+                t in next_pool
+                and isinstance(next_pool[t], Expr)
+                and next_pool[t].kind == Expr.Kind.Choose
+            ):
                 existing_set = set(next_pool[t].args)
                 new_elements = [e for e in new_elements if e not in existing_set]
 
