@@ -14,6 +14,9 @@ class Lattice:
     def bottom(self) -> ir.Expr:
         raise NotImplementedError()
 
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        raise NotImplementedError()
+
 
 @dataclass(frozen=True)
 class MaxInt(Lattice):
@@ -30,7 +33,14 @@ class MaxInt(Lattice):
         )
 
     def bottom(self) -> ir.Expr:
+        # only really makes sense for clocks, for others is just a default
         return ir.Lit(0, self.int_type)
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        if self.int_type == ir.ClockInt():
+            return ir.Ge(v, self.bottom())
+        else:
+            return ir.BoolLit(True)
 
 
 @dataclass(frozen=True)
@@ -44,6 +54,9 @@ class PosBool(Lattice):
     def bottom(self) -> ir.Expr:
         return ir.BoolLit(False)
 
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        return ir.BoolLit(True)
+
 
 @dataclass(frozen=True)
 class NegBool(Lattice):
@@ -54,6 +67,9 @@ class NegBool(Lattice):
         return ir.And(a, b)
 
     def bottom(self) -> ir.Expr:
+        return ir.BoolLit(True)
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
 
 
@@ -69,6 +85,9 @@ class Set(Lattice):
 
     def bottom(self) -> ir.Expr:
         return ir.Call("set-create", ir.Set(self.innerType))
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        return ir.BoolLit(True)
 
 
 @dataclass(frozen=True)
@@ -95,6 +114,23 @@ class Map(Lattice):
 
     def bottom(self) -> ir.Expr:
         return ir.Call("map-create", self.ir_type())
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        merge_a = ir.Var("merge_into", ir.Bool())
+        merge_b = ir.Var("merge_v", self.valueType.ir_type())
+
+        return ir.Call(
+            "map-fold-values",
+            ir.Bool(),
+            v,
+            ir.Lambda(
+                ir.Bool(),
+                ir.And(merge_a, self.valueType.check_is_valid(merge_b)),
+                merge_b,
+                merge_a,
+            ),
+            ir.BoolLit(True),
+        )
 
 
 @dataclass(frozen=True)
@@ -142,6 +178,12 @@ class CascadingTuple(Lattice):
 
     def bottom(self) -> ir.Expr:
         return ir.MakeTuple(self.l1.bottom(), self.l2.bottom())
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        return ir.And(
+            self.l1.check_is_valid(ir.TupleGet(v, ir.IntLit(0))),
+            self.l2.check_is_valid(ir.TupleGet(v, ir.IntLit(1))),
+        )
 
 
 def gen_types(depth: int) -> typing.Iterator[ir.Type]:

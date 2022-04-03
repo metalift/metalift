@@ -25,28 +25,17 @@ def grammarEquivalence(inputState, synthState, queryParams):
 
 
 def grammarStateInvariant(synthState):
-    merge_a = Var("merge_into", Bool())
-    merge_b = Var("merge_v", synthStateStructure[0].valueType.ir_type())
+    state_valid = And(*[
+        synthStateStructure[i].check_is_valid(
+            TupleGet(synthState, IntLit(i))
+        )
+        for i in range(len(synthStateStructure))
+    ])
 
-    valid_clocks = Call( # make sure none of the clocks are bottom
-        "map-fold-values",
-        ClockInt(),
-        Choose(
-            TupleGet(synthState, IntLit(0)),
-            TupleGet(synthState, IntLit(1)),
-        ),
-        Lambda(
-            Bool(),
-            And(
-                merge_a,
-                Gt(merge_b, synthStateStructure[0].valueType.bottom())
-            ),
-            merge_b, merge_a
-        ),
-        BoolLit(True)
+    return And(
+        state_valid,
+        auto_grammar(Bool(), base_depth, synthState)
     )
-
-    return auto_grammar(Bool(), base_depth, synthState, valid_clocks)
 
 
 def grammarSupportedCommand(synthState, args):

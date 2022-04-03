@@ -25,7 +25,17 @@ def grammarEquivalence(inputState, synthState, queryParams):
 
 
 def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), base_depth, synthState)
+    state_valid = And(*[
+        synthStateStructure[i].check_is_valid(
+            TupleGet(synthState, IntLit(i))
+        )
+        for i in range(len(synthStateStructure))
+    ])
+
+    return And(
+        state_valid,
+        auto_grammar(Bool(), base_depth, synthState)
+    )
 
 
 def grammarSupportedCommand(synthState, args):
