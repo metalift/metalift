@@ -237,24 +237,106 @@ def synthesize_actor(
 
     # analyze query just to grab the query parameters
     queryParameterTypes = []
+    beforeOrigState: Expr = None  # type: ignore
+    beforeSynthState: Expr = None  # type: ignore
+    extraVarsStateQuery: typing.Set[Expr] = set()
+    queryArgs: typing.List[Expr] = None  # type: ignore
+
+    mode = "before_state"
 
     def extractQueryParameters(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
         nonlocal queryParameterTypes
+        nonlocal beforeOrigState
+        nonlocal beforeSynthState
+        nonlocal queryArgs
 
         if queryArgTypeHint:
             queryParameterTypes = queryArgTypeHint
         else:
             queryParameterTypes = [parseTypeRef(v.type) for v in ps.operands[4:]]  # type: ignore
 
-        return (ps, ps.operands)  # type: ignore
+        origReturn = ps.operands[2]
+        origArgs = ps.operands[3:]
 
-    analyze(
+        beforeState = typing.cast(ValueRef, origArgs[0])
+        beforeOrigState = Var(
+            beforeState.name + f"_orig_for_{mode}_query", parseTypeRef(beforeState.type)
+        )
+        extraVarsStateQuery.add(beforeOrigState)
+
+        beforeSynthState = Var(beforeState.name + f"_for_{mode}_query", synthStateType)
+        extraVarsStateQuery.add(beforeSynthState)
+
+        queryArgs = [Var(v.name + f"_for_{mode}_query", parseTypeRef(v.type)) for v in origArgs[1:]]  # type: ignore
+        for q in queryArgs:
+            extraVarsStateQuery.add(q)
+
+        newArgs = list(origArgs)
+        newArgs[0] = beforeSynthState
+
+        same_check = Eq(origReturn, Call(f"{fnNameBase}_response", origReturn.type, *newArgs))  # type: ignore
+
+        return (
+            Implies(
+                And(
+                    Eq(beforeState, beforeOrigState),
+                    *[
+                        Eq(a, qa)  # type: ignore
+                        for a, qa in zip(origArgs[1:], queryArgs)
+                    ],
+                ),
+                Implies(same_check, Var("to_be_replaced_before_state", Bool()))
+                if mode == "before_state"
+                else same_check,
+            ),
+            [origReturn] + newArgs,
+        )
+
+    (vcVarsBeforeStateQuery, _, _, vcBeforeStateQuery, _,) = analyze(
         filename,
         fnNameBase + "_response",
         loopsFile,
         wrapSummaryCheck=extractQueryParameters,
+        fnNameSuffix=f"_{mode}_query",
         log=False,
     )
+
+    beforeOrigStateCopy = beforeOrigState
+    beforeSynthStateCopy = beforeSynthState
+    beforeQueryArgs = queryArgs
+
+    mode = "after_state"
+
+    (vcVarsAfterStateQuery, _, _, vcAfterStateQuery, _,) = analyze(
+        filename,
+        fnNameBase + "_response",
+        loopsFile,
+        wrapSummaryCheck=extractQueryParameters,
+        fnNameSuffix=f"_{mode}_query",
+        log=False,
+    )
+
+    afterOrigState = beforeOrigState
+    afterSynthState = beforeSynthState
+    afterQueryArgs = queryArgs
+
+    mode = "init_state"
+
+    (vcVarsInitStateQuery, _, _, vcInitStateQuery, _,) = analyze(
+        filename,
+        fnNameBase + "_response",
+        loopsFile,
+        wrapSummaryCheck=extractQueryParameters,
+        fnNameSuffix=f"_{mode}_query",
+        log=False,
+    )
+
+    initStateOrigState = beforeOrigState
+    initStateSynthState = beforeSynthState
+    initStateQueryArgs = queryArgs
+
+    beforeOrigState = beforeOrigStateCopy
+    beforeSynthState = beforeSynthStateCopy
     # end query param extraction
 
     # begin state transition (in order)
@@ -281,6 +363,9 @@ def synthesize_actor(
         opType = Tuple(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
         if useOpList:
             synthStateType = Tuple(*synthStateType.args, List(opType))
+            beforeSynthState.type = synthStateType
+            afterSynthState.type = synthStateType
+            initStateSynthState.type = synthStateType
 
         stateTransitionArgs = [
             Var(f"state_transition_arg_{i}", parseTypeRef(origArgs[i + 1].type))  # type: ignore
@@ -322,6 +407,14 @@ def synthesize_actor(
                     observeEquivalence(
                         beforeStateOrig, beforeStateForPS, queryParamVars
                     ),
+                    And(
+                        Eq(beforeStateOrig, beforeOrigState),
+                        Eq(beforeStateForPS, beforeSynthState),
+                        *[
+                            Eq(a1, a2)
+                            for a1, a2 in zip(queryParamVars, beforeQueryArgs)
+                        ],
+                    ),
                     *(
                         [
                             opsListInvariant(
@@ -337,18 +430,39 @@ def synthesize_actor(
                     ),
                     Eq(newReturn, Call(f"{fnNameBase}_next_state", newReturn.type, *newArgs)),  # type: ignore
                 ),
-                And(
-                    observeEquivalence(afterStateOrig, afterStateForPS, queryParamVars),
-                    *(
-                        [
+                vcBeforeStateQuery.rewrite(
+                    {
+                        "to_be_replaced_before_state": And(
+                            observeEquivalence(
+                                afterStateOrig, afterStateForPS, queryParamVars
+                            ),
                             Implies(
-                                inOrder(origArgs[1:], stateTransitionArgs),
-                                supportedCommand(afterStateForPS, stateTransitionArgs),
-                            )
-                        ]
-                        if not useOpList
-                        else []
-                    ),
+                                And(
+                                    Eq(afterStateOrig, afterOrigState),
+                                    Eq(afterStateForPS, afterSynthState),
+                                    *[
+                                        Eq(a1, a2)
+                                        for a1, a2 in zip(
+                                            queryParamVars, afterQueryArgs
+                                        )
+                                    ],
+                                ),
+                                vcAfterStateQuery,
+                            ),
+                            *(
+                                [
+                                    Implies(
+                                        inOrder(origArgs[1:], stateTransitionArgs),
+                                        supportedCommand(
+                                            afterStateForPS, stateTransitionArgs
+                                        ),
+                                    )
+                                ]
+                                if not useOpList
+                                else []
+                            ),
+                        ),
+                    }
                 ),
             ),
             [newReturn] + newArgs,  # type: ignore
@@ -369,7 +483,9 @@ def synthesize_actor(
         log=log,
     )
 
-    vcVarsStateTransition = vcVarsStateTransition.union(extraVarsStateTransition)
+    vcVarsStateTransition = vcVarsStateTransition.union(extraVarsStateTransition).union(
+        vcVarsBeforeStateQuery.union(vcVarsAfterStateQuery).union(extraVarsStateQuery)
+    )
 
     if opArgTypeHint:
         for i in range(len(opArgTypeHint)):
@@ -409,8 +525,6 @@ def synthesize_actor(
     # end state transition (in order)
 
     # begin query
-    extraVarsQuery = set()
-
     def summaryWrapQuery(ps: MLInst) -> typing.Tuple[Expr, typing.List[Expr]]:
         origReturn = ps.operands[2]
         origArgs = ps.operands[3:]
@@ -418,39 +532,23 @@ def synthesize_actor(
         beforeState = typing.cast(ValueRef, origArgs[0])
 
         beforeStateForQuery = Var(beforeState.name + "_for_query", synthStateType)
-        extraVarsQuery.add(beforeStateForQuery)
 
         newArgs = list(origArgs)
         newArgs[0] = beforeStateForQuery
 
+        # unused, but summary wrap needed to swap in synth state argument
         return (
-            Implies(
-                And(
-                    observeEquivalence(beforeState, beforeStateForQuery, newArgs[1:]),  # type: ignore
-                    *(
-                        [
-                            opsListInvariant(
-                                fnNameBase, beforeStateForQuery, synthStateType, opType
-                            ),
-                        ]
-                        if useOpList
-                        else []
-                    ),
-                ),
-                Eq(origReturn, Call(f"{fnNameBase}_response", origReturn.type, *newArgs)),  # type: ignore
-            ),
+            ps,  # type: ignore
             [origReturn] + newArgs,
         )
 
-    (vcVarsQuery, invAndPsQuery, predsQuery, vcQuery, loopAndPsInfoQuery) = analyze(
+    (_, invAndPsQuery, predsQuery, _, loopAndPsInfoQuery) = analyze(
         filename,
         fnNameBase + "_response",
         loopsFile,
         wrapSummaryCheck=summaryWrapQuery,
         log=log,
     )
-
-    vcVarsQuery = vcVarsQuery.union(extraVarsQuery)
 
     if queryArgTypeHint:
         for i in range(len(queryArgTypeHint)):
@@ -501,6 +599,17 @@ def synthesize_actor(
                     observeEquivalence(
                         returnedInitState, synthInitState, queryParamVars
                     ),
+                    Implies(
+                        And(
+                            Eq(returnedInitState, initStateOrigState),
+                            Eq(synthInitState, initStateSynthState),
+                            *[
+                                Eq(a1, a2)
+                                for a1, a2 in zip(queryParamVars, initStateQueryArgs)
+                            ],
+                        ),
+                        vcInitStateQuery,
+                    ),
                     opsListInvariant(fnNameBase, synthInitState, synthStateType, opType)
                     if useOpList
                     else Implies(
@@ -526,7 +635,9 @@ def synthesize_actor(
         log=log,
     )
 
-    vcVarsInitState = vcVarsInitState.union(extraVarsInitState)
+    vcVarsInitState = vcVarsInitState.union(extraVarsInitState).union(
+        vcVarsInitStateQuery
+    )
     loopAndPsInfoInitState[0].retT = loopAndPsInfoInitState[0].modifiedVars[0].type
     loopAndPsInfoInitState[0].modifiedVars = []
     initStateSynthNode = initState()
@@ -604,7 +715,8 @@ def synthesize_actor(
     if log:
         print("====== synthesis")
 
-    combinedVCVars = vcVarsStateTransition.union(vcVarsQuery).union(vcVarsInitState)
+    combinedVCVars = vcVarsStateTransition.union(vcVarsInitState)
+    # .union(vcVarsQuery)
 
     combinedInvAndPs = (
         invAndPsStateTransition
@@ -614,7 +726,7 @@ def synthesize_actor(
         + invAndPsSupported
     )
 
-    combinedPreds = predsStateTransition + predsQuery + predsInitState
+    combinedPreds = predsStateTransition + predsInitState + predsQuery
 
     combinedLoopAndPsInfo: typing.List[Union[CodeInfo, Expr]] = (
         loopAndPsInfoStateTransition
@@ -623,7 +735,7 @@ def synthesize_actor(
         + invAndPsEquivalence  # type: ignore
         + invAndPsSupported  # type: ignore
     )
-    combinedVC = And(vcStateTransition, vcQuery, vcInitState)
+    combinedVC = And(vcStateTransition, vcInitState)
 
     lang = targetLang()
     if useOpList:

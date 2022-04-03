@@ -17,14 +17,10 @@ base_depth = 1
 
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    core = auto_grammar(
-        Bool(), # query return type?
-        base_depth + 1,
-        inputState, synthState, *queryParams,
-    )
-    return Choose(
-        core,
-        Eq(core, core)
+    return auto_grammar(
+        Bool(),
+        base_depth,
+        inputState, synthState, *queryParams
     )
 
 

@@ -17,40 +17,10 @@ base_depth = 1
 
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    inputCalc = auto_grammar(
-        Bool(), # query return type?
-        base_depth,
-        inputState, *queryParams,
-    )
-
-    synthCalc = Eq(Call(
-        "test_response",
-        Int(), # query return type?
-        synthState, *queryParams,
-    ), IntLit(1))
-
-    random = auto_grammar(
+    return auto_grammar(
         Bool(),
         base_depth,
-        inputState, synthState, *queryParams,
-        Call(
-            "map-get",
-            ClockInt(),
-            Choose(
-                TupleGet(synthState, IntLit(0)),
-                TupleGet(synthState, IntLit(1))
-            ),
-            queryParams[0],
-            IntLit(0)
-        )
-    )
-
-    return Choose(
-        random,
-        And(
-            Eq(inputCalc, synthCalc),
-            random
-        )
+        inputState, synthState, *queryParams
     )
 
 
