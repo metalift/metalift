@@ -4,32 +4,54 @@ from ir import *
 from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
-from auto_grammar import auto_grammar
+from auto_grammar import auto_grammar, expand_lattice_logic
 import sys
 
 from synthesize_auto import synthesize
 
 base_depth = 1
 
+def fold_conditions(out, conditions):
+    for c in conditions:
+        out = Ite(c, out, out)
+    return out
+
 def grammarEquivalence(inputState, synthState, queryParams):
     return auto_grammar(
-        Bool(), base_depth + 1, inputState, synthState, *queryParams,
-        enable_ite=True
+        Bool(),
+        base_depth,
+        inputState, synthState, *queryParams
     )
 
 
-def grammarStateInvariant(synthState):
-    return auto_grammar(Bool(), base_depth, synthState)
+def grammarStateInvariant(synthState, synthStateStructure):
+    state_valid = And(*[
+        synthStateStructure[i].check_is_valid(
+            TupleGet(synthState, IntLit(i))
+        )
+        for i in range(len(synthStateStructure))
+    ])
+
+    return And(
+        state_valid,
+        auto_grammar(Bool(), base_depth, synthState)
+    )
 
 
-def grammarSupportedCommand(synthState, args):
-    conditions = [Eq(args[0], BoolIntLit(1))]
+def grammarSupportedCommand(synthState, args, synthStateStructure):
+    conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
-    out = auto_grammar(Bool(), base_depth + 1, synthState, *args, enable_ite=True)
-    for c in conditions:
-        out = Ite(c, out, out)
+    out = auto_grammar(
+        Bool(), base_depth + 1,
+        synthState, *args,
+        *expand_lattice_logic(*[
+            (TupleGet(synthState, IntLit(i)), synthStateStructure[i])
+            for i in range(len(synthStateStructure))
+        ]),
+        enable_ite=True
+    )
 
-    return out
+    return fold_conditions(out, conditions)
 
 
 def inOrder(arg1, arg2):

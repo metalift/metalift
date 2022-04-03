@@ -44,11 +44,12 @@ def grammarSupportedCommand(synthState, args, synthStateStructure):
 
     out = auto_grammar(
         Bool(), base_depth + 1,
-        synthState, *args[1:],
+        synthState, *args,
         *expand_lattice_logic(*[
             (TupleGet(synthState, IntLit(i)), synthStateStructure[i])
             for i in range(len(synthStateStructure))
-        ])
+        ]),
+        enable_ite=True
     )
 
     return fold_conditions(out, conditions)

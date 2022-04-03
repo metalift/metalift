@@ -196,7 +196,7 @@ def auto_grammar(
 
         if enable_ite and Bool() in pool:
             for t in pool.keys():
-                if t != Bool():
+                if t.name != "Set" and t.name != "Map":
                     next_pool[t] = Choose(
                         next_pool[t], Ite(pool[Bool()], pool[t], pool[t])
                     )
