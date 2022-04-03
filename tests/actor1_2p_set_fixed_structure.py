@@ -152,7 +152,7 @@ if __name__ == "__main__":
             targetLang,
             synthesize,
             stateTypeHint=Set(OpaqueInt()),
-            opArgTypeHint=[EnumInt(), OpaqueInt()],
+            opArgTypeHint=[BoolInt(), OpaqueInt()],
             queryArgTypeHint=[OpaqueInt()],
             useOpList = useOpList,
             listBound=2,

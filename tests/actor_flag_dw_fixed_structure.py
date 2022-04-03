@@ -26,7 +26,7 @@ def grammarStateInvariant(synthState):
 
 
 def grammarSupportedCommand(synthState, args):
-    conditions = [Eq(args[0], EnumIntLit(1))]
+    conditions = [Eq(args[0], BoolIntLit(1))]
 
     out = auto_grammar(Bool(), base_depth + 1, synthState, *args, enable_ite=True)
     for c in conditions:
@@ -71,7 +71,7 @@ def grammar(ci: CodeInfo):
         inputState = ci.readVars[0]
         args = ci.readVars[1:]
 
-        conditions = [Eq(args[0], EnumIntLit(1))]
+        conditions = [Eq(args[0], BoolIntLit(1))]
         def fold_conditions(out):
             for c in conditions:
                 out = Ite(c, out, out)
@@ -134,9 +134,9 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
-            stateTypeHint=EnumInt(),
-            opArgTypeHint=[EnumInt(), ClockInt()],
-            queryRetTypeHint=EnumInt(),
+            stateTypeHint=BoolInt(),
+            opArgTypeHint=[BoolInt(), ClockInt()],
+            queryRetTypeHint=BoolInt(),
             useOpList = useOpList,
             listBound=2,
         )

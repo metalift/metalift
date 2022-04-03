@@ -123,6 +123,6 @@ if __name__ == "__main__":
             filename, fnNameBase, loopsFile, cvcPath, useOpList,
             lat.gen_structures(),
             stateTypeHint=Set(OpaqueInt()),
-            opArgTypeHint=[EnumInt(), OpaqueInt()],
+            opArgTypeHint=[BoolInt(), OpaqueInt()],
             queryArgTypeHint=[OpaqueInt()],
         )

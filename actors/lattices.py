@@ -190,7 +190,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
     if depth == 1:
         yield ir.Int()
         yield ir.ClockInt()
-        yield ir.EnumInt()
+        yield ir.BoolInt()
         yield ir.OpaqueInt()
         yield ir.Bool()
     else:
@@ -199,7 +199,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
             # TODO: anything else?
 
 
-int_like = {ir.Int().name, ir.ClockInt().name, ir.EnumInt().name, ir.OpaqueInt().name}
+int_like = {ir.Int().name, ir.ClockInt().name, ir.BoolInt().name, ir.OpaqueInt().name}
 set_supported_elem = int_like
 
 

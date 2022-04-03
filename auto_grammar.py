@@ -6,7 +6,7 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-equality_supported_types = [Bool(), Int(), ClockInt(), EnumInt(), OpaqueInt()]
+equality_supported_types = [Bool(), Int(), ClockInt(), BoolInt(), OpaqueInt()]
 comparison_supported_types = [Int, ClockInt()]
 
 
@@ -89,10 +89,10 @@ def get_expansions(
         if t.name == "Map":
             gen_map_ops(t.args[0], t.args[1])
 
-    if EnumInt() in available_types:
-        if EnumInt() not in out:
-            out[EnumInt()] = []
-        out[EnumInt()] += [(lambda i: lambda get: EnumIntLit(i))(i) for i in range(4)]
+    if BoolInt() in available_types:
+        if BoolInt() not in out:
+            out[BoolInt()] = []
+        out[BoolInt()] += [(lambda i: lambda get: BoolIntLit(i))(i) for i in range(2)]
 
     if ClockInt() in input_types:
         if ClockInt() not in out:
@@ -176,14 +176,22 @@ def auto_grammar(
                 except KeyError:
                     pass
 
-            if t in pool:
-                next_pool[t] = Choose(next_pool[t], *new_elements)
-            elif len(new_elements) > 0:
-                next_pool[t] = Choose(*new_elements)
+            if t in next_pool:
+                existing_set = set(next_pool[t].args)
+                new_elements = [e for e in new_elements if e not in existing_set]
+
+            if len(new_elements) > 0:
+                if t in pool:
+                    next_pool[t] = Choose(next_pool[t], *new_elements)
+                else:
+                    next_pool[t] = Choose(*new_elements)
 
         if enable_ite and Bool() in pool:
             for t in pool.keys():
-                next_pool[t] = Choose(next_pool[t], Ite(pool[Bool()], pool[t], pool[t]))
+                if t != Bool():
+                    next_pool[t] = Choose(
+                        next_pool[t], Ite(pool[Bool()], pool[t], pool[t])
+                    )
 
         pool = next_pool
 

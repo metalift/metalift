@@ -21,7 +21,7 @@ class Type:
         if (
             self.name == "Int"
             or self.name == "ClockInt"
-            or self.name == "EnumInt"
+            or self.name == "BoolInt"
             or self.name == "OpaqueInt"
         ):
             return "Int"
@@ -49,7 +49,7 @@ class Type:
     def erase(self) -> "Type":
         if (
             self.name == "ClockInt"
-            or self.name == "EnumInt"
+            or self.name == "BoolInt"
             or self.name == "OpaqueInt"
         ):
             return Int()
@@ -89,8 +89,8 @@ def ClockInt() -> Type:
     return Type("ClockInt")
 
 
-def EnumInt() -> Type:
-    return Type("EnumInt")
+def BoolInt() -> Type:
+    return Type("BoolInt")
 
 
 def OpaqueInt() -> Type:
@@ -231,14 +231,19 @@ class Expr:
 
     # commented out so that common exprs can be detected
     #
-    # def __eq__(self, other):
-    #   if isinstance(other, Expr):
-    #     if self.kind != other.kind or len(self.args) != len(other.args):
-    #       return False
-    #     else:
-    #       return all( a1 == a2 if isinstance(a1, type) and isinstance(a2, type) else a1.__eq__(a2)
-    #                   for a1,a2 in zip(self.args, other.args))
-    #   return NotImplemented
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Expr):
+            if self.kind != other.kind or len(self.args) != len(other.args):
+                return False
+            else:
+                return all(
+                    a1 == a2
+                    if isinstance(a1, Type) and isinstance(a2, Type)
+                    else a1.__eq__(a2)
+                    for a1, a2 in zip(self.args, other.args)
+                )
+        return NotImplemented
+
     #
     # def __ne__(self, other):
     #   x = self.__eq__(other)
@@ -797,8 +802,8 @@ def IntLit(val: int) -> Expr:
     return Lit(val, Int())
 
 
-def EnumIntLit(val: int) -> Expr:
-    return Lit(val, EnumInt())
+def BoolIntLit(val: int) -> Expr:
+    return Lit(val, BoolInt())
 
 
 def BoolLit(val: bool) -> Expr:
