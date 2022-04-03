@@ -14,6 +14,9 @@ class Lattice:
     def bottom(self) -> ir.Expr:
         raise NotImplementedError()
 
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        raise NotImplementedError()
+
 
 @dataclass(frozen=True)
 class MaxInt(Lattice):
@@ -30,7 +33,14 @@ class MaxInt(Lattice):
         )
 
     def bottom(self) -> ir.Expr:
+        # only really makes sense for clocks, for others is just a default
         return ir.Lit(0, self.int_type)
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        if self.int_type == ir.ClockInt():
+            return ir.Ge(v, self.bottom())
+        else:
+            return ir.BoolLit(True)
 
 
 @dataclass(frozen=True)
@@ -44,6 +54,9 @@ class PosBool(Lattice):
     def bottom(self) -> ir.Expr:
         return ir.BoolLit(False)
 
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        return ir.BoolLit(True)
+
 
 @dataclass(frozen=True)
 class NegBool(Lattice):
@@ -54,6 +67,9 @@ class NegBool(Lattice):
         return ir.And(a, b)
 
     def bottom(self) -> ir.Expr:
+        return ir.BoolLit(True)
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
 
 
@@ -69,6 +85,52 @@ class Set(Lattice):
 
     def bottom(self) -> ir.Expr:
         return ir.Call("set-create", ir.Set(self.innerType))
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        return ir.BoolLit(True)
+
+
+@dataclass(frozen=True)
+class Map(Lattice):
+    keyType: ir.Type
+    valueType: Lattice
+
+    def ir_type(self) -> ir.Type:
+        return ir.Map(self.keyType, self.valueType.ir_type())
+
+    def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
+        v_a = ir.Var("map_merge_a", self.valueType.ir_type())
+        v_b = ir.Var("map_merge_b", self.valueType.ir_type())
+
+        return ir.Call(
+            "map-union",
+            ir.Map(self.keyType, self.valueType.ir_type()),
+            a,
+            b,
+            ir.Lambda(
+                self.valueType.ir_type(), self.valueType.merge(v_a, v_b), v_a, v_b
+            ),
+        )
+
+    def bottom(self) -> ir.Expr:
+        return ir.Call("map-create", self.ir_type())
+
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        merge_a = ir.Var("merge_into", ir.Bool())
+        merge_b = ir.Var("merge_v", self.valueType.ir_type())
+
+        return ir.Call(
+            "map-fold-values",
+            ir.Bool(),
+            v,
+            ir.Lambda(
+                ir.Bool(),
+                ir.And(merge_a, self.valueType.check_is_valid(merge_b)),
+                merge_b,
+                merge_a,
+            ),
+            ir.BoolLit(True),
+        )
 
 
 @dataclass(frozen=True)
@@ -117,12 +179,18 @@ class CascadingTuple(Lattice):
     def bottom(self) -> ir.Expr:
         return ir.MakeTuple(self.l1.bottom(), self.l2.bottom())
 
+    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
+        return ir.And(
+            self.l1.check_is_valid(ir.TupleGet(v, ir.IntLit(0))),
+            self.l2.check_is_valid(ir.TupleGet(v, ir.IntLit(1))),
+        )
+
 
 def gen_types(depth: int) -> typing.Iterator[ir.Type]:
     if depth == 1:
         yield ir.Int()
         yield ir.ClockInt()
-        yield ir.EnumInt()
+        yield ir.BoolInt()
         yield ir.OpaqueInt()
         yield ir.Bool()
     else:
@@ -131,30 +199,35 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
             # TODO: anything else?
 
 
-int_like = {ir.Int().name, ir.ClockInt().name, ir.EnumInt().name, ir.OpaqueInt().name}
-set_supported_elem = int_like
+int_like = {ir.Int().name, ir.ClockInt().name, ir.BoolInt().name, ir.OpaqueInt().name}
+comparable_int = {ir.Int().name, ir.ClockInt().name}
+set_supported_elem = {ir.Int().name, ir.OpaqueInt().name}
 
 
-def gen_lattice_types(depth: int) -> typing.Iterator[typing.Any]:
+def gen_lattice_types(depth: int) -> typing.Iterator[Lattice]:
     if depth == 1:
         yield PosBool()
         yield NegBool()
 
     for innerType in gen_types(depth):
-        if innerType.name in int_like:
+        if innerType.name in comparable_int:
             yield MaxInt(innerType)
 
     if depth > 1:
+        for innerLatticeType in gen_lattice_types(depth - 1):
+            yield innerLatticeType
+
         for innerType in gen_types(depth - 1):
             if innerType.name in set_supported_elem:
                 yield Set(innerType)
-            # TODO: maps
+
+        for keyType in gen_types(depth - 1):
+            if keyType.name in set_supported_elem:
+                for valueType in gen_lattice_types(depth - 1):
+                    yield Map(keyType, valueType)
 
         for innerTypePair in itertools.permutations(gen_lattice_types(depth - 1), 2):
             yield CascadingTuple(*innerTypePair)
-
-        for innerType in gen_lattice_types(depth - 1):
-            yield innerType
 
 
 def gen_structures() -> typing.Iterator[typing.Any]:

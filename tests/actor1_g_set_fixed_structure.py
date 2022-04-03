@@ -18,7 +18,11 @@ synthStateType = Tuple(
 
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, *queryParams)
+    return auto_grammar(
+        Bool(),
+        base_depth,
+        inputState, synthState, *queryParams
+    )
 
 
 def grammarStateInvariant(synthState):

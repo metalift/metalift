@@ -1,6 +1,7 @@
 from enum import Enum
+import enum
 
-from llvmlite.binding import ValueRef, TypeRef
+from llvmlite.binding import ValueRef, TypeRef, common
 from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Union
@@ -20,7 +21,7 @@ class Type:
         if (
             self.name == "Int"
             or self.name == "ClockInt"
-            or self.name == "EnumInt"
+            or self.name == "BoolInt"
             or self.name == "OpaqueInt"
         ):
             return "Int"
@@ -31,6 +32,8 @@ class Type:
         elif self.name == "Tuple":
             args = " ".join(a.toSMT() for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
+        elif self.name == "Map":
+            raise Exception("Map not supported")  # TODO
         else:
             return "(%s %s)" % (
                 self.name,
@@ -48,7 +51,7 @@ class Type:
     def erase(self) -> "Type":
         if (
             self.name == "ClockInt"
-            or self.name == "EnumInt"
+            or self.name == "BoolInt"
             or self.name == "OpaqueInt"
         ):
             return Int()
@@ -88,8 +91,8 @@ def ClockInt() -> Type:
     return Type("ClockInt")
 
 
-def EnumInt() -> Type:
-    return Type("EnumInt")
+def BoolInt() -> Type:
+    return Type("BoolInt")
 
 
 def OpaqueInt() -> Type:
@@ -119,6 +122,10 @@ def Fn(retT: Type, *argT: Type) -> Type:
 
 def Set(contentT: Type) -> Type:
     return Type("Set", contentT)
+
+
+def Map(keyT: Type, valT: Type) -> Type:
+    return Type("Map", keyT, valT)
 
 
 # first two types are not optional
@@ -161,6 +168,7 @@ class Expr:
         Choose = "choose"
         FnDecl = "fndecl"
         FnDeclNonRecursive = "fndeclnonrecursive"
+        Lambda = "lambda"
 
         Tuple = "tuple"
         TupleGet = "tupleGet"
@@ -225,14 +233,23 @@ class Expr:
 
     # commented out so that common exprs can be detected
     #
-    # def __eq__(self, other):
-    #   if isinstance(other, Expr):
-    #     if self.kind != other.kind or len(self.args) != len(other.args):
-    #       return False
-    #     else:
-    #       return all( a1 == a2 if isinstance(a1, type) and isinstance(a2, type) else a1.__eq__(a2)
-    #                   for a1,a2 in zip(self.args, other.args))
-    #   return NotImplemented
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Expr):
+            if (
+                self.kind != other.kind
+                or parseTypeRef(self.type).erase() != parseTypeRef(other.type).erase()
+                or len(self.args) != len(other.args)
+            ):
+                return False
+            else:
+                return all(
+                    a1 == a2
+                    if isinstance(a1, Type) and isinstance(a2, Type)
+                    else a1.__eq__(a2)
+                    for a1, a2 in zip(self.args, other.args)
+                )
+        return NotImplemented
+
     #
     # def __ne__(self, other):
     #   x = self.__eq__(other)
@@ -267,7 +284,7 @@ class Expr:
             retVal = []
 
             if self.args[0] == "set-create":
-                return f"(as set.empty {str(self.type)})"
+                return f"(as set.empty {self.type.toSMT()})"
 
             if self.args[0] == "tupleGet":
                 argvals = self.args[:-1]
@@ -368,7 +385,9 @@ class Expr:
         elif kind == Expr.Kind.Axiom:
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
             return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
-
+        elif kind == Expr.Kind.Lambda:
+            # TODO(shadaj): extract during filtering assuming no captures
+            raise Exception("Lambda not supported")
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
@@ -445,7 +464,9 @@ class Expr:
                 + ")"
             )
 
-    def toRosette(self) -> str:
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
         listFns = {
             "list_get": "list-ref-noerr",
             "list_append": "list-append",
@@ -553,6 +574,10 @@ class Expr:
 
             defs = "[rv (choose %s)]\n" % rewritten.toRosette()
 
+            if writeChoicesTo != None:
+                for i, e in enumerate(commonExprs):
+                    writeChoicesTo[f"v{i}"] = e  # type: ignore
+
             defs = defs + "\n".join(
                 "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
                 for i, e in enumerate(commonExprs)
@@ -562,6 +587,20 @@ class Expr:
 
         elif kind == Expr.Kind.Axiom:
             return ""  # axioms are only for verification
+        elif kind == Expr.Kind.Lambda:
+            args = " ".join(
+                [
+                    "%s" % (a.name)
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else "%s" % (a.args[0])
+                    for a in self.args[1:]
+                ]
+            )
+
+            return "(lambda (%s) %s)" % (
+                args,
+                self.args[0].toRosette(),
+            )
         elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
@@ -769,8 +808,8 @@ def IntLit(val: int) -> Expr:
     return Lit(val, Int())
 
 
-def EnumIntLit(val: int) -> Expr:
-    return Lit(val, EnumInt())
+def BoolIntLit(val: int) -> Expr:
+    return Lit(val, BoolInt())
 
 
 def BoolLit(val: bool) -> Expr:
@@ -818,6 +857,11 @@ def And(*args: Expr) -> Expr:
 
 
 def Or(*args: Expr) -> Expr:
+    if parseTypeRef(args[0].type) != Bool() or parseTypeRef(args[1].type) != Bool():
+        raise Exception(
+            f"Cannot apply OR to values of type {parseTypeRef(args[0].type).erase()}, {parseTypeRef(args[1].type).erase()}"
+        )
+
     return Expr(Expr.Kind.Or, Bool(), args)
 
 
@@ -891,6 +935,10 @@ def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Exp
     return Expr(
         Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
     )
+
+
+def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
+    return Expr(Expr.Kind.Lambda, Fn(returnT, *[a.type for a in args]), [body, *args])
 
 
 def FnDeclNonRecursive(

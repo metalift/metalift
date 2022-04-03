@@ -39,25 +39,47 @@ def parseCandidates(
     inCalls: typing.List[Any],
     fnsType: Dict[Any, Any],
     fnCalls: typing.List[Any],
+    extractedLambdas: typing.List[Expr],
     inFunctionName: str,
 ) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
     if not isinstance(candidate, Expr):
         return inCalls, fnCalls
     else:
+        for a in candidate.args:
+            parseCandidates(
+                a, inCalls, fnsType, fnCalls, extractedLambdas, inFunctionName
+            )
         if candidate.kind == Expr.Kind.Call:
+            print(candidate)
             if (
                 candidate.args[0] in fnsType.keys()
                 and candidate.args[0] != inFunctionName
             ):
                 fnCalls.append(candidate.args[0])
+            new_args = []
             for ar in candidate.args:
+                print(ar)
                 if not isinstance(ar, str):
                     if ar.type.name == "Function" and ar.args[0] in fnsType.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))
-        for a in candidate.args:
-            parseCandidates(a, inCalls, fnsType, fnCalls, inFunctionName)
+                        new_args.append(ar)
+                    elif ar.kind == Expr.Kind.Lambda:
+                        lambda_name = f"lambda_{len(extractedLambdas)}"
+                        extractedLambdas.append(
+                            FnDeclNonRecursive(
+                                lambda_name, ar.type.args[0], ar.args[0], *ar.args[1:]
+                            )
+                        )
+                        fnCalls.append(lambda_name)
+                        # inCalls.append((candidate.args[0], lambda_name))
+                        new_args.append(Var(lambda_name, ar.type))
+                    else:
+                        new_args.append(ar)
+                else:
+                    new_args.append(ar)
+            candidate.args = new_args
         return inCalls, fnCalls
 
 
@@ -77,14 +99,18 @@ def verify_synth_result(
 ) -> typing.Tuple[str, typing.List[str]]:
     inCalls: typing.List[Any] = []
     fnCalls: typing.List[Any] = []
+    extractedLambdas: typing.List[Expr] = []
     for ce in loopAndPsInfo:
         inCalls, fnCalls = parseCandidates(  # type: ignore
             candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
             inCalls,
             fnsType,
             fnCalls,
+            extractedLambdas,
             ce.name if isinstance(ce, CodeInfo) else ce.args[0],
         )
+
+    targetLang = targetLang + extractedLambdas
 
     for langFn in targetLang:
         if langFn.args[1] != None:
@@ -93,13 +119,18 @@ def verify_synth_result(
                 inCalls,
                 fnsType,
                 fnCalls,
+                extractedLambdas,
                 langFn.args[0],
             )
 
-    inCalls, fnCalls = parseCandidates(vc, inCalls, fnsType, fnCalls, None)  # type: ignore
+    inCalls, fnCalls = parseCandidates(vc, inCalls, fnsType, fnCalls, extractedLambdas, None)  # type: ignore
 
     inCalls = list(set(inCalls))
     fnCalls = list(set(fnCalls))
+
+    print(candidateDict)
+    print(extractedLambdas)
+    print(candidatesSMT)
 
     verifFile = synthDir + basename + f"_{uid}" + ".smt"
     toSMT(
