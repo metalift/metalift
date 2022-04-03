@@ -3,7 +3,7 @@ from ir import *
 from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
-from auto_grammar import auto_grammar
+from auto_grammar import auto_grammar, expand_lattice_logic
 import sys
 import os
 
@@ -41,29 +41,13 @@ def grammarStateInvariant(synthState):
 def grammarSupportedCommand(synthState, args):
     conditions = [Eq(args[0], IntLit(1))]
 
-    merge_a = Var("merge_a", synthStateStructure[0].valueType.ir_type())
-    merge_b = Var("merge_b", synthStateStructure[0].valueType.ir_type())
-
-    set_max = Call( # does the remove set have any concurrent values?
-        "map-fold-values",
-        ClockInt(),
-        Choose(
-            TupleGet(synthState, IntLit(0)),
-            TupleGet(synthState, IntLit(1))
-        ),
-        Lambda(
-            Bool(),
-            synthStateStructure[0].valueType.merge(merge_a, merge_b),
-            merge_a, merge_b
-        ),
-        IntLit(0)
-    )
-
     out = auto_grammar(
         Bool(), base_depth + 1,
         synthState, *args[1:],
-        set_max,
-        synthStateStructure[0].valueType.merge(set_max, set_max)
+        *expand_lattice_logic(*[
+            (TupleGet(synthState, IntLit(i)), synthStateStructure[i])
+            for i in range(len(synthStateStructure))
+        ])
     )
 
     for c in conditions:

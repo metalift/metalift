@@ -1,3 +1,5 @@
+import actors.lattices as lattices
+from actors.lattices import Lattice
 from ir import *
 
 import typing
@@ -186,3 +188,46 @@ def auto_grammar(
         pool = next_pool
 
     return pool[out_type]
+
+
+def expand_lattice_logic(*inputs: typing.Tuple[Expr, Lattice]) -> typing.List[Expr]:
+    lattice_to_exprs: typing.Dict[Lattice, typing.List[Expr]] = {}
+    for input, lattice in inputs:
+        if lattice not in lattice_to_exprs:
+            lattice_to_exprs[lattice] = []
+        lattice_to_exprs[lattice].append(input)
+
+    next_pool = dict(lattice_to_exprs)
+    for lattice in lattice_to_exprs.keys():
+        if isinstance(lattice, lattices.Map):
+            merge_a = Var("merge_a", lattice.valueType.ir_type())
+            merge_b = Var("merge_b", lattice.valueType.ir_type())
+            for value in lattice_to_exprs[lattice]:
+                value_max = Call(  # does the remove set have any concurrent values?
+                    "map-fold-values",
+                    lattice.valueType.ir_type(),
+                    value,
+                    Lambda(
+                        Bool(),
+                        lattice.valueType.merge(merge_a, merge_b),
+                        merge_a,
+                        merge_b,
+                    ),
+                    lattice.valueType.bottom(),
+                )
+
+                if lattice.valueType not in next_pool:
+                    next_pool[lattice.valueType] = []
+                if value_max not in next_pool[lattice.valueType]:
+                    next_pool[lattice.valueType].append(value_max)
+
+    lattice_to_exprs = next_pool
+    next_pool = dict(lattice_to_exprs)
+
+    for lattice in lattice_to_exprs.keys():
+        choices = Choose(*lattice_to_exprs[lattice])
+        lattice_to_exprs[lattice].append(lattice.merge(choices, choices))
+
+    lattice_to_exprs = next_pool
+
+    return [Choose(*lattice_to_exprs[lattice]) for lattice in lattice_to_exprs.keys()]
