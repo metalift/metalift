@@ -1,3 +1,4 @@
+from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
@@ -9,11 +10,7 @@ import os
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())), lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))]
-synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
-
 base_depth = 1
-
 
 def fold_conditions(out, conditions):
     for c in conditions:
@@ -28,7 +25,7 @@ def grammarEquivalence(inputState, synthState, queryParams):
     )
 
 
-def grammarStateInvariant(synthState):
+def grammarStateInvariant(synthState, synthStateStructure):
     state_valid = And(*[
         synthStateStructure[i].check_is_valid(
             TupleGet(synthState, IntLit(i))
@@ -42,8 +39,8 @@ def grammarStateInvariant(synthState):
     )
 
 
-def grammarSupportedCommand(synthState, args):
-    conditions = [Eq(a, auto_grammar(BoolInt(), 0)) for a in args if a.type == BoolInt()]
+def grammarSupportedCommand(synthState, args, synthStateStructure):
+    conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
     out = auto_grammar(
         Bool(), base_depth + 1,
@@ -66,13 +63,7 @@ def grammarQuery(ci: CodeInfo):
             *ci.readVars
         )
 
-        summary = auto_grammar(BoolInt(), 0)
-        for _ in range(base_depth):
-            summary = Choose(summary, Ite(
-                condition,
-                auto_grammar(BoolInt(), 0),
-                summary
-            ))
+        summary = Ite(condition, IntLit(1), IntLit(0))
     else:
         summary = auto_grammar(
             parseTypeRef(ci.retT), base_depth + 2,
@@ -83,7 +74,7 @@ def grammarQuery(ci: CodeInfo):
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo):
+def grammar(ci: CodeInfo, synthStateStructure):
     name = ci.name
 
     if name.startswith("inv"):
@@ -92,7 +83,7 @@ def grammar(ci: CodeInfo):
         inputState = ci.readVars[0]
         args = ci.readVars[1:]
 
-        conditions = [Eq(a, auto_grammar(a.type, 0)) for a in args if a.type == BoolInt()]
+        conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
         
         out = MakeTuple(
             *[
@@ -111,7 +102,7 @@ def grammar(ci: CodeInfo):
         return Synth(name, out, *ci.modifiedVars, *ci.readVars)
 
 
-def initState():
+def initState(synthStateStructure):
     return MakeTuple(
         *[elem.bottom() for elem in synthStateStructure]
     )
@@ -119,69 +110,69 @@ def initState():
 def targetLang():
     return []
 
-def inOrder(arg1, arg2):
-    # removes win
-    return Ite(
-        Lt(arg1[-1], arg2[-1]),  # if clocks in order
-        BoolLit(True),
-        Ite(
-            Eq(arg1[-1], arg2[-1]), # if clocks concurrent
+benchmarks = {
+    "add_wins": {
+        "inOrder": lambda arg1, arg2: Ite(
+            Lt(arg1[-1], arg2[-1]),  # if clocks in order
+            BoolLit(True),
             Ite(
-                Eq(arg1[0], IntLit(1)),  # if first command is insert
-                BoolLit(True),  # second can be insert or remove
-                Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
-            ),
-            BoolLit(False), # clocks out of order
-        )
-    )
-
-def opPrecondition(op):
-    return Ge(op[-1], IntLit(1))
+                Eq(arg1[-1], arg2[-1]), # if clocks concurrent
+                Ite(
+                    Eq(arg1[0], IntLit(1)),  # if first command is insert
+                    Eq(arg2[0], IntLit(1)), # second command must be insert
+                    BoolLit(True),  # second can be insert or remove
+                ),
+                BoolLit(False), # clocks out of order
+            )
+        ),
+        "opPrecondition": lambda op: Ge(op[-1], IntLit(1))
+    },
+    "remove_wins": {
+        "inOrder": lambda arg1, arg2: Ite(
+            Lt(arg1[-1], arg2[-1]),  # if clocks in order
+            BoolLit(True),
+            Ite(
+                Eq(arg1[-1], arg2[-1]), # if clocks concurrent
+                Ite(
+                    Eq(arg1[0], IntLit(1)),  # if first command is insert
+                    BoolLit(True),  # second can be insert or remove
+                    Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
+                ),
+                BoolLit(False), # clocks out of order
+            )
+        ),
+        "opPrecondition": lambda op: Ge(op[-1], IntLit(1))
+    }
+}
 
 if __name__ == "__main__":
     mode = sys.argv[1]
+    bench = sys.argv[2]
     filename = "tests/actor1_clock.ll"
     fnNameBase = "test"
     loopsFile = "tests/actor1_clock.loops"
     cvcPath = "cvc5"
 
-    if mode == "aci":
-        check_aci(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-        )
-    else:
-        useOpList = False
-        if mode == "synth-debug":
-            fastDebug = True
-        elif mode == "synth-oplist":
-            useOpList = True
-        elif mode == "synth-debug-oplist":
-            fastDebug = True
-            useOpList = True
+    useOpList = False
+    if mode == "synth-oplist":
+        useOpList = True
 
-        out = synthesize_actor(
-            filename,
-            fnNameBase,
-            loopsFile,
-            cvcPath,
-            synthStateType,
-            initState,
-            grammarStateInvariant,
-            grammarSupportedCommand,
-            inOrder,
-            opPrecondition,
-            grammar,
-            grammarQuery,
-            grammarEquivalence,
-            targetLang,
-            synthesize,
-            stateTypeHint=Set(OpaqueInt()),
-            opArgTypeHint=[BoolInt(), OpaqueInt(), ClockInt()],
-            queryArgTypeHint=[OpaqueInt()],
-            queryRetTypeHint=BoolInt(),
-            useOpList = useOpList,
-            listBound=2,
-        )
+    search_crdt_structures(
+        initState,
+        grammarStateInvariant,
+        grammarSupportedCommand,
+        benchmarks[bench]["inOrder"],
+        benchmarks[bench]["opPrecondition"],
+        grammar,
+        grammarQuery,
+        grammarEquivalence,
+        targetLang,
+        synthesize,
+        filename, fnNameBase, loopsFile, cvcPath, useOpList,
+        lat.gen_structures(),
+        stateTypeHint=Set(OpaqueInt()),
+        opArgTypeHint=[BoolInt(), OpaqueInt(), ClockInt()],
+        queryArgTypeHint=[OpaqueInt()],
+        queryRetTypeHint=BoolInt(),
+    )
+

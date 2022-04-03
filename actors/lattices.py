@@ -200,29 +200,34 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
 
 
 int_like = {ir.Int().name, ir.ClockInt().name, ir.BoolInt().name, ir.OpaqueInt().name}
-set_supported_elem = int_like
+comparable_int = {ir.Int().name, ir.ClockInt().name}
+set_supported_elem = {ir.Int().name, ir.OpaqueInt().name}
 
 
-def gen_lattice_types(depth: int) -> typing.Iterator[typing.Any]:
+def gen_lattice_types(depth: int) -> typing.Iterator[Lattice]:
     if depth == 1:
         yield PosBool()
         yield NegBool()
 
     for innerType in gen_types(depth):
-        if innerType.name in int_like:
+        if innerType.name in comparable_int:
             yield MaxInt(innerType)
 
     if depth > 1:
+        for innerLatticeType in gen_lattice_types(depth - 1):
+            yield innerLatticeType
+
         for innerType in gen_types(depth - 1):
             if innerType.name in set_supported_elem:
                 yield Set(innerType)
-            # TODO: maps
+
+        for keyType in gen_types(depth - 1):
+            if keyType.name in set_supported_elem:
+                for valueType in gen_lattice_types(depth - 1):
+                    yield Map(keyType, valueType)
 
         for innerTypePair in itertools.permutations(gen_lattice_types(depth - 1), 2):
             yield CascadingTuple(*innerTypePair)
-
-        for innerType in gen_lattice_types(depth - 1):
-            yield innerType
 
 
 def gen_structures() -> typing.Iterator[typing.Any]:

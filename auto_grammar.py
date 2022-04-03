@@ -66,14 +66,18 @@ def get_expansions(
 
         if Set(t) in out_types:
             out[Set(t)] += [
-                (lambda t: lambda get: Call("set-create", Set(t)))(t),
+                ((lambda t: lambda get: Call("set-create", Set(t)))(t))
+                if t in input_types
+                else ((lambda t: lambda get: Call("set-create", Set(get(t).type)))(t)),
                 (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t),
             ]
 
-    def gen_map_ops(k: Type, v: Type) -> None:
+    def gen_map_ops(k: Type, v: Type, allow_zero_create: bool) -> None:
         if Map(k, v) in out_types:
             out[Map(k, v)] = [
-                lambda get: Call("map-create", Map(k, v)),
+                (lambda get: Call("map-create", Map(k, v)))
+                if allow_zero_create
+                else (lambda get: Call("map-create", Map(get(k).type, v))),
                 lambda get: Call("map-singleton", Map(k, v), get(k), get(v)),
             ]
 
@@ -87,7 +91,7 @@ def get_expansions(
 
     for t in available_types:
         if t.name == "Map":
-            gen_map_ops(t.args[0], t.args[1])
+            gen_map_ops(t.args[0], t.args[1], t.args[0] in input_types)
 
     if BoolInt() in available_types:
         if BoolInt() not in out:

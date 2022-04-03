@@ -233,7 +233,11 @@ class Expr:
     #
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Expr):
-            if self.kind != other.kind or len(self.args) != len(other.args):
+            if (
+                self.kind != other.kind
+                or self.type.erase() != other.type.erase()
+                or len(self.args) != len(other.args)
+            ):
                 return False
             else:
                 return all(
@@ -851,6 +855,11 @@ def And(*args: Expr) -> Expr:
 
 
 def Or(*args: Expr) -> Expr:
+    if parseTypeRef(args[0].type) != Bool() or parseTypeRef(args[1].type) != Bool():
+        raise Exception(
+            f"Cannot apply OR to values of type {parseTypeRef(args[0].type).erase()}, {parseTypeRef(args[1].type).erase()}"
+        )
+
     return Expr(Expr.Kind.Or, Bool(), args)
 
 
