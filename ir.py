@@ -32,6 +32,8 @@ class Type:
         elif self.name == "Tuple":
             args = " ".join(a.toSMT() for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
+        elif self.name == "Map":
+            raise Exception("Map not supported")  # TODO
         else:
             return "(%s %s)" % (
                 self.name,
