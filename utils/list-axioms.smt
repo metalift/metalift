@@ -80,6 +80,12 @@
          ys
          (cons (head xs) (list_concat (tail xs) ys))))
 
+(define-fun-rec list_contains ((l (MLList T1)) (val T1)) Bool
+  (ite (= (list_length l) 0)
+       false
+       (ite (= (head l) val)
+            true
+            (list_contains (tail l) val))))
 
 ; list axioms
 

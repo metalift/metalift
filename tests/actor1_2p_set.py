@@ -7,6 +7,7 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
+from maps_lang import mapsLang
 
 from synthesize_auto import synthesize
 
@@ -87,7 +88,7 @@ def initState(synthStateStructure):
     )
 
 def targetLang():
-    return []
+    return mapsLang()
 
 
 if __name__ == "__main__":

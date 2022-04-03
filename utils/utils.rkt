@@ -144,9 +144,5 @@
          (map-minus (cons a as) bs))
      )]))
 
-(define (map-fold-values m value-merge default)
-  (match* (m)
-    [((list)) default]
-    [((list a as ...))
-     (value-merge (cdr a) (map-fold-values as value-merge default))
-     ]))
+(define (map-values m)
+  (map (lambda (a) (cdr a)) m))

@@ -120,9 +120,9 @@ class Map(Lattice):
         merge_b = ir.Var("merge_v", self.valueType.ir_type())
 
         return ir.Call(
-            "map-fold-values",
+            "reduce",
             ir.Bool(),
-            v,
+            ir.Call("map-values", ir.List(self.valueType.ir_type()), v),
             ir.Lambda(
                 ir.Bool(),
                 ir.And(merge_a, self.valueType.check_is_valid(merge_b)),
