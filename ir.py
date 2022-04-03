@@ -235,7 +235,7 @@ class Expr:
         if isinstance(other, Expr):
             if (
                 self.kind != other.kind
-                or self.type.erase() != other.type.erase()
+                or parseTypeRef(self.type).erase() != parseTypeRef(other.type).erase()
                 or len(self.args) != len(other.args)
             ):
                 return False
