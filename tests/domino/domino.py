@@ -365,7 +365,7 @@ class DominoLang(object):
         invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
         # rosette synthesizer  + CVC verfication
-        print("====== synthesis")
+        print(f"====== synthesis (fn: {fnName})")
         candidates = synthesize(
             basename,
             lang,

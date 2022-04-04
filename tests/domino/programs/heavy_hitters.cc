@@ -38,22 +38,11 @@ extern "C" List<int> stage1(int sketch1_idx, int sketch2_idx, int sketch3_idx) {
     return out;
 }
 
-extern "C" List<int> stage2p1(int val_at_sketch1, int val_at_sketch2,
-                              int val_at_sketch3) {
+extern "C" List<int> stage2p1p1(int val_at_sketch2, int val_at_sketch3) {
     int member;
-    /*
-    sketch_cnt_1[p.sketch1_idx] > low_th && sketch_cnt_1[p.sketch1_idx] <
-hi_th && sketch_cnt_2[p.sketch2_idx] > low_th && sketch_cnt_2[p.sketch2_idx] <
-hi_th && sketch_cnt_3[p.sketch3_idx] > low_th && sketch_cnt_3[p.sketch3_idx] <
-hi_th
-    */
-    if (val_at_sketch1 > low_th) {
-        if (val_at_sketch2 > low_th) {
-            if (val_at_sketch3 > low_th) {
-                member = 1;
-            } else {
-                member = 0;
-            }
+    if (val_at_sketch2 > low_th) {
+        if (val_at_sketch3 > low_th) {
+            member = 1;
         } else {
             member = 0;
         }
@@ -66,8 +55,53 @@ hi_th
     return out;
 }
 
-extern "C" List<int> stage2p2(int val_at_sketch1, int val_at_sketch2,
-                              int val_at_sketch3) {
+extern "C" List<int> stage2p1p2(int val_at_sketch1, int p1_output) {
+    int member;
+    /*
+    sketch_cnt_1[p.sketch1_idx] > low_th && sketch_cnt_1[p.sketch1_idx] <
+hi_th && sketch_cnt_2[p.sketch2_idx] > low_th && sketch_cnt_2[p.sketch2_idx] <
+hi_th && sketch_cnt_3[p.sketch3_idx] > low_th && sketch_cnt_3[p.sketch3_idx] <
+hi_th
+    */
+    if (val_at_sketch1 > low_th) {
+        if (p1_output > 0) {
+            member = 1;
+        } else {
+            member = 0;
+        }
+    } else {
+        member = 0;
+    }
+
+    List<int> out = newList<int>();
+    out = listAppend(out, member);
+    return out;
+}
+
+extern "C" List<int> stage2p2p1(int val_at_sketch2, int val_at_sketch3) {
+    int member;
+    /*
+    sketch_cnt_1[p.sketch1_idx] > low_th && sketch_cnt_1[p.sketch1_idx] <
+hi_th && sketch_cnt_2[p.sketch2_idx] > low_th && sketch_cnt_2[p.sketch2_idx] <
+hi_th && sketch_cnt_3[p.sketch3_idx] > low_th && sketch_cnt_3[p.sketch3_idx] <
+hi_th
+    */
+    if (val_at_sketch2 < hi_th) {
+        if (val_at_sketch3 < hi_th) {
+            member = 1;
+        } else {
+            member = 0;
+        }
+    } else {
+        member = 0;
+    }
+
+    List<int> out = newList<int>();
+    out = listAppend(out, member);
+    return out;
+}
+
+extern "C" List<int> stage2p2p2(int val_at_sketch1, int p1_output) {
     int member;
     /*
     sketch_cnt_1[p.sketch1_idx] > low_th && sketch_cnt_1[p.sketch1_idx] <
@@ -76,12 +110,8 @@ hi_th && sketch_cnt_3[p.sketch3_idx] > low_th && sketch_cnt_3[p.sketch3_idx] <
 hi_th
     */
     if (val_at_sketch1 < hi_th) {
-        if (val_at_sketch2 < hi_th) {
-            if (val_at_sketch3 < hi_th) {
-                member = 1;
-            } else {
-                member = 0;
-            }
+        if (p1_output > 0) {
+            member = 1;
         } else {
             member = 0;
         }

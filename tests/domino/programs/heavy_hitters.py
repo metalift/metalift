@@ -63,13 +63,21 @@ if __name__ == "__main__":
                 "listBound": 3,
             },
         ),
-        # (
-        #     "stage2p1",
-        #     {"depth": 4, "atoms": ["if_else_raw", "add_state_var"]},
-        # ),
         (
-            "stage2p2",
-            {"depth": 3, "atoms": ["if_else_raw", "add_state_var"]},
+            "stage2p1p1",
+            {"depth": 2, "atoms": ["nested_ifs", "add_state_var"]},
+        ),
+        (
+            "stage2p1p2",
+            {"depth": 2, "atoms": ["nested_ifs", "add_state_var"]},
+        ),
+        (
+            "stage2p2p1",
+            {"depth": 2, "atoms": ["nested_ifs", "add_state_var"]},
+        ),
+        (
+            "stage2p2p2",
+            {"depth": 2, "atoms": ["nested_ifs", "add_state_var"]},
         ),
         (
             "stage2p3",
