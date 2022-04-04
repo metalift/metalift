@@ -310,7 +310,6 @@ def synthesize(
 
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
-
         # prev_vc = vc.toSMT()
         # new_vars: typing.Set[Expr] = set()
         # while True:

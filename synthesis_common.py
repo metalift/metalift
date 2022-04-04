@@ -151,7 +151,11 @@ def verify_synth_result(
                     langFn.args[0],
                 )
                 transformedLang.append(
-                    Expr(langFn.kind, langFn.type, [langFn.args[0], updated])
+                    Expr(
+                        langFn.kind,
+                        langFn.type,
+                        [langFn.args[0], updated, *langFn.args[2:]],
+                    )
                 )
             else:
                 transformedLang.append(langFn)
