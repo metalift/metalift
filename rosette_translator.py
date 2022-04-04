@@ -192,7 +192,7 @@ def toRosette(
 
     # synthesis function
     if not verifyMode:
-        print(generateSynth(vars_all, invGuess), file=f, uninterpFns=list(uninterpFns))
+        print(generateSynth(vars_all, invGuess, uninterpFns=list(uninterpFns)), file=f)
     else:
         print("(verify (assertions))", file=f)
     f.close()
