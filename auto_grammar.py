@@ -220,9 +220,9 @@ def expand_lattice_logic(*inputs: typing.Tuple[Expr, Lattice]) -> typing.List[Ex
             merge_b = Var("merge_b", lattice.valueType.ir_type())
             for value in lattice_to_exprs[lattice]:
                 value_max = Call(  # does the remove set have any concurrent values?
-                    "map-fold-values",
+                    "reduce",
                     lattice.valueType.ir_type(),
-                    value,
+                    Call("map-values", List(lattice.valueType.ir_type()), value),
                     Lambda(
                         Bool(),
                         lattice.valueType.merge(merge_a, merge_b),

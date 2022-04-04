@@ -5,6 +5,7 @@ from llvmlite.binding import ValueRef
 
 import typing
 from typing import Optional, Dict, Union, Any
+from rosette_translator import toRosette
 
 from smt_util import toSMT
 
@@ -41,24 +42,27 @@ def parseCandidates(
     fnCalls: typing.List[Any],
     extractedLambdas: typing.List[Expr],
     inFunctionName: str,
-) -> Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]:
+) -> typing.Tuple[
+    Union[Expr, str], Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]
+]:
     if not isinstance(candidate, Expr):
-        return inCalls, fnCalls
+        return candidate, (inCalls, fnCalls)
     else:
-        for a in candidate.args:
-            parseCandidates(
+        candidate = candidate.mapArgs(
+            lambda a: parseCandidates(  # type: ignore
                 a, inCalls, fnsType, fnCalls, extractedLambdas, inFunctionName
-            )
+            )[0]
+        )
+
         if candidate.kind == Expr.Kind.Call:
-            print(candidate)
             if (
                 candidate.args[0] in fnsType.keys()
                 and candidate.args[0] != inFunctionName
             ):
                 fnCalls.append(candidate.args[0])
+
             new_args = []
             for ar in candidate.args:
-                print(ar)
                 if not isinstance(ar, str):
                     if ar.type.name == "Function" and ar.args[0] in fnsType.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
@@ -73,14 +77,14 @@ def parseCandidates(
                             )
                         )
                         fnCalls.append(lambda_name)
-                        # inCalls.append((candidate.args[0], lambda_name))
+                        inCalls.append((candidate.args[0], lambda_name))
                         new_args.append(Var(lambda_name, ar.type))
                     else:
                         new_args.append(ar)
                 else:
                     new_args.append(ar)
-            candidate.args = new_args
-        return inCalls, fnCalls
+            candidate = Expr(candidate.kind, candidate.type, new_args)
+        return candidate, (inCalls, fnCalls)
 
 
 def verify_synth_result(
@@ -96,72 +100,112 @@ def verify_synth_result(
     candidateDict: Dict[str, Expr],
     fnsType: Dict[str, Type],
     uid: int,
+    useRosette: bool = False,
 ) -> typing.Tuple[str, typing.List[str]]:
-    inCalls: typing.List[Any] = []
-    fnCalls: typing.List[Any] = []
-    extractedLambdas: typing.List[Expr] = []
-    for ce in loopAndPsInfo:
-        inCalls, fnCalls = parseCandidates(  # type: ignore
-            candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
-            inCalls,
-            fnsType,
-            fnCalls,
-            extractedLambdas,
-            ce.name if isinstance(ce, CodeInfo) else ce.args[0],
+    if useRosette:
+        verifFile = synthDir + basename + f"_{uid}_verif" + ".rkt"
+    else:
+        verifFile = synthDir + basename + f"_{uid}" + ".smt"
+
+    if useRosette:
+        toRosette(
+            verifFile,
+            targetLang,
+            vars,
+            candidatesSMT,
+            preds,  # type: ignore
+            vc,
+            [],
+            [],
+            True,
+            listBound=4,  # TODO(shadaj): bench to find what this value should be
+            verifyMode=True,
         )
-
-    targetLang = targetLang + extractedLambdas
-
-    for langFn in targetLang:
-        if langFn.args[1] != None:
-            inCalls, fnCalls = parseCandidates(  # type: ignore
-                langFn.args[1],
+    else:
+        inCalls: typing.List[Any] = []
+        fnCalls: typing.List[Any] = []
+        extractedLambdas: typing.List[Expr] = []
+        for ce in loopAndPsInfo:
+            updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
+                candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
                 inCalls,
                 fnsType,
                 fnCalls,
                 extractedLambdas,
-                langFn.args[0],
+                ce.name if isinstance(ce, CodeInfo) else ce.args[0],
             )
 
-    inCalls, fnCalls = parseCandidates(vc, inCalls, fnsType, fnCalls, extractedLambdas, None)  # type: ignore
+            candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]] = updated  # type: ignore
 
-    inCalls = list(set(inCalls))
-    fnCalls = list(set(fnCalls))
+        targetLang = targetLang + extractedLambdas
 
-    print(candidateDict)
-    print(extractedLambdas)
-    print(candidatesSMT)
+        transformedLang = []
+        for langFn in targetLang:
+            if langFn.args[1] != None:
+                updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
+                    langFn.args[1],
+                    inCalls,
+                    fnsType,
+                    fnCalls,
+                    extractedLambdas,
+                    langFn.args[0],
+                )
+                transformedLang.append(
+                    Expr(
+                        langFn.kind,
+                        langFn.type,
+                        [langFn.args[0], updated, *langFn.args[2:]],
+                    )
+                )
+            else:
+                transformedLang.append(langFn)
+        targetLang = transformedLang
 
-    verifFile = synthDir + basename + f"_{uid}" + ".smt"
-    toSMT(
-        targetLang,
-        vars,
-        candidatesSMT,
-        preds,
-        vc,
-        verifFile,
-        inCalls,
-        fnCalls,
-        False,
-    )
+        vc, (inCalls, fnCalls) = parseCandidates(vc, inCalls, fnsType, fnCalls, extractedLambdas, None)  # type: ignore
 
-    # run external verification subprocess
-    procVerify = subprocess.run(
-        [
-            cvcPath,
-            "--lang=smt",
-            "--produce-models",
-            "--tlimit=100000",
+        inCalls = list(set(inCalls))
+        fnCalls = list(set(fnCalls))
+
+        toSMT(
+            targetLang,
+            vars,
+            candidatesSMT,
+            preds,
+            vc,
             verifFile,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    )
+            inCalls,
+            fnCalls,
+            False,
+        )
 
-    if procVerify.returncode < 0:
-        resultVerify = "SAT/UNKNOWN"
-    else:
+    if useRosette:
+        procVerify = subprocess.run(
+            ["racket", verifFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
         procOutput = procVerify.stdout
-        resultVerify = procOutput.decode("utf-8").split("\n")[0]
-    verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
-    return resultVerify, verifyLogs
+        if procOutput.decode("utf-8").split("\n")[0] == "(unsat)":
+            return "unsat", []
+        else:
+            return "SAT/UNKNOWN", []
+    else:
+        # run external verification subprocess
+        procVerify = subprocess.run(
+            [
+                cvcPath,
+                "--lang=smt",
+                "--produce-models",
+                "--tlimit=100000",
+                verifFile,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+
+        if procVerify.returncode < 0:
+            resultVerify = "SAT/UNKNOWN"
+        else:
+            procOutput = procVerify.stdout
+            resultVerify = procOutput.decode("utf-8").split("\n")[0]
+        verifyLogs = procVerify.stdout.decode("utf-8").split("\n")
+        return resultVerify, verifyLogs

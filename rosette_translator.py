@@ -140,6 +140,7 @@ def toRosette(
     unboundedInts: bool,
     listBound: int,
     writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
+    verifyMode: bool = False,
 ) -> None:
 
     f = open(filename, "w")
@@ -188,7 +189,10 @@ def toRosette(
     print("(define (assertions)\n (assert %s))\n" % vc.toRosette(), file=f)
 
     # synthesis function
-    print(generateSynth(vars_all, invGuess), file=f)
+    if not verifyMode:
+        print(generateSynth(vars_all, invGuess), file=f)
+    else:
+        print("(verify (assertions))", file=f)
     f.close()
 
     # print(loopAndPsInfo)

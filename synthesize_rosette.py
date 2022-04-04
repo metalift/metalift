@@ -202,18 +202,9 @@ def toExpr(
             )
 
             return Call(ast[0], m1.type, m1, m2, uf)
-        elif ast[0] == "map-fold-values":
+        elif ast[0] == "map-values":
             m = toExpr(ast[1], fnsType, varType, choices)
-            default = toExpr(ast[3], fnsType, varType, choices)
-            uf = toExpr(
-                ast[2],
-                fnsType,
-                varType,
-                choices,
-                typeHint=Fn(default.type, m.type.args[1], default.type),
-            )
-
-            return Call(ast[0], default.type, m, uf, default)
+            return Call(ast[0], List(m.type.args[1]), m)
         elif ast[0] == "map-singleton":
             k = toExpr(ast[1], fnsType, varType, choices)
             v = toExpr(ast[2], fnsType, varType, choices)
@@ -248,7 +239,15 @@ def toExpr(
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
-                arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
+                arg_eval.append(
+                    toExpr(
+                        ast[alen],
+                        fnsType,
+                        varType,
+                        choices,
+                        typeHint=fnsType[ast[0]].args[alen],
+                    )
+                )
             retT = fnsType[ast[0]].args[0]
             return Call(ast[0], retT, *arg_eval)
         elif ast[0] in choices:
@@ -311,7 +310,6 @@ def synthesize(
 
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
-
         # prev_vc = vc.toSMT()
         # new_vars: typing.Set[Expr] = set()
         # while True:
@@ -429,20 +427,39 @@ def synthesize(
                 print("Not verifying solution")
                 resultVerify = "unsat"
             else:
-                resultVerify, verifyLogs = verify_synth_result(
-                    basename,
-                    targetLang,
-                    vars,
-                    preds,
-                    vc,
-                    loopAndPsInfo,
-                    cvcPath,
-                    synthDir,
-                    candidatesSMT,
-                    candidateDict,
-                    fnsType,
-                    uid,
-                )
+                try:
+                    resultVerify, verifyLogs = verify_synth_result(
+                        basename,
+                        targetLang,
+                        vars,
+                        preds,
+                        vc,
+                        loopAndPsInfo,
+                        cvcPath,
+                        synthDir,
+                        candidatesSMT,
+                        candidateDict,
+                        fnsType,
+                        uid,
+                        useRosette=False,
+                    )
+                except CVC5UnsupportedException:
+                    print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
+                    resultVerify, verifyLogs = verify_synth_result(
+                        basename,
+                        targetLang,
+                        vars,
+                        preds,
+                        vc,
+                        loopAndPsInfo,
+                        cvcPath,
+                        synthDir,
+                        candidatesSMT,
+                        candidateDict,
+                        fnsType,
+                        uid,
+                        useRosette=True,
+                    )
 
             print("Verification Output:", resultVerify)
             if resultVerify == "unsat":

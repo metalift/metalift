@@ -12,6 +12,10 @@ class PrintMode(Enum):
     Rosette = 1
 
 
+class CVC5UnsupportedException(Exception):
+    pass
+
+
 class Type:
     def __init__(self, name: str, *args: "Type") -> None:
         self.name = name
@@ -33,7 +37,7 @@ class Type:
             args = " ".join(a.toSMT() for a in self.args)
             return "(Tuple%d %s)" % (len(self.args), args)
         elif self.name == "Map":
-            raise Exception("Map not supported")  # TODO
+            raise CVC5UnsupportedException("Map")
         else:
             return "(%s %s)" % (
                 self.name,
@@ -168,6 +172,7 @@ class Expr:
         Choose = "choose"
         FnDecl = "fndecl"
         FnDeclNonRecursive = "fndeclnonrecursive"
+        FnDefine = "fndefine"
         Lambda = "lambda"
 
         Tuple = "tuple"
@@ -315,6 +320,8 @@ class Expr:
                         )
                 elif (str(a)).startswith("set-"):
                     retVal.append("set.%s" % (str(a)[4:]))
+                elif (str(a)).startswith("map-"):
+                    retVal.append("map_%s" % (str(a)[4:]))
                 elif isinstance(a, str):
                     retVal.append(str(a))
                 else:
@@ -388,8 +395,14 @@ class Expr:
         elif kind == Expr.Kind.Lambda:
             # TODO(shadaj): extract during filtering assuming no captures
             raise Exception("Lambda not supported")
-        elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
-            if self.args[1] is None:  # uninterpreted function
+        elif (
+            kind == Expr.Kind.FnDecl
+            or kind == Expr.Kind.FnDeclNonRecursive
+            or kind == Expr.Kind.FnDefine
+        ):
+            if (
+                kind == Expr.Kind.FnDefine or self.args[1] is None
+            ):  # uninterpreted function
                 args_type = " ".join(
                     parseTypeRef(a.type).toSMT() for a in self.args[2:]
                 )
@@ -634,7 +647,8 @@ class Expr:
                     args,
                     self.args[1].toRosette(),
                 )
-
+        elif kind == Expr.Kind.FnDefine:
+            return ""  # only for verification
         elif kind == Expr.Kind.Tuple:
             # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
             # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
@@ -935,6 +949,10 @@ def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Exp
     return Expr(
         Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
     )
+
+
+def FnDefine(name: str, returnT: Type, *args: Expr) -> Expr:
+    return Expr(Expr.Kind.FnDefine, Fn(returnT, *[a.type for a in args]), [name, *args])
 
 
 def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
