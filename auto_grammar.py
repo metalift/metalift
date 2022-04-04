@@ -1,16 +1,20 @@
+import actors.lattices as lattices
+from actors.lattices import Lattice
 from ir import *
 
 import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-equality_supported_types = [Int(), ClockInt(), EnumInt(), OpaqueInt()]
+equality_supported_types = [Bool(), Int(), ClockInt(), BoolInt(), OpaqueInt()]
 comparison_supported_types = [Int, ClockInt()]
 
 
-def get_expansions() -> Dict[
-    Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
-]:
+def get_expansions(
+    input_types: typing.List[Type],
+    available_types: typing.List[Type],
+    out_types: typing.List[Type],
+) -> Dict[Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]]:
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
@@ -20,6 +24,8 @@ def get_expansions() -> Dict[
             # lambda get: Mul(get(Int()), get(Int())),
         ],
         Bool(): [
+            lambda get: BoolLit(False),
+            lambda get: BoolLit(True),
             lambda get: And(get(Bool()), get(Bool())),
             lambda get: Or(get(Bool()), get(Bool())),
             lambda get: Not(get(Bool())),
@@ -28,15 +34,13 @@ def get_expansions() -> Dict[
                 for t in equality_supported_types
             ],
             *[
-                (lambda t: lambda get: Lt(get(t), get(t)))(t)
-                for t in comparison_supported_types
-            ],
-            *[
                 (lambda t: lambda get: Gt(get(t), get(t)))(t)
                 for t in comparison_supported_types
             ],
-            # lambda get: Le(get(Int()), get(Int())),
-            # lambda get: Ge(get(Int()), get(Int())),
+            *[
+                (lambda t: lambda get: Ge(get(t), get(t)))(t)
+                for t in comparison_supported_types
+            ],
         ],
     }
 
@@ -48,13 +52,56 @@ def get_expansions() -> Dict[
         ]
 
         out[Bool()].append(lambda get: Eq(get(Set(t)), get(Set(t))))
+        out[Bool()].append(lambda get: Eq(get(Set(t)), Call("set-create", Set(t))))
         out[Bool()].append(
             lambda get: Call("set-subset", Bool(), get(Set(t)), get(Set(t)))
         )
         out[Bool()].append(lambda get: Call("set-member", Bool(), get(t), get(Set(t))))
 
     for t in equality_supported_types:
-        gen_set_ops(t)
+        if t in input_types:
+            gen_set_ops(t)
+        else:
+            out[Set(t)] = []
+
+        if Set(t) in out_types:
+            out[Set(t)] += [
+                ((lambda t: lambda get: Call("set-create", Set(t)))(t))
+                if t in input_types
+                else ((lambda t: lambda get: Call("set-create", Set(get(t).type)))(t)),
+                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t),
+            ]
+
+    def gen_map_ops(k: Type, v: Type, allow_zero_create: bool) -> None:
+        if Map(k, v) in out_types:
+            out[Map(k, v)] = [
+                (lambda get: Call("map-create", Map(k, v)))
+                if allow_zero_create
+                else (lambda get: Call("map-create", Map(get(k).type, v))),
+                lambda get: Call("map-singleton", Map(k, v), get(k), get(v)),
+            ]
+
+        if v not in out:
+            out[v] = []
+
+        if Map(k, v) in input_types:
+            out[v] += [
+                lambda get: Call("map-get", v, get(Map(k, v)), get(k), get(v)),
+            ]
+
+    for t in available_types:
+        if t.name == "Map":
+            gen_map_ops(t.args[0], t.args[1], t.args[0] in input_types)
+
+    if BoolInt() in available_types:
+        if BoolInt() not in out:
+            out[BoolInt()] = []
+        out[BoolInt()] += [(lambda i: lambda get: BoolIntLit(i))(i) for i in range(2)]
+
+    if ClockInt() in input_types:
+        if ClockInt() not in out:
+            out[ClockInt()] = []
+        out[ClockInt()] += [lambda get: Lit(0, ClockInt())]
 
     return out
 
@@ -78,48 +125,50 @@ def auto_grammar(
             ]
         )
 
-    expansions = get_expansions()
-
-    pool: Dict[Type, Expr] = {}
-
     input_pool: Dict[Type, typing.List[Expr]] = {}
 
-    def extract_inputs(input_type: Type, input: Expr) -> None:
+    def extract_inputs(input_type: Type, input: typing.Optional[Expr]) -> None:
         if input_type.name == "Tuple":
             for i, t in enumerate(input_type.args):
-                extract_inputs(t, TupleGet(input, IntLit(i)))
+                if input != None:
+                    extract_inputs(t, TupleGet(input, IntLit(i)))  # type: ignore
+                else:
+                    extract_inputs(t, None)
         else:
             if not input_type in input_pool:
                 input_pool[input_type] = []
-            input_pool[input_type].append(input)
+            if input != None:
+                input_pool[input_type].append(input)  # type: ignore
+            if input_type.name == "Set":
+                extract_inputs(input_type.args[0], None)
+            elif input_type.name == "Map":
+                extract_inputs(input_type.args[0], None)
+                extract_inputs(input_type.args[1], None)
 
     for input in inputs:
         input_type = parseTypeRef(input.type)
         extract_inputs(input_type, input)
 
-    if not Bool() in input_pool:
-        input_pool[Bool()] = []
-    input_pool[Bool()] += [BoolLit(False), BoolLit(True)]
+    input_types = list(input_pool.keys())
 
-    for t in equality_supported_types:
-        if out_type == Set(t) and Set(t) not in input_pool:
-            input_pool[Set(t)] = []
-        if Set(t) in input_pool:
-            input_pool[Set(t)] += [Call("set-create", Set(t))]
-            expansions[Set(t)] += [
-                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t)
-            ]
+    if out_type not in input_pool:
+        extract_inputs(out_type, None)
 
-    if out_type == EnumInt() and EnumInt() not in input_pool:
-        input_pool[EnumInt()] = []
-    if EnumInt() in input_pool:
-        input_pool[EnumInt()] += [EnumIntLit(i) for i in range(4)]
+    out_types = list(set(input_pool.keys()) - set(input_types))
 
+    expansions = get_expansions(input_types, list(input_pool.keys()), out_types)
+
+    pool: Dict[Type, Expr] = {}
     for t, exprs in input_pool.items():
-        if t in pool:
-            pool[t] = Choose(pool[t], Choose(*exprs))
-        else:
-            pool[t] = Choose(*exprs)
+        zero_input_expansions = []
+        if t in expansions:
+            for e in expansions[t]:
+                try:
+                    zero_input_expansions.append(e(lambda t: dict()[t]))  # type: ignore
+                except KeyError:
+                    pass
+        if (len(exprs) + len(zero_input_expansions)) > 0:
+            pool[t] = Choose(*exprs, *zero_input_expansions)
 
     for i in range(depth):
         next_pool = dict(pool)
@@ -131,15 +180,70 @@ def auto_grammar(
                 except KeyError:
                     pass
 
-            if t in pool:
-                next_pool[t] = Choose(next_pool[t], *new_elements)
-            elif len(new_elements) > 0:
-                next_pool[t] = Choose(*new_elements)
+            if (
+                t in next_pool
+                and isinstance(next_pool[t], Expr)
+                and next_pool[t].kind == Expr.Kind.Choose
+            ):
+                existing_set = set(next_pool[t].args)
+                new_elements = [e for e in new_elements if e not in existing_set]
+
+            if len(new_elements) > 0:
+                if t in pool:
+                    next_pool[t] = Choose(next_pool[t], *new_elements)
+                else:
+                    next_pool[t] = Choose(*new_elements)
 
         if enable_ite and Bool() in pool:
             for t in pool.keys():
-                next_pool[t] = Choose(next_pool[t], Ite(pool[Bool()], pool[t], pool[t]))
+                if t.name != "Set" and t.name != "Map":
+                    next_pool[t] = Choose(
+                        next_pool[t], Ite(pool[Bool()], pool[t], pool[t])
+                    )
 
         pool = next_pool
 
     return pool[out_type]
+
+
+def expand_lattice_logic(*inputs: typing.Tuple[Expr, Lattice]) -> typing.List[Expr]:
+    lattice_to_exprs: typing.Dict[Lattice, typing.List[Expr]] = {}
+    for input, lattice in inputs:
+        if lattice not in lattice_to_exprs:
+            lattice_to_exprs[lattice] = []
+        lattice_to_exprs[lattice].append(input)
+
+    next_pool = dict(lattice_to_exprs)
+    for lattice in lattice_to_exprs.keys():
+        if isinstance(lattice, lattices.Map):
+            merge_a = Var("merge_a", lattice.valueType.ir_type())
+            merge_b = Var("merge_b", lattice.valueType.ir_type())
+            for value in lattice_to_exprs[lattice]:
+                value_max = Call(  # does the remove set have any concurrent values?
+                    "reduce",
+                    lattice.valueType.ir_type(),
+                    Call("map-values", List(lattice.valueType.ir_type()), value),
+                    Lambda(
+                        Bool(),
+                        lattice.valueType.merge(merge_a, merge_b),
+                        merge_a,
+                        merge_b,
+                    ),
+                    lattice.valueType.bottom(),
+                )
+
+                if lattice.valueType not in next_pool:
+                    next_pool[lattice.valueType] = []
+                if value_max not in next_pool[lattice.valueType]:
+                    next_pool[lattice.valueType].append(value_max)
+
+    lattice_to_exprs = next_pool
+    next_pool = dict(lattice_to_exprs)
+
+    for lattice in lattice_to_exprs.keys():
+        choices = Choose(*lattice_to_exprs[lattice])
+        lattice_to_exprs[lattice].append(lattice.merge(choices, choices))
+
+    lattice_to_exprs = next_pool
+
+    return [Choose(*lattice_to_exprs[lattice]) for lattice in lattice_to_exprs.keys()]

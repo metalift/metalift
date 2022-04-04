@@ -123,16 +123,17 @@ jobs:
         python -m tests.uninterp
         python -m tests.struct1
 
-    - name: Test Actor Examples (direct)
-      shell: nix-shell ci-shell.nix --run "bash -e {0}"
-      run: |
-        python -m tests.actor1_g_set_fixed_structure synth
-        # TODO(shadaj): flaky on CI for some reason
-        # python -m tests.actor1_2p_set_fixed_structure synth
-        python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
-      if: matrix.synth_cvc5 == '1'
-      env:
-        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
+    #- name: Test Actor Examples (direct)
+    #  shell: nix-shell ci-shell.nix --run "bash -e {0}"
+    #  run: |
+    #    # TODO(shadaj): synth functions cannot refer to each other in CVC5
+    #    # python -m tests.actor1_g_set_fixed_structure synth
+    #    # TODO(shadaj): flaky on CI for some reason
+    #    # python -m tests.actor1_2p_set_fixed_structure synth
+    #    python -m tests.actor2 synth tests/actor2.ll test tests/actor2.loops cvc5
+    #  if: matrix.synth_cvc5 == '1'
+    #  env:
+    #    SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
     
     - name: Test Actor Examples (op-list)
       shell: nix-shell ci-shell.nix --run "bash -e {0}"

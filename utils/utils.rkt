@@ -45,25 +45,20 @@
 (define (set-create)
   (list))
 
-(define (merge as bs)
+(define (set-eq s1 s2)
+  (equal? s1 s2))
+
+(define (set-union as bs)
   (match* (as bs)
     [((list) bs)  bs]
     [(as (list))  as]
     [((list a as ...) (list b bs ...))
-     (if (= a b)
-      (merge (cons a as) bs)
+     (if (equal? a b)
+      (set-union (cons a as) bs)
       (if (< a b)
-         (cons a (merge as (cons b bs)))
-         (cons b (merge (cons a as) bs)))
+         (cons a (set-union as (cons b bs)))
+         (cons b (set-union (cons a as) bs)))
      )]))
-
-; todo: eliminate once input sets don't have duplicates
-(define (set-eq s1 s2)
-  (equal? s1 s2))
-
-; todo: use merge-sort and constrain input sets to not have duplicate elements
-(define (set-union s1 s2)
-  (merge s1 s2))
 
 (define (set-member v s1)
   (ormap (lambda (c) (equal? v c)) s1))
@@ -76,7 +71,7 @@
     [((list) bs)  #t]
     [(as (list))  #f]
     [((list a as ...) (list b bs ...))
-     (if (= a b)
+     (if (equal? a b)
       (set-subset as bs)
       (if (< a b)
          #f
@@ -88,9 +83,66 @@
     [((list) bs)  (list)]
     [(as (list))  as]
     [((list a as ...) (list b bs ...))
-     (if (= a b)
+     (if (equal? a b)
       (set-minus as bs)
       (if (< a b)
          (cons a (set-minus as (cons b bs)))
          (set-minus (cons a as) bs))
      )]))
+
+; map functions
+
+(define (map-create)
+  (list))
+
+(define (map-normalize m)
+  (match* (m)
+    [((list)) (map-create)]
+    [((list a as ...))
+     (map-insert (map-normalize as) (car a) (cdr a) (lambda (a b) b))
+     ]))
+
+(define (map-eq s1 s2)
+  (equal? s1 s2))
+
+(define (map-union as bs value-merge)
+  (match* (as bs)
+    [((list) bs)  bs]
+    [(as (list))  as]
+    [((list a as ...) (list b bs ...))
+     (if (equal? (car a) (car b))
+      (cons (cons (car a) (value-merge (cdr a) (cdr b))) (map-union as bs value-merge))
+      (if (< (car a) (car b))
+         (cons a (map-union as (cons b bs) value-merge))
+         (cons b (map-union (cons a as) bs value-merge)))
+     )]))
+
+(define (map-get m k default)
+  (match* (m)
+    [((list)) default]
+    [((list a as ...))
+     (if (equal? (car a) k)
+      (cdr a)
+      (map-get as k default)
+     )]))
+
+(define (map-singleton k v)
+  (list (cons k v)))
+
+(define (map-insert m k v value-merge)
+  (map-union (map-singleton k v) m value-merge))
+
+(define (map-minus m keys)
+  (match* (m keys)
+    [((list) bs)  (list)]
+    [(as (list))  as]
+    [((list a as ...) (list b bs ...))
+     (if (equal? (car a) b)
+      (map-minus as bs)
+      (if (< (car a) b)
+         (cons a (map-minus as (cons b bs)))
+         (map-minus (cons a as) bs))
+     )]))
+
+(define (map-values m)
+  (map (lambda (a) (cdr a)) m))

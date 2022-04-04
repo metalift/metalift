@@ -6,20 +6,25 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
+from maps_lang import mapsLang
 
 from synthesize_auto import synthesize
 
 base_depth = 1
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, *queryParams)
+    return auto_grammar(
+        Bool(),
+        base_depth,
+        inputState, synthState, *queryParams
+    )
 
 
-def grammarStateInvariant(synthState):
+def grammarStateInvariant(synthState, synthStateStructure):
     return auto_grammar(Bool(), base_depth, synthState)
 
 
-def grammarSupportedCommand(synthState, args):
+def grammarSupportedCommand(synthState, args, synthStateStructure):
     conditions = [Eq(args[0], IntLit(1))]
 
     out = auto_grammar(Bool(), base_depth, synthState, *args[1:])
@@ -82,7 +87,7 @@ def initState(synthStateStructure):
     )
 
 def targetLang():
-    return []
+    return mapsLang()
 
 
 if __name__ == "__main__":

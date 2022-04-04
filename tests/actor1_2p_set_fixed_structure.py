@@ -6,10 +6,11 @@ import actors.lattices as lat
 from auto_grammar import auto_grammar
 import sys
 import os
+from maps_lang import mapsLang
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.Set(Int()), lat.Set(Int())]
+synthStateStructure = [lat.Set(OpaqueInt()), lat.Set(OpaqueInt())]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 fastDebug = False
@@ -17,7 +18,11 @@ base_depth = 1
 
 
 def grammarEquivalence(inputState, synthState, queryParams):
-    return auto_grammar(Bool(), base_depth + 1, inputState, synthState, *queryParams)
+    return auto_grammar(
+        Bool(),
+        base_depth,
+        inputState, synthState, *queryParams
+    )
 
 
 def grammarStateInvariant(synthState):
@@ -104,7 +109,7 @@ def initState():
     )
 
 def targetLang():
-    return []
+    return mapsLang()
 
 
 if __name__ == "__main__":
@@ -147,6 +152,9 @@ if __name__ == "__main__":
             grammarEquivalence,
             targetLang,
             synthesize,
+            stateTypeHint=Set(OpaqueInt()),
+            opArgTypeHint=[BoolInt(), OpaqueInt()],
+            queryArgTypeHint=[OpaqueInt()],
             useOpList = useOpList,
             listBound=2,
         )

@@ -4,7 +4,7 @@ import re
 import pyparsing as pp
 from ir import Expr, Var
 from llvmlite.binding import ValueRef
-from typing import Any, List, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
 
 def generateAST(expr: str) -> List[Any]:
@@ -18,7 +18,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
     if (
         v.type.name == "Int"
         or v.type.name == "ClockInt"
-        or v.type.name == "EnumInt"
+        or v.type.name == "BoolInt"
         or v.type.name == "OpaqueInt"
     ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
@@ -47,6 +47,23 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
                 "(define %s (take %s %s))"
                 % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
             )
+    elif v.type.name == "Map":
+        tmp_k = [v.args[0] + "_" + str(i) + "_k" for i in range(listBound)]
+        tmp_v = [v.args[0] + "_" + str(i) + "_v" for i in range(listBound)]
+        for t in tmp_k:
+            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
+        for t in tmp_v:
+            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)
+
+        len_name = v.args[0] + "-len"
+        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+
+        all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
+
+        decls.append(
+            "(define %s (map-normalize (take %s %s)))"
+            % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
+        )
     elif v.type.name == "Tuple":
         elem_names = []
         for i, t in enumerate(v.type.args):
@@ -121,6 +138,8 @@ def toRosette(
     invGuess: List[Any],
     unboundedInts: bool,
     listBound: int,
+    writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
+    verifyMode: bool = False,
 ) -> None:
 
     f = open(filename, "w")
@@ -143,7 +162,11 @@ def toRosette(
 
     # inv and ps grammar definition
     for g in invAndPs:
-        print(g.toRosette(), "\n", file=f)
+        writeTo = None
+        if writeChoicesTo != None:
+            writeChoicesTo[g.args[0]] = {}  # type: ignore
+            writeTo = writeChoicesTo[g.args[0]]  # type: ignore
+        print(g.toRosette(writeTo), "\n", file=f)
 
     # inv and ps declaration
     print(generateInvPs(loopAndPsInfo), file=f)
@@ -168,7 +191,10 @@ def toRosette(
     print("(define (assertions)\n (assert %s))\n" % vc.toRosette(), file=f)
 
     # synthesis function
-    print(generateSynth(vars_all, invGuess, uninterpFns=list(uninterpFns)), file=f)
+    if not verifyMode:
+        print(generateSynth(vars_all, invGuess), file=f, uninterpFns=list(uninterpFns))
+    else:
+        print("(verify (assertions))", file=f)
     f.close()
 
     # print(loopAndPsInfo)
