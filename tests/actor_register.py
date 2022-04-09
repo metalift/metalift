@@ -1,3 +1,5 @@
+from email.mime import base
+from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
@@ -5,13 +7,9 @@ from actors.aci import check_aci
 import actors.lattices as lat
 from auto_grammar import auto_grammar, expand_lattice_logic
 import sys
-import os
 from maps_lang import mapsLang
 
 from synthesize_auto import synthesize
-
-synthStateStructure = [lat.CascadingTuple(lat.MaxInt(ClockInt()), lat.MaxInt(Int())), lat.MaxInt(BoolInt())]
-synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 base_depth = 1
 
@@ -28,7 +26,7 @@ def grammarEquivalence(inputState, synthState, queryParams):
     )
 
 
-def grammarStateInvariant(synthState):
+def grammarStateInvariant(synthState, synthStateStructure):
     state_valid = And(*[
         synthStateStructure[i].check_is_valid(
             TupleGet(synthState, IntLit(i))
@@ -42,7 +40,7 @@ def grammarStateInvariant(synthState):
     )
 
 
-def grammarSupportedCommand(synthState, args):
+def grammarSupportedCommand(synthState, args, synthStateStructure):
     conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
     out = auto_grammar(
@@ -56,6 +54,7 @@ def grammarSupportedCommand(synthState, args):
     )
 
     return fold_conditions(out, conditions)
+
 
 def grammarQuery(ci: CodeInfo):
     name = ci.name
@@ -78,7 +77,7 @@ def grammarQuery(ci: CodeInfo):
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo):
+def grammar(ci: CodeInfo, synthStateStructure):
     name = ci.name
 
     if name.startswith("inv"):
@@ -106,13 +105,14 @@ def grammar(ci: CodeInfo):
         return Synth(name, out, *ci.modifiedVars, *ci.readVars)
 
 
-def initState():
+def initState(synthStateStructure):
     return MakeTuple(
         *[elem.bottom() for elem in synthStateStructure]
     )
 
 def targetLang():
     return mapsLang()
+
 
 benchmarks = {
     "lww_max": {
@@ -141,12 +141,7 @@ if __name__ == "__main__":
     if mode == "synth-oplist":
         useOpList = True
 
-    out = synthesize_actor(
-        filename,
-        fnNameBase,
-        loopsFile,
-        cvcPath,
-        synthStateType,
+    search_crdt_structures(
         initState,
         grammarStateInvariant,
         grammarSupportedCommand,
@@ -157,10 +152,10 @@ if __name__ == "__main__":
         grammarEquivalence,
         targetLang,
         synthesize,
+        filename, fnNameBase, loopsFile, cvcPath, useOpList,
+        lat.gen_structures(),
         stateTypeHint=Int(),
         opArgTypeHint=[Int(), ClockInt()],
         queryArgTypeHint=[],
         queryRetTypeHint=Int(),
-        useOpList = useOpList,
-        listBound=2,
     )
