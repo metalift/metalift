@@ -205,7 +205,7 @@ def search_crdt_structures(
             )
             print("State Structure:", next_res_type)
             print("\nRuntime Logic:")
-            print("\n\n".join([c.toSMT() for c in next_res]))  # type: ignore
+            print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
     finally:
         for p in process_tracker.all_processes:
             p.terminate()
