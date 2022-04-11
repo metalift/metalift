@@ -1,4 +1,5 @@
 from email.mime import base
+from time import time
 from actors.search_structures import search_crdt_structures
 from analysis import CodeInfo
 from ir import *
@@ -292,38 +293,52 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     bench = sys.argv[2]
 
-    bench_data = benchmarks[bench]
+    if bench == "all":
+        benches = list(benchmarks.keys())
+    else:
+        benches = [bench]
 
-    filename = f"tests/{bench_data['ll_name']}.ll"
-    fnNameBase = "test"
-    loopsFile = f"tests/{bench_data['ll_name']}.loops"
-    cvcPath = "cvc5"
+    with open("benchmarks.csv", "w") as report:
+        for bench in benches:
+            bench_data = benchmarks[bench]
 
-    useOpList = False
-    if mode == "synth-oplist":
-        useOpList = True
+            filename = f"tests/{bench_data['ll_name']}.ll"
+            fnNameBase = "test"
+            loopsFile = f"tests/{bench_data['ll_name']}.loops"
+            cvcPath = "cvc5"
 
-    nonIdempotent = "nonIdempotent" in bench_data and bench_data["nonIdempotent"]
-    all_structures = lat.gen_structures()
-    filtered_structures = all_structures
-    if nonIdempotent:
-        filtered_structures = filter(has_node_id, all_structures)
+            useOpList = False
+            if mode == "synth-oplist":
+                useOpList = True
 
-    search_crdt_structures(
-        initState,
-        grammarStateInvariant,
-        grammarSupportedCommand,
-        bench_data["inOrder"],
-        bench_data["opPrecondition"],
-        grammar,
-        grammarQuery,
-        grammarEquivalence,
-        targetLang,
-        synthesize,
-        filename, fnNameBase, loopsFile, cvcPath, useOpList,
-        filtered_structures,
-        stateTypeHint=bench_data["stateTypeHint"],
-        opArgTypeHint=bench_data["opArgTypeHint"],
-        queryArgTypeHint=bench_data["queryArgTypeHint"],
-        queryRetTypeHint=bench_data["queryRetTypeHint"],
-    )
+            nonIdempotent = "nonIdempotent" in bench_data and bench_data["nonIdempotent"]
+            all_structures = lat.gen_structures()
+            filtered_structures = all_structures
+            if nonIdempotent:
+                filtered_structures = filter(has_node_id, all_structures)
+
+            start_time = time()
+            search_crdt_structures(
+                initState,
+                grammarStateInvariant,
+                grammarSupportedCommand,
+                bench_data["inOrder"],
+                bench_data["opPrecondition"],
+                grammar,
+                grammarQuery,
+                grammarEquivalence,
+                targetLang,
+                synthesize,
+                filename, fnNameBase, loopsFile, cvcPath, useOpList,
+                filtered_structures,
+                reportFile=f"benchmarks-{bench}.csv",
+                stateTypeHint=bench_data["stateTypeHint"],
+                opArgTypeHint=bench_data["opArgTypeHint"],
+                queryArgTypeHint=bench_data["queryArgTypeHint"],
+                queryRetTypeHint=bench_data["queryRetTypeHint"],
+            )
+            end_time = time()
+
+            print(f"{bench} took {end_time - start_time} seconds")
+            report.write(f"{bench},{end_time - start_time}\n")
+            report.flush()
