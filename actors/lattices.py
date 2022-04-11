@@ -184,7 +184,14 @@ class CascadingTuple(Lattice):
                             ),
                         ),
                         valueMerged,
-                        ir.Ite(ir.Eq(keyA, keyMerged), valueA, valueB),
+                        self.l2.merge(
+                            ir.Ite(
+                                ir.Eq(keyA, keyMerged),
+                                valueA,
+                                valueB,
+                            ),
+                            self.l2.bottom(),
+                        ),
                     ),
                 ),
             ),

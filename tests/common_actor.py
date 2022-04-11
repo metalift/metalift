@@ -180,7 +180,10 @@ benchmarks = {
                 BoolLit(False), # clocks out of order
             )
         ),
-        "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
+        "opPrecondition": lambda op: And(
+            Ge(op[-1], IntLit(1)),
+            Ge(op[0], IntLit(0))
+        ),
         "stateTypeHint": Int(),
         "opArgTypeHint": [Int(), ClockInt()],
         "queryArgTypeHint": [],
@@ -305,7 +308,6 @@ if __name__ == "__main__":
     filtered_structures = all_structures
     if nonIdempotent:
         filtered_structures = filter(has_node_id, all_structures)
-    
 
     search_crdt_structures(
         initState,
