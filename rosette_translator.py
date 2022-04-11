@@ -87,11 +87,10 @@ def generateVars(vars: Set[Expr], listBound: int) -> Tuple[str, List[str]]:
 
 
 def generateSynth(
-    vars: List[str],
-    invariant_guesses: List[Any],
+    vars: List[str], invariant_guesses: List[Any], uninterpFns: List[str] = []
 ) -> str:
 
-    listvars = "(list " + " ".join(vars) + ")"
+    listvars = "(list " + " ".join(vars + uninterpFns) + ")"
     if invariant_guesses:
         blocking_constraints = []
         for inv in invariant_guesses:
@@ -153,9 +152,12 @@ def toRosette(
         file=f,
     )
 
+    # get uninterpreted function names
+    uninterpFns = {t.args[0] for t in targetLang if "uninterp" in t.args[0]}
+
     # struct declarations and function definition of target constructs
     for t in targetLang:
-        if t.args[1] != None:
+        if t.args[1] != None or t.args[0] in uninterpFns:
             print("\n", t.toRosette(), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
@@ -172,7 +174,7 @@ def toRosette(
 
     fnsDecls = []
     for t in targetLang:
-        if t.args[1] == None:
+        if t.args[1] == None and t.args[0] not in uninterpFns:
             fnsDecls.append(t)
     if fnsDecls:
         print(generateInvPs(fnsDecls), file=f)
@@ -191,7 +193,7 @@ def toRosette(
 
     # synthesis function
     if not verifyMode:
-        print(generateSynth(vars_all, invGuess), file=f)
+        print(generateSynth(vars_all, invGuess, uninterpFns=list(uninterpFns)), file=f)
     else:
         print("(verify (assertions))", file=f)
     f.close()

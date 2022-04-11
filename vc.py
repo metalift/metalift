@@ -378,6 +378,8 @@ class VC:
                     r = Le(op1, op2)
                 elif cond == "slt" or cond == "ult":
                     r = Lt(op1, op2)
+                elif cond == "ne":
+                    r = Not(Eq(op2, op1))
                 else:
                     raise Exception("NYI %s" % cond)
 
