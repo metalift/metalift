@@ -18,7 +18,7 @@ from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
 def synthesize_crdt(
-    queue: queue.Queue[Tuple[Any, Optional[List[Expr]]]],
+    queue: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
     grammarStateInvariant: Callable[[Expr, Any, int], Expr],
@@ -106,7 +106,7 @@ def search_crdt_structures(
     queryArgTypeHint: Optional[List[ir.Type]] = None,
     queryRetTypeHint: Optional[ir.Type] = None,
 ) -> None:
-    q: queue.Queue[Tuple[Any, Optional[List[Expr]]]] = queue.Queue()
+    q: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]] = queue.Queue()
     queue_size = 0
     next_uid = 0
 
@@ -201,9 +201,13 @@ def search_crdt_structures(
                     if queue_size == 0:
                         raise Exception("no more structures")
                     else:
-                        (ret_uid, next_res_type, next_res) = q.get(block=True, timeout=None)
+                        (ret_uid, next_res_type, next_res) = q.get(
+                            block=True, timeout=None
+                        )
                         time_took = time() - start_times[ret_uid]
-                        report.write(f"{ret_uid},{time_took},\"{str(next_res_type)}\",{next_res != None}\n")
+                        report.write(
+                            f'{ret_uid},{time_took},"{str(next_res_type)}",{next_res != None}\n'
+                        )
                         report.flush()
                         queue_size -= 1
                         if next_res != None:
