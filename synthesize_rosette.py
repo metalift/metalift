@@ -264,6 +264,8 @@ def toExpr(
     else:
         if ast.isnumeric():
             return IntLit(int(ast))
+        elif ast[0] == "-" and ast[1:].isnumeric():
+            return IntLit(-int(ast[1:]))
         elif ast == "true":
             return BoolLit(True)
         elif ast == "false":

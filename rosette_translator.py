@@ -20,6 +20,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         or v.type.name == "ClockInt"
         or v.type.name == "BoolInt"
         or v.type.name == "OpaqueInt"
+        or v.type.name == "NodeIDInt"
     ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])

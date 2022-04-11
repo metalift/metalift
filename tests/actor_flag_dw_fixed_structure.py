@@ -28,7 +28,7 @@ def grammarEquivalence(inputState, synthState, queryParams):
     )
 
 
-def grammarStateInvariant(synthState):
+def grammarStateInvariant(synthState, boost):
     state_valid = And(*[
         synthStateStructure[i].check_is_valid(
             TupleGet(synthState, IntLit(i))
@@ -42,7 +42,7 @@ def grammarStateInvariant(synthState):
     )
 
 
-def grammarSupportedCommand(synthState, args):
+def grammarSupportedCommand(synthState, args, boost):
     conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
     out = auto_grammar(

@@ -18,11 +18,11 @@ def grammarEquivalence(inputState, synthState, queryParams):
     return auto_grammar(Bool(), 2, inputState, synthState, *queryParams)
 
 
-def grammarStateInvariant(synthState):
+def grammarStateInvariant(synthState, boost):
     return auto_grammar(Bool(), 1, synthState)
 
 
-def grammarSupportedCommand(synthState, args):
+def grammarSupportedCommand(synthState, args, boost):
     return auto_grammar(Bool(), 1, synthState, *args)
 
 

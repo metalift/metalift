@@ -5,7 +5,7 @@ from ir import *
 from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
-from auto_grammar import auto_grammar, expand_lattice_logic
+from auto_grammar import all_node_id_gets, auto_grammar, expand_lattice_logic
 import sys
 from maps_lang import mapsLang
 
@@ -26,7 +26,7 @@ def grammarEquivalence(inputState, synthState, queryParams):
     )
 
 
-def grammarStateInvariant(synthState, synthStateStructure):
+def grammarStateInvariant(synthState, synthStateStructure, invariantBoost):
     state_valid = And(*[
         synthStateStructure[i].check_is_valid(
             TupleGet(synthState, IntLit(i))
@@ -36,15 +36,15 @@ def grammarStateInvariant(synthState, synthStateStructure):
 
     return And(
         state_valid,
-        auto_grammar(Bool(), base_depth, synthState)
+        auto_grammar(Bool(), base_depth + invariantBoost, synthState)
     )
 
 
-def grammarSupportedCommand(synthState, args, synthStateStructure):
+def grammarSupportedCommand(synthState, args, synthStateStructure, invariantBoost):
     conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
     out = auto_grammar(
-        Bool(), base_depth + 1,
+        Bool(), base_depth + 1 + invariantBoost,
         synthState, *args,
         *expand_lattice_logic(*[
             (TupleGet(synthState, IntLit(i)), synthStateStructure[i])
@@ -63,7 +63,8 @@ def grammarQuery(ci: CodeInfo):
         condition = auto_grammar(
             Bool(),
             base_depth + 2,
-            *ci.readVars
+            *ci.readVars,
+            allow_node_id_reductions=True,
         )
 
         summary = Ite(condition, IntLit(1), IntLit(0))
@@ -71,7 +72,8 @@ def grammarQuery(ci: CodeInfo):
         summary = auto_grammar(
             parseTypeRef(ci.retT), base_depth + 2,
             *ci.readVars,
-            enable_ite=True
+            enable_ite=True,
+            allow_node_id_reductions=True,
         )
 
     return Synth(name, summary, *ci.readVars)
@@ -87,15 +89,25 @@ def grammar(ci: CodeInfo, synthStateStructure):
         args = ci.readVars[1:]
 
         conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
-        
+
+        non_associative_data = []
+        for a in args:
+            if a.type == NodeIDInt():
+                non_associative_data = all_node_id_gets(
+                    inputState, a,
+                    auto_grammar(None, 0, *args)
+                )
+                break
+
         out = MakeTuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
                     fold_conditions(auto_grammar(
                         TupleGet(inputState, IntLit(i)).type,
-                        base_depth,
-                        *args
+                        base_depth + 1,
+                        *args,
+                        *non_associative_data
                     ), conditions)
                 )
                 for i in range(len(synthStateStructure))
@@ -168,11 +180,14 @@ benchmarks = {
                 BoolLit(False), # clocks out of order
             )
         ),
-        "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
-        "stateTypeHint": Int(),
-        "opArgTypeHint": [Int(), ClockInt()],
+        "opPrecondition": lambda op: And(
+            Ge(op[-1], IntLit(1)),
+            Ge(op[0], IntLit(0))
+        ),
+        "stateTypeHint": OpaqueInt(),
+        "opArgTypeHint": [OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [],
-        "queryRetTypeHint": Int(),
+        "queryRetTypeHint": OpaqueInt(),
     },
     "g_set": {
         "ll_name": "actor1",
@@ -241,8 +256,37 @@ benchmarks = {
         "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
+    },
+    "grow_only_counter": {
+        "ll_name": "actor2",
+        "inOrder": lambda arg1, arg2: And(
+            Eq(arg1[0], IntLit(1)),
+            Eq(arg2[0], IntLit(1))
+        ),
+        "opPrecondition": lambda op: Eq(op[0], IntLit(1)),
+        "stateTypeHint": Int(),
+        "opArgTypeHint": [BoolInt(), NodeIDInt()],
+        "queryArgTypeHint": [],
+        "queryRetTypeHint": Int(),
+        "nonIdempotent": True,
+    },
+    "general_counter": {
+        "ll_name": "actor2",
+        "inOrder": lambda arg1, arg2: BoolLit(True),
+        "opPrecondition": lambda op: BoolLit(True),
+        "stateTypeHint": Int(),
+        "opArgTypeHint": [BoolInt(), NodeIDInt()],
+        "queryArgTypeHint": [],
+        "queryRetTypeHint": Int(),
+        "nonIdempotent": True,
     }
 }
+
+def has_node_id(tup):
+    for v in tup:
+        if v.has_node_id():
+            return True
+    return False
 
 if __name__ == "__main__":
     mode = sys.argv[1]
@@ -259,6 +303,12 @@ if __name__ == "__main__":
     if mode == "synth-oplist":
         useOpList = True
 
+    nonIdempotent = "nonIdempotent" in bench_data and bench_data["nonIdempotent"]
+    all_structures = lat.gen_structures()
+    filtered_structures = all_structures
+    if nonIdempotent:
+        filtered_structures = filter(has_node_id, all_structures)
+
     search_crdt_structures(
         initState,
         grammarStateInvariant,
@@ -271,7 +321,7 @@ if __name__ == "__main__":
         targetLang,
         synthesize,
         filename, fnNameBase, loopsFile, cvcPath, useOpList,
-        lat.gen_structures(),
+        filtered_structures,
         stateTypeHint=bench_data["stateTypeHint"],
         opArgTypeHint=bench_data["opArgTypeHint"],
         queryArgTypeHint=bench_data["queryArgTypeHint"],

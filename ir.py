@@ -27,6 +27,7 @@ class Type:
             or self.name == "ClockInt"
             or self.name == "BoolInt"
             or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
         ):
             return "Int"
         elif self.name == "Bool":
@@ -57,6 +58,7 @@ class Type:
             self.name == "ClockInt"
             or self.name == "BoolInt"
             or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
         ):
             return Int()
         else:
@@ -103,6 +105,10 @@ def OpaqueInt() -> Type:
     return Type("OpaqueInt")
 
 
+def NodeIDInt() -> Type:
+    return Type("NodeIDInt")
+
+
 def Bool() -> Type:
     return Type("Bool")
 
@@ -132,9 +138,9 @@ def Map(keyT: Type, valT: Type) -> Type:
     return Type("Map", keyT, valT)
 
 
-# first two types are not optional
-def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
-    return Type("Tuple", e1T, e2T, *elemT)
+# first type is not optional
+def Tuple(e1T: Type, *elemT: Type) -> Type:
+    return Type("Tuple", e1T, *elemT)
 
 
 class Expr:
@@ -659,7 +665,7 @@ class Expr:
                 ["%s" % arg.toRosette() for arg in self.args]
             )
         elif kind == Expr.Kind.Let:
-            return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette()}]) {self.args[2].toRosette()})"
+            return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
         else:
             if kind == Expr.Kind.And:
                 value = "&&"

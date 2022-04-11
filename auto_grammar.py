@@ -7,20 +7,21 @@ from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
 equality_supported_types = [Bool(), Int(), ClockInt(), BoolInt(), OpaqueInt()]
-comparison_supported_types = [Int(), ClockInt()]
+comparison_supported_types = [Int(), ClockInt(), OpaqueInt()]
 
 
 def get_expansions(
     input_types: typing.List[Type],
     available_types: typing.List[Type],
     out_types: typing.List[Type],
+    allow_node_id_reductions: bool = False,
 ) -> Dict[Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]]:
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
         Int(): [
-            lambda get: Add(get(Int()), get(Int())),
-            lambda get: Sub(get(Int()), get(Int())),
+            # lambda get: Add(get(Int()), get(Int())),
+            # lambda get: Sub(get(Int()), get(Int())),
             # lambda get: Mul(get(Int()), get(Int())),
         ],
         Bool(): [
@@ -74,7 +75,9 @@ def get_expansions(
 
     def gen_map_ops(k: Type, v: Type, allow_zero_create: bool) -> None:
         if Map(k, v) in out_types:
-            out[Map(k, v)] = [
+            if Map(k, v) not in out:
+                out[Map(k, v)] = []
+            out[Map(k, v)] += [
                 (lambda get: Call("map-create", Map(k, v)))
                 if allow_zero_create
                 else (lambda get: Call("map-create", Map(get(k).type, v))),
@@ -85,13 +88,62 @@ def get_expansions(
             out[v] = []
 
         if Map(k, v) in input_types:
-            out[v] += [
-                lambda get: Call("map-get", v, get(Map(k, v)), get(k), get(v)),
-            ]
+            if v.erase() == Int():
+                out[v] += [
+                    lambda get: Call("map-get", v, get(Map(k, v)), get(k), Lit(0, v)),
+                ]
+
+                if k == NodeIDInt() and allow_node_id_reductions:
+                    merge_a = Var("merge_into", v)
+                    merge_b = Var("merge_v", v)
+
+                    if v == Int():
+                        out[v] += [
+                            lambda get: Call(
+                                "reduce",
+                                v,
+                                Call("map-values", List(v), get(Map(k, v))),
+                                Lambda(
+                                    v,
+                                    Add(merge_a, merge_b),
+                                    merge_b,
+                                    merge_a,
+                                ),
+                                IntLit(0),
+                            )
+                        ]
+            elif v == Bool():
+                out[v] += [
+                    lambda get: Call(
+                        "map-get",
+                        v,
+                        get(Map(k, v)),
+                        get(k),
+                        Choose(BoolLit(False), BoolLit(True)),
+                    ),
+                ]
+            elif v.name == "Map":
+                out[v] += [
+                    lambda get: Call(
+                        "map-get", v, get(Map(k, v)), get(k), Call("map-create", v)
+                    ),
+                ]
+            else:
+                raise Exception("NYI")
 
     for t in available_types:
         if t.name == "Map":
             gen_map_ops(t.args[0], t.args[1], t.args[0] in input_types)
+
+    if Int() in input_types:
+        if Int() not in out:
+            out[Int()] = []
+        out[Int()] += [
+            lambda get: IntLit(0),
+            lambda get: IntLit(1),
+            lambda get: Add(get(Int()), get(Int())),
+            lambda get: Sub(get(Int()), get(Int())),
+        ]
 
     if BoolInt() in available_types:
         if BoolInt() not in out:
@@ -106,13 +158,50 @@ def get_expansions(
     return out
 
 
+def all_node_id_gets(
+    input: Expr,
+    node_id: Expr,
+    args: Dict[Type, Expr],
+) -> typing.List[Expr]:
+    if input.type.name == "Map":
+        v = input.type.args[1]
+        default = None
+        if v.erase() == Int():
+            default = Lit(0, v)
+        elif v == Bool():
+            default = Choose(BoolLit(False), BoolLit(True))
+        elif v.name == "Map":
+            default = Call("map-create", v)
+        else:
+            raise Exception("NYI")
+
+        if input.type.args[0] == NodeIDInt():
+            return [Call("map-get", v, input, node_id, default)]
+        elif input.type.args[0] in args:
+            return all_node_id_gets(
+                Call("map-get", v, input, args[input.type.args[0]], default),
+                node_id,
+                args,
+            )
+        else:
+            return []
+    elif input.type.name == "Tuple":
+        out = []
+        for i in range(len(input.type.args)):
+            out += all_node_id_gets(TupleGet(input, IntLit(i)), node_id, args)
+        return out
+    else:
+        return []
+
+
 def auto_grammar(
-    out_type: Type,
+    out_type: typing.Optional[Type],
     depth: int,
     *inputs: Union[Expr, ValueRef],
     enable_ite: bool = False,
+    allow_node_id_reductions: bool = False,
 ) -> Expr:
-    if out_type.name == "Tuple":
+    if out_type and out_type.name == "Tuple":
         return MakeTuple(
             *[
                 auto_grammar(
@@ -120,6 +209,7 @@ def auto_grammar(
                     depth,
                     *inputs,
                     enable_ite=enable_ite,
+                    allow_node_id_reductions=allow_node_id_reductions,
                 )
                 for t in out_type.args
             ]
@@ -151,12 +241,14 @@ def auto_grammar(
 
     input_types = list(input_pool.keys())
 
-    if out_type not in input_pool:
+    if out_type and out_type not in input_pool:
         extract_inputs(out_type, None)
 
     out_types = list(set(input_pool.keys()) - set(input_types))
 
-    expansions = get_expansions(input_types, list(input_pool.keys()), out_types)
+    expansions = get_expansions(
+        input_types, list(input_pool.keys()), out_types, allow_node_id_reductions
+    )
 
     pool: Dict[Type, Expr] = {}
     for t, exprs in input_pool.items():
@@ -203,7 +295,10 @@ def auto_grammar(
 
         pool = next_pool
 
-    return pool[out_type]
+    if out_type:
+        return pool[out_type]
+    else:
+        return pool  # type: ignore
 
 
 def expand_lattice_logic(*inputs: typing.Tuple[Expr, Lattice]) -> typing.List[Expr]:
