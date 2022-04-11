@@ -135,16 +135,14 @@ def get_expansions(
         if t.name == "Map":
             gen_map_ops(t.args[0], t.args[1], t.args[0] in input_types)
 
-    if Int() in available_types:
+    if Int() in input_types:
         if Int() not in out:
             out[Int()] = []
-        out[Int()] += [lambda get: IntLit(0), lambda get: IntLit(1)]
-
-        if Int() in input_types:
-            out[Int()] += [
-                lambda get: Add(get(Int()), get(Int())),
-                lambda get: Sub(get(Int()), get(Int())),
-            ]
+        out[Int()] += [
+            lambda get: IntLit(0), lambda get: IntLit(1),
+            lambda get: Add(get(Int()), get(Int())),
+            lambda get: Sub(get(Int()), get(Int())),
+        ]
 
     if BoolInt() in available_types:
         if BoolInt() not in out:
