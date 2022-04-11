@@ -27,6 +27,7 @@ class Type:
             or self.name == "ClockInt"
             or self.name == "BoolInt"
             or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
         ):
             return "Int"
         elif self.name == "Bool":
@@ -57,6 +58,7 @@ class Type:
             self.name == "ClockInt"
             or self.name == "BoolInt"
             or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
         ):
             return Int()
         else:
@@ -101,6 +103,10 @@ def BoolInt() -> Type:
 
 def OpaqueInt() -> Type:
     return Type("OpaqueInt")
+
+
+def NodeIDInt() -> Type:
+    return Type("NodeIDInt")
 
 
 def Bool() -> Type:

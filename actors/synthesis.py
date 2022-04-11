@@ -197,7 +197,7 @@ def synthesize_actor(
     queryArgTypeHint: typing.Optional[typing.List[Type]] = None,
     queryRetTypeHint: typing.Optional[Type] = None,
     uid: int = 0,
-    unboundedInts: bool = False,
+    unboundedInts: bool = True,
     useOpList: bool = False,
     listBound: int = 1,
     log: bool = True,
@@ -452,7 +452,10 @@ def synthesize_actor(
                             *(
                                 [
                                     Implies(
-                                        inOrder(origArgs[1:], stateTransitionArgs),
+                                        And(
+                                            inOrder(origArgs[1:], stateTransitionArgs),
+                                            opPrecondition(stateTransitionArgs),
+                                        ),
                                         supportedCommand(
                                             afterStateForPS, stateTransitionArgs
                                         ),
@@ -864,32 +867,67 @@ def synthesize_actor(
                 log=log,
             )
         except SynthesisFailed:
-            print("INCREASING LIST BOUND TO", listBound + 1)
-            return synthesize_actor(
-                filename,
-                fnNameBase,
-                loopsFile,
-                cvcPath,
-                origSynthStateType,
-                initState,
-                grammarStateInvariant,
-                grammarSupportedCommand,
-                inOrder,
-                opPrecondition,
-                grammar,
-                grammarQuery,
-                grammarEquivalence,
-                targetLang,
-                synthesize,
-                stateTypeHint=stateTypeHint,
-                opArgTypeHint=opArgTypeHint,
-                queryArgTypeHint=queryArgTypeHint,
-                queryRetTypeHint=queryRetTypeHint,
-                uid=uid,
-                unboundedInts=unboundedInts,
-                useOpList=useOpList,
-                listBound=listBound + 1,
-                log=log,
-            )
+            try:
+                # try to re-verify with a larger bound
+                print("RE-VERIFYING WITH LIST BOUND TO", listBound + 1)
+                return synthesize_actor(
+                    filename,
+                    fnNameBase,
+                    loopsFile,
+                    cvcPath,
+                    origSynthStateType,
+                    lambda: init_state_fn.args[1],  # type: ignore
+                    grammarStateInvariant,
+                    grammarSupportedCommand,
+                    inOrder,
+                    opPrecondition,
+                    lambda ci: Synth(
+                        state_transition_fn.args[0],
+                        state_transition_fn.args[1],
+                        *ci.modifiedVars,
+                        *ci.readVars,
+                    ),
+                    lambda ci: Synth(query_fn.args[0], query_fn.args[1], *ci.readVars),
+                    lambda a, b, c: equivalence_fn.args[1],  # type: ignore
+                    targetLang,
+                    synthesize,
+                    stateTypeHint=stateTypeHint,
+                    opArgTypeHint=opArgTypeHint,
+                    queryArgTypeHint=queryArgTypeHint,
+                    queryRetTypeHint=queryRetTypeHint,
+                    uid=uid,
+                    unboundedInts=unboundedInts,
+                    useOpList=useOpList,
+                    listBound=listBound + 1,
+                    log=log,
+                )
+            except SynthesisFailed:
+                print("INCREASING LIST BOUND TO", listBound + 1)
+                return synthesize_actor(
+                    filename,
+                    fnNameBase,
+                    loopsFile,
+                    cvcPath,
+                    origSynthStateType,
+                    initState,
+                    grammarStateInvariant,
+                    grammarSupportedCommand,
+                    inOrder,
+                    opPrecondition,
+                    grammar,
+                    grammarQuery,
+                    grammarEquivalence,
+                    targetLang,
+                    synthesize,
+                    stateTypeHint=stateTypeHint,
+                    opArgTypeHint=opArgTypeHint,
+                    queryArgTypeHint=queryArgTypeHint,
+                    queryRetTypeHint=queryRetTypeHint,
+                    uid=uid,
+                    unboundedInts=unboundedInts,
+                    useOpList=useOpList,
+                    listBound=listBound + 1,
+                    log=log,
+                )
     else:
         return out

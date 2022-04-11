@@ -17,6 +17,9 @@ class Lattice:
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         raise NotImplementedError()
 
+    def has_node_id(self) -> bool:
+        raise NotImplementedError()
+
 
 @dataclass(frozen=True)
 class MaxInt(Lattice):
@@ -33,14 +36,13 @@ class MaxInt(Lattice):
         )
 
     def bottom(self) -> ir.Expr:
-        # only really makes sense for clocks, for others is just a default
         return ir.Lit(0, self.int_type)
 
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
-        if self.int_type == ir.ClockInt():
-            return ir.Ge(v, self.bottom())
-        else:
-            return ir.BoolLit(True)
+        return ir.Ge(v, self.bottom())
+
+    def has_node_id(self) -> bool:
+        return self.int_type == ir.NodeIDInt()
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,9 @@ class PosBool(Lattice):
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
 
+    def has_node_id(self) -> bool:
+        return False
+
 
 @dataclass(frozen=True)
 class NegBool(Lattice):
@@ -71,6 +76,9 @@ class NegBool(Lattice):
 
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
+
+    def has_node_id(self) -> bool:
+        return False
 
 
 @dataclass(frozen=True)
@@ -88,6 +96,9 @@ class Set(Lattice):
 
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
+
+    def has_node_id(self) -> bool:
+        return self.innerType == ir.NodeIDInt()
 
 
 @dataclass(frozen=True)
@@ -131,6 +142,9 @@ class Map(Lattice):
             ),
             ir.BoolLit(True),
         )
+
+    def has_node_id(self) -> bool:
+        return self.keyType == ir.NodeIDInt() or self.valueType.has_node_id()
 
 
 @dataclass(frozen=True)
@@ -185,6 +199,9 @@ class CascadingTuple(Lattice):
             self.l2.check_is_valid(ir.TupleGet(v, ir.IntLit(1))),
         )
 
+    def has_node_id(self) -> bool:
+        return self.l1.has_node_id() or self.l2.has_node_id()
+
 
 def gen_types(depth: int) -> typing.Iterator[ir.Type]:
     if depth == 1:
@@ -192,6 +209,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
         yield ir.ClockInt()
         yield ir.BoolInt()
         yield ir.OpaqueInt()
+        yield ir.NodeIDInt()
         yield ir.Bool()
     else:
         for innerType in gen_types(depth - 1):
@@ -202,6 +220,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
 int_like = {ir.Int().name, ir.ClockInt().name, ir.BoolInt().name, ir.OpaqueInt().name}
 comparable_int = {ir.Int().name, ir.ClockInt().name}
 set_supported_elem = {ir.Int().name, ir.OpaqueInt().name}
+map_supported_elem = {ir.OpaqueInt().name, ir.NodeIDInt().name}
 
 
 def gen_lattice_types(depth: int) -> typing.Iterator[Lattice]:
@@ -222,7 +241,7 @@ def gen_lattice_types(depth: int) -> typing.Iterator[Lattice]:
                 yield Set(innerType)
 
         for keyType in gen_types(depth - 1):
-            if keyType.name in set_supported_elem:
+            if keyType.name in map_supported_elem:
                 for valueType in gen_lattice_types(depth - 1):
                     yield Map(keyType, valueType)
 

@@ -5,7 +5,7 @@ int test_init_state() {
   return out;
 }
 
-int test_next_state(int state, int add) {
+int test_next_state(int state, int add, int node_id) {
   if (add == 1) {
     state = state + 1;
   } else {
