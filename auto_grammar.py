@@ -7,7 +7,7 @@ from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
 equality_supported_types = [Bool(), Int(), ClockInt(), BoolInt(), OpaqueInt()]
-comparison_supported_types = [Int(), ClockInt()]
+comparison_supported_types = [Int(), ClockInt(), OpaqueInt()]
 
 
 def get_expansions(

@@ -26,7 +26,7 @@ def grammarEquivalence(inputState, synthState, queryParams):
     )
 
 
-def grammarStateInvariant(synthState, synthStateStructure):
+def grammarStateInvariant(synthState, synthStateStructure, invariantBoost):
     state_valid = And(*[
         synthStateStructure[i].check_is_valid(
             TupleGet(synthState, IntLit(i))
@@ -36,15 +36,15 @@ def grammarStateInvariant(synthState, synthStateStructure):
 
     return And(
         state_valid,
-        auto_grammar(Bool(), base_depth, synthState)
+        auto_grammar(Bool(), base_depth + invariantBoost, synthState)
     )
 
 
-def grammarSupportedCommand(synthState, args, synthStateStructure):
+def grammarSupportedCommand(synthState, args, synthStateStructure, invariantBoost):
     conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
     out = auto_grammar(
-        Bool(), base_depth + 1,
+        Bool(), base_depth + 1 + invariantBoost,
         synthState, *args,
         *expand_lattice_logic(*[
             (TupleGet(synthState, IntLit(i)), synthStateStructure[i])
@@ -184,10 +184,10 @@ benchmarks = {
             Ge(op[-1], IntLit(1)),
             Ge(op[0], IntLit(0))
         ),
-        "stateTypeHint": Int(),
-        "opArgTypeHint": [Int(), ClockInt()],
+        "stateTypeHint": OpaqueInt(),
+        "opArgTypeHint": [OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [],
-        "queryRetTypeHint": Int(),
+        "queryRetTypeHint": OpaqueInt(),
     },
     "g_set": {
         "ll_name": "actor1",

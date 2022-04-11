@@ -20,8 +20,8 @@ def synthesize_crdt(
     queue: queue.Queue[Tuple[Any, Optional[List[Expr]]]],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
-    grammarStateInvariant: Callable[[Expr, Any], Expr],
-    grammarSupportedCommand: Callable[[Expr, Any, Any], Expr],
+    grammarStateInvariant: Callable[[Expr, Any, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
     grammar: Callable[[CodeInfo, Any], Expr],
@@ -53,8 +53,10 @@ def synthesize_crdt(
                     cvcPath,
                     synthStateType,
                     lambda: initState(synthStateStructure),
-                    lambda s: grammarStateInvariant(s, synthStateStructure),
-                    lambda s, a: grammarSupportedCommand(s, a, synthStateStructure),
+                    lambda s, b: grammarStateInvariant(s, synthStateStructure, b),
+                    lambda s, a, b: grammarSupportedCommand(
+                        s, a, synthStateStructure, b
+                    ),
                     inOrder,
                     opPrecondition,
                     lambda ci: grammar(ci, synthStateStructure),
@@ -81,8 +83,8 @@ def synthesize_crdt(
 
 def search_crdt_structures(
     initState: Callable[[Any], Expr],
-    grammarStateInvariant: Callable[[Expr, Any], Expr],
-    grammarSupportedCommand: Callable[[Expr, Any, Any], Expr],
+    grammarStateInvariant: Callable[[Expr, Any, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
     grammar: Callable[[CodeInfo, Any], Expr],
@@ -131,9 +133,11 @@ def search_crdt_structures(
                                 cvcPath,
                                 synthStateType,
                                 lambda: initState(next_structure_type),
-                                lambda s: grammarStateInvariant(s, next_structure_type),
-                                lambda s, a: grammarSupportedCommand(
-                                    s, a, next_structure_type
+                                lambda s, b: grammarStateInvariant(
+                                    s, next_structure_type, b
+                                ),
+                                lambda s, a, b: grammarSupportedCommand(
+                                    s, a, next_structure_type, b
                                 ),
                                 inOrder,
                                 opPrecondition,

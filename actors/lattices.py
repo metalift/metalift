@@ -225,7 +225,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
 
 
 int_like = {ir.Int().name, ir.ClockInt().name, ir.BoolInt().name, ir.OpaqueInt().name}
-comparable_int = {ir.Int().name, ir.ClockInt().name}
+comparable_int = {ir.Int().name, ir.ClockInt().name, ir.OpaqueInt().name}
 set_supported_elem = {ir.Int().name, ir.OpaqueInt().name}
 map_supported_elem = {ir.OpaqueInt().name, ir.NodeIDInt().name}
 
