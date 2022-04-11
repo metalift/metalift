@@ -3,6 +3,7 @@ from __future__ import annotations
 import multiprocessing as mp
 import multiprocessing.pool
 import queue
+from time import time
 import traceback
 
 from actors.lattices import Lattice
@@ -17,7 +18,7 @@ from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
 def synthesize_crdt(
-    queue: queue.Queue[Tuple[Any, Optional[List[Expr]]]],
+    queue: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
     grammarStateInvariant: Callable[[Expr, Any, int], Expr],
@@ -45,6 +46,7 @@ def synthesize_crdt(
     try:
         queue.put(
             (
+                uid,
                 synthStateStructure,
                 synthesize_actor(
                     filename,
@@ -75,10 +77,10 @@ def synthesize_crdt(
             )
         )
     except SynthesisFailed:
-        queue.put((synthStateStructure, None))
+        queue.put((uid, synthStateStructure, None))
     except:
         traceback.print_exc()
-        queue.put((synthStateStructure, None))
+        queue.put((uid, synthStateStructure, None))
 
 
 def search_crdt_structures(
@@ -98,108 +100,120 @@ def search_crdt_structures(
     cvcPath: str,
     useOpList: bool,
     structureCandidates: Iterator[Any],
+    reportFile: str,
     stateTypeHint: Optional[ir.Type] = None,
     opArgTypeHint: Optional[List[ir.Type]] = None,
     queryArgTypeHint: Optional[List[ir.Type]] = None,
     queryRetTypeHint: Optional[ir.Type] = None,
 ) -> None:
-    q: queue.Queue[Tuple[Any, Optional[List[Expr]]]] = queue.Queue()
+    q: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]] = queue.Queue()
     queue_size = 0
-    uid = 0
+    next_uid = 0
 
     next_res_type = None
     next_res = None
 
+    start_times = {}
+
     try:
         with multiprocessing.pool.ThreadPool() as pool:
-            while True:
-                while queue_size < (mp.cpu_count() // 2):
-                    next_structure_type = next(structureCandidates, None)
-                    if next_structure_type is None:
-                        break
+            with open(reportFile, "w") as report:
+                while True:
+                    while queue_size < (mp.cpu_count() // 2):
+                        next_structure_type = next(structureCandidates, None)
+                        if next_structure_type is None:
+                            break
+                        else:
+
+                            def error_callback(e: BaseException) -> None:
+                                raise e
+
+                            try:
+                                synthStateType = ir.Tuple(
+                                    *[a.ir_type() for a in next_structure_type]
+                                )
+                                synthesize_actor(
+                                    filename,
+                                    fnNameBase,
+                                    loopsFile,
+                                    cvcPath,
+                                    synthStateType,
+                                    lambda: initState(next_structure_type),
+                                    lambda s, b: grammarStateInvariant(
+                                        s, next_structure_type, b
+                                    ),
+                                    lambda s, a, b: grammarSupportedCommand(
+                                        s, a, next_structure_type, b
+                                    ),
+                                    inOrder,
+                                    opPrecondition,
+                                    lambda ci: grammar(ci, next_structure_type),
+                                    grammarQuery,
+                                    grammarEquivalence,
+                                    targetLang,
+                                    synthesize,
+                                    uid=next_uid,
+                                    useOpList=useOpList,
+                                    stateTypeHint=stateTypeHint,
+                                    opArgTypeHint=opArgTypeHint,
+                                    queryArgTypeHint=queryArgTypeHint,
+                                    queryRetTypeHint=queryRetTypeHint,
+                                    log=False,
+                                    skipSynth=True,
+                                )
+                            except KeyError:
+                                # this is due to a grammar not being able to find a value
+                                continue
+
+                            print(f"Enqueueing #{next_uid}:", next_structure_type)
+                            start_times[next_uid] = time()
+                            pool.apply_async(
+                                synthesize_crdt,
+                                args=(
+                                    q,
+                                    next_structure_type,
+                                    initState,
+                                    grammarStateInvariant,
+                                    grammarSupportedCommand,
+                                    inOrder,
+                                    opPrecondition,
+                                    grammar,
+                                    grammarQuery,
+                                    grammarEquivalence,
+                                    targetLang,
+                                    synthesize,
+                                    useOpList,
+                                    stateTypeHint,
+                                    opArgTypeHint,
+                                    queryArgTypeHint,
+                                    queryRetTypeHint,
+                                    filename,
+                                    fnNameBase,
+                                    loopsFile,
+                                    cvcPath,
+                                    next_uid,
+                                ),
+                                error_callback=error_callback,
+                            )
+                            next_uid += 1
+                            queue_size += 1
+
+                    if queue_size == 0:
+                        raise Exception("no more structures")
                     else:
-
-                        def error_callback(e: BaseException) -> None:
-                            raise e
-
-                        try:
-                            synthStateType = ir.Tuple(
-                                *[a.ir_type() for a in next_structure_type]
-                            )
-                            synthesize_actor(
-                                filename,
-                                fnNameBase,
-                                loopsFile,
-                                cvcPath,
-                                synthStateType,
-                                lambda: initState(next_structure_type),
-                                lambda s, b: grammarStateInvariant(
-                                    s, next_structure_type, b
-                                ),
-                                lambda s, a, b: grammarSupportedCommand(
-                                    s, a, next_structure_type, b
-                                ),
-                                inOrder,
-                                opPrecondition,
-                                lambda ci: grammar(ci, next_structure_type),
-                                grammarQuery,
-                                grammarEquivalence,
-                                targetLang,
-                                synthesize,
-                                uid=uid,
-                                useOpList=useOpList,
-                                stateTypeHint=stateTypeHint,
-                                opArgTypeHint=opArgTypeHint,
-                                queryArgTypeHint=queryArgTypeHint,
-                                queryRetTypeHint=queryRetTypeHint,
-                                log=False,
-                                skipSynth=True,
-                            )
-                        except KeyError:
-                            # this is due to a grammar not being able to find a value
-                            continue
-
-                        print(f"Enqueueing #{uid}:", next_structure_type)
-                        pool.apply_async(
-                            synthesize_crdt,
-                            args=(
-                                q,
-                                next_structure_type,
-                                initState,
-                                grammarStateInvariant,
-                                grammarSupportedCommand,
-                                inOrder,
-                                opPrecondition,
-                                grammar,
-                                grammarQuery,
-                                grammarEquivalence,
-                                targetLang,
-                                synthesize,
-                                useOpList,
-                                stateTypeHint,
-                                opArgTypeHint,
-                                queryArgTypeHint,
-                                queryRetTypeHint,
-                                filename,
-                                fnNameBase,
-                                loopsFile,
-                                cvcPath,
-                                uid,
-                            ),
-                            error_callback=error_callback,
+                        (ret_uid, next_res_type, next_res) = q.get(
+                            block=True, timeout=None
                         )
-                        uid += 1
-                        queue_size += 1
-
-                if queue_size == 0:
-                    raise Exception("no more structures")
-                else:
-                    (next_res_type, next_res) = q.get(block=True, timeout=None)
-                    queue_size -= 1
-                    if next_res != None:
-                        break
-                    else:
-                        print("Failed to synthesize with structure", next_res_type)
+                        time_took = time() - start_times[ret_uid]
+                        report.write(
+                            f'{ret_uid},{time_took},"{str(next_res_type)}",{next_res != None}\n'
+                        )
+                        report.flush()
+                        queue_size -= 1
+                        if next_res != None:
+                            break
+                        else:
+                            print("Failed to synthesize with structure", next_res_type)
 
         if next_res == None:
             raise Exception("Synthesis failed")
@@ -212,4 +226,6 @@ def search_crdt_structures(
             print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
     finally:
         for p in process_tracker.all_processes:
+            print("Terminating process", p.pid)
             p.terminate()
+        process_tracker.all_processes = []
