@@ -794,7 +794,7 @@ def synthesize_actor(
         )
 
     if useOpList:
-        print(f"Re-synthesizing to identify invariants (list bound: {listBound})")
+        print(f"{uid}: Re-synthesizing to identify invariants (list bound: {listBound})")
         equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
         state_transition_fn = [
             x for x in out if x.args[0] == f"{fnNameBase}_next_state"
@@ -869,7 +869,7 @@ def synthesize_actor(
         except SynthesisFailed:
             try:
                 # try to re-verify with a larger bound
-                print("RE-VERIFYING WITH LIST BOUND TO", listBound + 1)
+                print(f"{uid}: RE-VERIFYING WITH LIST BOUND TO", listBound + 1)
                 return synthesize_actor(
                     filename,
                     fnNameBase,
@@ -902,7 +902,7 @@ def synthesize_actor(
                     log=log,
                 )
             except SynthesisFailed:
-                print("INCREASING LIST BOUND TO", listBound + 1)
+                print(f"{uid}: INCREASING LIST BOUND TO", listBound + 1)
                 return synthesize_actor(
                     filename,
                     fnNameBase,
