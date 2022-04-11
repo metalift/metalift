@@ -139,7 +139,8 @@ def get_expansions(
         if Int() not in out:
             out[Int()] = []
         out[Int()] += [
-            lambda get: IntLit(0), lambda get: IntLit(1),
+            lambda get: IntLit(0),
+            lambda get: IntLit(1),
             lambda get: Add(get(Int()), get(Int())),
             lambda get: Sub(get(Int()), get(Int())),
         ]

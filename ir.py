@@ -138,9 +138,9 @@ def Map(keyT: Type, valT: Type) -> Type:
     return Type("Map", keyT, valT)
 
 
-# first two types are not optional
-def Tuple(e1T: Type, e2T: Type, *elemT: Type) -> Type:
-    return Type("Tuple", e1T, e2T, *elemT)
+# first type is not optional
+def Tuple(e1T: Type, *elemT: Type) -> Type:
+    return Type("Tuple", e1T, *elemT)
 
 
 class Expr:
