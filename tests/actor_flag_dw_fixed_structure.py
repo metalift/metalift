@@ -10,7 +10,7 @@ from maps_lang import mapsLang
 
 from synthesize_auto import synthesize
 
-synthStateStructure = [lat.CascadingTuple(lat.MaxInt(ClockInt()), lat.NegBool()), lat.PosBool()]
+synthStateStructure = [lat.CascadingTuple(lat.MaxInt(ClockInt()), lat.PosBool()), lat.PosBool()]
 synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
 
 base_depth = 1
@@ -80,7 +80,7 @@ def opPrecondition(op):
 def grammarQuery(ci: CodeInfo):
     name = ci.name
 
-    summary = auto_grammar(ci.retT, base_depth + 1, *ci.readVars, enable_ite=True)
+    summary = auto_grammar(ci.retT, base_depth + 2, *ci.readVars, enable_ite=True)
 
     return Synth(name, summary, *ci.readVars)
 
@@ -104,7 +104,7 @@ def grammar(ci: CodeInfo):
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
-                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth, *args[1:]))
+                    fold_conditions(auto_grammar(TupleGet(inputState, IntLit(i)).type, base_depth + 1, *args[1:]))
                 )
                 for i in range(len(synthStateStructure))
             ],
