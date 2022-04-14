@@ -264,6 +264,8 @@ def toExpr(
     else:
         if ast.isnumeric():
             return IntLit(int(ast))
+        elif ast[0] == "-" and ast[1:].isnumeric():
+            return IntLit(-int(ast[1:]))
         elif ast == "true":
             return BoolLit(True)
         elif ast == "false":
@@ -358,7 +360,10 @@ def synthesize(
 
             exitCode = procSynthesis.wait()
             if exitCode != 0:
-                raise SynthesisFailed(f"Synthesis failed: exit code {exitCode}")
+                if len(resultSynth) > 0 and resultSynth[0] == "#f":
+                    raise SynthesisFailed(f"Synthesis failed: exit code {exitCode}")
+                else:
+                    raise Exception(f"Rosette failed: exit code {exitCode}")
 
             ##### End of Synthesis #####
 

@@ -16,7 +16,7 @@ def mapsLang() -> typing.List[Expr]:
     lr_fn = Var("f", Fn(Int(), Int(), Int()))
     initial = Var("initial", Int())
     reduce_fn = FnDecl(
-        "reduce",
+        "reduce_int",
         Int(),
         Ite(
             Eq(list_length(data), IntLit(0)),
@@ -24,12 +24,38 @@ def mapsLang() -> typing.List[Expr]:
             CallValue(
                 lr_fn,
                 list_get(data, IntLit(0)),
-                Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn, initial),
+                Call("reduce_int", Int(), list_tail(data, IntLit(1)), lr_fn, initial),
             ),
         ),
         data,
         lr_fn,
         initial,
+    )
+
+    data_bool = Var("data", List(Bool()))
+    lr_fn_bool = Var("f", Fn(Bool(), Bool(), Bool()))
+    initial_bool = Var("initial", Bool())
+    reduce_fn_bool = FnDecl(
+        "reduce_bool",
+        Bool(),
+        Ite(
+            Eq(list_length(data_bool), IntLit(0)),
+            initial_bool,
+            CallValue(
+                lr_fn_bool,
+                list_get(data_bool, IntLit(0)),
+                Call(
+                    "reduce_bool",
+                    Bool(),
+                    list_tail(data_bool, IntLit(1)),
+                    lr_fn_bool,
+                    initial_bool,
+                ),
+            ),
+        ),
+        data_bool,
+        lr_fn_bool,
+        initial_bool,
     )
 
     # m1 = Var("m1", Map(Int(), Int()))
@@ -88,6 +114,7 @@ def mapsLang() -> typing.List[Expr]:
 
     return [
         reduce_fn,
+        reduce_fn_bool,
         # union_fn,
         # union_axiom_1,
         # union_axiom_2,

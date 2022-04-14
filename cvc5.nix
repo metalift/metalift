@@ -22,13 +22,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "cvc5";
-  version = "cvc5-0.0.7";
+  version = "cvc5-1.0.0";
 
   src = fetchFromGitHub {
     owner  = "cvc5";
     repo   = "cvc5";
     rev    = version;
-    sha256 = "0dh64npfgggkgrllrlrdzjza0ryvr1yv3f4p3ibyv60c31lvncny";
+    sha256 = "03sxqwmlajffmv7lncqs1bx8gyihkpnikk87q9wjrd4776n13ign";
   };
 
   nativeBuildInputs = [ pkg-config cmake ];

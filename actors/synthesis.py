@@ -183,8 +183,8 @@ def synthesize_actor(
     cvcPath: str,
     synthStateType: Type,
     initState: Callable[[], Expr],
-    grammarStateInvariant: Callable[[Expr], Expr],
-    grammarSupportedCommand: Callable[[Expr, typing.Any], Expr],
+    grammarStateInvariant: Callable[[Expr, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, typing.Any, int], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
     opPrecondition: Callable[[typing.Any], Expr],
     grammar: Callable[[CodeInfo], Expr],
@@ -197,9 +197,10 @@ def synthesize_actor(
     queryArgTypeHint: typing.Optional[typing.List[Type]] = None,
     queryRetTypeHint: typing.Optional[Type] = None,
     uid: int = 0,
-    unboundedInts: bool = False,
+    unboundedInts: bool = True,
     useOpList: bool = False,
     listBound: int = 1,
+    invariantBoost: int = 0,
     log: bool = True,
     skipSynth: bool = False,
 ) -> typing.List[Expr]:
@@ -452,7 +453,10 @@ def synthesize_actor(
                             *(
                                 [
                                     Implies(
-                                        inOrder(origArgs[1:], stateTransitionArgs),
+                                        And(
+                                            inOrder(origArgs[1:], stateTransitionArgs),
+                                            opPrecondition(stateTransitionArgs),
+                                        ),
                                         supportedCommand(
                                             afterStateForPS, stateTransitionArgs
                                         ),
@@ -677,7 +681,7 @@ def synthesize_actor(
                     equivalenceQueryParams,
                 ),
                 *(
-                    [grammarStateInvariant(synthStateForEquivalence)]
+                    [grammarStateInvariant(synthStateForEquivalence, invariantBoost)]
                     if not useOpList
                     else []
                 ),
@@ -702,7 +706,9 @@ def synthesize_actor(
         [
             Synth(
                 "supportedCommand",
-                grammarSupportedCommand(synthStateForSupported, argList),
+                grammarSupportedCommand(
+                    synthStateForSupported, argList, invariantBoost
+                ),
                 synthStateForSupported,
                 *argList,
             )
@@ -787,11 +793,14 @@ def synthesize_actor(
             unboundedInts=unboundedInts,
             useOpList=useOpList,
             listBound=listBound + 1,
+            invariantBoost=invariantBoost,
             log=log,
         )
 
     if useOpList:
-        print(f"Re-synthesizing to identify invariants (list bound: {listBound})")
+        print(
+            f"{uid}: Re-synthesizing to identify invariants (list bound: {listBound})"
+        )
         equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
         state_transition_fn = [
             x for x in out if x.args[0] == f"{fnNameBase}_next_state"
@@ -861,35 +870,73 @@ def synthesize_actor(
                 unboundedInts=unboundedInts,
                 useOpList=False,
                 listBound=listBound,
+                invariantBoost=invariantBoost,
                 log=log,
             )
         except SynthesisFailed:
-            print("INCREASING LIST BOUND TO", listBound + 1)
-            return synthesize_actor(
-                filename,
-                fnNameBase,
-                loopsFile,
-                cvcPath,
-                origSynthStateType,
-                initState,
-                grammarStateInvariant,
-                grammarSupportedCommand,
-                inOrder,
-                opPrecondition,
-                grammar,
-                grammarQuery,
-                grammarEquivalence,
-                targetLang,
-                synthesize,
-                stateTypeHint=stateTypeHint,
-                opArgTypeHint=opArgTypeHint,
-                queryArgTypeHint=queryArgTypeHint,
-                queryRetTypeHint=queryRetTypeHint,
-                uid=uid,
-                unboundedInts=unboundedInts,
-                useOpList=useOpList,
-                listBound=listBound + 1,
-                log=log,
-            )
+            try:
+                # try to re-verify with a larger bound
+                print(f"{uid}: RE-VERIFYING WITH LIST BOUND TO", listBound + 1)
+                return synthesize_actor(
+                    filename,
+                    fnNameBase,
+                    loopsFile,
+                    cvcPath,
+                    origSynthStateType,
+                    lambda: init_state_fn.args[1],  # type: ignore
+                    grammarStateInvariant,
+                    grammarSupportedCommand,
+                    inOrder,
+                    opPrecondition,
+                    lambda ci: Synth(
+                        state_transition_fn.args[0],
+                        state_transition_fn.args[1],
+                        *ci.modifiedVars,
+                        *ci.readVars,
+                    ),
+                    lambda ci: Synth(query_fn.args[0], query_fn.args[1], *ci.readVars),
+                    lambda a, b, c: equivalence_fn.args[1],  # type: ignore
+                    targetLang,
+                    synthesize,
+                    stateTypeHint=stateTypeHint,
+                    opArgTypeHint=opArgTypeHint,
+                    queryArgTypeHint=queryArgTypeHint,
+                    queryRetTypeHint=queryRetTypeHint,
+                    uid=uid,
+                    unboundedInts=unboundedInts,
+                    useOpList=useOpList,
+                    listBound=listBound + 1,
+                    invariantBoost=invariantBoost + 1,
+                    log=log,
+                )
+            except SynthesisFailed:
+                print(f"{uid}: INCREASING LIST BOUND TO", listBound + 1)
+                return synthesize_actor(
+                    filename,
+                    fnNameBase,
+                    loopsFile,
+                    cvcPath,
+                    origSynthStateType,
+                    initState,
+                    grammarStateInvariant,
+                    grammarSupportedCommand,
+                    inOrder,
+                    opPrecondition,
+                    grammar,
+                    grammarQuery,
+                    grammarEquivalence,
+                    targetLang,
+                    synthesize,
+                    stateTypeHint=stateTypeHint,
+                    opArgTypeHint=opArgTypeHint,
+                    queryArgTypeHint=queryArgTypeHint,
+                    queryRetTypeHint=queryRetTypeHint,
+                    uid=uid,
+                    unboundedInts=unboundedInts,
+                    useOpList=useOpList,
+                    listBound=listBound + 1,
+                    invariantBoost=invariantBoost,
+                    log=log,
+                )
     else:
         return out
