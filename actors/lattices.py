@@ -131,7 +131,7 @@ class Map(Lattice):
         merge_b = ir.Var("merge_v", self.valueType.ir_type())
 
         return ir.Call(
-            "reduce",
+            "reduce_bool",
             ir.Bool(),
             ir.Call("map-values", ir.List(self.valueType.ir_type()), v),
             ir.Lambda(
@@ -233,7 +233,7 @@ map_supported_elem = {ir.OpaqueInt().name, ir.NodeIDInt().name}
 def gen_lattice_types(depth: int) -> typing.Iterator[Lattice]:
     if depth == 1:
         yield PosBool()
-        yield NegBool()
+        # yield NegBool()
 
     for innerType in gen_types(depth):
         if innerType.name in comparable_int:

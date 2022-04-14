@@ -120,7 +120,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
 def initState(synthStateStructure):
     return MakeTuple(
-        *[elem.bottom() for elem in synthStateStructure]
+        *[auto_grammar(elem.ir_type(), 1, elem.bottom()) for elem in synthStateStructure]
     )
 
 def targetLang():
