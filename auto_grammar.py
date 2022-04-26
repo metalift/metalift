@@ -151,7 +151,7 @@ def get_expansions(
                                 merge_a,
                             ),
                             BoolLit(True),
-                        )
+                        ),
                     ]
             elif v.name == "Map":
                 out[v] += [
