@@ -4,11 +4,7 @@ let
 in
 with pkgs;
 
-let
-  cvc5 = callPackage ./cvc5.nix { unstable = unstable; };
-in
 mkShell {
-  venvDir = "./.venv";
   buildInputs = [
     (python38.withPackages (p: with p; [
       pyparsing
@@ -16,7 +12,7 @@ mkShell {
       mypy
     ]))
 
-    cvc5
+    unstable.cvc5
     llvm_11
     clang_11
   ];

@@ -43,8 +43,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/nix-cache
-        key: nix-ci-shell-cache-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('cvc5.nix') }}
-
+        key: nix-ci-shell-cache-${{ hashFiles('ci-shell.nix') }}
 
     - name: Load Nix cache
       if: steps.cache.outputs.cache-hit == 'true'
