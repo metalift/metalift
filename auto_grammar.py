@@ -122,6 +122,37 @@ def get_expansions(
                         Choose(BoolLit(False), BoolLit(True)),
                     ),
                 ]
+
+                if k == NodeIDInt() and allow_node_id_reductions:
+                    merge_a = Var("merge_into", v)
+                    merge_b = Var("merge_v", v)
+
+                    out[v] += [
+                        lambda get: Call(
+                            "reduce_bool",
+                            v,
+                            Call("map-values", List(v), get(Map(k, v))),
+                            Lambda(
+                                v,
+                                Or(merge_a, merge_b),
+                                merge_b,
+                                merge_a,
+                            ),
+                            BoolLit(False),
+                        ),
+                        lambda get: Call(
+                            "reduce_bool",
+                            v,
+                            Call("map-values", List(v), get(Map(k, v))),
+                            Lambda(
+                                v,
+                                And(merge_a, merge_b),
+                                merge_b,
+                                merge_a,
+                            ),
+                            BoolLit(True),
+                        ),
+                    ]
             elif v.name == "Map":
                 out[v] += [
                     lambda get: Call(
