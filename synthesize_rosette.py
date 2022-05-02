@@ -303,6 +303,7 @@ def synthesize(
     uid: int = 0,
     noVerify: bool = False,
     unboundedInts: bool = False,
+    optimize_vc_equality: bool = False,
     listBound: int = 2,
 ) -> typing.List[Expr]:
     invGuess: typing.List[Any] = []
@@ -312,23 +313,27 @@ def synthesize(
 
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
-        # prev_vc = vc.toSMT()
-        # new_vars: typing.Set[Expr] = set()
-        # while True:
-        #     expr_count: Dict[str, int] = {}
-        #     vc.countVariableUses(expr_count)
 
-        #     vc = vc.optimizeUselessEquality(expr_count, new_vars)
+        if optimize_vc_equality:
+            prev_vc = vc.toSMT()
+            new_vars: typing.Set[Expr] = set()
+            while True:
+                expr_count: Dict[str, int] = {}
+                vc.countVariableUses(expr_count)
 
-        #     if vc.toSMT() == prev_vc:
-        #         break  # run to fixpoint
-        #     else:
-        #         prev_vc = vc.toSMT()
+                vc = vc.optimizeUselessEquality(expr_count, new_vars)
 
-        # vars = vars.union(new_vars)
-        # for var in list(vars):
-        #     if var.args[0] not in expr_count:
-        #         vars.remove(var)
+                if vc.toSMT() == prev_vc:
+                    break  # run to fixpoint
+                else:
+                    prev_vc = vc.toSMT()
+
+            vars = vars.union(new_vars)
+            for var in list(vars):
+                if var.args[0] not in expr_count:
+                    vars.remove(var)
+        else:
+            vc = vc.simplify()
 
         ##### synthesis procedure #####
         choices: Dict[str, Dict[str, Expr]] = {}

@@ -171,7 +171,8 @@ class SynthesizeFun(Protocol):
         uid: int = 0,
         noVerify: bool = False,
         unboundedInts: bool = False,
-        listBound: int = 1,
+        optimize_vc_equality: bool = False,
+        listBound: int = 2,
     ) -> typing.List[Expr]:
         ...
 
