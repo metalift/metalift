@@ -210,12 +210,34 @@ def synthesize(
     uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
+    optimize_vc_equality: bool = False,
     listBound: int = 2,  # currently ignored
 ) -> typing.List[Expr]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
     sygusFile = synthDir + basename + f"_{uid}" + ".sl"
+
+    if optimize_vc_equality:
+        prev_vc = vc.toSMT()
+        new_vars: typing.Set[Expr] = set()
+        while True:
+            expr_count: Dict[str, int] = {}
+            vc.countVariableUses(expr_count)
+
+            vc = vc.optimizeUselessEquality(expr_count, new_vars)
+
+            if vc.toSMT() == prev_vc:
+                break  # run to fixpoint
+            else:
+                prev_vc = vc.toSMT()
+
+        vars = vars.union(new_vars)
+        for var in list(vars):
+            if var.args[0] not in expr_count:
+                vars.remove(var)
+    else:
+        vc = vc.simplify()
 
     # Generate sygus file for synthesis
     toSMT(
