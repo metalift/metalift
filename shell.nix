@@ -15,6 +15,11 @@ mkShell {
     clang_11
   ];
 
+  shellHook = ''
+    poetry install
+    source .venv/bin/activate
+  '';
+
   hardeningDisable = [ "fortify" ];
 
   NIX_LD_LIBRARY_PATH = lib.makeLibraryPath [
