@@ -1,6 +1,6 @@
 from actors.search_structures import search_crdt_structures
 from metalift.analysis import CodeInfo
-from ir import *
+from metalift.ir import *
 from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
@@ -8,7 +8,7 @@ from metalift.auto_grammar import auto_grammar
 import sys
 from maps_lang import mapsLang
 
-from synthesize_auto import synthesize
+from metalift.synthesize_auto import synthesize
 
 base_depth = 1
 

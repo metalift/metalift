@@ -14,7 +14,7 @@ from ir import (
     Var,
 )
 
-from synthesize_auto import synthesize
+from metalift.synthesize_auto import synthesize
 
 
 def grammar(ci: CodeInfo):
