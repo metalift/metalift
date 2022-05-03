@@ -39,9 +39,8 @@
 }
 
 .metalift-arrow {
-  animation-duration: 2.5s;
+  animation-duration: 2s;
   animation-name: arrow-slide;
-  animation-timing-function: ease-in-out;
 }
 
 @keyframes arrow-slide {
@@ -55,9 +54,8 @@
 }
 
 .metalift-arrow-line {
-  animation-duration: 2.5s;
+  animation-duration: 2s;
   animation-name: arrow-line-slide;
-  animation-timing-function: ease-in-out;
 }
 
 @keyframes arrow-line-slide {
@@ -70,10 +68,9 @@
   }
 }
 
-.metalift-lift-text {
-  animation-duration: 2.5s;
+/* .metalift-lift-text {
+  animation-duration: 2s;
   animation-name: lift-text-slide;
-  animation-timing-function: ease-in-out;
 }
 
 @keyframes lift-text-slide {
@@ -84,4 +81,4 @@
   to {
     transofmr: translate(0px, 0px);
   }
-}
+} */
