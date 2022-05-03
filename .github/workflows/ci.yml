@@ -92,7 +92,7 @@ jobs:
         path: |
           ~/.cache/racket
           ~/.local/share/racket
-        key: ${{ runner.os }}-racket-8.4
+        key: ${{ runner.os }}-racket-8.4-rosette-4.1
 
     - name: Install Racket
       if: matrix.synth_cvc5 == '0'
@@ -103,11 +103,10 @@ jobs:
         variant: 'CS'
         version: '8.4'
 
-    - name: Install Rosette
+    - name: Install Rosette (4.1)
       if: matrix.synth_cvc5 == '0'
       run: |
-        raco pkg install --auto --skip-installed rosette
-        raco pkg update --auto rosette
+        raco pkg install --auto --skip-installed https://github.com/emina/rosette.git#10178550a0a21e6d80598d0f43c33c9228728f14
 
     - name: Load cached Poetry environment
       id: cached-poetry-dependencies

@@ -1,7 +1,8 @@
+from importlib import resources
 import subprocess
 import pyparsing as pp
 import os
-from metalift import ir
+from metalift import ir, utils
 from metalift.analysis import CodeInfo
 from metalift.ir import *
 from metalift.rosette_translator import toRosette
@@ -313,6 +314,11 @@ def synthesize(
 
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
+
+        with open(synthDir + "utils.rkt", "w") as out:
+            out.write(resources.read_text(utils, "utils.rkt"))
+        with open(synthDir + "bounded.rkt", "w") as out:
+            out.write(resources.read_text(utils, "bounded.rkt"))
 
         if optimize_vc_equality:
             prev_vc = vc.toSMT()
