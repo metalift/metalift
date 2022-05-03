@@ -1,3 +1,6 @@
+import importlib.resources as resources
+from metalift import utils
+
 from metalift.ir import *
 import typing
 from typing import Any, Union
@@ -48,10 +51,10 @@ def toSMT(
 
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
-        out.write(open("./utils/tuples.smt", "r").read())
+        out.write(resources.read_text(utils, "tuples.smt"))
         if not isSynthesis:
-            out.write(open("./utils/list-axioms.smt", "r").read())
-            out.write(open("./utils/map-axioms.smt", "r").read())
+            out.write(resources.read_text(utils, "list-axioms.smt"))
+            out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
 
