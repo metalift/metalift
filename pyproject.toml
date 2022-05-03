@@ -21,5 +21,6 @@ line-length = 88
 target-version = ['py38']
 extend-exclude = '''
 ^/tests|
-^/llvmlite
+^/llvmlite|
+^/website
 '''
