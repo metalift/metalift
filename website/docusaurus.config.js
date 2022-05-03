@@ -75,7 +75,7 @@ const config = {
               },
               {
                 label: 'Tutorial',
-                to: '/docs/tutorial',
+                to: '/docs/tutorial/analyze-input-programs',
               },
             ],
           },
