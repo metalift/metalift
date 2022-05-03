@@ -1,10 +1,10 @@
 from metalift.analysis import CodeInfo
 from metalift.ir import *
-from actors.synthesis import synthesize_actor
-from actors.aci import check_aci
-import actors.lattices as lat
+from metalift.actors.synthesis import synthesize_actor
+from metalift.actors.aci import check_aci
+import metalift.actors.lattices as lat
 from metalift.auto_grammar import auto_grammar
-import rosette_translator
+import metalift.rosette_translator
 import sys
 import os
 

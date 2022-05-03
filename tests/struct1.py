@@ -3,8 +3,8 @@ import sys
 
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
-from rosette_translator import toRosette
-from smt_util import toSMT
+from metalift.rosette_translator import toRosette
+from metalift.smt_util import toSMT
 
 
 # postcondition for struct1.c
