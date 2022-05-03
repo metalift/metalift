@@ -1,10 +1,10 @@
 import os
 import sys
 
-from analysis import CodeInfo, analyze
-from ir import *
+from metalift.analysis import CodeInfo, analyze
+from metalift.ir import *
 
-from synthesize_auto import synthesize
+from metalift.synthesize_auto import synthesize
 
 # # programmatically generated grammar
 

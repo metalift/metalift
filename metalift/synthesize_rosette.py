@@ -1,18 +1,18 @@
 import subprocess
 import pyparsing as pp
 import os
-import ir
-from analysis import CodeInfo
-from ir import *
-from rosette_translator import toRosette
-from smt_util import toSMT
-from synthesis_common import (
+from metalift import ir
+from metalift.analysis import CodeInfo
+from metalift.ir import *
+from metalift.rosette_translator import toRosette
+from metalift.smt_util import toSMT
+from metalift.synthesis_common import (
     SynthesisFailed,
     VerificationFailed,
     generateTypes,
     verify_synth_result,
 )
-import process_tracker
+from metalift import process_tracker
 
 import typing
 from typing import Any, Callable, Dict, Union, IO

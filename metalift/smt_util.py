@@ -1,4 +1,4 @@
-from ir import *
+from metalift.ir import *
 import typing
 from typing import Any, Union
 

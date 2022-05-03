@@ -6,13 +6,13 @@ import queue
 from time import time
 import traceback
 
-from actors.lattices import Lattice
-from analysis import CodeInfo
-import process_tracker
-import ir
-from ir import Expr
-from actors.synthesis import SynthesizeFun, synthesize_actor
-from synthesis_common import SynthesisFailed
+from metalift.actors.lattices import Lattice
+from metalift.analysis import CodeInfo
+from metalift import process_tracker
+from metalift import ir
+from metalift.ir import Expr
+from metalift.actors.synthesis import SynthesizeFun, synthesize_actor
+from metalift.synthesis_common import SynthesisFailed
 
 from typing import Any, Callable, Iterator, List, Optional, Tuple
 

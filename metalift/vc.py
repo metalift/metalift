@@ -5,11 +5,11 @@ from copy import deepcopy
 from llvmlite.binding import TypeRef, ValueRef
 from llvmlite.ir import Argument
 
-import models
-from ir import *
-from models import ReturnValue
+from metalift.ir import *
+from metalift.models import ReturnValue
+from metalift import vc_util, models
 
-import vc_util
+import metalift.vc_util
 from llvmlite.binding import TypeRef, ValueRef
 
 import typing

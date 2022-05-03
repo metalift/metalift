@@ -1,6 +1,6 @@
-import actors.lattices as lattices
-from actors.lattices import Lattice
-from ir import *
+from metalift.actors import lattices
+from metalift.actors.lattices import Lattice
+from metalift.ir import *
 
 import typing
 from typing import Union, Dict

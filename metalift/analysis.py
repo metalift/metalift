@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 from llvmlite import binding as llvm
 
-from ir import (
+from metalift.ir import (
     Expr,
     MLInst_Eq,
     MLInst_Or,
@@ -19,7 +19,7 @@ from ir import (
     String,
     Lit,
 )
-from vc import Block, VC
+from metalift.vc import Block, VC
 from llvmlite.binding import ValueRef
 from typing import (
     Callable,

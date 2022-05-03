@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import ir
+from metalift import ir
 import typing
 import itertools
 

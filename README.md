@@ -31,14 +31,6 @@ opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll n
 ````
 This pass is called in `tests/compile-add-blocks`.
 
-
-### llvmlite
-We made some patches to make llvmlite usable. Clone the submodule from this repo. If you need to make changes use the following to push:
-````
-git push origin HEAD:patched-metalift
-````
-
-
 ### Deprecated instructions from earlier version
 
 To run synthesis, build [CVC5](https://github.com/cvc5/cvc5) from source, run `configure` with `debug` and then build.
@@ -73,3 +65,6 @@ $ nix-shell
 This will build all of Metalift's dependencies and drop you into a temporary shell with all the dependencies available.
 
 **Note**: you still will need to install Racket and Rosette separately. There _is_ a solution for doing this through Nix, but it requires [nix-ld](https://github.com/Mic92/nix-ld) to be installed and is generally not recommended unless you run NixOS.
+
+## Install Python Dependencies
+We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.

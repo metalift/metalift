@@ -1,10 +1,10 @@
 import typing
 
-from analysis import CodeInfo, analyze
-from ir import Eq, Synth, Call, Int, FnDecl, Var, Add
-from rosette_translator import toRosette
+from metalift.analysis import CodeInfo, analyze
+from metalift.ir import Eq, Synth, Call, Int, FnDecl, Var, Add
+from metalift.rosette_translator import toRosette
 
-from smt_util import toSMT
+from metalift.smt_util import toSMT
 
 # define an uninterpreted function in the target language that doesn't have a body
 # it should have the same name as the uninterpreted fn that we don't want the VC generator

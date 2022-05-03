@@ -1,12 +1,12 @@
 import os
 import sys
 
-from analysis import CodeInfo, analyze
-from ir import *
-from rosette_translator import toRosette
-from smt_util import toSMT
+from metalift.analysis import CodeInfo, analyze
+from metalift.ir import *
+from metalift.rosette_translator import toRosette
+from metalift.smt_util import toSMT
 
-from synthesize_auto import synthesize
+from metalift.synthesize_auto import synthesize
 
 
 def tuple_mult(t):

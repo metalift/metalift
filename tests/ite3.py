@@ -1,8 +1,8 @@
 import os
 import sys
 
-from analysis import CodeInfo, analyze
-from ir import (
+from metalift.analysis import CodeInfo, analyze
+from metalift.ir import (
     Choose,
     And,
     Ge,

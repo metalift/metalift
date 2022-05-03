@@ -1,8 +1,8 @@
 import os
 
-from analysis import analyze
-from ir import *
-from smt_util import toSMT
+from metalift.analysis import analyze
+from metalift.ir import *
+from metalift.smt_util import toSMT
 
 from llvmlite.binding import ValueRef
 
@@ -10,7 +10,7 @@ import typing
 from typing import Any
 
 import subprocess
-from synthesize_cvc5 import generateAST, toExpr
+from metalift.synthesize_cvc5 import generateAST, toExpr
 
 
 def check_aci(filename: str, fnNameBase: str, loopsFile: str, cvcPath: str) -> None:

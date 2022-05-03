@@ -1,5 +1,5 @@
-import ir
-from ir import (
+from metalift import ir
+from metalift.ir import (
     Eq,
     Call,
     Int,

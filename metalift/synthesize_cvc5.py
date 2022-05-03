@@ -1,16 +1,16 @@
-from analysis import CodeInfo
+from metalift.analysis import CodeInfo
 import subprocess
 import pyparsing as pp
 import os
-import process_tracker
+from metalift import process_tracker
 
-from ir import *
-from smt_util import toSMT
+from metalift.ir import *
+from metalift.smt_util import toSMT
 
 import typing
 from typing import IO, Any, Callable, Dict, Generator, Union
 
-from synthesis_common import (
+from metalift.synthesis_common import (
     SynthesisFailed,
     VerificationFailed,
     generateTypes,
