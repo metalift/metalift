@@ -9,7 +9,7 @@ const FeatureList = [
     description: (
       <>
         Metalift offers a friendly Python API that makes it easy to analyze LLVM sources,
-        define a target language for synthesize, and encode verification conditions.
+        define a target language for synthesis, and encode verification conditions.
       </>
     ),
   },

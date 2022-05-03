@@ -15,7 +15,7 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
-        <MetaliftSvg style={{ width: "80%" }}/>
+        <MetaliftSvg style={{ width: "100%" }}/>
         {/* <h1 style={{
           color: "white"
         }} className="hero__title">{siteConfig.title}</h1> */}
@@ -25,7 +25,7 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro">
+            to="/docs/installation">
             Get Started - 10 min ⏱️
           </Link>
         </div>

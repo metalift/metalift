@@ -10,10 +10,11 @@ Let's get started by installing Metalift and it's dependencies!
 - [Rosette](https://github.com/emina/rosette), the synthesis engine that Metalift uses
   - For maximum performance on Apple Silicon machines, you may want to replace the built-in Intel binary for Z3 with a native build
 - [CVC5](https://cvc5.github.io/), the theorem prover that Metalift uses to check candidate solutions
-- [Clang/LLVM](https://llvm.org), to compile input programs to LLVM IR for analysis
+- [Clang/LLVM 11](https://llvm.org), to compile input programs to LLVM IR for analysis
+- [CMake](https://cmake.org/), to build the custom LLVM pass
 
 ### Installation using Nix
-If you are using Nix, you can automatically get all these dependencies using the `shell.nix` definition in the base directory of the Metalift repository.
+If you use [Nix](https://nixos.org/), you can automatically get all these dependencies using the `shell.nix` definition in the base directory of the Metalift repository.
 
 ```
 $ nix-shell
