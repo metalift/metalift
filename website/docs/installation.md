@@ -5,7 +5,15 @@ sidebar_position: 1
 # Installation
 Let's get started by installing Metalift and it's dependencies!
 
-## What you'll need
+## Get the Metalift source code
+First, you'll need to clone the Metalift repository (we are working on making Metalift available as a Python package in the near future):
+
+```bash
+git clone https://github.com/metalift/metalift.git
+cd metalift
+```
+
+## Install the dependencies
 - [Racket](https://racket-lang.org) as the underlying language for the synthesis engine
 - [Rosette](https://github.com/emina/rosette), the synthesis engine that Metalift uses
   - For maximum performance on Apple Silicon machines, you may want to replace the built-in Intel binary for Z3 with a native build

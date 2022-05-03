@@ -45,11 +45,11 @@
 
 @keyframes arrow-slide {
   from {
-    transform: translate(calc(140*-0.4226px), calc(140*0.9063px));
+    transform: translate(calc(140 * -0.4226px), calc(140 * 0.9063px));
   }
 
   to {
-    transform: translate(calc(0*-0.4226px), calc(0*0.9063px));
+    transform: translate(calc(0 * -0.4226px), calc(0 * 0.9063px));
   }
 }
 
@@ -60,11 +60,11 @@
 
 @keyframes arrow-line-slide {
   from {
-    width: calc(0.25*201.481px);
+    width: calc(0.25 * 201.481px);
   }
 
   to {
-    width: calc(1*201.481px);
+    width: calc(1 * 201.481px);
   }
 }
 
