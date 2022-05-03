@@ -10,6 +10,7 @@ jobs:
       - uses: psf/black@stable
         with:
            black_args: --check --diff .
+
   mypy:
     runs-on: ubuntu-latest
     steps:
@@ -22,6 +23,7 @@ jobs:
         run: pip install mypy
       - name: Run mypy
         run: mypy .
+
   build:
     runs-on: ubuntu-latest
     needs: [lint, mypy]
@@ -50,6 +52,7 @@ jobs:
       run: |
         nix-store --import < ~/nix-cache/cache.nar
         rm -rf ~/nix-cache
+
     # https://github.com/Bogdanp/setup-racket-cache-example
     - name: Cache Racket dependencies
       id: cache-racket
@@ -60,6 +63,7 @@ jobs:
           ~/.cache/racket
           ~/.local/share/racket
         key: ${{ runner.os }}-racket-8.4
+
     - name: Install Racket
       if: matrix.synth_cvc5 == '0'
       uses: Bogdanp/setup-racket@v1.7
@@ -68,11 +72,27 @@ jobs:
         distribution: 'full'
         variant: 'CS'
         version: '8.4'
+
     - name: Install Rosette
       if: matrix.synth_cvc5 == '0'
       run: |
         raco pkg install --auto --skip-installed rosette
         raco pkg update --auto rosette
+
+    - name: Configure Poetry
+      run: poetry config virtualenvs.in-project true
+    
+    - name: Load cached Poetry environment
+      id: cached-poetry-dependencies
+      uses: actions/cache@v2
+      with:
+        path: .venv
+        key: venv-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('poetry.lock') }}
+
+    - name: Install Poetry dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction --no-root
+
     - name: Build LLVM Pass
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
@@ -81,13 +101,6 @@ jobs:
         cd build
         cmake ..
         make
-        cd ..
-
-    - name: Build llvmlite
-      shell: nix-shell ci-shell.nix --run "bash -e {0}"
-      run: |
-        cd llvmlite
-        python setup.py build
         cd ..
 
     - name: Build Test Inputs
@@ -100,6 +113,7 @@ jobs:
     - name: Test Core Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
+        source .venv/bin/activate
         python -m tests.ite1
         python -m tests.ite3
         python -m tests.set1
@@ -115,6 +129,7 @@ jobs:
       if: matrix.synth_cvc5 == '0'
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
+        source .venv/bin/activate
         python -m tests.fma_dsl
         python -m tests.count
         python -m tests.list1
@@ -137,6 +152,7 @@ jobs:
     - name: Test Actor Examples (op-list)
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
+        source .venv/bin/activate
         python -m tests.actor1_g_set_fixed_structure synth-oplist
         python -m tests.actor1_2p_set_fixed_structure synth-oplist
         python -m tests.actor_flag_ew_fixed_structure synth-oplist

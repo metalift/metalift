@@ -8,7 +8,7 @@ with pkgs;
 mkShell {
   buildInputs = [
     (python38.withPackages (p: with p; [
-      pyparsing
+      poetry
     ]))
 
     unstable.cvc5
@@ -18,6 +18,4 @@ mkShell {
   ];
 
   hardeningDisable = [ "fortify" ];
-
-  PYTHONPATH="llvmlite";
 }
