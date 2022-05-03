@@ -8,7 +8,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Metalift',
   tagline: 'A program synthesis framework for verified lifting applications',
-  url: 'https://your-docusaurus-test-site.com',
+  url: 'https://metalift.netlify.com',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',

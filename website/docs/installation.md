@@ -25,15 +25,15 @@ $ # all dependencies are available!
 We use a modified version of `llvmlite` to parse and analyze LLVM IR. To build the fork, you'll need to start by cloning the submodule:
 
 ```bash
-$ git submodule update --init --recursive
+git submodule update --init --recursive
 ```
 
 Then, you can build the fork:
 
 ```bash
-$ cd llvmlite
-$ python setup.py build
-$ cd ..
+cd llvmlite
+python setup.py build
+cd ..
 ```
 
 ## Build the custom LLVM pass
