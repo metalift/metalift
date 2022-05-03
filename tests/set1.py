@@ -2,7 +2,7 @@ import os
 import sys
 
 from metalift.analysis import CodeInfo, analyze
-from ir import (
+from metalift.ir import (
     Choose,
     Eq,
     Synth,
