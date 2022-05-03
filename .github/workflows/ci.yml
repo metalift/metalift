@@ -80,6 +80,7 @@ jobs:
         raco pkg update --auto rosette
 
     - name: Configure Poetry
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: poetry config virtualenvs.in-project true
     
     - name: Load cached Poetry environment
@@ -91,6 +92,7 @@ jobs:
 
     - name: Install Poetry dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: poetry install --no-interaction --no-root
 
     - name: Build LLVM Pass
