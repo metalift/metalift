@@ -7,9 +7,6 @@ with pkgs;
 mkShell {
   buildInputs = [
     (python38.withPackages (p: with p; [
-      pyparsing
-      black
-      mypy
       poetry
     ]))
 
@@ -25,6 +22,4 @@ mkShell {
   ];
 
   NIX_LD = lib.fileContents "${stdenv.cc}/nix-support/dynamic-linker";
-
-  PYTHONPATH="llvmlite";
 }

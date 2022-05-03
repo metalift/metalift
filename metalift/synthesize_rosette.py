@@ -26,7 +26,7 @@ def generateAST(expr: str) -> typing.List[Any]:
         ast = parser.parseString(expr, parseAll=True).asList()
     except:
         raise Exception(f"Failed to parse Rosette output: {expr}")
-    return ast  # type: ignore
+    return ast
 
 
 def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:

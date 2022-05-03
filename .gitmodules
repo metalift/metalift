@@ -1,3 +1,0 @@
-[submodule "llvmlite"]
-	path = llvmlite
-	url = https://github.com/metalift/llvmlite.git

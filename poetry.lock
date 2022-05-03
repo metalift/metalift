@@ -130,7 +130,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "ee8e8fffb860a4a353db85c91391e6a95621c2a673c03c1852a3a4c979d6f698"
+content-hash = "9abd8710c969ea6002e0403df87aea97c9aeba48463edea48c0dc4e41501b004"
 
 [metadata.files]
 black = [
