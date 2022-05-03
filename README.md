@@ -7,16 +7,9 @@ We currently support [Rosette](https://emina.github.io/rosette/) (and [cvc5](htt
 
 ### LLVM instructions
 
-**We currently support LLVM 10**
+**We currently support LLVM 11**
 
-First, build the fork of `llvmlite` by pulling submodules (`git submodule update --init --recursive`) and running the build script:
-```bash
-cd llvmlite
-python setup.py build
-cd ..
-```
-
-Run the following to build the LLVM pass for processing branch instructions (works for LLVM 10):
+Run the following to build the LLVM pass for processing branch instructions (works for LLVM 11):
 ````angular2
 cd llvm-pass
 mkdir build

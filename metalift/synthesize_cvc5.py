@@ -33,7 +33,7 @@ def generateAST(expr: str) -> typing.List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(pp.Suppress("(exit)") | s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
-    return ast  # type: ignore
+    return ast
 
 
 def extractFuns(

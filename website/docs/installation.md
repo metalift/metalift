@@ -21,6 +21,9 @@ cd metalift
 - [Clang/LLVM 11](https://llvm.org), to compile input programs to LLVM IR for analysis
 - [CMake](https://cmake.org/), to build the custom LLVM pass
 
+### Install Python Dependencies
+We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
+
 ### Installation using Nix
 If you use [Nix](https://nixos.org/), you can automatically get all these dependencies using the `shell.nix` definition in the base directory of the Metalift repository.
 
@@ -28,9 +31,6 @@ If you use [Nix](https://nixos.org/), you can automatically get all these depend
 $ nix-shell
 $ # all dependencies are available!
 ```
-
-## Install Python Dependencies
-We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
 
 ## Build the custom LLVM pass
 Metalift makes use of a custom LLVM pass to organize the basic blocks in a way that is easier to analyze. To build the pass, we'll use CMake:

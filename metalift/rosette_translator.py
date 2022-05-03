@@ -10,7 +10,7 @@ def generateAST(expr: str) -> List[Any]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
-    return ast  # type: ignore
+    return ast
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
