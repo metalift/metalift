@@ -56,7 +56,7 @@ jobs:
         shell: nix-shell ci-shell.nix --run "bash -e {0}"
         run: |
           source .venv/bin/activate
-          run: mypy .
+          mypy .
 
   build:
     runs-on: ubuntu-latest
