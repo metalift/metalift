@@ -40,6 +40,21 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
+name = "llvmlite"
+version = "0.38.0+2.gc418eb1"
+description = "lightweight wrapper around basic LLVM functionality"
+category = "main"
+optional = false
+python-versions = ">=3.7,<3.11"
+develop = false
+
+[package.source]
+type = "git"
+url = "https://github.com/metalift/llvmlite.git"
+reference = "patched-metalift"
+resolved_reference = "c418eb18a78f49d9a059c50bd992f732432b9fe5"
+
+[[package]]
 name = "mypy"
 version = "0.950"
 description = "Optional static typing for Python"
@@ -114,8 +129,8 @@ python-versions = ">=3.7"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.8"
-content-hash = "2ef4cc37d06308665f8baf25c38d26979770c3cb91293f2764606248b3908b64"
+python-versions = ">=3.8,<3.11"
+content-hash = "ee8e8fffb860a4a353db85c91391e6a95621c2a673c03c1852a3a4c979d6f698"
 
 [metadata.files]
 black = [
@@ -151,6 +166,7 @@ colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
 ]
+llvmlite = []
 mypy = [
     {file = "mypy-0.950-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:cf9c261958a769a3bd38c3e133801ebcd284ffb734ea12d01457cb09eacf7d7b"},
     {file = "mypy-0.950-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b5b5bd0ffb11b4aba2bb6d31b8643902c48f990cc92fda4e21afac658044f0c0"},
