@@ -68,9 +68,10 @@
   }
 }
 
-/* .metalift-lift-text {
+.metalift-lift-text {
   animation-duration: 2s;
   animation-name: lift-text-slide;
+  transform: translate(0px, 15px);
 }
 
 @keyframes lift-text-slide {
@@ -79,6 +80,6 @@
   }
 
   to {
-    transofmr: translate(0px, 0px);
+    transform: translate(0px, 15px);
   }
-} */
+}
