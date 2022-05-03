@@ -1,7 +1,7 @@
 import re
 
 from llvmlite.binding import ValueRef
-from ir import Expr, Lit, Bool, Int
+from metalift.ir import Expr, Lit, Bool, Int
 from typing import Dict
 
 

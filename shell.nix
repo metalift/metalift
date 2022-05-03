@@ -10,6 +10,7 @@ mkShell {
       pyparsing
       black
       mypy
+      poetry
     ]))
 
     unstable.cvc5

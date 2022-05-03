@@ -1,6 +1,6 @@
 import typing
 
-from analysis import CodeInfo, analyze
+from metalift.analysis import CodeInfo, analyze
 from ir import Eq, Synth, Call, Int, FnDecl, Var, Add
 from rosette_translator import toRosette
 

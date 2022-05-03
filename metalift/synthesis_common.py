@@ -1,13 +1,13 @@
 import subprocess
-from analysis import CodeInfo
-from ir import *
+from metalift.analysis import CodeInfo
+from metalift.ir import *
 from llvmlite.binding import ValueRef
 
 import typing
 from typing import Optional, Dict, Union, Any
-from rosette_translator import toRosette
+from metalift.rosette_translator import toRosette
 
-from smt_util import toSMT
+from metalift.smt_util import toSMT
 
 
 class SynthesisFailed(Exception):

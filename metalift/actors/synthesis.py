@@ -1,14 +1,14 @@
 import os
 
-from analysis import CodeInfo, analyze
-from ir import *
+from metalift.analysis import CodeInfo, analyze
+from metalift.ir import *
 
 from llvmlite.binding import ValueRef
 
 import typing
 from typing import Callable, Union, Protocol
 
-from synthesis_common import SynthesisFailed, VerificationFailed
+from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 
 
 def observeEquivalence(

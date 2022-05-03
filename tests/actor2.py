@@ -1,9 +1,9 @@
-from analysis import CodeInfo
+from metalift.analysis import CodeInfo
 from ir import *
 from actors.synthesis import synthesize_actor
 from actors.aci import check_aci
 import actors.lattices as lat
-from auto_grammar import auto_grammar
+from metalift.auto_grammar import auto_grammar
 import rosette_translator
 import sys
 import os

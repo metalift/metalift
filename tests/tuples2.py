@@ -1,7 +1,7 @@
 import os
 import sys
 
-from analysis import CodeInfo, analyze
+from metalift.analysis import CodeInfo, analyze
 from ir import *
 from rosette_translator import toRosette
 from smt_util import toSMT

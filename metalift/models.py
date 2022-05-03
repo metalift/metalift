@@ -3,8 +3,8 @@ from typing import Any, Callable, Dict
 
 from llvmlite.binding import ValueRef
 
-from ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite
-from vc_util import parseOperand
+from metalift.ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite
+from metalift.vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
 
