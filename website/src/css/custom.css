@@ -1,0 +1,85 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+}
+
+.docusaurus-highlight-code-line {
+  background-color: rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+}
+
+[data-theme='dark'] .docusaurus-highlight-code-line {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.metalift-arrow {
+  animation-duration: 2s;
+  animation-name: arrow-slide;
+}
+
+@keyframes arrow-slide {
+  from {
+    transform: translate(calc(140 * -0.4226px), calc(140 * 0.9063px));
+  }
+
+  to {
+    transform: translate(calc(0 * -0.4226px), calc(0 * 0.9063px));
+  }
+}
+
+.metalift-arrow-line {
+  animation-duration: 2s;
+  animation-name: arrow-line-slide;
+}
+
+@keyframes arrow-line-slide {
+  from {
+    width: calc(0.25 * 201.481px);
+  }
+
+  to {
+    width: calc(1 * 201.481px);
+  }
+}
+
+.metalift-lift-text {
+  animation-duration: 2s;
+  animation-name: lift-text-slide;
+  transform: translate(0px, 15px);
+}
+
+@keyframes lift-text-slide {
+  from {
+    transform: translate(0px, 40px);
+  }
+
+  to {
+    transform: translate(0px, 15px);
+  }
+}
