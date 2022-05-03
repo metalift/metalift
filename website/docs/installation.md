@@ -29,20 +29,8 @@ $ nix-shell
 $ # all dependencies are available!
 ```
 
-## Build our fork of `llvmlite`
-We use a modified version of `llvmlite` to parse and analyze LLVM IR. To build the fork, you'll need to start by cloning the submodule:
-
-```bash
-git submodule update --init --recursive
-```
-
-Then, you can build the fork:
-
-```bash
-cd llvmlite
-python setup.py build
-cd ..
-```
+## Install Python Dependencies
+We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
 
 ## Build the custom LLVM pass
 Metalift makes use of a custom LLVM pass to organize the basic blocks in a way that is easier to analyze. To build the pass, we'll use CMake:
