@@ -2,7 +2,7 @@ import os
 import sys
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
-from metalift.synthesize_rosette import synthesize
+from metalift.rosette.synthesize_rosette import synthesize
 
 # # programmatically generated grammar
 def grammar(ci: CodeInfo):

@@ -3,7 +3,7 @@ import sys
 
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
-from metalift.rosette_translator import toRosette
+from metalift.rosette.rosette_translator import toRosette
 from metalift.smt_util import toSMT
 
 
