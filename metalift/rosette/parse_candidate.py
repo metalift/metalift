@@ -83,9 +83,7 @@ def toExpr(
         elif ast[0] == "length":
             return Call("list_length", Int(), toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "=":
-            return Call(
-                "=",
-                Bool(),
+            return Eq(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
