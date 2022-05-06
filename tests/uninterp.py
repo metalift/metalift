@@ -2,7 +2,7 @@ import typing
 
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import Eq, Synth, Call, Int, FnDecl, Var, Add
-from metalift.rosette_translator import toRosette
+from metalift.rosette.rosette_translator import toRosette
 
 from metalift.smt_util import toSMT
 

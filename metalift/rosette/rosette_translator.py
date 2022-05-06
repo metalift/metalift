@@ -1,8 +1,10 @@
-from metalift.analysis import CodeInfo, analyze
 import pyparsing as pp
+from llvmlite.binding import ValueRef
+
+from metalift.analysis import CodeInfo
 from metalift import ir
 from metalift.ir import Expr, Var
-from llvmlite.binding import ValueRef
+
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
 

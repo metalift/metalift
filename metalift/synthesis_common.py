@@ -5,7 +5,7 @@ from llvmlite.binding import ValueRef
 
 import typing
 from typing import Optional, Dict, Union, Any
-from metalift.rosette_translator import toRosette
+from metalift.rosette.rosette_translator import toRosette
 
 from metalift.smt_util import toSMT
 
