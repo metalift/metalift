@@ -148,7 +148,7 @@ def toExpr(
                     )
                 return Call(
                     "tuple%d" % (len(ast) - 1),
-                    Tuple(
+                    TupleT(
                         arg_eval[0].type,
                         arg_eval[1].type,
                         *[e.type for e in arg_eval[2:]],

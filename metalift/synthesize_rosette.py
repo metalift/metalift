@@ -154,7 +154,7 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
-            return MakeTuple(*arg_eval)
+            return Tuple(*arg_eval)
         elif ast[0] == "tupleGet":
             return TupleGet(
                 toExpr(ast[1], fnsType, varType, choices),
@@ -254,7 +254,8 @@ def toExpr(
         elif ast[0] in choices:
             picked: Expr = choices[ast[0]].args[0]
             while (
-                picked.kind == Expr.Kind.Var
+                # picked.kind == Expr.Kind.Var
+                isinstance(picked, Var)
                 and picked.args[0].startswith("(")
                 and picked.args[0][1:-1] in choices
             ):

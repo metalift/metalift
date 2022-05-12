@@ -21,14 +21,14 @@ def grammar(ci: CodeInfo):
         r = ci.modifiedVars[0]
         (x, y) = ci.readVars
         summary = Choose(
-            Eq(r, Add(tuple_mult(MakeTuple(x, x)), tuple_mult(MakeTuple(y, y)))),
-            Eq(r, Sub(tuple_mult(MakeTuple(x, x)), tuple_mult(MakeTuple(y, y)))),
+            Eq(r, Add(tuple_mult(Tuple(x, x)), tuple_mult(Tuple(y, y)))),
+            Eq(r, Sub(tuple_mult(Tuple(x, x)), tuple_mult(Tuple(y, y)))),
         )
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 
 def targetLang():
-    x = Var("x", Tuple(Int(), Int()))
+    x = Var("x", TupleT(Int(), Int()))
     tuple_mult = FnDecl(
         "tuple_mult", Int(), Mul(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))), x
     )

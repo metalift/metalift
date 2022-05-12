@@ -100,7 +100,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
                 )
                 break
 
-        out = MakeTuple(
+        out = Tuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
@@ -119,7 +119,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
 
 def initState(synthStateStructure):
-    return MakeTuple(
+    return Tuple(
         *[auto_grammar(elem.ir_type(), 1, elem.bottom()) for elem in synthStateStructure]
     )
 

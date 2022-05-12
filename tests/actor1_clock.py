@@ -87,7 +87,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
         conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
         
-        out = MakeTuple(
+        out = Tuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
@@ -105,7 +105,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
 
 def initState(synthStateStructure):
-    return MakeTuple(
+    return Tuple(
         *[elem.bottom() for elem in synthStateStructure]
     )
 

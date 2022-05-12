@@ -17,17 +17,17 @@ def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
 def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
     if (
         (not isinstance(funDef, Expr))
-        or funDef.kind == Expr.Kind.Var
-        or funDef.kind == Expr.Kind.Lit
+        or isinstance(funDef, Var)
+        or isinstance(funDef, Lit)
     ):
         return funDef
-    elif funDef.kind == Expr.Kind.Call and funDef.args[0] == funCall:
+    elif isinstance(funDef, Call) and funDef.args[0] == funCall:
         newArgs = []
         for i in range(1, len(funDef.args)):
             if funDef.args[i].type.name != "Function":
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
         return Call(funCall + "_" + inCall, funDef.type, *newArgs)
-    elif funDef.kind == Expr.Kind.CallValue:
+    elif isinstance(funDef, CallValue):
         newArgs = []
 
         for i in range(1, len(funDef.args)):
@@ -48,7 +48,6 @@ def toSMT(
     fnCalls: typing.List[Any],
     isSynthesis: bool = False,
 ) -> None:
-
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
         out.write(resources.read_text(utils, "tuples.smt"))
@@ -62,7 +61,8 @@ def toSMT(
         axioms = []
         for t in targetLang:
             if (
-                t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
+                isinstance(t, FnDecl) or isinstance(t, FnDeclNonRecursive)
+                # t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
             ) and t.args[0] in fnCalls:
                 found_inline = False
                 for i in inCalls:
@@ -81,7 +81,8 @@ def toSMT(
                                 newBody,
                                 *newArgs,
                             )
-                            if t.kind == Expr.Kind.FnDecl
+                            # if t.kind == Expr.Kind.FnDecl
+                            if isinstance(t, FnDecl)
                             else FnDeclNonRecursive(
                                 t.args[0] + "_" + i[1],
                                 t.type.args[0],
@@ -92,7 +93,8 @@ def toSMT(
 
                 if not found_inline and t.args[1] != None:
                     out.write(t.toSMT() + "\n\n")
-            elif t.kind == Expr.Kind.Axiom:
+            # elif t.kind == Expr.Kind.Axiom:
+            elif isinstance(t, Axiom):
                 axioms.append(t)
 
         early_candidates = []
@@ -104,7 +106,8 @@ def toSMT(
             for i in inCalls:
                 newBody = filterBody(newBody, i[0], i[1])
 
-            if cand.kind == Expr.Kind.Synth:
+            # if cand.kind == Expr.Kind.Synth:
+            if isinstance(cand, Synth):
                 decl = Synth(cand.args[0], newBody, *cand.args[2:])
             else:
                 decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])

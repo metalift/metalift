@@ -139,58 +139,86 @@ def Map(keyT: Type, valT: Type) -> Type:
 
 
 # first type is not optional
-def Tuple(e1T: Type, *elemT: Type) -> Type:
+def TupleT(e1T: Type, *elemT: Type) -> Type:
     return Type("Tuple", e1T, *elemT)
 
 
 class Expr:
-    class Kind(Enum):
-        Var = "var"
-        Lit = "lit"
-        Object = "obj"
+    # class Kind(Enum):
+    #     Var = "var"
+    #     Lit = "lit"
+    #     Object = "obj"
+    #
+    #     Add = "+"
+    #     Sub = "-"
+    #     Mul = "*"
+    #
+    #     Eq = "="
+    #     Lt = "<"
+    #     Le = "<="
+    #     Gt = ">"
+    #     Ge = ">="
+    #
+    #     And = "and"
+    #     Or = "or"
+    #     Not = "not"
+    #
+    #     Implies = "=>"
+    #
+    #     Ite = "ite"
+    #     Let = "let"
+    #
+    #     Call = "call"
+    #     CallValue = "callvalue"
+    #
+    #     Assert = "assert"
+    #     Constraint = "constraint"
+    #     Axiom = "axiom"
+    #     Synth = "synth"
+    #     Choose = "choose"
+    #     FnDecl = "fndecl"
+    #     FnDeclNonRecursive = "fndeclnonrecursive"
+    #     FnDefine = "fndefine"
+    #     Lambda = "lambda"
+    #
+    #     Tuple = "tuple"
+    #     TupleGet = "tupleGet"
 
-        Add = "+"
-        Sub = "-"
-        Mul = "*"
+    # def __init__(self, kind: Kind, type: Type, args: Any) -> None:
+    #     self.kind = kind
+    #     self.args = args
+    #     self.type = type
 
-        Eq = "="
-        Lt = "<"
-        Le = "<="
-        Gt = ">"
-        Ge = ">="
-
-        And = "and"
-        Or = "or"
-        Not = "not"
-
-        Implies = "=>"
-
-        Ite = "ite"
-        Let = "let"
-
-        Call = "call"
-        CallValue = "callvalue"
-
-        Assert = "assert"
-        Constraint = "constraint"
-        Axiom = "axiom"
-        Synth = "synth"
-        Choose = "choose"
-        FnDecl = "fndecl"
-        FnDeclNonRecursive = "fndeclnonrecursive"
-        FnDefine = "fndefine"
-        Lambda = "lambda"
-
-        Tuple = "tuple"
-        TupleGet = "tupleGet"
-
-    def __init__(self, kind: Kind, type: Type, args: Any) -> None:
-        self.kind = kind
+    def __init__(self, type: Type, args: Any) -> None:
         self.args = args
         self.type = type
 
+    # XXX
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
-        return Expr(self.kind, self.type, [f(a) for a in self.args])
+        # return Expr(self.type, [f(a) for a in self.args])
+        if isinstance(self, Var): return Var(f(self.args[0]), self.type)
+        elif isinstance(self, Lit): return Lit(f(self.args[0]), self.type)
+        elif isinstance(self, Add): return Add(*[f(a) for a in self.args])
+        elif isinstance(self, Sub): return Sub(*[f(a) for a in self.args])
+        elif isinstance(self, Mul): return Mul(*[f(a) for a in self.args])
+        elif isinstance(self, Implies): return Implies(*[f(a) for a in self.args])
+        elif isinstance(self, And): return And(*[f(a) for a in self.args])
+        elif isinstance(self, Or):  return Or(*[f(a) for a in self.args])
+        elif isinstance(self, Not): return Not(*[f(a) for a in self.args])
+        elif isinstance(self, Eq): return Eq(*[f(a) for a in self.args])
+        elif isinstance(self, Ge): return Ge(*[f(a) for a in self.args])
+        elif isinstance(self, Gt): return Gt(*[f(a) for a in self.args])
+        elif isinstance(self, Le): return Le(*[f(a) for a in self.args])
+        elif isinstance(self, Lt): return Lt(*[f(a) for a in self.args])
+        elif isinstance(self, Ite): return Ite(*[f(a) for a in self.args])
+        elif isinstance(self, Tuple): return Tuple(*[f(a) for a in self.args])
+        elif isinstance(self, Let): return Let(*[f(a) for a in self.args])
+        elif isinstance(self, TupleGet): return TupleGet(f(self.args[0]), *[f(a) for a in self.args[1:]])
+        elif isinstance(self, Call): return Call(f(self.args[0]), self.type, *[f(a) for a in self.args[1:]])
+        elif isinstance(self, CallValue): return CallValue(f(self.args[0]), *[f(a) for a in self.args[1:]])
+        else: raise Exception("NYI: %s" % self)
+
+
 
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
@@ -202,7 +230,6 @@ class Expr:
 
         else:
             cnts[e] = cnts[e] + 1
-
         return cnts
 
     @staticmethod
@@ -216,7 +243,28 @@ class Expr:
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
-                return Expr(e.kind, e.type, newArgs)
+                if isinstance(e, Var): return Var(newArgs[0], e.type)
+                elif isinstance(e, Lit): return Lit(newArgs[0], e.type)
+                elif isinstance(e, Ge): return Ge(*newArgs)
+                elif isinstance(e, Gt): return Gt(*newArgs)
+                elif isinstance(e, Le): return Le(*newArgs)
+                elif isinstance(e, Lt): return Lt(*newArgs)
+                elif isinstance(e, Eq): return Eq(*newArgs)
+                elif isinstance(e, Ite): return Ite(*newArgs)
+                elif isinstance(e, And): return And(*newArgs)
+                elif isinstance(e, Or): return Or(*newArgs)
+                elif isinstance(e, Not): return Not(*newArgs)
+                elif isinstance(e, Add): return Add(*newArgs)
+                elif isinstance(e, Sub): return Sub(*newArgs)
+                elif isinstance(e, Mul): return Mul(*newArgs)
+                elif isinstance(e, Call): return Call(newArgs[0], e.type, *newArgs[1:])
+                elif isinstance(e, Choose): return Choose(*newArgs)
+                elif isinstance(e, Tuple): return Tuple(*newArgs)
+                elif isinstance(e, TupleGet): return TupleGet(*newArgs)
+                elif isinstance(e, Let): return Let(*newArgs)
+                else: raise Exception("NYI: %s" % e)
+                # XXX
+                # return Expr(e.type, newArgs)
             else:
                 return e  # ValueRef or TypeRef
         else:
@@ -227,9 +275,9 @@ class Expr:
                 return Var("v%d" % commonExprs.index(e), e.type)
 
     def __repr__(self) -> str:
-        if self.kind == Expr.Kind.Var:
+        if isinstance(self, Var):
             return self.args[0]  # type: ignore
-        elif self.kind == Expr.Kind.Call:
+        elif isinstance(self, Call):
             return "(%s:%s %s)" % (
                 self.args[0],
                 self.type,
@@ -237,7 +285,7 @@ class Expr:
             )
         else:
             return "(%s:%s %s)" % (
-                self.kind.name,
+                type(self).__name__,
                 self.type,
                 " ".join(str(a) for a in self.args),
             )
@@ -247,7 +295,7 @@ class Expr:
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Expr):
             if (
-                self.kind != other.kind
+                type(self) != type(other)
                 or parseTypeRef(self.type).erase() != parseTypeRef(other.type).erase()
                 or len(self.args) != len(other.args)
             ):
@@ -271,14 +319,13 @@ class Expr:
     def __hash__(self) -> int:
         return hash(
             tuple(
-                sorted({"kind": self.kind, "type": self.type, "args": tuple(self.args)})
+                sorted({"type": self.type, "args": tuple(self.args)})
             )
         )
 
     def toSMT(self) -> str:
-        kind = self.kind
-        if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-            if kind == Expr.Kind.Lit and self.type == Bool():
+        if isinstance(self, Var) or isinstance(self, Lit):
+            if isinstance(self, Lit) and self.type == Bool():
                 if self.args[0] == True:
                     return "true"
                 else:
@@ -287,11 +334,11 @@ class Expr:
                 return str(self.args[0])
 
         elif (
-            kind == Expr.Kind.Call
-            or kind == Expr.Kind.CallValue
-            or kind == Expr.Kind.Choose
+            isinstance(self, Call)
+            or isinstance(self, CallValue)
+            or isinstance(self, Choose)
         ):
-            noParens = kind == Expr.Kind.Call and len(self.args) == 1
+            noParens = isinstance(self, Call) and len(self.args) == 1
             retVal = []
 
             if self.args[0] == "set-create":
@@ -339,11 +386,11 @@ class Expr:
 
             return retT
 
-        elif kind == Expr.Kind.Synth:
+        elif isinstance(self, Synth):
             cnts = Expr.findCommonExprs(self.args[1], {})
             commonExprs = list(
                 filter(
-                    lambda k: k.kind == Expr.Kind.Choose,
+                    lambda k: isinstance(k, Choose),
                     cnts.keys(),
                 )
             )
@@ -365,7 +412,7 @@ class Expr:
             defs = "(rv %s %s)\n" % (
                 self.type.toSMT(),
                 rewritten.toSMT()
-                if rewritten.kind == Expr.Kind.Choose
+                if isinstance(rewritten, Choose)
                 else "(%s)" % rewritten.toSMT(),
             )
             defs = defs + "\n".join(
@@ -373,7 +420,7 @@ class Expr:
                 % (
                     "v%d" % i,
                     parseTypeRef(e.type).toSMT(),
-                    e.toSMT() if e.kind == Expr.Kind.Choose else f"({e.toSMT()})",
+                    e.toSMT() if isinstance(self, Choose) else f"({e.toSMT()})",
                 )
                 for i, e in enumerate(commonExprs)
             )
@@ -395,19 +442,19 @@ class Expr:
                 body,
             )
 
-        elif kind == Expr.Kind.Axiom:
+        elif isinstance(self, Axiom):
             vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
             return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
-        elif kind == Expr.Kind.Lambda:
+        elif isinstance(self, Lambda):
             # TODO(shadaj): extract during filtering assuming no captures
             raise Exception("Lambda not supported")
         elif (
-            kind == Expr.Kind.FnDecl
-            or kind == Expr.Kind.FnDeclNonRecursive
-            or kind == Expr.Kind.FnDefine
+            isinstance(self, FnDecl)
+            or isinstance(self, FnDeclNonRecursive)
+            or isinstance(self, FnDefine)
         ):
             if (
-                kind == Expr.Kind.FnDefine or self.args[1] is None
+                isinstance(self, FnDefine) or self.args[1] is None
             ):  # uninterpreted function
                 args_type = " ".join(
                     parseTypeRef(a.type).toSMT() for a in self.args[2:]
@@ -428,7 +475,7 @@ class Expr:
 
                 args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
 
-                def_str = "define-fun-rec" if kind == Expr.Kind.FnDecl else "define-fun"
+                def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
 
                 return "(%s %s (%s) %s\n%s)" % (
                     def_str,
@@ -442,7 +489,7 @@ class Expr:
                     else self.args[1].toSMT(),
                 )
 
-        elif kind == Expr.Kind.Tuple:
+        elif isinstance(self, Tuple):
             args = " ".join(
                 [
                     arg.name if isinstance(arg, ValueRef) else arg.toSMT()
@@ -451,21 +498,21 @@ class Expr:
             )
             return "(tuple%d %s)" % (len(self.args), args)
 
-        elif kind == Expr.Kind.TupleGet:
+        elif isinstance(self, TupleGet):
             # example: generate (tuple2_get0 t)
             return "(tuple%d_get%d %s)" % (
                 len(self.args[0].type.args),
                 self.args[1].args[0],
                 self.args[0].toSMT(),
             )  # args[1] must be an int literal
-        elif kind == Expr.Kind.Let:
+        elif isinstance(self, Let):
             return "(let ((%s %s)) %s)" % (
                 self.args[0].toSMT(),
                 self.args[1].toSMT(),
                 self.args[2].toSMT(),
             )
         else:
-            value = self.kind.value
+            value = self.SMTName
             return (
                 "("
                 + value
@@ -497,9 +544,8 @@ class Expr:
             "list_eq": "equal?",
             "list_concat": "list-concat",
         }
-        kind = self.kind
-        if kind == Expr.Kind.Var or kind == Expr.Kind.Lit:
-            if kind == Expr.Kind.Lit and self.type == Bool():
+        if isinstance(self, Var) or isinstance(self, Lit):
+            if isinstance(self, Lit) and self.type == Bool():
                 if self.args[0] == True:
                     return "true"
                 else:
@@ -508,11 +554,11 @@ class Expr:
                 return str(self.args[0])
 
         elif (
-            kind == Expr.Kind.Call
-            or kind == Expr.Kind.CallValue
-            or kind == Expr.Kind.Choose
+            isinstance(self, Call)
+            or isinstance(self, CallValue)
+            or isinstance(self, Choose)
         ):
-            if isinstance(self.args[0], str) or kind == Expr.Kind.CallValue:
+            if isinstance(self.args[0], str) or isinstance(self, CallValue):
                 if isinstance(self.args[0], str) and (
                     self.args[0].startswith("inv") or self.args[0].startswith("ps")
                 ):
@@ -566,11 +612,11 @@ class Expr:
                     ]
                 )
 
-        elif kind == Expr.Kind.Synth:
+        elif isinstance(self, Synth):
             cnts = Expr.findCommonExprs(self.args[1], {})
             commonExprs = list(
                 filter(
-                    lambda k: k.kind == Expr.Kind.Choose,
+                    lambda k: isinstance(k, Choose),
                     cnts.keys(),
                 )
             )
@@ -604,9 +650,9 @@ class Expr:
 
             return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
-        elif kind == Expr.Kind.Axiom:
+        elif isinstance(self, Axiom):
             return ""  # axioms are only for verification
-        elif kind == Expr.Kind.Lambda:
+        elif isinstance(self, Lambda):
             args = " ".join(
                 [
                     "%s" % (a.name)
@@ -620,7 +666,7 @@ class Expr:
                 args,
                 self.args[0].toRosette(),
             )
-        elif kind == Expr.Kind.FnDecl or kind == Expr.Kind.FnDeclNonRecursive:
+        elif isinstance(self, FnDecl) or isinstance(self, FnDeclNonRecursive):
             if self.args[1] is None:  # uninterpreted function
                 args_type = " ".join(
                     ["%s" % toRosetteType(a.type) for a in self.args[2:]]
@@ -643,7 +689,7 @@ class Expr:
 
                 def_str = (
                     "define"
-                    if kind == Expr.Kind.FnDeclNonRecursive
+                    if isinstance(self, FnDeclNonRecursive)
                     else "define-bounded"
                 )
 
@@ -653,31 +699,31 @@ class Expr:
                     args,
                     self.args[1].toRosette(),
                 )
-        elif kind == Expr.Kind.FnDefine:
+        elif isinstance(self, FnDefine):
             return ""  # only for verification
-        elif kind == Expr.Kind.Tuple:
+        elif isinstance(self, Tuple):
             # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
             # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
             return Call("make-tuple", self.type, *self.args).toRosette()
 
-        elif kind == Expr.Kind.TupleGet:
+        elif isinstance(self, TupleGet):
             return "(tupleGet %s)" % " ".join(
                 ["%s" % arg.toRosette() for arg in self.args]
             )
-        elif kind == Expr.Kind.Let:
+        elif isinstance(self, Let):
             return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
         else:
-            if kind == Expr.Kind.And:
+            if isinstance(self, And):
                 value = "&&"
-            elif kind == Expr.Kind.Eq:
+            elif isinstance(self, Eq):
                 if self.args[0].type.name == "Set":
                     value = "set-eq"
                 else:
                     value = "equal?"
-            elif kind == Expr.Kind.Ite:
+            elif isinstance(self, Ite):
                 value = "if"
             else:
-                value = self.kind.value
+                value = self.RosetteName
 
             retStr = "(" + value + " "
             for a in self.args:
@@ -696,10 +742,10 @@ class Expr:
 
     def simplify(self) -> "Expr":
         self = self.mapArgs(lambda a: a.simplify() if isinstance(a, Expr) else a)
-        if self.kind == Expr.Kind.And:
+        if isinstance(self, And):
             filtered_args: typing.List[Expr] = []
             for arg in self.args:
-                if isinstance(arg, Expr) and arg.kind == Expr.Kind.Lit:
+                if isinstance(arg, Expr) and isinstance(arg, Lit):
                     if arg.args[0] == False:
                         return BoolLit(False)
                 else:
@@ -710,12 +756,16 @@ class Expr:
             elif len(filtered_args) == 1:
                 return filtered_args[0]
             else:
-                return Expr(Expr.Kind.And, Bool(), filtered_args)
+                # XXX
+                # return Expr(Bool(), filtered_args)
+                if isinstance(self, Var): return Var(filtered_args[0], self.type)
+                elif isinstance(self, And): return And(*filtered_args)
+                else: raise Exception("NYI: %s" % self)
         else:
             return self
 
     def countVariableUses(self, into: Dict[str, int]) -> None:
-        if self.kind == Expr.Kind.Var:
+        if isinstance(self, Var):
             if not (self.args[0] in into):
                 into[self.args[0]] = 0
             into[self.args[0]] += 1
@@ -730,8 +780,8 @@ class Expr:
         into: Dict[str, "Expr"],
         conflicts: Dict[str, bool],
     ) -> None:
-        if self.kind == Expr.Kind.Eq:
-            if self.args[0].kind == Expr.Kind.Var and (
+        if isinstance(self, Eq):
+            if isinstance(self.args[0], Var) and (
                 not self.args[0].args[0] in constrained_elsewhere
             ):
                 if self.args[0].args[0] in into or self.args[0].args[0] in conflicts:
@@ -739,7 +789,7 @@ class Expr:
                     del into[self.args[0].args[0]]
                 else:
                     into[self.args[0].args[0]] = self.args[1]
-            elif self.args[1].kind == Expr.Kind.Var and (
+            elif isinstance(self.args[1], Var) and (
                 not self.args[1].args[0] in constrained_elsewhere
             ):
                 if self.args[1].args[0] in into or self.args[1].args[0] in conflicts:
@@ -747,7 +797,7 @@ class Expr:
                     del into[self.args[1].args[0]]
                 else:
                     into[self.args[1].args[0]] = self.args[0]
-        elif self.kind == Expr.Kind.And:
+        elif isinstance(self, And):
             for a in self.args:
                 if isinstance(a, Expr):
                     a.collectKnowledge(constrained_elsewhere, into, conflicts)
@@ -755,7 +805,7 @@ class Expr:
             return
 
     def rewrite(self, mappings: Dict[str, "Expr"]) -> "Expr":
-        if self.kind == Expr.Kind.Var:
+        if isinstance(self, Var):
             if self.args[0] in mappings:
                 return mappings[self.args[0]]
             else:
@@ -768,23 +818,23 @@ class Expr:
     def optimizeUselessEquality(
         self, counts: Dict[str, int], new_vars: typing.Set["Expr"]
     ) -> "Expr":
-        if self.kind == Expr.Kind.Eq:
+        if isinstance(self, Eq):
             replacement_var = Var("useless_equality_%d" % len(new_vars), Bool())
-            if self.args[0].kind == Expr.Kind.Var and counts[self.args[0].args[0]] == 1:
+            if isinstance(self.args[0], Var) and counts[self.args[0].args[0]] == 1:
                 new_vars.add(replacement_var)
                 return replacement_var
             elif (
-                self.args[1].kind == Expr.Kind.Var and counts[self.args[1].args[0]] == 1
+                isinstance(self.args[1], Var) and counts[self.args[1].args[0]] == 1
             ):
                 new_vars.add(replacement_var)
                 return replacement_var
             elif (
-                self.args[0].kind == Expr.Kind.Var
-                and self.args[1].kind == Expr.Kind.Var
+                isinstance(self.args[0], Var)
+                and isinstance(self.args[1], Var)
             ):
                 if self.args[0].args[0] == self.args[1].args[0]:
                     return BoolLit(True)
-        elif self.kind == Expr.Kind.Implies:
+        elif isinstance(self, Implies):
             local_counts: Dict[str, int] = {}
             self.countVariableUses(local_counts)
 
@@ -799,29 +849,44 @@ class Expr:
             self.args[1].countVariableUses(counts_rhs)
 
             for rewrite_var in list(rewrites.keys()):
-                if not (rewrites[rewrite_var].kind == Expr.Kind.Var):
+                if not (isinstance(rewrites[rewrite_var], Var)):
                     if rewrite_var in counts_rhs and counts_rhs[rewrite_var] > 1:
                         del rewrites[rewrite_var]
 
             self = self.rewrite(rewrites)
 
-        return self.mapArgs(
-            lambda a: a.optimizeUselessEquality(counts, new_vars)
-            if isinstance(a, Expr)
-            else a
-        ).simplify()
+        return self
+        # XXX
+        # return self.mapArgs(
+        #     lambda a: a.optimizeUselessEquality(counts, new_vars)
+        #     if isinstance(a, Expr)
+        #     else a
+        # ).simplify()
 
 
-def Var(name: str, ty: Type) -> Expr:
-    return Expr(Expr.Kind.Var, ty, [name])
+class Var(Expr):
+    def __init__(self, name: str, ty: Type) -> None:
+        Expr.__init__(self, ty, [name])
 
+    def name(self) -> str:
+        return self.args[0]
 
-def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
-    return Expr(Expr.Kind.Lit, ty, [val])
+# def Var(name: str, ty: Type) -> Expr:
+#     return Expr(Expr.Kind.Var, ty, [name])
 
+class Lit(Expr):
+    def __init__(self, val: Union[bool, int, str], ty: Type) -> None:
+        Expr.__init__(self, ty, [val])
 
-def Object(ty: Type) -> Expr:
-    return Expr(Expr.Kind.Object, ty, {})
+    def val(self) -> Union[bool, int, str]:
+        return self.args[0]
+
+# def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
+#     return Expr(Expr.Kind.Lit, ty, [val])
+
+# akc: not sure if this is needed
+# def Object(ty: Type) -> Expr:
+#     return Expr(Expr.Kind.Object, ty, {})
 
 
 def IntLit(val: int) -> Expr:
@@ -836,143 +901,451 @@ def BoolLit(val: bool) -> Expr:
     return Lit(val, Bool())
 
 
-def Add(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.Add, Int(), args)
+class Add(Expr):
+    RosetteName = SMTName = "+"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        for arg in args:
+            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+                raise Exception(
+                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+                )
+        Expr.__init__(self, Int(), args)
+
+# def Add(*args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Add, Int(), args)
+
+class Sub(Expr):
+    RosetteName = SMTName = "-"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        for arg in args:
+            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+                raise Exception(
+                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+                )
+        Expr.__init__(self, Int(), args)
+
+# def Sub(*args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Sub, Int(), args)
+
+class Mul(Expr):
+    RosetteName = SMTName = "*"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        for arg in args:
+            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+                raise Exception(
+                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+                )
+        Expr.__init__(self, Int(), args)
+
+# def Mul(*args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Mul, Int(), args)
 
 
-def Sub(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.Sub, Int(), args)
+class Eq(Expr):
+    RosetteName = "equal?"
+    SMTName = "="
+
+    def __init__(self, e1: Expr, e2: Expr) -> None:
+        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+            raise Exception(
+                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+            )
+        Expr.__init__(self, Bool(), [e1, e2])
+
+    def e1(self) -> Expr:
+        return self.args[0]
+
+    def e2(self) -> Expr:
+        return self.args[1]
 
 
-def Mul(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.Mul, Int(), args)
+# def Eq(e1: Expr, e2: Expr) -> Expr:
+#     if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+#         raise Exception(
+#             f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+#         )
+#     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
+
+class Lt(Expr):
+    RosetteName = SMTName = "<"
+
+    def __init__(self, e1: Expr, e2: Expr) -> None:
+        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+            raise Exception(
+                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+            )
+        Expr.__init__(self, Bool(), [e1, e2])
+
+    def e1(self) -> Expr:
+        return self.args[0]
+
+    def e2(self) -> Expr:
+        return self.args[1]
+
+# def Lt(e1: Expr, e2: Expr) -> Expr:
+#     return Expr(Expr.Kind.Lt, Bool(), [e1, e2])
+
+class Le(Expr):
+    RosetteName = SMTName = "<="
+
+    def __init__(self, e1: Expr, e2: Expr) -> None:
+        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+            raise Exception(
+                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+            )
+        Expr.__init__(self, Bool(), [e1, e2])
+
+    def e1(self) -> Expr:
+        return self.args[0]
+
+    def e2(self) -> Expr:
+        return self.args[1]
+
+# def Le(e1: Expr, e2: Expr) -> Expr:
+#     return Expr(Expr.Kind.Le, Bool(), [e1, e2])
+
+class Gt(Expr):
+    RosetteName = SMTName = ">"
+
+    def __init__(self, e1: Expr, e2: Expr) -> None:
+        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+            raise Exception(
+                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+            )
+        Expr.__init__(self, Bool(), [e1, e2])
+
+    def e1(self) -> Expr:
+        return self.args[0]
+
+    def e2(self) -> Expr:
+        return self.args[1]
+
+# def Gt(e1: Expr, e2: Expr) -> Expr:
+#     return Expr(Expr.Kind.Gt, Bool(), [e1, e2])
+
+class Ge(Expr):
+    RosetteName = SMTName = ">="
+
+    def __init__(self, e1: Expr, e2: Expr) -> None:
+        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+            raise Exception(
+                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+            )
+        Expr.__init__(self, Bool(), [e1, e2])
+
+    def e1(self) -> Expr:
+        return self.args[0]
+
+    def e2(self) -> Expr:
+        return self.args[1]
+
+# def Ge(e1: Expr, e2: Expr) -> Expr:
+#     return Expr(Expr.Kind.Ge, Bool(), [e1, e2])
+
+class And(Expr):
+    RosetteName = "&&"  # racket "and" short circuits!
+    SMTName = "and"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        if not all(map(lambda e: e.type == Bool(), args)):
+            raise Exception(f"Cannot apply AND to values of type {args}")
+        Expr.__init__(self, Bool(), args)
+
+# def And(*args: Expr) -> Expr:
+#     return Expr(Expr.Kind.And, Bool(), args)
+
+class Or(Expr):
+    # XXX we should use || for rosette to avoid short circuiting
+    RosetteName = SMTName = "or"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        if not all(map(lambda e: e.type == Bool(), args)):
+            raise Exception(f"Cannot apply OR to values of type {map(lambda e: e.type, args)}")
+        Expr.__init__(self, Bool(), args)
+
+# def Or(*args: Expr) -> Expr:
+#     if parseTypeRef(args[0].type) != Bool() or parseTypeRef(args[1].type) != Bool():
+#         raise Exception(
+#             f"Cannot apply OR to values of type {parseTypeRef(args[0].type).erase()}, {parseTypeRef(args[1].type).erase()}"
+#         )
+#     return Expr(Expr.Kind.Or, Bool(), args)
+
+class Not(Expr):
+    RosetteName = "!"
+    SMTName = "not"
+
+    def __init__(self, e: Expr) -> None:
+        if e.type != Bool():
+            raise Exception(f"Cannot apply NOT to value of type {e.type}")
+        Expr.__init__(self, Bool(), [e])
+# def Not(e: Expr) -> Expr:
+#     return Expr(Expr.Kind.Not, Bool(), [e])
+
+class Implies(Expr):
+    RosetteName = SMTName = "=>"
+
+    def __init__(self, e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> None:
+        if e1.type != Bool():
+            raise Exception(f"Cannot apply IMPLIES to value of type {e1.type}")
+        if e2.type != Bool():
+            raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")
+        Expr.__init__(self, Bool(), [e1, e2])
+
+# def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
+#     return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
 
 
-def Eq(e1: Expr, e2: Expr) -> Expr:
-    if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
-        raise Exception(
-            f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
-        )
-    return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
+class Ite(Expr):
+    SMTName = "ite"
 
+    def __init__(self, c: Expr, e1: Expr, e2: Expr) -> None:
+        if c.type != Bool():
+            raise Exception(f"ITE condition must be Boolean and not value of type {c.type}")
+        if e1.type != e2.type:
+            raise Exception(f"TE branches in ITE must have the same type: {e1.type}, {e2.type}")
+        Expr.__init__(self, e1.type, [c, e1, e2])
 
-def Lt(e1: Expr, e2: Expr) -> Expr:
-    return Expr(Expr.Kind.Lt, Bool(), [e1, e2])
+    def c(self) -> Expr:
+        return self.args[0]
 
+    def e1(self) -> Expr:
+        return self.args[1]
 
-def Le(e1: Expr, e2: Expr) -> Expr:
-    return Expr(Expr.Kind.Le, Bool(), [e1, e2])
+    def e2(self) -> Expr:
+        return self.args[2]
 
+# def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
+#     if parseTypeRef(e1.type).erase() != parseTypeRef(e2.type).erase():
+#         raise Exception(
+#             f"Cannot return different types from ite: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+#         )
+#     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
-def Gt(e1: Expr, e2: Expr) -> Expr:
-    return Expr(Expr.Kind.Gt, Bool(), [e1, e2])
+class Let(Expr):
+    def __init__(self, v: Expr, e: Expr, e2: Expr) -> None:
+        Expr.__init__(self, e2.type, [v, e, e2])
 
+    def v(self) -> Expr:
+        return self.args[0]
 
-def Ge(e1: Expr, e2: Expr) -> Expr:
-    return Expr(Expr.Kind.Ge, Bool(), [e1, e2])
+    def e(self) -> Expr:
+        return self.args[1]
 
+    def e2(self) -> Expr:
+        return self.args[2]
 
-def And(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.And, Bool(), args)
+# def Let(v: Expr, e: Expr, e2: Expr) -> Expr:
+#     return Expr(Expr.Kind.Let, e2.type, [v, e, e2])
 
+class Call(Expr):
+    def __init__(self, name: str, returnT: Type, *arguments: Expr) -> None:
+        Expr.__init__(self, returnT, [name, *arguments])
 
-def Or(*args: Expr) -> Expr:
-    if parseTypeRef(args[0].type) != Bool() or parseTypeRef(args[1].type) != Bool():
-        raise Exception(
-            f"Cannot apply OR to values of type {parseTypeRef(args[0].type).erase()}, {parseTypeRef(args[1].type).erase()}"
-        )
+    def name(self) -> str:
+        return self.args[0]
 
-    return Expr(Expr.Kind.Or, Bool(), args)
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]
 
+# def Call(name: str, returnT: Type, *args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Call, returnT, [name, *args])
 
-def Not(e: Expr) -> Expr:
-    return Expr(Expr.Kind.Not, Bool(), [e])
+class CallValue(Expr):
+    def __init__(self, value: Expr, *arguments: Expr) -> None:
+        Expr.__init__(self, value.type.args[0], [value, *arguments])
 
+    def value(self) -> Expr:
+        return self.args[0]
 
-def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
-    return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
+    def arguments(self) -> [Expr]: # avoid name clash with Expr.args
+        return self.args[1]
 
+# def CallValue(value: Expr, *args: Expr) -> Expr:
+#     return Expr(Expr.Kind.CallValue, value.type.args[0], [value, *args])
 
-def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
-    if parseTypeRef(e1.type).erase() != parseTypeRef(e2.type).erase():
-        raise Exception(
-            f"Cannot return different types from ite: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
-        )
-    return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
+class Assert(Expr):
+    RosetteName = SMTName = "assert"
 
+    def __init__(self, e: Expr) -> None:
+        Expr.__init__(self, Bool(), [e])
 
-def Let(v: Expr, e: Expr, e2: Expr) -> Expr:
-    return Expr(Expr.Kind.Let, e2.type, [v, e, e2])
+    def e(self) -> Expr:
+        return self.args[0]
 
+# def Assert(e: Expr) -> Expr:
+#     return Expr(Expr.Kind.Assert, Bool(), [e])
 
-def Call(name: str, returnT: Type, *args: Expr) -> Expr:
-    return Expr(Expr.Kind.Call, returnT, [name, *args])
+class Constraint(Expr):
+    def __init__(self, e: Expr) -> None:
+        Expr.__init__(self, Bool(), [e])
 
+    def e(self) -> Expr:
+        return self.args[0]
 
-def CallValue(value: Expr, *args: Expr) -> Expr:
-    return Expr(Expr.Kind.CallValue, value.type.args[0], [value, *args])
-
-
-def Assert(e: Expr) -> Expr:
-    return Expr(Expr.Kind.Assert, Bool(), [e])
-
-
-def Constraint(e: Expr) -> Expr:
-    return Expr(Expr.Kind.Constraint, Bool(), [e])
-
+# def Constraint(e: Expr) -> Expr:
+#     return Expr(Expr.Kind.Constraint, Bool(), [e])
 
 ## tuple functions
-def MakeTuple(*args: Expr) -> Expr:
-    return Expr(Expr.Kind.Tuple, Tuple(*[a.type for a in args]), args)
+class Tuple(Expr):
+    def __init__(self, *args: Expr) -> None:
+        Expr.__init__(self, TupleT(*[a.type for a in args]), args)
 
+# def Tuple(*args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Tuple, TupleT(*[a.type for a in args]), args)
 
-def TupleGet(t: Expr, i: Expr) -> Expr:
-    return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
+class TupleGet(Expr):
+    def __init__(self, t: Tuple, i: Expr) -> None:
+        Expr.__init__(self, t.type.args[i.args[0]], [t, i])
 
+    def t(self) -> Tuple:
+        return self.args[0]
 
-def Axiom(e: Expr, *vars: Expr) -> Expr:
-    return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
+    def i(self) -> Expr:
+        return self.args[1]
 
+# def TupleGet(t: Expr, i: Expr) -> Expr:
+#     return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
+
+class Axiom(Expr):
+    def __init__(self, e: Expr, *vars: Expr) -> None:
+        Expr.__init__(self, Bool(), [e, *vars])
+
+    def e(self) -> Expr:
+        return self.args[0]
+
+    def vars(self) -> [Expr]:
+        return self.args[1:]
+
+# def Axiom(e: Expr, *vars: Expr) -> Expr:
+#     return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
 
 # the body of a synth-fun
-def Synth(name: str, body: Expr, *args: Expr) -> Expr:
-    return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
+class Synth(Expr):
+    def __init__(self, name: str, body: Expr, *args: Expr) -> None:
+        Expr.__init__(self, body.type, [name, body, *args])
 
+    def name(self) -> str:
+        return self.args[0]
 
-def Choose(*args: Expr) -> Expr:
-    if len(args) == 1:
-        return args[0]
-    else:
+    def body(self) -> Expr:
+        return self.args[1]
+
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]
+
+# def Synth(name: str, body: Expr, *args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
+
+class Choose(Expr):
+    def __init__(self, *args: Expr) -> None:
         if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a) for a in args)
             )
-        return Expr(Expr.Kind.Choose, args[0].type, args)
+        Expr.__init__(self, args[0].type, args)
 
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]
 
-def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
-    return Expr(
-        Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
-    )
+# def Choose(*args: Expr) -> Expr:
+#     if len(args) == 1:
+#         return args[0]
+#     else:
+#         if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
+#             raise Exception(
+#                 "Choose args are of different types: %s"
+#                 % " ".join(str(a) for a in args)
+#             )
+#         return Expr(Expr.Kind.Choose, args[0].type, args)
 
+class FnDecl(Expr):
+    def __init__(self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> None:
+        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, body, *args])
 
-def FnDefine(name: str, returnT: Type, *args: Expr) -> Expr:
-    return Expr(Expr.Kind.FnDefine, Fn(returnT, *[a.type for a in args]), [name, *args])
+    def name(self) -> str:
+        return self.args[0]
 
+    def returnT(self) -> Type:
+        return self.type.args[0]
 
-def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
-    return Expr(Expr.Kind.Lambda, Fn(returnT, *[a.type for a in args]), [body, *args])
+    def body(self) -> Union[Expr, str]:
+        return self.args[1]
 
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]
 
-def FnDeclNonRecursive(
-    name: str, returnT: Type, body: Union[Expr, str], *args: Expr
-) -> Expr:
-    return Expr(
-        Expr.Kind.FnDeclNonRecursive,
-        Fn(returnT, *[a.type for a in args]),
-        [name, body, *args],
-    )
+# def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
+#     return Expr(
+#         Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
+#     )
+
+class FnDefine(Expr):
+    def __init__(self, name: str, returnT: Type, *args: Expr) -> None:
+        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, *args])
+
+    def name(self) -> str:
+        return self.args[0]
+
+    def returnT(self) -> Type:
+        return self.type.args[0]
+
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]
+
+# def FnDefine(name: str, returnT: Type, *args: Expr) -> Expr:
+#     return Expr(Expr.Kind.FnDefine, Fn(returnT, *[a.type for a in args]), [name, *args])
+
+class Lambda(Expr):
+    def __init__(self, returnT: Type, body: Expr, *args: Expr) -> None:
+        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [body, *args])
+
+    def body(self) -> Expr:
+        return self.args[0]
+
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]
+
+# def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
+#     return Expr(Expr.Kind.Lambda, Fn(returnT, *[a.type for a in args]), [body, *args])
+
+class FnDeclNonRecursive(Expr):
+    def __init__(self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> None:
+        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, body, *args])
+
+    def name(self) -> str:
+        return self.args[0]
+
+    def returnT(self) -> Type:
+        return self.type.args[0]
+
+    def body(self) -> Union[Expr, str]:
+        return self.args[1]
+
+    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]
+
+# def FnDeclNonRecursive(
+#     name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+# ) -> Expr:
+#     return Expr(
+#         Expr.Kind.FnDeclNonRecursive,
+#         Fn(returnT, *[a.type for a in args]),
+#         [name, body, *args],
+#     )
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
@@ -1085,10 +1458,10 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         return Type("Function", Int())
     elif tyStr.startswith("%struct.tup."):
         retType = [Int() for i in range(int(tyStr[-2]) + 1)]
-        return Tuple(*retType)
+        return TupleT(*retType)
     elif tyStr.startswith("%struct.tup"):
         # ToDo FIX return type for multiple values
-        return Tuple(Int(), Int())
+        return TupleT(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
 

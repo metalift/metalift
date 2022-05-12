@@ -68,7 +68,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
                 out = Ite(c, out, out)
             return out
 
-        out = MakeTuple(
+        out = Tuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
@@ -82,7 +82,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
 
 
 def initState(synthStateStructure):
-    return MakeTuple(
+    return Tuple(
         *[elem.bottom() for elem in synthStateStructure]
     )
 

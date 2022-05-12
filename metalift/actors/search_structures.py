@@ -41,7 +41,7 @@ def synthesize_crdt(
     cvcPath: str,
     uid: int,
 ) -> None:
-    synthStateType = ir.Tuple(*[a.ir_type() for a in synthStateStructure])
+    synthStateType = ir.TupleT(*[a.ir_type() for a in synthStateStructure])
 
     try:
         queue.put(
@@ -129,7 +129,7 @@ def search_crdt_structures(
                                 raise e
 
                             try:
-                                synthStateType = ir.Tuple(
+                                synthStateType = ir.TupleT(
                                     *[a.ir_type() for a in next_structure_type]
                                 )
                                 synthesize_actor(

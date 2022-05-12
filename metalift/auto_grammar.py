@@ -233,7 +233,7 @@ def auto_grammar(
     allow_node_id_reductions: bool = False,
 ) -> Expr:
     if out_type and out_type.name == "Tuple":
-        return MakeTuple(
+        return Tuple(
             *[
                 auto_grammar(
                     t,
@@ -306,7 +306,7 @@ def auto_grammar(
             if (
                 t in next_pool
                 and isinstance(next_pool[t], Expr)
-                and next_pool[t].kind == Expr.Kind.Choose
+                and isinstance(next_pool[t], Choose)
             ):
                 existing_set = set(next_pool[t].args)
                 new_elements = [e for e in new_elements if e not in existing_set]

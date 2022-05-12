@@ -362,9 +362,9 @@ def synthesize_actor(
 
         for i in range(len(origArgs) - 1):
             op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
-        opType = Tuple(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
+        opType = TupleT(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
         if useOpList:
-            synthStateType = Tuple(*synthStateType.args, List(opType))
+            synthStateType = TupleT(*synthStateType.args, List(opType))
             beforeSynthState.type = synthStateType
             afterSynthState.type = synthStateType
             initStateSynthState.type = synthStateType
@@ -507,12 +507,12 @@ def synthesize_actor(
         [
             Synth(
                 stateTransitionSynthNode.args[0],
-                MakeTuple(
+                Tuple(
                     *stateTransitionSynthNode.args[1].args,
                     Call(
                         "list_prepend",
                         List(opType),
-                        MakeTuple(*loopAndPsInfoStateTransition[0].readVars[1:])
+                        Tuple(*loopAndPsInfoStateTransition[0].readVars[1:])
                         if len(loopAndPsInfoStateTransition[0].readVars[1:]) > 1
                         else loopAndPsInfoStateTransition[0].readVars[1],
                         TupleGet(
@@ -649,12 +649,12 @@ def synthesize_actor(
     invAndPsInitState = [
         Synth(
             fnNameBase + "_init_state",
-            MakeTuple(
+            Tuple(
                 *initStateSynthNode.args,
                 Call("list_empty", List(opType)),
             )
             if useOpList
-            else MakeTuple(
+            else Tuple(
                 *initStateSynthNode.args,
             ),
         )
@@ -811,7 +811,7 @@ def synthesize_actor(
 
         equivalence_fn.args[3] = Var(
             equivalence_fn.args[3].args[0],
-            Tuple(*equivalence_fn.args[3].type.args[:-1]),
+            TupleT(*equivalence_fn.args[3].type.args[:-1]),
         )
 
         equivalence_fn.args[1] = equivalence_fn.args[1].rewrite(
@@ -820,10 +820,10 @@ def synthesize_actor(
 
         state_transition_fn.args[2] = Var(
             state_transition_fn.args[2].args[0],
-            Tuple(*state_transition_fn.args[2].type.args[:-1]),
+            TupleT(*state_transition_fn.args[2].type.args[:-1]),
         )
 
-        state_transition_fn.args[1] = MakeTuple(
+        state_transition_fn.args[1] = Tuple(
             *[
                 e.rewrite(
                     {state_transition_fn.args[2].args[0]: state_transition_fn.args[2]}
@@ -833,14 +833,14 @@ def synthesize_actor(
         )
 
         query_fn.args[2] = Var(
-            query_fn.args[2].args[0], Tuple(*query_fn.args[2].type.args[:-1])
+            query_fn.args[2].args[0], TupleT(*query_fn.args[2].type.args[:-1])
         )
 
         query_fn.args[1] = query_fn.args[1].rewrite(
             {query_fn.args[2].args[0]: query_fn.args[2]}
         )
 
-        init_state_fn.args[1] = MakeTuple(*init_state_fn.args[1].args[:-1])
+        init_state_fn.args[1] = Tuple(*init_state_fn.args[1].args[:-1])
 
         try:
             return synthesize_actor(

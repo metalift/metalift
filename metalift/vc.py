@@ -332,9 +332,9 @@ class VC:
                     s.mem[i] = Lit(0, Set(Int()))
                 elif t.startswith("%struct.tup."):
                     retType = [Int() for i in range(int(t[-2]) + 1)]
-                    s.mem[i] = Lit(0, Tuple(*retType))
+                    s.mem[i] = Lit(0, TupleT(*retType))
                 elif t.startswith("%struct.tup"):
-                    s.mem[i] = Lit(0, Tuple(Int(), Int()))
+                    s.mem[i] = Lit(0, TupleT(Int(), Int()))
                 elif t.startswith(
                     "%struct."
                 ):  # not a tuple or set, assume to be user defined type
@@ -487,7 +487,7 @@ class VC:
         if isinstance(i, ValueRef):
             return reg[i]
         if isinstance(i, Expr):
-            if i.kind == Expr.Kind.Lit:
+            if isinstance(i, Lit):
                 return i
             else:
                 return i.mapArgs(lambda x: VC.evalMLInst(x, reg, mem))  # type: ignore

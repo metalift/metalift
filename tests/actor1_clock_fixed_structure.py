@@ -11,7 +11,7 @@ from metalift.maps_lang import mapsLang
 from metalift.synthesize_auto import synthesize
 
 synthStateStructure = [lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())), lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))]
-synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
+synthStateType = TupleT(*[a.ir_type() for a in synthStateStructure])
 
 base_depth = 1
 
@@ -89,7 +89,7 @@ def grammar(ci: CodeInfo):
 
         conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
         
-        out = MakeTuple(
+        out = Tuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
@@ -107,7 +107,7 @@ def grammar(ci: CodeInfo):
 
 
 def initState():
-    return MakeTuple(
+    return Tuple(
         *[elem.bottom() for elem in synthStateStructure]
     )
 

@@ -153,7 +153,7 @@ class CascadingTuple(Lattice):
     l2: Lattice
 
     def ir_type(self) -> ir.Type:
-        return ir.Tuple(self.l1.ir_type(), self.l2.ir_type())
+        return ir.TupleT(self.l1.ir_type(), self.l2.ir_type())
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
         mergeA = ir.Var("cascade_merge_a", a.type)
@@ -173,7 +173,7 @@ class CascadingTuple(Lattice):
             ir.Let(
                 mergeB,
                 b,
-                ir.MakeTuple(
+                ir.Tuple(
                     keyMerged,
                     ir.Ite(
                         ir.Or(
@@ -198,7 +198,7 @@ class CascadingTuple(Lattice):
         )
 
     def bottom(self) -> ir.Expr:
-        return ir.MakeTuple(self.l1.bottom(), self.l2.bottom())
+        return ir.Tuple(self.l1.bottom(), self.l2.bottom())
 
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.And(

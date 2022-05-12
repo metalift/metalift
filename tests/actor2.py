@@ -11,7 +11,7 @@ import os
 from metalift.synthesize_auto import synthesize
 
 synthStateStructure = [lat.MaxInt(), lat.MaxInt()]
-synthStateType = Tuple(*[a.ir_type() for a in synthStateStructure])
+synthStateType = TupleT(*[a.ir_type() for a in synthStateStructure])
 
 
 def grammarEquivalence(inputState, synthState, queryParams):
@@ -62,7 +62,7 @@ def grammar(ci: CodeInfo):
 
         intTransform = Choose(intTransform, Ite(condition, intTransform, intTransform))
 
-        summary = MakeTuple(
+        summary = Tuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)), intTransform
@@ -75,7 +75,7 @@ def grammar(ci: CodeInfo):
 
 
 def initState():
-    return MakeTuple(*[elem.bottom() for elem in synthStateStructure])
+    return Tuple(*[elem.bottom() for elem in synthStateStructure])
 
 
 def targetLang():

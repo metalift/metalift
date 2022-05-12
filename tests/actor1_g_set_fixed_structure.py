@@ -13,7 +13,7 @@ from metalift.synthesize_auto import synthesize
 base_depth = 1
 
 synthStateStructure = [lat.Set(Int())]
-synthStateType = Tuple(
+synthStateType = TupleT(
     *[a.ir_type() for a in synthStateStructure], Int()
 )  # TODO(shadaj): automate insertion of dummy
 
@@ -74,7 +74,7 @@ def grammar(ci: CodeInfo):
                 out = Ite(c, out, out)
             return out
 
-        summary = MakeTuple(
+        summary = Tuple(
             *[
                 synthStateStructure[i].merge(
                     TupleGet(inputState, IntLit(i)),
@@ -89,7 +89,7 @@ def grammar(ci: CodeInfo):
 
 
 def initState():
-    return MakeTuple(
+    return Tuple(
         *[elem.bottom() for elem in synthStateStructure],
         IntLit(0),  # TODO(shadaj): automate insertion of dummy
     )

@@ -54,7 +54,8 @@ def parseCandidates(
             )[0]
         )
 
-        if candidate.kind == Expr.Kind.Call:
+        # if candidate.kind == Expr.Kind.Call:
+        if isinstance(candidate, Call):
             if (
                 candidate.args[0] in fnsType.keys()
                 and candidate.args[0] != inFunctionName
@@ -69,7 +70,8 @@ def parseCandidates(
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))
                         new_args.append(ar)
-                    elif ar.kind == Expr.Kind.Lambda:
+                    # elif ar.kind == Expr.Kind.Lambda:
+                    elif isinstance(ar, Lambda):
                         lambda_name = f"lambda_{len(extractedLambdas)}"
                         extractedLambdas.append(
                             FnDeclNonRecursive(
@@ -83,13 +85,14 @@ def parseCandidates(
                         new_args.append(ar)
                 else:
                     new_args.append(ar)
-            candidate = Expr(candidate.kind, candidate.type, new_args)
+            # candidate = Expr(candidate.kind, candidate.type, new_args)
+            candidate = Call(new_args[0], candidate.type, *new_args[1:])
         return candidate, (inCalls, fnCalls)
 
 
 def verify_synth_result(
     basename: str,
-    targetLang: typing.List[Expr],
+    targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
     vars: typing.Set[Expr],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
@@ -150,12 +153,19 @@ def verify_synth_result(
                     extractedLambdas,
                     langFn.args[0],
                 )
+                if isinstance(langFn, FnDecl) or isinstance(langFn, FnDeclNonRecursive):
+                    decl = FnDecl(langFn.args[0], langFn.returnT(), updated, *langFn.args[2:])
+                elif isinstance(langFn, Axiom):
+                    decl = Axiom(langFn.args[0], updated, *langFn.args[2:])
+                else:
+                    raise Exception(f"langFn should be either FnDecl or Axiom but not: {langFn})")
                 transformedLang.append(
-                    Expr(
-                        langFn.kind,
-                        langFn.type,
-                        [langFn.args[0], updated, *langFn.args[2:]],
-                    )
+                    # Expr(
+                    #     langFn.kind,
+                    #     langFn.type,
+                    #     [langFn.args[0], updated, *langFn.args[2:]],
+                    # )
+                    decl
                 )
             else:
                 transformedLang.append(langFn)
