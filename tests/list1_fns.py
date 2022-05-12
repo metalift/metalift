@@ -93,9 +93,9 @@ def grammar(ci: CodeInfo):
 def targetLang():
 
     arg = Var("n", Int())
-    select_pred = FnDecl("Select-pred", Fn(Bool()), Gt(arg, 2), arg)
-    select_pred1 = FnDecl("Select-pred1", Fn(Bool()), Lt(arg, 10), arg)
-    select_pred2 = FnDecl("Select-pred2", Fn(Bool()), And(Gt(arg, 2), Lt(arg, 10)), arg)
+    select_pred = FnDecl("Select-pred", Fn(Bool()), Gt(arg, IntLit(2)), arg)
+    select_pred1 = FnDecl("Select-pred1", Fn(Bool()), Lt(arg, IntLit(10)), arg)
+    select_pred2 = FnDecl("Select-pred2", Fn(Bool()), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
     data = Var("l", List(Int()))
     f = Var("f", Fn(Bool()))
     select_func = FnDecl(
