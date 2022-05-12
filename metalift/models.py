@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite
+from metalift.ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite, Bool
 from metalift.vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
@@ -134,7 +134,7 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
         Ite(
             Call(
                 "set-member",
-                Set(Int()),
+                Bool(),
                 parseOperand(args[1], regs),
                 parseOperand(args[0], regs),
             ),
