@@ -330,212 +330,212 @@ class Expr:
             )
         )
 
-    def toSMT2(self) -> str:
-        if isinstance(self, Var) or isinstance(self, Lit):
-            if isinstance(self, Lit) and self.type == Bool():
-                if self.args[0] == True:
-                    return "true"
-                else:
-                    return "false"
-            else:
-                return str(self.args[0])
-
-        elif (
-            isinstance(self, Call)
-            or isinstance(self, CallValue)
-            or isinstance(self, Choose)
-        ):
-            noParens = isinstance(self, Call) and len(self.args) == 1
-            retVal = []
-
-            if self.args[0] == "set-create":
-                return f"(as set.empty {self.type.toSMT()})"
-
-            if self.args[0] == "tupleGet":
-                argvals = self.args[:-1]
-            else:
-                argvals = self.args
-
-            for idx, a in enumerate(argvals):
-                if isinstance(a, ValueRef) and a.name != "":
-                    retVal.append(a.name)
-                elif (str(a)) == "make-tuple":
-                    retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
-                elif (str(a)) == "tupleGet":
-                    if self.args[idx + 1].args[0] == "make-tuple":
-                        retVal.append(
-                            "tuple%d_get%d"
-                            % (
-                                len(self.args[idx + 1].args) - 1,
-                                self.args[idx + 2].args[0],
-                            )
-                        )
-                    else:
-                        # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
-                        freq: typing.Counter[str] = Counter(
-                            self.args[idx + 1].args[0].split("_")[1]
-                        )
-                        retVal.append(
-                            "tuple%d_get%d" % (freq["i"], self.args[idx + 2].args[0])
-                        )
-                elif (str(a)).startswith("set-"):
-                    retVal.append("set.%s" % (str(a)[4:]))
-                elif (str(a)).startswith("map-"):
-                    retVal.append("map_%s" % (str(a)[4:]))
-                elif isinstance(a, str):
-                    retVal.append(str(a))
-                else:
-                    retVal.append(a.toSMT())
-
-            retT = (
-                ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
-            )
-
-            return retT
-
-        elif isinstance(self, Synth):
-            cnts = Expr.findCommonExprs(self.args[1], {})
-            commonExprs = list(
-                filter(
-                    lambda k: isinstance(k, Choose),
-                    cnts.keys(),
-                )
-            )
-            rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)
-
-            # rewrite common exprs to use each other
-            commonExprs = [
-                Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True)
-                for e in commonExprs
-            ]
-
-            decls = "((rv %s) %s)" % (
-                self.type.toSMT(),
-                " ".join(
-                    "(%s %s)" % ("v%d" % i, parseTypeRef(e.type).toSMT())
-                    for i, e in enumerate(commonExprs)
-                ),
-            )
-            defs = "(rv %s %s)\n" % (
-                self.type.toSMT(),
-                rewritten.toSMT()
-                if isinstance(rewritten, Choose)
-                else "(%s)" % rewritten.toSMT(),
-            )
-            defs = defs + "\n".join(
-                "(%s %s %s)"
-                % (
-                    "v%d" % i,
-                    parseTypeRef(e.type).toSMT(),
-                    e.toSMT() if isinstance(self, Choose) else f"({e.toSMT()})",
-                )
-                for i, e in enumerate(commonExprs)
-            )
-
-            body = decls + "\n" + "(" + defs + ")"
-
-            declarations = []
-            for a in self.args[2:]:
-                if isinstance(a, ValueRef):
-                    declarations.append((a.name, parseTypeRef(a.type)))
-                else:
-                    declarations.append((a.args[0], a.type))
-
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
-            return "(synth-fun %s (%s) %s\n%s)" % (
-                self.args[0],
-                args,
-                self.type.toSMT(),
-                body,
-            )
-
-        elif isinstance(self, Axiom):
-            vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
-            return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
-        elif isinstance(self, Lambda):
-            # TODO(shadaj): extract during filtering assuming no captures
-            raise Exception("Lambda not supported")
-        elif (
-            isinstance(self, FnDecl)
-            or isinstance(self, FnDeclNonRecursive)
-            or isinstance(self, FnDefine)
-        ):
-            if (
-                isinstance(self, FnDefine) or self.args[1] is None
-            ):  # uninterpreted function
-                args_type = " ".join(
-                    parseTypeRef(a.type).toSMT() for a in self.args[2:]
-                )
-                return "(declare-fun %s (%s) %s)" % (
-                    self.args[0],
-                    args_type,
-                    parseTypeRef(self.type),
-                )
-
-            else:
-                declarations = []
-                for a in self.args[2:]:
-                    if isinstance(a, ValueRef):
-                        declarations.append((a.name, parseTypeRef(a.type)))
-                    else:
-                        declarations.append((a.args[0], a.type))
-
-                args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
-
-                def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
-
-                return "(%s %s (%s) %s\n%s)" % (
-                    def_str,
-                    self.args[0],
-                    args,
-                    (
-                        self.type if self.type.name != "Function" else self.type.args[0]
-                    ).toSMT(),
-                    self.args[1]
-                    if isinstance(self.args[1], str)
-                    else self.args[1].toSMT(),
-                )
-
-        elif isinstance(self, Tuple):
-            args = " ".join(
-                [
-                    arg.name if isinstance(arg, ValueRef) else arg.toSMT()
-                    for arg in self.args
-                ]
-            )
-            return "(tuple%d %s)" % (len(self.args), args)
-
-        elif isinstance(self, TupleGet):
-            # example: generate (tuple2_get0 t)
-            return "(tuple%d_get%d %s)" % (
-                len(self.args[0].type.args),
-                self.args[1].args[0],
-                self.args[0].toSMT(),
-            )  # args[1] must be an int literal
-        elif isinstance(self, Let):
-            return "(let ((%s %s)) %s)" % (
-                self.args[0].toSMT(),
-                self.args[1].toSMT(),
-                self.args[2].toSMT(),
-            )
-        else:
-            value = self.SMTName
-            return (
-                "("
-                + value
-                + " "
-                + " ".join(
-                    [
-                        a.name
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else a.toSMT()
-                        if isinstance(a, Expr)
-                        else str(a)
-                        for a in self.args
-                    ]
-                )
-                + ")"
-            )
+    # def toSMT(self) -> str:
+    #     if isinstance(self, Var) or isinstance(self, Lit):
+    #         if isinstance(self, Lit) and self.type == Bool():
+    #             if self.args[0] == True:
+    #                 return "true"
+    #             else:
+    #                 return "false"
+    #         else:
+    #             return str(self.args[0])
+    #
+    #     elif (
+    #         isinstance(self, Call)
+    #         or isinstance(self, CallValue)
+    #         or isinstance(self, Choose)
+    #     ):
+    #         noParens = isinstance(self, Call) and len(self.args) == 1
+    #         retVal = []
+    #
+    #         if self.args[0] == "set-create":
+    #             return f"(as set.empty {self.type.toSMT()})"
+    #
+    #         if self.args[0] == "tupleGet":
+    #             argvals = self.args[:-1]
+    #         else:
+    #             argvals = self.args
+    #
+    #         for idx, a in enumerate(argvals):
+    #             if isinstance(a, ValueRef) and a.name != "":
+    #                 retVal.append(a.name)
+    #             elif (str(a)) == "make-tuple":
+    #                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
+    #             elif (str(a)) == "tupleGet":
+    #                 if self.args[idx + 1].args[0] == "make-tuple":
+    #                     retVal.append(
+    #                         "tuple%d_get%d"
+    #                         % (
+    #                             len(self.args[idx + 1].args) - 1,
+    #                             self.args[idx + 2].args[0],
+    #                         )
+    #                     )
+    #                 else:
+    #                     # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
+    #                     freq: typing.Counter[str] = Counter(
+    #                         self.args[idx + 1].args[0].split("_")[1]
+    #                     )
+    #                     retVal.append(
+    #                         "tuple%d_get%d" % (freq["i"], self.args[idx + 2].args[0])
+    #                     )
+    #             elif (str(a)).startswith("set-"):
+    #                 retVal.append("set.%s" % (str(a)[4:]))
+    #             elif (str(a)).startswith("map-"):
+    #                 retVal.append("map_%s" % (str(a)[4:]))
+    #             elif isinstance(a, str):
+    #                 retVal.append(str(a))
+    #             else:
+    #                 retVal.append(a.toSMT())
+    #
+    #         retT = (
+    #             ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
+    #         )
+    #
+    #         return retT
+    #
+    #     elif isinstance(self, Synth):
+    #         cnts = Expr.findCommonExprs(self.args[1], {})
+    #         commonExprs = list(
+    #             filter(
+    #                 lambda k: isinstance(k, Choose),
+    #                 cnts.keys(),
+    #             )
+    #         )
+    #         rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)
+    #
+    #         # rewrite common exprs to use each other
+    #         commonExprs = [
+    #             Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True)
+    #             for e in commonExprs
+    #         ]
+    #
+    #         decls = "((rv %s) %s)" % (
+    #             self.type.toSMT(),
+    #             " ".join(
+    #                 "(%s %s)" % ("v%d" % i, parseTypeRef(e.type).toSMT())
+    #                 for i, e in enumerate(commonExprs)
+    #             ),
+    #         )
+    #         defs = "(rv %s %s)\n" % (
+    #             self.type.toSMT(),
+    #             rewritten.toSMT()
+    #             if isinstance(rewritten, Choose)
+    #             else "(%s)" % rewritten.toSMT(),
+    #         )
+    #         defs = defs + "\n".join(
+    #             "(%s %s %s)"
+    #             % (
+    #                 "v%d" % i,
+    #                 parseTypeRef(e.type).toSMT(),
+    #                 e.toSMT() if isinstance(self, Choose) else f"({e.toSMT()})",
+    #             )
+    #             for i, e in enumerate(commonExprs)
+    #         )
+    #
+    #         body = decls + "\n" + "(" + defs + ")"
+    #
+    #         declarations = []
+    #         for a in self.args[2:]:
+    #             if isinstance(a, ValueRef):
+    #                 declarations.append((a.name, parseTypeRef(a.type)))
+    #             else:
+    #                 declarations.append((a.args[0], a.type))
+    #
+    #         args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
+    #         return "(synth-fun %s (%s) %s\n%s)" % (
+    #             self.args[0],
+    #             args,
+    #             self.type.toSMT(),
+    #             body,
+    #         )
+    #
+    #     elif isinstance(self, Axiom):
+    #         vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
+    #         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
+    #     elif isinstance(self, Lambda):
+    #         # TODO(shadaj): extract during filtering assuming no captures
+    #         raise Exception("Lambda not supported")
+    #     elif (
+    #         isinstance(self, FnDecl)
+    #         or isinstance(self, FnDeclNonRecursive)
+    #         or isinstance(self, FnDefine)
+    #     ):
+    #         if (
+    #             isinstance(self, FnDefine) or self.args[1] is None
+    #         ):  # uninterpreted function
+    #             args_type = " ".join(
+    #                 parseTypeRef(a.type).toSMT() for a in self.args[2:]
+    #             )
+    #             return "(declare-fun %s (%s) %s)" % (
+    #                 self.args[0],
+    #                 args_type,
+    #                 parseTypeRef(self.type),
+    #             )
+    #
+    #         else:
+    #             declarations = []
+    #             for a in self.args[2:]:
+    #                 if isinstance(a, ValueRef):
+    #                     declarations.append((a.name, parseTypeRef(a.type)))
+    #                 else:
+    #                     declarations.append((a.args[0], a.type))
+    #
+    #             args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
+    #
+    #             def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
+    #
+    #             return "(%s %s (%s) %s\n%s)" % (
+    #                 def_str,
+    #                 self.args[0],
+    #                 args,
+    #                 (
+    #                     self.type if self.type.name != "Function" else self.type.args[0]
+    #                 ).toSMT(),
+    #                 self.args[1]
+    #                 if isinstance(self.args[1], str)
+    #                 else self.args[1].toSMT(),
+    #             )
+    #
+    #     elif isinstance(self, Tuple):
+    #         args = " ".join(
+    #             [
+    #                 arg.name if isinstance(arg, ValueRef) else arg.toSMT()
+    #                 for arg in self.args
+    #             ]
+    #         )
+    #         return "(tuple%d %s)" % (len(self.args), args)
+    #
+    #     elif isinstance(self, TupleGet):
+    #         # example: generate (tuple2_get0 t)
+    #         return "(tuple%d_get%d %s)" % (
+    #             len(self.args[0].type.args),
+    #             self.args[1].args[0],
+    #             self.args[0].toSMT(),
+    #         )  # args[1] must be an int literal
+    #     elif isinstance(self, Let):
+    #         return "(let ((%s %s)) %s)" % (
+    #             self.args[0].toSMT(),
+    #             self.args[1].toSMT(),
+    #             self.args[2].toSMT(),
+    #         )
+    #     else:
+    #         value = self.SMTName
+    #         return (
+    #             "("
+    #             + value
+    #             + " "
+    #             + " ".join(
+    #                 [
+    #                     a.name
+    #                     if isinstance(a, ValueRef) and a.name != ""
+    #                     else a.toSMT()
+    #                     if isinstance(a, Expr)
+    #                     else str(a)
+    #                     for a in self.args
+    #                 ]
+    #             )
+    #             + ")"
+    #         )
 
     def toSMT(self) -> str:
         raise NotImplementedError
