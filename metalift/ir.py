@@ -274,21 +274,28 @@ class Expr:
             else:
                 return Var("v%d" % commonExprs.index(e), e.type)
 
+    # def __repr__(self) -> str:
+    #     if isinstance(self, Var):
+    #         return self.args[0]  # type: ignore
+    #     elif isinstance(self, Call):
+    #         return "(%s:%s %s)" % (
+    #             self.args[0],
+    #             self.type,
+    #             " ".join(str(a) for a in self.args[1:]),
+    #         )
+    #     else:
+    #         return "(%s:%s %s)" % (
+    #             type(self).__name__,
+    #             self.type,
+    #             " ".join(str(a) for a in self.args),
+    #         )
+
     def __repr__(self) -> str:
-        if isinstance(self, Var):
-            return self.args[0]  # type: ignore
-        elif isinstance(self, Call):
-            return "(%s:%s %s)" % (
-                self.args[0],
-                self.type,
-                " ".join(str(a) for a in self.args[1:]),
-            )
-        else:
-            return "(%s:%s %s)" % (
-                type(self).__name__,
-                self.type,
-                " ".join(str(a) for a in self.args),
-            )
+        return "(%s:%s %s)" % (
+            type(self).__name__,
+            self.type,
+            " ".join(str(a) for a in self.args),
+        )
 
     # commented out so that common exprs can be detected
     #
@@ -530,215 +537,261 @@ class Expr:
                 + ")"
             )
 
+    # def toRosette(
+    #     self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    # ) -> str:
+    #     listFns = {
+    #         "list_get": "list-ref-noerr",
+    #         "list_append": "list-append",
+    #         "list_empty": "list-empty",
+    #         "list_tail": "list-tail-noerr",
+    #         "list_length": "length",
+    #         "list_take": "list-take-noerr",
+    #         "list_prepend": "list-prepend",
+    #         "list_eq": "equal?",
+    #         "list_concat": "list-concat",
+    #     }
+    #     if isinstance(self, Var) or isinstance(self, Lit):
+    #         if isinstance(self, Lit) and self.type == Bool():
+    #             if self.args[0] == True:
+    #                 return "true"
+    #             else:
+    #                 return "false"
+    #         else:
+    #             return str(self.args[0])
+    #
+    #     elif (
+    #         isinstance(self, Call)
+    #         or isinstance(self, CallValue)
+    #         or isinstance(self, Choose)
+    #     ):
+    #         if isinstance(self.args[0], str) or isinstance(self, CallValue):
+    #             if isinstance(self.args[0], str) and (
+    #                 self.args[0].startswith("inv") or self.args[0].startswith("ps")
+    #             ):
+    #                 callStr = "( " + "%s " % (str(self.args[0]))
+    #                 for a in self.args[1:]:
+    #                     callStr += a.toRosette() + " "
+    #                 callStr += ")"
+    #                 return callStr
+    #             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
+    #                 callStr = (
+    #                     "("
+    #                     + "%s"
+    #                     % (
+    #                         listFns[self.args[0]]
+    #                         if self.args[0] in listFns.keys()
+    #                         else self.args[0]
+    #                     )
+    #                     + " "
+    #                 )
+    #                 for a in self.args[1:]:
+    #                     if isinstance(a, ValueRef) and a.name != "":
+    #                         callStr += "%s " % (a.name)
+    #                     else:
+    #                         callStr += a.toRosette() + " "
+    #                 callStr += ")"
+    #                 return callStr
+    #             else:
+    #                 return (
+    #                     "("
+    #                     + " ".join(
+    #                         [
+    #                             a.name
+    #                             if isinstance(a, ValueRef) and a.name != ""
+    #                             else a
+    #                             if isinstance(a, str)
+    #                             else a.toRosette()
+    #                             for a in self.args
+    #                         ]
+    #                     )
+    #                     + ")"
+    #                 )
+    #         else:
+    #             return " ".join(
+    #                 [
+    #                     a.name
+    #                     if isinstance(a, ValueRef) and a.name != ""
+    #                     else str(a)
+    #                     if isinstance(a, str)
+    #                     else a.toRosette()
+    #                     for a in self.args
+    #                 ]
+    #             )
+    #
+    #     elif isinstance(self, Synth):
+    #         cnts = Expr.findCommonExprs(self.args[1], {})
+    #         commonExprs = list(
+    #             filter(
+    #                 lambda k: isinstance(k, Choose),
+    #                 cnts.keys(),
+    #             )
+    #         )
+    #         rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
+    #
+    #         # rewrite common exprs to use each other
+    #         commonExprs = [
+    #             Expr.replaceExprs(e, commonExprs, PrintMode.Rosette, skipTop=True)
+    #             for e in commonExprs
+    #         ]
+    #
+    #         args = " ".join(
+    #             "%s" % a.name
+    #             if isinstance(a, ValueRef)
+    #             else str(a)
+    #             if isinstance(a, str)
+    #             else a.toRosette()
+    #             for a in self.args[2:]
+    #         )
+    #
+    #         defs = "[rv (choose %s)]\n" % rewritten.toRosette()
+    #
+    #         if writeChoicesTo != None:
+    #             for i, e in enumerate(commonExprs):
+    #                 writeChoicesTo[f"v{i}"] = e  # type: ignore
+    #
+    #         defs = defs + "\n".join(
+    #             "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
+    #             for i, e in enumerate(commonExprs)
+    #         )
+    #
+    #         return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
+    #
+    #     elif isinstance(self, Axiom):
+    #         return ""  # axioms are only for verification
+    #     elif isinstance(self, Lambda):
+    #         args = " ".join(
+    #             [
+    #                 "%s" % (a.name)
+    #                 if isinstance(a, ValueRef) and a.name != ""
+    #                 else "%s" % (a.args[0])
+    #                 for a in self.args[1:]
+    #             ]
+    #         )
+    #
+    #         return "(lambda (%s) %s)" % (
+    #             args,
+    #             self.args[0].toRosette(),
+    #         )
+    #     elif isinstance(self, FnDecl) or isinstance(self, FnDeclNonRecursive):
+    #         if self.args[1] is None:  # uninterpreted function
+    #             args_type = " ".join(
+    #                 ["%s" % toRosetteType(a.type) for a in self.args[2:]]
+    #             )
+    #             return "(define-symbolic %s (~> %s %s))" % (
+    #                 self.args[0],
+    #                 args_type,
+    #                 toRosetteType(self.type),
+    #             )
+    #
+    #         else:
+    #             args = " ".join(
+    #                 [
+    #                     "%s" % (a.name)
+    #                     if isinstance(a, ValueRef) and a.name != ""
+    #                     else "%s" % (a.args[0])
+    #                     for a in self.args[2:]
+    #                 ]
+    #             )
+    #
+    #             def_str = (
+    #                 "define"
+    #                 if isinstance(self, FnDeclNonRecursive)
+    #                 else "define-bounded"
+    #             )
+    #
+    #             return "(%s (%s %s) \n%s)" % (
+    #                 def_str,
+    #                 self.args[0],
+    #                 args,
+    #                 self.args[1].toRosette(),
+    #             )
+    #     elif isinstance(self, FnDefine):
+    #         return ""  # only for verification
+    #     elif isinstance(self, Tuple):
+    #         # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
+    #         # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
+    #         return Call("make-tuple", self.type, *self.args).toRosette()
+    #
+    #     elif isinstance(self, TupleGet):
+    #         return "(tupleGet %s)" % " ".join(
+    #             ["%s" % arg.toRosette() for arg in self.args]
+    #         )
+    #     elif isinstance(self, Let):
+    #         return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
+    #     else:
+    #         if isinstance(self, And):
+    #             value = "&&"
+    #         elif isinstance(self, Eq):
+    #             if self.args[0].type.name == "Set":
+    #                 value = "set-eq"
+    #             else:
+    #                 value = "equal?"
+    #         elif isinstance(self, Ite):
+    #             value = "if"
+    #         else:
+    #             value = self.RosetteName
+    #
+    #         retStr = "(" + value + " "
+    #         for a in self.args:
+    #             if isinstance(a, ValueRef) and a.name != "":
+    #                 retStr += "%s" % (a.name) + " "
+    #             else:
+    #                 strExp = a.toRosette() if isinstance(a, Expr) else str(a)
+    #                 if (strExp) in listFns.keys() and "list_empty" in (strExp):
+    #                     retStr += "(" + listFns[strExp] + ")" + " "
+    #                 elif (strExp) in listFns.keys():
+    #                     retStr += listFns[strExp]
+    #                 else:
+    #                     retStr += strExp + " "
+    #         retStr += ")"
+    #         return retStr
+
+    listFns = {
+        "list_get": "list-ref-noerr",
+        "list_append": "list-append",
+        "list_empty": "list-empty",
+        "list_tail": "list-tail-noerr",
+        "list_length": "length",
+        "list_take": "list-take-noerr",
+        "list_prepend": "list-prepend",
+        "list_eq": "equal?",
+        "list_concat": "list-concat",
+    }
+
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        listFns = {
-            "list_get": "list-ref-noerr",
-            "list_append": "list-append",
-            "list_empty": "list-empty",
-            "list_tail": "list-tail-noerr",
-            "list_length": "length",
-            "list_take": "list-take-noerr",
-            "list_prepend": "list-prepend",
-            "list_eq": "equal?",
-            "list_concat": "list-concat",
-        }
-        if isinstance(self, Var) or isinstance(self, Lit):
-            if isinstance(self, Lit) and self.type == Bool():
-                if self.args[0] == True:
-                    return "true"
-                else:
-                    return "false"
+        raise NotImplementedError()
+
+    @staticmethod
+    def toRosetteSimple(e) -> str:
+        if isinstance(e, And):
+            value = "&&"
+        elif isinstance(e, Eq):
+            if e.args[0].type.name == "Set":
+                value = "set-eq"
             else:
-                return str(self.args[0])
-
-        elif (
-            isinstance(self, Call)
-            or isinstance(self, CallValue)
-            or isinstance(self, Choose)
-        ):
-            if isinstance(self.args[0], str) or isinstance(self, CallValue):
-                if isinstance(self.args[0], str) and (
-                    self.args[0].startswith("inv") or self.args[0].startswith("ps")
-                ):
-                    callStr = "( " + "%s " % (str(self.args[0]))
-                    for a in self.args[1:]:
-                        callStr += a.toRosette() + " "
-                    callStr += ")"
-                    return callStr
-                elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                    callStr = (
-                        "("
-                        + "%s"
-                        % (
-                            listFns[self.args[0]]
-                            if self.args[0] in listFns.keys()
-                            else self.args[0]
-                        )
-                        + " "
-                    )
-                    for a in self.args[1:]:
-                        if isinstance(a, ValueRef) and a.name != "":
-                            callStr += "%s " % (a.name)
-                        else:
-                            callStr += a.toRosette() + " "
-                    callStr += ")"
-                    return callStr
-                else:
-                    return (
-                        "("
-                        + " ".join(
-                            [
-                                a.name
-                                if isinstance(a, ValueRef) and a.name != ""
-                                else a
-                                if isinstance(a, str)
-                                else a.toRosette()
-                                for a in self.args
-                            ]
-                        )
-                        + ")"
-                    )
-            else:
-                return " ".join(
-                    [
-                        a.name
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else str(a)
-                        if isinstance(a, str)
-                        else a.toRosette()
-                        for a in self.args
-                    ]
-                )
-
-        elif isinstance(self, Synth):
-            cnts = Expr.findCommonExprs(self.args[1], {})
-            commonExprs = list(
-                filter(
-                    lambda k: isinstance(k, Choose),
-                    cnts.keys(),
-                )
-            )
-            rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
-
-            # rewrite common exprs to use each other
-            commonExprs = [
-                Expr.replaceExprs(e, commonExprs, PrintMode.Rosette, skipTop=True)
-                for e in commonExprs
-            ]
-
-            args = " ".join(
-                "%s" % a.name
-                if isinstance(a, ValueRef)
-                else str(a)
-                if isinstance(a, str)
-                else a.toRosette()
-                for a in self.args[2:]
-            )
-
-            defs = "[rv (choose %s)]\n" % rewritten.toRosette()
-
-            if writeChoicesTo != None:
-                for i, e in enumerate(commonExprs):
-                    writeChoicesTo[f"v{i}"] = e  # type: ignore
-
-            defs = defs + "\n".join(
-                "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
-                for i, e in enumerate(commonExprs)
-            )
-
-            return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
-
-        elif isinstance(self, Axiom):
-            return ""  # axioms are only for verification
-        elif isinstance(self, Lambda):
-            args = " ".join(
-                [
-                    "%s" % (a.name)
-                    if isinstance(a, ValueRef) and a.name != ""
-                    else "%s" % (a.args[0])
-                    for a in self.args[1:]
-                ]
-            )
-
-            return "(lambda (%s) %s)" % (
-                args,
-                self.args[0].toRosette(),
-            )
-        elif isinstance(self, FnDecl) or isinstance(self, FnDeclNonRecursive):
-            if self.args[1] is None:  # uninterpreted function
-                args_type = " ".join(
-                    ["%s" % toRosetteType(a.type) for a in self.args[2:]]
-                )
-                return "(define-symbolic %s (~> %s %s))" % (
-                    self.args[0],
-                    args_type,
-                    toRosetteType(self.type),
-                )
-
-            else:
-                args = " ".join(
-                    [
-                        "%s" % (a.name)
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else "%s" % (a.args[0])
-                        for a in self.args[2:]
-                    ]
-                )
-
-                def_str = (
-                    "define"
-                    if isinstance(self, FnDeclNonRecursive)
-                    else "define-bounded"
-                )
-
-                return "(%s (%s %s) \n%s)" % (
-                    def_str,
-                    self.args[0],
-                    args,
-                    self.args[1].toRosette(),
-                )
-        elif isinstance(self, FnDefine):
-            return ""  # only for verification
-        elif isinstance(self, Tuple):
-            # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
-            # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
-            return Call("make-tuple", self.type, *self.args).toRosette()
-
-        elif isinstance(self, TupleGet):
-            return "(tupleGet %s)" % " ".join(
-                ["%s" % arg.toRosette() for arg in self.args]
-            )
-        elif isinstance(self, Let):
-            return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
+                value = "equal?"
+        elif isinstance(e, Ite):
+            value = "if"
         else:
-            if isinstance(self, And):
-                value = "&&"
-            elif isinstance(self, Eq):
-                if self.args[0].type.name == "Set":
-                    value = "set-eq"
-                else:
-                    value = "equal?"
-            elif isinstance(self, Ite):
-                value = "if"
-            else:
-                value = self.RosetteName
+            value = e.RosetteName
 
-            retStr = "(" + value + " "
-            for a in self.args:
-                if isinstance(a, ValueRef) and a.name != "":
-                    retStr += "%s" % (a.name) + " "
+        retStr = "(" + value + " "
+        for a in e.args:
+            if isinstance(a, ValueRef) and a.name != "":
+                retStr += "%s" % (a.name) + " "
+            else:
+                strExp = a.toRosette() if isinstance(a, Expr) else str(a)
+                if (strExp) in Expr.listFns.keys() and "list_empty" in (strExp):
+                    retStr += "(" + Expr.listFns[strExp] + ")" + " "
+                elif (strExp) in Expr.listFns.keys():
+                    retStr += Expr.listFns[strExp]
                 else:
-                    strExp = a.toRosette() if isinstance(a, Expr) else str(a)
-                    if (strExp) in listFns.keys() and "list_empty" in (strExp):
-                        retStr += "(" + listFns[strExp] + ")" + " "
-                    elif (strExp) in listFns.keys():
-                        retStr += listFns[strExp]
-                    else:
-                        retStr += strExp + " "
-            retStr += ")"
-            return retStr
+                    retStr += strExp + " "
+        retStr += ")"
+        return retStr
 
     def simplify(self) -> "Expr":
         self = self.mapArgs(lambda a: a.simplify() if isinstance(a, Expr) else a)
@@ -871,6 +924,14 @@ class Var(Expr):
     def name(self) -> str:
         return self.args[0]
 
+    def __repr__(self) -> str:
+        return self.args[0]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return str(self.args[0])
+
 # def Var(name: str, ty: Type) -> Expr:
 #     return Expr(Expr.Kind.Var, ty, [name])
 
@@ -880,6 +941,15 @@ class Lit(Expr):
 
     def val(self) -> Union[bool, int, str]:
         return self.args[0]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        if self.type == Bool():
+            return "true" if self.args[0] else "false"
+        else:
+            return str(self.args[0])
+
 
 # def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
 #     return Expr(Expr.Kind.Lit, ty, [val])
@@ -914,6 +984,11 @@ class Add(Expr):
                 )
         Expr.__init__(self, Int(), args)
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Add(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Add, Int(), args)
 
@@ -930,6 +1005,11 @@ class Sub(Expr):
                 )
         Expr.__init__(self, Int(), args)
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Sub(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Sub, Int(), args)
 
@@ -945,6 +1025,11 @@ class Mul(Expr):
                     f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
                 )
         Expr.__init__(self, Int(), args)
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
 
 # def Mul(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Mul, Int(), args)
@@ -967,6 +1052,10 @@ class Eq(Expr):
     def e2(self) -> Expr:
         return self.args[1]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
 
 # def Eq(e1: Expr, e2: Expr) -> Expr:
 #     if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
@@ -991,6 +1080,11 @@ class Lt(Expr):
     def e2(self) -> Expr:
         return self.args[1]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Lt(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Lt, Bool(), [e1, e2])
 
@@ -1009,6 +1103,11 @@ class Le(Expr):
 
     def e2(self) -> Expr:
         return self.args[1]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
 
 # def Le(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Le, Bool(), [e1, e2])
@@ -1029,6 +1128,11 @@ class Gt(Expr):
     def e2(self) -> Expr:
         return self.args[1]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Gt(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Gt, Bool(), [e1, e2])
 
@@ -1048,6 +1152,11 @@ class Ge(Expr):
     def e2(self) -> Expr:
         return self.args[1]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Ge(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Ge, Bool(), [e1, e2])
 
@@ -1062,6 +1171,11 @@ class And(Expr):
             raise Exception(f"Cannot apply AND to values of type {args}")
         Expr.__init__(self, Bool(), args)
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def And(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.And, Bool(), args)
 
@@ -1075,6 +1189,11 @@ class Or(Expr):
         if not all(map(lambda e: e.type == Bool(), args)):
             raise Exception(f"Cannot apply OR to values of type {map(lambda e: e.type, args)}")
         Expr.__init__(self, Bool(), args)
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
 
 # def Or(*args: Expr) -> Expr:
 #     if parseTypeRef(args[0].type) != Bool() or parseTypeRef(args[1].type) != Bool():
@@ -1091,8 +1210,15 @@ class Not(Expr):
         if e.type != Bool():
             raise Exception(f"Cannot apply NOT to value of type {e.type}")
         Expr.__init__(self, Bool(), [e])
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Not(e: Expr) -> Expr:
 #     return Expr(Expr.Kind.Not, Bool(), [e])
+
 
 class Implies(Expr):
     RosetteName = SMTName = "=>"
@@ -1103,6 +1229,11 @@ class Implies(Expr):
         if e2.type != Bool():
             raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")
         Expr.__init__(self, Bool(), [e1, e2])
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
 
 # def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 #     return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
@@ -1127,6 +1258,11 @@ class Ite(Expr):
     def e2(self) -> Expr:
         return self.args[2]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
 #     if parseTypeRef(e1.type).erase() != parseTypeRef(e2.type).erase():
 #         raise Exception(
@@ -1147,6 +1283,11 @@ class Let(Expr):
     def e2(self) -> Expr:
         return self.args[2]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
+
 # def Let(v: Expr, e: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Let, e2.type, [v, e, e2])
 
@@ -1159,6 +1300,67 @@ class Call(Expr):
 
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[1:]
+
+    def __repr__(self) -> str:
+        return f"({self.args[0]}:{self.type} {' '.join(str(a) for a in self.args[1:])})"
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        if isinstance(self.args[0], str) or isinstance(self, CallValue):
+            if isinstance(self.args[0], str) and (
+                self.args[0].startswith("inv") or self.args[0].startswith("ps")
+            ):
+                callStr = "( " + "%s " % (str(self.args[0]))
+                for a in self.args[1:]:
+                    callStr += a.toRosette() + " "
+                callStr += ")"
+                return callStr
+            elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
+                callStr = (
+                    "("
+                    + "%s"
+                    % (
+                        Expr.listFns[self.args[0]]
+                        if self.args[0] in Expr.listFns.keys()
+                        else self.args[0]
+                    )
+                    + " "
+                )
+                for a in self.args[1:]:
+                    if isinstance(a, ValueRef) and a.name != "":
+                        callStr += "%s " % (a.name)
+                    else:
+                        callStr += a.toRosette() + " "
+                callStr += ")"
+                return callStr
+            else:
+                return (
+                    "("
+                    + " ".join(
+                    [
+                        a.name
+                        if isinstance(a, ValueRef) and a.name != ""
+                        else a
+                        if isinstance(a, str)
+                        else a.toRosette()
+                        for a in self.args
+                    ]
+                )
+                    + ")"
+                )
+        else:
+            return " ".join(
+                [
+                    a.name
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else str(a)
+                    if isinstance(a, str)
+                    else a.toRosette()
+                    for a in self.args
+                ]
+            )
+
 
 # def Call(name: str, returnT: Type, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Call, returnT, [name, *args])
@@ -1173,6 +1375,63 @@ class CallValue(Expr):
     def arguments(self) -> [Expr]: # avoid name clash with Expr.args
         return self.args[1]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        if isinstance(self.args[0], str) or isinstance(self, CallValue):
+            if isinstance(self.args[0], str) and (
+                self.args[0].startswith("inv") or self.args[0].startswith("ps")
+            ):
+                callStr = "( " + "%s " % (str(self.args[0]))
+                for a in self.args[1:]:
+                    callStr += a.toRosette() + " "
+                callStr += ")"
+                return callStr
+            elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
+                callStr = (
+                    "("
+                    + "%s"
+                    % (
+                        Expr.listFns[self.args[0]]
+                        if self.args[0] in Expr.listFns.keys()
+                        else self.args[0]
+                    )
+                    + " "
+                )
+                for a in self.args[1:]:
+                    if isinstance(a, ValueRef) and a.name != "":
+                        callStr += "%s " % (a.name)
+                    else:
+                        callStr += a.toRosette() + " "
+                callStr += ")"
+                return callStr
+            else:
+                return (
+                    "("
+                    + " ".join(
+                    [
+                        a.name
+                        if isinstance(a, ValueRef) and a.name != ""
+                        else a
+                        if isinstance(a, str)
+                        else a.toRosette()
+                        for a in self.args
+                    ]
+                )
+                    + ")"
+                )
+        else:
+            return " ".join(
+                [
+                    a.name
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else str(a)
+                    if isinstance(a, str)
+                    else a.toRosette()
+                    for a in self.args
+                ]
+            )
+
 # def CallValue(value: Expr, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.CallValue, value.type.args[0], [value, *args])
 
@@ -1185,6 +1444,11 @@ class Assert(Expr):
     def e(self) -> Expr:
         return self.args[0]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Assert(e: Expr) -> Expr:
 #     return Expr(Expr.Kind.Assert, Bool(), [e])
 
@@ -1195,6 +1459,11 @@ class Constraint(Expr):
     def e(self) -> Expr:
         return self.args[0]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self)
+
 # def Constraint(e: Expr) -> Expr:
 #     return Expr(Expr.Kind.Constraint, Bool(), [e])
 
@@ -1202,6 +1471,13 @@ class Constraint(Expr):
 class Tuple(Expr):
     def __init__(self, *args: Expr) -> None:
         Expr.__init__(self, TupleT(*[a.type for a in args]), args)
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        # original code was "(make-tuple %s) % " ".join(["%s" % str(arg) for arg in self.args])
+        # but arg can be a ValueRef and calling str on it will return both type and name e.g., i32 %arg
+        return Call("make-tuple", self.type, *self.args).toRosette()
 
 # def Tuple(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Tuple, TupleT(*[a.type for a in args]), args)
@@ -1216,6 +1492,13 @@ class TupleGet(Expr):
     def i(self) -> Expr:
         return self.args[1]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return "(tupleGet %s)" % " ".join(
+            ["%s" % arg.toRosette() for arg in self.args]
+        )
+
 # def TupleGet(t: Expr, i: Expr) -> Expr:
 #     return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
 
@@ -1228,6 +1511,11 @@ class Axiom(Expr):
 
     def vars(self) -> [Expr]:
         return self.args[1:]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return ""  # axioms are only for verification
 
 # def Axiom(e: Expr, *vars: Expr) -> Expr:
 #     return Expr(Expr.Kind.Axiom, Bool(), [e, *vars])
@@ -1246,6 +1534,46 @@ class Synth(Expr):
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[2:]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        cnts = Expr.findCommonExprs(self.args[1], {})
+        commonExprs = list(
+            filter(
+                lambda k: isinstance(k, Choose),
+                cnts.keys(),
+            )
+        )
+        rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
+
+        # rewrite common exprs to use each other
+        commonExprs = [
+            Expr.replaceExprs(e, commonExprs, PrintMode.Rosette, skipTop=True)
+            for e in commonExprs
+        ]
+
+        args = " ".join(
+            "%s" % a.name
+            if isinstance(a, ValueRef)
+            else str(a)
+            if isinstance(a, str)
+            else a.toRosette()
+            for a in self.args[2:]
+        )
+
+        defs = "[rv (choose %s)]\n" % rewritten.toRosette()
+
+        if writeChoicesTo != None:
+            for i, e in enumerate(commonExprs):
+                writeChoicesTo[f"v{i}"] = e  # type: ignore
+
+        defs = defs + "\n".join(
+            "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
+            for i, e in enumerate(commonExprs)
+        )
+
+        return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
+
 # def Synth(name: str, body: Expr, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
 
@@ -1260,6 +1588,20 @@ class Choose(Expr):
 
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[1:]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return " ".join(
+            [
+                a.name
+                if isinstance(a, ValueRef) and a.name != ""
+                else str(a)
+                if isinstance(a, str)
+                else a.toRosette()
+                for a in self.args
+            ]
+        )
 
 # def Choose(*args: Expr) -> Expr:
 #     if len(args) == 1:
@@ -1288,6 +1630,42 @@ class FnDecl(Expr):
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[2:]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        if self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(
+                ["%s" % toRosetteType(a.type) for a in self.args[2:]]
+            )
+            return "(define-symbolic %s (~> %s %s))" % (
+                self.args[0],
+                args_type,
+                toRosetteType(self.type),
+            )
+
+        else:
+            args = " ".join(
+                [
+                    "%s" % (a.name)
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else "%s" % (a.args[0])
+                    for a in self.args[2:]
+                ]
+            )
+
+            def_str = (
+                "define"
+                if isinstance(self, FnDeclNonRecursive)
+                else "define-bounded"
+            )
+
+            return "(%s (%s %s) \n%s)" % (
+                def_str,
+                self.args[0],
+                args,
+                self.args[1].toRosette(),
+            )
+
 # def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
 #     return Expr(
 #         Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
@@ -1306,6 +1684,11 @@ class FnDefine(Expr):
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[1:]
 
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return ""  # only for verification
+
 # def FnDefine(name: str, returnT: Type, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.FnDefine, Fn(returnT, *[a.type for a in args]), [name, *args])
 
@@ -1318,6 +1701,23 @@ class Lambda(Expr):
 
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[1:]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        args = " ".join(
+            [
+                "%s" % (a.name)
+                if isinstance(a, ValueRef) and a.name != ""
+                else "%s" % (a.args[0])
+                for a in self.args[1:]
+            ]
+        )
+
+        return "(lambda (%s) %s)" % (
+            args,
+            self.args[0].toRosette(),
+        )
 
 # def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Lambda, Fn(returnT, *[a.type for a in args]), [body, *args])
@@ -1337,6 +1737,42 @@ class FnDeclNonRecursive(Expr):
 
     def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
         return self.args[2:]
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        if self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(
+                ["%s" % toRosetteType(a.type) for a in self.args[2:]]
+            )
+            return "(define-symbolic %s (~> %s %s))" % (
+                self.args[0],
+                args_type,
+                toRosetteType(self.type),
+            )
+
+        else:
+            args = " ".join(
+                [
+                    "%s" % (a.name)
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else "%s" % (a.args[0])
+                    for a in self.args[2:]
+                ]
+            )
+
+            def_str = (
+                "define"
+                if isinstance(self, FnDeclNonRecursive)
+                else "define-bounded"
+            )
+
+            return "(%s (%s %s) \n%s)" % (
+                def_str,
+                self.args[0],
+                args,
+                self.args[1].toRosette(),
+            )
 
 # def FnDeclNonRecursive(
 #     name: str, returnT: Type, body: Union[Expr, str], *args: Expr
