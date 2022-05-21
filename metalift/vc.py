@@ -344,7 +344,7 @@ class VC:
                     else:
                         raise Exception("failed to match struct %s: " % t)
 
-                    raise Exception("NYI")  # s.mem[i] = Object(Type(tname))
+                    s.mem[i] = Object(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 

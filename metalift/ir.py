@@ -1011,6 +1011,19 @@ class Lit(Expr):
 #     return Expr(Expr.Kind.Object, ty, {})
 
 
+class Object(Expr):
+    def __init__(self, ty: Type) -> None:
+        Expr.__init__(self, ty, {})
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        raise Exception("NYI")
+
+    def toSMT(self) -> str:
+        raise Exception("NYI")
+
+
 def IntLit(val: int) -> Expr:
     return Lit(val, Int())
 
