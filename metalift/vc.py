@@ -102,7 +102,7 @@ class VC:
         arguments: typing.List[ValueRef],
         gvars: Dict[str, str],
         uninterpFuncs: typing.List[str] = [],
-    ) -> typing.Tuple[typing.Set[Expr], typing.List[Expr], typing.List[Expr], Expr]:
+    ) -> typing.Tuple[typing.Set[Expr], typing.List[Synth], typing.List[Expr], Expr]:
 
         initBlock = blocksMap[firstBlockName]
         initBlock.state.assumes.append(BoolLit(True))
@@ -248,7 +248,7 @@ class VC:
     ) -> Expr:
         # concat all assignments
         if not assigns:
-            assignE = None
+            assignE: Optional[Expr] = None
         elif len(assigns) == 1:  # r1 = v1
             a = list(assigns)[0]
             assignE = Eq(self.makeVar(a.name, a.type), regs[a])
@@ -263,7 +263,7 @@ class VC:
             assumeE = And(*assumes)
 
         if not assignE and not assumeE:
-            lhs = None
+            lhs: Optional[Expr] = None
         elif assignE and not assumeE:
             lhs = assignE
         elif not assignE and assumeE:
@@ -343,7 +343,8 @@ class VC:
                         tname = o.group(1)
                     else:
                         raise Exception("failed to match struct %s: " % t)
-                    s.mem[i] = Object(Type(tname))
+
+                    raise Exception("NYI")  # s.mem[i] = Object(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 
@@ -371,7 +372,7 @@ class VC:
                 op2 = VC.parseOperand(ops[1], s.regs)
 
                 if cond == "eq":
-                    r = Eq(op2, op1)
+                    r: Expr = Eq(op2, op1)
                 elif cond == "sgt":
                     r = Lt(op2, op1)
                 elif cond == "sle":

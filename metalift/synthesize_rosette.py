@@ -279,7 +279,8 @@ def toExpr(
 
 
 def toSynthesize(
-    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]], lang: typing.List[Expr]
+    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+    lang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
 ) -> typing.List[str]:
     synthNames = []
     for i in loopAndPsInfo:
@@ -295,9 +296,9 @@ def toSynthesize(
 
 def synthesize(
     basename: str,
-    targetLang: typing.List[Expr],
+    targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
     vars: typing.Set[Expr],
-    invAndPs: typing.List[Expr],
+    invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
@@ -307,7 +308,7 @@ def synthesize(
     unboundedInts: bool = False,
     optimize_vc_equality: bool = False,
     listBound: int = 2,
-) -> typing.List[Expr]:
+) -> typing.List[FnDecl]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):

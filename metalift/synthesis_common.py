@@ -18,7 +18,7 @@ class VerificationFailed(Exception):
     pass
 
 
-def generateTypes(lang: typing.List[Union[Expr, ValueRef]]) -> Dict[str, Type]:
+def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Type]:
     fnsType = {}
 
     for l in lang:
@@ -40,7 +40,7 @@ def parseCandidates(
     inCalls: typing.List[Any],
     fnsType: Dict[Any, Any],
     fnCalls: typing.List[Any],
-    extractedLambdas: typing.List[Expr],
+    extractedLambdas: typing.List[FnDeclNonRecursive],
     inFunctionName: str,
 ) -> typing.Tuple[
     Union[Expr, str], Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]
@@ -99,7 +99,7 @@ def verify_synth_result(
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
     cvcPath: str,
     synthDir: str,
-    candidatesSMT: typing.List[Expr],
+    candidatesSMT: typing.List[FnDecl],
     candidateDict: Dict[str, Expr],
     fnsType: Dict[str, Type],
     uid: int,
@@ -127,7 +127,7 @@ def verify_synth_result(
     else:
         inCalls: typing.List[Any] = []
         fnCalls: typing.List[Any] = []
-        extractedLambdas: typing.List[Expr] = []
+        extractedLambdas: typing.List[FnDeclNonRecursive] = []
         for ce in loopAndPsInfo:
             updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
                 candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
@@ -140,9 +140,9 @@ def verify_synth_result(
 
             candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]] = updated  # type: ignore
 
-        targetLang = targetLang + extractedLambdas
+        targetLang = [*targetLang, *extractedLambdas]
 
-        transformedLang = []
+        transformedLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]] = []
         for langFn in targetLang:
             if langFn.args[1] != None:
                 updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
@@ -154,11 +154,18 @@ def verify_synth_result(
                     langFn.args[0],
                 )
                 if isinstance(langFn, FnDecl) or isinstance(langFn, FnDeclNonRecursive):
-                    decl = FnDecl(langFn.args[0], langFn.returnT(), updated, *langFn.args[2:])
+                    decl: Union[FnDecl, FnDeclNonRecursive, Axiom] = FnDecl(
+                        langFn.args[0], langFn.returnT(), updated, *langFn.args[2:]
+                    )
                 elif isinstance(langFn, Axiom):
-                    decl = Axiom(langFn.args[0], updated, *langFn.args[2:])
+                    # TODO(shadaj): check
+                    decl = Axiom(
+                        langFn.args[0], typing.cast(Expr, updated), *langFn.args[2:]
+                    )
                 else:
-                    raise Exception(f"langFn should be either FnDecl or Axiom but not: {langFn})")
+                    raise Exception(
+                        f"langFn should be either FnDecl or Axiom but not: {langFn})"
+                    )
                 transformedLang.append(
                     # Expr(
                     #     langFn.kind,

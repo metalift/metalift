@@ -40,7 +40,7 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
 def toSMT(
     targetLang: typing.List[Any],
     vars: typing.Set[Expr],
-    invAndPs: typing.List[Expr],
+    invAndPs: typing.Sequence[Union[FnDecl, Synth]],
     preds: Union[str, typing.List[Any]],
     vc: Expr,
     outFile: str,
@@ -61,7 +61,8 @@ def toSMT(
         axioms = []
         for t in targetLang:
             if (
-                isinstance(t, FnDecl) or isinstance(t, FnDeclNonRecursive)
+                isinstance(t, FnDecl)
+                or isinstance(t, FnDeclNonRecursive)
                 # t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
             ) and t.args[0] in fnCalls:
                 found_inline = False
@@ -108,7 +109,9 @@ def toSMT(
 
             # if cand.kind == Expr.Kind.Synth:
             if isinstance(cand, Synth):
-                decl = Synth(cand.args[0], newBody, *cand.args[2:])
+                decl: Union[Synth, FnDecl] = Synth(
+                    cand.args[0], newBody, *cand.args[2:]
+                )
             else:
                 decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
 

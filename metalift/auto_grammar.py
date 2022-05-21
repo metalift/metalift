@@ -196,7 +196,7 @@ def all_node_id_gets(
 ) -> typing.List[Expr]:
     if input.type.name == "Map":
         v = input.type.args[1]
-        default = None
+        default: typing.Optional[Expr] = None
         if v.erase() == Int():
             default = Lit(0, v)
         elif v == Bool():

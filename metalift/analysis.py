@@ -7,6 +7,7 @@ from metalift.ir import (
     MLInst_Eq,
     MLInst_Or,
     MLInst_Return,
+    Synth,
     Type,
     MLInst,
     Bool,
@@ -378,7 +379,7 @@ def analyze(
     fnNameSuffix: str = "",
     uninterpFuncs: List[str] = [],
     log: bool = True,
-) -> Tuple[Set[Expr], List[Expr], List[Expr], Expr, List[CodeInfo]]:
+) -> Tuple[Set[Expr], List[Synth], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
 

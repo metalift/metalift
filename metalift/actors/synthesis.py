@@ -12,7 +12,7 @@ from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 
 
 def observeEquivalence(
-    inputState: Expr, synthState: Expr, queryParams: typing.List[Expr]
+    inputState: Expr, synthState: Expr, queryParams: typing.List[Var]
 ) -> Expr:
     return Call("equivalence", Bool(), inputState, synthState, *queryParams)
 
@@ -62,7 +62,7 @@ def opListAdditionalFns(
     initState: Callable[[], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
     opPrecondition: Callable[[typing.Any], Expr],
-) -> typing.List[Expr]:
+) -> typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]]:
     def list_length(l: Expr) -> Expr:
         return Call("list_length", Int(), l)
 
@@ -101,7 +101,10 @@ def opListAdditionalFns(
                 ),
                 *(
                     [
-                        TupleGet(list_get(data, IntLit(0)), IntLit(i))
+                        # TODO(shadaj): unnecessary cast
+                        typing.cast(
+                            Expr, TupleGet(list_get(data, IntLit(0)), IntLit(i))
+                        )
                         for i in range(len(opType.args))
                     ]
                     if opType.name == "Tuple"
@@ -161,9 +164,9 @@ class SynthesizeFun(Protocol):
     def __call__(
         self,
         basename: str,
-        targetLang: typing.List[Expr],
+        targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
         vars: typing.Set[Expr],
-        invAndPs: typing.List[Expr],
+        invAndPs: typing.List[Synth],
         preds: Union[str, typing.List[Expr]],
         vc: Expr,
         loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
@@ -173,7 +176,7 @@ class SynthesizeFun(Protocol):
         unboundedInts: bool = False,
         optimize_vc_equality: bool = False,
         listBound: int = 2,
-    ) -> typing.List[Expr]:
+    ) -> typing.List[FnDecl]:
         ...
 
 
@@ -188,10 +191,10 @@ def synthesize_actor(
     grammarSupportedCommand: Callable[[Expr, typing.Any, int], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
     opPrecondition: Callable[[typing.Any], Expr],
-    grammar: Callable[[CodeInfo], Expr],
-    grammarQuery: Callable[[CodeInfo], Expr],
-    grammarEquivalence: Callable[[Expr, Expr, typing.List[Expr]], Expr],
-    targetLang: Callable[[], typing.List[Expr]],
+    grammar: Callable[[CodeInfo], Synth],
+    grammarQuery: Callable[[CodeInfo], Synth],
+    grammarEquivalence: Callable[[Expr, Expr, typing.List[Var]], Expr],
+    targetLang: Callable[[], typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]]],
     synthesize: SynthesizeFun,
     stateTypeHint: typing.Optional[Type] = None,
     opArgTypeHint: typing.Optional[typing.List[Type]] = None,
@@ -204,7 +207,7 @@ def synthesize_actor(
     invariantBoost: int = 0,
     log: bool = True,
     skipSynth: bool = False,
-) -> typing.List[Expr]:
+) -> typing.List[FnDecl]:
     basename = os.path.splitext(os.path.basename(filename))[0]
     origSynthStateType = synthStateType
 
@@ -516,7 +519,9 @@ def synthesize_actor(
                         if len(loopAndPsInfoStateTransition[0].readVars[1:]) > 1
                         else loopAndPsInfoStateTransition[0].readVars[1],
                         TupleGet(
-                            loopAndPsInfoStateTransition[0].readVars[0],
+                            typing.cast(
+                                Expr, loopAndPsInfoStateTransition[0].readVars[0]
+                            ),
                             IntLit(len(synthStateType.args) - 1),
                         ),
                     ),
@@ -723,7 +728,6 @@ def synthesize_actor(
         print("====== synthesis")
 
     combinedVCVars = vcVarsStateTransition.union(vcVarsInitState)
-    # .union(vcVarsQuery)
 
     combinedInvAndPs = (
         invAndPsStateTransition
