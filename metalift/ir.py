@@ -1686,6 +1686,8 @@ class Assert(Expr):
 
 
 class Constraint(Expr):
+    SMTName = "constraint"
+
     def __init__(self, e: Expr) -> None:
         Expr.__init__(self, Bool(), [e])
 
@@ -1695,10 +1697,10 @@ class Constraint(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return self.e().toRosette()
+        raise Exception("NYI")
 
     def toSMT(self) -> str:
-        return self.e().toSMT()
+        return Expr.toSMTSimple(self, self.SMTName)
 
 
 # def Constraint(e: Expr) -> Expr:
@@ -1869,7 +1871,7 @@ class Synth(Expr):
             % (
                 "v%d" % i,
                 parseTypeRef(e.type).toSMT(),
-                e.toSMT() if isinstance(self, Choose) else f"({e.toSMT()})",
+                e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",
             )
             for i, e in enumerate(commonExprs)
         )
@@ -1923,7 +1925,6 @@ class Choose(Expr):
         )
 
     def toSMT(self) -> str:
-        noParens = isinstance(self, Call) and len(self.args) == 1
         retVal = []
 
         if self.args[0] == "set-create":
@@ -1965,7 +1966,7 @@ class Choose(Expr):
             else:
                 retVal.append(a.toSMT())
 
-        retT = ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
+        retT = "(" + " ".join(retVal) + ")"
 
         return retT
 
