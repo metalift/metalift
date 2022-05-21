@@ -67,7 +67,7 @@ def toExpr(
         "or": Or,
         "=>": Implies,
     }
-    expr_uni = {"not": Not}
+    expr_uni = {"!": Not}
     if isinstance(ast, list):
         if ast[0] == "define":
             return toExpr(ast[2], fnsType, varType, choices)
