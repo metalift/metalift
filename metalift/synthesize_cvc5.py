@@ -37,7 +37,7 @@ def generateAST(expr: str) -> typing.List[Any]:
 
 
 def extractFuns(
-    targetLang: typing.List[Expr],
+    targetLang: typing.Sequence[Expr],
 ) -> typing.Tuple[typing.List[str], typing.List[Type]]:
     funName, returnType = (
         [],
@@ -50,11 +50,11 @@ def extractFuns(
 
 
 def generateCandidates(
-    invAndPs: typing.List[Expr],
+    invAndPs: typing.List[Synth],
     line: str,
     funName: typing.List[str],
     returnType: typing.List[Type],
-) -> typing.Tuple[typing.List[Expr], Dict[str, Expr]]:
+) -> typing.Tuple[typing.List[FnDecl], Dict[str, Expr]]:
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
     for ce in invAndPs:
@@ -200,9 +200,9 @@ def toExpr(
 
 def synthesize(
     basename: str,
-    targetLang: typing.List[Expr],
+    targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
     vars: typing.Set[Expr],
-    invAndPs: typing.List[Expr],
+    invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
@@ -212,7 +212,7 @@ def synthesize(
     unboundedInts: bool = False,  # currently ignored
     optimize_vc_equality: bool = False,
     listBound: int = 2,  # currently ignored
-) -> typing.List[Expr]:
+) -> typing.List[FnDecl]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)

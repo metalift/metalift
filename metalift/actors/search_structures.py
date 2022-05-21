@@ -5,12 +5,13 @@ import multiprocessing.pool
 import queue
 from time import time
 import traceback
+import typing
 
 from metalift.actors.lattices import Lattice
 from metalift.analysis import CodeInfo
 from metalift import process_tracker
 from metalift import ir
-from metalift.ir import Expr
+from metalift.ir import Expr, FnDecl
 from metalift.actors.synthesis import SynthesizeFun, synthesize_actor
 from metalift.synthesis_common import SynthesisFailed
 
@@ -18,17 +19,19 @@ from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
 def synthesize_crdt(
-    queue: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]],
+    queue: queue.Queue[Tuple[int, Any, Optional[List[FnDecl]]]],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
     grammarStateInvariant: Callable[[Expr, Any, int], Expr],
     grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
-    grammar: Callable[[CodeInfo, Any], Expr],
-    grammarQuery: Callable[[CodeInfo], Expr],
-    grammarEquivalence: Callable[[Expr, Expr, List[Expr]], Expr],
-    targetLang: Callable[[], List[Expr]],
+    grammar: Callable[[CodeInfo, Any], ir.Synth],
+    grammarQuery: Callable[[CodeInfo], ir.Synth],
+    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var]], Expr],
+    targetLang: Callable[
+        [], List[typing.Union[FnDecl, ir.FnDeclNonRecursive, ir.Axiom]]
+    ],
     synthesize: SynthesizeFun,
     useOpList: bool,
     stateTypeHint: Optional[ir.Type],
@@ -89,10 +92,12 @@ def search_crdt_structures(
     grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
-    grammar: Callable[[CodeInfo, Any], Expr],
-    grammarQuery: Callable[[CodeInfo], Expr],
-    grammarEquivalence: Callable[[Expr, Expr, List[Expr]], Expr],
-    targetLang: Callable[[], List[Expr]],
+    grammar: Callable[[CodeInfo, Any], ir.Synth],
+    grammarQuery: Callable[[CodeInfo], ir.Synth],
+    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var]], Expr],
+    targetLang: Callable[
+        [], List[typing.Union[FnDecl, ir.FnDeclNonRecursive, ir.Axiom]]
+    ],
     synthesize: SynthesizeFun,
     filename: str,
     fnNameBase: str,

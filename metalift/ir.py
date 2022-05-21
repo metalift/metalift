@@ -196,29 +196,52 @@ class Expr:
     # XXX
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         # return Expr(self.type, [f(a) for a in self.args])
-        if isinstance(self, Var): return Var(f(self.args[0]), self.type)
-        elif isinstance(self, Lit): return Lit(f(self.args[0]), self.type)
-        elif isinstance(self, Add): return Add(*[f(a) for a in self.args])
-        elif isinstance(self, Sub): return Sub(*[f(a) for a in self.args])
-        elif isinstance(self, Mul): return Mul(*[f(a) for a in self.args])
-        elif isinstance(self, Implies): return Implies(*[f(a) for a in self.args])
-        elif isinstance(self, And): return And(*[f(a) for a in self.args])
-        elif isinstance(self, Or):  return Or(*[f(a) for a in self.args])
-        elif isinstance(self, Not): return Not(*[f(a) for a in self.args])
-        elif isinstance(self, Eq): return Eq(*[f(a) for a in self.args])
-        elif isinstance(self, Ge): return Ge(*[f(a) for a in self.args])
-        elif isinstance(self, Gt): return Gt(*[f(a) for a in self.args])
-        elif isinstance(self, Le): return Le(*[f(a) for a in self.args])
-        elif isinstance(self, Lt): return Lt(*[f(a) for a in self.args])
-        elif isinstance(self, Ite): return Ite(*[f(a) for a in self.args])
-        elif isinstance(self, Tuple): return Tuple(*[f(a) for a in self.args])
-        elif isinstance(self, Let): return Let(*[f(a) for a in self.args])
-        elif isinstance(self, TupleGet): return TupleGet(f(self.args[0]), *[f(a) for a in self.args[1:]])
-        elif isinstance(self, Call): return Call(f(self.args[0]), self.type, *[f(a) for a in self.args[1:]])
-        elif isinstance(self, CallValue): return CallValue(f(self.args[0]), *[f(a) for a in self.args[1:]])
-        else: raise Exception("NYI: %s" % self)
-
-
+        if isinstance(self, Var):
+            return Var(typing.cast(str, f(self.args[0])), self.type)
+        elif isinstance(self, Lit):
+            return Lit(typing.cast(Union[bool, int, str], f(self.args[0])), self.type)
+        elif isinstance(self, Add):
+            return Add(*[f(a) for a in self.args])
+        elif isinstance(self, Sub):
+            return Sub(*[f(a) for a in self.args])
+        elif isinstance(self, Mul):
+            return Mul(*[f(a) for a in self.args])
+        elif isinstance(self, Implies):
+            return Implies(*[f(a) for a in self.args])
+        elif isinstance(self, And):
+            return And(*[f(a) for a in self.args])
+        elif isinstance(self, Or):
+            return Or(*[f(a) for a in self.args])
+        elif isinstance(self, Not):
+            return Not(*[f(a) for a in self.args])
+        elif isinstance(self, Eq):
+            return Eq(*[f(a) for a in self.args])
+        elif isinstance(self, Ge):
+            return Ge(*[f(a) for a in self.args])
+        elif isinstance(self, Gt):
+            return Gt(*[f(a) for a in self.args])
+        elif isinstance(self, Le):
+            return Le(*[f(a) for a in self.args])
+        elif isinstance(self, Lt):
+            return Lt(*[f(a) for a in self.args])
+        elif isinstance(self, Ite):
+            return Ite(*[f(a) for a in self.args])
+        elif isinstance(self, Tuple):
+            return Tuple(*[f(a) for a in self.args])
+        elif isinstance(self, Let):
+            return Let(*[f(a) for a in self.args])
+        elif isinstance(self, TupleGet):
+            return TupleGet(f(self.args[0]), *[f(a) for a in self.args[1:]])
+        elif isinstance(self, Call):
+            return Call(
+                typing.cast(str, f(self.args[0])),
+                self.type,
+                *[f(a) for a in self.args[1:]],
+            )
+        elif isinstance(self, CallValue):
+            return CallValue(f(self.args[0]), *[f(a) for a in self.args[1:]])
+        else:
+            raise Exception("NYI: %s" % self)
 
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
@@ -243,26 +266,46 @@ class Expr:
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
-                if isinstance(e, Var): return Var(newArgs[0], e.type)
-                elif isinstance(e, Lit): return Lit(newArgs[0], e.type)
-                elif isinstance(e, Ge): return Ge(*newArgs)
-                elif isinstance(e, Gt): return Gt(*newArgs)
-                elif isinstance(e, Le): return Le(*newArgs)
-                elif isinstance(e, Lt): return Lt(*newArgs)
-                elif isinstance(e, Eq): return Eq(*newArgs)
-                elif isinstance(e, Ite): return Ite(*newArgs)
-                elif isinstance(e, And): return And(*newArgs)
-                elif isinstance(e, Or): return Or(*newArgs)
-                elif isinstance(e, Not): return Not(*newArgs)
-                elif isinstance(e, Add): return Add(*newArgs)
-                elif isinstance(e, Sub): return Sub(*newArgs)
-                elif isinstance(e, Mul): return Mul(*newArgs)
-                elif isinstance(e, Call): return Call(newArgs[0], e.type, *newArgs[1:])
-                elif isinstance(e, Choose): return Choose(*newArgs)
-                elif isinstance(e, Tuple): return Tuple(*newArgs)
-                elif isinstance(e, TupleGet): return TupleGet(*newArgs)
-                elif isinstance(e, Let): return Let(*newArgs)
-                else: raise Exception("NYI: %s" % e)
+                if isinstance(e, Var):
+                    return Var(typing.cast(str, newArgs[0]), e.type)
+                elif isinstance(e, Lit):
+                    return Lit(typing.cast(Union[bool, int, str], newArgs[0]), e.type)
+                elif isinstance(e, Ge):
+                    return Ge(*newArgs)
+                elif isinstance(e, Gt):
+                    return Gt(*newArgs)
+                elif isinstance(e, Le):
+                    return Le(*newArgs)
+                elif isinstance(e, Lt):
+                    return Lt(*newArgs)
+                elif isinstance(e, Eq):
+                    return Eq(*newArgs)
+                elif isinstance(e, Ite):
+                    return Ite(*newArgs)
+                elif isinstance(e, And):
+                    return And(*newArgs)
+                elif isinstance(e, Or):
+                    return Or(*newArgs)
+                elif isinstance(e, Not):
+                    return Not(*newArgs)
+                elif isinstance(e, Add):
+                    return Add(*newArgs)
+                elif isinstance(e, Sub):
+                    return Sub(*newArgs)
+                elif isinstance(e, Mul):
+                    return Mul(*newArgs)
+                elif isinstance(e, Call):
+                    return Call(typing.cast(str, newArgs[0]), e.type, *newArgs[1:])
+                elif isinstance(e, Choose):
+                    return Choose(*newArgs)
+                elif isinstance(e, Tuple):
+                    return Tuple(*newArgs)
+                elif isinstance(e, TupleGet):
+                    return TupleGet(*newArgs)
+                elif isinstance(e, Let):
+                    return Let(*newArgs)
+                else:
+                    raise Exception("NYI: %s" % e)
                 # XXX
                 # return Expr(e.type, newArgs)
             else:
@@ -324,11 +367,7 @@ class Expr:
     #   return NotImplemented
 
     def __hash__(self) -> int:
-        return hash(
-            tuple(
-                sorted({"type": self.type, "args": tuple(self.args)})
-            )
-        )
+        return hash(tuple(sorted({"type": self.type, "args": tuple(self.args)})))
 
     # def toSMT(self) -> str:
     #     if isinstance(self, Var) or isinstance(self, Lit):
@@ -548,15 +587,15 @@ class Expr:
             + value
             + " "
             + " ".join(
-            [
-                a.name
-                if isinstance(a, ValueRef) and a.name != ""
-                else a.toSMT()
-                if isinstance(a, Expr)
-                else str(a)
-                for a in e.args
-            ]
-        )
+                [
+                    a.name
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else a.toSMT()
+                    if isinstance(a, Expr)
+                    else str(a)
+                    for a in e.args
+                ]
+            )
             + ")"
         )
 
@@ -820,11 +859,7 @@ class Expr:
             elif len(filtered_args) == 1:
                 return filtered_args[0]
             else:
-                # XXX
-                # return Expr(Bool(), filtered_args)
-                if isinstance(self, Var): return Var(filtered_args[0], self.type)
-                elif isinstance(self, And): return And(*filtered_args)
-                else: raise Exception("NYI: %s" % self)
+                return And(*filtered_args)
         else:
             return self
 
@@ -887,15 +922,10 @@ class Expr:
             if isinstance(self.args[0], Var) and counts[self.args[0].args[0]] == 1:
                 new_vars.add(replacement_var)
                 return replacement_var
-            elif (
-                isinstance(self.args[1], Var) and counts[self.args[1].args[0]] == 1
-            ):
+            elif isinstance(self.args[1], Var) and counts[self.args[1].args[0]] == 1:
                 new_vars.add(replacement_var)
                 return replacement_var
-            elif (
-                isinstance(self.args[0], Var)
-                and isinstance(self.args[1], Var)
-            ):
+            elif isinstance(self.args[0], Var) and isinstance(self.args[1], Var):
                 if self.args[0].args[0] == self.args[1].args[0]:
                     return BoolLit(True)
         elif isinstance(self, Implies):
@@ -933,10 +963,10 @@ class Var(Expr):
         Expr.__init__(self, ty, [name])
 
     def name(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def __repr__(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -946,15 +976,17 @@ class Var(Expr):
     def toSMT(self) -> str:
         return str(self.args[0])
 
+
 # def Var(name: str, ty: Type) -> Expr:
 #     return Expr(Expr.Kind.Var, ty, [name])
+
 
 class Lit(Expr):
     def __init__(self, val: Union[bool, int, str], ty: Type) -> None:
         Expr.__init__(self, ty, [val])
 
     def val(self) -> Union[bool, int, str]:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -969,6 +1001,7 @@ class Lit(Expr):
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
+
 
 # def Lit(val: Union[bool, int, str], ty: Type) -> Expr:
 #     return Expr(Expr.Kind.Lit, ty, [val])
@@ -976,6 +1009,19 @@ class Lit(Expr):
 # akc: not sure if this is needed
 # def Object(ty: Type) -> Expr:
 #     return Expr(Expr.Kind.Object, ty, {})
+
+
+class Object(Expr):
+    def __init__(self, ty: Type) -> None:
+        Expr.__init__(self, ty, {})
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        raise Exception("NYI")
+
+    def toSMT(self) -> str:
+        raise Exception("NYI")
 
 
 def IntLit(val: int) -> Expr:
@@ -1011,8 +1057,10 @@ class Add(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
+
 # def Add(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Add, Int(), args)
+
 
 class Sub(Expr):
     RosetteName = SMTName = "-"
@@ -1032,11 +1080,13 @@ class Sub(Expr):
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Sub(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Sub, Int(), args)
+
 
 class Mul(Expr):
     RosetteName = SMTName = "*"
@@ -1056,8 +1106,9 @@ class Mul(Expr):
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Mul(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Mul, Int(), args)
@@ -1075,10 +1126,10 @@ class Eq(Expr):
         Expr.__init__(self, Bool(), [e1, e2])
 
     def e1(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1086,8 +1137,9 @@ class Eq(Expr):
         name = "set-eq" if self.args[0].type.name == "Set" else self.RosetteName
         return Expr.toRosetteSimple(self, name)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Eq(e1: Expr, e2: Expr) -> Expr:
 #     if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
@@ -1095,6 +1147,7 @@ class Eq(Expr):
 #             f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
 #         )
 #     return Expr(Expr.Kind.Eq, Bool(), [e1, e2])
+
 
 class Lt(Expr):
     RosetteName = SMTName = "<"
@@ -1107,21 +1160,23 @@ class Lt(Expr):
         Expr.__init__(self, Bool(), [e1, e2])
 
     def e1(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Lt(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Lt, Bool(), [e1, e2])
+
 
 class Le(Expr):
     RosetteName = SMTName = "<="
@@ -1134,21 +1189,23 @@ class Le(Expr):
         Expr.__init__(self, Bool(), [e1, e2])
 
     def e1(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Le(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Le, Bool(), [e1, e2])
+
 
 class Gt(Expr):
     RosetteName = SMTName = ">"
@@ -1161,21 +1218,23 @@ class Gt(Expr):
         Expr.__init__(self, Bool(), [e1, e2])
 
     def e1(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Gt(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Gt, Bool(), [e1, e2])
+
 
 class Ge(Expr):
     RosetteName = SMTName = ">="
@@ -1188,21 +1247,23 @@ class Ge(Expr):
         Expr.__init__(self, Bool(), [e1, e2])
 
     def e1(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Ge(e1: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Ge, Bool(), [e1, e2])
+
 
 class And(Expr):
     RosetteName = "&&"  # racket "and" short circuits!
@@ -1220,11 +1281,13 @@ class And(Expr):
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def And(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.And, Bool(), args)
+
 
 class Or(Expr):
     # XXX we should use || for rosette to avoid short circuiting
@@ -1234,7 +1297,9 @@ class Or(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         if not all(map(lambda e: e.type == Bool(), args)):
-            raise Exception(f"Cannot apply OR to values of type {map(lambda e: e.type, args)}")
+            raise Exception(
+                f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
+            )
         Expr.__init__(self, Bool(), args)
 
     def toRosette(
@@ -1242,8 +1307,9 @@ class Or(Expr):
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Or(*args: Expr) -> Expr:
 #     if parseTypeRef(args[0].type) != Bool() or parseTypeRef(args[1].type) != Bool():
@@ -1251,6 +1317,7 @@ class Or(Expr):
 #             f"Cannot apply OR to values of type {parseTypeRef(args[0].type).erase()}, {parseTypeRef(args[1].type).erase()}"
 #         )
 #     return Expr(Expr.Kind.Or, Bool(), args)
+
 
 class Not(Expr):
     RosetteName = "!"
@@ -1266,8 +1333,9 @@ class Not(Expr):
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Not(e: Expr) -> Expr:
 #     return Expr(Expr.Kind.Not, Bool(), [e])
@@ -1277,10 +1345,10 @@ class Implies(Expr):
     RosetteName = SMTName = "=>"
 
     def __init__(self, e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> None:
-        if e1.type != Bool():
-            raise Exception(f"Cannot apply IMPLIES to value of type {e1.type}")
-        if e2.type != Bool():
-            raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")
+        if e1.type != Bool():  # type: ignore
+            raise Exception(f"Cannot apply IMPLIES to value of type {e1.type}")  # type: ignore
+        if e2.type != Bool():  # type: ignore
+            raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")  # type: ignore
         Expr.__init__(self, Bool(), [e1, e2])
 
     def toRosette(
@@ -1288,8 +1356,9 @@ class Implies(Expr):
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Implies(e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> Expr:
 #     return Expr(Expr.Kind.Implies, Bool(), [e1, e2])
@@ -1301,27 +1370,32 @@ class Ite(Expr):
 
     def __init__(self, c: Expr, e1: Expr, e2: Expr) -> None:
         if c.type != Bool():
-            raise Exception(f"ITE condition must be Boolean and not value of type {c.type}")
+            raise Exception(
+                f"ITE condition must be Boolean and not value of type {c.type}"
+            )
         if e1.type != e2.type:
-            raise Exception(f"TE branches in ITE must have the same type: {e1.type}, {e2.type}")
+            raise Exception(
+                f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
+            )
         Expr.__init__(self, e1.type, [c, e1, e2])
 
     def c(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e1(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[2]
+        return self.args[2]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Ite(c: Expr, e1: Expr, e2: Expr) -> Expr:
 #     if parseTypeRef(e1.type).erase() != parseTypeRef(e2.type).erase():
@@ -1330,18 +1404,19 @@ class Ite(Expr):
 #         )
 #     return Expr(Expr.Kind.Ite, e1.type, [c, e1, e2])
 
+
 class Let(Expr):
     def __init__(self, v: Expr, e: Expr, e2: Expr) -> None:
         Expr.__init__(self, e2.type, [v, e, e2])
 
     def v(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def e(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def e2(self) -> Expr:
-        return self.args[2]
+        return self.args[2]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1355,18 +1430,20 @@ class Let(Expr):
             self.args[2].toSMT(),
         )
 
+
 # def Let(v: Expr, e: Expr, e2: Expr) -> Expr:
 #     return Expr(Expr.Kind.Let, e2.type, [v, e, e2])
+
 
 class Call(Expr):
     def __init__(self, name: str, returnT: Type, *arguments: Expr) -> None:
         Expr.__init__(self, returnT, [name, *arguments])
 
     def name(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]  # type: ignore
 
     def __repr__(self) -> str:
         return f"({self.args[0]}:{self.type} {' '.join(str(a) for a in self.args[1:])})"
@@ -1405,15 +1482,15 @@ class Call(Expr):
                 return (
                     "("
                     + " ".join(
-                    [
-                        a.name
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else a
-                        if isinstance(a, str)
-                        else a.toRosette()
-                        for a in self.args
-                    ]
-                )
+                        [
+                            a.name
+                            if isinstance(a, ValueRef) and a.name != ""
+                            else a
+                            if isinstance(a, str)
+                            else a.toRosette()
+                            for a in self.args
+                        ]
+                    )
                     + ")"
                 )
         else:
@@ -1444,7 +1521,7 @@ class Call(Expr):
             if isinstance(a, ValueRef) and a.name != "":
                 retVal.append(a.name)
             elif (str(a)) == "make-tuple":
-                retVal.append("tuple%d" % (len(self.args[idx + 1:])))
+                retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
                 if self.args[idx + 1].args[0] == "make-tuple":
                     retVal.append(
@@ -1471,9 +1548,7 @@ class Call(Expr):
             else:
                 retVal.append(a.toSMT())
 
-        retT = (
-            ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
-        )
+        retT = ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
 
         return retT
 
@@ -1481,15 +1556,16 @@ class Call(Expr):
 # def Call(name: str, returnT: Type, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Call, returnT, [name, *args])
 
+
 class CallValue(Expr):
     def __init__(self, value: Expr, *arguments: Expr) -> None:
         Expr.__init__(self, value.type.args[0], [value, *arguments])
 
     def value(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
-    def arguments(self) -> [Expr]: # avoid name clash with Expr.args
-        return self.args[1]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1525,15 +1601,15 @@ class CallValue(Expr):
                 return (
                     "("
                     + " ".join(
-                    [
-                        a.name
-                        if isinstance(a, ValueRef) and a.name != ""
-                        else a
-                        if isinstance(a, str)
-                        else a.toRosette()
-                        for a in self.args
-                    ]
-                )
+                        [
+                            a.name
+                            if isinstance(a, ValueRef) and a.name != ""
+                            else a
+                            if isinstance(a, str)
+                            else a.toRosette()
+                            for a in self.args
+                        ]
+                    )
                     + ")"
                 )
         else:
@@ -1564,7 +1640,7 @@ class CallValue(Expr):
             if isinstance(a, ValueRef) and a.name != "":
                 retVal.append(a.name)
             elif (str(a)) == "make-tuple":
-                retVal.append("tuple%d" % (len(self.args[idx + 1:])))
+                retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
                 if self.args[idx + 1].args[0] == "make-tuple":
                     retVal.append(
@@ -1591,14 +1667,14 @@ class CallValue(Expr):
             else:
                 retVal.append(a.toSMT())
 
-        retT = (
-            ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
-        )
+        retT = ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
 
         return retT
 
+
 # def CallValue(value: Expr, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.CallValue, value.type.args[0], [value, *args])
+
 
 class Assert(Expr):
     RosetteName = SMTName = "assert"
@@ -1607,33 +1683,38 @@ class Assert(Expr):
         Expr.__init__(self, Bool(), [e])
 
     def e(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return Expr.toRosetteSimple(self, self.RosetteName)
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Assert(e: Expr) -> Expr:
 #     return Expr(Expr.Kind.Assert, Bool(), [e])
 
+
 class Constraint(Expr):
+    SMTName = "constraint"
+
     def __init__(self, e: Expr) -> None:
         Expr.__init__(self, Bool(), [e])
 
     def e(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return Expr.toRosetteSimple(self, self.RosetteName)
+        raise Exception("NYI")
 
-    def toSMT(self):
+    def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
+
 
 # def Constraint(e: Expr) -> Expr:
 #     return Expr(Expr.Kind.Constraint, Bool(), [e])
@@ -1659,25 +1740,25 @@ class Tuple(Expr):
         )
         return "(tuple%d %s)" % (len(self.args), args)
 
+
 # def Tuple(*args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Tuple, TupleT(*[a.type for a in args]), args)
 
+
 class TupleGet(Expr):
-    def __init__(self, t: Tuple, i: Expr) -> None:
+    def __init__(self, t: Expr, i: Expr) -> None:
         Expr.__init__(self, t.type.args[i.args[0]], [t, i])
 
-    def t(self) -> Tuple:
-        return self.args[0]
+    def t(self) -> Expr:
+        return self.args[0]  # type: ignore
 
     def i(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return "(tupleGet %s)" % " ".join(
-            ["%s" % arg.toRosette() for arg in self.args]
-        )
+        return "(tupleGet %s)" % " ".join(["%s" % arg.toRosette() for arg in self.args])
 
     def toSMT(self) -> str:
         # example: generate (tuple2_get0 t)
@@ -1687,18 +1768,20 @@ class TupleGet(Expr):
             self.args[0].toSMT(),
         )  # args[1] must be an int literal
 
+
 # def TupleGet(t: Expr, i: Expr) -> Expr:
 #     return Expr(Expr.Kind.TupleGet, t.type.args[i.args[0]], [t, i])
+
 
 class Axiom(Expr):
     def __init__(self, e: Expr, *vars: Expr) -> None:
         Expr.__init__(self, Bool(), [e, *vars])
 
     def e(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
-    def vars(self) -> [Expr]:
-        return self.args[1:]
+    def vars(self) -> typing.List[Expr]:
+        return self.args[1:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1719,13 +1802,13 @@ class Synth(Expr):
         Expr.__init__(self, body.type, [name, body, *args])
 
     def name(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def body(self) -> Expr:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[2:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1801,7 +1884,7 @@ class Synth(Expr):
             % (
                 "v%d" % i,
                 parseTypeRef(e.type).toSMT(),
-                e.toSMT() if isinstance(self, Choose) else f"({e.toSMT()})",
+                e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",
             )
             for i, e in enumerate(commonExprs)
         )
@@ -1823,8 +1906,10 @@ class Synth(Expr):
             body,
         )
 
+
 # def Synth(name: str, body: Expr, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Synth, body.type, [name, body, *args])
+
 
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
@@ -1835,8 +1920,8 @@ class Choose(Expr):
             )
         Expr.__init__(self, args[0].type, args)
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1853,7 +1938,6 @@ class Choose(Expr):
         )
 
     def toSMT(self) -> str:
-        noParens = isinstance(self, Call) and len(self.args) == 1
         retVal = []
 
         if self.args[0] == "set-create":
@@ -1868,7 +1952,7 @@ class Choose(Expr):
             if isinstance(a, ValueRef) and a.name != "":
                 retVal.append(a.name)
             elif (str(a)) == "make-tuple":
-                retVal.append("tuple%d" % (len(self.args[idx + 1:])))
+                retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
                 if self.args[idx + 1].args[0] == "make-tuple":
                     retVal.append(
@@ -1895,11 +1979,10 @@ class Choose(Expr):
             else:
                 retVal.append(a.toSMT())
 
-        retT = (
-            ("" if noParens else "(") + " ".join(retVal) + ("" if noParens else ")")
-        )
+        retT = "(" + " ".join(retVal) + ")"
 
         return retT
+
 
 # def Choose(*args: Expr) -> Expr:
 #     if len(args) == 1:
@@ -1912,29 +1995,30 @@ class Choose(Expr):
 #             )
 #         return Expr(Expr.Kind.Choose, args[0].type, args)
 
+
 class FnDecl(Expr):
-    def __init__(self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> None:
+    def __init__(
+        self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+    ) -> None:
         Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, body, *args])
 
     def name(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def returnT(self) -> Type:
         return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[2:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(
-                ["%s" % toRosetteType(a.type) for a in self.args[2:]]
-            )
+            args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
                 args_type,
@@ -1952,9 +2036,7 @@ class FnDecl(Expr):
             )
 
             def_str = (
-                "define"
-                if isinstance(self, FnDeclNonRecursive)
-                else "define-bounded"
+                "define" if isinstance(self, FnDeclNonRecursive) else "define-bounded"
             )
 
             return "(%s (%s %s) \n%s)" % (
@@ -1965,12 +2047,8 @@ class FnDecl(Expr):
             )
 
     def toSMT(self) -> str:
-        if (
-            isinstance(self, FnDefine) or self.args[1] is None
-        ):  # uninterpreted function
-            args_type = " ".join(
-                parseTypeRef(a.type).toSMT() for a in self.args[2:]
-            )
+        if isinstance(self, FnDefine) or self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
@@ -1996,28 +2074,28 @@ class FnDecl(Expr):
                 (
                     self.type if self.type.name != "Function" else self.type.args[0]
                 ).toSMT(),
-                self.args[1]
-                if isinstance(self.args[1], str)
-                else self.args[1].toSMT(),
+                self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
+
 
 # def FnDecl(name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> Expr:
 #     return Expr(
 #         Expr.Kind.FnDecl, Fn(returnT, *[a.type for a in args]), [name, body, *args]
 #     )
 
+
 class FnDefine(Expr):
     def __init__(self, name: str, returnT: Type, *args: Expr) -> None:
         Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, *args])
 
     def name(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def returnT(self) -> Type:
         return self.type.args[0]
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -2025,12 +2103,8 @@ class FnDefine(Expr):
         return ""  # only for verification
 
     def toSMT(self) -> str:
-        if (
-            isinstance(self, FnDefine) or self.args[1] is None
-        ):  # uninterpreted function
-            args_type = " ".join(
-                parseTypeRef(a.type).toSMT() for a in self.args[2:]
-            )
+        if isinstance(self, FnDefine) or self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
@@ -2056,23 +2130,23 @@ class FnDefine(Expr):
                 (
                     self.type if self.type.name != "Function" else self.type.args[0]
                 ).toSMT(),
-                self.args[1]
-                if isinstance(self.args[1], str)
-                else self.args[1].toSMT(),
+                self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
+
 
 # def FnDefine(name: str, returnT: Type, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.FnDefine, Fn(returnT, *[a.type for a in args]), [name, *args])
+
 
 class Lambda(Expr):
     def __init__(self, returnT: Type, body: Expr, *args: Expr) -> None:
         Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [body, *args])
 
     def body(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -2099,29 +2173,30 @@ class Lambda(Expr):
 # def Lambda(returnT: Type, body: Expr, *args: Expr) -> Expr:
 #     return Expr(Expr.Kind.Lambda, Fn(returnT, *[a.type for a in args]), [body, *args])
 
+
 class FnDeclNonRecursive(Expr):
-    def __init__(self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr) -> None:
+    def __init__(
+        self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+    ) -> None:
         Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, body, *args])
 
     def name(self) -> str:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def returnT(self) -> Type:
         return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
-        return self.args[1]
+        return self.args[1]  # type: ignore
 
-    def arguments(self) -> [Expr]:  # avoid name clash with Expr.args
-        return self.args[2:]
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(
-                ["%s" % toRosetteType(a.type) for a in self.args[2:]]
-            )
+            args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
                 args_type,
@@ -2139,9 +2214,7 @@ class FnDeclNonRecursive(Expr):
             )
 
             def_str = (
-                "define"
-                if isinstance(self, FnDeclNonRecursive)
-                else "define-bounded"
+                "define" if isinstance(self, FnDeclNonRecursive) else "define-bounded"
             )
 
             return "(%s (%s %s) \n%s)" % (
@@ -2152,12 +2225,8 @@ class FnDeclNonRecursive(Expr):
             )
 
     def toSMT(self) -> str:
-        if (
-            isinstance(self, FnDefine) or self.args[1] is None
-        ):  # uninterpreted function
-            args_type = " ".join(
-                parseTypeRef(a.type).toSMT() for a in self.args[2:]
-            )
+        if isinstance(self, FnDefine) or self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
@@ -2183,10 +2252,9 @@ class FnDeclNonRecursive(Expr):
                 (
                     self.type if self.type.name != "Function" else self.type.args[0]
                 ).toSMT(),
-                self.args[1]
-                if isinstance(self.args[1], str)
-                else self.args[1].toSMT(),
+                self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
+
 
 # def FnDeclNonRecursive(
 #     name: str, returnT: Type, body: Union[Expr, str], *args: Expr
