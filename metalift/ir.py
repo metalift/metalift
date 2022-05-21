@@ -1695,12 +1695,10 @@ class Constraint(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        raise Exception("NYI")
-        # return Expr.toRosetteSimple(self, self.RosetteName)
+        return self.e().toRosette()
 
     def toSMT(self) -> str:
-        raise Exception("NYI")
-        # return Expr.toSMTSimple(self, self.SMTName)
+        return self.e().toSMT()
 
 
 # def Constraint(e: Expr) -> Expr:
