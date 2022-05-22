@@ -180,7 +180,7 @@ jobs:
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
         source .venv/bin/activate
-        pytest --phmdoctest website/docs/tutorial/
+        python -m pytest --phmdoctest website/docs/tutorial/
       if: matrix.synth_cvc5 == '0'
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
