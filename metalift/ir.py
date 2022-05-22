@@ -1373,7 +1373,7 @@ class Ite(Expr):
             raise Exception(
                 f"ITE condition must be Boolean and not value of type {c.type}"
             )
-        if e1.type.erase() != e2.type.erase():
+        if parseTypeRef(e1.type).erase() != parseTypeRef(e1.type).erase():
             raise Exception(
                 f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
             )
