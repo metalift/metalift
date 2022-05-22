@@ -176,6 +176,15 @@ jobs:
     #  env:
     #    SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
+    - name: Test Docs
+      shell: nix-shell ci-shell.nix --run "bash -e {0}"
+      run: |
+        source .venv/bin/activate
+        python -m pytest --phmdoctest website/docs/tutorial/
+      if: matrix.synth_cvc5 == '0'
+      env:
+        SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
+
     - name: Test Actor Examples (op-list)
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |

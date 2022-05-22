@@ -12,28 +12,30 @@ The first step to encoding this with Metalift is to define the conditions that w
 
 First, we import the IR package as well as the Metalift types we'll be using in the verification conditions:
 
+<!--phmdoctest-share-names-->
 ```python
-from metalift import ir, types
+from metalift import ir
 ```
 
 Then, we define the verification conditions:
 
+<!--phmdoctest-share-names-->
 ```python
-x = ir.Var("x", types.Int())
+x = ir.Var("x", ir.Int())
 
 correct = ir.And(
   # f(x) >= 0
   ir.Ge(
     ir.Call(
       'f', # function name
-      types.Int(), # return type
+      ir.Int(), # return type
       x # arguments
     ),
     ir.IntLit(0)
   ),
   # f(x) >= x
   ir.Ge(
-    ir.Call('f', types.Int(), x),
+    ir.Call('f', ir.Int(), x),
     x
   )
 )
