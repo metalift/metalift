@@ -92,7 +92,7 @@ result = synthesize(
   [], # list of predicates
   correct, # verification condition
   [synthF], # type metadata for functions to synthesize, just pass the Synth node otherwise
-  unboundedInts=True,
+  unboundedInts=True, # verify against the full range of integers (by default integers are restricted to a fixed number of bits)
 )
 
 print(result)
