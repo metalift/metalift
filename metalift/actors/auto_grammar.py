@@ -19,11 +19,6 @@ def get_expansions(
     out: Dict[
         Type, typing.List[typing.Callable[[typing.Callable[[Type], Expr]], Expr]]
     ] = {
-        Int(): [
-            # lambda get: Add(get(Int()), get(Int())),
-            # lambda get: Sub(get(Int()), get(Int())),
-            # lambda get: Mul(get(Int()), get(Int())),
-        ],
         Bool(): [
             lambda get: BoolLit(False),
             lambda get: BoolLit(True),

@@ -1,9 +1,9 @@
 from collections import namedtuple
-from typing import Any, Callable, Dict
+from typing import Callable, Dict
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite, Bool
+from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, Set, Type, parseTypeRef
 from metalift.vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
@@ -15,7 +15,6 @@ GVarsType = Dict[str, str]
 def newlist(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    # return ReturnValue(None, [(args[0], Expr.Pred("list_new", parseTypeRef(args[0].type)))])
     return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
 
@@ -34,7 +33,6 @@ def listGet(
 def listAppend(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
     return ReturnValue(
         Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
         None,
@@ -44,7 +42,6 @@ def listAppend(
 def listConcat(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    # return ReturnValue(None, [(args[0], Expr.Pred("list_append", parseTypeRef(args[0].type), regs[args[1]]))])
     return ReturnValue(
         Call("list_concat", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
         None,

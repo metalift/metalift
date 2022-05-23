@@ -1,5 +1,5 @@
 import typing
-from metalift.analysis import CodeInfo, analyze
+from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
 from metalift.ir import Expr, FnDecl, FnDeclNonRecursive, Var
@@ -195,5 +195,3 @@ def toRosette(
     else:
         print("(verify (assertions))", file=f)
     f.close()
-
-    # print(loopAndPsInfo)

@@ -3,7 +3,7 @@ from metalift.ir import *
 from metalift.actors.synthesis import synthesize_actor
 from metalift.actors.aci import check_aci
 import metalift.actors.lattices as lat
-from metalift.auto_grammar import auto_grammar, expand_lattice_logic
+from metalift.actors.auto_grammar import auto_grammar, expand_lattice_logic
 import sys
 import os
 from metalift.maps_lang import mapsLang

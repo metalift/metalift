@@ -2,11 +2,10 @@ from importlib import resources
 import subprocess
 import pyparsing as pp
 import os
-from metalift import ir, utils
+from metalift import utils
 from metalift.analysis import CodeInfo
 from metalift.ir import *
 from metalift.rosette_translator import toRosette
-from metalift.smt_util import toSMT
 from metalift.synthesis_common import (
     SynthesisFailed,
     VerificationFailed,

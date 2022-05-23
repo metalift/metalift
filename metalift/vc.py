@@ -3,17 +3,14 @@ from collections import defaultdict
 from copy import deepcopy
 
 from llvmlite.binding import TypeRef, ValueRef
-from llvmlite.ir import Argument
 
 from metalift.ir import *
-from metalift.models import ReturnValue
 from metalift import vc_util, models
 
-import metalift.vc_util
 from llvmlite.binding import TypeRef, ValueRef
 
 import typing
-from typing import Any, Dict, Iterator, Optional, Union, cast
+from typing import Any, Dict, Optional, Union
 
 
 class State:
