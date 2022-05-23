@@ -195,5 +195,3 @@ def toRosette(
     else:
         print("(verify (assertions))", file=f)
     f.close()
-
-    # print(loopAndPsInfo)

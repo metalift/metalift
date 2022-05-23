@@ -1748,7 +1748,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
         retType = [Int() for i in range(int(tyStr[-2]) + 1)]
         return TupleT(*retType)
     elif tyStr.startswith("%struct.tup"):
-        # ToDo FIX return type for multiple values
+        # TODO: FIX return type for multiple values
         return TupleT(Int(), Int())
     else:
         raise Exception("NYI %s" % t)
