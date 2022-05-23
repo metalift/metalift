@@ -275,8 +275,6 @@ class Expr:
             " ".join(str(a) for a in self.args),
         )
 
-    # commented out so that common exprs can be detected
-    #
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Expr):
             if (
@@ -294,12 +292,11 @@ class Expr:
                 )
         return NotImplemented
 
-    #
-    # def __ne__(self, other):
-    #   x = self.__eq__(other)
-    #   if x is not NotImplemented:
-    #     return not x
-    #   return NotImplemented
+    def __ne__(self, other):
+      x = self.__eq__(other)
+      if x is not NotImplemented:
+        return not x
+      return NotImplemented
 
     def __hash__(self) -> int:
         return hash(tuple(sorted({"type": self.type, "args": tuple(self.args)})))

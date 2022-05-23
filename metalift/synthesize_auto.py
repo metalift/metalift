@@ -1,6 +1,6 @@
 import os
 
 if os.environ.get("SYNTH_CVC5") == "1":
-    pass
+    from metalift.synthesize_cvc5 import synthesize
 else:
-    pass
+    from metalift.synthesize_rosette import synthesize
