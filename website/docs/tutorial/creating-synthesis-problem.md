@@ -5,7 +5,7 @@ sidebar_position: 1
 # Solving a Synthesis Problem
 Before we dive into an end-to-end verified lifting application, let's familiarize ourselves with the basic concepts in Metalift with a synthesis problem.
 
-Let us synthesize a function $f(x)$ such that for all integer $x$, $f(x) \geq 0$ and $f(x) \geq x$. Formally, we want to solve the following problem: $\exists{f}. \forall x \in \mathbb{N}. f(x) \geq 0 \wedge f(x) \geq x$. The $\forall$ **universal quantifier** is so key to verification that it's in our logo!
+Let us synthesize a function $f(x)$ such that for all integer $x$, $f(x) \geq 0$ and $f(x) \geq x$. Formally, we want to solve the following problem: $\exists{f}. \forall x \in \mathbb{Z}. f(x) \geq 0 \wedge f(x) \geq x$. The $\forall$ **universal quantifier** is so key to verification that it's in our logo!
 
 ## Define the Verification Conditions
 The first step to encoding this with Metalift is to define the conditions that we want to verify. These conditions can be specified using the __Metalift IR__, which includes a variety of common operations on types like booleans, integers, lists, and sets that Metalift knows the meaning of.
@@ -41,8 +41,70 @@ correct = ir.And(
 )
 ```
 
+As an early check, we can print out these conditions in the SMT language:
+<!--phmdoctest-share-names-->
+```python
+print(correct.toSMT())
+```
+
+```
+(and (>= (f x) 0) (>= (f x) x))
+```
+
 ## Create a Program Grammar
-TODO
+Next, we will create a program grammar that defines the search space for the function $f(x)$. In this case, we will use a simple grammar that only allows the function to be defined in terms of arithmetic operations over the integer variable $x$. Grammars are defined using the same IR nodes, but with the addition of the `Choose` node that represents multiple IR options.
+
+To build up the grammar, which must have a fixed depth and cannot be recursive, we iteratively re-define the `grammar` variable to capture deeper programs.
+
+<!--phmdoctest-share-names-->
+```python
+grammar = x
+
+for i in range(2):
+  grammar = ir.Choose(
+    ir.Add(grammar, grammar),
+    ir.Sub(grammar, grammar),
+    ir.Mul(grammar, grammar)
+  )
+```
+
+Once the grammar is defined, we wrap it with a `Synth` node which declares a function to be synthesized:
+
+<!--phmdoctest-share-names-->
+```python
+synthF = ir.Synth(
+  "f", # function name
+  grammar, # body
+  x, # arguments
+)
+```
 
 ## Synthesize!
-TODO
+Now that we have both a program search space and verification conditions defined, we can use the `synthesize` function to synthesize a function that satisfies the verification conditions. `synthesize` takes a variety of parameters to inject utility functions, define variables to verify over, and introduce additional predicates. But we'll just use it for a simple synthesis execution.
+
+```python
+from metalift.synthesize_auto import synthesize
+result = synthesize(
+  "example", # name of the synthesis problem
+  [], # list of utility functions
+  [x], # list of variables to verify over
+  [synthF], # list of functions to synthesize
+  [], # list of predicates
+  correct, # verification condition
+  [synthF], # type metadata for functions to synthesize, just pass the Synth node otherwise
+  unboundedInts=True,
+)
+
+print(result)
+```
+
+If we run this code, Metalift will use the Rosette synthesis engine to generate a function that satisfies the requirements.
+
+```
+====== verification
+Verification Output: unsat
+Verified PS and INV Candidates  (FnDecl:(Function Int Int) f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)
+[(FnDecl:(Function Int Int) f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)]
+```
+
+In this case, we get $f(x) = (x * x) + (x - x) = x * x$ which indeed satisfies the verification conditions!

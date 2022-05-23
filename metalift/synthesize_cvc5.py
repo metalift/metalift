@@ -206,7 +206,7 @@ def synthesize(
     preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
-    cvcPath: str,
+    cvcPath: str = "cvc5",
     uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
