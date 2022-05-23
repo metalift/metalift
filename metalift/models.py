@@ -1,9 +1,9 @@
 from collections import namedtuple
-from typing import Any, Callable, Dict
+from typing import Callable, Dict
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Expr, Type, Set, parseTypeRef, Int, Var, Call, IntLit, Ite, Bool
+from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, Set, Type, parseTypeRef
 from metalift.vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])

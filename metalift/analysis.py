@@ -1,5 +1,4 @@
 import re
-from collections import namedtuple
 from llvmlite import binding as llvm
 
 from metalift.ir import (
