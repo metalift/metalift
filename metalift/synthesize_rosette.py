@@ -95,9 +95,7 @@ def toExpr(
         elif ast[0] == "length":
             return Call("list_length", Int(), toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "=":
-            return Call(
-                "=",
-                Bool(),
+            return Eq(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -301,7 +299,7 @@ def synthesize(
     preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
-    cvcPath: str,
+    cvcPath: str = "cvc5",
     uid: int = 0,
     noVerify: bool = False,
     unboundedInts: bool = False,

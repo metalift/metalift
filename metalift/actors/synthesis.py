@@ -170,7 +170,7 @@ class SynthesizeFun(Protocol):
         preds: Union[str, typing.List[Expr]],
         vc: Expr,
         loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
-        cvcPath: str,
+        cvcPath: str = "cvc5",
         uid: int = 0,
         noVerify: bool = False,
         unboundedInts: bool = False,
