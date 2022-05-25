@@ -25,10 +25,10 @@ Each successfully verified candidate program is then processed by the code gener
 ## Prior Results
 While we are still building out Metalift, our goal is to use it to reproduce the prior standalone transpilers that were constructed using verified lifting:
 
-- [Java to SQL](https://casper.uwplse.org/)
-- [Fortran to Halide](http://stng.uwplse.org/)
-- [C++ to Halide](http://dexter.uwplse.org/)
-- [C to a programmable switch ISA](http://web.mit.edu/domino/)
-- [Halide to Hexagon DSP](https://dl.acm.org/doi/10.1145/3503222.3507714)
+- [QBS (Java to SQL)](https://casper.uwplse.org/)
+- [STNG (Fortran to Halide)](http://stng.uwplse.org/)
+- [Dexter (C++ to Halide)](http://dexter.uwplse.org/)
+- [Domino (C to a programmable switch ISA)](http://web.mit.edu/domino/)
+- [Rake (Halide to Hexagon DSP)](https://dl.acm.org/doi/10.1145/3503222.3507714)
 
 Contact us if you have other use cases!
