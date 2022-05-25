@@ -9,7 +9,7 @@ Metalift is a framework for building compilers for domain-specific languages (DS
 Metalift is a compiler generator. Unlike traditional syntax-driven compilers, which consists of rules that recognize patterns in the input code and translate them into the target language, Metalift uses [verified lifting](https://homes.cs.washington.edu/~akcheung/papers/pldi16.html) to search for possible candidate programs in the target language that the given input can be 
 translated to. This frees you from the need to devise, check, and maintain those pesky syntax-driven rules!
 
-To make the search efficient, rather than searching programs that are expressible in the concrete syntax of the target DSL, Metalift searches over the space of programs expressed in a high-level _specification language_ instead. The specification language has a functional language-like syntax (think Haskell) and represents the semantics of the  target DSL. See [below](#specLang) for details.      
+To make the search efficient, rather than searching programs that are expressible in the concrete syntax of the target DSL, Metalift searches over the space of programs expressed in a high-level _specification language_ instead. The specification language has a functional language-like syntax (think Haskell) and represents the semantics of the target DSL. See [below](#specLang) for details.      
 
 The Metalift toolchain consists of three components, as shown below:
 ![](/img/docs/overview/arch.png)
@@ -21,3 +21,14 @@ Metalift currently has a parser for input programs in LLVM IR, which can be gene
 Each extracted code fragment is then passed to a program synthesizer (we currently use the [Rosette](https://emina.github.io/rosette/) synthesizer) which searches over the space of programs expressed in the specification language. If a candidate program can be proven to be semantically equivalent to the input (this is currently done using the [CVC5](https://cvc5.github.io) theorem prover), it is then passed over to the code generator. Otherwise, we ask the synthesizer to find another candidate until we run out of programs or it times out.
 
 Each successfully verified candidate program is then processed by the code generator, which translates the candidate program into the concrete syntax of the DSL. The resulting DSL program is then "stitched" back into the original code, with glue code generated to call the generated DSL program as needed. This is illustrated in the diagram above.
+
+## Prior Results
+While we are still building out Metalift, our goal is to use it to reproduce the prior standalone transpilers that were constructed using verified lifting:
+
+- [Java to SQL](https://casper.uwplse.org/)
+- [Fortran to Halide](http://stng.uwplse.org/)
+- [C++ to Halide](http://dexter.uwplse.org/)
+- [C to a programmable switch ISA](http://web.mit.edu/domino/)
+- [Halide to Hexagon DSP](https://dl.acm.org/doi/10.1145/3503222.3507714)
+
+Contact us if you have other use cases!
