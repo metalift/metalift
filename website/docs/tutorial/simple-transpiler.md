@@ -30,9 +30,9 @@ def targetLang():
   y = Var("y", Int())
   z = Var("z", Int())
   fma = FnDeclNonRecursive("fma",             # function name
-                          Int(),             # return type
-                          Add(x, Mul(y, z)), # body of the function
-                          x, y, z)           # function inputs
+                           Int(),             # return type
+                           Add(x, Mul(y, z)), # body of the function
+                           x, y, z)           # function inputs
   return [fma]
 ```
 
@@ -49,9 +49,12 @@ For our example, we want the synthesizer to consider transpiling the input code 
 
 <!--phmdoctest-mark.skip-->
 ```python
-inputVars = Choose(*ci.readVars, IntLit(0))   # inputVars := one of the vars read in the input | 0
-var_or_add = Add(inputVars, inputVars)        # var_or_add := inputVar + inputVar
-var_or_fma = Choose(*ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)) # var_or_fma := one of the vars read | fma(var_or_add, var_or_add, var_or_add)
+# inputVars := one of the vars read in the input | 0
+inputVars = Choose(*ci.readVars, IntLit(0))
+# var_or_add := inputVar + inputVar
+var_or_add = Add(inputVars, inputVars)
+# var_or_fma := one of the vars read | fma(var_or_add, var_or_add, var_or_add)
+var_or_fma = Choose(*ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add))
 ```
 
 A few things of note here:
@@ -64,19 +67,21 @@ After that, we tell Metalift that all values should be computed using the gramma
 <!--phmdoctest-share-names-->
 ```python
 def grammar(ci):
-    name = ci.name
+  name = ci.name
 
-    inputVars = Choose(*ci.readVars, IntLit(0))
-    var_or_add = Add(inputVars, inputVars)
-    var_or_fma = Choose(
-        *ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
-    )
-    
-    rv = ci.modifiedVars[0]
-    summary = Eq(rv, Add(var_or_fma, var_or_fma))  # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma 
-    return Synth(name,                            # name of the function we are transpiling
-                summary,                         # grammar defined above
-                *ci.modifiedVars, *ci.readVars)  # list of input and output variables
+  inputVars = Choose(*ci.readVars, IntLit(0))
+  var_or_add = Add(inputVars, inputVars)
+  var_or_fma = Choose(
+    *ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
+  )
+  
+  rv = ci.modifiedVars[0]
+  # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma 
+  summary = Eq(rv, Add(var_or_fma, var_or_fma))
+
+  return Synth(name,                            # name of the function we are transpiling
+               summary,                         # grammar defined above
+               *ci.modifiedVars, *ci.readVars)  # list of input and output variables
 
 ```
 We wrap this in a `Synth` AST node and return it afterwards.
@@ -116,7 +121,7 @@ After we defined our target language and search space grammar, we call Metalift'
 from metalift.synthesize_auto import synthesize
 
 candidates = synthesize(
-    basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+  basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
 )
 ```
 
@@ -125,22 +130,22 @@ The synthesized code can then pass through our code generator to produce executa
 <!--phmdoctest-share-names-->
 ```python
 def codeGen(summary: FnDecl):
-    expr = summary.body() 
-    def eval(expr):
-        if isinstance(expr, Eq):
-            return "%s = %s"%(expr.e1(), eval(expr.e2()))
-        if isinstance(expr, Add):
-            return "%s + %s"%(eval(expr.args[0]), eval(expr.args[1]))
-        if isinstance(expr, Call):
-            eval_args = []
-            for a in expr.arguments():
-                eval_args.append(eval(a))
-            return "%s(%s)"%(expr.name(), ', '.join(a for a in eval_args))
-        if isinstance(expr, Lit):
-            return "%s"%(expr.val())
-        else:
-            return "%s"%(expr)
-    return eval(expr)
+  expr = summary.body() 
+  def eval(expr):
+    if isinstance(expr, Eq):
+      return "%s = %s"%(expr.e1(), eval(expr.e2()))
+    if isinstance(expr, Add):
+      return "%s + %s"%(eval(expr.args[0]), eval(expr.args[1]))
+    if isinstance(expr, Call):
+      eval_args = []
+      for a in expr.arguments():
+        eval_args.append(eval(a))
+      return "%s(%s)"%(expr.name(), ', '.join(a for a in eval_args))
+    if isinstance(expr, Lit):
+      return "%s"%(expr.val())
+    else:
+      return "%s"%(expr)
+  return eval(expr)
 
 summary = codeGen(candidates[0])
 
