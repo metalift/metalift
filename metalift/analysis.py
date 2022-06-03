@@ -18,6 +18,7 @@ from metalift.ir import (
     MLInst_Not,
     String,
     Lit,
+    Var,
 )
 from metalift.vc import Block, VC
 from llvmlite.binding import ValueRef
@@ -378,7 +379,7 @@ def analyze(
     fnNameSuffix: str = "",
     uninterpFuncs: List[str] = [],
     log: bool = True,
-) -> Tuple[Set[Expr], List[Synth], List[Expr], Expr, List[CodeInfo]]:
+) -> Tuple[Set[Var], List[Synth], List[Expr], Expr, List[CodeInfo]]:
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
 

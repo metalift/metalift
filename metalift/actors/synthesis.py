@@ -165,7 +165,7 @@ class SynthesizeFun(Protocol):
         self,
         basename: str,
         targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
-        vars: typing.Set[Expr],
+        vars: typing.Set[Var],
         invAndPs: typing.List[Synth],
         preds: Union[str, typing.List[Expr]],
         vc: Expr,
@@ -244,8 +244,8 @@ def synthesize_actor(
     queryParameterTypes = []
     beforeOrigState: Expr = None  # type: ignore
     beforeSynthState: Expr = None  # type: ignore
-    extraVarsStateQuery: typing.Set[Expr] = set()
-    queryArgs: typing.List[Expr] = None  # type: ignore
+    extraVarsStateQuery: typing.Set[Var] = set()
+    queryArgs: typing.List[Var] = None  # type: ignore
 
     mode = "before_state"
 
@@ -346,10 +346,10 @@ def synthesize_actor(
 
     # begin state transition (in order)
     stateTypeOrig: Type = None  # type: ignore
-    stateTransitionArgs: typing.List[Expr] = []
+    stateTransitionArgs: typing.List[Var] = []
     op_arg_types: typing.List[Type] = []
 
-    extraVarsStateTransition = set()
+    extraVarsStateTransition: typing.Set[Var] = set()
 
     def summaryWrapStateTransition(
         ps: MLInst,

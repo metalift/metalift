@@ -62,7 +62,7 @@ class Block:
 
 class VC:
     preds: Dict[str, Expr]
-    vars: typing.Set[Expr]
+    vars: typing.Set[Var]
     log: bool
 
     def __init__(self, fnName: str = "ps", log: bool = True) -> None:
@@ -99,7 +99,7 @@ class VC:
         arguments: typing.List[ValueRef],
         gvars: Dict[str, str],
         uninterpFuncs: typing.List[str] = [],
-    ) -> typing.Tuple[typing.Set[Expr], typing.List[Synth], typing.List[Expr], Expr]:
+    ) -> typing.Tuple[typing.Set[Var], typing.List[Synth], typing.List[Expr], Expr]:
 
         initBlock = blocksMap[firstBlockName]
         initBlock.state.assumes.append(BoolLit(True))
@@ -126,7 +126,10 @@ class VC:
                     self.compute(b)
                     done = False
 
-        blockVCs: List[Expr] = [b.state.vc for b in blocksMap.values()]  # type: ignore
+        sorted_values = list(blocksMap.values())
+        sorted_values.sort(key=lambda b: b.name)
+        blockVCs: List[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
+        print(blockVCs)
 
         body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
 
@@ -250,7 +253,11 @@ class VC:
             a = list(assigns)[0]
             assignE = Eq(self.makeVar(a.name, a.type), regs[a])
         else:  # r1 = v1 and r2 = v2 ...
-            assignE = And(*[Eq(self.makeVar(r.name, r.type), regs[r]) for r in assigns])
+            sorted_assigns = list(assigns)
+            sorted_assigns.sort(key=lambda a: a.name)  # type: ignore
+            assignE = And(
+                *[Eq(self.makeVar(r.name, r.type), regs[r]) for r in sorted_assigns]
+            )
 
         if not assumes:
             assumeE = None

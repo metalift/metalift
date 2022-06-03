@@ -430,7 +430,7 @@ class Expr:
             )
 
     def optimizeUselessEquality(
-        self, counts: Dict[str, int], new_vars: typing.Set["Expr"]
+        self, counts: Dict[str, int], new_vars: typing.Set["Var"]
     ) -> "Expr":
         if isinstance(self, Eq):
             replacement_var = Var("useless_equality_%d" % len(new_vars), Bool())

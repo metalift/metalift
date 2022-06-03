@@ -93,7 +93,7 @@ def parseCandidates(
 def verify_synth_result(
     basename: str,
     targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
-    vars: typing.Set[Expr],
+    vars: typing.Set[Var],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
     loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],

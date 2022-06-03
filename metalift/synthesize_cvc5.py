@@ -201,7 +201,7 @@ def toExpr(
 def synthesize(
     basename: str,
     targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
-    vars: typing.Set[Expr],
+    vars: typing.Set[Var],
     invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
     vc: Expr,
@@ -220,7 +220,7 @@ def synthesize(
 
     if optimize_vc_equality:
         prev_vc = vc.toSMT()
-        new_vars: typing.Set[Expr] = set()
+        new_vars: typing.Set[Var] = set()
         while True:
             expr_count: Dict[str, int] = {}
             vc.countVariableUses(expr_count)
