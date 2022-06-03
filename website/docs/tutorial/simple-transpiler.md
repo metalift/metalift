@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Now that we understand the basis of synthesis, let's try to build a simple transpiler. For this example imagine we have a target backend that has only a single instruction: [fused multiply add (FMA)](https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add) for integers. Our goal is use Metalift to build a transpiler that can transpile the following C code to use the FMA instruction:
 
-```C++
+```cpp
 // this can be a library API or an instruction as part of an ISA
 int fma(int x, int y, int z) {
   return x + y * z;
