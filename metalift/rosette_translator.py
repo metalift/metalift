@@ -77,10 +77,12 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         raise Exception(f"Unknown type: {v.type}")
 
 
-def generateVars(vars: Set[Expr], listBound: int) -> Tuple[str, List[str]]:
+def generateVars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
     decls: List[str] = []
     vars_all: List[str] = []
-    for v in list(vars):
+    sorted_vars = list(vars)
+    sorted_vars.sort(key=lambda v: v.name())
+    for v in sorted_vars:
         genVar(v, decls, vars_all, listBound)
 
     return "\n".join(decls), vars_all
@@ -132,7 +134,7 @@ def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
 def toRosette(
     filename: str,
     targetLang: List[Union[FnDecl, FnDeclNonRecursive, ir.Axiom]],
-    vars: Set[Expr],
+    vars: Set[Var],
     invAndPs: typing.Sequence[Union[FnDecl, ir.Synth]],
     preds: List[Expr],
     vc: Expr,
