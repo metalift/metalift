@@ -91,7 +91,21 @@ Where do the read and written variables come from? They are provided by Metalift
 
 ## Transpiler Flow
 
-We can now finally put our transpiler together. First, we compile [the input code to be transpiled](https://github.com/metalift/metalift/blob/main/tests/fma_dsl.c) into LLVM bitcode, using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
+We can now finally put our transpiler together. First, we compile the input code to be transpiled into LLVM bitcode.
+
+```cpp title="tests/fma_dsl.c"
+int test(int base, int arg1, int base2, int arg2) {
+  int a = 0;
+
+  a = (base + base2) + arg1 * arg2;
+
+  a = a + a;
+
+  return a;
+}
+```
+
+We do this using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains [information about the code to be transpiled](https://github.com/metalift/metalift/blob/main/metalift/analysis.py#L185). The code info is then used to generate our grammar as described above. 
 
@@ -133,18 +147,18 @@ def codeGen(summary: FnDecl):
   expr = summary.body() 
   def eval(expr):
     if isinstance(expr, Eq):
-      return "%s = %s"%(expr.e1(), eval(expr.e2()))
-    if isinstance(expr, Add):
-      return "%s + %s"%(eval(expr.args[0]), eval(expr.args[1]))
-    if isinstance(expr, Call):
+      return f"{expr.e1()} = {eval(expr.e2())}"
+    elif isinstance(expr, Add):
+      return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
+    elif isinstance(expr, Call):
       eval_args = []
       for a in expr.arguments():
         eval_args.append(eval(a))
-      return "%s(%s)"%(expr.name(), ', '.join(a for a in eval_args))
-    if isinstance(expr, Lit):
-      return "%s"%(expr.val())
+      return f"{expr.name()}({', '.join(eval_args)})"
+    elif isinstance(expr, Lit):
+      return str(expr.val())
     else:
-      return "%s"%(expr)
+      return str(expr)
   return eval(expr)
 
 summary = codeGen(candidates[0])
