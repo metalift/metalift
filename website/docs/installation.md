@@ -3,7 +3,7 @@ sidebar_position: 1
 ---
 
 # Installation
-Let's get started by installing Metalift and it's dependencies!
+Let's get started by installing Metalift and its dependencies!
 
 ## Get the Metalift source code
 First, you'll need to clone the Metalift repository (we are working on making Metalift available as a Python package in the near future):
