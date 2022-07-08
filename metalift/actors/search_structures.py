@@ -170,7 +170,7 @@ def search_crdt_structures(
                                 # this is due to a grammar not being able to find a value
                                 continue
 
-                            print(f"Enqueueing #{next_uid}:", next_structure_type)
+                            print(f"Enqueueing #{next_uid} (structure: {next_structure_type})")
                             start_times[next_uid] = time()
                             pool.apply_async(
                                 synthesize_crdt,
@@ -218,7 +218,9 @@ def search_crdt_structures(
                         if next_res != None:
                             break
                         else:
-                            print("Failed to synthesize with structure", next_res_type)
+                            print(
+                                f"Failed to synthesize #{ret_uid} (structure: {next_res_type})"
+                            )
 
         if next_res == None:
             raise Exception("Synthesis failed")

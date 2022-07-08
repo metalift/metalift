@@ -262,8 +262,8 @@ def gen_structures() -> typing.Iterator[typing.Any]:
     while True:
         print(f"Maximum type depth: {cur_type_depth}")
         cur_tuple_size = 1
-        while cur_tuple_size < cur_type_depth * 2:
-            print(f"Maximum tuple size: {cur_tuple_size}")
+        while cur_tuple_size <= cur_type_depth * 2:
+            print(f"Tuple size: {cur_tuple_size}")
             for lattice_types in itertools.combinations_with_replacement(
                 gen_lattice_types(cur_type_depth), cur_tuple_size
             ):
