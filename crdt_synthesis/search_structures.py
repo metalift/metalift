@@ -7,18 +7,18 @@ from time import time
 import traceback
 import typing
 
-from metalift.actors.lattices import Lattice
+from crdt_synthesis.lattices import Lattice
 from metalift.analysis import CodeInfo
 from metalift import process_tracker
 from metalift import ir
 from metalift.ir import Expr, FnDecl
-from metalift.actors.synthesis import SynthesizeFun, synthesize_actor
+from crdt_synthesis.synthesis import SynthesizeFun, synthesize_crdt
 from metalift.synthesis_common import SynthesisFailed
 
 from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
-def synthesize_crdt(
+def synthesize_crdt_e2e(
     queue: queue.Queue[Tuple[int, Any, Optional[List[FnDecl]]]],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
@@ -51,7 +51,7 @@ def synthesize_crdt(
             (
                 uid,
                 synthStateStructure,
-                synthesize_actor(
+                synthesize_crdt(
                     filename,
                     fnNameBase,
                     loopsFile,
@@ -137,7 +137,7 @@ def search_crdt_structures(
                                 synthStateType = ir.TupleT(
                                     *[a.ir_type() for a in next_structure_type]
                                 )
-                                synthesize_actor(
+                                synthesize_crdt(
                                     filename,
                                     fnNameBase,
                                     loopsFile,
@@ -173,7 +173,7 @@ def search_crdt_structures(
                             print(f"Enqueueing #{next_uid} (structure: {next_structure_type})")
                             start_times[next_uid] = time()
                             pool.apply_async(
-                                synthesize_crdt,
+                                synthesize_crdt_e2e,
                                 args=(
                                     q,
                                     next_structure_type,

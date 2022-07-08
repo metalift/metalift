@@ -180,7 +180,7 @@ class SynthesizeFun(Protocol):
         ...
 
 
-def synthesize_actor(
+def synthesize_crdt(
     filename: str,
     fnNameBase: str,
     loopsFile: str,
@@ -773,8 +773,12 @@ def synthesize_actor(
             listBound=listBound,
         )
     except VerificationFailed:
-        print("INCREASING LIST BOUND TO", listBound + 1)
-        return synthesize_actor(
+        # direct synthesis mode
+        print(
+            "CVC5 failed to verify synthesized design, increasing Rosette data structure bounds to",
+            listBound + 1,
+        )
+        return synthesize_crdt(
             filename,
             fnNameBase,
             loopsFile,
@@ -847,7 +851,8 @@ def synthesize_actor(
         init_state_fn.args[1] = Tuple(*init_state_fn.args[1].args[:-1])
 
         try:
-            return synthesize_actor(
+            # attempt to synthesize the invariants
+            return synthesize_crdt(
                 filename,
                 fnNameBase,
                 loopsFile,
@@ -881,8 +886,10 @@ def synthesize_actor(
         except SynthesisFailed:
             try:
                 # try to re-verify with a larger bound
-                print(f"{uid}: RE-VERIFYING WITH LIST BOUND TO", listBound + 1)
-                return synthesize_actor(
+                print(
+                    f"{uid}: RE-VERIFYING WITH HISTORY BOUND {listBound + 1} AND ATTEMPTING TO RE-SYNTHESIZING INVARIANTS WITH DEEPER GRAMMAR"
+                )
+                return synthesize_crdt(
                     filename,
                     fnNameBase,
                     loopsFile,
@@ -915,8 +922,10 @@ def synthesize_actor(
                     log=log,
                 )
             except SynthesisFailed:
-                print(f"{uid}: INCREASING LIST BOUND TO", listBound + 1)
-                return synthesize_actor(
+                print(
+                    f"{uid}: COULD NOT SYNTHESIZE INVARIANTS, RE-SYNTHESIZING DESIGN WITH HISTORY BOUND {listBound + 1}"
+                )
+                return synthesize_crdt(
                     filename,
                     fnNameBase,
                     loopsFile,

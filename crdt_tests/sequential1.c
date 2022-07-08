@@ -1,4 +1,4 @@
-#include "set.h"
+#include "../tests/set.h"
 
 set* test_init_state() {
   set* out = set_create();

@@ -1,12 +1,9 @@
-from email.mime import base
 from time import time
-from metalift.actors.search_structures import search_crdt_structures
+from crdt_synthesis.search_structures import search_crdt_structures
 from metalift.analysis import CodeInfo
 from metalift.ir import *
-from metalift.actors.synthesis import synthesize_actor
-from metalift.actors.aci import check_aci
-import metalift.actors.lattices as lat
-from metalift.actors.auto_grammar import all_node_id_gets, auto_grammar, expand_lattice_logic
+import crdt_synthesis.lattices as lat
+from crdt_synthesis.auto_grammar import all_node_id_gets, auto_grammar, expand_lattice_logic
 import sys
 from metalift.maps_lang import mapsLang
 
@@ -129,7 +126,7 @@ def targetLang():
 
 benchmarks = {
     "flag_dw": {
-        "ll_name": "actor_flag",
+        "ll_name": "sequential_flag",
         "inOrder": lambda arg1, arg2: Ite(
             Lt(arg1[1], arg2[1]),  # if clocks in order
             BoolLit(True),
@@ -150,7 +147,7 @@ benchmarks = {
         "queryRetTypeHint": BoolInt()
     },
     "flag_ew": {
-        "ll_name": "actor_flag",
+        "ll_name": "sequential_flag",
         "inOrder": lambda arg1, arg2: Ite(
             Lt(arg1[1], arg2[1]),  # if clocks in order
             BoolLit(True),
@@ -171,7 +168,7 @@ benchmarks = {
         "queryRetTypeHint": BoolInt()
     },
     "lww_register": {
-        "ll_name": "actor_register",
+        "ll_name": "sequential_register",
         "inOrder": lambda arg1, arg2: Ite(
             Lt(arg1[-1], arg2[-1]),  # if clocks in order
             BoolLit(True),
@@ -191,7 +188,7 @@ benchmarks = {
         "queryRetTypeHint": OpaqueInt(),
     },
     "g_set": {
-        "ll_name": "actor1",
+        "ll_name": "sequential1",
         "inOrder": lambda arg1, arg2: Ite(
             Eq(arg1[0], IntLit(1)),  # if first command is insert
             Eq(arg2[0], IntLit(1)),  # second must be insert
@@ -204,7 +201,7 @@ benchmarks = {
         "queryRetTypeHint": BoolInt(),
     },
     "2p_set": {
-        "ll_name": "actor1",
+        "ll_name": "sequential1",
         "inOrder": lambda arg1, arg2: Ite(
             Eq(arg1[0], IntLit(1)),  # if first command is insert
             BoolLit(True),  # second can be insert or remove
@@ -217,7 +214,7 @@ benchmarks = {
         "queryRetTypeHint": BoolInt(),
     },
     "add_wins_set": {
-        "ll_name": "actor1_clock",
+        "ll_name": "sequential1_clock",
         "inOrder": lambda arg1, arg2: Ite(
             Lt(arg1[-1], arg2[-1]),  # if clocks in order
             BoolLit(True),
@@ -238,7 +235,7 @@ benchmarks = {
         "queryRetTypeHint": BoolInt(),
     },
     "remove_wins_set": {
-        "ll_name": "actor1_clock",
+        "ll_name": "sequential1_clock",
         "inOrder": lambda arg1, arg2: Ite(
             Lt(arg1[-1], arg2[-1]),  # if clocks in order
             BoolLit(True),
@@ -259,7 +256,7 @@ benchmarks = {
         "queryRetTypeHint": BoolInt(),
     },
     "grow_only_counter": {
-        "ll_name": "actor2",
+        "ll_name": "sequential2",
         "inOrder": lambda arg1, arg2: And(
             Eq(arg1[0], IntLit(1)),
             Eq(arg2[0], IntLit(1))
@@ -272,7 +269,7 @@ benchmarks = {
         "nonIdempotent": True,
     },
     "general_counter": {
-        "ll_name": "actor2",
+        "ll_name": "sequential2",
         "inOrder": lambda arg1, arg2: BoolLit(True),
         "opPrecondition": lambda op: BoolLit(True),
         "stateTypeHint": Int(),
@@ -302,9 +299,9 @@ if __name__ == "__main__":
         for bench in benches:
             bench_data = benchmarks[bench]
 
-            filename = f"tests/{bench_data['ll_name']}.ll"
+            filename = f"crdt_tests/{bench_data['ll_name']}.ll"
             fnNameBase = "test"
-            loopsFile = f"tests/{bench_data['ll_name']}.loops"
+            loopsFile = f"crdt_tests/{bench_data['ll_name']}.loops"
             cvcPath = "cvc5"
 
             useOpList = False
