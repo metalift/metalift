@@ -110,6 +110,7 @@ def search_crdt_structures(
     opArgTypeHint: Optional[List[ir.Type]] = None,
     queryArgTypeHint: Optional[List[ir.Type]] = None,
     queryRetTypeHint: Optional[ir.Type] = None,
+    maxThreads: int = mp.cpu_count(),
 ) -> None:
     q: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]] = queue.Queue()
     queue_size = 0
@@ -124,7 +125,9 @@ def search_crdt_structures(
         with multiprocessing.pool.ThreadPool() as pool:
             with open(reportFile, "w") as report:
                 while True:
-                    while queue_size < (mp.cpu_count() // 2):
+                    while queue_size < (
+                        maxThreads // 2 if maxThreads > 1 else 1
+                    ):
                         next_structure_type = next(structureCandidates, None)
                         if next_structure_type is None:
                             break

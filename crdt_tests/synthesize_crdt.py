@@ -5,6 +5,7 @@ from metalift.ir import *
 import crdt_synthesis.lattices as lat
 from crdt_synthesis.auto_grammar import all_node_id_gets, auto_grammar, expand_lattice_logic
 import sys
+import multiprocessing as mp
 from metalift.maps_lang import mapsLang
 
 from metalift.synthesize_auto import synthesize
@@ -144,7 +145,8 @@ benchmarks = {
         "stateTypeHint": BoolInt(),
         "opArgTypeHint": [BoolInt(), ClockInt()],
         "queryArgTypeHint": None,
-        "queryRetTypeHint": BoolInt()
+        "queryRetTypeHint": BoolInt(),
+        "fixedLatticeType": (lat.LexicalProduct(lat.MaxInt(ClockInt()), lat.OrBool()),),
     },
     "flag_ew": {
         "ll_name": "sequential_flag",
@@ -165,7 +167,8 @@ benchmarks = {
         "stateTypeHint": BoolInt(),
         "opArgTypeHint": [BoolInt(), ClockInt()],
         "queryArgTypeHint": None,
-        "queryRetTypeHint": BoolInt()
+        "queryRetTypeHint": BoolInt(),
+        "fixedLatticeType": (lat.LexicalProduct(lat.MaxInt(ClockInt()), lat.OrBool()),),
     },
     "lww_register": {
         "ll_name": "sequential_register",
@@ -186,6 +189,7 @@ benchmarks = {
         "opArgTypeHint": [OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [],
         "queryRetTypeHint": OpaqueInt(),
+        "fixedLatticeType": (lat.LexicalProduct(lat.MaxInt(ClockInt()), lat.MaxInt(OpaqueInt())),),
     },
     "g_set": {
         "ll_name": "sequential1",
@@ -199,6 +203,7 @@ benchmarks = {
         "opArgTypeHint": [BoolInt(), OpaqueInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
+        "fixedLatticeType": (lat.Set(OpaqueInt()),),
     },
     "2p_set": {
         "ll_name": "sequential1",
@@ -212,6 +217,7 @@ benchmarks = {
         "opArgTypeHint": [BoolInt(), OpaqueInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
+        "fixedLatticeType": (lat.Map(OpaqueInt(), lat.OrBool()),),
     },
     "add_wins_set": {
         "ll_name": "sequential1_clock",
@@ -233,6 +239,7 @@ benchmarks = {
         "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
+        "fixedLatticeType": (lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())),lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))),
     },
     "remove_wins_set": {
         "ll_name": "sequential1_clock",
@@ -254,6 +261,7 @@ benchmarks = {
         "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
+        "fixedLatticeType": (lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())),lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))),
     },
     "grow_only_counter": {
         "ll_name": "sequential2",
@@ -267,6 +275,7 @@ benchmarks = {
         "queryArgTypeHint": [],
         "queryRetTypeHint": Int(),
         "nonIdempotent": True,
+        "fixedLatticeType": (lat.Map(NodeIDInt(), lat.MaxInt(Int())),),
     },
     "general_counter": {
         "ll_name": "sequential2",
@@ -277,6 +286,7 @@ benchmarks = {
         "queryArgTypeHint": [],
         "queryRetTypeHint": Int(),
         "nonIdempotent": True,
+        "fixedLatticeType": (lat.Map(NodeIDInt(), lat.MaxInt(Int())),lat.Map(NodeIDInt(), lat.MaxInt(Int()))),
     }
 }
 
@@ -289,6 +299,7 @@ def has_node_id(tup):
 if __name__ == "__main__":
     mode = sys.argv[1]
     bench = sys.argv[2]
+    fixed_structure = len(sys.argv) >= 4 and sys.argv[3] == "fixed"
 
     if bench == "all":
         benches = list(benchmarks.keys())
@@ -327,12 +338,16 @@ if __name__ == "__main__":
                 targetLang,
                 synthesize,
                 filename, fnNameBase, loopsFile, cvcPath, useOpList,
-                filtered_structures,
+                filtered_structures
+                if not fixed_structure
+                else
+                iter([bench_data["fixedLatticeType"]]),
                 reportFile=f"benchmarks-{bench}.csv",
                 stateTypeHint=bench_data["stateTypeHint"],
                 opArgTypeHint=bench_data["opArgTypeHint"],
                 queryArgTypeHint=bench_data["queryArgTypeHint"],
                 queryRetTypeHint=bench_data["queryRetTypeHint"],
+                maxThreads=1 if fixed_structure else mp.cpu_count(),
             )
             end_time = time()
 
