@@ -196,6 +196,23 @@ class Expr:
         else:
             raise Exception("NYI: %s" % self)
 
+    # def accept(self, v: Visitor) -> "Expr":
+    #     newSelf = v.visit(self)
+    #     if newSelf == self:
+    #         newArgs = []
+    #         for arg, i in enumerate(self.args):
+    #             newArg = arg.accept(v)
+    #             if newArg != arg:
+    #                 newArgs.append(newArg)
+    #                 newArgs = newArgs + self.args[i:]
+    #                 break
+    #             else:
+    #                 newArgs.append(newArg)
+    #         return copy.deepcopy(self)
+    #
+    #     else:
+    #         return self
+
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
         if e not in cnts:
@@ -269,11 +286,14 @@ class Expr:
                 return Var("v%d" % commonExprs.index(e), e.type)
 
     def __repr__(self) -> str:
-        return "(%s:%s %s)" % (
-            type(self).__name__,
-            self.type,
-            " ".join(str(a) for a in self.args),
-        )
+        fn = lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+        return f'({type(self).__name__}:{self.type} ' \
+               f'{" ".join(fn(a) for a in self.args)})'
+
+    def codegen(self) -> str:
+        fn = lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+        return f'({type(self).__name__}:{self.type} ' \
+               f'{" ".join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args)})'
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Expr):
@@ -488,6 +508,18 @@ class Var(Expr):
 
     def toSMT(self) -> str:
         return str(self.args[0])
+
+
+# used in defining grammars
+class NonTerm(Var):
+    currentNum = 0   # current non terminal number
+
+    def __init__(self, t: Type, isStart: bool = False, name: str = None) -> None:
+        if name is None:
+            name = f"nonTerm{NonTerm.currentNum}"
+            NonTerm.currentNum = NonTerm.currentNum + 1
+        Var.__init__(self, name, t)
+        self.isStart = isStart
 
 
 class Lit(Expr):
@@ -879,7 +911,12 @@ class Call(Expr):
         return self.args[1:]  # type: ignore
 
     def __repr__(self) -> str:
-        return f"({self.args[0]}:{self.type} {' '.join(str(a) for a in self.args[1:])})"
+        fn = lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+        return f"({self.args[0]}:{self.type} {' '.join(fn(a) for a in self.args[1:])})"
+
+    def codegen(self) -> str:
+        fn = lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
+        return f"({self.args[0]}:{self.type} {' '.join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args[1:])})"
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1631,6 +1668,37 @@ class FnDeclNonRecursive(Expr):
                 ).toSMT(),
                 self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
+
+class TargetCall(Call):
+    _codegen: Callable[[typing.List[Expr]], str]
+
+    def __init__(self, name, retT, codegen, *args) -> None:
+        super().__init__(name, retT, *args)
+        self._codegen = codegen
+
+    def codegen(self) -> str:
+        return self._codegen(*self.args[1:])
+
+
+class Target(FnDeclNonRecursive):
+    definedFns: Dict[str, "Target"] = {}  # stores all fns that have been defined so far
+
+    semantics: Callable[[typing.List[Expr]], Expr]
+    _codegen: Callable[[typing.List[Expr]], str]
+
+    def __init__(self, name: str, argT: typing.List[Type], retT: Type,
+                 semantics: Callable[[typing.List[Expr]], Expr],
+                 codegen: Callable[[typing.List[Expr]], str]) -> None:
+        args = [Var(f"v{i}", a) for i,a in enumerate(argT)]
+        super().__init__(name, retT, semantics(*args), *args)
+        self.semantics = semantics
+        self._codegen = codegen
+        if name in Target.definedFns:
+            raise Exception(f"{name} is already defined!")
+        Target.definedFns[name] = self
+
+    def call(self, *args: Expr) -> Call:
+        return TargetCall(self.name(), self.returnT(), self._codegen, *args)
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
