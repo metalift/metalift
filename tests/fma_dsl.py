@@ -48,7 +48,6 @@ def codeGen(summary: FnDecl):
             return "%s"%(expr)
     return eval(expr)
 
-
 if __name__ == "__main__":
     filename = "tests/fma_dsl.ll"
     basename = "fma_dsl"
@@ -72,4 +71,3 @@ if __name__ == "__main__":
     summary = codeGen(candidates[0])
     print("====== summary in target language")
     print(summary)
-    
