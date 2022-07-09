@@ -196,23 +196,6 @@ class Expr:
         else:
             raise Exception("NYI: %s" % self)
 
-    # def accept(self, v: Visitor) -> "Expr":
-    #     newSelf = v.visit(self)
-    #     if newSelf == self:
-    #         newArgs = []
-    #         for arg, i in enumerate(self.args):
-    #             newArg = arg.accept(v)
-    #             if newArg != arg:
-    #                 newArgs.append(newArg)
-    #                 newArgs = newArgs + self.args[i:]
-    #                 break
-    #             else:
-    #                 newArgs.append(newArg)
-    #         return copy.deepcopy(self)
-    #
-    #     else:
-    #         return self
-
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
         if e not in cnts:
