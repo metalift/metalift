@@ -1,3 +1,5 @@
+import shutil
+
 from metalift.ir import *
 from metalift.transpiler import Transpiler
 
@@ -45,7 +47,7 @@ def grammar_prog(readVars: typing.List[Var], retVal: Var, isLoop: bool) -> Dict[
 
 
 if __name__ == "__main__":
-    t = Transpiler(grammar_prog, cvcPath="cvc5")
+    t = Transpiler(grammar_prog, cvcPath=shutil.which("cvc5"))
     r = t.transpile("fma_dsl.ll", "test")  # loops file defaults to replacing ".ll" to ".loops" in first arg
 
     print(f"transpiled: {r.codegen()}")
