@@ -1,4 +1,4 @@
-from typing import Union, Callable, List, Dict, cast
+from typing import Callable, List, Dict, cast, Optional, Union, Any
 
 from llvmlite.binding import ValueRef
 
@@ -8,19 +8,20 @@ from metalift.synthesize_auto import synthesize
 
 
 class Transpiler:
-  grammar: Callable[[List[Var], Var], Dict[NonTerm, Union[Expr, List[Expr]]]]
+  grammar: Optional[Callable[[List[Union[Any, Expr]], Union[Any, Expr], bool], Dict[NonTerm, Expr]]]
   cvcPath: str
 
-  def __init__(self, grammar: Callable[[List[Var], Var, bool], Dict[NonTerm, Union[Expr, List[Expr]]]],
+  def __init__(self, grammar: Callable[[List[Union[Any, Expr]], Union[Any, Expr], bool], Dict[NonTerm, Expr]],
                cvcPath=None) -> None:
     self.grammar = grammar
     self.cvcPath = cvcPath
 
-  def expand(self, name, readVars, modifiedVars, grammar):
-    return Synth(name, Eq(modifiedVars[0], list(grammar.values())[0]), *modifiedVars, *readVars)
+  def expand(self, name: str, readVars: List[Union[Any, Expr]], modifiedVars: List[Union[Any, Expr]],
+             generatedGrammar: Dict[NonTerm, Expr]):
+    return Synth(name, Eq(modifiedVars[0], list(generatedGrammar.values())[0]), *modifiedVars, *readVars)
 
-  def transpile(self, filename: str, fnName: str, loopsFile: str = None) -> Expr:
-    if not loopsFile:
+  def transpile(self, filename: str, fnName: str, loopsFile: str = "") -> Expr:
+    if loopsFile == "":
       if filename.endswith(".ll"):
         loopsFile = filename[:-2] + "loops"
 
@@ -31,9 +32,11 @@ class Transpiler:
 
     basename = fnName
 
-    invAndPs = [self.expand(basename, ci.readVars, ci.modifiedVars,
-                            self.grammar(ci.readVars, ci.modifiedVars[0], ci.name.startswith("inv")))
-                for ci in loopAndPsInfo]
+    if self.grammar:
+      invAndPs = [self.expand(basename, ci.readVars, ci.modifiedVars,
+                              self.grammar(ci.readVars, ci.modifiedVars[0],
+                                           ci.name.startswith("inv")))
+                  for ci in loopAndPsInfo]
 
     lang = list(Target.definedFns.values())
 
@@ -41,7 +44,7 @@ class Transpiler:
     print("====== synthesis")
 
     candidates = synthesize(
-      basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, self.cvcPath, noVerify=(self.cvcPath is None)
+      basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, self.cvcPath, noVerify=(self.cvcPath is None) # type: ignore
     )
 
     if len(candidates) != 1:

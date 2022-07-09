@@ -3,7 +3,7 @@ from enum import Enum
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, Optional
 
 
 class PrintMode(Enum):
@@ -1653,26 +1653,27 @@ class FnDeclNonRecursive(Expr):
             )
 
 class TargetCall(Call):
-    _codegen: Callable[[typing.List[Expr]], str]
+    _codegen: Optional[Callable[[Expr], str]]
 
-    def __init__(self, name, retT, codegen, *args) -> None:
+    def __init__(self, name: str, retT: Type,
+                 codegen: Optional[Callable[[Expr], str]], *args: Expr) -> None:
         super().__init__(name, retT, *args)
-        self._codegen = codegen
+        self._codegen = codegen  # type: ignore
 
     def codegen(self) -> str:
-        return self._codegen(*self.args[1:])
+        return self._codegen(*self.args[1:])  # type: ignore
 
 
 class Target(FnDeclNonRecursive):
     definedFns: Dict[str, "Target"] = {}  # stores all fns that have been defined so far
 
-    semantics: Callable[[typing.List[Expr]], Expr]
-    _codegen: Callable[[typing.List[Expr]], str]
+    semantics: Optional[Callable[[Expr], Expr]]
+    _codegen: Optional[Callable[[Expr], str]]
 
     def __init__(self, name: str, argT: typing.List[Type], retT: Type,
-                 semantics: Callable[[typing.List[Expr]], Expr],
-                 codegen: Callable[[typing.List[Expr]], str]) -> None:
-        args = [Var(f"v{i}", a) for i,a in enumerate(argT)]
+                 semantics: Callable[[Expr], Expr],
+                 codegen: Callable[[Expr], str]) -> None:
+        args: typing.List[Expr] = [Var(f"v{i}", a) for i,a in enumerate(argT)]
         super().__init__(name, retT, semantics(*args), *args)
         self.semantics = semantics
         self._codegen = codegen
