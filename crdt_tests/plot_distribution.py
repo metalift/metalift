@@ -19,3 +19,4 @@ if __name__ == "__main__":
     plt.legend(loc='lower right')
 
     plt.savefig(f"distribution-{bench}-first_{first_n}.png")
+    plt.show()
