@@ -1,4 +1,5 @@
 import contextlib
+import csv
 from time import time
 from crdt_synthesis.search_structures import search_crdt_structures
 from metalift.analysis import CodeInfo
@@ -331,6 +332,7 @@ if __name__ == "__main__":
             bounded_bench_str = "bounded-pruning" if useOpList else "direct-unbounded"
 
             start_time = time()
+            report_file = f"benchmarks-{bench}-{bounded_bench_str}-first_{first_n}.csv"
             search_crdt_structures(
                 initState,
                 grammarStateInvariant,
@@ -347,7 +349,7 @@ if __name__ == "__main__":
                 if not fixed_structure
                 else
                 iter([bench_data["fixedLatticeType"]]),
-                reportFile=f"benchmarks-{bench}-{bounded_bench_str}-first_{first_n}.csv",
+                reportFile=report_file,
                 stateTypeHint=bench_data["stateTypeHint"],
                 opArgTypeHint=bench_data["opArgTypeHint"],
                 queryArgTypeHint=bench_data["queryArgTypeHint"],
@@ -362,3 +364,12 @@ if __name__ == "__main__":
                 print(f"{bench} took {end_time - start_time} seconds")
                 report.write(f"{bench},{end_time - start_time}\n")
                 report.flush()
+            else:
+                with open(report_file, newline='') as csvfile:
+                    report_reader = csv.reader(csvfile)
+                    times = sorted([float(row[1]) for row in report_reader])
+                    with open(f"benchmarks-{bench}-{bounded_bench_str}-first_{first_n}-distribution.csv", "w") as distribution_file:
+                        distribution_file.write(f"time,percent\n")
+                        for (i, time) in enumerate(times):
+                            percent = (i + 1) / len(times)
+                            distribution_file.write(f"{time},{percent}\n")

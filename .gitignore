@@ -10,4 +10,5 @@ tests/struct1.smt
 tests/uninterp.rkt
 tests/uninterp.smt
 benchmarks*.csv
+distribution*.png
 dist/
