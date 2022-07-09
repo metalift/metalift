@@ -111,6 +111,8 @@ def search_crdt_structures(
     queryArgTypeHint: Optional[List[ir.Type]] = None,
     queryRetTypeHint: Optional[ir.Type] = None,
     maxThreads: int = mp.cpu_count(),
+    upToUid: Optional[int] = None,
+    exitFirstSuccess: bool = True,
 ) -> None:
     q: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]] = queue.Queue()
     queue_size = 0
@@ -127,7 +129,7 @@ def search_crdt_structures(
                 while True:
                     while queue_size < (
                         maxThreads // 2 if maxThreads > 1 else 1
-                    ):
+                    ) and (upToUid == None or next_uid < upToUid):
                         next_structure_type = next(structureCandidates, None)
                         if next_structure_type is None:
                             break
@@ -207,33 +209,40 @@ def search_crdt_structures(
                             queue_size += 1
 
                     if queue_size == 0:
-                        raise Exception("no more structures")
+                        if exitFirstSuccess:
+                            raise Exception("no more structures")
+                        else:
+                            break
                     else:
                         (ret_uid, next_res_type, next_res) = q.get(
                             block=True, timeout=None
                         )
                         time_took = time() - start_times[ret_uid]
                         report.write(
-                            f'{ret_uid},{time_took},"{str(next_res_type)}",{next_res != None}\n'
+                            f'{ret_uid},{time_took},"{str(next_res_type)}",{1},{next_res != None}\n'
                         )
                         report.flush()
                         queue_size -= 1
                         if next_res != None:
-                            break
+                            if exitFirstSuccess:
+                                break
                         else:
                             print(
                                 f"Failed to synthesize #{ret_uid} (structure: {next_res_type})"
                             )
 
-        if next_res == None:
-            raise Exception("Synthesis failed")
+        if exitFirstSuccess:
+            if next_res == None:
+                raise Exception("Synthesis failed")
+            else:
+                print(
+                    "\n========================= SYNTHESIS COMPLETE =========================\n"
+                )
+                print("State Structure:", next_res_type)
+                print("\nRuntime Logic:")
+                print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
         else:
-            print(
-                "\n========================= SYNTHESIS COMPLETE =========================\n"
-            )
-            print("State Structure:", next_res_type)
-            print("\nRuntime Logic:")
-            print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
+            print(f"See report file ({reportFile}) for results")
     finally:
         for p in process_tracker.all_processes:
             print("Terminating process", p.pid)

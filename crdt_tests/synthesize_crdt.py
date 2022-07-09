@@ -1,3 +1,4 @@
+import contextlib
 from time import time
 from crdt_synthesis.search_structures import search_crdt_structures
 from metalift.analysis import CodeInfo
@@ -300,13 +301,15 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     bench = sys.argv[2]
     fixed_structure = len(sys.argv) >= 4 and sys.argv[3] == "fixed"
+    first_n = int(sys.argv[3].split("first_")[1]) if (len(sys.argv) >= 4 and sys.argv[3].startswith("first_")) else None
 
     if bench == "all":
         benches = list(benchmarks.keys())
     else:
         benches = [bench]
 
-    with open("benchmarks.csv", "w") as report:
+    bench_file = open("benchmarks.csv", "w") if first_n == None else contextlib.nullcontext()
+    with bench_file as report:
         for bench in benches:
             bench_data = benchmarks[bench]
 
@@ -325,6 +328,8 @@ if __name__ == "__main__":
             if nonIdempotent:
                 filtered_structures = filter(has_node_id, all_structures)
 
+            bounded_bench_str = "bounded-pruning" if useOpList else "direct-unbounded"
+
             start_time = time()
             search_crdt_structures(
                 initState,
@@ -342,15 +347,18 @@ if __name__ == "__main__":
                 if not fixed_structure
                 else
                 iter([bench_data["fixedLatticeType"]]),
-                reportFile=f"benchmarks-{bench}.csv",
+                reportFile=f"benchmarks-{bench}-{bounded_bench_str}-first_{first_n}.csv",
                 stateTypeHint=bench_data["stateTypeHint"],
                 opArgTypeHint=bench_data["opArgTypeHint"],
                 queryArgTypeHint=bench_data["queryArgTypeHint"],
                 queryRetTypeHint=bench_data["queryRetTypeHint"],
                 maxThreads=1 if fixed_structure else mp.cpu_count(),
+                upToUid=first_n,
+                exitFirstSuccess=first_n == None,
             )
             end_time = time()
 
-            print(f"{bench} took {end_time - start_time} seconds")
-            report.write(f"{bench},{end_time - start_time}\n")
-            report.flush()
+            if first_n == None:
+                print(f"{bench} took {end_time - start_time} seconds")
+                report.write(f"{bench},{end_time - start_time}\n")
+                report.flush()

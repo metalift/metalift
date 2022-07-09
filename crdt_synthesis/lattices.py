@@ -262,7 +262,7 @@ def gen_structures() -> typing.Iterator[typing.Any]:
     cur_type_depth = 2
     seen = set()
     while True:
-        print(f"Maximum type depth: {cur_type_depth}")
+        print(f"Type depth: {cur_type_depth}")
         cur_tuple_size = 1
         while cur_tuple_size <= cur_type_depth * 2:
             print(f"Tuple size: {cur_tuple_size}")
