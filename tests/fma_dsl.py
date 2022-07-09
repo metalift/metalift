@@ -31,23 +31,22 @@ def targetLang():
 
 
 def codeGen(summary: FnDecl):
-  expr = summary.body()
-  def eval(expr):
+    expr = summary.body() 
+    def eval(expr):
         if isinstance(expr, Eq):
-            return f"{expr.e1()} = {eval(expr.e2())}"
-        elif isinstance(expr, Add):
-            return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
-        elif isinstance(expr, Call):
+            return "%s = %s"%(expr.e1(), eval(expr.e2()))
+        if isinstance(expr, Add):
+            return "%s + %s"%(eval(expr.args[0]), eval(expr.args[1]))
+        if isinstance(expr, Call):
             eval_args = []
             for a in expr.arguments():
                 eval_args.append(eval(a))
-            return f"{expr.name()}({', '.join(eval_args)})"
-        elif isinstance(expr, Lit):
-            return str(expr.val())
+            return "%s(%s)"%(expr.name(), ', '.join(a for a in eval_args))
+        if isinstance(expr, Lit):
+            return "%s"%(expr.val())
         else:
-            return str(expr)
-  return eval(expr)
-
+            return "%s"%(expr)
+    return eval(expr)
 
 if __name__ == "__main__":
     filename = "tests/fma_dsl.ll"
@@ -72,4 +71,3 @@ if __name__ == "__main__":
     summary = codeGen(candidates[0])
     print("====== summary in target language")
     print(summary)
-

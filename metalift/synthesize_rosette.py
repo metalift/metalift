@@ -247,7 +247,10 @@ def toExpr(
                     )
                 )
             retT = fnsType[ast[0]].args[0]
-            return Call(ast[0], retT, *arg_eval)
+            if ast[0] in Target.definedFns:  # re-create a Target obj to call the user provided codegen
+                return Target.definedFns[ast[0]].call(*arg_eval)
+            else:
+                return Call(ast[0], retT, *arg_eval)
         elif ast[0] in choices:
             picked: Expr = choices[ast[0]].args[0]
             while (
