@@ -167,5 +167,5 @@ print(summary)
 ```
 
 ```
-tmp18 = fma(arg2 + arg, 0 + 0, arg3 + arg) + fma(arg + arg2, arg3 + arg3, 0 + arg1)
+i18 = fma(arg2 + arg, 0 + 0, arg3 + arg) + fma(arg + arg2, arg3 + arg3, 0 + arg1)
 ```
