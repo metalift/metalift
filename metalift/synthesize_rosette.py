@@ -19,7 +19,8 @@ from typing import Any, Callable, Dict, Union, IO
 
 
 # utils for converting rosette output to IR
-def generateAST(expr: str) -> pp.ParseResults:
+# TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
+def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     try:

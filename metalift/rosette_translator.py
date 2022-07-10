@@ -6,11 +6,11 @@ from metalift.ir import Expr, FnDecl, FnDeclNonRecursive, Var
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
-
-def generateAST(expr: str) -> pp.ParseResults:
+# TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
+def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
-    ast: pp.ParseResults = parser.parseString(expr, parseAll=True).asList()
+    ast = parser.parseString(expr, parseAll=True).asList()
     return ast
 
 
