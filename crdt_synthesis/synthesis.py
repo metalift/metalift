@@ -176,6 +176,7 @@ class SynthesizeFun(Protocol):
         unboundedInts: bool = False,
         optimize_vc_equality: bool = False,
         listBound: int = 2,
+        log: bool = True,
     ) -> typing.List[FnDecl]:
         ...
 
@@ -771,11 +772,12 @@ def synthesize_crdt(
             unboundedInts=unboundedInts,
             noVerify=useOpList,
             listBound=listBound,
+            log=log,
         )
     except VerificationFailed:
         # direct synthesis mode
         print(
-            "CVC5 failed to verify synthesized design, increasing Rosette data structure bounds to",
+            f"#{uid}: CVC5 failed to verify synthesized design, increasing Rosette data structure bounds to",
             listBound + 1,
         )
         return synthesize_crdt(
@@ -808,7 +810,7 @@ def synthesize_crdt(
 
     if useOpList:
         print(
-            f"{uid}: Re-synthesizing to identify invariants (list bound: {listBound})"
+            f"#{uid}: Synthesizing invariants for unbounded verification (Rosette structure bound: {listBound})"
         )
         equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
         state_transition_fn = [
@@ -887,7 +889,7 @@ def synthesize_crdt(
             try:
                 # try to re-verify with a larger bound
                 print(
-                    f"{uid}: RE-VERIFYING WITH HISTORY BOUND {listBound + 1} AND ATTEMPTING TO RE-SYNTHESIZING INVARIANTS WITH DEEPER GRAMMAR"
+                    f"#{uid}: re-verifying with history bound {listBound + 1} and attempting to re-synthesize invariants with deeper grammar"
                 )
                 return synthesize_crdt(
                     filename,
@@ -923,7 +925,7 @@ def synthesize_crdt(
                 )
             except SynthesisFailed:
                 print(
-                    f"{uid}: COULD NOT SYNTHESIZE INVARIANTS, RE-SYNTHESIZING DESIGN WITH HISTORY BOUND {listBound + 1}"
+                    f"#{uid}: could not synthesize invariants, re-synthesizing entire design with history bound {listBound + 1}"
                 )
                 return synthesize_crdt(
                     filename,

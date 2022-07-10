@@ -9,6 +9,7 @@ tests/struct1.rkt
 tests/struct1.smt
 tests/uninterp.rkt
 tests/uninterp.smt
-benchmarks*.csv
+results*.csv
+search*.csv
 distribution*.png
 dist/

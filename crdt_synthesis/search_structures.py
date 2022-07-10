@@ -19,7 +19,13 @@ from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
 def synthesize_crdt_e2e(
-    queue: queue.Queue[Tuple[int, Any, Optional[List[FnDecl]]]],
+    queue: queue.Queue[
+        Tuple[
+            int,
+            Any,
+            Optional[typing.Union[str, List[FnDecl]]],
+        ]
+    ],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
     grammarStateInvariant: Callable[[Expr, Any, int], Expr],
@@ -82,8 +88,7 @@ def synthesize_crdt_e2e(
     except SynthesisFailed:
         queue.put((uid, synthStateStructure, None))
     except:
-        traceback.print_exc()
-        queue.put((uid, synthStateStructure, None))
+        queue.put((uid, synthStateStructure, traceback.format_exc()))
 
 
 def search_crdt_structures(
@@ -113,8 +118,10 @@ def search_crdt_structures(
     maxThreads: int = mp.cpu_count(),
     upToUid: Optional[int] = None,
     exitFirstSuccess: bool = True,
-) -> None:
-    q: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]] = queue.Queue()
+) -> List[ir.Expr]:
+    q: queue.Queue[
+        Tuple[int, Any, Optional[typing.Union[str, List[Expr]]]]
+    ] = queue.Queue()
     queue_size = 0
     next_uid = 0
 
@@ -127,9 +134,9 @@ def search_crdt_structures(
         with multiprocessing.pool.ThreadPool() as pool:
             with open(reportFile, "w") as report:
                 while True:
-                    while queue_size < (
-                        maxThreads // 2 if maxThreads > 1 else 1
-                    ) and (upToUid == None or next_uid < upToUid):
+                    while queue_size < (maxThreads // 2 if maxThreads > 1 else 1) and (
+                        upToUid == None or next_uid < upToUid  # type: ignore
+                    ):
                         next_structure_type = next(structureCandidates, None)
                         if next_structure_type is None:
                             break
@@ -223,7 +230,11 @@ def search_crdt_structures(
                         )
                         report.flush()
                         queue_size -= 1
-                        if next_res != None:
+                        if isinstance(next_res, str):
+                            raise Exception(
+                                "Synthesis procedure crashed, aborting\n" + next_res
+                            )
+                        elif next_res != None:
                             if exitFirstSuccess:
                                 break
                         else:
@@ -241,8 +252,10 @@ def search_crdt_structures(
                 print("State Structure:", next_res_type)
                 print("\nRuntime Logic:")
                 print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
+                return next_res  # type: ignore
         else:
             print(f"See report file ({reportFile}) for results")
+            return []
     finally:
         for p in process_tracker.all_processes:
             print("Terminating process", p.pid)

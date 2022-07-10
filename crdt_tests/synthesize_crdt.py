@@ -309,7 +309,13 @@ if __name__ == "__main__":
     else:
         benches = [bench]
 
-    bench_file = open("benchmarks.csv", "w") if first_n == None else contextlib.nullcontext()
+    useOpList = False
+    if mode == "synth-oplist":
+        useOpList = True
+
+    bounded_bench_str = "bounded-pruning" if useOpList else "direct-unbounded"
+
+    bench_file = open(f"results-{bench}-{bounded_bench_str}.csv", "w") if first_n == None else contextlib.nullcontext()
     with bench_file as report:
         for bench in benches:
             bench_data = benchmarks[bench]
@@ -319,21 +325,15 @@ if __name__ == "__main__":
             loopsFile = f"crdt_tests/{bench_data['ll_name']}.loops"
             cvcPath = "cvc5"
 
-            useOpList = False
-            if mode == "synth-oplist":
-                useOpList = True
-
             nonIdempotent = "nonIdempotent" in bench_data and bench_data["nonIdempotent"]
             all_structures = lat.gen_structures()
             filtered_structures = all_structures
             if nonIdempotent:
                 filtered_structures = filter(has_node_id, all_structures)
 
-            bounded_bench_str = "bounded-pruning" if useOpList else "direct-unbounded"
-
             start_time = time()
-            report_file = f"benchmarks-{bench}-{bounded_bench_str}-first_{first_n}.csv"
-            search_crdt_structures(
+            report_file = f"search-{bench}-{bounded_bench_str}-first_{first_n}.csv"
+            results = search_crdt_structures(
                 initState,
                 grammarStateInvariant,
                 grammarSupportedCommand,
@@ -362,7 +362,8 @@ if __name__ == "__main__":
 
             if first_n == None:
                 print(f"{bench} took {end_time - start_time} seconds")
-                report.write(f"{bench},{end_time - start_time}\n")
+                results_code = ";".join([c.toRosette().replace("\n", " ") for c in results])
+                report.write(f"{bench},{end_time - start_time},\"{results_code}\"\n")
                 report.flush()
             else:
                 with open(report_file, newline='') as csvfile:
