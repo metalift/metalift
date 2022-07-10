@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, Union, IO
 
 
 # utils for converting rosette output to IR
-def generateAST(expr: str) -> typing.List[Any]:
+def generateAST(expr: str) -> pp.ParseResults:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     try:
@@ -247,7 +247,9 @@ def toExpr(
                     )
                 )
             retT = fnsType[ast[0]].args[0]
-            if ast[0] in Target.definedFns:  # re-create a Target obj to call the user provided codegen
+            if (
+                ast[0] in Target.definedFns
+            ):  # re-create a Target obj to call the user provided codegen
                 return Target.definedFns[ast[0]].call(*arg_eval)
             else:
                 return Call(ast[0], retT, *arg_eval)
@@ -279,8 +281,8 @@ def toExpr(
 
 
 def toSynthesize(
-    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
-    lang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
+    lang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
 ) -> typing.List[str]:
     synthNames = []
     for i in loopAndPsInfo:
@@ -296,12 +298,12 @@ def toSynthesize(
 
 def synthesize(
     basename: str,
-    targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    targetLang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
     vars: typing.Set[Var],
     invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
     vc: Expr,
-    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+    loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str = "cvc5",
     uid: int = 0,
     noVerify: bool = False,

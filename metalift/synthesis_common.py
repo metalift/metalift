@@ -92,11 +92,11 @@ def parseCandidates(
 
 def verify_synth_result(
     basename: str,
-    targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    targetLang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
     vars: typing.Set[Var],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
-    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+    loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str,
     synthDir: str,
     candidatesSMT: typing.List[FnDecl],

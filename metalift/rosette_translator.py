@@ -7,7 +7,7 @@ from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
 
-def generateAST(expr: str) -> List[Any]:
+def generateAST(expr: str) -> pp.ParseResults:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
@@ -133,7 +133,7 @@ def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
 
 def toRosette(
     filename: str,
-    targetLang: List[Union[FnDecl, FnDeclNonRecursive, ir.Axiom]],
+    targetLang: Sequence[Union[FnDecl, FnDeclNonRecursive, ir.Axiom]],
     vars: Set[Var],
     invAndPs: typing.Sequence[Union[FnDecl, ir.Synth]],
     preds: List[Expr],

@@ -29,7 +29,7 @@ def flatten(L: typing.List[Any]) -> Generator[str, str, None]:
     return None
 
 
-def generateAST(expr: str) -> typing.List[Any]:
+def generateAST(expr: str) -> pp.ParseResults:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(pp.Suppress("(exit)") | s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
@@ -200,12 +200,12 @@ def toExpr(
 
 def synthesize(
     basename: str,
-    targetLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    targetLang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
     vars: typing.Set[Var],
     invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
     vc: Expr,
-    loopAndPsInfo: typing.List[Union[CodeInfo, Expr]],
+    loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str = "cvc5",
     uid: int = 0,
     noVerify: bool = False,  # currently ignored

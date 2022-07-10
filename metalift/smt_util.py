@@ -38,7 +38,7 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
 
 
 def toSMT(
-    targetLang: typing.List[Any],
+    targetLang: typing.Sequence[Any],
     vars: typing.Set[Var],
     invAndPs: typing.Sequence[Union[FnDecl, Synth]],
     preds: Union[str, typing.List[Any]],
