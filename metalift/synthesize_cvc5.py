@@ -28,6 +28,7 @@ def flatten(L: typing.List[Any]) -> Generator[str, str, None]:
             yield l
     return None
 
+
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
 def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
