@@ -94,10 +94,6 @@ in lib.mkMerge [{
     allowUnfree = true;
   };
 
-  virtualbox.extraDisk = {
-    size = 1024 * 8;
-    mountPoint = "/home";
-  };
   virtualbox.vmName = "OOPSLA CRDT Synthesis Artifact";
   virtualbox.memorySize = 1024 * 4;
 

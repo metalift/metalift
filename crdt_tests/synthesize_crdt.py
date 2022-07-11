@@ -375,7 +375,7 @@ if __name__ == "__main__":
             end_time = time()
 
             if first_n == None:
-                print(f"{bench} took {end_time - start_time} seconds")
+                print(f"{bench} took {end_time - start_time} seconds\n\n")
                 results_code = ";".join([c.toRosette().replace("\n", " ") for c in results])
                 report.write(f"{bench},{end_time - start_time},\"{results_code}\"\n")
                 report.flush()
