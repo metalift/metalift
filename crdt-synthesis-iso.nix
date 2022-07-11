@@ -96,9 +96,9 @@ in lib.mkMerge [{
   networking.firewall.allowedTCPPorts = [ 22 ];
 
   services.xserver.enable = true;
-  services.xserver.displayManager.startx.enable = true;
 } (lib.optionalAttrs (builtins.hasAttr "isoImage" options) {
   isoImage.appendToMenuLabel = " OOPSLA CRDT Synthesis Artifact";
+  services.xserver.displayManager.startx.enable = true;
 }) (lib.optionalAttrs (builtins.hasAttr "virtualbox" options) {
   nixpkgs.config = {
     allowUnfree = true;
@@ -110,15 +110,14 @@ in lib.mkMerge [{
   virtualbox.params.usb = "off";
   virtualbox.params.usbehci = "off";
 
-  services.xserver.displayManager.startx.enable = pkgs.lib.mkForce false;
   services.xserver.desktopManager.gnome.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.displayManager.gdm.autoSuspend = false;
+  services.xserver.displayManager.lightdm.enable = true;
 
   services.getty.autologinUser = pkgs.lib.mkForce null;
 
   environment.systemPackages = with pkgs; [
     vscode
     sublime
+    firefox
   ];
 })]
