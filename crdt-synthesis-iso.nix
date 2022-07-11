@@ -29,8 +29,8 @@ in lib.mkMerge [{
 
     users = {
       demo = {
-        hashedPassword = "*";
         home = "/home/demo";
+        password = "demo";
         extraGroups = [ "wheel" ];
         isNormalUser = true;
       };
@@ -96,14 +96,11 @@ in lib.mkMerge [{
 
   virtualbox.vmName = "OOPSLA CRDT Synthesis Artifact";
   virtualbox.memorySize = 1024 * 4;
+  virtualbox.params.cpus = 8;
 
   services.xserver.displayManager.startx.enable = pkgs.lib.mkForce false;
   services.xserver.desktopManager.gnome.enable = true;
   services.xserver.displayManager.gdm.enable = true;
-  services.xserver.displayManager.autoLogin.enable = true;
-  services.xserver.displayManager.autoLogin.user = "demo";
-  systemd.services."getty@tty1".enable = false;
-  systemd.services."autovt@tty1".enable = false;
 
   environment.systemPackages = with pkgs; [
     vscode
