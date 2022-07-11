@@ -1,24 +1,20 @@
 let
   pkgs = import <nixpkgs> {};
   unstable = import <nixos-unstable> {};
+  poetry2nixLatest = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/2a2193eb0677a8801c3b414f67bacf499bd0b6fc.tar.gz) { };
 in
 with pkgs;
 
-mkShell {
+(poetry2nixLatest.poetry2nix.mkPoetryEnv {
+  python = python38;
+  projectDir = ./.;
+  preferWheels = true;
+}).env.overrideAttrs(old: {
   buildInputs = [
-    (python38.withPackages (p: with p; [
-      poetry
-    ]))
-
     unstable.cvc5
     llvm_11
     clang_11
   ];
-
-  shellHook = ''
-    poetry install
-    source .venv/bin/activate
-  '';
 
   hardeningDisable = [ "fortify" ];
 
@@ -27,4 +23,4 @@ mkShell {
   ];
 
   NIX_LD = lib.fileContents "${stdenv.cc}/nix-support/dynamic-linker";
-}
+})
