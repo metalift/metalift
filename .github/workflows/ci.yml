@@ -42,23 +42,9 @@ jobs:
           nix-store --import < ~/nix-cache/cache.nar
           rm -rf ~/nix-cache
 
-      - name: Load cached Poetry environment
-        id: cached-poetry-dependencies
-        uses: actions/cache@v2
-        with:
-          path: .venv
-          key: venv-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('poetry.lock') }}
-
-      - name: Install Poetry dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        shell: nix-shell ci-shell.nix --run "bash -e {0}"
-        run: poetry install --no-interaction --no-root
-
       - name: Run mypy
         shell: nix-shell ci-shell.nix --run "bash -e {0}"
-        run: |
-          source .venv/bin/activate
-          mypy .
+        run: mypy .
 
       - name: Save Nix cache
         run: ./ci-util/cache-nix.sh
@@ -117,18 +103,6 @@ jobs:
       run: |
         raco pkg install --auto --skip-installed https://github.com/emina/rosette.git#10178550a0a21e6d80598d0f43c33c9228728f14
 
-    - name: Load cached Poetry environment
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        key: venv-${{ hashFiles('ci-shell.nix') }}-${{ hashFiles('poetry.lock') }}
-
-    - name: Install Poetry dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      shell: nix-shell ci-shell.nix --run "bash -e {0}"
-      run: poetry install --no-interaction --no-root
-
     - name: Build LLVM Pass
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
@@ -149,7 +123,6 @@ jobs:
     - name: Test Core Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
-        source .venv/bin/activate
         python -m tests.ite1
         python -m tests.ite3
         python -m tests.set1
@@ -165,7 +138,6 @@ jobs:
       if: matrix.synth_cvc5 == '0'
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
-        source .venv/bin/activate
         python -m tests.fma_dsl
         python -m tests.count
         python -m tests.list1
@@ -187,9 +159,7 @@ jobs:
 
     - name: Test Docs
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
-      run: |
-        source .venv/bin/activate
-        python -m pytest --phmdoctest website/docs/tutorial/
+      run: python -m pytest --phmdoctest website/docs/tutorial/
       if: matrix.synth_cvc5 == '0'
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
@@ -197,12 +167,11 @@ jobs:
     - name: Test Actor Examples (op-list)
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
       run: |
-        source .venv/bin/activate
-        python -m tests.actor1_g_set_fixed_structure synth-oplist
-        python -m tests.actor1_2p_set_fixed_structure synth-oplist
-        python -m tests.actor_flag_ew_fixed_structure synth-oplist
-        python -m tests.actor_flag_dw_fixed_structure synth-oplist
-        python -m tests.actor2 synth-oplist tests/sequential2.ll test tests/sequential2.loops cvc5
+        python -m crdt_tests.synthesize_crdt synth-oplist g_set fixed
+        python -m crdt_tests.synthesize_crdt synth-oplist 2p_set fixed
+        python -m crdt_tests.synthesize_crdt synth-oplist flag_ew fixed
+        python -m crdt_tests.synthesize_crdt synth-oplist flag_dw fixed
+        python -m crdt_tests.synthesize_crdt synth-oplist grow_only_counter fixed
       if: matrix.synth_cvc5 == '0'
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
