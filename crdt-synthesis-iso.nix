@@ -92,6 +92,9 @@ in lib.mkMerge [{
 
   services.getty.autologinUser = "demo";
 
+  services.openssh.enable = true;
+  networking.firewall.allowedTCPPorts = [ 22 ];
+
   services.xserver.enable = true;
   services.xserver.displayManager.startx.enable = true;
 } (lib.optionalAttrs (builtins.hasAttr "isoImage" options) {
