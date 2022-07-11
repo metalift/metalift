@@ -64,24 +64,6 @@ class OrBool(Lattice):
 
 
 @dataclass(frozen=True)
-class NegBool(Lattice):
-    def ir_type(self) -> ir.Type:
-        return ir.Bool()
-
-    def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        return ir.And(a, b)
-
-    def bottom(self) -> ir.Expr:
-        return ir.BoolLit(True)
-
-    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
-        return ir.BoolLit(True)
-
-    def has_node_id(self) -> bool:
-        return False
-
-
-@dataclass(frozen=True)
 class Set(Lattice):
     innerType: ir.Type
 
@@ -231,9 +213,8 @@ map_supported_elem = {ir.OpaqueInt().name, ir.NodeIDInt().name}
 
 
 def gen_lattice_types(max_depth: int) -> typing.Iterator[Lattice]:
-    if max_depth >= 1:
+    if max_depth == 1:
         yield OrBool()
-        # yield NegBool()
 
     for innerType in gen_types(max_depth):
         if innerType.name in comparable_int:

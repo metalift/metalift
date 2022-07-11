@@ -690,7 +690,11 @@ def synthesize_crdt(
                     baseDepth,
                 ),
                 *(
-                    [grammarStateInvariant(synthStateForEquivalence, baseDepth, invariantBoost)]
+                    [
+                        grammarStateInvariant(
+                            synthStateForEquivalence, baseDepth, invariantBoost
+                        )
+                    ]
                     if not useOpList
                     else []
                 ),
@@ -813,7 +817,7 @@ def synthesize_crdt(
 
     if useOpList:
         print(
-            f"#{uid}: Synthesizing invariants for unbounded verification (Rosette structure bound: {listBound})"
+            f"#{uid}: Synthesizing invariants for unbounded verification (Rosette structure/history bound: {listBound})"
         )
         equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
         state_transition_fn = [
@@ -873,7 +877,9 @@ def synthesize_crdt(
                     state_transition_fn.args[1],
                     *state_transition_fn.args[2:],
                 ),
-                lambda _, _baseDepth: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
+                lambda _, _baseDepth: Synth(
+                    query_fn.args[0], query_fn.args[1], *query_fn.args[2:]
+                ),
                 lambda a, b, _baseDepth, _invariantBoost: equivalence_fn.args[1],  # type: ignore
                 targetLang,
                 synthesize,
@@ -912,7 +918,9 @@ def synthesize_crdt(
                         *ci.modifiedVars,
                         *ci.readVars,
                     ),
-                    lambda ci, _baseDepth: Synth(query_fn.args[0], query_fn.args[1], *ci.readVars),
+                    lambda ci, _baseDepth: Synth(
+                        query_fn.args[0], query_fn.args[1], *ci.readVars
+                    ),
                     lambda a, b, c, _baseDepth: equivalence_fn.args[1],  # type: ignore
                     targetLang,
                     synthesize,

@@ -67,7 +67,9 @@ def synthesize_crdt_e2e(
                     cvcPath,
                     synthStateType,
                     lambda: initState(synthStateStructure),
-                    lambda s, baseDepth, invariantBoost: grammarStateInvariant(s, synthStateStructure, baseDepth, invariantBoost),
+                    lambda s, baseDepth, invariantBoost: grammarStateInvariant(
+                        s, synthStateStructure, baseDepth, invariantBoost
+                    ),
                     lambda s, a, baseDepth, invariantBoost: grammarSupportedCommand(
                         s, a, synthStateStructure, baseDepth, invariantBoost
                     ),
@@ -146,6 +148,7 @@ def search_crdt_structures(
                             break
                         else:
                             baseDepth, next_structure_type = next_structure_tuple
+
                             def error_callback(e: BaseException) -> None:
                                 raise e
 
@@ -161,14 +164,23 @@ def search_crdt_structures(
                                     synthStateType,
                                     lambda: initState(next_structure_type),
                                     lambda s, baseDepth, invariantBoost: grammarStateInvariant(
-                                        s, next_structure_type, baseDepth, invariantBoost
+                                        s,
+                                        next_structure_type,
+                                        baseDepth,
+                                        invariantBoost,
                                     ),
                                     lambda s, a, baseDepth, invariantBoost: grammarSupportedCommand(
-                                        s, a, next_structure_type, baseDepth, invariantBoost
+                                        s,
+                                        a,
+                                        next_structure_type,
+                                        baseDepth,
+                                        invariantBoost,
                                     ),
                                     inOrder,
                                     opPrecondition,
-                                    lambda ci, baseDepth: grammar(ci, next_structure_type, baseDepth),
+                                    lambda ci, baseDepth: grammar(
+                                        ci, next_structure_type, baseDepth
+                                    ),
                                     grammarQuery,
                                     grammarEquivalence,
                                     targetLang,
@@ -187,7 +199,9 @@ def search_crdt_structures(
                                 # this is due to a grammar not being able to find a value
                                 continue
 
-                            print(f"Enqueueing #{next_uid} (structure: {next_structure_type}, base depth: {baseDepth})")
+                            print(
+                                f"Enqueueing #{next_uid} (structure: {next_structure_type}, base depth: {baseDepth})"
+                            )
                             start_times[next_uid] = time()
                             pool.apply_async(
                                 synthesize_crdt_e2e,

@@ -13,3 +13,4 @@ results*.csv
 search*.csv
 distribution*.png
 dist/
+rosette-packages/
