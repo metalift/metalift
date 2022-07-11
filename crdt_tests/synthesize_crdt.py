@@ -133,17 +133,9 @@ benchmarks = {
     "flag_dw": {
         "ll_name": "sequential_flag",
         "inOrder": lambda arg1, arg2: Ite(
-            Lt(arg1[1], arg2[1]),  # if clocks in order
-            BoolLit(True),
-            Ite(
-                Eq(arg1[1], arg2[1]), # if clocks concurrent
-                Ite(
-                    Eq(arg1[0], IntLit(1)), # if first is enable
-                    BoolLit(True), # second can be anything
-                    Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
-                ),
-                BoolLit(False), # clocks out of order
-            )
+            Eq(arg1[0], IntLit(1)), # if first is enable
+            BoolLit(True), # second can be anything
+            Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
         "stateTypeHint": BoolInt(),
@@ -155,17 +147,9 @@ benchmarks = {
     "flag_ew": {
         "ll_name": "sequential_flag",
         "inOrder": lambda arg1, arg2: Ite(
-            Lt(arg1[1], arg2[1]),  # if clocks in order
-            BoolLit(True),
-            Ite(
-                Eq(arg1[1], arg2[1]), # if clocks concurrent
-                Ite(
-                    Eq(arg1[0], IntLit(1)), # if first is enable
-                    Eq(arg2[0], IntLit(1)), # second must be enable
-                    BoolLit(True), # but if remove, can be anything next
-                ),
-                BoolLit(False), # clocks out of order
-            )
+            Eq(arg1[0], IntLit(1)), # if first is enable
+            Eq(arg2[0], IntLit(1)), # second must be enable
+            BoolLit(True), # but if remove, can be anything next
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
         "stateTypeHint": BoolInt(),
@@ -176,15 +160,7 @@ benchmarks = {
     },
     "lww_register": {
         "ll_name": "sequential_register",
-        "inOrder": lambda arg1, arg2: Ite(
-            Lt(arg1[-1], arg2[-1]),  # if clocks in order
-            BoolLit(True),
-            Ite(
-                Eq(arg1[-1], arg2[-1]), # if clocks concurrent
-                Ge(arg2[0], arg1[0]),  # second command must have a higher value
-                BoolLit(False), # clocks out of order
-            )
-        ),
+        "inOrder": lambda arg1, arg2: Ge(arg2[0], arg1[0]),
         "opPrecondition": lambda op: And(
             Ge(op[-1], IntLit(1)),
             Ge(op[0], IntLit(0))
@@ -226,17 +202,9 @@ benchmarks = {
     "add_wins_set": {
         "ll_name": "sequential1_clock",
         "inOrder": lambda arg1, arg2: Ite(
-            Lt(arg1[-1], arg2[-1]),  # if clocks in order
-            BoolLit(True),
-            Ite(
-                Eq(arg1[-1], arg2[-1]), # if clocks concurrent
-                Ite(
-                    Eq(arg1[0], IntLit(1)),  # if first command is insert
-                    Eq(arg2[0], IntLit(1)), # second command must be insert
-                    BoolLit(True),  # second can be insert or remove
-                ),
-                BoolLit(False), # clocks out of order
-            )
+            Eq(arg1[0], IntLit(1)),  # if first command is insert
+            Eq(arg2[0], IntLit(1)), # second command must be insert
+            BoolLit(True),  # second can be insert or remove
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
         "stateTypeHint": Set(OpaqueInt()),
@@ -248,17 +216,9 @@ benchmarks = {
     "remove_wins_set": {
         "ll_name": "sequential1_clock",
         "inOrder": lambda arg1, arg2: Ite(
-            Lt(arg1[-1], arg2[-1]),  # if clocks in order
-            BoolLit(True),
-            Ite(
-                Eq(arg1[-1], arg2[-1]), # if clocks concurrent
-                Ite(
-                    Eq(arg1[0], IntLit(1)),  # if first command is insert
-                    BoolLit(True),  # second can be insert or remove
-                    Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
-                ),
-                BoolLit(False), # clocks out of order
-            )
+            Eq(arg1[0], IntLit(1)),  # if first command is insert
+            BoolLit(True),  # second can be insert or remove
+            Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
         "stateTypeHint": Set(OpaqueInt()),
@@ -350,11 +310,25 @@ if __name__ == "__main__":
 
             start_time = time()
             report_file = f"search-{bench}-{bounded_bench_str}-first_{first_n}.csv"
+
+            clock_augmented_order = bench_data["inOrder"]
+            if bench_data["opArgTypeHint"] and bench_data["opArgTypeHint"][-1] == ClockInt():
+                orig_order = clock_augmented_order
+                clock_augmented_order = lambda arg1, arg2: Ite(
+                    Lt(arg1[-1], arg2[-1]),  # if clocks in order
+                    BoolLit(True),
+                    Ite(
+                        Eq(arg1[-1], arg2[-1]), # if clocks concurrent
+                        orig_order(arg1, arg2),
+                        BoolLit(False), # clocks out of order
+                    )
+                )
+
             (result_type, result_fns) = search_crdt_structures(
                 initState,
                 grammarStateInvariant,
                 grammarSupportedCommand,
-                bench_data["inOrder"],
+                clock_augmented_order,
                 bench_data["opPrecondition"],
                 grammar,
                 grammarQuery,
