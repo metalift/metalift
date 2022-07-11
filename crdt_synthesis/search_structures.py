@@ -124,7 +124,7 @@ def search_crdt_structures(
     maxThreads: int = mp.cpu_count(),
     upToUid: Optional[int] = None,
     exitFirstSuccess: bool = True,
-) -> List[ir.Expr]:
+) -> Tuple[Any, List[ir.Expr]]:
     q: queue.Queue[
         Tuple[int, Any, int, Optional[typing.Union[str, List[Expr]]]]
     ] = queue.Queue()
@@ -272,7 +272,7 @@ def search_crdt_structures(
                 print("State Structure:", next_res_type)
                 print("\nRuntime Logic:")
                 print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
-                return next_res  # type: ignore
+                return (next_res_type, next_res)  # type: ignore
         else:
             print(f"See report file ({reportFile}) for results")
             return []

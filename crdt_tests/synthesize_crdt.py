@@ -350,7 +350,7 @@ if __name__ == "__main__":
 
             start_time = time()
             report_file = f"search-{bench}-{bounded_bench_str}-first_{first_n}.csv"
-            results = search_crdt_structures(
+            (result_type, result_fns) = search_crdt_structures(
                 initState,
                 grammarStateInvariant,
                 grammarSupportedCommand,
@@ -376,8 +376,8 @@ if __name__ == "__main__":
 
             if first_n == None:
                 print(f"{bench} took {end_time - start_time} seconds\n\n")
-                results_code = ";".join([c.toRosette().replace("\n", " ") for c in results])
-                report.write(f"{bench},{end_time - start_time},\"{results_code}\"\n")
+                results_code = ";".join([c.toRosette().replace("\n", " ") for c in result_fns])
+                report.write(f"{bench},{end_time - start_time},\"{result_type}\",\"{results_code}\"\n")
                 report.flush()
             else:
                 with open(report_file, newline='') as csvfile:
