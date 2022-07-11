@@ -72,6 +72,7 @@ def toExpr(
         if ast[0] == "define":
             return toExpr(ast[2], fnsType, varType, choices)
         elif ast[0] == "choose":
+            # TODO(shadaj): now that we have chooseArbitrarily we could parse things properly
             return toExpr(ast[1], fnsType, varType, choices)
         elif ast[0] in expr_bi.keys():
             return expr_bi[ast[0]](
@@ -235,6 +236,28 @@ def toExpr(
                 var_value,
                 toExpr(ast[2], fnsType, tmp_var_type, choices),
             )
+        elif ast[0] == "reduce_int":
+            data = toExpr(ast[1], fnsType, varType, choices)
+            fn = toExpr(
+                ast[2],
+                fnsType,
+                varType,
+                choices,
+                typeHint=Fn(Int(), data.type.args[0], Int()),
+            )
+            initial = toExpr(ast[3], fnsType, varType, choices)
+            return Call("reduce_int", Int(), data, fn, initial)
+        elif ast[0] == "reduce_bool":
+            data = toExpr(ast[1], fnsType, varType, choices)
+            fn = toExpr(
+                ast[2],
+                fnsType,
+                varType,
+                choices,
+                typeHint=Fn(Bool(), data.type.args[0], Bool()),
+            )
+            initial = toExpr(ast[3], fnsType, varType, choices)
+            return Call("reduce_bool", Bool(), data, fn, initial)
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
@@ -428,7 +451,7 @@ def synthesize(
 
                 if ceName not in candidateDict:
                     # Rosette will not return a function if no choice needs to be made
-                    candidateDict[ceName] = synthFun.args[1]
+                    candidateDict[ceName] = synthFun.args[1].chooseArbitrarily()
 
                 candidatesSMT.append(
                     FnDecl(

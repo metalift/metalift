@@ -129,7 +129,6 @@ class VC:
         sorted_values = list(blocksMap.values())
         sorted_values.sort(key=lambda b: b.name)
         blockVCs: List[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
-        print(blockVCs)
 
         body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
 

@@ -12,6 +12,7 @@ def mapsLang() -> typing.List[Expr]:
     def list_tail(l: Expr, i: Expr) -> Expr:
         return Call("list_tail", List(Int()), l, i)
 
+    # TODO(shadaj): proper generics support, manually handled in Rosette parser for now
     data = Var("data", List(Int()))
     lr_fn = Var("f", Fn(Int(), Int(), Int()))
     initial = Var("initial", Int())
@@ -32,6 +33,7 @@ def mapsLang() -> typing.List[Expr]:
         initial,
     )
 
+    # TODO(shadaj): proper generics support, manually handled in Rosette parser for now
     data_bool = Var("data", List(Bool()))
     lr_fn_bool = Var("f", Fn(Bool(), Bool(), Bool()))
     initial_bool = Var("initial", Bool())

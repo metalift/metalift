@@ -1,4 +1,5 @@
 from enum import Enum
+from re import L
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
@@ -183,6 +184,10 @@ class Expr:
             return Tuple(*[f(a) for a in self.args])
         elif isinstance(self, Let):
             return Let(*[f(a) for a in self.args])
+        elif isinstance(self, Lambda):
+            return Lambda(self.type.args[0], *[f(a) for a in self.args])
+        elif isinstance(self, Choose):
+            return Choose(*[f(a) for a in self.args])
         elif isinstance(self, TupleGet):
             return TupleGet(f(self.args[0]), *[f(a) for a in self.args[1:]])
         elif isinstance(self, Call):
@@ -195,6 +200,11 @@ class Expr:
             return CallValue(f(self.args[0]), *[f(a) for a in self.args[1:]])
         else:
             raise Exception("NYI: %s" % self)
+
+    def chooseArbitrarily(self) -> "Expr":
+        return self.mapArgs(
+            lambda x: x.chooseArbitrarily() if isinstance(x, Expr) else x
+        )
 
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
@@ -257,6 +267,8 @@ class Expr:
                     return TupleGet(*newArgs)
                 elif isinstance(e, Let):
                     return Let(*newArgs)
+                elif isinstance(e, Lambda):
+                    return Lambda(e.type.args[0], *newArgs)
                 else:
                     raise Exception("NYI: %s" % e)
             else:
@@ -633,7 +645,7 @@ class Eq(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -659,7 +671,7 @@ class Lt(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -684,7 +696,7 @@ class Le(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -709,7 +721,7 @@ class Gt(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -734,7 +746,7 @@ class Ge(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -1356,7 +1368,7 @@ class Choose(Expr):
         Expr.__init__(self, args[0].type, args)
 
     def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]  # type: ignore
+        return self.args  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1417,6 +1429,9 @@ class Choose(Expr):
         retT = "(" + " ".join(retVal) + ")"
 
         return retT
+
+    def chooseArbitrarily(self) -> "Expr":
+        return self.args[0]  # type: ignore
 
 
 class FnDecl(Expr):
