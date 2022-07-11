@@ -278,6 +278,5 @@ def search_crdt_structures(
             return []
     finally:
         for p in process_tracker.all_processes:
-            print("Terminating process", p.pid)
             p.terminate()
         process_tracker.all_processes = []

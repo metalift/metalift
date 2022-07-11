@@ -101,7 +101,7 @@ in lib.mkMerge [{
   virtualbox.vmName = "OOPSLA CRDT Synthesis Artifact";
   virtualbox.memorySize = 1024 * 4;
 
-  services.xserver.displayManager.startx.enable = false;
+  services.xserver.displayManager.startx.enable = pkgs.lib.mkForce false;
   services.xserver.desktopManager.gnome.enable = true;
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.displayManager.autoLogin.enable = true;
