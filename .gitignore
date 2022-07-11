@@ -14,3 +14,4 @@ search*.csv
 distribution*.png
 dist/
 rosette-packages/
+nixos.qcow2

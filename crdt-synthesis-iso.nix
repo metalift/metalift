@@ -21,6 +21,11 @@ in lib.mkMerge [{
     clang_11
 
     racket
+
+    htop
+    nano
+    vim
+    emacs
   ];
 
   users = {
@@ -89,7 +94,9 @@ in lib.mkMerge [{
 
   services.xserver.enable = true;
   services.xserver.displayManager.startx.enable = true;
-} (lib.optionalAttrs (builtins.hasAttr "virtualbox" options) {
+} (lib.optionalAttrs (builtins.hasAttr "isoImage" options) {
+  isoImage.appendToMenuLabel = " OOPSLA CRDT Synthesis Artifact";
+}) (lib.optionalAttrs (builtins.hasAttr "virtualbox" options) {
   nixpkgs.config = {
     allowUnfree = true;
   };
@@ -97,6 +104,8 @@ in lib.mkMerge [{
   virtualbox.vmName = "OOPSLA CRDT Synthesis Artifact";
   virtualbox.memorySize = 1024 * 4;
   virtualbox.params.cpus = 8;
+  virtualbox.params.usb = "off";
+  virtualbox.params.usbehci = "off";
 
   services.xserver.displayManager.startx.enable = pkgs.lib.mkForce false;
   services.xserver.desktopManager.gnome.enable = true;
@@ -104,9 +113,6 @@ in lib.mkMerge [{
 
   environment.systemPackages = with pkgs; [
     vscode
-    htop
-    vim
-    nano
     sublime
   ];
 })]

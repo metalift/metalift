@@ -340,7 +340,7 @@ if __name__ == "__main__":
             cvcPath = "cvc5"
 
             nonIdempotent = "nonIdempotent" in bench_data and bench_data["nonIdempotent"]
-            
+
             structure_generator = increasing_depth_structures(
                 (lambda base_depth: lat.gen_structures(base_depth))
                 if not fixed_structure
