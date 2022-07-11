@@ -102,7 +102,7 @@ in lib.mkMerge [{
   };
 
   virtualbox.vmName = "OOPSLA CRDT Synthesis Artifact";
-  virtualbox.memorySize = 1024 * 4;
+  virtualbox.memorySize = 1024 * 8;
   virtualbox.params.cpus = 8;
   virtualbox.params.usb = "off";
   virtualbox.params.usbehci = "off";
@@ -110,6 +110,9 @@ in lib.mkMerge [{
   services.xserver.displayManager.startx.enable = pkgs.lib.mkForce false;
   services.xserver.desktopManager.gnome.enable = true;
   services.xserver.displayManager.gdm.enable = true;
+  services.xserver.displayManager.gdm.autoSuspend = false;
+
+  services.getty.autologinUser = pkgs.lib.mkForce null;
 
   environment.systemPackages = with pkgs; [
     vscode
