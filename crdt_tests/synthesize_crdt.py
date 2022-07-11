@@ -12,22 +12,23 @@ from metalift.maps_lang import mapsLang
 
 from metalift.synthesize_auto import synthesize
 
-base_depth = 1
-
 def fold_conditions(out, conditions):
     for c in conditions:
         out = Ite(c, out, out)
     return out
 
-def grammarEquivalence(inputState, synthState, queryParams):
+# we can make equivalence and state invariant shallower because
+# they are augmented with query and lattice validity checks
+
+def grammarEquivalence(inputState, synthState, queryParams, baseDepth):
     return auto_grammar(
         Bool(),
-        base_depth,
+        max(baseDepth - 1, 1),
         inputState, synthState, *queryParams
     )
 
 
-def grammarStateInvariant(synthState, synthStateStructure, invariantBoost):
+def grammarStateInvariant(synthState, synthStateStructure, baseDepth, invariantBoost):
     state_valid = And(*[
         synthStateStructure[i].check_is_valid(
             TupleGet(synthState, IntLit(i))
@@ -37,15 +38,15 @@ def grammarStateInvariant(synthState, synthStateStructure, invariantBoost):
 
     return And(
         state_valid,
-        auto_grammar(Bool(), base_depth + invariantBoost, synthState)
+        auto_grammar(Bool(), max(baseDepth - 1, 1) + invariantBoost, synthState)
     )
 
 
-def grammarSupportedCommand(synthState, args, synthStateStructure, invariantBoost):
+def grammarSupportedCommand(synthState, args, synthStateStructure, baseDepth, invariantBoost):
     conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
 
     out = auto_grammar(
-        Bool(), base_depth + 1 + invariantBoost,
+        Bool(), baseDepth + invariantBoost,
         synthState, *args,
         *expand_lattice_logic(*[
             (TupleGet(synthState, IntLit(i)), synthStateStructure[i])
@@ -56,14 +57,15 @@ def grammarSupportedCommand(synthState, args, synthStateStructure, invariantBoos
 
     return fold_conditions(out, conditions)
 
+# we make query deeper because it requires more computation
 
-def grammarQuery(ci: CodeInfo):
+def grammarQuery(ci: CodeInfo, baseDepth):
     name = ci.name
 
     if ci.retT == BoolInt():
         condition = auto_grammar(
             Bool(),
-            base_depth + 2,
+            baseDepth + 1,
             *ci.readVars,
             allow_node_id_reductions=True,
         )
@@ -71,7 +73,7 @@ def grammarQuery(ci: CodeInfo):
         summary = Ite(condition, IntLit(1), IntLit(0))
     else:
         summary = auto_grammar(
-            parseTypeRef(ci.retT), base_depth + 2,
+            parseTypeRef(ci.retT), baseDepth + 1,
             *ci.readVars,
             enable_ite=True,
             allow_node_id_reductions=True,
@@ -80,7 +82,7 @@ def grammarQuery(ci: CodeInfo):
     return Synth(name, summary, *ci.readVars)
 
 
-def grammar(ci: CodeInfo, synthStateStructure):
+def grammar(ci: CodeInfo, synthStateStructure, baseDepth):
     name = ci.name
 
     if name.startswith("inv"):
@@ -106,7 +108,7 @@ def grammar(ci: CodeInfo, synthStateStructure):
                     TupleGet(inputState, IntLit(i)),
                     fold_conditions(auto_grammar(
                         TupleGet(inputState, IntLit(i)).type,
-                        base_depth + 1,
+                        baseDepth,
                         *args,
                         *non_associative_data
                     ), conditions)
@@ -298,6 +300,18 @@ def has_node_id(tup):
             return True
     return False
 
+def increasing_depth_structures(underlying):
+    base_depth = 1
+    while True:
+        # we synthesize structures of complexity base_depth + 1
+        all_structures = underlying(base_depth)
+        filtered_structures = all_structures
+        if nonIdempotent:
+            filtered_structures = filter(has_node_id, all_structures)
+        for struct in filtered_structures:
+            yield (base_depth, struct)
+        base_depth += 1
+
 if __name__ == "__main__":
     mode = sys.argv[1]
     bench = sys.argv[2]
@@ -326,10 +340,13 @@ if __name__ == "__main__":
             cvcPath = "cvc5"
 
             nonIdempotent = "nonIdempotent" in bench_data and bench_data["nonIdempotent"]
-            all_structures = lat.gen_structures()
-            filtered_structures = all_structures
-            if nonIdempotent:
-                filtered_structures = filter(has_node_id, all_structures)
+            
+            structure_generator = increasing_depth_structures(
+                (lambda base_depth: lat.gen_structures(base_depth))
+                if not fixed_structure
+                else
+                (lambda _: [bench_data["fixedLatticeType"]])
+            )
 
             start_time = time()
             report_file = f"search-{bench}-{bounded_bench_str}-first_{first_n}.csv"
@@ -345,10 +362,7 @@ if __name__ == "__main__":
                 targetLang,
                 synthesize,
                 filename, fnNameBase, loopsFile, cvcPath, useOpList,
-                filtered_structures
-                if not fixed_structure
-                else
-                iter([bench_data["fixedLatticeType"]]),
+                structure_generator,
                 reportFile=report_file,
                 stateTypeHint=bench_data["stateTypeHint"],
                 opArgTypeHint=bench_data["opArgTypeHint"],

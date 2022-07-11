@@ -23,18 +23,19 @@ def synthesize_crdt_e2e(
         Tuple[
             int,
             Any,
+            int,
             Optional[typing.Union[str, List[FnDecl]]],
         ]
     ],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
-    grammarStateInvariant: Callable[[Expr, Any, int], Expr],
-    grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
+    grammarStateInvariant: Callable[[Expr, Any, int, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, Any, Any, int, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
-    grammar: Callable[[CodeInfo, Any], ir.Synth],
-    grammarQuery: Callable[[CodeInfo], ir.Synth],
-    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var]], Expr],
+    grammar: Callable[[CodeInfo, Any, int], ir.Synth],
+    grammarQuery: Callable[[CodeInfo, int], ir.Synth],
+    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var], int], Expr],
     targetLang: Callable[
         [], List[typing.Union[FnDecl, ir.FnDeclNonRecursive, ir.Axiom]]
     ],
@@ -44,6 +45,7 @@ def synthesize_crdt_e2e(
     opArgTypeHint: Optional[List[ir.Type]],
     queryArgTypeHint: Optional[List[ir.Type]],
     queryRetTypeHint: Optional[ir.Type],
+    baseDepth: int,
     filename: str,
     fnNameBase: str,
     loopsFile: str,
@@ -57,6 +59,7 @@ def synthesize_crdt_e2e(
             (
                 uid,
                 synthStateStructure,
+                baseDepth,
                 synthesize_crdt(
                     filename,
                     fnNameBase,
@@ -64,13 +67,13 @@ def synthesize_crdt_e2e(
                     cvcPath,
                     synthStateType,
                     lambda: initState(synthStateStructure),
-                    lambda s, b: grammarStateInvariant(s, synthStateStructure, b),
-                    lambda s, a, b: grammarSupportedCommand(
-                        s, a, synthStateStructure, b
+                    lambda s, baseDepth, invariantBoost: grammarStateInvariant(s, synthStateStructure, baseDepth, invariantBoost),
+                    lambda s, a, baseDepth, invariantBoost: grammarSupportedCommand(
+                        s, a, synthStateStructure, baseDepth, invariantBoost
                     ),
                     inOrder,
                     opPrecondition,
-                    lambda ci: grammar(ci, synthStateStructure),
+                    lambda ci, baseDepth: grammar(ci, synthStateStructure, baseDepth),
                     grammarQuery,
                     grammarEquivalence,
                     targetLang,
@@ -81,25 +84,26 @@ def synthesize_crdt_e2e(
                     opArgTypeHint=opArgTypeHint,
                     queryArgTypeHint=queryArgTypeHint,
                     queryRetTypeHint=queryRetTypeHint,
+                    baseDepth=baseDepth,
                     log=False,
                 ),
             )
         )
     except SynthesisFailed:
-        queue.put((uid, synthStateStructure, None))
+        queue.put((uid, synthStateStructure, baseDepth, None))
     except:
-        queue.put((uid, synthStateStructure, traceback.format_exc()))
+        queue.put((uid, synthStateStructure, baseDepth, traceback.format_exc()))
 
 
 def search_crdt_structures(
     initState: Callable[[Any], Expr],
-    grammarStateInvariant: Callable[[Expr, Any, int], Expr],
-    grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
+    grammarStateInvariant: Callable[[Expr, Any, int, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, Any, Any, int, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
-    grammar: Callable[[CodeInfo, Any], ir.Synth],
-    grammarQuery: Callable[[CodeInfo], ir.Synth],
-    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var]], Expr],
+    grammar: Callable[[CodeInfo, Any, int], ir.Synth],
+    grammarQuery: Callable[[CodeInfo, int], ir.Synth],
+    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var], int], Expr],
     targetLang: Callable[
         [], List[typing.Union[FnDecl, ir.FnDeclNonRecursive, ir.Axiom]]
     ],
@@ -109,7 +113,7 @@ def search_crdt_structures(
     loopsFile: str,
     cvcPath: str,
     useOpList: bool,
-    structureCandidates: Iterator[Any],
+    structureCandidates: Iterator[Tuple[int, Any]],
     reportFile: str,
     stateTypeHint: Optional[ir.Type] = None,
     opArgTypeHint: Optional[List[ir.Type]] = None,
@@ -120,7 +124,7 @@ def search_crdt_structures(
     exitFirstSuccess: bool = True,
 ) -> List[ir.Expr]:
     q: queue.Queue[
-        Tuple[int, Any, Optional[typing.Union[str, List[Expr]]]]
+        Tuple[int, Any, int, Optional[typing.Union[str, List[Expr]]]]
     ] = queue.Queue()
     queue_size = 0
     next_uid = 0
@@ -137,11 +141,11 @@ def search_crdt_structures(
                     while queue_size < (maxThreads // 2 if maxThreads > 1 else 1) and (
                         upToUid == None or next_uid < upToUid  # type: ignore
                     ):
-                        next_structure_type = next(structureCandidates, None)
-                        if next_structure_type is None:
+                        next_structure_tuple = next(structureCandidates, None)
+                        if next_structure_tuple is None:
                             break
                         else:
-
+                            baseDepth, next_structure_type = next_structure_tuple
                             def error_callback(e: BaseException) -> None:
                                 raise e
 
@@ -156,15 +160,15 @@ def search_crdt_structures(
                                     cvcPath,
                                     synthStateType,
                                     lambda: initState(next_structure_type),
-                                    lambda s, b: grammarStateInvariant(
-                                        s, next_structure_type, b
+                                    lambda s, baseDepth, invariantBoost: grammarStateInvariant(
+                                        s, next_structure_type, baseDepth, invariantBoost
                                     ),
-                                    lambda s, a, b: grammarSupportedCommand(
-                                        s, a, next_structure_type, b
+                                    lambda s, a, baseDepth, invariantBoost: grammarSupportedCommand(
+                                        s, a, next_structure_type, baseDepth, invariantBoost
                                     ),
                                     inOrder,
                                     opPrecondition,
-                                    lambda ci: grammar(ci, next_structure_type),
+                                    lambda ci, baseDepth: grammar(ci, next_structure_type, baseDepth),
                                     grammarQuery,
                                     grammarEquivalence,
                                     targetLang,
@@ -175,6 +179,7 @@ def search_crdt_structures(
                                     opArgTypeHint=opArgTypeHint,
                                     queryArgTypeHint=queryArgTypeHint,
                                     queryRetTypeHint=queryRetTypeHint,
+                                    baseDepth=baseDepth,
                                     log=False,
                                     skipSynth=True,
                                 )
@@ -182,7 +187,7 @@ def search_crdt_structures(
                                 # this is due to a grammar not being able to find a value
                                 continue
 
-                            print(f"Enqueueing #{next_uid} (structure: {next_structure_type})")
+                            print(f"Enqueueing #{next_uid} (structure: {next_structure_type}, base depth: {baseDepth})")
                             start_times[next_uid] = time()
                             pool.apply_async(
                                 synthesize_crdt_e2e,
@@ -204,6 +209,7 @@ def search_crdt_structures(
                                     opArgTypeHint,
                                     queryArgTypeHint,
                                     queryRetTypeHint,
+                                    baseDepth,
                                     filename,
                                     fnNameBase,
                                     loopsFile,
@@ -221,7 +227,7 @@ def search_crdt_structures(
                         else:
                             break
                     else:
-                        (ret_uid, next_res_type, next_res) = q.get(
+                        (ret_uid, next_res_type, baseDepth, next_res) = q.get(
                             block=True, timeout=None
                         )
                         time_took = time() - start_times[ret_uid]
@@ -239,7 +245,7 @@ def search_crdt_structures(
                                 break
                         else:
                             print(
-                                f"Failed to synthesize #{ret_uid} (structure: {next_res_type})"
+                                f"Failed to synthesize #{ret_uid} (structure: {next_res_type}, base depth: {baseDepth})"
                             )
 
         if exitFirstSuccess:

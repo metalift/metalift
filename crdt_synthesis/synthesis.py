@@ -188,13 +188,13 @@ def synthesize_crdt(
     cvcPath: str,
     synthStateType: Type,
     initState: Callable[[], Expr],
-    grammarStateInvariant: Callable[[Expr, int], Expr],
-    grammarSupportedCommand: Callable[[Expr, typing.Any, int], Expr],
+    grammarStateInvariant: Callable[[Expr, int, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, typing.Any, int, int], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
     opPrecondition: Callable[[typing.Any], Expr],
-    grammar: Callable[[CodeInfo], Synth],
-    grammarQuery: Callable[[CodeInfo], Synth],
-    grammarEquivalence: Callable[[Expr, Expr, typing.List[Var]], Expr],
+    grammar: Callable[[CodeInfo, int], Synth],
+    grammarQuery: Callable[[CodeInfo, int], Synth],
+    grammarEquivalence: Callable[[Expr, Expr, typing.List[Var], int], Expr],
     targetLang: Callable[[], typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]]],
     synthesize: SynthesizeFun,
     stateTypeHint: typing.Optional[Type] = None,
@@ -205,6 +205,7 @@ def synthesize_crdt(
     unboundedInts: bool = True,
     useOpList: bool = False,
     listBound: int = 1,
+    baseDepth: int = 2,
     invariantBoost: int = 0,
     log: bool = True,
     skipSynth: bool = False,
@@ -505,7 +506,7 @@ def synthesize_crdt(
     )
     loopAndPsInfoStateTransition[0].modifiedVars = []
 
-    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransition[0])
+    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransition[0], baseDepth)
 
     invAndPsStateTransition = (
         [
@@ -571,7 +572,7 @@ def synthesize_crdt(
         else queryRetTypeHint
     )
     loopAndPsInfoQuery[0].modifiedVars = []
-    invAndPsQuery = [grammarQuery(ci) for ci in loopAndPsInfoQuery]
+    invAndPsQuery = [grammarQuery(ci, baseDepth) for ci in loopAndPsInfoQuery]
     # end query
 
     # begin init state
@@ -686,9 +687,10 @@ def synthesize_crdt(
                     inputStateForEquivalence,
                     synthStateForEquivalence,
                     equivalenceQueryParams,
+                    baseDepth,
                 ),
                 *(
-                    [grammarStateInvariant(synthStateForEquivalence, invariantBoost)]
+                    [grammarStateInvariant(synthStateForEquivalence, baseDepth, invariantBoost)]
                     if not useOpList
                     else []
                 ),
@@ -714,7 +716,7 @@ def synthesize_crdt(
             Synth(
                 "supportedCommand",
                 grammarSupportedCommand(
-                    synthStateForSupported, argList, invariantBoost
+                    synthStateForSupported, argList, baseDepth, invariantBoost
                 ),
                 synthStateForSupported,
                 *argList,
@@ -804,6 +806,7 @@ def synthesize_crdt(
             unboundedInts=unboundedInts,
             useOpList=useOpList,
             listBound=listBound + 1,
+            baseDepth=baseDepth,
             invariantBoost=invariantBoost,
             log=log,
         )
@@ -865,13 +868,13 @@ def synthesize_crdt(
                 grammarSupportedCommand,
                 inOrder,
                 opPrecondition,
-                lambda _: Synth(
+                lambda _, _baseDepth: Synth(
                     state_transition_fn.args[0],
                     state_transition_fn.args[1],
                     *state_transition_fn.args[2:],
                 ),
-                lambda _: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
-                lambda a, b, c: equivalence_fn.args[1],  # type: ignore
+                lambda _, _baseDepth: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
+                lambda a, b, _baseDepth, _invariantBoost: equivalence_fn.args[1],  # type: ignore
                 targetLang,
                 synthesize,
                 stateTypeHint=stateTypeHint,
@@ -882,6 +885,7 @@ def synthesize_crdt(
                 unboundedInts=unboundedInts,
                 useOpList=False,
                 listBound=listBound,
+                baseDepth=baseDepth,
                 invariantBoost=invariantBoost,
                 log=log,
             )
@@ -902,14 +906,14 @@ def synthesize_crdt(
                     grammarSupportedCommand,
                     inOrder,
                     opPrecondition,
-                    lambda ci: Synth(
+                    lambda ci, _baseDepth: Synth(
                         state_transition_fn.args[0],
                         state_transition_fn.args[1],
                         *ci.modifiedVars,
                         *ci.readVars,
                     ),
-                    lambda ci: Synth(query_fn.args[0], query_fn.args[1], *ci.readVars),
-                    lambda a, b, c: equivalence_fn.args[1],  # type: ignore
+                    lambda ci, _baseDepth: Synth(query_fn.args[0], query_fn.args[1], *ci.readVars),
+                    lambda a, b, c, _baseDepth: equivalence_fn.args[1],  # type: ignore
                     targetLang,
                     synthesize,
                     stateTypeHint=stateTypeHint,
@@ -920,6 +924,7 @@ def synthesize_crdt(
                     unboundedInts=unboundedInts,
                     useOpList=useOpList,
                     listBound=listBound + 1,
+                    baseDepth=baseDepth,
                     invariantBoost=invariantBoost + 1,
                     log=log,
                 )
@@ -951,6 +956,7 @@ def synthesize_crdt(
                     unboundedInts=unboundedInts,
                     useOpList=useOpList,
                     listBound=listBound + 1,
+                    baseDepth=baseDepth,
                     invariantBoost=invariantBoost,
                     log=log,
                 )

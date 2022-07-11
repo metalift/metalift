@@ -258,13 +258,13 @@ def gen_lattice_types(max_depth: int) -> typing.Iterator[Lattice]:
             yield LexicalProduct(*innerTypePair)
 
 
-def gen_structures() -> typing.Iterator[typing.Any]:
-    cur_type_depth = 2
+def gen_structures(max_depth: int) -> typing.Iterator[typing.Any]:
+    cur_type_depth = 1
     seen = set()
-    while True:
+    while cur_type_depth <= max_depth:
         print(f"Type depth: {cur_type_depth}")
         cur_tuple_size = 1
-        while cur_tuple_size <= cur_type_depth * 2:
+        while cur_tuple_size <= cur_type_depth:
             print(f"Tuple size: {cur_tuple_size}")
             for lattice_types in itertools.combinations_with_replacement(
                 gen_lattice_types(cur_type_depth), cur_tuple_size
