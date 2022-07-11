@@ -1395,13 +1395,13 @@ class Choose(Expr):
     def toSMT(self) -> str:
         retVal = []
 
-        for a in enumerate(self.args):
+        for a in self.args:
             if isinstance(a, ValueRef) and a.name != "":
                 retVal.append(a.name)
             elif isinstance(a, str):
                 retVal.append(str(a))
             else:
-                retVal.append(a.toSMT())  # type: ignore
+                retVal.append(a.toSMT())
 
         retT = "(" + " ".join(retVal) + ")"
 
