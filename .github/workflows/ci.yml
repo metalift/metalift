@@ -119,6 +119,9 @@ jobs:
         cd tests
         ./compile-all
         cd ..
+        cd crdt_tests
+        ./compile-all
+        cd ..
 
     - name: Test Core Examples
       shell: nix-shell ci-shell.nix --run "bash -e {0}"
