@@ -275,7 +275,7 @@ def search_crdt_structures(
                 return (next_res_type, next_res)  # type: ignore
         else:
             print(f"See report file ({reportFile}) for results")
-            return []
+            return (next_res_type, [])
     finally:
         for p in process_tracker.all_processes:
             p.terminate()
