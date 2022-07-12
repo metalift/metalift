@@ -7,28 +7,35 @@ from time import time
 import traceback
 import typing
 
-from metalift.actors.lattices import Lattice
+from crdt_synthesis.lattices import Lattice
 from metalift.analysis import CodeInfo
 from metalift import process_tracker
 from metalift import ir
 from metalift.ir import Expr, FnDecl
-from metalift.actors.synthesis import SynthesizeFun, synthesize_actor
+from crdt_synthesis.synthesis import SynthesizeFun, synthesize_crdt
 from metalift.synthesis_common import SynthesisFailed
 
 from typing import Any, Callable, Iterator, List, Optional, Tuple
 
 
-def synthesize_crdt(
-    queue: queue.Queue[Tuple[int, Any, Optional[List[FnDecl]]]],
+def synthesize_crdt_e2e(
+    queue: queue.Queue[
+        Tuple[
+            int,
+            Any,
+            int,
+            Optional[typing.Union[str, List[FnDecl]]],
+        ]
+    ],
     synthStateStructure: List[Lattice],
     initState: Callable[[Any], Expr],
-    grammarStateInvariant: Callable[[Expr, Any, int], Expr],
-    grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
+    grammarStateInvariant: Callable[[Expr, Any, int, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, Any, Any, int, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
-    grammar: Callable[[CodeInfo, Any], ir.Synth],
-    grammarQuery: Callable[[CodeInfo], ir.Synth],
-    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var]], Expr],
+    grammar: Callable[[CodeInfo, Any, int], ir.Synth],
+    grammarQuery: Callable[[CodeInfo, int], ir.Synth],
+    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var], int], Expr],
     targetLang: Callable[
         [], List[typing.Union[FnDecl, ir.FnDeclNonRecursive, ir.Axiom]]
     ],
@@ -38,6 +45,7 @@ def synthesize_crdt(
     opArgTypeHint: Optional[List[ir.Type]],
     queryArgTypeHint: Optional[List[ir.Type]],
     queryRetTypeHint: Optional[ir.Type],
+    baseDepth: int,
     filename: str,
     fnNameBase: str,
     loopsFile: str,
@@ -51,20 +59,23 @@ def synthesize_crdt(
             (
                 uid,
                 synthStateStructure,
-                synthesize_actor(
+                baseDepth,
+                synthesize_crdt(
                     filename,
                     fnNameBase,
                     loopsFile,
                     cvcPath,
                     synthStateType,
                     lambda: initState(synthStateStructure),
-                    lambda s, b: grammarStateInvariant(s, synthStateStructure, b),
-                    lambda s, a, b: grammarSupportedCommand(
-                        s, a, synthStateStructure, b
+                    lambda s, baseDepth, invariantBoost: grammarStateInvariant(
+                        s, synthStateStructure, baseDepth, invariantBoost
+                    ),
+                    lambda s, a, baseDepth, invariantBoost: grammarSupportedCommand(
+                        s, a, synthStateStructure, baseDepth, invariantBoost
                     ),
                     inOrder,
                     opPrecondition,
-                    lambda ci: grammar(ci, synthStateStructure),
+                    lambda ci, baseDepth: grammar(ci, synthStateStructure, baseDepth),
                     grammarQuery,
                     grammarEquivalence,
                     targetLang,
@@ -75,26 +86,26 @@ def synthesize_crdt(
                     opArgTypeHint=opArgTypeHint,
                     queryArgTypeHint=queryArgTypeHint,
                     queryRetTypeHint=queryRetTypeHint,
+                    baseDepth=baseDepth,
                     log=False,
                 ),
             )
         )
     except SynthesisFailed:
-        queue.put((uid, synthStateStructure, None))
+        queue.put((uid, synthStateStructure, baseDepth, None))
     except:
-        traceback.print_exc()
-        queue.put((uid, synthStateStructure, None))
+        queue.put((uid, synthStateStructure, baseDepth, traceback.format_exc()))
 
 
 def search_crdt_structures(
     initState: Callable[[Any], Expr],
-    grammarStateInvariant: Callable[[Expr, Any, int], Expr],
-    grammarSupportedCommand: Callable[[Expr, Any, Any, int], Expr],
+    grammarStateInvariant: Callable[[Expr, Any, int, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, Any, Any, int, int], Expr],
     inOrder: Callable[[Any, Any], Expr],
     opPrecondition: Callable[[Any], Expr],
-    grammar: Callable[[CodeInfo, Any], ir.Synth],
-    grammarQuery: Callable[[CodeInfo], ir.Synth],
-    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var]], Expr],
+    grammar: Callable[[CodeInfo, Any, int], ir.Synth],
+    grammarQuery: Callable[[CodeInfo, int], ir.Synth],
+    grammarEquivalence: Callable[[Expr, Expr, List[ir.Var], int], Expr],
     targetLang: Callable[
         [], List[typing.Union[FnDecl, ir.FnDeclNonRecursive, ir.Axiom]]
     ],
@@ -104,14 +115,19 @@ def search_crdt_structures(
     loopsFile: str,
     cvcPath: str,
     useOpList: bool,
-    structureCandidates: Iterator[Any],
+    structureCandidates: Iterator[Tuple[int, Any]],
     reportFile: str,
     stateTypeHint: Optional[ir.Type] = None,
     opArgTypeHint: Optional[List[ir.Type]] = None,
     queryArgTypeHint: Optional[List[ir.Type]] = None,
     queryRetTypeHint: Optional[ir.Type] = None,
-) -> None:
-    q: queue.Queue[Tuple[int, Any, Optional[List[Expr]]]] = queue.Queue()
+    maxThreads: int = mp.cpu_count(),
+    upToUid: Optional[int] = None,
+    exitFirstSuccess: bool = True,
+) -> Tuple[Any, List[ir.Expr]]:
+    q: queue.Queue[
+        Tuple[int, Any, int, Optional[typing.Union[str, List[Expr]]]]
+    ] = queue.Queue()
     queue_size = 0
     next_uid = 0
 
@@ -124,11 +140,14 @@ def search_crdt_structures(
         with multiprocessing.pool.ThreadPool() as pool:
             with open(reportFile, "w") as report:
                 while True:
-                    while queue_size < (mp.cpu_count() // 2):
-                        next_structure_type = next(structureCandidates, None)
-                        if next_structure_type is None:
+                    while queue_size < (maxThreads // 2 if maxThreads > 1 else 1) and (
+                        upToUid == None or next_uid < upToUid  # type: ignore
+                    ):
+                        next_structure_tuple = next(structureCandidates, None)
+                        if next_structure_tuple is None:
                             break
                         else:
+                            baseDepth, next_structure_type = next_structure_tuple
 
                             def error_callback(e: BaseException) -> None:
                                 raise e
@@ -137,22 +156,31 @@ def search_crdt_structures(
                                 synthStateType = ir.TupleT(
                                     *[a.ir_type() for a in next_structure_type]
                                 )
-                                synthesize_actor(
+                                synthesize_crdt(
                                     filename,
                                     fnNameBase,
                                     loopsFile,
                                     cvcPath,
                                     synthStateType,
                                     lambda: initState(next_structure_type),
-                                    lambda s, b: grammarStateInvariant(
-                                        s, next_structure_type, b
+                                    lambda s, baseDepth, invariantBoost: grammarStateInvariant(
+                                        s,
+                                        next_structure_type,
+                                        baseDepth,
+                                        invariantBoost,
                                     ),
-                                    lambda s, a, b: grammarSupportedCommand(
-                                        s, a, next_structure_type, b
+                                    lambda s, a, baseDepth, invariantBoost: grammarSupportedCommand(
+                                        s,
+                                        a,
+                                        next_structure_type,
+                                        baseDepth,
+                                        invariantBoost,
                                     ),
                                     inOrder,
                                     opPrecondition,
-                                    lambda ci: grammar(ci, next_structure_type),
+                                    lambda ci, baseDepth: grammar(
+                                        ci, next_structure_type, baseDepth
+                                    ),
                                     grammarQuery,
                                     grammarEquivalence,
                                     targetLang,
@@ -163,6 +191,7 @@ def search_crdt_structures(
                                     opArgTypeHint=opArgTypeHint,
                                     queryArgTypeHint=queryArgTypeHint,
                                     queryRetTypeHint=queryRetTypeHint,
+                                    baseDepth=baseDepth,
                                     log=False,
                                     skipSynth=True,
                                 )
@@ -170,10 +199,12 @@ def search_crdt_structures(
                                 # this is due to a grammar not being able to find a value
                                 continue
 
-                            print(f"Enqueueing #{next_uid}:", next_structure_type)
+                            print(
+                                f"Enqueueing #{next_uid} (structure: {next_structure_type}, base depth: {baseDepth})"
+                            )
                             start_times[next_uid] = time()
                             pool.apply_async(
-                                synthesize_crdt,
+                                synthesize_crdt_e2e,
                                 args=(
                                     q,
                                     next_structure_type,
@@ -192,6 +223,7 @@ def search_crdt_structures(
                                     opArgTypeHint,
                                     queryArgTypeHint,
                                     queryRetTypeHint,
+                                    baseDepth,
                                     filename,
                                     fnNameBase,
                                     loopsFile,
@@ -204,33 +236,47 @@ def search_crdt_structures(
                             queue_size += 1
 
                     if queue_size == 0:
-                        raise Exception("no more structures")
+                        if exitFirstSuccess:
+                            raise Exception("no more structures")
+                        else:
+                            break
                     else:
-                        (ret_uid, next_res_type, next_res) = q.get(
+                        (ret_uid, next_res_type, baseDepth, next_res) = q.get(
                             block=True, timeout=None
                         )
                         time_took = time() - start_times[ret_uid]
                         report.write(
-                            f'{ret_uid},{time_took},"{str(next_res_type)}",{next_res != None}\n'
+                            f'{ret_uid},{time_took},"{str(next_res_type)}",{1},{next_res != None}\n'
                         )
                         report.flush()
                         queue_size -= 1
-                        if next_res != None:
-                            break
+                        if isinstance(next_res, str):
+                            raise Exception(
+                                "Synthesis procedure crashed, aborting\n" + next_res
+                            )
+                        elif next_res != None:
+                            if exitFirstSuccess:
+                                break
                         else:
-                            print("Failed to synthesize with structure", next_res_type)
+                            print(
+                                f"Failed to synthesize #{ret_uid} (structure: {next_res_type}, base depth: {baseDepth})"
+                            )
 
-        if next_res == None:
-            raise Exception("Synthesis failed")
+        if exitFirstSuccess:
+            if next_res == None:
+                raise Exception("Synthesis failed")
+            else:
+                print(
+                    "\n========================= SYNTHESIS COMPLETE =========================\n"
+                )
+                print("State Structure:", next_res_type)
+                print("\nRuntime Logic:")
+                print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
+                return (next_res_type, next_res)  # type: ignore
         else:
-            print(
-                "\n========================= SYNTHESIS COMPLETE =========================\n"
-            )
-            print("State Structure:", next_res_type)
-            print("\nRuntime Logic:")
-            print("\n\n".join([c.toRosette() for c in next_res]))  # type: ignore
+            print(f"See report file ({reportFile}) for results")
+            return (next_res_type, [])
     finally:
         for p in process_tracker.all_processes:
-            print("Terminating process", p.pid)
             p.terminate()
         process_tracker.all_processes = []

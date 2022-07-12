@@ -1,5 +1,5 @@
-from metalift.actors import lattices
-from metalift.actors.lattices import Lattice
+from crdt_synthesis import lattices
+from crdt_synthesis.lattices import Lattice
 from metalift.ir import *
 
 import typing

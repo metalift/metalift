@@ -1,4 +1,5 @@
 from enum import Enum
+from re import L
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
@@ -183,6 +184,10 @@ class Expr:
             return Tuple(*[f(a) for a in self.args])
         elif isinstance(self, Let):
             return Let(*[f(a) for a in self.args])
+        elif isinstance(self, Lambda):
+            return Lambda(self.type.args[0], *[f(a) for a in self.args])
+        elif isinstance(self, Choose):
+            return Choose(*[f(a) for a in self.args])
         elif isinstance(self, TupleGet):
             return TupleGet(f(self.args[0]), *[f(a) for a in self.args[1:]])
         elif isinstance(self, Call):
@@ -195,6 +200,11 @@ class Expr:
             return CallValue(f(self.args[0]), *[f(a) for a in self.args[1:]])
         else:
             raise Exception("NYI: %s" % self)
+
+    def chooseArbitrarily(self) -> "Expr":
+        return self.mapArgs(
+            lambda x: x.chooseArbitrarily() if isinstance(x, Expr) else x
+        )
 
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
@@ -257,6 +267,8 @@ class Expr:
                     return TupleGet(*newArgs)
                 elif isinstance(e, Let):
                     return Let(*newArgs)
+                elif isinstance(e, Lambda):
+                    return Lambda(e.type.args[0], *newArgs)
                 else:
                     raise Exception("NYI: %s" % e)
             else:
@@ -664,7 +676,7 @@ class Eq(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -690,7 +702,7 @@ class Lt(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -715,7 +727,7 @@ class Le(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -740,7 +752,7 @@ class Gt(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -765,7 +777,7 @@ class Ge(Expr):
     def __init__(self, e1: Expr, e2: Expr) -> None:
         if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {parseTypeRef(e1.type).erase()} and {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -912,7 +924,15 @@ class Let(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
+        let_expr = (
+            self.args[1].name
+            if isinstance(self.args[1], ValueRef) and self.args[1].name != ""
+            else self.args[1]
+            if isinstance(self.args[1], str)
+            else self.args[1].toRosette()
+        )
+
+        return f"(let ([{self.args[0].toRosette()} {let_expr}]) {self.args[2].toRosette()})"
 
     def toSMT(self) -> str:
         return "(let ((%s %s)) %s)" % (
@@ -1387,7 +1407,7 @@ class Choose(Expr):
         Expr.__init__(self, args[0].type, args)
 
     def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]  # type: ignore
+        return self.args  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1406,40 +1426,9 @@ class Choose(Expr):
     def toSMT(self) -> str:
         retVal = []
 
-        if self.args[0] == "set-create":
-            return f"(as set.empty {self.type.toSMT()})"
-
-        if self.args[0] == "tupleGet":
-            argvals = self.args[:-1]
-        else:
-            argvals = self.args
-
-        for idx, a in enumerate(argvals):
+        for a in self.args:
             if isinstance(a, ValueRef) and a.name != "":
                 retVal.append(a.name)
-            elif (str(a)) == "make-tuple":
-                retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
-            elif (str(a)) == "tupleGet":
-                if self.args[idx + 1].args[0] == "make-tuple":
-                    retVal.append(
-                        "tuple%d_get%d"
-                        % (
-                            len(self.args[idx + 1].args) - 1,
-                            self.args[idx + 2].args[0],
-                        )
-                    )
-                else:
-                    # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
-                    freq: typing.Counter[str] = Counter(
-                        self.args[idx + 1].args[0].split("_")[1]
-                    )
-                    retVal.append(
-                        "tuple%d_get%d" % (freq["i"], self.args[idx + 2].args[0])
-                    )
-            elif (str(a)).startswith("set-"):
-                retVal.append("set.%s" % (str(a)[4:]))
-            elif (str(a)).startswith("map-"):
-                retVal.append("map_%s" % (str(a)[4:]))
             elif isinstance(a, str):
                 retVal.append(str(a))
             else:
@@ -1448,6 +1437,9 @@ class Choose(Expr):
         retT = "(" + " ".join(retVal) + ")"
 
         return retT
+
+    def chooseArbitrarily(self) -> "Expr":
+        return self.args[0]  # type: ignore
 
 
 class FnDecl(Expr):

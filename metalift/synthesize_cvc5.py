@@ -213,6 +213,7 @@ def synthesize(
     unboundedInts: bool = False,  # currently ignored
     optimize_vc_equality: bool = False,
     listBound: int = 2,  # currently ignored
+    log: bool = True,  # currently ignored
 ) -> typing.List[FnDecl]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):

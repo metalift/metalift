@@ -176,24 +176,25 @@ class SynthesizeFun(Protocol):
         unboundedInts: bool = False,
         optimize_vc_equality: bool = False,
         listBound: int = 2,
+        log: bool = True,
     ) -> typing.List[FnDecl]:
         ...
 
 
-def synthesize_actor(
+def synthesize_crdt(
     filename: str,
     fnNameBase: str,
     loopsFile: str,
     cvcPath: str,
     synthStateType: Type,
     initState: Callable[[], Expr],
-    grammarStateInvariant: Callable[[Expr, int], Expr],
-    grammarSupportedCommand: Callable[[Expr, typing.Any, int], Expr],
+    grammarStateInvariant: Callable[[Expr, int, int], Expr],
+    grammarSupportedCommand: Callable[[Expr, typing.Any, int, int], Expr],
     inOrder: Callable[[typing.Any, typing.Any], Expr],
     opPrecondition: Callable[[typing.Any], Expr],
-    grammar: Callable[[CodeInfo], Synth],
-    grammarQuery: Callable[[CodeInfo], Synth],
-    grammarEquivalence: Callable[[Expr, Expr, typing.List[Var]], Expr],
+    grammar: Callable[[CodeInfo, int], Synth],
+    grammarQuery: Callable[[CodeInfo, int], Synth],
+    grammarEquivalence: Callable[[Expr, Expr, typing.List[Var], int], Expr],
     targetLang: Callable[[], typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]]],
     synthesize: SynthesizeFun,
     stateTypeHint: typing.Optional[Type] = None,
@@ -204,6 +205,7 @@ def synthesize_actor(
     unboundedInts: bool = True,
     useOpList: bool = False,
     listBound: int = 1,
+    baseDepth: int = 2,
     invariantBoost: int = 0,
     log: bool = True,
     skipSynth: bool = False,
@@ -504,7 +506,7 @@ def synthesize_actor(
     )
     loopAndPsInfoStateTransition[0].modifiedVars = []
 
-    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransition[0])
+    stateTransitionSynthNode = grammar(loopAndPsInfoStateTransition[0], baseDepth)
 
     invAndPsStateTransition = (
         [
@@ -570,7 +572,7 @@ def synthesize_actor(
         else queryRetTypeHint
     )
     loopAndPsInfoQuery[0].modifiedVars = []
-    invAndPsQuery = [grammarQuery(ci) for ci in loopAndPsInfoQuery]
+    invAndPsQuery = [grammarQuery(ci, baseDepth) for ci in loopAndPsInfoQuery]
     # end query
 
     # begin init state
@@ -685,9 +687,14 @@ def synthesize_actor(
                     inputStateForEquivalence,
                     synthStateForEquivalence,
                     equivalenceQueryParams,
+                    baseDepth,
                 ),
                 *(
-                    [grammarStateInvariant(synthStateForEquivalence, invariantBoost)]
+                    [
+                        grammarStateInvariant(
+                            synthStateForEquivalence, baseDepth, invariantBoost
+                        )
+                    ]
                     if not useOpList
                     else []
                 ),
@@ -713,7 +720,7 @@ def synthesize_actor(
             Synth(
                 "supportedCommand",
                 grammarSupportedCommand(
-                    synthStateForSupported, argList, invariantBoost
+                    synthStateForSupported, argList, baseDepth, invariantBoost
                 ),
                 synthStateForSupported,
                 *argList,
@@ -771,10 +778,15 @@ def synthesize_actor(
             unboundedInts=unboundedInts,
             noVerify=useOpList,
             listBound=listBound,
+            log=log,
         )
     except VerificationFailed:
-        print("INCREASING LIST BOUND TO", listBound + 1)
-        return synthesize_actor(
+        # direct synthesis mode
+        print(
+            f"#{uid}: CVC5 failed to verify synthesized design, increasing Rosette data structure bounds to",
+            listBound + 1,
+        )
+        return synthesize_crdt(
             filename,
             fnNameBase,
             loopsFile,
@@ -798,13 +810,14 @@ def synthesize_actor(
             unboundedInts=unboundedInts,
             useOpList=useOpList,
             listBound=listBound + 1,
+            baseDepth=baseDepth,
             invariantBoost=invariantBoost,
             log=log,
         )
 
     if useOpList:
         print(
-            f"{uid}: Re-synthesizing to identify invariants (list bound: {listBound})"
+            f"#{uid}: Synthesizing invariants for unbounded verification (Rosette structure/history bound: {listBound})"
         )
         equivalence_fn = [x for x in out if x.args[0] == "equivalence"][0]
         state_transition_fn = [
@@ -847,7 +860,8 @@ def synthesize_actor(
         init_state_fn.args[1] = Tuple(*init_state_fn.args[1].args[:-1])
 
         try:
-            return synthesize_actor(
+            # attempt to synthesize the invariants
+            return synthesize_crdt(
                 filename,
                 fnNameBase,
                 loopsFile,
@@ -858,13 +872,15 @@ def synthesize_actor(
                 grammarSupportedCommand,
                 inOrder,
                 opPrecondition,
-                lambda _: Synth(
+                lambda _, _baseDepth: Synth(
                     state_transition_fn.args[0],
                     state_transition_fn.args[1],
                     *state_transition_fn.args[2:],
                 ),
-                lambda _: Synth(query_fn.args[0], query_fn.args[1], *query_fn.args[2:]),
-                lambda a, b, c: equivalence_fn.args[1],  # type: ignore
+                lambda _, _baseDepth: Synth(
+                    query_fn.args[0], query_fn.args[1], *query_fn.args[2:]
+                ),
+                lambda a, b, _baseDepth, _invariantBoost: equivalence_fn.args[1],  # type: ignore
                 targetLang,
                 synthesize,
                 stateTypeHint=stateTypeHint,
@@ -875,14 +891,17 @@ def synthesize_actor(
                 unboundedInts=unboundedInts,
                 useOpList=False,
                 listBound=listBound,
+                baseDepth=baseDepth,
                 invariantBoost=invariantBoost,
                 log=log,
             )
         except SynthesisFailed:
             try:
                 # try to re-verify with a larger bound
-                print(f"{uid}: RE-VERIFYING WITH LIST BOUND TO", listBound + 1)
-                return synthesize_actor(
+                print(
+                    f"#{uid}: re-verifying with history bound {listBound + 1} and attempting to re-synthesize invariants with deeper grammar"
+                )
+                return synthesize_crdt(
                     filename,
                     fnNameBase,
                     loopsFile,
@@ -893,14 +912,16 @@ def synthesize_actor(
                     grammarSupportedCommand,
                     inOrder,
                     opPrecondition,
-                    lambda ci: Synth(
+                    lambda ci, _baseDepth: Synth(
                         state_transition_fn.args[0],
                         state_transition_fn.args[1],
                         *ci.modifiedVars,
                         *ci.readVars,
                     ),
-                    lambda ci: Synth(query_fn.args[0], query_fn.args[1], *ci.readVars),
-                    lambda a, b, c: equivalence_fn.args[1],  # type: ignore
+                    lambda ci, _baseDepth: Synth(
+                        query_fn.args[0], query_fn.args[1], *ci.readVars
+                    ),
+                    lambda a, b, c, _baseDepth: equivalence_fn.args[1],  # type: ignore
                     targetLang,
                     synthesize,
                     stateTypeHint=stateTypeHint,
@@ -911,12 +932,15 @@ def synthesize_actor(
                     unboundedInts=unboundedInts,
                     useOpList=useOpList,
                     listBound=listBound + 1,
+                    baseDepth=baseDepth,
                     invariantBoost=invariantBoost + 1,
                     log=log,
                 )
             except SynthesisFailed:
-                print(f"{uid}: INCREASING LIST BOUND TO", listBound + 1)
-                return synthesize_actor(
+                print(
+                    f"#{uid}: could not synthesize invariants, re-synthesizing entire design with history bound {listBound + 1}"
+                )
+                return synthesize_crdt(
                     filename,
                     fnNameBase,
                     loopsFile,
@@ -940,6 +964,7 @@ def synthesize_actor(
                     unboundedInts=unboundedInts,
                     useOpList=useOpList,
                     listBound=listBound + 1,
+                    baseDepth=baseDepth,
                     invariantBoost=invariantBoost,
                     log=log,
                 )

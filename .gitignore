@@ -5,9 +5,15 @@ llvm-pass/build/
 synthesisLogs/
 tests/*.ll
 tests/*.loops
+crdt_tests/*.ll
+crdt_tests/*.loops
 tests/struct1.rkt
 tests/struct1.smt
 tests/uninterp.rkt
 tests/uninterp.smt
-benchmarks*.csv
+results*.csv
+search*.csv
+distribution*.png
 dist/
+rosette-packages/
+nixos.qcow2

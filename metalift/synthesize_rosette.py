@@ -72,6 +72,7 @@ def toExpr(
         if ast[0] == "define":
             return toExpr(ast[2], fnsType, varType, choices)
         elif ast[0] == "choose":
+            # TODO(shadaj): now that we have chooseArbitrarily we could parse things properly
             return toExpr(ast[1], fnsType, varType, choices)
         elif ast[0] in expr_bi.keys():
             return expr_bi[ast[0]](
@@ -235,6 +236,28 @@ def toExpr(
                 var_value,
                 toExpr(ast[2], fnsType, tmp_var_type, choices),
             )
+        elif ast[0] == "reduce_int":
+            data = toExpr(ast[1], fnsType, varType, choices)
+            fn = toExpr(
+                ast[2],
+                fnsType,
+                varType,
+                choices,
+                typeHint=Fn(Int(), data.type.args[0], Int()),
+            )
+            initial = toExpr(ast[3], fnsType, varType, choices)
+            return Call("reduce_int", Int(), data, fn, initial)
+        elif ast[0] == "reduce_bool":
+            data = toExpr(ast[1], fnsType, varType, choices)
+            fn = toExpr(
+                ast[2],
+                fnsType,
+                varType,
+                choices,
+                typeHint=Fn(Bool(), data.type.args[0], Bool()),
+            )
+            initial = toExpr(ast[3], fnsType, varType, choices)
+            return Call("reduce_bool", Bool(), data, fn, initial)
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
@@ -311,6 +334,7 @@ def synthesize(
     unboundedInts: bool = False,
     optimize_vc_equality: bool = False,
     listBound: int = 2,
+    log: bool = True,
 ) -> typing.List[FnDecl]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -374,12 +398,19 @@ def synthesize(
                 for l in typing.cast(IO[bytes], procSynthesis.stdout).readlines()
             ]
 
+            errSynth = [
+                l.decode("utf-8").rstrip("\n")
+                for l in typing.cast(IO[bytes], procSynthesis.stderr).readlines()
+            ]
+
             exitCode = procSynthesis.wait()
             if exitCode != 0:
                 if len(resultSynth) > 0 and resultSynth[0] == "#f":
                     raise SynthesisFailed(f"Synthesis failed: exit code {exitCode}")
                 else:
-                    raise Exception(f"Rosette failed: exit code {exitCode}")
+                    raise Exception(
+                        f"Rosette failed: exit code {exitCode}\n" + "\n".join(errSynth)
+                    )
 
             ##### End of Synthesis #####
 
@@ -428,7 +459,7 @@ def synthesize(
 
                 if ceName not in candidateDict:
                     # Rosette will not return a function if no choice needs to be made
-                    candidateDict[ceName] = synthFun.args[1]
+                    candidateDict[ceName] = synthFun.args[1].chooseArbitrarily()
 
                 candidatesSMT.append(
                     FnDecl(
@@ -440,12 +471,14 @@ def synthesize(
                 )
 
             ##### verification of synthesized ps/inv
-            print("====== verification")
+            if log:
+                print("====== verification")
 
             verifyLogs: typing.List[str] = []
 
             if noVerify:
-                print("Not verifying solution")
+                if log:
+                    print("Not verifying solution")
                 resultVerify = "unsat"
             else:
                 try:
@@ -482,21 +515,31 @@ def synthesize(
                         useRosette=True,
                     )
 
-            print("Verification Output:", resultVerify)
+            if not noVerify and log:
+                print("Verification Output:", resultVerify)
+
             if resultVerify == "unsat":
-                print(
-                    "Verified PS and INV Candidates ",
-                    "\n\n".join([str(c) for c in candidatesSMT]),
-                )
+                if log:
+                    if not noVerify:
+                        print(
+                            "Verified PS and INV Candidates ",
+                            "\n\n".join([str(c) for c in candidatesSMT]),
+                        )
+                    else:
+                        print(
+                            "Synthesized PS and INV Candidates ",
+                            "\n\n".join([str(c) for c in candidatesSMT]),
+                        )
                 return candidatesSMT
             else:
-                print(
-                    "verification failed",
-                    "\n\n".join([str(c) for c in candidatesSMT]),
-                )
-                print("\n".join(verifyLogs))
-                invGuess.append(resultSynth[1])
-                print(invGuess)
+                if log:
+                    print(
+                        "verification failed",
+                        "\n\n".join([str(c) for c in candidatesSMT]),
+                    )
+                    print("\n".join(verifyLogs))
+                    invGuess.append(resultSynth[1])
+                    print(invGuess)
                 raise VerificationFailed("Verification failed")
         finally:
             procSynthesis.terminate()
