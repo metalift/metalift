@@ -481,6 +481,37 @@ class Expr:
             else a
         ).simplify()
 
+    # convenience methods
+    def __add__(self, other: "Expr") -> "Add":
+        if isinstance(self, Add):
+            return Add(*self.args, other)
+        else:
+            return Add(self, other)
+
+    def __sub__(self, other: "Expr") -> "Sub":
+        if isinstance(self, Sub):
+            return Sub(*self.args, other)
+        else:
+            return Sub(self, other)
+
+    def __mul__(self, other: "Expr") -> "Mul":
+        if isinstance(self, Mul):
+            return Mul(*self.args, other)
+        else:
+            return Mul(self, other)
+
+    def __and__(self, other: "Expr") -> "And":
+        if isinstance(self, And):
+            return And(*self.args, other)
+        else:
+            return And(self, other)
+
+    def __or__(self, other: "Expr") -> "Or":
+        if isinstance(self, And):
+            return Or(*self.args, other)
+        else:
+            return Or(self, other)
+
 
 class Var(Expr):
     def __init__(self, name: str, ty: Type) -> None:
