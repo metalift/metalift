@@ -6,7 +6,7 @@ from metalift.transpiler import Transpiler
 ### Target language definition
 # computes x + y * z
 fma = Target("fma", [Int(), Int(), Int()], Int(),  # name, arg types, return type
-             lambda x,y,z: Add(x, Mul(y, z)),      # semantic def
+             lambda x,y,z: x + y * z,              # semantic def
              lambda a,b,c: f"fma({a.codegen()}, {b.codegen()}, {c.codegen()})")  # codegen fn
 
 Lit.codegen = lambda self: self.val()
@@ -25,11 +25,11 @@ def grammar_prog(readVars: typing.List[Var], retVal: Var, isLoop: bool) -> Dict[
         if depth == 0:
             return Choose(*readVars, IntLit(0))
         else:
-            return Choose(Add(vars(depth - 1, *readVars), vars(depth - 1, *readVars)), *readVars, IntLit(0))
+            return Choose(vars(depth-1, *readVars) + vars(depth-1, *readVars), *readVars, IntLit(0))
 
     rv = NonTerm(Int(), isStart=True)
-    return {rv: Add(fma.call(vars(1, *readVars), vars(1, *readVars), vars(1, *readVars)),
-                    fma.call(vars(1, *readVars), vars(1, *readVars), vars(1, *readVars)))}
+    return {rv: fma.call(vars(1, *readVars), vars(1, *readVars), vars(1, *readVars)) +
+                fma.call(vars(1, *readVars), vars(1, *readVars), vars(1, *readVars))}
 
 # using a non terminal with recursion inlined - not supported yet
 # def grammar_nonterm(readVars: typing.List[Var], retVal: Var, isLoop: bool) -> Dict[NonTerm, Expr]:
@@ -67,3 +67,4 @@ print(test(1,2,3,4))  # 2 * ((1 + 3) + 2 * 4) = 24
 """
 
     exec(code)
+
