@@ -179,7 +179,7 @@ benchmarks = {
             BoolLit(True),  # but if remove, can be anything next
         ),
         "opPrecondition": lambda op: BoolLit(True),
-        "stateTypeHint": Set(OpaqueInt()),
+        "stateTypeHint": SetT(OpaqueInt()),
         "opArgTypeHint": [BoolInt(), OpaqueInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
@@ -193,7 +193,7 @@ benchmarks = {
             Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
         ),
         "opPrecondition": lambda op: BoolLit(True),
-        "stateTypeHint": Set(OpaqueInt()),
+        "stateTypeHint": SetT(OpaqueInt()),
         "opArgTypeHint": [BoolInt(), OpaqueInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
@@ -207,7 +207,7 @@ benchmarks = {
             BoolLit(True),  # second can be insert or remove
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
-        "stateTypeHint": Set(OpaqueInt()),
+        "stateTypeHint": SetT(OpaqueInt()),
         "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),
@@ -221,7 +221,7 @@ benchmarks = {
             Not(Eq(arg2[0], IntLit(1))),  # but if remove, must be remove next
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
-        "stateTypeHint": Set(OpaqueInt()),
+        "stateTypeHint": SetT(OpaqueInt()),
         "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
         "queryRetTypeHint": BoolInt(),

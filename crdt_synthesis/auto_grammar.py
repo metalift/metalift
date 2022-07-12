@@ -41,51 +41,51 @@ def get_expansions(
     }
 
     def gen_set_ops(t: Type) -> None:
-        out[Set(t)] = [
-            lambda get: Call("set-minus", Set(t), get(Set(t)), get(Set(t))),
-            lambda get: Call("set-union", Set(t), get(Set(t)), get(Set(t))),
-            lambda get: Call("set-insert", Set(t), get(t), get(Set(t))),
+        out[SetT(t)] = [
+            lambda get: Call("set-minus", SetT(t), get(SetT(t)), get(SetT(t))),
+            lambda get: Call("set-union", SetT(t), get(SetT(t)), get(SetT(t))),
+            lambda get: Call("set-insert", SetT(t), get(t), get(SetT(t))),
         ]
 
-        out[Bool()].append(lambda get: Eq(get(Set(t)), get(Set(t))))
-        out[Bool()].append(lambda get: Eq(get(Set(t)), Call("set-create", Set(t))))
+        out[Bool()].append(lambda get: Eq(get(SetT(t)), get(SetT(t))))
+        out[Bool()].append(lambda get: Eq(get(SetT(t)), Call("set-create", SetT(t))))
         out[Bool()].append(
-            lambda get: Call("set-subset", Bool(), get(Set(t)), get(Set(t)))
+            lambda get: Call("set-subset", Bool(), get(SetT(t)), get(SetT(t)))
         )
-        out[Bool()].append(lambda get: Call("set-member", Bool(), get(t), get(Set(t))))
+        out[Bool()].append(lambda get: Call("set-member", Bool(), get(t), get(SetT(t))))
 
     for t in equality_supported_types:
         if t in input_types:
             gen_set_ops(t)
         else:
-            out[Set(t)] = []
+            out[SetT(t)] = []
 
-        if Set(t) in out_types:
-            out[Set(t)] += [
-                ((lambda t: lambda get: Call("set-create", Set(t)))(t))
+        if SetT(t) in out_types:
+            out[SetT(t)] += [
+                ((lambda t: lambda get: Call("set-create", SetT(t)))(t))
                 if t in input_types
-                else ((lambda t: lambda get: Call("set-create", Set(get(t).type)))(t)),
-                (lambda t: lambda get: Call("set-singleton", Set(t), get(t)))(t),
+                else ((lambda t: lambda get: Call("set-create", SetT(get(t).type)))(t)),
+                (lambda t: lambda get: Call("set-singleton", SetT(t), get(t)))(t),
             ]
 
     def gen_map_ops(k: Type, v: Type, allow_zero_create: bool) -> None:
-        if Map(k, v) in out_types:
-            if Map(k, v) not in out:
-                out[Map(k, v)] = []
-            out[Map(k, v)] += [
-                (lambda get: Call("map-create", Map(k, v)))
+        if MapT(k, v) in out_types:
+            if MapT(k, v) not in out:
+                out[MapT(k, v)] = []
+            out[MapT(k, v)] += [
+                (lambda get: Call("map-create", MapT(k, v)))
                 if allow_zero_create
-                else (lambda get: Call("map-create", Map(get(k).type, v))),
-                lambda get: Call("map-singleton", Map(k, v), get(k), get(v)),
+                else (lambda get: Call("map-create", MapT(get(k).type, v))),
+                lambda get: Call("map-singleton", MapT(k, v), get(k), get(v)),
             ]
 
         if v not in out:
             out[v] = []
 
-        if Map(k, v) in input_types:
+        if MapT(k, v) in input_types:
             if v.erase() == Int():
                 out[v] += [
-                    lambda get: Call("map-get", v, get(Map(k, v)), get(k), Lit(0, v)),
+                    lambda get: Call("map-get", v, get(MapT(k, v)), get(k), Lit(0, v)),
                 ]
 
                 if k == NodeIDInt() and allow_node_id_reductions:
@@ -97,7 +97,7 @@ def get_expansions(
                             lambda get: Call(
                                 "reduce_int",
                                 v,
-                                Call("map-values", List(v), get(Map(k, v))),
+                                Call("map-values", ListT(v), get(MapT(k, v))),
                                 Lambda(
                                     v,
                                     Add(merge_a, merge_b),
@@ -112,7 +112,7 @@ def get_expansions(
                     lambda get: Call(
                         "map-get",
                         v,
-                        get(Map(k, v)),
+                        get(MapT(k, v)),
                         get(k),
                         Choose(BoolLit(False), BoolLit(True)),
                     ),
@@ -126,7 +126,7 @@ def get_expansions(
                         lambda get: Call(
                             "reduce_bool",
                             v,
-                            Call("map-values", List(v), get(Map(k, v))),
+                            Call("map-values", ListT(v), get(MapT(k, v))),
                             Lambda(
                                 v,
                                 Or(merge_a, merge_b),
@@ -138,7 +138,7 @@ def get_expansions(
                         lambda get: Call(
                             "reduce_bool",
                             v,
-                            Call("map-values", List(v), get(Map(k, v))),
+                            Call("map-values", ListT(v), get(MapT(k, v))),
                             Lambda(
                                 v,
                                 And(merge_a, merge_b),
@@ -151,7 +151,7 @@ def get_expansions(
             elif v.name == "Map":
                 out[v] += [
                     lambda get: Call(
-                        "map-get", v, get(Map(k, v)), get(k), Call("map-create", v)
+                        "map-get", v, get(MapT(k, v)), get(k), Call("map-create", v)
                     ),
                 ]
             else:
@@ -345,7 +345,7 @@ def expand_lattice_logic(*inputs: typing.Tuple[Expr, Lattice]) -> typing.List[Ex
                     if lattice.valueType.ir_type() == Bool()
                     else "reduce_int",
                     lattice.valueType.ir_type(),
-                    Call("map-values", List(lattice.valueType.ir_type()), value),
+                    Call("map-values", ListT(lattice.valueType.ir_type()), value),
                     Lambda(
                         lattice.valueType.ir_type(),
                         lattice.valueType.merge(merge_a, merge_b),

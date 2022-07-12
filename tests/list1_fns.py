@@ -12,14 +12,14 @@ def grammar(ci: CodeInfo):
     if name.startswith("inv"):
 
         f = Choose(
-            Call("Select-pred", Fn(Bool(), *ci.readVars)),
-            Call("Select-pred1", Fn(Bool(), *ci.readVars)),
-            Call("Select-pred2", Fn(Bool(), *ci.readVars)),
+            Call("Select-pred", FnT(Bool(), *ci.readVars)),
+            Call("Select-pred1", FnT(Bool(), *ci.readVars)),
+            Call("Select-pred2", FnT(Bool(), *ci.readVars)),
         )
         a = Choose(
             ci.modifiedVars[0],
             *ci.readVars,
-            Call("Select", List(Int()), *ci.readVars, f)
+            Call("Select", ListT(Int()), *ci.readVars, f)
         )
         i = Choose(IntLit(0), IntLit(1))
         e = Choose(
@@ -28,12 +28,12 @@ def grammar(ci: CodeInfo):
                 Bool(),
                 Call(
                     "list_concat",
-                    List(Int()),
+                    ListT(Int()),
                     a,
                     Call(
                         "Select",
-                        List(Int()),
-                        Call("list_tail", List(Int()), a, ci.modifiedVars[1]),
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), a, ci.modifiedVars[1]),
                         f,
                     ),
                 ),
@@ -44,9 +44,9 @@ def grammar(ci: CodeInfo):
                 Bool(),
                 Call(
                     "list_concat",
-                    List(Int()),
+                    ListT(Int()),
                     a,
-                    Call("list_tail", List(Int()), a, ci.modifiedVars[1]),
+                    Call("list_tail", ListT(Int()), a, ci.modifiedVars[1]),
                 ),
                 a,
             ),
@@ -71,9 +71,9 @@ def grammar(ci: CodeInfo):
     else:  # ps
         rv = ci.modifiedVars[0]
         fns = Choose(
-            Call("Select-pred", Fn(Bool(), rv)),
-            Call("Select-pred1", Fn(Bool(), rv)),
-            Call("Select-pred2", Fn(Bool(), rv)),
+            Call("Select-pred", FnT(Bool(), rv)),
+            Call("Select-pred1", FnT(Bool(), rv)),
+            Call("Select-pred2", FnT(Bool(), rv)),
         )
         choices = Choose(
             Call("list_eq", Bool(), rv, *ci.readVars),
@@ -82,7 +82,7 @@ def grammar(ci: CodeInfo):
                     "list_eq",
                     Bool(),
                     rv,
-                    Call("Select", List(Int()), *ci.readVars, fns),
+                    Call("Select", ListT(Int()), *ci.readVars, fns),
                 )
             ),
         )
@@ -93,34 +93,34 @@ def grammar(ci: CodeInfo):
 def targetLang():
 
     arg = Var("n", Int())
-    select_pred = FnDecl("Select-pred", Fn(Bool()), Gt(arg, IntLit(2)), arg)
-    select_pred1 = FnDecl("Select-pred1", Fn(Bool()), Lt(arg, IntLit(10)), arg)
-    select_pred2 = FnDecl("Select-pred2", Fn(Bool()), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
-    data = Var("l", List(Int()))
-    f = Var("f", Fn(Bool()))
+    select_pred = FnDecl("Select-pred", FnT(Bool()), Gt(arg, IntLit(2)), arg)
+    select_pred1 = FnDecl("Select-pred1", FnT(Bool()), Lt(arg, IntLit(10)), arg)
+    select_pred2 = FnDecl("Select-pred2", FnT(Bool()), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
+    data = Var("l", ListT(Int()))
+    f = Var("f", FnT(Bool()))
     select_func = FnDecl(
         "Select",
-        List(Int()),
+        ListT(Int()),
         Ite(
             Eq(Call("list_length", Int(), data), IntLit(0)),
-            Call("list_empty", List(Int())),
+            Call("list_empty", ListT(Int())),
             Ite(
                 CallValue(f, Call("list_get", Int(), data, IntLit(0))),
                 Call(
                     "list_append",
-                    List(Int()),
+                    ListT(Int()),
                     Call(
                         "Select",
-                        List(Int()),
-                        Call("list_tail", List(Int()), data, IntLit(1)),
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), data, IntLit(1)),
                         f,
                     ),
                     Call("list_get", Int(), data, IntLit(0)),
                 ),
                 Call(
                     "Select",
-                    List(Int()),
-                    Call("list_tail", List(Int()), data, IntLit(1)),
+                    ListT(Int()),
+                    Call("list_tail", ListT(Int()), data, IntLit(1)),
                     f,
                 ),
             ),

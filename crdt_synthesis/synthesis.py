@@ -28,11 +28,11 @@ def opsListInvariant(
                 TupleGet(synthState, IntLit(len(synthStateType.args) - 1)),
                 Var(
                     f"{fnNameBase}_next_state",
-                    Fn(synthStateType, synthStateType, *opType.args),
+                    FnT(synthStateType, synthStateType, *opType.args),
                 ),
                 Var(
                     f"{fnNameBase}_init_state",
-                    Fn(synthStateType),
+                    FnT(synthStateType),
                 ),
             ),
             synthState,
@@ -70,19 +70,19 @@ def opListAdditionalFns(
         return Call("list_get", opType, l, i)
 
     def list_tail(l: Expr, i: Expr) -> Expr:
-        return Call("list_tail", List(opType), l, i)
+        return Call("list_tail", ListT(opType), l, i)
 
-    data = Var("data", List(opType))
+    data = Var("data", ListT(opType))
     next_state_fn = Var(
         "next_state_fn",
-        Fn(
+        FnT(
             synthStateType,
             synthStateType,
             *(opType.args if opType.name == "Tuple" else [opType]),
         ),
     )
 
-    init_state_fn = Var("init_state_fn", Fn(synthStateType))
+    init_state_fn = Var("init_state_fn", FnT(synthStateType))
 
     reduce_fn = FnDecl(
         "apply_state_transitions",
@@ -369,7 +369,7 @@ def synthesize_crdt(
             op_arg_types.append(parseTypeRef(origArgs[i + 1].type))  # type: ignore
         opType = TupleT(*op_arg_types) if len(op_arg_types) > 1 else op_arg_types[0]
         if useOpList:
-            synthStateType = TupleT(*synthStateType.args, List(opType))
+            synthStateType = TupleT(*synthStateType.args, ListT(opType))
             beforeSynthState.type = synthStateType
             afterSynthState.type = synthStateType
             initStateSynthState.type = synthStateType
@@ -516,7 +516,7 @@ def synthesize_crdt(
                     *stateTransitionSynthNode.args[1].args,
                     Call(
                         "list_prepend",
-                        List(opType),
+                        ListT(opType),
                         Tuple(*loopAndPsInfoStateTransition[0].readVars[1:])
                         if len(loopAndPsInfoStateTransition[0].readVars[1:]) > 1
                         else loopAndPsInfoStateTransition[0].readVars[1],
@@ -658,7 +658,7 @@ def synthesize_crdt(
             fnNameBase + "_init_state",
             Tuple(
                 *initStateSynthNode.args,
-                Call("list_empty", List(opType)),
+                Call("list_empty", ListT(opType)),
             )
             if useOpList
             else Tuple(

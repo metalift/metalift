@@ -68,13 +68,13 @@ class Set(Lattice):
     innerType: ir.Type
 
     def ir_type(self) -> ir.Type:
-        return ir.Set(self.innerType)
+        return ir.SetT(self.innerType)
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        return ir.Call("set-union", ir.Set(self.innerType), a, b)
+        return ir.Call("set-union", ir.SetT(self.innerType), a, b)
 
     def bottom(self) -> ir.Expr:
-        return ir.Call("set-create", ir.Set(self.innerType))
+        return ir.Call("set-create", ir.SetT(self.innerType))
 
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
@@ -89,7 +89,7 @@ class Map(Lattice):
     valueType: Lattice
 
     def ir_type(self) -> ir.Type:
-        return ir.Map(self.keyType, self.valueType.ir_type())
+        return ir.MapT(self.keyType, self.valueType.ir_type())
 
     def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
         v_a = ir.Var("map_merge_a", self.valueType.ir_type())
@@ -97,7 +97,7 @@ class Map(Lattice):
 
         return ir.Call(
             "map-union",
-            ir.Map(self.keyType, self.valueType.ir_type()),
+            ir.MapT(self.keyType, self.valueType.ir_type()),
             a,
             b,
             ir.Lambda(
@@ -115,7 +115,7 @@ class Map(Lattice):
         return ir.Call(
             "reduce_bool",
             ir.Bool(),
-            ir.Call("map-values", ir.List(self.valueType.ir_type()), v),
+            ir.Call("map-values", ir.ListT(self.valueType.ir_type()), v),
             ir.Lambda(
                 ir.Bool(),
                 ir.And(merge_a, self.valueType.check_is_valid(merge_b)),

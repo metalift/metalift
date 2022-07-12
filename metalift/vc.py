@@ -128,7 +128,7 @@ class VC:
 
         sorted_values = list(blocksMap.values())
         sorted_values.sort(key=lambda b: b.name)
-        blockVCs: List[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
+        blockVCs: ListT[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
 
         body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
 
@@ -330,9 +330,9 @@ class VC:
                 elif t == "i1":
                     s.mem[i] = Lit(False, Bool())
                 elif t == "%struct.list*":
-                    s.mem[i] = Lit(0, List(Int()))
+                    s.mem[i] = Lit(0, ListT(Int()))
                 elif t.startswith("%struct.set"):
-                    s.mem[i] = Lit(0, Set(Int()))
+                    s.mem[i] = Lit(0, SetT(Int()))
                 elif t.startswith("%struct.tup."):
                     retType = [Int() for i in range(int(t[-2]) + 1)]
                     s.mem[i] = Lit(0, TupleT(*retType))

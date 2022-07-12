@@ -12,7 +12,7 @@ def grammar(ci: CodeInfo):
     if name.startswith("inv"):
 
         a = Choose(
-            ci.modifiedVars[0], *ci.readVars, Call("Select", List(Int()), *ci.readVars)
+            ci.modifiedVars[0], *ci.readVars, Call("Select", ListT(Int()), *ci.readVars)
         )
         i = Choose(IntLit(0), IntLit(1))
         e = Choose(
@@ -21,12 +21,12 @@ def grammar(ci: CodeInfo):
                 Bool(),
                 Call(
                     "list_append",
-                    List(Int()),
+                    ListT(Int()),
                     a,
                     Call(
                         "Select",
-                        List(Int()),
-                        Call("list_tail", List(Int()), a, ci.modifiedVars[1]),
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), a, ci.modifiedVars[1]),
                     ),
                 ),
                 a,
@@ -36,9 +36,9 @@ def grammar(ci: CodeInfo):
                 Bool(),
                 Call(
                     "list_concat",
-                    List(Int()),
+                    ListT(Int()),
                     a,
-                    Call("list_tail", List(Int()), a, ci.modifiedVars[1]),
+                    Call("list_tail", ListT(Int()), a, ci.modifiedVars[1]),
                 ),
                 a,
             ),
@@ -64,9 +64,9 @@ def grammar(ci: CodeInfo):
         rv = ci.modifiedVars[0]
         choices = Choose(
             Call("list_eq", Bool(), rv, *ci.readVars),
-            (Call("list_eq", Bool(), rv, Call("Select", List(Int()), *ci.readVars))),
-            (Call("list_eq", Bool(), rv, Call("Select1", List(Int()), *ci.readVars))),
-            (Call("list_eq", Bool(), rv, Call("Select2", List(Int()), *ci.readVars))),
+            (Call("list_eq", Bool(), rv, Call("Select", ListT(Int()), *ci.readVars))),
+            (Call("list_eq", Bool(), rv, Call("Select1", ListT(Int()), *ci.readVars))),
+            (Call("list_eq", Bool(), rv, Call("Select2", ListT(Int()), *ci.readVars))),
         )
         return Synth(name, choices, *ci.modifiedVars, *ci.readVars)
 
@@ -77,29 +77,29 @@ def targetLang():
     select_pred = FnDecl("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
     select_pred1 = FnDecl("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
     select_pred2 = FnDecl("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
-    data = Var("l", List(Int()))
+    data = Var("l", ListT(Int()))
     select_func = FnDecl(
         "Select",
-        List(Int()),
+        ListT(Int()),
         Ite(
             Eq(Call("list_length", Int(), data), IntLit(0)),
-            Call("list_empty", List(Int())),
+            Call("list_empty", ListT(Int())),
             Ite(
                 Call("Select-pred", Bool(), Call("list_get", Int(), data, IntLit(0))),
                 Call(
                     "list_append",
-                    List(Int()),
+                    ListT(Int()),
                     Call(
                         "Select",
-                        List(Int()),
-                        Call("list_tail", List(Int()), data, IntLit(1)),
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), data, IntLit(1)),
                     ),
                     Call("list_get", Int(), data, IntLit(0)),
                 ),
                 Call(
                     "Select",
-                    List(Int()),
-                    Call("list_tail", List(Int()), data, IntLit(1)),
+                    ListT(Int()),
+                    Call("list_tail", ListT(Int()), data, IntLit(1)),
                 ),
             ),
         ),
@@ -107,26 +107,26 @@ def targetLang():
     )
     select_func1 = FnDecl(
         "Select1",
-        List(Int()),
+        ListT(Int()),
         Ite(
             Eq(Call("list_length", Int(), data), IntLit(0)),
-            Call("list_empty", List(Int())),
+            Call("list_empty", ListT(Int())),
             Ite(
                 Call("Select-pred1", Bool(), Call("list_get", Int(), data, IntLit(0))),
                 Call(
                     "list_append",
-                    List(Int()),
+                    ListT(Int()),
                     Call(
                         "Select1",
-                        List(Int()),
-                        Call("list_tail", List(Int()), data, IntLit(1)),
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), data, IntLit(1)),
                     ),
                     Call("list_get", Int(), data, IntLit(0)),
                 ),
                 Call(
                     "Select1",
-                    List(Int()),
-                    Call("list_tail", List(Int()), data, IntLit(1)),
+                    ListT(Int()),
+                    Call("list_tail", ListT(Int()), data, IntLit(1)),
                 ),
             ),
         ),
@@ -134,26 +134,26 @@ def targetLang():
     )
     select_func2 = FnDecl(
         "Select2",
-        List(Int()),
+        ListT(Int()),
         Ite(
             Eq(Call("list_length", Int(), data), IntLit(0)),
-            Call("list_empty", List(Int())),
+            Call("list_empty", ListT(Int())),
             Ite(
                 Call("Select-pred2", Bool(), Call("list_get", Int(), data, IntLit(0))),
                 Call(
                     "list_append",
-                    List(Int()),
+                    ListT(Int()),
                     Call(
                         "Select2",
-                        List(Int()),
-                        Call("list_tail", List(Int()), data, IntLit(1)),
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), data, IntLit(1)),
                     ),
                     Call("list_get", Int(), data, IntLit(0)),
                 ),
                 Call(
                     "Select2",
-                    List(Int()),
-                    Call("list_tail", List(Int()), data, IntLit(1)),
+                    ListT(Int()),
+                    Call("list_tail", ListT(Int()), data, IntLit(1)),
                 ),
             ),
         ),

@@ -7,14 +7,14 @@ from metalift.ir import (
     FnDecl,
     Var,
     Ite,
-    List,
+    ListT,
     Bool,
-    Fn,
+    FnT,
     PrintMode,
 )
 
-f = Var("f", Fn(Bool()))
-data = Var("l", List(Int()))
+f = Var("f", FnT(Bool()))
+data = Var("l", ListT(Int()))
 
 
 def list_length(l):
@@ -22,7 +22,7 @@ def list_length(l):
 
 
 def list_empty():
-    return Call("list_empty", List(Int()))
+    return Call("list_empty", ListT(Int()))
 
 
 def list_get(l, i):
@@ -30,27 +30,27 @@ def list_get(l, i):
 
 
 def list_tail(l, i):
-    return Call("list_tail", List(Int()), l, i)
+    return Call("list_tail", ListT(Int()), l, i)
 
 
 def list_append(l1, l2):
-    return Call("list_append", List(Int()), l1, l2)
+    return Call("list_append", ListT(Int()), l1, l2)
 
 
 ir.printMode = PrintMode.RosetteVC
 select_func = FnDecl(
     "Select",
-    List(Int()),
+    ListT(Int()),
     Ite(
         Eq(list_length(data), IntLit(0)),
         list_empty(),
         Ite(
             Call(f.args[0], Bool(), list_get(data, IntLit(0))),
             list_append(
-                Call("Select", List(Int()), list_tail(data, IntLit(1)), f),
+                Call("Select", ListT(Int()), list_tail(data, IntLit(1)), f),
                 list_get(data, IntLit(0)),
             ),
-            Call("Select", List(Int()), list_tail(data, IntLit(1)), f),
+            Call("Select", ListT(Int()), list_tail(data, IntLit(1)), f),
         ),
     ),
     data,

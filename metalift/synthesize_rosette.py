@@ -102,12 +102,12 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-empty":
-            return Call("list_empty", List(Int()))
+            return Call("list_empty", ListT(Int()))
         elif ast[0] == "list-append" or ast[0] == "append":
             elem = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
-                List(elem.type),
+                ListT(elem.type),
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
@@ -115,7 +115,7 @@ def toExpr(
             elem = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_prepend",
-                List(elem.type),
+                ListT(elem.type),
                 elem,
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -138,14 +138,14 @@ def toExpr(
         elif ast[0] == "list-concat":
             return Call(
                 "list_concat",
-                List(Int()),
+                ListT(Int()),
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-take-noerr":
             return Call(
                 "list_take",
-                List(Int()),
+                ListT(Int()),
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -160,14 +160,14 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "set-create":
-            return Call(ast[0], Set(Int()))
+            return Call(ast[0], SetT(Int()))
         elif ast[0] == "set-insert":
             v = toExpr(ast[1], fnsType, varType, choices)
             s1 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], Set(v.type), v, s1)
+            return Call(ast[0], SetT(v.type), v, s1)
         elif ast[0] == "set-singleton":
             v = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], Set(v.type), v)
+            return Call(ast[0], SetT(v.type), v)
         elif ast[0] == "set-eq":
             s1 = toExpr(ast[1], fnsType, varType, choices)
             s2 = toExpr(ast[2], fnsType, varType, choices)
@@ -198,19 +198,19 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=Fn(m1.type.args[1], m1.type.args[1], m1.type.args[1]),
+                typeHint=FnT(m1.type.args[1], m1.type.args[1], m1.type.args[1]),
             )
 
             return Call(ast[0], m1.type, m1, m2, uf)
         elif ast[0] == "map-values":
             m = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], List(m.type.args[1]), m)
+            return Call(ast[0], ListT(m.type.args[1]), m)
         elif ast[0] == "map-singleton":
             k = toExpr(ast[1], fnsType, varType, choices)
             v = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], Map(k.type, v.type), k, v)
+            return Call(ast[0], MapT(k.type, v.type), k, v)
         elif ast[0] == "map-create":
-            return Call(ast[0], Map(None, None))  # type: ignore
+            return Call(ast[0], MapT(None, None))  # type: ignore
         elif ast[0] == "map-get":
             m = toExpr(ast[1], fnsType, varType, choices)
             k = toExpr(ast[2], fnsType, varType, choices)
@@ -243,7 +243,7 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=Fn(Int(), data.type.args[0], Int()),
+                typeHint=FnT(Int(), data.type.args[0], Int()),
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
             return Call("reduce_int", Int(), data, fn, initial)
@@ -254,7 +254,7 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=Fn(Bool(), data.type.args[0], Bool()),
+                typeHint=FnT(Bool(), data.type.args[0], Bool()),
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
             return Call("reduce_bool", Bool(), data, fn, initial)
@@ -433,7 +433,7 @@ def synthesize(
                 for synthFun in invAndPs:
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
-                    fnsType[ceName] = Fn(
+                    fnsType[ceName] = FnT(
                         synthFun.args[1].type,
                         *[v.type for v in allVars],
                     )

@@ -3,7 +3,7 @@ from typing import Callable, Dict
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, Set, Type, parseTypeRef
+from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, SetT, Type, parseTypeRef
 from metalift.vc_util import parseOperand
 
 ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
@@ -107,12 +107,12 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "setField": setField,
     # names for set.h
     "set_create": lambda regs, mem, gvars, *args: ReturnValue(
-        Call("set-create", Set(Int())), None
+        Call("set-create", SetT(Int())), None
     ),
     "set_add": lambda regs, mem, gvars, *args: ReturnValue(
         Call(
             "set-insert",
-            Set(Int()),
+            SetT(Int()),
             parseOperand(args[1], regs),
             parseOperand(args[0], regs),
         ),
@@ -121,9 +121,9 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "set_remove": lambda regs, mem, gvars, *args: ReturnValue(
         Call(
             "set-minus",
-            Set(Int()),
+            SetT(Int()),
             parseOperand(args[0], regs),
-            Call("set-singleton", Set(Int()), parseOperand(args[1], regs)),
+            Call("set-singleton", SetT(Int()), parseOperand(args[1], regs)),
         ),
         None,
     ),

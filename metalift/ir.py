@@ -122,19 +122,19 @@ def Pointer(t: Type) -> Type:
     return Type("Pointer", t)
 
 
-def List(contentT: Type) -> Type:
+def ListT(contentT: Type) -> Type:
     return Type("MLList", contentT)
 
 
-def Fn(retT: Type, *argT: Type) -> Type:
+def FnT(retT: Type, *argT: Type) -> Type:
     return Type("Function", retT, *argT)
 
 
-def Set(contentT: Type) -> Type:
+def SetT(contentT: Type) -> Type:
     return Type("Set", contentT)
 
 
-def Map(keyT: Type, valT: Type) -> Type:
+def MapT(keyT: Type, valT: Type) -> Type:
     return Type("Map", keyT, valT)
 
 
@@ -1446,7 +1446,7 @@ class FnDecl(Expr):
     def __init__(
         self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
     ) -> None:
-        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, body, *args])
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
@@ -1526,7 +1526,7 @@ class FnDecl(Expr):
 
 class FnDefine(Expr):
     def __init__(self, name: str, returnT: Type, *args: Expr) -> None:
-        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, *args])
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, *args])
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
@@ -1576,7 +1576,7 @@ class FnDefine(Expr):
 
 class Lambda(Expr):
     def __init__(self, returnT: Type, body: Expr, *args: Expr) -> None:
-        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [body, *args])
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [body, *args])
 
     def body(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1610,7 +1610,7 @@ class FnDeclNonRecursive(Expr):
     def __init__(
         self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
     ) -> None:
-        Expr.__init__(self, Fn(returnT, *[a.type for a in args]), [name, body, *args])
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
@@ -1834,7 +1834,7 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):
-        return Set(Int())
+        return SetT(Int())
     elif tyStr == "(Function Bool)":
         return Type("Function", Bool())
     elif tyStr == "(Function Int)":

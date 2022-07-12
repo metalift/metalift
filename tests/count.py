@@ -18,13 +18,13 @@ def grammar(ci: CodeInfo):
                     Int(),
                     Call(
                         "map",
-                        List(Int()),
+                        ListT(Int()),
                         Call(
-                            "list_take", List(Int()), ci.readVars[0], ci.modifiedVars[1]
+                            "list_take", ListT(Int()), ci.readVars[0], ci.modifiedVars[1]
                         ),
-                        Var("lm", Fn(Int(), Int())),
+                        Var("lm", FnT(Int(), Int())),
                     ),
-                    Var("lr", Fn(Int(), Int(), Int())),
+                    Var("lr", FnT(Int(), Int(), Int())),
                 ),
             ),
             Ge(
@@ -34,13 +34,13 @@ def grammar(ci: CodeInfo):
                     Int(),
                     Call(
                         "map",
-                        List(Int()),
+                        ListT(Int()),
                         Call(
-                            "list_take", List(Int()), ci.readVars[0], ci.modifiedVars[1]
+                            "list_take", ListT(Int()), ci.readVars[0], ci.modifiedVars[1]
                         ),
-                        Var("lm", Fn(Int(), Int())),
+                        Var("lm", FnT(Int(), Int())),
                     ),
-                    Var("lr", Fn(Int(), Int(), Int())),
+                    Var("lr", FnT(Int(), Int(), Int())),
                 ),
             ),
         )
@@ -65,8 +65,8 @@ def grammar(ci: CodeInfo):
 
     elif name.startswith("test"):  # ps
         rv = ci.modifiedVars[0]
-        m = Choose(Var("lm", Fn(Int(), Int())))
-        r = Choose(Var("lr", Fn(Int(), Int(), Int())))
+        m = Choose(Var("lm", FnT(Int(), Int())))
+        r = Choose(Var("lr", FnT(Int(), Int(), Int())))
 
         choices = Choose(
             Eq(
@@ -74,8 +74,8 @@ def grammar(ci: CodeInfo):
                 Call(
                     "reduce",
                     Int(),
-                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int(), Int()))),
-                    Var("lr", Fn(Int(), Int(), Int())),
+                    Call("map", ListT(Int()), ci.readVars[0], Var("lm", FnT(Int(), Int()))),
+                    Var("lr", FnT(Int(), Int(), Int())),
                 ),
             ),
             Gt(
@@ -83,8 +83,8 @@ def grammar(ci: CodeInfo):
                 Call(
                     "reduce",
                     Int(),
-                    Call("map", List(Int()), ci.readVars[0], Var("lm", Fn(Int(), Int()))),
-                    Var("lr", Fn(Int(), Int(), Int())),
+                    Call("map", ListT(Int()), ci.readVars[0], Var("lm", FnT(Int(), Int()))),
+                    Var("lr", FnT(Int(), Int(), Int())),
                 ),
             ),
         )
@@ -109,34 +109,34 @@ def targetLang():
         return Call("list_length", Int(), l)
 
     def list_empty():
-        return Call("list_empty", List(Int()))
+        return Call("list_empty", ListT(Int()))
 
     def list_get(l, i):
         return Call("list_get", Int(), l, i)
 
     def list_tail(l, i):
-        return Call("list_tail", List(Int()), l, i)
+        return Call("list_tail", ListT(Int()), l, i)
 
-    data = Var("data", List(Int()))
+    data = Var("data", ListT(Int()))
     arg2 = Var("val", Int())
     arg3 = Var("val2", Int())
 
-    lm_fn = Var("f", Fn(Int(), Int()))
-    lr_fn = Var("f", Fn(Int(), Int(), Int()))
+    lm_fn = Var("f", FnT(Int(), Int()))
+    lr_fn = Var("f", FnT(Int(), Int(), Int()))
 
     mapper = FnDecl("lm", Int(), None, arg2)
     reducer = FnDecl("lr", Int(), None, arg2, arg3)
     map_fn = FnDecl(
         "map",
-        List(Int()),
+        ListT(Int()),
         Ite(
             Eq(list_length(data), IntLit(0)),
             list_empty(),
             Call(
                 "list_prepend",
-                List(Int()),
+                ListT(Int()),
                 CallValue(lm_fn, list_get(data, IntLit(0))),
-                Call("map", List(Int()), list_tail(data, IntLit(1)), lm_fn),
+                Call("map", ListT(Int()), list_tail(data, IntLit(1)), lm_fn),
             ),
         ),
         data,
@@ -159,7 +159,7 @@ def targetLang():
         lr_fn,
     )
 
-    mr_axiom_data = Var("data", List(Int()))
+    mr_axiom_data = Var("data", ListT(Int()))
     mr_axiom_index = Var("index", Int())
     map_reduce_axiom = Axiom(
         Implies(
@@ -170,16 +170,16 @@ def targetLang():
                     Int(),
                     Call(
                         "map",
-                        List(Int()),
+                        ListT(Int()),
                         Call(
                             "list_take",
-                            List(Int()),
+                            ListT(Int()),
                             mr_axiom_data,
                             Add(mr_axiom_index, IntLit(1))
                         ),
-                        Var("lm", Fn(Int(), Int()))
+                        Var("lm", FnT(Int(), Int()))
                     ),
-                    Var("lr", Fn(Int(), Int(), Int())),
+                    Var("lr", FnT(Int(), Int(), Int())),
                 ),
                 Call(
                     "lr",
@@ -189,16 +189,16 @@ def targetLang():
                         Int(),
                         Call(
                             "map",
-                            List(Int()),
+                            ListT(Int()),
                             Call(
                                 "list_take",
-                                List(Int()),
+                                ListT(Int()),
                                 mr_axiom_data,
                                 mr_axiom_index
                             ),
-                            Var("lm", Fn(Int(), Int()))
+                            Var("lm", FnT(Int(), Int()))
                         ),
-                        Var("lr", Fn(Int(), Int(), Int())),
+                        Var("lr", FnT(Int(), Int(), Int())),
                     ),
                     Call(
                         "lm",
