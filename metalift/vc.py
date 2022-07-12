@@ -401,6 +401,9 @@ class VC:
 
             elif opcode == "call":  # last arg is fn to be called
                 fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+                if fnName == "":
+                    # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+                    fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
                 if fnName in models.fnModels:
                     rv = models.fnModels[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
                     if rv.val:

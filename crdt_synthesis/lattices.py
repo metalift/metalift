@@ -46,7 +46,7 @@ class MaxInt(Lattice):
 
 
 @dataclass(frozen=True)
-class PosBool(Lattice):
+class OrBool(Lattice):
     def ir_type(self) -> ir.Type:
         return ir.Bool()
 
@@ -55,24 +55,6 @@ class PosBool(Lattice):
 
     def bottom(self) -> ir.Expr:
         return ir.BoolLit(False)
-
-    def check_is_valid(self, v: ir.Expr) -> ir.Expr:
-        return ir.BoolLit(True)
-
-    def has_node_id(self) -> bool:
-        return False
-
-
-@dataclass(frozen=True)
-class NegBool(Lattice):
-    def ir_type(self) -> ir.Type:
-        return ir.Bool()
-
-    def merge(self, a: ir.Expr, b: ir.Expr) -> ir.Expr:
-        return ir.And(a, b)
-
-    def bottom(self) -> ir.Expr:
-        return ir.BoolLit(True)
 
     def check_is_valid(self, v: ir.Expr) -> ir.Expr:
         return ir.BoolLit(True)
@@ -148,7 +130,7 @@ class Map(Lattice):
 
 
 @dataclass(frozen=True)
-class CascadingTuple(Lattice):
+class LexicalProduct(Lattice):
     l1: Lattice
     l2: Lattice
 
@@ -230,40 +212,41 @@ set_supported_elem = {ir.Int().name, ir.OpaqueInt().name}
 map_supported_elem = {ir.OpaqueInt().name, ir.NodeIDInt().name}
 
 
-def gen_lattice_types(depth: int) -> typing.Iterator[Lattice]:
-    if depth == 1:
-        yield PosBool()
-        # yield NegBool()
+def gen_lattice_types(max_depth: int) -> typing.Iterator[Lattice]:
+    if max_depth == 1:
+        yield OrBool()
 
-    for innerType in gen_types(depth):
+    for innerType in gen_types(max_depth):
         if innerType.name in comparable_int:
             yield MaxInt(innerType)
 
-    if depth > 1:
-        for innerLatticeType in gen_lattice_types(depth - 1):
+    if max_depth > 1:
+        for innerLatticeType in gen_lattice_types(max_depth - 1):
             yield innerLatticeType
 
-        for innerType in gen_types(depth - 1):
+        for innerType in gen_types(max_depth - 1):
             if innerType.name in set_supported_elem:
                 yield Set(innerType)
 
-        for keyType in gen_types(depth - 1):
+        for keyType in gen_types(max_depth - 1):
             if keyType.name in map_supported_elem:
-                for valueType in gen_lattice_types(depth - 1):
+                for valueType in gen_lattice_types(max_depth - 1):
                     yield Map(keyType, valueType)
 
-        for innerTypePair in itertools.permutations(gen_lattice_types(depth - 1), 2):
-            yield CascadingTuple(*innerTypePair)
+        for innerTypePair in itertools.permutations(
+            gen_lattice_types(max_depth - 1), 2
+        ):
+            yield LexicalProduct(*innerTypePair)
 
 
-def gen_structures() -> typing.Iterator[typing.Any]:
-    cur_type_depth = 2
+def gen_structures(max_depth: int) -> typing.Iterator[typing.Any]:
+    cur_type_depth = 1
     seen = set()
-    while True:
-        print(f"Maximum type depth: {cur_type_depth}")
+    while cur_type_depth <= max_depth:
+        print(f"Type depth: {cur_type_depth}")
         cur_tuple_size = 1
-        while cur_tuple_size < cur_type_depth * 2:
-            print(f"Maximum tuple size: {cur_tuple_size}")
+        while cur_tuple_size <= cur_type_depth:
+            print(f"Tuple size: {cur_tuple_size}")
             for lattice_types in itertools.combinations_with_replacement(
                 gen_lattice_types(cur_type_depth), cur_tuple_size
             ):

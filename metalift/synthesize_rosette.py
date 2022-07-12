@@ -334,6 +334,7 @@ def synthesize(
     unboundedInts: bool = False,
     optimize_vc_equality: bool = False,
     listBound: int = 2,
+    log: bool = True,
 ) -> typing.List[FnDecl]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -397,12 +398,19 @@ def synthesize(
                 for l in typing.cast(IO[bytes], procSynthesis.stdout).readlines()
             ]
 
+            errSynth = [
+                l.decode("utf-8").rstrip("\n")
+                for l in typing.cast(IO[bytes], procSynthesis.stderr).readlines()
+            ]
+
             exitCode = procSynthesis.wait()
             if exitCode != 0:
                 if len(resultSynth) > 0 and resultSynth[0] == "#f":
                     raise SynthesisFailed(f"Synthesis failed: exit code {exitCode}")
                 else:
-                    raise Exception(f"Rosette failed: exit code {exitCode}")
+                    raise Exception(
+                        f"Rosette failed: exit code {exitCode}\n" + "\n".join(errSynth)
+                    )
 
             ##### End of Synthesis #####
 
@@ -463,12 +471,14 @@ def synthesize(
                 )
 
             ##### verification of synthesized ps/inv
-            print("====== verification")
+            if log:
+                print("====== verification")
 
             verifyLogs: typing.List[str] = []
 
             if noVerify:
-                print("Not verifying solution")
+                if log:
+                    print("Not verifying solution")
                 resultVerify = "unsat"
             else:
                 try:
@@ -505,21 +515,31 @@ def synthesize(
                         useRosette=True,
                     )
 
-            print("Verification Output:", resultVerify)
+            if not noVerify and log:
+                print("Verification Output:", resultVerify)
+
             if resultVerify == "unsat":
-                print(
-                    "Verified PS and INV Candidates ",
-                    "\n\n".join([str(c) for c in candidatesSMT]),
-                )
+                if log:
+                    if not noVerify:
+                        print(
+                            "Verified PS and INV Candidates ",
+                            "\n\n".join([str(c) for c in candidatesSMT]),
+                        )
+                    else:
+                        print(
+                            "Synthesized PS and INV Candidates ",
+                            "\n\n".join([str(c) for c in candidatesSMT]),
+                        )
                 return candidatesSMT
             else:
-                print(
-                    "verification failed",
-                    "\n\n".join([str(c) for c in candidatesSMT]),
-                )
-                print("\n".join(verifyLogs))
-                invGuess.append(resultSynth[1])
-                print(invGuess)
+                if log:
+                    print(
+                        "verification failed",
+                        "\n\n".join([str(c) for c in candidatesSMT]),
+                    )
+                    print("\n".join(verifyLogs))
+                    invGuess.append(resultSynth[1])
+                    print(invGuess)
                 raise VerificationFailed("Verification failed")
         finally:
             procSynthesis.terminate()

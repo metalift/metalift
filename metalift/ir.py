@@ -893,7 +893,15 @@ class Let(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return f"(let ([{self.args[0].toRosette()} {self.args[1].toRosette() if isinstance(self.args[1], Expr) else str(self.args[1])}]) {self.args[2].toRosette()})"
+        let_expr = (
+            self.args[1].name
+            if isinstance(self.args[1], ValueRef) and self.args[1].name != ""
+            else self.args[1]
+            if isinstance(self.args[1], str)
+            else self.args[1].toRosette()
+        )
+
+        return f"(let ([{self.args[0].toRosette()} {let_expr}]) {self.args[2].toRosette()})"
 
     def toSMT(self) -> str:
         return "(let ((%s %s)) %s)" % (
@@ -1387,40 +1395,9 @@ class Choose(Expr):
     def toSMT(self) -> str:
         retVal = []
 
-        if self.args[0] == "set-create":
-            return f"(as set.empty {self.type.toSMT()})"
-
-        if self.args[0] == "tupleGet":
-            argvals = self.args[:-1]
-        else:
-            argvals = self.args
-
-        for idx, a in enumerate(argvals):
+        for a in self.args:
             if isinstance(a, ValueRef) and a.name != "":
                 retVal.append(a.name)
-            elif (str(a)) == "make-tuple":
-                retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
-            elif (str(a)) == "tupleGet":
-                if self.args[idx + 1].args[0] == "make-tuple":
-                    retVal.append(
-                        "tuple%d_get%d"
-                        % (
-                            len(self.args[idx + 1].args) - 1,
-                            self.args[idx + 2].args[0],
-                        )
-                    )
-                else:
-                    # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
-                    freq: typing.Counter[str] = Counter(
-                        self.args[idx + 1].args[0].split("_")[1]
-                    )
-                    retVal.append(
-                        "tuple%d_get%d" % (freq["i"], self.args[idx + 2].args[0])
-                    )
-            elif (str(a)).startswith("set-"):
-                retVal.append("set.%s" % (str(a)[4:]))
-            elif (str(a)).startswith("map-"):
-                retVal.append("map_%s" % (str(a)[4:]))
             elif isinstance(a, str):
                 retVal.append(str(a))
             else:

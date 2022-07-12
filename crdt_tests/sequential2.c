@@ -1,5 +1,3 @@
-#include "set.h"
-
 int test_init_state() {
   int out = 0;
   return out;
