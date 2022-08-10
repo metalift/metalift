@@ -6,7 +6,7 @@ import typing
 from typing import Union, Dict
 from llvmlite.binding import ValueRef
 
-equality_supported_types = [Bool(), Int(), ClockInt(), BoolInt(), OpaqueInt()]
+equality_supported_types = [Bool(), Int(), ClockInt(), EnumInt(), OpaqueInt()]
 comparison_supported_types = [Int(), ClockInt(), OpaqueInt()]
 
 
@@ -171,10 +171,10 @@ def get_expansions(
             lambda get: Sub(get(Int()), get(Int())),
         ]
 
-    if BoolInt() in available_types:
-        if BoolInt() not in out:
-            out[BoolInt()] = []
-        out[BoolInt()] += [(lambda i: lambda get: BoolIntLit(i))(i) for i in range(2)]
+    if EnumInt() in available_types:
+        if EnumInt() not in out:
+            out[EnumInt()] = []
+        out[EnumInt()] += [(lambda i: lambda get: EnumIntLit(i))(i) for i in range(2)]
 
     if ClockInt() in input_types:
         if ClockInt() not in out:
