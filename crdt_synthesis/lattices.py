@@ -196,7 +196,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
     if depth == 1:
         yield ir.Int()
         yield ir.ClockInt()
-        yield ir.BoolInt()
+        yield ir.EnumInt()
         yield ir.OpaqueInt()
         yield ir.NodeIDInt()
         yield ir.Bool()
@@ -206,7 +206,7 @@ def gen_types(depth: int) -> typing.Iterator[ir.Type]:
             # TODO: anything else?
 
 
-int_like = {ir.Int().name, ir.ClockInt().name, ir.BoolInt().name, ir.OpaqueInt().name}
+int_like = {ir.Int().name, ir.ClockInt().name, ir.EnumInt().name, ir.OpaqueInt().name}
 comparable_int = {ir.Int().name, ir.ClockInt().name, ir.OpaqueInt().name}
 set_supported_elem = {ir.Int().name, ir.OpaqueInt().name}
 map_supported_elem = {ir.OpaqueInt().name, ir.NodeIDInt().name}

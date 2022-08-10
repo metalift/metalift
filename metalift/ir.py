@@ -25,7 +25,7 @@ class Type:
         if (
             self.name == "Int"
             or self.name == "ClockInt"
-            or self.name == "BoolInt"
+            or self.name == "EnumInt"
             or self.name == "OpaqueInt"
             or self.name == "NodeIDInt"
         ):
@@ -56,7 +56,7 @@ class Type:
     def erase(self) -> "Type":
         if (
             self.name == "ClockInt"
-            or self.name == "BoolInt"
+            or self.name == "EnumInt"
             or self.name == "OpaqueInt"
             or self.name == "NodeIDInt"
         ):
@@ -97,8 +97,8 @@ def ClockInt() -> Type:
     return Type("ClockInt")
 
 
-def BoolInt() -> Type:
-    return Type("BoolInt")
+def EnumInt() -> Type:
+    return Type("EnumInt")
 
 
 def OpaqueInt() -> Type:
@@ -595,8 +595,8 @@ def IntLit(val: int) -> Expr:
     return Lit(val, Int())
 
 
-def BoolIntLit(val: int) -> Expr:
-    return Lit(val, BoolInt())
+def EnumIntLit(val: int) -> Expr:
+    return Lit(val, EnumInt())
 
 
 def BoolLit(val: bool) -> Expr:

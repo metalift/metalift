@@ -622,7 +622,8 @@ def synthesize_crdt(
                         ),
                         vcInitStateQuery,
                     ),
-                    opsListInvariant(fnNameBase, synthInitState, synthStateType, opType)
+                    # opsListInvariant(fnNameBase, synthInitState, synthStateType, opType)
+                    BoolLit(True)
                     if useOpList
                     else Implies(
                         opPrecondition(init_op_arg_vars),

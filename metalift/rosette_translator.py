@@ -18,7 +18,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
     if (
         v.type.name == "Int"
         or v.type.name == "ClockInt"
-        or v.type.name == "BoolInt"
+        or v.type.name == "EnumInt"
         or v.type.name == "OpaqueInt"
         or v.type.name == "NodeIDInt"
     ):

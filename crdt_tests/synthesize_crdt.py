@@ -43,7 +43,7 @@ def grammarStateInvariant(synthState, synthStateStructure, baseDepth, invariantB
 
 
 def grammarSupportedCommand(synthState, args, synthStateStructure, baseDepth, invariantBoost):
-    conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
+    conditions = [Eq(a, IntLit(1)) for a in args if a.type == EnumInt()]
 
     out = auto_grammar(
         Bool(), baseDepth + invariantBoost,
@@ -62,7 +62,7 @@ def grammarSupportedCommand(synthState, args, synthStateStructure, baseDepth, in
 def grammarQuery(ci: CodeInfo, baseDepth):
     name = ci.name
 
-    if ci.retT == BoolInt():
+    if ci.retT == EnumInt():
         condition = auto_grammar(
             Bool(),
             baseDepth + 1,
@@ -91,7 +91,7 @@ def grammar(ci: CodeInfo, synthStateStructure, baseDepth):
         inputState = ci.readVars[0]
         args = ci.readVars[1:]
 
-        conditions = [Eq(a, IntLit(1)) for a in args if a.type == BoolInt()]
+        conditions = [Eq(a, IntLit(1)) for a in args if a.type == EnumInt()]
 
         non_associative_data = []
         for a in args:
@@ -138,10 +138,10 @@ benchmarks = {
             Not(Eq(arg2[0], IntLit(1))), # but if remove, must be remove next
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
-        "stateTypeHint": BoolInt(),
-        "opArgTypeHint": [BoolInt(), ClockInt()],
+        "stateTypeHint": EnumInt(),
+        "opArgTypeHint": [EnumInt(), ClockInt()],
         "queryArgTypeHint": None,
-        "queryRetTypeHint": BoolInt(),
+        "queryRetTypeHint": EnumInt(),
         "fixedLatticeType": (lat.LexicalProduct(lat.MaxInt(ClockInt()), lat.OrBool()),),
     },
     "flag_ew": {
@@ -152,10 +152,10 @@ benchmarks = {
             BoolLit(True), # but if remove, can be anything next
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
-        "stateTypeHint": BoolInt(),
-        "opArgTypeHint": [BoolInt(), ClockInt()],
+        "stateTypeHint": EnumInt(),
+        "opArgTypeHint": [EnumInt(), ClockInt()],
         "queryArgTypeHint": None,
-        "queryRetTypeHint": BoolInt(),
+        "queryRetTypeHint": EnumInt(),
         "fixedLatticeType": (lat.LexicalProduct(lat.MaxInt(ClockInt()), lat.OrBool()),),
     },
     "lww_register": {
@@ -180,9 +180,9 @@ benchmarks = {
         ),
         "opPrecondition": lambda op: BoolLit(True),
         "stateTypeHint": SetT(OpaqueInt()),
-        "opArgTypeHint": [BoolInt(), OpaqueInt()],
+        "opArgTypeHint": [EnumInt(), OpaqueInt()],
         "queryArgTypeHint": [OpaqueInt()],
-        "queryRetTypeHint": BoolInt(),
+        "queryRetTypeHint": EnumInt(),
         "fixedLatticeType": (lat.Set(OpaqueInt()),),
     },
     "2p_set": {
@@ -194,9 +194,9 @@ benchmarks = {
         ),
         "opPrecondition": lambda op: BoolLit(True),
         "stateTypeHint": SetT(OpaqueInt()),
-        "opArgTypeHint": [BoolInt(), OpaqueInt()],
+        "opArgTypeHint": [EnumInt(), OpaqueInt()],
         "queryArgTypeHint": [OpaqueInt()],
-        "queryRetTypeHint": BoolInt(),
+        "queryRetTypeHint": EnumInt(),
         "fixedLatticeType": (lat.Map(OpaqueInt(), lat.OrBool()),),
     },
     "add_wins_set": {
@@ -208,9 +208,9 @@ benchmarks = {
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
         "stateTypeHint": SetT(OpaqueInt()),
-        "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
+        "opArgTypeHint": [EnumInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
-        "queryRetTypeHint": BoolInt(),
+        "queryRetTypeHint": EnumInt(),
         "fixedLatticeType": (lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())),lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))),
     },
     "remove_wins_set": {
@@ -222,9 +222,9 @@ benchmarks = {
         ),
         "opPrecondition": lambda op: Ge(op[-1], IntLit(1)),
         "stateTypeHint": SetT(OpaqueInt()),
-        "opArgTypeHint": [BoolInt(), OpaqueInt(), ClockInt()],
+        "opArgTypeHint": [EnumInt(), OpaqueInt(), ClockInt()],
         "queryArgTypeHint": [OpaqueInt()],
-        "queryRetTypeHint": BoolInt(),
+        "queryRetTypeHint": EnumInt(),
         "fixedLatticeType": (lat.Map(OpaqueInt(), lat.MaxInt(ClockInt())),lat.Map(OpaqueInt(), lat.MaxInt(ClockInt()))),
     },
     "grow_only_counter": {
@@ -235,7 +235,7 @@ benchmarks = {
         ),
         "opPrecondition": lambda op: Eq(op[0], IntLit(1)),
         "stateTypeHint": Int(),
-        "opArgTypeHint": [BoolInt(), NodeIDInt()],
+        "opArgTypeHint": [EnumInt(), NodeIDInt()],
         "queryArgTypeHint": [],
         "queryRetTypeHint": Int(),
         "nonIdempotent": True,
@@ -246,7 +246,7 @@ benchmarks = {
         "inOrder": lambda arg1, arg2: BoolLit(True),
         "opPrecondition": lambda op: BoolLit(True),
         "stateTypeHint": Int(),
-        "opArgTypeHint": [BoolInt(), NodeIDInt()],
+        "opArgTypeHint": [EnumInt(), NodeIDInt()],
         "queryArgTypeHint": [],
         "queryRetTypeHint": Int(),
         "nonIdempotent": True,
