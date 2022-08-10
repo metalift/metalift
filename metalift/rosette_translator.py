@@ -1,7 +1,10 @@
 import typing
+
+import metalift
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
+from metalift.objects import getType, isParameterizedType
 from metalift.ir import Expr, FnDecl, FnDeclNonRecursive, Var
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
@@ -15,66 +18,81 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    if (
-        v.type.name == "Int"
-        or v.type.name == "ClockInt"
-        or v.type.name == "EnumInt"
-        or v.type.name == "OpaqueInt"
-        or v.type.name == "NodeIDInt"
-    ):
-        decls.append("(define-symbolic %s integer?)" % v.toRosette())
-        vars_all.append(v.args[0])
 
-    elif v.type.name == "Bool":
-        decls.append("(define-symbolic %s boolean?)" % v.toRosette())
-        vars_all.append(v.args[0])
+    t = v.type
 
-    elif v.type.name == "MLList" or v.type.name == "Set":
-        tmp = [v.args[0] + "_" + str(i) for i in range(listBound)]
+    if not isParameterizedType(t):
+        # if (
+        #     v.type.name == "Int"
+        #     or v.type.name == "ClockInt"
+        #     or v.type.name == "EnumInt"
+        #     or v.type.name == "OpaqueInt"
+        #     or v.type.name == "NodeIDInt"
+        # ):
 
-        for t in tmp:
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
+        if t == metalift.objects.Int:
+            decls.append("(define-symbolic %s integer?)" % v.toRosette())
+            vars_all.append(v.args[0])
 
-        len_name = v.args[0] + "-len"
-        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+        # elif v.type.name == "Bool":
+        elif t == metalift.objects.Bool:
+            decls.append("(define-symbolic %s boolean?)" % v.toRosette())
+            vars_all.append(v.args[0])
 
-        if v.type.name == "Set":
-            decls.append(
-                "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-            )
         else:
-            decls.append(
-                "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-            )
-    elif v.type.name == "Map":
-        tmp_k = [v.args[0] + "_" + str(i) + "_k" for i in range(listBound)]
-        tmp_v = [v.args[0] + "_" + str(i) + "_v" for i in range(listBound)]
-        for t in tmp_k:
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
-        for t in tmp_v:
-            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)
+            raise NotImplementedError(t)
 
-        len_name = v.args[0] + "-len"
-        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+    else:  # parameterized type
+        # if v.type.name == "MLList" or v.type.name == "Set":
+        if t.__origin__ == metalift.objects.List:
+            containedT = t.__args__[0]
+            tmp = [v.args[0] + "_" + str(i) for i in range(listBound)]
 
-        all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
+            for t in tmp:
+                genVar(Var(t, containedT), decls, vars_all, listBound)
 
-        decls.append(
-            "(define %s (map-normalize (take %s %s)))"
-            % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
-        )
-    elif v.type.name == "Tuple":
-        elem_names = []
-        for i, t in enumerate(v.type.args):
-            elem_name = v.args[0] + "_" + str(i)
-            genVar(Var(elem_name, t), decls, vars_all, listBound)
-            elem_names.append(elem_name)
+            len_name = v.args[0] + "-len"
+            genVar(Var(len_name, metalift.objects.Int), decls, vars_all, listBound)
 
-        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
-    else:
-        raise Exception(f"Unknown type: {v.type}")
+            # if v.type.name == "Set":
+            #     decls.append(
+            #         "(define %s (sort (remove-duplicates (take %s %s)) <))"
+            #         % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+            #     )
+            # else:
+            #     decls.append(
+            #         "(define %s (take %s %s))"
+            #         % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+            #     )
+
+        # elif v.type.name == "Map":
+        #     tmp_k = [v.args[0] + "_" + str(i) + "_k" for i in range(listBound)]
+        #     tmp_v = [v.args[0] + "_" + str(i) + "_v" for i in range(listBound)]
+        #     for t in tmp_k:
+        #         genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
+        #     for t in tmp_v:
+        #         genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)
+        #
+        #     len_name = v.args[0] + "-len"
+        #     genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+        #
+        #     all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
+        #
+        #     decls.append(
+        #         "(define %s (map-normalize (take %s %s)))"
+        #         % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
+        #     )
+        # elif v.type.name == "Tuple":
+        #     elem_names = []
+        #     for i, t in enumerate(v.type.args):
+        #         elem_name = v.args[0] + "_" + str(i)
+        #         genVar(Var(elem_name, t), decls, vars_all, listBound)
+        #         elem_names.append(elem_name)
+        #
+        #     decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
+
+        else:
+            raise Exception(f"Unknown type: {v.type}")
 
 
 def generateVars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
@@ -157,8 +175,8 @@ def toRosette(
 
     # struct declarations and function definition of target constructs
     for t in targetLang:
-        if t.args[1] != None:
-            print("\n", t.toRosette(), "\n", file=f)
+        if t.decl().args[1] is not None:   # not an uninterpreted fn
+            print("\n", t.decl().toRosette(), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
     # inv and ps grammar definition
@@ -168,16 +186,19 @@ def toRosette(
             writeChoicesTo[g.args[0]] = {}  # type: ignore
             writeTo = writeChoicesTo[g.args[0]]  # type: ignore
         print(g.toRosette(writeTo), "\n", file=f)
+        print("grammar is: %s" % g)
 
     # inv and ps declaration
     print(generateInvPs(loopAndPsInfo), file=f)
 
+    # print the uninterpreted functions
     fnsDecls = []
     for t in targetLang:
-        if t.args[1] == None:
-            fnsDecls.append(t)
+        if t.decl().args[1] is None:  # empty body = unint function
+            fnsDecls.append(t.decl())
     if fnsDecls:
         print(generateInvPs(fnsDecls), file=f)
+        print("getting %s" % generateInvPs(fnsDecls))
 
     # vars declaration
     varDecls, vars_all = generateVars(vars, listBound)

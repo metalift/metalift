@@ -5,6 +5,8 @@ from metalift.ir import *
 import typing
 from typing import Any, Union
 
+from metalift.types import MLTypeToSMT
+
 
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
@@ -44,7 +46,9 @@ def toSMT(
     preds: Union[str, typing.List[Any]],
     vc: Expr,
     outFile: str,
+    # functions that should be inlined if called
     inCalls: typing.List[Any],
+    # function decls whose bodies might contain calls to inCalls, and if so they should be inlined
     fnCalls: typing.List[Any],
     isSynthesis: bool = False,
 ) -> None:
@@ -91,8 +95,7 @@ def toSMT(
                                 *newArgs,
                             )
                         )
-
-                if not found_inline and t.args[1] != None:
+                if not found_inline and t.args[1] is not None:
                     out.write(t.toSMT() + "\n\n")
             # elif t.kind == Expr.Kind.Axiom:
             elif isinstance(t, Axiom):
@@ -140,11 +143,12 @@ def toSMT(
             declarations.append((v.args[0], v.type))
 
         var_decl_command = "declare-var" if isSynthesis else "declare-const"
+
         out.write(
             "\n%s\n\n"
             % "\n".join(
                 [
-                    "(%s %s %s)" % (var_decl_command, v[0], v[1].toSMT())
+                    "(%s %s %s)" % (var_decl_command, v[0], MLTypeToSMT(v[1]))  # declare vname type
                     for v in declarations
                 ]
             )

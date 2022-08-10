@@ -3,7 +3,8 @@ from typing import Callable, List, Dict, cast, Optional, Union, Any
 from llvmlite.binding import ValueRef
 
 from metalift.analysis import analyze
-from metalift.ir import Expr, Var, NonTerm, FnDecl, Target, Synth, Eq
+from metalift.objects import Target
+from metalift.ir import Expr, Var, NonTerm, FnDecl, Synth, Eq
 from metalift.synthesize_auto import synthesize  # type: ignore
 
 
@@ -78,7 +79,7 @@ class Transpiler:
             vc,
             loopAndPsInfo,
             self.cvcPath,
-            noVerify=(self.cvcPath is None),
+            noVerify=(self.cvcPath == ""),
         )
 
         if len(candidates) != 1:
@@ -87,14 +88,8 @@ class Transpiler:
         # synthesized function should be a fnDecl with body of the form retVal = Expr
         # we remove the retVal part to make it resemble an actual function
         r = candidates[0]
-        retVal = cast(Eq, r.body()).e1()
+        retVal = cast(Var, cast(Eq, r.body()).e1())
 
         # TODO: remove ValueRef and other bare values from the input so that we don't need to deal with them here
-        args = filter(
-            lambda v: v != retVal,
-            [
-                Var(a.name, a.type) if isinstance(a, ValueRef) else a
-                for a in r.arguments()
-            ],
-        )
+        args = filter(lambda v: cast(Var, v.src).name() != retVal.name(), r.arguments())
         return FnDecl(r.name(), r.returnT(), cast(Eq, r.body()).e2(), *args)
