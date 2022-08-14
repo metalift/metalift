@@ -1,7 +1,7 @@
 <p align="center"><img width="800" src="https://github.com/metalift/metalift/raw/main/logo.png"/></p>
 <p align="center"><i>A program synthesis framework for verified lifting applications</i></p>
 
-# Get Started at [metalift.netlify.app](https://metalift.netlify.app)
+# Get Started at [metalift.pages.dev](https://metalift.pages.dev)
 
 See [tests](https://github.com/metalift/metalift/tree/main/tests) folder for test cases. 
 Check out any of the python files in that folder to see how to define
