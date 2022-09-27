@@ -7,7 +7,7 @@ authors = []
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
 pyparsing = "^3.0.8"
-llvmlite = { git = "https://github.com/metalift/llvmlite.git", branch = "patched-metalift" }
+llvmlite = { url = "https://github.com/metalift/llvmlite/archive/c418eb18a78f49d9a059c50bd992f732432b9fe5.zip" }
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.950"
