@@ -28,6 +28,5 @@ target-version = ['py38']
 extend-exclude = '''
 ^/tests|
 ^/website|
-^/rosette-packages|
-^/crdt_tests
+^/rosette-packages
 '''
