@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-ls *.c | xargs -n 1 ./compile-add-blocks
