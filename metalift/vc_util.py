@@ -1,8 +1,10 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import Expr, Lit, Bool, Int
+from metalift.ir import Expr, Lit
 from typing import Dict
+
+from metalift.types import Int
 
 
 def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) -> Expr:

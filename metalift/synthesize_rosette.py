@@ -4,6 +4,7 @@ import pyparsing as pp
 import os
 from metalift import utils
 from metalift.analysis import CodeInfo
+from metalift.objects import Target
 from metalift.ir import *
 from metalift.rosette_translator import toRosette
 from metalift.synthesis_common import (
@@ -20,6 +21,9 @@ from typing import Any, Callable, Dict, Union, IO
 
 # utils for converting rosette output to IR
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
+from metalift.types import CVC5UnsupportedException, MapT, Int, Bool
+
+
 def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
@@ -315,8 +319,11 @@ def toSynthesize(
         else:
             synthNames.append(i.args[0])
     for l in lang:
-        if l.args[1] == None:
-            synthNames.append(l.args[0])
+        # if l.args[1] == None:  # uninterpreted fn
+        #     synthNames.append(l.args[0])
+        decl = l.decl()
+        if decl.args[1] == None:  # uninterpreted fn
+            synthNames.append(decl.args[0])
     return synthNames
 
 
@@ -424,18 +431,19 @@ def synthesize(
                 else:
                     varTypes[i.args[0]] = generateTypes(i.args[2:])
             for l_i in targetLang:
-                varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
+                varTypes[l_i.decl().args[0]] = generateTypes(l_i.decl().args[2:])
 
             if resultSynth[0] == "#t":
                 output = parseOutput(resultSynth[1:])
                 candidateDict = {}
+                targetLang = [t.decl() for t in targetLang]
                 fnsType = generateTypes(targetLang)
                 for synthFun in invAndPs:
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
                     fnsType[ceName] = FnT(
                         synthFun.args[1].type,
-                        *[v.type for v in allVars],
+                        *[v.src.type for v in allVars],
                     )
                 for n in synthNames:
                     for r in output:

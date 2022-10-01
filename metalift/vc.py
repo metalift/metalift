@@ -72,10 +72,10 @@ class VC:
         self.fnName = fnName
         self.log = log
 
-    def makeVar(self, name: str, ty: Union[TypeRef, Type]) -> Expr:
+    def makeVar(self, name: str, ty: Union[TypeRef, type]) -> Expr:
         if isinstance(ty, TypeRef):
             ty = parseTypeRef(ty)
-        elif isinstance(ty, Type):
+        elif isinstance(ty, type):
             pass
         else:
             raise Exception("NYI %s with type %s" % (name, ty))
@@ -130,10 +130,10 @@ class VC:
         sorted_values.sort(key=lambda b: b.name)
         blockVCs: ListT[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
 
-        body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
+        body = Implies(And(*blockVCs), self.makeVar(firstBlockName, metalift.objects.Bool))
 
         invAndPs = [
-            Synth(p.args[0], Lit(True, Bool()), *p.args[1:])
+            Synth(p.args[0], Lit(True, metalift.objects.Bool), *p.args[1:])
             for p in filter(
                 lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"),
                 self.preds.values(),
@@ -277,9 +277,9 @@ class VC:
         if not succs:
             succE = None
         elif len(succs) == 1:
-            succE = self.makeVar(succs[0].name, Bool())
+            succE = self.makeVar(succs[0].name, metalift.objects.Bool)
         else:
-            succE = And(*[self.makeVar(s.name, Bool()) for s in succs])
+            succE = And(*[self.makeVar(s.name, metalift.objects.Bool) for s in succs])
 
         if not asserts:
             assertE = None
@@ -298,7 +298,7 @@ class VC:
             rhs = And(succE, assertE)  # type: ignore
 
         vc = Eq(
-            self.makeVar(blockName, Bool()),
+            self.makeVar(blockName, metalift.objects.Bool),
             rhs if not lhs else Implies(lhs, rhs),  # type: ignore
         )
 
@@ -324,20 +324,20 @@ class VC:
                     1
                 )  # bug: ops[0] always return i32 1 regardless of type
                 if t == "i32":
-                    s.mem[i] = Lit(0, Int())
+                    s.mem[i] = Lit(0, metalift.objects.Int)
                 elif t == "i8":
-                    s.mem[i] = Lit(False, Bool())
+                    s.mem[i] = Lit(False, metalift.objects.Bool)
                 elif t == "i1":
-                    s.mem[i] = Lit(False, Bool())
+                    s.mem[i] = Lit(False, metalift.objects.Bool)
                 elif t == "%struct.list*":
-                    s.mem[i] = Lit(0, ListT(Int()))
+                    s.mem[i] = Lit(0, ListT(metalift.objects.Int))
                 elif t.startswith("%struct.set"):
-                    s.mem[i] = Lit(0, SetT(Int()))
+                    s.mem[i] = Lit(0, SetT(metalift.objects.Int))
                 elif t.startswith("%struct.tup."):
-                    retType = [Int() for i in range(int(t[-2]) + 1)]
+                    retType = [metalift.objects.Int for i in range(int(t[-2]) + 1)]
                     s.mem[i] = Lit(0, TupleT(*retType))
                 elif t.startswith("%struct.tup"):
-                    s.mem[i] = Lit(0, TupleT(Int(), Int()))
+                    s.mem[i] = Lit(0, TupleT(metalift.objects.Int, metalift.objects.Int))
                 elif t.startswith(
                     "%struct."
                 ):  # not a tuple or set, assume to be user defined type
@@ -441,13 +441,13 @@ class VC:
                 #   name = e.operands[-1]
                 #   if name.startswith("inv"):
                 #     parsed = [VC.evalMLInst(arg, s.regs, s.mem) for arg in e.operands[0:-1]]
-                #     e = self.callPred(name, Bool(), *parsed)
+                #     e = self.callPred(name, metalift.objects.Bool, *parsed)
                 #     #parsed = VC.parseExpr(e, s.regs, s.mem)
                 #     #e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:])
                 #
                 #   elif name == "ps":
                 #     parsed = [VC.evalMLInst(arg, s.regs, s.mem) for arg in e.operands[0:-1]]
-                #     e = self.callPred(name, Bool(), *parsed)
+                #     e = self.callPred(name, metalift.objects.Bool, *parsed)
                 #
                 #     # parsed = VC.evalMLInst(e, s.regs, s.mem)
                 #     # e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:])
