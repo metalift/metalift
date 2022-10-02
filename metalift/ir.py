@@ -6,144 +6,18 @@ from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Union, Optional
 
+import metalift
+from metalift.types import Type, EnumInt, TupleT, FnT, SetT, ListT, isList
 
 class PrintMode(Enum):
     SMT = 0
     Rosette = 1
 
 
-class CVC5UnsupportedException(Exception):
-    pass
-
-
-class Type:
-    def __init__(self, name: str, *args: "Type") -> None:
-        self.name = name
-        self.args = args
-
-    def toSMT(self) -> str:
-        if (
-            self.name == "Int"
-            or self.name == "ClockInt"
-            or self.name == "EnumInt"
-            or self.name == "OpaqueInt"
-            or self.name == "NodeIDInt"
-        ):
-            return "Int"
-        elif self.name == "Bool":
-            return "Bool"
-        elif self.name == "String":
-            return "String"
-        elif self.name == "Tuple":
-            args = " ".join(a.toSMT() for a in self.args)
-            return "(Tuple%d %s)" % (len(self.args), args)
-        elif self.name == "Map":
-            raise CVC5UnsupportedException("Map")
-        else:
-            return "(%s %s)" % (
-                self.name,
-                " ".join(
-                    [a.toSMT() if isinstance(a, Type) else str(a) for a in self.args]
-                ),
-            )
-
-    def __repr__(self) -> str:
-        if len(self.args) == 0:
-            return self.name
-        else:
-            return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
-
-    def erase(self) -> "Type":
-        if (
-            self.name == "ClockInt"
-            or self.name == "EnumInt"
-            or self.name == "OpaqueInt"
-            or self.name == "NodeIDInt"
-        ):
-            return Int()
-        else:
-            return Type(
-                self.name, *[a.erase() if isinstance(a, Type) else a for a in self.args]
-            )
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, Type):
-            if self.name != other.name or len(self.args) != len(other.args):
-                return False
-            else:
-                return all(
-                    a1 == a2
-                    if isinstance(a1, type) and isinstance(a2, type)
-                    else a1.__eq__(a2)
-                    for a1, a2 in zip(self.args, other.args)
-                )
-        return NotImplemented
-
-    def __ne__(self, other: object) -> bool:
-        x = self.__eq__(other)
-        if x is not NotImplemented:
-            return not x
-        return NotImplemented
-
-    def __hash__(self) -> int:
-        return hash(tuple(sorted({"name": self.name, "args": tuple(self.args)})))
-
-
-def Int() -> Type:
-    return Type("Int")
-
-
-def ClockInt() -> Type:
-    return Type("ClockInt")
-
-
-def EnumInt() -> Type:
-    return Type("EnumInt")
-
-
-def OpaqueInt() -> Type:
-    return Type("OpaqueInt")
-
-
-def NodeIDInt() -> Type:
-    return Type("NodeIDInt")
-
-
-def Bool() -> Type:
-    return Type("Bool")
-
-
-# for string literals
-def String() -> Type:
-    return Type("String")
-
-
-def Pointer(t: Type) -> Type:
-    return Type("Pointer", t)
-
-
-def ListT(contentT: Type) -> Type:
-    return Type("MLList", contentT)
-
-
-def FnT(retT: Type, *argT: Type) -> Type:
-    return Type("Function", retT, *argT)
-
-
-def SetT(contentT: Type) -> Type:
-    return Type("Set", contentT)
-
-
-def MapT(keyT: Type, valT: Type) -> Type:
-    return Type("Map", keyT, valT)
-
-
-# first type is not optional
-def TupleT(e1T: Type, *elemT: Type) -> Type:
-    return Type("Tuple", e1T, *elemT)
-
-
 class Expr:
+    args: Any
+    type: Type
+
     def __init__(self, type: Type, args: Any) -> None:
         self.args = args
         self.type = type
@@ -284,8 +158,15 @@ class Expr:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
+
+        if isinstance(self.type, Type):   # remove this later on
+            t = str(self.type)
+        else:
+            t = getTypeName(self.type)
+
         return (
-            f"({type(self).__name__}:{self.type} "
+            # f"({type(self).__name__}:{self.type} "
+            f"({type(self).__name__}:{t} "
             f'{" ".join(fn(a) for a in self.args)})'
         )
 
@@ -302,7 +183,7 @@ class Expr:
         if isinstance(other, Expr):
             if (
                 type(self) != type(other)
-                or parseTypeRef(self.type).erase() != parseTypeRef(other.type).erase()
+                # or parseTypeRef(self.type).erase() != parseTypeRef(other.type).erase()
                 or len(self.args) != len(other.args)
             ):
                 return False
@@ -339,7 +220,7 @@ class Expr:
                     a.name
                     if isinstance(a, ValueRef) and a.name != ""
                     else a.toSMT()
-                    if isinstance(a, Expr)
+                    if isinstance(a, metalift.objects.MLObject) or isinstance(a, Expr)
                     else str(a)
                     for a in e.args
                 ]
@@ -347,6 +228,7 @@ class Expr:
             + ")"
         )
 
+    # mapping of list functions to their rosette counterparts
     listFns = {
         "list_get": "list-ref-noerr",
         "list_append": "list-append",
@@ -366,15 +248,15 @@ class Expr:
 
     @staticmethod
     def toRosetteSimple(e: "Expr", value: str) -> str:
-        retStr = "(" + value + " "
+        retStr = f"({value} "
         for a in e.args:
             if isinstance(a, ValueRef) and a.name != "":
-                retStr += "%s" % (a.name) + " "
+                retStr += f"{a.name} "
             else:
-                strExp = a.toRosette() if isinstance(a, Expr) else str(a)
-                if (strExp) in Expr.listFns.keys() and "list_empty" in (strExp):
-                    retStr += "(" + Expr.listFns[strExp] + ")" + " "
-                elif (strExp) in Expr.listFns.keys():
+                strExp = a.toRosette() if isinstance(a, Expr) or isinstance(a, metalift.objects.MLObject) else str(a)
+                if strExp in Expr.listFns.keys() and "list_empty" in strExp:
+                    retStr += f"({Expr.listFns[strExp]}) "
+                elif strExp in Expr.listFns.keys():
                     retStr += Expr.listFns[strExp]
                 else:
                     retStr += strExp + " "
@@ -456,7 +338,7 @@ class Expr:
         self, counts: Dict[str, int], new_vars: typing.Set["Var"]
     ) -> "Expr":
         if isinstance(self, Eq):
-            replacement_var = Var("useless_equality_%d" % len(new_vars), Bool())
+            replacement_var = Var("useless_equality_%d" % len(new_vars), metalift.objects.Bool)
             if isinstance(self.args[0], Var) and counts[self.args[0].args[0]] == 1:
                 new_vars.add(replacement_var)
                 return replacement_var
@@ -493,37 +375,6 @@ class Expr:
             else a
         ).simplify()
 
-    # convenience methods
-    def __add__(self, other: "Expr") -> "Add":
-        if isinstance(self, Add):
-            return Add(*self.args, other)
-        else:
-            return Add(self, other)
-
-    def __sub__(self, other: "Expr") -> "Sub":
-        if isinstance(self, Sub):
-            return Sub(*self.args, other)
-        else:
-            return Sub(self, other)
-
-    def __mul__(self, other: "Expr") -> "Mul":
-        if isinstance(self, Mul):
-            return Mul(*self.args, other)
-        else:
-            return Mul(self, other)
-
-    def __and__(self, other: "Expr") -> "And":
-        if isinstance(self, And):
-            return And(*self.args, other)
-        else:
-            return And(self, other)
-
-    def __or__(self, other: "Expr") -> "Or":
-        if isinstance(self, And):
-            return Or(*self.args, other)
-        else:
-            return Or(self, other)
-
 
 class Var(Expr):
     def __init__(self, name: str, ty: Type) -> None:
@@ -533,7 +384,7 @@ class Var(Expr):
         return self.args[0]  # type: ignore
 
     def __repr__(self) -> str:
-        return self.args[0]  # type: ignore
+        return "(" + self.args[0] + ")"  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -566,13 +417,13 @@ class Lit(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        if self.type == Bool():
+        if self.type == metalift.objects.Bool:
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
 
     def toSMT(self) -> str:
-        if self.type == Bool():
+        if self.type == metalift.objects.Bool:
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
@@ -592,7 +443,7 @@ class Object(Expr):
 
 
 def IntLit(val: int) -> Expr:
-    return Lit(val, Int())
+    return Lit(val, metalift.objects.Int)
 
 
 def EnumIntLit(val: int) -> Expr:
@@ -600,7 +451,7 @@ def EnumIntLit(val: int) -> Expr:
 
 
 def BoolLit(val: bool) -> Expr:
-    return Lit(val, Bool())
+    return Lit(val, metalift.objects.Bool)
 
 
 class Add(Expr):
@@ -609,12 +460,12 @@ class Add(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
-                raise Exception(
-                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
-                )
-        Expr.__init__(self, Int(), args)
+        # for arg in args:
+        #     if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+        #         raise Exception(
+        #             f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+        #         )
+        super().__init__(metalift.objects.Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -636,7 +487,7 @@ class Sub(Expr):
                 raise Exception(
                     f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
                 )
-        Expr.__init__(self, Int(), args)
+        super().__init__(metalift.objects.Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -653,12 +504,12 @@ class Mul(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
-                raise Exception(
-                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
-                )
-        Expr.__init__(self, Int(), args)
+        # for arg in args:
+        #     if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+        #         raise Exception(
+        #             f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+        #         )
+        Expr.__init__(self, metalift.objects.Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -673,12 +524,16 @@ class Eq(Expr):
     RosetteName = "equal?"
     SMTName = "="
 
-    def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
-            raise Exception(
-                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
-            )
-        Expr.__init__(self, Bool(), [e1, e2])
+    def __init__(self, e1: Union[Expr, int], e2: Union[Expr, int]) -> None:
+        if isinstance(e1, int):
+            e1 = IntLit(e1)
+        if isinstance(e2, int):
+            e2 = IntLit(e2)
+        # if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        #     raise Exception(
+        #         f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
+        #     )
+        super().__init__(metalift.objects.Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -689,7 +544,7 @@ class Eq(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        name = "set-eq" if self.args[0].type.name == "Set" else self.RosetteName
+        name = "set-eq" if isinstance(self.args[0], set) else self.RosetteName
         return Expr.toRosetteSimple(self, name)
 
     def toSMT(self) -> str:
@@ -704,7 +559,7 @@ class Lt(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
-        Expr.__init__(self, Bool(), [e1, e2])
+        Expr.__init__(self, metalift.objects.Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -729,7 +584,7 @@ class Le(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
-        Expr.__init__(self, Bool(), [e1, e2])
+        Expr.__init__(self, metalift.objects.Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -754,7 +609,7 @@ class Gt(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
-        Expr.__init__(self, Bool(), [e1, e2])
+        Expr.__init__(self, metalift.objects.Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -779,7 +634,7 @@ class Ge(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
-        Expr.__init__(self, Bool(), [e1, e2])
+        Expr.__init__(self, metalift.objects.Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -803,9 +658,9 @@ class And(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == Bool(), args)):
+        if not all(map(lambda e: e.type == metalift.objects.Bool, args)):
             raise Exception(f"Cannot apply AND to values of type {args}")
-        Expr.__init__(self, Bool(), args)
+        super().__init__(metalift.objects.Bool, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -823,11 +678,11 @@ class Or(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == Bool(), args)):
+        if not all(map(lambda e: e.type == metalift.objects.Bool, args)):
             raise Exception(
                 f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
             )
-        Expr.__init__(self, Bool(), args)
+        Expr.__init__(self, metalift.objects.Bool, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -843,9 +698,9 @@ class Not(Expr):
     SMTName = "not"
 
     def __init__(self, e: Expr) -> None:
-        if e.type != Bool():
+        if e.type != metalift.objects.Bool:
             raise Exception(f"Cannot apply NOT to value of type {e.type}")
-        Expr.__init__(self, Bool(), [e])
+        Expr.__init__(self, metalift.objects.Bool, [e])
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -860,11 +715,11 @@ class Implies(Expr):
     RosetteName = SMTName = "=>"
 
     def __init__(self, e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> None:
-        if e1.type != Bool():  # type: ignore
+        if e1.type != metalift.objects.Bool:  # type: ignore
             raise Exception(f"Cannot apply IMPLIES to value of type {e1.type}")  # type: ignore
-        if e2.type != Bool():  # type: ignore
+        if e2.type != metalift.objects.Bool:  # type: ignore
             raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")  # type: ignore
-        Expr.__init__(self, Bool(), [e1, e2])
+        super().__init__(metalift.objects.Bool, [e1, e2])
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -879,16 +734,21 @@ class Ite(Expr):
     RosetteName = "if"
     SMTName = "ite"
 
-    def __init__(self, c: Expr, e1: Expr, e2: Expr) -> None:
-        if c.type != Bool():
-            raise Exception(
-                f"ITE condition must be Boolean and not value of type {c.type}"
-            )
-        if parseTypeRef(e1.type).erase() != parseTypeRef(e1.type).erase():
-            raise Exception(
-                f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
-            )
-        Expr.__init__(self, e1.type, [c, e1, e2])
+    def __init__(self, c: "metalift.objects.Bool", e1: "MLObject", e2: "MLObject") -> None:
+        # if c.type != metalift.objects.Bool:
+        #     raise Exception(
+        #         f"ITE condition must be Boolean and not value of type {c.type}"
+        #     )
+        # if parseTypeRef(e1.type).erase() != parseTypeRef(e2.type).erase():
+        #     raise Exception(
+        #         f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
+        #     )
+        if "__orig_class__" in e1.__dict__:  # parameterized class
+            t = e1.__orig_class__
+        else:
+            t = e1.__class__
+
+        super().__init__(t, [c, e1, e2])
 
     def c(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -956,7 +816,13 @@ class Call(Expr):
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        return f"({self.args[0]}:{self.type} {' '.join(fn(a) for a in self.args[1:])})"
+
+        t = getTypeName(self.type)
+
+        if len(self.args) > 1:
+            return f"({self.args[0]}:{t} {' '.join(fn(a) for a in self.args[1:])})"
+        else:
+            return f"({self.args[0]}:{t})"
 
     def codegen(self) -> str:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
@@ -1188,7 +1054,7 @@ class Assert(Expr):
     RosetteName = SMTName = "assert"
 
     def __init__(self, e: Expr) -> None:
-        Expr.__init__(self, Bool(), [e])
+        Expr.__init__(self, metalift.objects.Bool, [e])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1206,7 +1072,7 @@ class Constraint(Expr):
     SMTName = "constraint"
 
     def __init__(self, e: Expr) -> None:
-        Expr.__init__(self, Bool(), [e])
+        Expr.__init__(self, metalift.objects.Bool, [e])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1268,7 +1134,7 @@ class TupleGet(Expr):
 
 class Axiom(Expr):
     def __init__(self, e: Expr, *vars: Expr) -> None:
-        Expr.__init__(self, Bool(), [e, *vars])
+        Expr.__init__(self, metalift.objects.Bool, [e, *vars])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1399,12 +1265,12 @@ class Synth(Expr):
 
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
-        if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
-            raise Exception(
-                "Choose args are of different types: %s"
-                % " ".join(str(a) for a in args)
-            )
-        Expr.__init__(self, args[0].type, args)
+        # if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
+        #     raise Exception(
+        #         "Choose args are of different types: %s"
+        #         % " ".join(str(a) for a in args)
+        #     )
+        super().__init__(metalift.objects.getType(args[0]), args)
 
     def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
         return self.args  # type: ignore
@@ -1412,7 +1278,7 @@ class Choose(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return " ".join(
+        return "(choose " + " ".join(
             [
                 a.name
                 if isinstance(a, ValueRef) and a.name != ""
@@ -1421,7 +1287,7 @@ class Choose(Expr):
                 else a.toRosette()
                 for a in self.args
             ]
-        )
+        ) + ")"
 
     def toSMT(self) -> str:
         retVal = []
@@ -1442,11 +1308,18 @@ class Choose(Expr):
         return self.args[0]  # type: ignore
 
 
+T = typing.TypeVar('T', bound="metalift.objects.MLObject")
+def choose(*vs: T) -> T:
+    if metalift.objects.isParameterizedObject(vs[0]):
+        return vs[0].__orig_class__(Choose(*vs))
+    else:
+        return vs[0].__class__(Choose(*vs))
+
+
 class FnDecl(Expr):
-    def __init__(
-        self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
-    ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
+    def __init__(self, name: str, returnT: type, body: Union[Expr, str], *args: "MLObject") -> None:
+        argsT = [a.__orig_class__ if "__orig_class__" in a.__dict__ else a.__class__ for a in args]
+        super().__init__(FnT(returnT, *argsT), [name, body, *args])
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
@@ -1474,9 +1347,9 @@ class FnDecl(Expr):
         else:
             args = " ".join(
                 [
-                    "%s" % (a.name)
+                    "%s" % a.name
                     if isinstance(a, ValueRef) and a.name != ""
-                    else "%s" % (a.args[0])
+                    else typing.cast(Var, a.src).name()
                     for a in self.args[2:]
                 ]
             )
@@ -1507,9 +1380,10 @@ class FnDecl(Expr):
                 if isinstance(a, ValueRef):
                     declarations.append((a.name, parseTypeRef(a.type)))
                 else:
-                    declarations.append((a.args[0], a.type))
+                    var = typing.cast(Var, a.src)
+                    declarations.append((var.name(), var.type))
 
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
+            args = " ".join("(%s %s)" % (d[0], toSMTType(d[1])) for d in declarations)
 
             def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
 
@@ -1517,9 +1391,9 @@ class FnDecl(Expr):
                 def_str,
                 self.args[0],
                 args,
-                (
-                    self.type if self.type.name != "Function" else self.type.args[0]
-                ).toSMT(),
+                toSMTType(
+                    self.type if self.type.name != "Function" else self.returnT()
+                ),
                 self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
 
@@ -1688,47 +1562,7 @@ class FnDeclNonRecursive(Expr):
             )
 
 
-class TargetCall(Call):
-    _codegen: Optional[Callable[[Expr], str]]
 
-    def __init__(
-        self,
-        name: str,
-        retT: Type,
-        codegen: Optional[Callable[[Expr], str]],
-        *args: Expr,
-    ) -> None:
-        super().__init__(name, retT, *args)
-        self._codegen = codegen
-
-    def codegen(self) -> str:
-        return self._codegen(*self.args[1:])  # type: ignore
-
-
-class Target(FnDeclNonRecursive):
-    definedFns: Dict[str, "Target"] = {}  # stores all fns that have been defined so far
-
-    semantics: Optional[Callable[[Expr], Expr]]
-    _codegen: Optional[Callable[[Expr], str]]
-
-    def __init__(
-        self,
-        name: str,
-        argT: typing.List[Type],
-        retT: Type,
-        semantics: Callable[[Expr], Expr],
-        codegen: Callable[[Expr], str],
-    ) -> None:
-        args: typing.List[Expr] = [Var(f"v{i}", a) for i, a in enumerate(argT)]
-        super().__init__(name, retT, semantics(*args), *args)
-        self.semantics = semantics
-        self._codegen = codegen
-        if name in Target.definedFns:
-            raise Exception(f"{name} is already defined!")
-        Target.definedFns[name] = self
-
-    def call(self, *args: Expr) -> Call:
-        return TargetCall(self.name(), self.returnT(), self._codegen, *args)
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
@@ -1818,41 +1652,67 @@ def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
 
 def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     # ty.name returns empty string. possibly bug
-    if isinstance(t, Type):
+    # if isinstance(t, Type):
+    #     return t
+    if t == metalift.objects.Int:
         return t
 
     tyStr = str(t)
 
     if tyStr == "i64":
-        return Int()
+        return metalift.objects.Int
     elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int":
-        return Int()
+        return metalift.objects.Int
     elif tyStr == "i1" or tyStr == "Bool":
-        return Bool()
+        return metalift.objects.Bool
     elif (
         tyStr == "%struct.list*" or tyStr == "%struct.list**" or tyStr == "(MLList Int)"
     ):
-        return Type("MLList", Int())
+        return Type("MLList", metalift.objects.Int)
     elif tyStr.startswith("%struct.set"):
-        return SetT(Int())
+        return SetT(metalift.objects.Int)
     elif tyStr == "(Function Bool)":
-        return Type("Function", Bool())
+        return Type("Function", metalift.objects.Bool)
     elif tyStr == "(Function Int)":
-        return Type("Function", Int())
+        return Type("Function", metalift.objects.Int)
     elif tyStr.startswith("%struct.tup."):
-        retType = [Int() for i in range(int(tyStr[-2]) + 1)]
+        retType = [metalift.objects.Int for i in range(int(tyStr[-2]) + 1)]
         return TupleT(*retType)
     elif tyStr.startswith("%struct.tup"):
         # TODO: FIX return type for multiple values
-        return TupleT(Int(), Int())
+        return TupleT(metalift.objects.Int, metalift.objects.Int)
     else:
         raise Exception("NYI %s" % t)
 
 
 def toRosetteType(t: Type) -> str:
-    if t == Int():
+    if t == metalift.objects.Int:
         return "integer?"
-    elif t == Bool():
+    elif t == metalift.objects.Bool:
         return "boolean?"
     else:
         raise Exception("NYI: %s" % t)
+
+def getTypeName(t: type) -> str:
+    if isinstance(t, typing._GenericAlias):  # parameterized class -- python 3.9 has types.GenericAlias
+        args = ",".join(a.__name__ for a in t.__args__)
+        return f"{t.__origin__.__name__}[{args}]"
+    else:
+        return f"{t.__name__}"
+
+def toSMTType(t: type) -> str:
+    if isinstance(t, typing._GenericAlias):  # parameterized class
+        baseT = typing.cast(typing._GenericAlias, t).__origin__
+        if baseT == metalift.objects.List:
+            return "(MLList Int)"
+        else:
+            raise NotImplementedError(t)
+
+    else:
+        if t == metalift.objects.Int:
+            return "Int"
+        elif t == metalift.objects.Bool:
+            return "Bool"
+
+        else:
+            raise NotImplementedError(t)

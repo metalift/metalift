@@ -1,5 +1,6 @@
 import subprocess
 from metalift.analysis import CodeInfo
+from metalift.objects import Int
 from metalift.ir import *
 from llvmlite.binding import ValueRef
 
@@ -17,19 +18,24 @@ class SynthesisFailed(Exception):
 class VerificationFailed(Exception):
     pass
 
-
+# XXX need to fix
 def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Type]:
     fnsType = {}
 
     for l in lang:
-        if l.type.name == "Function":
+        if isinstance(l, Expr) and isinstance(l.type, Type) and l.type.name == "Function":  # XXX
             if not isinstance(l, ValueRef):
                 fnsType[l.args[0]] = l.type
             else:
                 fnsType[l.name] = parseTypeRef(l.type)
         else:
             if not isinstance(l, ValueRef):
-                fnsType[l.args[0]] = l.type
+                if isinstance(l, Var):
+                    fnsType[l.args[0]] = l.type
+                elif isinstance(l, Int):
+                    fnsType[l.src.type] = Int
+                else:
+                    raise NotImplementedError(l)
             else:
                 fnsType[l.name] = parseTypeRef(l.type)
     return fnsType
@@ -45,6 +51,9 @@ def parseCandidates(
 ) -> typing.Tuple[
     Union[Expr, str], Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]
 ]:
+    if isinstance(candidate, metalift.objects.MLObject):
+        candidate = candidate.src
+
     if not isinstance(candidate, Expr):
         return candidate, (inCalls, fnCalls)
     else:
@@ -65,7 +74,7 @@ def parseCandidates(
             new_args = []
             for ar in candidate.args:
                 if not isinstance(ar, str):
-                    if ar.type.name == "Function" and ar.args[0] in fnsType.keys():
+                    if isinstance(ar.type, Type) and ar.type.name == "Function" and ar.args[0] in fnsType.keys():  # XXX
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))

@@ -1,25 +1,25 @@
 import re
 from llvmlite import binding as llvm
 
+import metalift
+from metalift.objects import Int, MLObject
 from metalift.ir import (
     Expr,
     MLInst_Eq,
     MLInst_Or,
     MLInst_Return,
     Synth,
-    Type,
     MLInst,
-    Bool,
     MLInst_Call,
     MLInst_Load,
     MLInst_Assert,
     MLInst_Assume,
     MLInst_Havoc,
     MLInst_Not,
-    String,
     Lit,
     Var,
 )
+from metalift.types import Type, String
 from metalift.vc import Block, VC
 from llvmlite.binding import ValueRef
 from typing import (
@@ -228,7 +228,7 @@ def processLoops(
 
     global invNum
     inv = MLInst_Call(
-        "inv%s" % invNum, Bool(), *[MLInst_Load(h) for h in havocs], *fnArgs
+        "inv%s" % invNum, metalift.objects.Bool, *[MLInst_Load(h) for h in havocs], *fnArgs
     )
     invNum = invNum + 1
 
@@ -269,7 +269,7 @@ def processLoops(
         for i in l.instructions:
             print("%s" % i)
 
-    return CodeInfo(inv.operands[0], Bool(), havocs, fnArgs)  # type: ignore
+    return CodeInfo(inv.operands[0], metalift.objects.Bool, havocs, fnArgs)  # type: ignore
 
 
 def processBranches(
@@ -310,14 +310,14 @@ def processBranches(
                 filter(lambda a: b"sret" not in a.attributes, fnArgs)
             )  # remove the sret args
             ps: Union[MLInst, Expr] = MLInst_Call(
-                fnName, Bool(), returnArg, *filteredArgs
+                fnName, metalift.objects.Bool, returnArg, *filteredArgs
             )
             if wrapSummaryCheck:
                 ps, transformedArgs = wrapSummaryCheck(cast(MLInst, ps))
                 returnArg = transformedArgs[0]
                 filteredArgs = transformedArgs[1:]
             b.instructions.insert(-1, MLInst_Assert(ps))
-            retCodeInfo.append(CodeInfo(fnName, Bool(), [returnArg], filteredArgs))
+            retCodeInfo.append(CodeInfo(fnName, metalift.objects.Bool, [returnArg], filteredArgs))
 
     return retCodeInfo
 
@@ -429,4 +429,24 @@ def analyze(
         uninterpFuncs,
     )
 
+    # replace all ValueRef in code info with ML Objects
+    loopAndPsInfo = [CodeInfo(l.name, l.retT, replaceValueRef(l.name, l.modifiedVars), replaceValueRef(l.name, l.readVars))
+                     for l in loopAndPsInfo]
+
     return (vars, invAndPs, preds, vc, loopAndPsInfo)
+
+
+def replaceValueRef(fnName: str, vs: List[Union[Expr, ValueRef]]) -> List[MLObject]:
+    r = []
+    for v in vs:
+        if isinstance(v, ValueRef):
+            tname = str(v.type)  # m.type.name is empty for some reason
+            if tname == "i32":
+                # our rosette parser and unparser assume that function args are named as <fn name>_<var name>
+                r.append(Int(Var(f"{fnName}_{v.name}", metalift.objects.Int)))
+            else:
+                raise NotImplementedError(v)
+        else:
+            r.append(v)
+
+    return r
