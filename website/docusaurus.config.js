@@ -26,7 +26,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
-          editUrl: 'https://github.com/metalift/metalift/tree/main/docs',
+          editUrl: 'https://github.com/metalift/metalift/tree/main/website',
           remarkPlugins: [math],
           rehypePlugins: [katex],
         },
@@ -34,7 +34,7 @@ const config = {
           showReadingTime: true,
           // Please change this to your repo.
           editUrl:
-            'https://github.com/metalift/metalift/tree/main/docs',
+            'https://github.com/metalift/metalift/tree/main/website',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
