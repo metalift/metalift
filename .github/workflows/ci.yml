@@ -47,6 +47,7 @@ jobs:
         run: mypy .
 
       - name: Save Nix cache
+        if: steps.cache.outputs.cache-hit == 'false'
         run: ./ci-util/cache-nix.sh
 
   build:
@@ -153,4 +154,5 @@ jobs:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
     - name: Save Nix cache
+      if: steps.cache.outputs.cache-hit == 'false'
       run: ./ci-util/cache-nix.sh
