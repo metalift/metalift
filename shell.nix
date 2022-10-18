@@ -1,6 +1,5 @@
 let
   pkgs = import <nixpkgs> {};
-  unstable = import <nixos-unstable> {};
   poetry2nixLatest = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/2a2193eb0677a8801c3b414f67bacf499bd0b6fc.tar.gz) { };
 in
 with pkgs;
@@ -11,7 +10,7 @@ with pkgs;
   preferWheels = true;
 }).env.overrideAttrs(old: {
   buildInputs = [
-    unstable.cvc5
+    cvc5
     llvm_11
     clang_11
   ];
