@@ -1,0 +1,98 @@
+{
+  "nodes": {
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1659877975,
+        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_2": {
+      "locked": {
+        "lastModified": 1659877975,
+        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "llvmlite-patched": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1647060624,
+        "narHash": "sha256-OLhoQV4PaRubNMIhDuwLLXDNeICoSXwaP7L4yzazb2s=",
+        "ref": "patched-metalift",
+        "rev": "c418eb18a78f49d9a059c50bd992f732432b9fe5",
+        "revCount": 1779,
+        "type": "git",
+        "url": "https://github.com/metalift/llvmlite.git"
+      },
+      "original": {
+        "ref": "patched-metalift",
+        "type": "git",
+        "url": "https://github.com/metalift/llvmlite.git"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1666164185,
+        "narHash": "sha256-5v+YB4ijeUfg5LCz9ck4gIpCPhIS+qn02OyPJO48bCE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c5203abb1329f7ea084c04acda330ca75d5b9fb5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-22.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "poetry2nix-flake": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1666223385,
+        "narHash": "sha256-RpP3FJDEeXRdJYwROXB04dbWEHfWotaEemlw7HCl5J4=",
+        "owner": "nix-community",
+        "repo": "poetry2nix",
+        "rev": "185bcb30d47d97b8b1c02d68f26f9524e91c34d8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "poetry2nix",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "llvmlite-patched": "llvmlite-patched",
+        "nixpkgs": "nixpkgs",
+        "poetry2nix-flake": "poetry2nix-flake"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
