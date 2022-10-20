@@ -23,6 +23,7 @@ from metalift.ir import (
 from metalift.vc import Block, VC
 from llvmlite.binding import ValueRef
 from typing import (
+    Any,
     Callable,
     Dict,
     Iterable,
@@ -34,6 +35,19 @@ from typing import (
     Union,
     cast,
 )
+
+orig_value_ref_operands = ValueRef.operands
+
+
+@property  # type: ignore
+def new_value_ref_operands(self: ValueRef) -> Any:
+    if hasattr(self, "my_operands") and self.my_operands:
+        return self.my_operands
+    else:
+        return orig_value_ref_operands.__get__(self)
+
+
+setattr(ValueRef, "operands", new_value_ref_operands)
 
 
 def setupBlocks(blks: Iterable[ValueRef]) -> Dict[str, Block]:
@@ -358,15 +372,23 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                     fieldName = r.group(3)
                     if op == "set":
                         # newInst = MLInst_Call("setField", i.type, Lit(fieldName, String()), ops[0], ops[1])
-                        i.operands = [
-                            Lit(fieldName, String()),
-                            ops[0],
-                            ops[1],
-                            "setField",
-                        ]
+                        setattr(
+                            i,
+                            "my_operands",
+                            [
+                                Lit(fieldName, String()),
+                                ops[0],
+                                ops[1],
+                                "setField",
+                            ],
+                        )
                     else:
                         # i.operands = ["getField", i.type, Lit(fieldName, String()), ops[0], "getField"]
-                        i.operands = [Lit(fieldName, String()), ops[0], "getField"]
+                        setattr(
+                            i,
+                            "my_operands",
+                            [Lit(fieldName, String()), ops[0], "getField"],
+                        )
                         # print("inst: %s" % i)
 
 
