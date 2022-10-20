@@ -23,6 +23,7 @@ from metalift.ir import (
 from metalift.vc import Block, VC
 from llvmlite.binding import ValueRef
 from typing import (
+    Any,
     Callable,
     Dict,
     Iterable,
@@ -38,8 +39,8 @@ from typing import (
 orig_value_ref_operands = ValueRef.operands
 
 
-@property
-def new_value_ref_operands(self):
+@property  # type: ignore
+def new_value_ref_operands(self: ValueRef) -> Any:
     if hasattr(self, "my_operands") and self.my_operands:
         return self.my_operands
     else:
