@@ -27,13 +27,8 @@
           (poetry2nix.mkPoetryEnv {
             python = python38;
             projectDir = ./.;
-            preferWheels = true;
 
             overrides = poetry2nix.overrides.withDefaults (_: poetrySuper: {
-              llvmlite = poetrySuper.llvmlite.overridePythonAttrs(super: {
-                src = llvmlite-patched;
-              });
-
               autoflake = poetrySuper.autoflake.overrideAttrs(_: super: {
                 nativeBuildInputs = super.nativeBuildInputs ++ [ poetrySuper.hatchling ];
               });
