@@ -35,6 +35,15 @@ from typing import (
     cast,
 )
 
+orig_value_ref_operands = ValueRef.operands
+@property
+def new_value_ref_operands(self):
+    if hasattr(self, "my_operands") and self.my_operands:
+        return self.my_operands
+    else:
+        return orig_value_ref_operands.__get__(self)
+
+setattr(ValueRef, "operands", new_value_ref_operands)
 
 def setupBlocks(blks: Iterable[ValueRef]) -> Dict[str, Block]:
     bbs = dict((b.name, Block(b.name, list(b.instructions))) for b in blks)
@@ -358,15 +367,15 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                     fieldName = r.group(3)
                     if op == "set":
                         # newInst = MLInst_Call("setField", i.type, Lit(fieldName, String()), ops[0], ops[1])
-                        i.operands = [
+                        setattr(i, "my_operands", [
                             Lit(fieldName, String()),
                             ops[0],
                             ops[1],
                             "setField",
-                        ]
+                        ])
                     else:
                         # i.operands = ["getField", i.type, Lit(fieldName, String()), ops[0], "getField"]
-                        i.operands = [Lit(fieldName, String()), ops[0], "getField"]
+                        setattr(i, "my_operands", [Lit(fieldName, String()), ops[0], "getField"])
                         # print("inst: %s" % i)
 
 
