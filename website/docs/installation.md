@@ -25,10 +25,10 @@ cd metalift
 We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
 
 ### Installation using Nix
-If you use [Nix](https://nixos.org/), you can automatically get all these dependencies using the `shell.nix` definition in the base directory of the Metalift repository.
+If you use [Nix](https://nixos.org/), you can automatically get all these dependencies using the `flake.nix` definition in the base directory of the Metalift repository. Once you've got Nix installed, you'll need to enable [flakes](https://nixos.wiki/wiki/Flakes).
 
 ```
-$ nix-shell
+$ nix develop
 $ # all dependencies are available!
 ```
 
