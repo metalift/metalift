@@ -27,11 +27,14 @@ def format_with_index(a: str, idx: int) -> str:
 
 
 class VariableTracker(object):
-    groups: Dict[str, int] = dict()
-    existing: Dict[str, int] = dict()
-    var_to_type: Dict[str, Type] = dict()
+    groups: Dict[str, int]
+    existing: Dict[str, int]
+    var_to_type: Dict[str, Type]
 
     def __init__(self) -> None:
+        self.groups = {}
+        self.existing = {}
+        self.var_to_type = {}
         return
 
     def group(self, name: str) -> "VariableGroup":
@@ -113,12 +116,13 @@ class VariableGroup(object):
 class RawBlock(object):
     name: str
     instructions: List[ValueRef]
-    successors: Set[str] = set()
+    successors: Set[str]
     return_type: Optional[Type] = None
 
     def __init__(self, name: str, instructions: List[ValueRef]) -> None:
         self.name = name
         self.instructions = instructions
+        self.successors = set()
 
         # extract successors
         final_instruction = instructions[-1]
