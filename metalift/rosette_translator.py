@@ -49,8 +49,8 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
                 % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
             )
     elif v.type.name == "Map":
-        tmp_k = [v.args[0] + "_" + str(i) + "_k" for i in range(listBound)]
-        tmp_v = [v.args[0] + "_" + str(i) + "_v" for i in range(listBound)]
+        tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
+        tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
             genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
         for t in tmp_v:
@@ -68,7 +68,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
     elif v.type.name == "Tuple":
         elem_names = []
         for i, t in enumerate(v.type.args):
-            elem_name = v.args[0] + "_" + str(i)
+            elem_name = v.args[0] + "_TUPLE-" + str(i)
             genVar(Var(elem_name, t), decls, vars_all, listBound)
             elem_names.append(elem_name)
 
