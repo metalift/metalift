@@ -429,19 +429,14 @@ def analyze(
     return AnalysisResult(list(fn.arguments), blocks, loop_info_dict)
 
 
-if __name__ == "main":
-    test_analysis = analyze("tests/fma_dsl.ll", "test", "tests/fma_dsl.loops")
+if __name__ == "__main__":
+    test_analysis = analyze("tests/ite1.ll", "test", "tests/ite1.loops")
     for block in test_analysis.blocks.values():
         print(block)
         print()
 
     variable_tracker = VariableTracker()
-    base = Var("base", Int())
-    arg1 = Var("arg1", Int())
-    base2 = Var("base2", Int())
-    arg2 = Var("arg2", Int())
-
-    vc = test_analysis.call(base, arg1, base2, arg2)(
+    vc = test_analysis.call(Var("in", Int()))(
         variable_tracker, lambda ret: Eq(ret, IntLit(0))
     )
     print(vc)
