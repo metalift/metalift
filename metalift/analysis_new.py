@@ -1,25 +1,21 @@
-from multiprocessing.sharedctypes import Value
+import re
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
 
-from typing import Callable, Dict, List, Optional, Set, Union, Tuple, final
+from typing import Callable, Dict, List, Optional, Set, Union, Tuple
 
 from metalift.analysis import LoopInfo, parseLoops
 from metalift.ir import (
     And,
     Bool,
-    BoolLit,
-    Call,
     Eq,
     Expr,
     Implies,
-    Int,
-    IntLit,
     Type,
     Var,
     parseTypeRef,
 )
-from metalift import ir
+from metalift import ir, models_new
 
 
 def format_with_index(a: str, idx: int) -> str:
@@ -174,8 +170,9 @@ StackEnv = Dict[str, Union[ValueRef, Expr]]
 def gen_value(value: ValueRef, fn_group: VariableGroup) -> Expr:
     if value.name:
         return fn_group.existing_variable(value.name, parseTypeRef(value.type))
-    elif str(value) == "i32 0":
-        return IntLit(0)
+    elif str(value).startswith("i32 "):
+        literal = int(re.match("i32 (\d+)", str(value).strip()).group(1))  # type: ignore
+        return ir.IntLit(literal)
     else:
         raise Exception("Cannot generate value for %s" % value)
 
@@ -194,6 +191,32 @@ def gen_expr(expr: ValueRef, fn_group: VariableGroup, env: StackEnv) -> Expr:
         return ir.Mul(
             gen_value(operands[0], fn_group), gen_value(operands[1], fn_group)
         )
+    elif opcode == "icmp":
+        cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(expr).strip()).group(1)  # type: ignore
+        op1 = gen_value(operands[0], fn_group)
+        op2 = gen_value(operands[1], fn_group)
+
+        if cond == "eq":
+            return ir.Eq(op2, op1)
+        elif cond == "sgt":
+            return ir.Lt(op2, op1)
+        elif cond == "sle":
+            return ir.Le(op1, op2)
+        elif cond == "slt" or cond == "ult":
+            return ir.Lt(op1, op2)
+        else:
+            raise Exception("Unknown comparison operator %s" % cond)
+    elif opcode == "call":
+        fnName = operands[-1] if isinstance(operands[-1], str) else operands[-1].name
+        if fnName == "":
+            # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+            fnName = str(operands[-1]).split("@")[-1].split(" ")[0]
+        if fnName in models_new.fn_models:
+            return models_new.fn_models[fnName](
+                [gen_value(arg, fn_group) for arg in operands[:-1]]
+            )
+        else:
+            raise Exception("Unknown function %s" % fnName)
     else:
         raise Exception("Unknown opcode: %s" % opcode)
 
@@ -284,6 +307,37 @@ class RichBlock(object):
                     operands[0].name, parseTypeRef(operands[0].type)
                 )
             )
+        elif opcode == "br":
+            # TODO(shadaj): invoke invariant if target is loop header we are part of
+            if len(operands) == 1:  # unconditional branch
+                return Implies(
+                    fn_group.variable_or_existing(
+                        f"{operands[0].name}_from_{self.name}", Bool()
+                    ),
+                    fn_group.existing_variable(operands[0].name, Bool()),
+                )
+            else:
+                condition = gen_value(operands[0], fn_group)
+
+                # LLVMLite switches the order of branches for some reason
+                true_branch = operands[2].name
+                false_branch = operands[1].name
+
+                return ir.Ite(
+                    condition,
+                    Implies(
+                        fn_group.variable_or_existing(
+                            f"{true_branch}_from_{self.name}", Bool()
+                        ),
+                        fn_group.existing_variable(true_branch, Bool()),
+                    ),
+                    Implies(
+                        fn_group.variable_or_existing(
+                            f"{false_branch}_from_{self.name}", Bool()
+                        ),
+                        fn_group.existing_variable(false_branch, Bool()),
+                    ),
+                )
         else:
             raise Exception("Unknown jump instruction: %s" % instruction)
 
@@ -297,25 +351,44 @@ class RichBlock(object):
             return self.vc_condition_cache
 
         stack_env = dict()
+        stack_merges: Dict[Tuple[str, Expr], List[Expr]] = dict()
         for pred in self.predecessors:
             _, pred_stack = all_blocks[pred].vc_condition(fn_group, all_blocks, next)
             for key in pred_stack:
-                if key not in stack_env:
-                    stack_env[key] = pred_stack[key]
-                else:
-                    raise Exception("Merging stack variables not yet implemented")
+                # if key not in stack_env:
+                #     stack_env[key] = pred_stack[key]
+                # else:
+                key_expr_pair = (key, pred_stack[key])
+                if key_expr_pair not in stack_merges:
+                    stack_merges[key_expr_pair] = []
 
-        assigns = []
+                stack_merges[key_expr_pair].append(
+                    fn_group.variable_or_existing(f"{self.name}_from_{pred}", Bool())
+                )
+
+        assigns: List[Expr] = []
+        for key, expr in stack_merges:
+            if len(stack_merges[(key, expr)]) == len(self.predecessors):
+                stack_env[key] = expr
+            else:
+                if key not in stack_env:
+                    stack_env[key] = fn_group.variable(
+                        f"stack_{self.name}_merge_{key}", pred_stack[key].type
+                    )
+
+                for cond in stack_merges[(key, expr)]:
+                    assigns.append(Implies(cond, Eq(stack_env[key], expr)))
+
         for i in self.instructions[:-1]:
-            expr, stack_env = self.gen_instruction(
+            maybe_expr, stack_env = self.gen_instruction(
                 i, fn_group, stack_env, all_blocks, next
             )
-            if expr:
-                assigns.append(expr)
+            if maybe_expr:
+                assigns.append(maybe_expr)
 
         out = (
             Implies(
-                And(*assigns),
+                And(*assigns) if len(assigns) > 0 else ir.BoolLit(True),
                 self.gen_jump(
                     self.instructions[-1], fn_group, stack_env, all_blocks, next
                 ),
@@ -436,7 +509,7 @@ if __name__ == "__main__":
         print()
 
     variable_tracker = VariableTracker()
-    vc = test_analysis.call(Var("in", Int()))(
-        variable_tracker, lambda ret: Eq(ret, IntLit(0))
+    vc = test_analysis.call(Var("in", ir.Int()))(
+        variable_tracker, lambda ret: Eq(ret, ir.IntLit(0))
     )
     print(vc)

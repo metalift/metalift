@@ -30,12 +30,12 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         vars_all.append(v.args[0])
 
     elif v.type.name == "MLList" or v.type.name == "Set":
-        tmp = [v.args[0] + "_" + str(i) for i in range(listBound)]
+        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
 
         for t in tmp:
             genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
 
-        len_name = v.args[0] + "-len"
+        len_name = v.args[0] + "_BOUNDEDSET-len"
         genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
 
         if v.type.name == "Set":
