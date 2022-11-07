@@ -1,3 +1,4 @@
+from ast import arguments
 import re
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
@@ -256,7 +257,7 @@ class RichBlock(object):
         fn_group: VariableGroup,
         env: StackEnv,
         all_blocks: Dict[str, "RichBlock"],
-        next: Callable[..., Expr],
+        next: Callable[[Expr], Expr],
     ) -> Tuple[Optional[Expr], StackEnv]:
         operands = list(instruction.operands)
         if len(instruction.name) > 0:
@@ -299,7 +300,7 @@ class RichBlock(object):
         fn_group: VariableGroup,
         env: StackEnv,
         all_blocks: Dict[str, "RichBlock"],
-        next: Callable[..., Expr],
+        next: Callable[[Expr], Expr],
     ) -> Expr:
         opcode = instruction.opcode
         operands = list(instruction.operands)
@@ -347,7 +348,7 @@ class RichBlock(object):
         self,
         fn_group: VariableGroup,
         all_blocks: Dict[str, "RichBlock"],
-        next: Callable[..., Expr],
+        next: Callable[[Expr], Expr],
     ) -> Tuple[Expr, StackEnv]:
         if self.vc_condition_cache is not None:
             return self.vc_condition_cache
@@ -460,8 +461,8 @@ class AnalysisResult(object):
 
     def call(
         self, *args: Expr
-    ) -> Callable[[VariableTracker, Callable[..., Expr]], Expr]:
-        def wrapper(tracker: VariableTracker, next: Callable[..., Expr]) -> Expr:
+    ) -> Callable[[VariableTracker, Callable[[Expr], Expr]], Expr]:
+        def wrapper(tracker: VariableTracker, next: Callable[[Expr], Expr]) -> Expr:
             group = tracker.group("fn")
             arg_variables = {
                 arg.name(): group.variable(arg.name(), arg.type)
@@ -474,7 +475,9 @@ class AnalysisResult(object):
                         Eq(arg_variables[arg.name()], args[i])
                         for i, arg in enumerate(self.arguments)
                     ]
-                ),
+                )
+                if len(self.arguments) > 0
+                else ir.BoolLit(True),
                 Implies(
                     And(
                         *[
