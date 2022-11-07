@@ -351,13 +351,13 @@ class RichBlock(object):
             return self.vc_condition_cache
 
         stack_env = dict()
+
+        # tracks the which branch variables will result in each distinct merged value
+        # we organize things this way to eliminate redundant merges
         stack_merges: Dict[Tuple[str, Expr], List[Expr]] = dict()
         for pred in self.predecessors:
             _, pred_stack = all_blocks[pred].vc_condition(fn_group, all_blocks, next)
             for key in pred_stack:
-                # if key not in stack_env:
-                #     stack_env[key] = pred_stack[key]
-                # else:
                 key_expr_pair = (key, pred_stack[key])
                 if key_expr_pair not in stack_merges:
                     stack_merges[key_expr_pair] = []
