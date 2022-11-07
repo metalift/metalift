@@ -113,6 +113,7 @@ class RawBlock(object):
     name: str
     instructions: List[ValueRef]
     successors: Set[str] = set()
+    return_type: Optional[Type] = None
 
     def __init__(self, name: str, instructions: List[ValueRef]) -> None:
         self.name = name
@@ -132,6 +133,7 @@ class RawBlock(object):
             targets = final_operands[1::2]
         elif final_opcode == "ret":
             targets = []
+            self.return_type = parseTypeRef(final_operands[0].type)
         else:
             raise Exception("Unknown end block inst: %s" % final_instruction)
 
@@ -426,20 +428,34 @@ class LoopBlock(RichBlock):
 
 
 class AnalysisResult(object):
-    arguments: List[ValueRef]
+    name: str
+    arguments: List[Var]
+    return_type: Type
     blocks: Dict[str, RichBlock]
     loop_info: Dict[str, LoopInfo]
 
     def __init__(
         self,
+        name: str,
         arguments: List[ValueRef],
         blocks: Dict[str, RawBlock],
         loop_info: Dict[str, LoopInfo],
     ) -> None:
-        self.arguments = arguments
+        self.name = name
+        self.arguments = [Var(arg.name, parseTypeRef(arg.type)) for arg in arguments]
+
         self.blocks = {
             name: block.rich(blocks, loop_info) for name, block in blocks.items()
         }
+
+        found_return = None
+        for block in blocks.values():
+            if block.return_type:
+                if found_return:
+                    assert found_return == block.return_type
+                found_return = block.return_type
+        self.return_type = found_return  # type: ignore
+
         self.loop_info = loop_info
 
     def call(
@@ -448,14 +464,14 @@ class AnalysisResult(object):
         def wrapper(tracker: VariableTracker, next: Callable[..., Expr]) -> Expr:
             group = tracker.group("fn")
             arg_variables = {
-                arg.name: group.variable(arg.name, parseTypeRef(arg.type))
+                arg.name(): group.variable(arg.name(), arg.type)
                 for arg in self.arguments
             }
             bb_variables = {b: group.variable(b, Bool()) for b in self.blocks.keys()}
             return Implies(
                 And(
                     *[
-                        Eq(arg_variables[arg.name], args[i])
+                        Eq(arg_variables[arg.name()], args[i])
                         for i, arg in enumerate(self.arguments)
                     ]
                 ),
@@ -499,7 +515,7 @@ def analyze(
         assert len(loop.header) == 1
         loop_info_dict[loop.header[0]] = loop
 
-    return AnalysisResult(list(fn.arguments), blocks, loop_info_dict)
+    return AnalysisResult(fn.name, list(fn.arguments), blocks, loop_info_dict)
 
 
 if __name__ == "__main__":
