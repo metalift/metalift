@@ -44,7 +44,7 @@ class VariableTracker(object):
             self.groups[name] = 0
         return VariableGroup(self, format_with_index(name, self.groups[name]))
 
-    def variable(self, name: str, type: Type) -> Expr:
+    def variable(self, name: str, type: Type) -> Var:
         if name in self.existing:
             self.existing[name] += 1
         else:
@@ -54,7 +54,7 @@ class VariableTracker(object):
 
         return Var(format_with_index(name, self.existing[name]), type)
 
-    def all(self) -> List[Expr]:
+    def all(self) -> List[Var]:
         return [Var(name, self.var_to_type[name]) for name in self.var_to_type]
 
 
@@ -63,7 +63,7 @@ class VariableGroup(object):
         self.tracker = tracker
         self.name = name
 
-    def existing_variable(self, name: str, type: Type) -> Expr:
+    def existing_variable(self, name: str, type: Type) -> Var:
         my_name = f"{self.name}_{name}"
 
         if my_name not in self.tracker.existing:
@@ -80,7 +80,7 @@ class VariableGroup(object):
         )
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
-    def variable_or_existing(self, name: str, type: Type) -> Expr:
+    def variable_or_existing(self, name: str, type: Type) -> Var:
         my_name = f"{self.name}_{name}"
         if my_name not in self.tracker.existing:
             self.tracker.existing[my_name] = 0
@@ -99,7 +99,7 @@ class VariableGroup(object):
         )
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
-    def variable(self, name: str, type: Type) -> Expr:
+    def variable(self, name: str, type: Type) -> Var:
         my_name = f"{self.name}_{name}"
         if my_name in self.tracker.existing:
             self.tracker.existing[my_name] += 1
