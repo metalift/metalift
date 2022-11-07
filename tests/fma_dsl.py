@@ -1,25 +1,16 @@
-import os
-import sys
-
-from metalift.analysis import CodeInfo, analyze
+from metalift.analysis_new import VariableTracker, analyze
 from metalift.ir import *
 
 from metalift.synthesize_auto import synthesize
 
-def grammar(ci: CodeInfo):
-    name = ci.name
-
-    if name.startswith("inv"):
-        raise RuntimeError("no invariants for loop-less grammar")
-    else:  # ps
-        inputVars = Choose(*ci.readVars, IntLit(0))
-        rv = ci.modifiedVars[0]
-        var_or_add = Add(inputVars, inputVars)
-        var_or_fma = Choose(
-            *ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
-        )
-        summary = Eq(rv, Add(var_or_fma, var_or_fma))
-        return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+def grammar(name, args, ret):
+    inputVars = Choose(*args, IntLit(0))
+    var_or_add = Add(inputVars, inputVars)
+    var_or_fma = Choose(
+        *args, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
+    )
+    summary = Eq(ret, Add(var_or_fma, var_or_fma))
+    return Synth(name, summary, ret, *args)
 
 
 def targetLang():
@@ -56,17 +47,35 @@ if __name__ == "__main__":
     loopsFile = "tests/fma_dsl.loops"
     cvcPath = "cvc5"
 
-    (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+    test_analysis = analyze(filename, fnName, loopsFile)
+
+    variable_tracker = VariableTracker()
+    base = variable_tracker.variable("base", Int())
+    arg1 = variable_tracker.variable("arg1", Int())
+    base2 = variable_tracker.variable("base2", Int())
+    arg2 = variable_tracker.variable("arg2", Int())
+
+    synth_fun = grammar(fnName, [base, arg1, base2, arg2], Var("ret", Int()))
+
+    vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Call(
+        fnName,
+        Bool(),
+        ret,
+        base, arg1, base2, arg2
+    ))
+
+    vars = variable_tracker.all()
+    loopAndPsInfo = [synth_fun]
 
     print("====== grammar")
-    invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+    invAndPs = [synth_fun]
 
     lang = targetLang()
 
     # rosette synthesizer  + CVC verfication
     print("====== synthesis")
     candidates = synthesize(
-        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True
+        basename, lang, vars, invAndPs, [], vc, loopAndPsInfo, cvcPath
     )
     summary = codeGen(candidates[0])
     print("====== summary in target language")
