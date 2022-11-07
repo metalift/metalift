@@ -124,6 +124,7 @@ jobs:
     - name: Test Core Examples
       shell: nix develop --command bash -e {0}
       run: |
+        python -m tests.fma_dsl
         python -m tests.ite1
         python -m tests.ite3
         python -m tests.set1
@@ -139,7 +140,6 @@ jobs:
       if: matrix.synth_cvc5 == '0'
       shell: nix develop --command bash -e {0}
       run: |
-        python -m tests.fma_dsl
         python -m tests.count
         python -m tests.list1
         python -m tests.list1_fns

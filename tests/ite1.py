@@ -1,27 +1,17 @@
-import os
-import sys
-
-from metalift.analysis import CodeInfo, analyze
+from metalift.analysis_new import VariableTracker, analyze
 from metalift.ir import *
 
 from metalift.synthesize_auto import synthesize
 
 
-def grammar(ci: CodeInfo):
-    name = ci.name
-
-    if name.startswith("inv"):
-        raise Exception("no invariant")
-    else:  # ps
-
-        outputVar = ci.modifiedVars[0]
-        intLit = Choose(IntLit(1), IntLit(2), IntLit(3), IntLit(10))
-        cond = Choose(
-            Eq(*ci.readVars, intLit), Gt(*ci.readVars, intLit), Le(*ci.readVars, intLit)
-        )
-        ite = Ite(cond, intLit, intLit)
-        summary = Eq(outputVar, ite)
-        return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+def grammar(name, args, ret):
+    intLit = Choose(IntLit(1), IntLit(2), IntLit(3), IntLit(10))
+    cond = Choose(
+        Eq(*args, intLit), Gt(*args, intLit), Le(*args, intLit)
+    )
+    ite = Ite(cond, intLit, intLit)
+    summary = Eq(ret, ite)
+    return Synth(name, summary, ret, *args)
 
 
 def targetLang():
@@ -36,14 +26,29 @@ if __name__ == "__main__":
     loopsFile = "tests/ite1.loops"
     cvcPath = "cvc5"
 
-    (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+    test_analysis = analyze(filename, fnName, loopsFile)
+
+    variable_tracker = VariableTracker()
+    i = variable_tracker.variable("i", Int())
+
+    synth_fun = grammar(fnName, [i], Var("ret", Int()))
+
+    vc = test_analysis.call(i)(variable_tracker, lambda ret: Call(
+        fnName,
+        Bool(),
+        ret,
+        i
+    ))
+
+    vars = variable_tracker.all()
 
     print("====== synthesis")
-    invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+    invAndPs = [synth_fun]
+    loopAndPsInfo = [synth_fun]
 
     lang = targetLang()
     candidates = synthesize(
-        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+        basename, lang, vars, invAndPs, [], vc, loopAndPsInfo, cvcPath
     )
     for c in candidates:
         print(c, "\n")
