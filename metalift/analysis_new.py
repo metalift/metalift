@@ -194,6 +194,10 @@ def gen_expr(expr: ValueRef, fn_group: VariableGroup, env: StackEnv) -> Expr:
         return ir.Add(
             gen_value(operands[0], fn_group), gen_value(operands[1], fn_group)
         )
+    elif opcode == "sub":
+        return ir.Sub(
+            gen_value(operands[0], fn_group), gen_value(operands[1], fn_group)
+        )
     elif opcode == "mul":
         return ir.Mul(
             gen_value(operands[0], fn_group), gen_value(operands[1], fn_group)
