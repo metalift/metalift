@@ -309,11 +309,7 @@ class RichBlock(object):
         opcode = instruction.opcode
         operands = list(instruction.operands)
         if opcode == "ret":
-            return next(
-                fn_group.existing_variable(
-                    operands[0].name, parseTypeRef(operands[0].type)
-                )
-            )
+            return next(gen_value(operands[0], fn_group))
         elif opcode == "br":
             # TODO(shadaj): invoke invariant if target is loop header we are part of
             if len(operands) == 1:  # unconditional branch
