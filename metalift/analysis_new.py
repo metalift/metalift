@@ -436,7 +436,7 @@ class AnalysisResult(object):
     name: str
     arguments: List[Var]
     return_type: Type
-    blocks: Dict[str, RichBlock]
+    blocks: Dict[str, RawBlock]
     loop_info: Dict[str, LoopInfo]
 
     def __init__(
@@ -448,10 +448,7 @@ class AnalysisResult(object):
     ) -> None:
         self.name = name
         self.arguments = [Var(arg.name, parseTypeRef(arg.type)) for arg in arguments]
-
-        self.blocks = {
-            name: block.rich(blocks, loop_info) for name, block in blocks.items()
-        }
+        self.blocks = blocks
 
         found_return = None
         for block in blocks.values():
@@ -467,12 +464,17 @@ class AnalysisResult(object):
         self, *args: Expr
     ) -> Callable[[VariableTracker, Callable[[Expr], Expr]], Expr]:
         def wrapper(tracker: VariableTracker, next: Callable[[Expr], Expr]) -> Expr:
+            rich_blocks = {
+                name: block.rich(self.blocks, self.loop_info)
+                for name, block in self.blocks.items()
+            }
+
             group = tracker.group("fn")
             arg_variables = {
                 arg.name(): group.variable(arg.name(), arg.type)
                 for arg in self.arguments
             }
-            bb_variables = {b: group.variable(b, Bool()) for b in self.blocks.keys()}
+            bb_variables = {b: group.variable(b, Bool()) for b in rich_blocks.keys()}
             return Implies(
                 And(
                     *[
@@ -487,11 +489,11 @@ class AnalysisResult(object):
                         *[
                             Eq(
                                 bb_variables[b],
-                                self.blocks[b].vc_condition(group, self.blocks, next)[
+                                rich_blocks[b].vc_condition(group, rich_blocks, next)[
                                     0
                                 ],
                             )
-                            for b in self.blocks.keys()
+                            for b in rich_blocks.keys()
                         ]
                     ),
                     bb_variables["bb"],
