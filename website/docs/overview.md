@@ -29,6 +29,7 @@ While we are still building out Metalift, our goal is to use it to reproduce the
 - [STNG (Fortran to Halide)](http://stng.uwplse.org/)
 - [Dexter (C++ to Halide)](http://dexter.uwplse.org/)
 - [Domino (C to a programmable switch ISA)](http://web.mit.edu/domino/)
-- [Rake (Halide to Hexagon DSP)](https://dl.acm.org/doi/10.1145/3503222.3507714)
+- [Rake (Halide to Hexagon DSP)](https://github.com/uwplse/rake/)
+- [Katara (sequential data types to CRDTs)](https://github.com/hydro-project/katara)
 
 Contact us if you have other use cases!
