@@ -1,4 +1,3 @@
-from ast import arguments
 import re
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
@@ -243,8 +242,6 @@ class RichBlock(object):
     predecessors: Set[str]
     successors: Set[str]
 
-    vc_condition_cache: Optional[Tuple[Expr, StackEnv]] = None
-
     def __init__(
         self,
         name: str,
@@ -354,9 +351,6 @@ class RichBlock(object):
         all_blocks: Dict[str, "RichBlock"],
         next: Callable[[Expr], Expr],
     ) -> Tuple[Expr, StackEnv]:
-        if self.vc_condition_cache is not None:
-            return self.vc_condition_cache
-
         stack_env = dict()
 
         # tracks the which branch variables will result in each distinct merged value

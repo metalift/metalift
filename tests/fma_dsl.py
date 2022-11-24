@@ -5,7 +5,7 @@ from metalift.synthesize_auto import synthesize
 
 def grammar(name, args, ret):
     inputVars = Choose(*args, IntLit(0))
-    var_or_add = Add(inputVars, inputVars)
+    var_or_add = Choose(inputVars, Add(inputVars, inputVars))
     var_or_fma = Choose(
         *args, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
     )
