@@ -104,10 +104,16 @@ def toExpr(
     expr_uni = {"not": Not}
     if isinstance(ast, list):
         if ast[0] in expr_bi.keys():
-            return expr_bi[ast[0]](
-                toExpr(ast[1], funName, returnType, varType, letVars),
-                toExpr(ast[2], funName, returnType, varType, letVars),
-            )
+            if len(ast) >= 3:
+                return expr_bi[ast[0]](
+                    toExpr(ast[1], funName, returnType, varType, letVars),
+                    toExpr(ast[2], funName, returnType, varType, letVars),
+                )
+            else:
+                return expr_bi[ast[0]](
+                    toExpr(0, funName, returnType, varType, letVars),
+                    toExpr(ast[1], funName, returnType, varType, letVars),
+                )
         elif ast[0] in expr_uni.keys():
             return expr_uni[ast[0]](
                 toExpr(ast[1], funName, returnType, varType, letVars)
