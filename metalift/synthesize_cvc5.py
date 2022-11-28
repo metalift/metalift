@@ -111,7 +111,7 @@ def toExpr(
                 )
             elif len(ast) == 2 and ast[0] == "-":
                 return expr_bi[ast[0]](
-                    toExpr("0", funName, returnType, varType, letVars),  # type: ignore
+                    IntLit(0),
                     toExpr(ast[1], funName, returnType, varType, letVars),
                 )
             else:
