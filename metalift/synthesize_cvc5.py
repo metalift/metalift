@@ -109,11 +109,13 @@ def toExpr(
                     toExpr(ast[1], funName, returnType, varType, letVars),
                     toExpr(ast[2], funName, returnType, varType, letVars),
                 )
-            else:
+            elif ast[0] == "-":
                 return expr_bi[ast[0]](
-                    toExpr(0, funName, returnType, varType, letVars),
+                    toExpr("0", funName, returnType, varType, letVars),
                     toExpr(ast[1], funName, returnType, varType, letVars),
                 )
+            else:
+                raise ValueError("Unexpected number of arguments", ast)
         elif ast[0] in expr_uni.keys():
             return expr_uni[ast[0]](
                 toExpr(ast[1], funName, returnType, varType, letVars)
