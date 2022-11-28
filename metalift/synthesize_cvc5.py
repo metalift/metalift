@@ -104,12 +104,12 @@ def toExpr(
     expr_uni = {"not": Not}
     if isinstance(ast, list):
         if ast[0] in expr_bi.keys():
-            if len(ast) >= 3:
+            if len(ast) == 3:
                 return expr_bi[ast[0]](
                     toExpr(ast[1], funName, returnType, varType, letVars),
                     toExpr(ast[2], funName, returnType, varType, letVars),
                 )
-            elif ast[0] == "-":
+            elif len(ast) == 2 and ast[0] == "-":
                 return expr_bi[ast[0]](
                     toExpr("0", funName, returnType, varType, letVars),  # type: ignore
                     toExpr(ast[1], funName, returnType, varType, letVars),
