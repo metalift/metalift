@@ -15,6 +15,10 @@ def targetLang():
                              x, y, z)           # function inputs
     return [fma]
 
+# Grammar - specifies the language (space of programs) we want to consider as possible transpiled code (i.e. outputs)
+# specification is restricted to: metalift IR, semantic fns we define
+#
+# For now, let's consider outputs that are additions of input vars or the result of calling fma
 def grammar(ci):
   name = ci.name
 
