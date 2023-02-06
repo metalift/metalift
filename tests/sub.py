@@ -14,7 +14,8 @@ def grammar(ci):
     name = ci.name
     r = ci.modifiedVars[0]
     (x, y) = ci.readVars
-    summary = Eq(r, Sub(x, Choose(y, Sub(IntLit(0), y))))
+    #summary = Eq(r, Sub(x, Choose(y, Sub(IntLit(0), y))))
+    summary = Eq(r, Call("subtract", Int(), x, Choose(y, Call("negate", Int(), y))))
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
