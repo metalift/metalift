@@ -66,7 +66,7 @@ After that, we tell Metalift that all values should be computed using the gramma
 
 <!--phmdoctest-share-names-->
 ```python
-def grammar(name, args, ret):
+def grammar(name, args):
   inputVars = Choose(*args, IntLit(0))
   var_or_add = Add(inputVars, inputVars)
   var_or_fma = Choose(
@@ -74,11 +74,11 @@ def grammar(name, args, ret):
   )
   
   # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma 
-  summary = Eq(ret, Add(var_or_fma, var_or_fma))
+  summary = Add(var_or_fma, var_or_fma)
 
   return Synth(name,                            # name of the function we are transpiling
                summary,                         # grammar defined above
-               ret, *args)  # list of input and output variables
+               *args)  # list of input variables
 
 ```
 We wrap this in a `Synth` AST node and return it afterwards.
@@ -126,14 +126,13 @@ base2 = variable_tracker.variable("base2", Int())
 arg2 = variable_tracker.variable("arg2", Int())
 
 print("====== grammar")
-invAndPs = [grammar(fnName, [base, arg1, base2, arg2], Var("ret", Int()))]
+invAndPs = [grammar(fnName, [base, arg1, base2, arg2])]
 
-vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Call(
+vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Eq(ret, Call(
   fnName,
-  Bool(),
-  ret,
+  Int(),
   base, arg1, base2, arg2
-))
+)))
 
 lang = targetLang()
 ```
@@ -156,9 +155,7 @@ The synthesized code can then pass through our code generator to produce executa
 def codeGen(summary: FnDecl):
   expr = summary.body() 
   def eval(expr):
-    if isinstance(expr, Eq):
-      return f"{expr.e1()} = {eval(expr.e2())}"
-    elif isinstance(expr, Add):
+    if isinstance(expr, Add):
       return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
     elif isinstance(expr, Call):
       eval_args = []
@@ -177,5 +174,5 @@ print(summary)
 ```
 
 ```
-ret = fma(base + base, base2 + 0, 0 + 0) + fma(base2 + base2, arg2 + 0, arg1 + arg1)
+fma(base + base, base2 + 0, 0 + 0) + fma(base2 + base2, arg2 + 0, arg1 + arg1)
 ```
