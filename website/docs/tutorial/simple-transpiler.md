@@ -23,7 +23,7 @@ Our first step is to define the semantics of the target language. Using Metalift
 ```python
 from metalift.ir import Var, FnDecl, FnDeclNonRecursive, Choose, Synth
 from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit
-from metalift.ir import Int
+from metalift.ir import Int, Bool
 
 def targetLang():
   x = Var("x", Int()) # variables to be used in semantic function definition
@@ -66,22 +66,19 @@ After that, we tell Metalift that all values should be computed using the gramma
 
 <!--phmdoctest-share-names-->
 ```python
-def grammar(ci):
-  name = ci.name
-
-  inputVars = Choose(*ci.readVars, IntLit(0))
+def grammar(name, args, ret):
+  inputVars = Choose(*args, IntLit(0))
   var_or_add = Add(inputVars, inputVars)
   var_or_fma = Choose(
-    *ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
+    *args, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
   )
   
-  rv = ci.modifiedVars[0]
   # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma 
-  summary = Eq(rv, Add(var_or_fma, var_or_fma))
+  summary = Eq(ret, Add(var_or_fma, var_or_fma))
 
   return Synth(name,                            # name of the function we are transpiling
                summary,                         # grammar defined above
-               *ci.modifiedVars, *ci.readVars)  # list of input and output variables
+               ret, *args)  # list of input and output variables
 
 ```
 We wrap this in a `Synth` AST node and return it afterwards.
@@ -111,7 +108,7 @@ We pass these file names to Metalift's `analyze` function, which returns a numbe
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.analysis import analyze
+from metalift.analysis_new import VariableTracker, analyze
 
 filename = "tests/fma_dsl.ll"
 basename = "fma_dsl"
@@ -120,10 +117,23 @@ fnName = "test"
 loopsFile = "tests/fma_dsl.loops"
 cvcPath = "cvc5"
 
-(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+test_analysis = analyze(filename, fnName, loopsFile)
+
+variable_tracker = VariableTracker()
+base = variable_tracker.variable("base", Int())
+arg1 = variable_tracker.variable("arg1", Int())
+base2 = variable_tracker.variable("base2", Int())
+arg2 = variable_tracker.variable("arg2", Int())
 
 print("====== grammar")
-invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+invAndPs = [grammar(fnName, [base, arg1, base2, arg2], Var("ret", Int()))]
+
+vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Call(
+  fnName,
+  Bool(),
+  ret,
+  base, arg1, base2, arg2
+))
 
 lang = targetLang()
 ```
@@ -135,7 +145,7 @@ After we defined our target language and search space grammar, we call Metalift'
 from metalift.synthesize_auto import synthesize
 
 candidates = synthesize(
-  basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+  "example", lang, variable_tracker.all(), invAndPs, [], vc, invAndPs, cvcPath
 )
 ```
 
@@ -167,5 +177,5 @@ print(summary)
 ```
 
 ```
-i18 = fma(arg2 + arg, 0 + 0, arg3 + arg) + fma(arg + arg2, arg3 + arg3, 0 + arg1)
+ret = fma(base + base, base2 + 0, 0 + 0) + fma(base2 + base2, arg2 + 0, arg1 + arg1)
 ```
