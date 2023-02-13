@@ -11,18 +11,15 @@ from metalift.synthesize_auto import synthesize
 def call_mat_mul(a, b, x):
     return Call("mat_mul", TupleT(Int(), Int()), a, b, x)
 
-def call_l1_norm(p):
-    return Call("l1_norm", Int(), p)
-
-def call_abs(a):
-    return Call("abs", Int(), a)
+def call_not_l2_norm(p):
+    return Call("not_l2_norm", Int(), p)
 
 def grammar(ci: CodeInfo):
     name = ci.name
 
     r = ci.modifiedVars[0]
     (a0, a1, b0, b1, x0, x1) = ci.readVars
-    # Calculate the squared L2 norm
+    # Calculate the matrix-vector product
     a = Tuple(a0, a1)
     b = Tuple(b0, b1)
     x = Tuple(x0, x1)
@@ -30,12 +27,14 @@ def grammar(ci: CodeInfo):
     wrong_p = call_mat_mul(b, a, x)
     wrong_p2 = call_mat_mul(a, x, b)
 
-    l1_norm_p = call_l1_norm(p)
-    l1_norm_wrong_p = call_l1_norm(wrong_p)
-    l1_norm_wrong_p2 = call_l1_norm(wrong_p2)
+    # this is the correct answer
+    not_l2_norm_p = call_not_l2_norm(p) 
+    # this is a wrong answer
+    not_l2_norm_wrong_p = call_not_l2_norm(wrong_p) 
+    # this is a wrong answer
+    not_l2_norm_wrong_p2 = call_not_l2_norm(wrong_p2)
 
-    #summary = Eq(r, Choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2))
-    summary = Eq(r, l1_norm_p)
+    summary = Eq(r, Choose(not_l2_norm_p, not_l2_norm_wrong_p, not_l2_norm_wrong_p2))
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -51,17 +50,13 @@ def targetLang():
     mat_mul = FnDecl(
         "mat_mul", TupleT(Int(), Int()), make_mat_mul_fnbody(a, b, x), a, b, x
     )
-    abs_arg = Var("a", Int())
-    def make_abs_fnbody(a):
-        return Ite(Gt(a, IntLit(0)), a, Mul(IntLit(-1), a))
-    abs_fn = FnDecl("abs", Int(), make_abs_fnbody(abs_arg), abs_arg)
     p = Var("p", TupleT(Int(), Int()))
     p0 = TupleGet(p, IntLit(0))
     p1 = TupleGet(p, IntLit(1))
-    l1_norm = FnDecl(
-        "l1_norm", Int(), Add(call_abs(p0), call_abs(p1)), p
+    not_l2_norm = FnDecl(
+        "not_l2_norm", Int(), Add(Add(p0, p0), Add(p1, p1)), p
     )
-    return [mat_mul, l1_norm, abs_fn]
+    return [mat_mul, not_l2_norm]
 
 basename = "mat2"
 filename = "tests/mat2.ll"
