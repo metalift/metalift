@@ -8,11 +8,14 @@ from metalift.smt_util import toSMT
 
 from metalift.synthesize_auto import synthesize
 
-def call_mat_mul(a, b, x):
-    return Call("mat_mul", TupleT(Int(), Int()), a, b, x)
+L1_NORM = "l1_norm"
+MAT_MUL = "mat_mul"
 
-def call_not_l2_norm(p):
-    return Call("not_l2_norm", Int(), p)
+def call_mat_mul(a, b, x):
+    return Call(MAT_MUL, TupleT(Int(), Int()), a, b, x)
+
+def call_l1_norm(p):
+    return Call(L1_NORM, Int(), p)
 
 def grammar(ci: CodeInfo):
     name = ci.name
@@ -28,13 +31,13 @@ def grammar(ci: CodeInfo):
     wrong_p2 = call_mat_mul(a, x, b)
 
     # this is the correct answer
-    not_l2_norm_p = call_not_l2_norm(p) 
+    l1_norm_p = call_l1_norm(p) 
     # this is a wrong answer
-    not_l2_norm_wrong_p = call_not_l2_norm(wrong_p) 
+    l1_norm_wrong_p = call_l1_norm(wrong_p) 
     # this is a wrong answer
-    not_l2_norm_wrong_p2 = call_not_l2_norm(wrong_p2)
+    l1_norm_wrong_p2 = call_l1_norm(wrong_p2)
 
-    summary = Eq(r, Choose(not_l2_norm_p, not_l2_norm_wrong_p, not_l2_norm_wrong_p2))
+    summary = Eq(r, Choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2))
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -48,15 +51,19 @@ def targetLang():
         p1r = Mul(TupleGet(b, IntLit(1)), TupleGet(x, IntLit(1)))
         return Tuple(Add(p0l, p0r), Add(p1l, p1r))
     mat_mul = FnDecl(
-        "mat_mul", TupleT(Int(), Int()), make_mat_mul_fnbody(a, b, x), a, b, x
+        MAT_MUL, TupleT(Int(), Int()), make_mat_mul_fnbody(a, b, x), a, b, x
     )
     p = Var("p", TupleT(Int(), Int()))
-    p0 = TupleGet(p, IntLit(0))
-    p1 = TupleGet(p, IntLit(1))
-    not_l2_norm = FnDecl(
-        "not_l2_norm", Int(), Add(Add(p0, p0), Add(p1, p1)), p
+    def make_l1_norm_fnbody(p):
+        p0 = TupleGet(p, IntLit(0))
+        p1 = TupleGet(p, IntLit(1))
+        p0_abs = Ite(Lt(p0, IntLit(0)), Sub(IntLit(0), p0), p0)
+        p1_abs = Ite(Lt(p1, IntLit(0)), Sub(IntLit(0), p1), p1)
+        return Add(p0_abs, p1_abs)
+    l1_norm = FnDecl(
+        L1_NORM, Int(), make_l1_norm_fnbody(p), p
     )
-    return [mat_mul, not_l2_norm]
+    return [mat_mul, l1_norm]
 
 basename = "mat2"
 filename = "tests/mat2.ll"
@@ -83,10 +90,10 @@ def codeGen(summary: FnDecl):
       for a in expr.arguments():
         eval_args.append(eval(a))
       name = expr.name()
-      if name == "mat_mul":
+      if name == MAT_MUL:
         name = "np.matmul"
-      elif name == "not_l2_norm":
-        name == "2 * np.sum"
+      elif name == L1_NORM:
+        name = "2 * np.sum"
       return f"{name}({', '.join(eval_args)})"
     elif isinstance(expr, Lit):
       return str(expr.val())
