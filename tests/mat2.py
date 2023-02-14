@@ -75,16 +75,24 @@ def codeGen(summary: FnDecl):
   expr = summary.body() 
   def eval(expr):
     if isinstance(expr, Eq):
-      return f"{expr.e1()} = {eval(expr.e2())}"
+      return f"ans = {eval(expr.e2())}"
     elif isinstance(expr, Add):
       return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
     elif isinstance(expr, Call):
       eval_args = []
       for a in expr.arguments():
         eval_args.append(eval(a))
-      return f"{expr.name()}({', '.join(eval_args)})"
+      name = expr.name()
+      if name == "mat_mul":
+        name = "np.matmul"
+      elif name == "not_l2_norm":
+        name == "2 * np.sum"
+      return f"{name}({', '.join(eval_args)})"
     elif isinstance(expr, Lit):
       return str(expr.val())
+    elif isinstance(expr, Tuple):
+      eval_args = map(lambda expr: eval(expr), expr.args)
+      return f"[{', '.join(eval_args)}]"
     else:
       return str(expr)
   return eval(expr)
