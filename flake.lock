@@ -2,11 +2,11 @@
   "nodes": {
     "flake-utils": {
       "locked": {
-        "lastModified": 1659877975,
-        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
+        "lastModified": 1676283394,
+        "narHash": "sha256-XX2f9c3iySLCw54rJ/CZs+ZK6IQy7GXNY4nSOyu2QG4=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
+        "rev": "3db36a8b464d0c4532ba1c7dda728f4576d6d073",
         "type": "github"
       },
       "original": {
@@ -17,48 +17,31 @@
     },
     "flake-utils_2": {
       "locked": {
-        "lastModified": 1659877975,
-        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
+        "lastModified": 1676283394,
+        "narHash": "sha256-XX2f9c3iySLCw54rJ/CZs+ZK6IQy7GXNY4nSOyu2QG4=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
+        "rev": "3db36a8b464d0c4532ba1c7dda728f4576d6d073",
         "type": "github"
       },
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
-      }
-    },
-    "llvmlite-patched": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1647060624,
-        "narHash": "sha256-OLhoQV4PaRubNMIhDuwLLXDNeICoSXwaP7L4yzazb2s=",
-        "ref": "patched-metalift",
-        "rev": "c418eb18a78f49d9a059c50bd992f732432b9fe5",
-        "revCount": 1779,
-        "type": "git",
-        "url": "https://github.com/metalift/llvmlite.git"
-      },
-      "original": {
-        "ref": "patched-metalift",
-        "type": "git",
-        "url": "https://github.com/metalift/llvmlite.git"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1666164185,
-        "narHash": "sha256-5v+YB4ijeUfg5LCz9ck4gIpCPhIS+qn02OyPJO48bCE=",
+        "lastModified": 1676817468,
+        "narHash": "sha256-ovuJ1jQOC2/EEibufBkXmSN/O9mLx80Wh7aDmHmHAhA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "c5203abb1329f7ea084c04acda330ca75d5b9fb5",
+        "rev": "0cf4274b5d06325bd16dbf879a30981bc283e58a",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-22.05",
+        "ref": "nixos-22.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -71,11 +54,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1666223385,
-        "narHash": "sha256-RpP3FJDEeXRdJYwROXB04dbWEHfWotaEemlw7HCl5J4=",
+        "lastModified": 1674917871,
+        "narHash": "sha256-0dLfkWyWWeKDZhupteyBNlastcEzrCmCTdFGtcj7F10=",
         "owner": "nix-community",
         "repo": "poetry2nix",
-        "rev": "185bcb30d47d97b8b1c02d68f26f9524e91c34d8",
+        "rev": "860530598f2ab9a9a0e89dc79851d14b0aed3bf7",
         "type": "github"
       },
       "original": {
@@ -87,7 +70,6 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "llvmlite-patched": "llvmlite-patched",
         "nixpkgs": "nixpkgs",
         "poetry2nix-flake": "poetry2nix-flake"
       }
