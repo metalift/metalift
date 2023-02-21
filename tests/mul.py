@@ -6,6 +6,8 @@ from metalift.analysis import CodeInfo, analyze
 
 from metalift.synthesize_auto import synthesize
 
+MUL_EQUAL = "elementwise_mul"
+
 def ml_list_get(lst, i):
     return Call("list_get", Int(), lst, i)
 
@@ -18,39 +20,31 @@ def ml_list_length(lst):
 def ml_min(a, b):
     return Ite(Lt(a, b), a, b)
 
-def mul_semantic_bounded(prod, x, y, depth):
-    if depth == 0:
-        return BoolLit(True)
-    size = ml_min(ml_list_length(x), ml_list_length(y))
-    cur_output_prod = ml_list_head(prod)
-    cur_input_prod = Mul(ml_list_head(x), ml_list_head(y))
-    prod_rest = Call("list_tail", ListT(Int()), prod, IntLit(1))
-    x_rest = Call("list_tail", ListT(Int()), x, IntLit(1))
-    y_rest = Call("list_tail", ListT(Int()), y, IntLit(1))
-    recursed = mul_semantic_bounded(prod_rest, x_rest, y_rest, depth - 1)
-    return Or(Eq(size, IntLit(0)), And(Eq(cur_output_prod, cur_input_prod), recursed))
-
-def mul_semantic(prod, x, y):
-    size = ml_min(ml_list_length(x), ml_list_length(y))
-    cur_output_prod = ml_list_head(prod)
-    cur_input_prod = Mul(ml_list_head(x), ml_list_head(y))
-    prod_rest = Call("list_tail", ListT(Int()), prod)
-    x_rest = Call("list_tail", ListT(Int()), x)
-    y_rest = Call("list_tail", ListT(Int()), y)
-    recursed = mul_semantic(prod_rest, x_rest, y_rest)
-    return Or(Eq(size, IntLit(0)), And(Eq(cur_output_prod, cur_input_prod), recursed))
-
 def grammar(ci: CodeInfo):
     name = ci.name
 
     prod = ci.modifiedVars[0]
     (x, y) = ci.readVars
-    #summary = mul_semantic(prod, x, y)
-    summary = mul_semantic_bounded(prod, x, y, 3)
+    summary = Call(MUL_EQUAL, Bool(), prod, x, y)
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
-    return []
+    def mul_equal_body(prod, x, y):
+        size = ml_min(ml_list_length(x), ml_list_length(y))
+        cur_output_prod = ml_list_head(prod)
+        cur_input_prod = Mul(ml_list_head(x), ml_list_head(y))
+        prod_rest = Call("list_tail", ListT(Int()), prod)
+        x_rest = Call("list_tail", ListT(Int()), x)
+        y_rest = Call("list_tail", ListT(Int()), y)
+        recursed = Call(MUL_EQUAL, Bool(), prod_rest, x_rest, y_rest)
+        return Ite(Eq(size, IntLit(0)), BoolLit(True), And(Eq(cur_output_prod, cur_input_prod), recursed))
+
+    prod = Var("prod", ListT(Int()))
+    x = Var("x", ListT(Int()))
+    y = Var("y", ListT(Int()))
+    mul_equal = FnDecl(MUL_EQUAL, Bool(), mul_equal_body(prod, x, y), prod, x, y)
+    
+    return [mul_equal]
 
 basename = "mul"
 filename = "tests/mul.ll"
