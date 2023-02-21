@@ -7,6 +7,7 @@ from metalift.analysis import CodeInfo, analyze
 from metalift.synthesize_auto import synthesize
 
 MUL_EQUAL = "elementwise_mul"
+LEN_CHECK = "length_check"
 
 def ml_list_get(lst, i):
     return Call("list_get", Int(), lst, i)
@@ -25,7 +26,7 @@ def grammar(ci: CodeInfo):
 
     prod = ci.modifiedVars[0]
     (x, y) = ci.readVars
-    summary = Call(MUL_EQUAL, Bool(), prod, x, y)
+    summary = And(Call(LEN_CHECK, Bool(), prod, x, y), Call(MUL_EQUAL, Bool(), prod, x, y))
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -43,8 +44,17 @@ def targetLang():
     x = Var("x", ListT(Int()))
     y = Var("y", ListT(Int()))
     mul_equal = FnDecl(MUL_EQUAL, Bool(), mul_equal_body(prod, x, y), prod, x, y)
+
+    # checks that length of output is equal to the smaller of x and y
+    def length_check_body(output, x, y):
+        correct_size = ml_min(ml_list_length(x), ml_list_length(y))
+        output_size = ml_list_length(output)
+        return Eq(output_size, correct_size)
+
+    output = Var("output", ListT(Int()))
+    length_check = FnDecl(LEN_CHECK, Bool(), length_check_body(output, x, y), output, x, y)
     
-    return [mul_equal]
+    return [mul_equal, length_check]
 
 basename = "mul"
 filename = "tests/mul.ll"
