@@ -9,12 +9,13 @@ extern "C" List<int> test(List<int> left, List<int> right)
   int rightLength = listLength(right);
   // Ignore elements beyond last element of smaller list
   //int minlen = leftLength < rightLength ? leftLength : rightLength;
-  int minlen = leftLength;
-  if (rightLength < leftLength)
-	minlen = rightLength;
+  //int minlen = leftLength;
+  //if (rightLength < leftLength)
+  //  minlen = rightLength;
   //int minlen = 3;
   List<int> prod = newList<int>();
-  for (int i = 0; i < minlen; ++i)
+  // We can assume the lengths are well-behaved
+  for (int i = 0; i < leftLength; ++i)
 	prod = listAppend(prod, listGet(left, i) * listGet(right, i));
 
   return prod;
