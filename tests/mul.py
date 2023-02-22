@@ -8,12 +8,17 @@ from metalift.synthesize_auto import synthesize
 
 MUL_EQUAL = "elementwise_mul"
 LEN_CHECK = "length_check"
+DOT_PROD = "dot_product"
+CONV_1D = "conv1d"
 
 def ml_list_get(lst, i):
     return Call("list_get", Int(), lst, i)
 
 def ml_list_head(lst):
     return ml_list_get(lst, IntLit(0))
+
+def ml_list_tail(lst):
+    return Call("list_tail", ListT(Int()), lst)
 
 def ml_list_length(lst):
     return Call("list_length", Int(), lst)
@@ -34,9 +39,9 @@ def targetLang():
         size = ml_min(ml_list_length(x), ml_list_length(y))
         cur_output_prod = ml_list_head(prod)
         cur_input_prod = Mul(ml_list_head(x), ml_list_head(y))
-        prod_rest = Call("list_tail", ListT(Int()), prod)
-        x_rest = Call("list_tail", ListT(Int()), x)
-        y_rest = Call("list_tail", ListT(Int()), y)
+        prod_rest = ml_list_tail(prod)
+        x_rest = ml_list_tail(x)
+        y_rest = ml_list_tail(y)
         recursed = Call(MUL_EQUAL, Bool(), prod_rest, x_rest, y_rest)
         return Ite(Eq(size, IntLit(0)), BoolLit(True), And(Eq(cur_output_prod, cur_input_prod), recursed))
 
@@ -55,15 +60,28 @@ def targetLang():
     length_check = FnDecl(LEN_CHECK, Bool(), length_check_body(output, x, y), output, x, y)
 
     def dot_product_body(x, y):
-        remaining_size = ml_list_length(x)
+        size = ml_min(ml_list_length(x), ml_list_length(y))
         cur_elem_prod = Mul(ml_list_head(x), ml_list_head(y))
-        x_rest = Call("list_tail", ListT(Int()), x)
-        y_rest = Call("list_tail", ListT(Int()), y)
-        return Ite(Eq(remaining_size, IntLit(0)), IntLit(0), Add(cur_elem_prod, Call("dot_product", Int(), x_rest, y_rest)))
+        x_rest = ml_list_tail(x)
+        y_rest = ml_list_tail(y)
+        return Ite(Eq(size, IntLit(0)), IntLit(0), Add(cur_elem_prod, Call(DOT_PROD, Int(), x_rest, y_rest)))
     output = Var("dprod", Int())
-    dot_product = FnDecl("dot_product", Int(), dot_product_body(x, y), output, x, y)
+    dot_product = FnDecl(DOT_PROD, Int(), dot_product_body(x, y), output, x, y)
 
-    return [mul_equal, length_check, dot_product]
+    def conv1d_equal_body(conv, x, kernel):
+        remaining_size = ml_list_length(conv)
+        cur_output_elem = ml_list_head(conv)
+        cur_input_elem = Call(DOT_PROD, Int(), x, kernel)
+        conv_rest = ml_list_tail(conv)
+        x_rest = ml_list_tail(x)
+        return Ite(Eq(remaining_size, IntLit(0)),
+                   BoolLit(True),
+                   And(Eq(cur_output_elem, cur_input_elem), Call(CONV_1D, Bool(), conv_rest, x_rest, kernel)))
+    output = Var("conv", ListT(Int()))
+    conv1d_equal = FnDecl(CONV_1D, ListT(Int()), conv1d_equal_body(output, x, y), output, x, y)
+
+
+    return [mul_equal, length_check, dot_product, conv1d_equal]
 
 basename = "mul"
 filename = "tests/mul.ll"
