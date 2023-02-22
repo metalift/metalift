@@ -53,8 +53,17 @@ def targetLang():
 
     output = Var("output", ListT(Int()))
     length_check = FnDecl(LEN_CHECK, Bool(), length_check_body(output, x, y), output, x, y)
-    
-    return [mul_equal, length_check]
+
+    def dot_product_body(x, y):
+        remaining_size = ml_list_length(x)
+        cur_elem_prod = Mul(ml_list_head(x), ml_list_head(y))
+        x_rest = Call("list_tail", ListT(Int()), x)
+        y_rest = Call("list_tail", ListT(Int()), y)
+        return Ite(Eq(remaining_size, IntLit(0)), IntLit(0), Add(cur_elem_prod, Call("dot_product", Int(), x_rest, y_rest)))
+    output = Var("dprod", Int())
+    dot_product = FnDecl("dot_product", Int(), dot_product_body(x, y), output, x, y)
+
+    return [mul_equal, length_check, dot_product]
 
 basename = "mul"
 filename = "tests/mul.ll"
