@@ -17,11 +17,11 @@ def targetLang():
     x = Var("x", Int())
     y = Var("y", Int())
     z = Var("z", Int())
-    fma = FnDeclNonRecursive("fma", Int(), Add(x, Mul(y, z)), x, y, z)
+    fma = FnDecl("fma", Int(), Add(x, Mul(y, z)), x, y, z)
     return [fma]
 
 
-def codeGen(summary: FnDecl):
+def codeGen(summary: FnDeclRecursive):
     expr = summary.body() 
     def eval(expr):
         if isinstance(expr, Eq):

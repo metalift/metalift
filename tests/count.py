@@ -124,9 +124,9 @@ def targetLang():
     lm_fn = Var("f", FnT(Int(), Int()))
     lr_fn = Var("f", FnT(Int(), Int(), Int()))
 
-    mapper = FnDecl("lm", Int(), None, arg2)
-    reducer = FnDecl("lr", Int(), None, arg2, arg3)
-    map_fn = FnDecl(
+    mapper = FnDeclRecursive("lm", Int(), None, arg2)
+    reducer = FnDeclRecursive("lr", Int(), None, arg2, arg3)
+    map_fn = FnDeclRecursive(
         "map",
         ListT(Int()),
         Ite(
@@ -143,7 +143,7 @@ def targetLang():
         lm_fn,
     )
 
-    reduce_fn = FnDecl(
+    reduce_fn = FnDeclRecursive(
         "reduce",
         Int(),
         Ite(
