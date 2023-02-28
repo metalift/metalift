@@ -40,7 +40,7 @@ def parseCandidates(
     inCalls: typing.List[Any],
     fnsType: Dict[Any, Any],
     fnCalls: typing.List[Any],
-    extractedLambdas: typing.List[FnDeclNonRecursive],
+    extractedLambdas: typing.List[FnDecl],
     inFunctionName: str,
 ) -> typing.Tuple[
     Union[Expr, str], Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]
@@ -74,7 +74,7 @@ def parseCandidates(
                     elif isinstance(ar, Lambda):
                         lambda_name = f"lambda_{len(extractedLambdas)}"
                         extractedLambdas.append(
-                            FnDeclNonRecursive(
+                            FnDecl(
                                 lambda_name, ar.type.args[0], ar.args[0], *ar.args[1:]
                             )
                         )
@@ -92,14 +92,14 @@ def parseCandidates(
 
 def verify_synth_result(
     basename: str,
-    targetLang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    targetLang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
     vars: typing.Set[Var],
     preds: Union[str, typing.List[Expr]],
     vc: Expr,
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str,
     synthDir: str,
-    candidatesSMT: typing.List[FnDecl],
+    candidatesSMT: typing.List[FnDeclRecursive],
     candidateDict: Dict[str, Expr],
     fnsType: Dict[str, Type],
     uid: int,
@@ -127,7 +127,7 @@ def verify_synth_result(
     else:
         inCalls: typing.List[Any] = []
         fnCalls: typing.List[Any] = []
-        extractedLambdas: typing.List[FnDeclNonRecursive] = []
+        extractedLambdas: typing.List[FnDecl] = []
         for ce in loopAndPsInfo:
             updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
                 candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
@@ -142,7 +142,7 @@ def verify_synth_result(
 
         targetLang = [*targetLang, *extractedLambdas]
 
-        transformedLang: typing.List[Union[FnDecl, FnDeclNonRecursive, Axiom]] = []
+        transformedLang: typing.List[Union[FnDeclRecursive, FnDecl, Axiom]] = []
         for langFn in targetLang:
             if langFn.args[1] != None:
                 updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
@@ -153,8 +153,8 @@ def verify_synth_result(
                     extractedLambdas,
                     langFn.args[0],
                 )
-                if isinstance(langFn, FnDecl) or isinstance(langFn, FnDeclNonRecursive):
-                    decl: Union[FnDecl, FnDeclNonRecursive, Axiom] = FnDecl(
+                if isinstance(langFn, FnDeclRecursive) or isinstance(langFn, FnDecl):
+                    decl: Union[FnDeclRecursive, FnDecl, Axiom] = FnDeclRecursive(
                         langFn.args[0], langFn.returnT(), updated, *langFn.args[2:]
                     )
                 elif isinstance(langFn, Axiom):

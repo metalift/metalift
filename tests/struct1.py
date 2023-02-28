@@ -25,7 +25,7 @@ def grammar(ci: CodeInfo):
 def targetLang():
     x = Var("x", Int())
     y = Var("y", Int())
-    my_add = FnDecl("my_add", Int(), Add(x, y), x, y)
+    my_add = FnDeclRecursive("my_add", Int(), Add(x, y), x, y)
     return [my_add]
 
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         )
         ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
         candidatesSMT.append(
-            FnDecl(
+            FnDeclRecursive(
                 ceName,
                 ce.retT if isinstance(ce, CodeInfo) else ce.type,
                 candidateDict[ceName],

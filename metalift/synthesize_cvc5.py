@@ -55,7 +55,7 @@ def generateCandidates(
     line: str,
     funName: typing.List[str],
     returnType: typing.List[Type],
-) -> typing.Tuple[typing.List[FnDecl], Dict[str, Expr]]:
+) -> typing.Tuple[typing.List[FnDeclRecursive], Dict[str, Expr]]:
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
     for ce in invAndPs:
@@ -71,7 +71,7 @@ def generateCandidates(
 
                 candidatesExpr[a[0]] = toExpr(a[1], funName, returnType, args, {})
                 candidates.append(
-                    FnDecl(
+                    FnDeclRecursive(
                         ce.args[0],
                         ce.type,
                         candidatesExpr[a[0]],
@@ -209,7 +209,7 @@ def toExpr(
 
 def synthesize(
     basename: str,
-    targetLang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    targetLang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
     vars: typing.Set[Var],
     invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
@@ -222,7 +222,7 @@ def synthesize(
     optimize_vc_equality: bool = False,
     listBound: int = 2,  # currently ignored
     log: bool = True,  # currently ignored
-) -> typing.List[FnDecl]:
+) -> typing.List[FnDeclRecursive]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)

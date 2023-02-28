@@ -12,7 +12,7 @@ fma = Target("fma", [Int(), Int(), Int()], Int(),  # name, arg types, return typ
 Lit.codegen = lambda self: self.val()
 Var.codegen = lambda self: self.name()
 Add.codegen = lambda self: f'{" + ".join([str(a.codegen()) for a in self.args])}'
-FnDecl.codegen = lambda self: f'def {self.name()}({", ".join([str(a.codegen()) for a in self.arguments()])}):\n  ' \
+FnDeclRecursive.codegen = lambda self: f'def {self.name()}({", ".join([str(a.codegen()) for a in self.arguments()])}):\n  ' \
                               f'return {self.body().codegen()}'
 
 ### Grammar definition

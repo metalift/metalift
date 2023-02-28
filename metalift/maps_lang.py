@@ -16,7 +16,7 @@ def mapsLang() -> typing.List[Expr]:
     data = Var("data", ListT(Int()))
     lr_fn = Var("f", FnT(Int(), Int(), Int()))
     initial = Var("initial", Int())
-    reduce_fn = FnDecl(
+    reduce_fn = FnDeclRecursive(
         "reduce_int",
         Int(),
         Ite(
@@ -37,7 +37,7 @@ def mapsLang() -> typing.List[Expr]:
     data_bool = Var("data", ListT(Bool()))
     lr_fn_bool = Var("f", FnT(Bool(), Bool(), Bool()))
     initial_bool = Var("initial", Bool())
-    reduce_fn_bool = FnDecl(
+    reduce_fn_bool = FnDeclRecursive(
         "reduce_bool",
         Bool(),
         Ite(

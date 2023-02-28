@@ -29,7 +29,7 @@ def grammar(ci: CodeInfo):
 
 def targetLang():
     x = Var("x", TupleT(Int(), Int()))
-    tuple_add = FnDecl(
+    tuple_add = FnDeclRecursive(
         "tuple_add", Int(), Add(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))), x
     )
     return [tuple_add]

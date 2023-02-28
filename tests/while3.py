@@ -51,7 +51,7 @@ def grammar(ci: CodeInfo):
 
 def targetLang():
     x = Var("x", Int())
-    sum_n = FnDecl(
+    sum_n = FnDeclRecursive(
         "sum_n",
         Int(),
         Ite(
