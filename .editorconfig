@@ -1,3 +1,7 @@
 [tests/compile-add-blocks]
 indent_style = space
 indent_size = 2
+
+[*.cc]
+indent_style = space
+indent_size = 2
