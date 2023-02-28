@@ -21,7 +21,7 @@ Our first step is to define the semantics of the target language. Using Metalift
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.ir import Var, FnDecl, FnDeclNonRecursive, Choose, Synth
+from metalift.ir import Var, FnDecl, FnDeclRecursive, Choose, Synth
 from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit
 from metalift.ir import Int, Bool
 
@@ -29,10 +29,10 @@ def targetLang():
   x = Var("x", Int()) # variables to be used in semantic function definition
   y = Var("y", Int())
   z = Var("z", Int())
-  fma = FnDeclNonRecursive("fma",             # function name
-                           Int(),             # return type
-                           Add(x, Mul(y, z)), # body of the function
-                           x, y, z)           # function inputs
+  fma = FnDecl("fma",             # function name
+               Int(),             # return type
+               Add(x, Mul(y, z)), # body of the function
+               x, y, z)           # function inputs
   return [fma]
 ```
 
@@ -152,7 +152,7 @@ The synthesized code can then pass through our code generator to produce executa
 
 <!--phmdoctest-share-names-->
 ```python
-def codeGen(summary: FnDecl):
+def codeGen(summary: FnDeclRecursive):
   expr = summary.body() 
   def eval(expr):
     if isinstance(expr, Add):
