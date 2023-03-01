@@ -14,8 +14,8 @@ def ml_list_get(lst, i):
 def ml_list_head(lst):
     return ml_list_get(lst, IntLit(0))
 
-def ml_list_tail(lst):
-    return Call("list_tail", ListT(Int()), lst)
+def ml_list_tail(lst, i):
+    return Call("list_tail", ListT(Int()), lst, i)
 
 def ml_list_prepend(e, lst):
     return Call("list_prepend", ListT(Int()), e, lst)
@@ -45,28 +45,28 @@ def grammar(ci: CodeInfo):
         # mV[0] is list, mV[1] is int
         #print(*ci.modifiedVars)
         print(*ci.readVars)
-        #some_input = ci.readVars[0]
-        #other_input = ci.readVars[1]
-        an_input = Choose(*ci.readVars)
+        some_input = ci.readVars[0]
+        other_input = ci.readVars[1]
+        #an_input = Choose(*ci.readVars)
 
         prod = ci.modifiedVars[0]
         i = ci.modifiedVars[1]
-        initial = Choose(Ge(i, IntLit(0)),
-                         Gt(i, IntLit(0)),
-                         Le(i, IntLit(0)),
-                         Lt(i, IntLit(0)),
-                         Eq(i, IntLit(0)),
-                         Ge(i, IntLit(1)),
-                         Gt(i, IntLit(1)),
-                         Le(i, IntLit(1)),
-                         Lt(i, IntLit(1)),
-                         Eq(i, IntLit(1)))
-        loop_cond = Choose(Lt(i, ml_list_length(an_input)),
-                           Le(i, ml_list_length(an_input)),
-                           Gt(i, ml_list_length(an_input)),
-                           Ge(i, ml_list_length(an_input)),
-                           Eq(i, ml_list_length(an_input)))
-        post = Eq(prod, ml_mul1d(ml_list_take(an_input, i), ml_list_take(an_input, i)))
+        initial = Ge(i, IntLit(0))
+                         #Gt(i, IntLit(0)),
+                         #Le(i, IntLit(0)),
+                         #Lt(i, IntLit(0)),
+                         #Eq(i, IntLit(0)),
+                         #Ge(i, IntLit(1)),
+                         #Gt(i, IntLit(1)),
+                         #Le(i, IntLit(1)),
+                         #Lt(i, IntLit(1)),
+                         #Eq(i, IntLit(1)))
+        loop_cond = Le(i, ml_list_length(some_input))
+                           #Le(i, ml_list_length(an_input)),
+                           #Gt(i, ml_list_length(an_input)),
+                           #Ge(i, ml_list_length(an_input)),
+                           #Eq(i, ml_list_length(an_input)))
+        post = Eq(prod, ml_mul1d(ml_list_take(some_input, i), ml_list_take(other_input, i)))
         inv = And(initial, loop_cond)
         summary = And(inv, post)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
@@ -83,8 +83,8 @@ def targetLang():
     def mul_body(x, y):
         size = ml_list_length(x)
         cur_prod = Mul(ml_list_head(x), ml_list_head(y))
-        x_rest = ml_list_tail(x)
-        y_rest = ml_list_tail(y)
+        x_rest = ml_list_tail(x, IntLit(1))
+        y_rest = ml_list_tail(y, IntLit(1))
         recursed = ml_mul1d(x_rest, y_rest)
         general_answer = ml_list_prepend(cur_prod, recursed)
         return Ite(Eq(size, IntLit(0)), ml_list_empty(), general_answer)
