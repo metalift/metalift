@@ -23,12 +23,13 @@ def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
-
-        e = Choose(*ci.modifiedVars)
-        f = Choose(IntLit(1), IntLit(2), IntLit(3))
-        c = Eq(e, Call("sum_n", Int(), Sub(e, f)))
-        d = And(Ge(e, f), Le(e, f))
-        b = And(c, d)
+        print(*ci.modifiedVars)
+        e = Choose(*ci.modifiedVars) # the answer, ignore Choose
+        one = IntLit(1)
+        three = IntLit(3)
+        c = Eq(e, Call("sum_n", Int(), Sub(e, one))) # ans == sum_n(e-f) = 1 + 2 + .. + ans - 1
+        d = And(Ge(e, one), Le(e, three)) # ans == 1, 2, or 3
+        b = And(c, d) # c & d
         return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
 
     else:  # ps
