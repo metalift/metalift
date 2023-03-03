@@ -44,6 +44,7 @@ def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
+        raise Exception("Inv grammar unimplemented")
         # mV[0] is list, mV[1] is int
         print("INV VARS MV HERE")
         print(*ci.modifiedVars)

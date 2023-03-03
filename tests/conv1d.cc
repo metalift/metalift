@@ -3,8 +3,6 @@
 //#include <vector>
 //#include <string>
 
-// Assume length must be equal
-// This will be enforced for synthesis & verification by ignoring in the grammar
 extern "C" List<int> test(List<int> vec, List<int> kernel)
 {
   int slides = listLength(vec) - listLength(kernel) + 1;
@@ -20,19 +18,3 @@ extern "C" List<int> test(List<int> vec, List<int> kernel)
 
   return convolved;
 }
-
-//int main(int argc, char** argv) {
-//	List<int> l = newList<int>();
-//	l = listAppend(l, 1);
-//	l = listAppend(l, 2);
-//	List<int> r = newList<int>();
-//	r = listAppend(r, 3);
-//	r = listAppend(r, 4);
-//	List<int> o = test(l, r);
-//
-//	for (std::vector<int>::const_iterator i = o->contents.begin(); i != o->contents.end(); ++i)
-//		std::cout << *i << std::endl;
-//
-//	return 0;
-//
-//}
