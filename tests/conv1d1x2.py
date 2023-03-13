@@ -44,37 +44,16 @@ def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
+        raise Exception("Inv grammar unimplemented")
         # mV[0] is list, mV[1] is int
         print("INV VARS MV HERE")
         print(*ci.modifiedVars)
         print("INV VARS RV HERE")
         print(*ci.readVars)
+        #some_input = ci.readVars[0]
+        #other_input = ci.readVars[1]
         an_input = Choose(*ci.readVars)
-        #an_output = Choose(*ci.modifiedVars)
-        #an_output_i32 = Choose(ci.modifiedVars[0], ci.modifiedVars[1], ci.modifiedVars[2], ci.modifiedVars[4])
-        #an_output_list = ci.modifiedVars[3]
-        an_output_i32 = ci.modifiedVars[1]
-        an_output_list = ci.modifiedVars[0]
 
-        initial = Choose(Ge(an_output_i32, IntLit(0)),
-                         Gt(an_output_i32, IntLit(0)),
-                         Le(an_output_i32, IntLit(0)),
-                         Lt(an_output_i32, IntLit(0)),
-                         Eq(an_output_i32, IntLit(0)),
-                         Ge(an_output_i32, IntLit(1)),
-                         Gt(an_output_i32, IntLit(1)),
-                         Le(an_output_i32, IntLit(1)),
-                         Lt(an_output_i32, IntLit(1)),
-                         Eq(an_output_i32, IntLit(1)))
-        loop_cond = Choose(Le(an_output_i32, ml_list_length(an_input)),
-                           Lt(an_output_i32, ml_list_length(an_input)),
-                           Ge(an_output_i32, ml_list_length(an_input)),
-                           Gt(an_output_i32, ml_list_length(an_input)),
-                           Eq(an_output_i32, ml_list_length(an_input)))
-        conv = an_output_list
-        take_idx = Choose(an_output_i32, Sub(an_output_i32, IntLit(1)), Add(an_output_i32, IntLit(1)))
-        post = Eq(conv, ml_conv1d1x2(ml_list_take(an_input, an_output_i32), an_input))
-        summary = And(initial, And(loop_cond, post))
         #prod = ci.modifiedVars[0]
         #i = ci.modifiedVars[1]
         #initial = Ge(i, IntLit(0))
@@ -95,7 +74,7 @@ def grammar(ci: CodeInfo):
         #post = Eq(prod, ml_mul1d(ml_list_take(some_input, i), ml_list_take(other_input, i)))
         #inv = And(initial, loop_cond)
         #summary = And(inv, post)
-        #summary = BoolLit(True)
+        summary = BoolLit(True)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
     else:
         output = ci.modifiedVars[0]

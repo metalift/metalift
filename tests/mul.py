@@ -31,7 +31,6 @@ def grammar(ci: CodeInfo):
 
     prod = ci.modifiedVars[0]
     (x, y) = ci.readVars
-    # change this to Implies
     summary = And(Call(LEN_CHECK, Bool(), prod, x, y), Call(MUL_EQUAL, Bool(), prod, x, y))
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -44,7 +43,6 @@ def targetLang():
         x_rest = ml_list_tail(x)
         y_rest = ml_list_tail(y)
         recursed = Call(MUL_EQUAL, Bool(), prod_rest, x_rest, y_rest)
-        # fix this, avoid using Ite (replace w Implies)
         return Ite(Eq(size, IntLit(0)), BoolLit(True), And(Eq(cur_output_prod, cur_input_prod), recursed))
 
     prod = Var("prod", ListT(Int()))

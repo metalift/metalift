@@ -43,9 +43,7 @@ def grammar(ci: CodeInfo):
 
     if name.startswith("inv"):
         # mV[0] is list, mV[1] is int
-        print("INV VARS MV HERE")
-        print(*ci.modifiedVars)
-        print("INV VARS RV HERE")
+        #print(*ci.modifiedVars)
         print(*ci.readVars)
         some_input = ci.readVars[0]
         other_input = ci.readVars[1]
