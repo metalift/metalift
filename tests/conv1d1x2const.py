@@ -66,15 +66,16 @@ def grammar(ci: CodeInfo):
                          Le(an_output_i32, IntLit(1)),
                          Lt(an_output_i32, IntLit(1)),
                          Eq(an_output_i32, IntLit(1)))
-        loop_cond = Choose(Le(an_output_i32, ml_list_length(an_input)),
+        initial2 = Choose(Le(an_output_i32, ml_list_length(an_input)),
                            Lt(an_output_i32, ml_list_length(an_input)),
                            Ge(an_output_i32, ml_list_length(an_input)),
                            Gt(an_output_i32, ml_list_length(an_input)),
                            Eq(an_output_i32, ml_list_length(an_input)))
+        preloop = And(initial, initial2)
         conv = an_output_list
         take_idx = Choose(an_output_i32, Sub(an_output_i32, IntLit(1)), Add(an_output_i32, IntLit(1)))
         post = Eq(conv, ml_conv1d1x2(ml_list_take(an_input, an_output_i32), an_input))
-        summary = And(initial, And(loop_cond, post))
+        summary = And(preloop, post)
         #prod = ci.modifiedVars[0]
         #i = ci.modifiedVars[1]
         #initial = Ge(i, IntLit(0))
