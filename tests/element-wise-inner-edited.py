@@ -87,16 +87,50 @@ def grammar(ci: CodeInfo):
 
 
 
-
+def codeGen(summary: FnDecl):
+    expr = summary.body()
+    def eval(expr):
+        if isinstance(expr, Eq):
+            return f"ans = {eval(expr.e2())}"
+        elif isinstance(expr, Add):
+            return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
+        elif isinstance(expr, Call):
+            eval_args = []
+            for a in expr.arguments():
+                eval_args.append(eval(a))
+            name = expr.name()
+            if name == "multiply":
+                # Do not call multiply recursively
+                name = "np.multiply"
+                args = expr.arguments()
+                assert(len(args) == 2)
+                M = f"np.array([{eval(args[0])}, {eval(args[1])}]).T"
+                x = eval(args[2])
+                return f"{name}({M}, {x})"
+            return f"{name}({', '.join(eval_args)})"
+        elif isinstance(expr, Lit):
+            return str(expr.val())
+        elif isinstance(expr, Tuple):
+            eval_args = map(lambda expr: eval(expr), expr.args)
+            return f"[{', '.join(eval_args)}]"
+        else:
+            return str(expr)
+    return eval(expr)
 
 
 if __name__ == "__main__":
 
-    filename = "tests/mul1.ll"
-    basename = "mul1"
+    #filename = "tests/mul1.ll"
+    #basename = "mul1"
+
+    #fnName = "test"
+    #loopsFile = "tests/mul1.loops"
+    #cvcPath = "cvc5"
+    filename = "tests/element-wise-inner.ll"
+    basename = "element-wise-inner"
 
     fnName = "test"
-    loopsFile = "tests/mul1.loops"
+    loopsFile = "tests/element-wise-inner.loops"
     cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
@@ -118,4 +152,4 @@ if __name__ == "__main__":
     )
     print("====== verified candidates")
     for c in candidates:
-        print(c, "\n")
+        print(codeGen(c), "\n")

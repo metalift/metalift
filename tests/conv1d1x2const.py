@@ -1,5 +1,7 @@
 import shutil
 
+# modified runner to check larger arrays
+
 from metalift.ir import *
 from metalift.analysis import CodeInfo, analyze
 
@@ -113,6 +115,7 @@ def targetLang():
     y = Var("y", ListT(Int()))
 
     # Ignores the rest of x if y is shorter
+    # TODO: just take idx 1
     def dotprod2d_body(x, y):
         element1 = Mul(ml_list_head(x), ml_list_head(y))
         x_rest = ml_list_tail(x, IntLit(1))
@@ -121,6 +124,8 @@ def targetLang():
         return Add(element1, element2)
     dotprod2d = FnDeclNonRecursive(DOTPROD2D, Int(), dotprod2d_body(x, y), x, y)
 
+    # TODO: handle input size < 2
+    # TODO: for size < 2, don't call dotprod
     def conv1d1x2_body(vec, kernel):
         vec_size = ml_list_length(x)
         kernel_size = IntLit(2)
@@ -132,19 +137,6 @@ def targetLang():
     conv1d1x2 = FnDecl(CONV1D1X2, ListT(Int()), conv1d1x2_body(x, y), x, y)
 
     return [dotprod2d, conv1d1x2]
-
-basename = "conv1d1x2"
-filename = "tests/conv1d1x2.ll"
-fnName = "test"
-loopsFile = "tests/conv1d1x2.loops"
-cvcPath = "cvc5"
-
-(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
-
-invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-lang = targetLang()
-
-candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 
 def codeGen(summary: FnDecl):
     expr = summary.body() 
@@ -158,6 +150,13 @@ def codeGen(summary: FnDecl):
             for a in expr.arguments():
                 eval_args.append(eval(a))
             name = expr.name()
+            if name == CONV1D1X2:
+                name = "torch.nn.functional.conv1d"
+                args = expr.arguments()
+                assert(len(args) == 2)
+                input = f"torch.tensor({args[0]})"
+                kernel = f"torch.tensor({args[1]})"
+                return f"{name}({input}, {kernel})"
             return f"{name}({', '.join(eval_args)})"
         elif isinstance(expr, Lit):
             return str(expr.val())
@@ -168,5 +167,19 @@ def codeGen(summary: FnDecl):
             return str(expr)
     return eval(expr)
 
-for c in candidates:
-    print(codeGen(c), "\n")
+def runner():
+    basename = "conv1d1x2"
+    filename = "tests/conv1d1x2.ll"
+    fnName = "test"
+    loopsFile = "tests/conv1d1x2.loops"
+    cvcPath = "cvc5"
+
+    (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+
+    invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+    lang = targetLang()
+
+    candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
+
+    for c in candidates:
+        print(codeGen(c), "\n")
