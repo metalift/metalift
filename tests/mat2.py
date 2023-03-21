@@ -7,6 +7,7 @@ from metalift.rosette_translator import toRosette
 from metalift.smt_util import toSMT
 
 from metalift.synthesize_auto import synthesize
+from metalift.transpiler import Transpiler
 
 L1_NORM = "l1_norm"
 MAT_MUL = "mat_mul"
@@ -17,11 +18,10 @@ def call_mat_mul(a, b, x):
 def call_l1_norm(p):
     return Call(L1_NORM, Int(), p)
 
-def grammar(ci: CodeInfo):
-    name = ci.name
-
-    r = ci.modifiedVars[0]
-    (a0, a1, b0, b1, x0, x1) = ci.readVars
+#def grammar(ci: CodeInfo):
+def grammar(readVars, retVal, isLoop):
+    r = retVal
+    (a0, a1, b0, b1, x0, x1) = readVars
     # Calculate the matrix-vector product
     a = Tuple(a0, a1)
     b = Tuple(b0, b1)
@@ -37,8 +37,10 @@ def grammar(ci: CodeInfo):
     # this is a wrong answer
     l1_norm_wrong_p2 = call_l1_norm(wrong_p2)
 
-    summary = Eq(r, Choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2))
-    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+    answerGrammar = Choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2)
+    rv = NonTerm(Int(), isStart=True)
+    #return Synth("mat2", summary, *ci.modifiedVars, *ci.readVars)
+    return {rv: answerGrammar}
 
 def targetLang():
     a = Var("a", TupleT(Int(), Int()))
@@ -64,19 +66,6 @@ def targetLang():
         L1_NORM, Int(), make_l1_norm_fnbody(p), p
     )
     return [mat_mul, l1_norm]
-
-basename = "mat2"
-filename = "tests/mat2.ll"
-fnName = "test"
-loopsFile = "tests/mat2.loops"
-cvcPath = "cvc5"
-
-(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
-
-invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-lang = targetLang()
-
-candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
 
 def codeGen(summary: FnDecl):
     expr = summary.body() 
@@ -111,6 +100,24 @@ def codeGen(summary: FnDecl):
             return str(expr)
     return eval(expr)
 
-summary = codeGen(candidates[0])
+def runner():
+    #basename = "mat2"
+    #filename = "tests/mat2.ll"
+    #fnName = "test"
+    #loopsFile = "tests/mat2.loops"
+    #cvcPath = "cvc5"
 
-print(summary)
+    #(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+
+    #invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+    #lang = targetLang()
+
+    #candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
+
+    #summary = codeGen(candidates[0])
+    t = Transpiler(grammar)
+    r = t.transpile("tests/mat2.ll", "test")
+
+    print(r.codegen())
+
+runner()
