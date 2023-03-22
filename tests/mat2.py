@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 
 from metalift.analysis import CodeInfo, analyze
@@ -12,112 +13,80 @@ from metalift.transpiler import Transpiler
 L1_NORM = "l1_norm"
 MAT_MUL = "mat_mul"
 
-def call_mat_mul(a, b, x):
-    return Call(MAT_MUL, TupleT(Int(), Int()), a, b, x)
-
-def call_l1_norm(p):
-    return Call(L1_NORM, Int(), p)
-
-#def grammar(ci: CodeInfo):
-def grammar(readVars, retVal, isLoop):
-    r = retVal
-    (a0, a1, b0, b1, x0, x1) = readVars
-    # Calculate the matrix-vector product
-    a = Tuple(a0, a1)
-    b = Tuple(b0, b1)
-    x = Tuple(x0, x1)
-    p = call_mat_mul(a, b, x)
-    wrong_p = call_mat_mul(b, a, x)
-    wrong_p2 = call_mat_mul(a, x, b)
-
-    # this is the correct answer
-    l1_norm_p = call_l1_norm(p) 
-    # this is a wrong answer
-    l1_norm_wrong_p = call_l1_norm(wrong_p) 
-    # this is a wrong answer
-    l1_norm_wrong_p2 = call_l1_norm(wrong_p2)
-
-    answerGrammar = Choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2)
-    rv = NonTerm(Int(), isStart=True)
-    #return Synth("mat2", summary, *ci.modifiedVars, *ci.readVars)
-    return {rv: answerGrammar}
+Lit.codegen = lambda self: self.val()
+Var.codegen = lambda self: self.name()
+Add.codegen = lambda self: f'{" + ".join([str(a.codegen()) for a in self.args])}'
+FnDeclRecursive.codegen = lambda self: f'def {self.name()}({", ".join([str(a.codegen()) for a in self.arguments()])}):\n  ' \
+        f'return {self.body().codegen()}'
+Tuple.codegen = lambda self: f"[{', '.join(map(lambda arg: arg.codegen(), self.args))}]"
 
 def targetLang():
-    a = Var("a", TupleT(Int(), Int()))
-    b = Var("b", TupleT(Int(), Int()))
-    x = Var("x", TupleT(Int(), Int()))
     def make_mat_mul_fnbody(a, b, x):
         p0l = Mul(TupleGet(a, IntLit(0)), TupleGet(x, IntLit(0)))
         p0r = Mul(TupleGet(b, IntLit(0)), TupleGet(x, IntLit(1)))
         p1l = Mul(TupleGet(a, IntLit(1)), TupleGet(x, IntLit(0)))
         p1r = Mul(TupleGet(b, IntLit(1)), TupleGet(x, IntLit(1)))
         return Tuple(Add(p0l, p0r), Add(p1l, p1r))
-    mat_mul = FnDecl(
-        MAT_MUL, TupleT(Int(), Int()), make_mat_mul_fnbody(a, b, x), a, b, x
-    )
-    p = Var("p", TupleT(Int(), Int()))
+    def mat_mul_codegen(a, b, x):
+        M = f"np.array([{a.codegen()}, {b.codegen()}]).T"
+        x = x.codegen()
+        return f"np.matmul({M}, {x})"
+    mat_mul = Target(MAT_MUL, [TupleT(Int(), Int()), TupleT(Int(), Int()), TupleT(Int(), Int())], TupleT(Int(), Int()),
+                     lambda a, b, x: make_mat_mul_fnbody(a, b, x),
+                     mat_mul_codegen)
     def make_l1_norm_fnbody(p):
         p0 = TupleGet(p, IntLit(0))
         p1 = TupleGet(p, IntLit(1))
         p0_abs = Ite(Lt(p0, IntLit(0)), Sub(IntLit(0), p0), p0)
         p1_abs = Ite(Lt(p1, IntLit(0)), Sub(IntLit(0), p1), p1)
         return Add(p0_abs, p1_abs)
-    l1_norm = FnDecl(
-        L1_NORM, Int(), make_l1_norm_fnbody(p), p
-    )
+    l1_norm = Target(L1_NORM, [TupleT(Int(), Int())], Int(),
+                     lambda p: make_l1_norm_fnbody(p),
+                     lambda p: f"np.linalg.norm({p.codegen()}, ord=1)")
     return [mat_mul, l1_norm]
 
-def codeGen(summary: FnDecl):
-    expr = summary.body() 
-    def eval(expr):
-        if isinstance(expr, Eq):
-            return f"ans = {eval(expr.e2())}"
-        elif isinstance(expr, Add):
-            return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
-        elif isinstance(expr, Call):
-            eval_args = []
-            for a in expr.arguments():
-                eval_args.append(eval(a))
-            name = expr.name()
-            if name == MAT_MUL:
-                # Pack args
-                name = "np.matmul"
-                args = expr.arguments()
-                assert(len(args) == 3)
-                M = f"np.array([{eval(args[0])}, {eval(args[1])}]).T"
-                x = eval(args[2])
-                return f"{name}({M}, {x})"
-            elif name == L1_NORM:
-                name = "np.linalg.norm"
-                return f"{name}({', '.join(eval_args)}, ord=1)"
-            return f"{name}({', '.join(eval_args)})"
-        elif isinstance(expr, Lit):
-            return str(expr.val())
-        elif isinstance(expr, Tuple):
-            eval_args = map(lambda expr: eval(expr), expr.args)
-            return f"[{', '.join(eval_args)}]"
-        else:
-            return str(expr)
-    return eval(expr)
+def grammar(readVars, retVal, isLoop):
+    mat_mul, l1_norm = targetLang()
+    r = retVal
+    (a0, a1, b0, b1, x0, x1) = readVars
+    # Calculate the matrix-vector product
+    a = Tuple(a0, a1)
+    b = Tuple(b0, b1)
+    x = Tuple(x0, x1)
+    p = mat_mul.call(a, b, x)
+    wrong_p = mat_mul.call(b, a, x)
+    wrong_p2 = mat_mul.call(a, x, b)
+
+    # this is the correct answer
+    l1_norm_p = l1_norm.call(p) 
+    # this is a wrong answer
+    l1_norm_wrong_p = l1_norm.call(wrong_p) 
+    # this is a wrong answer
+    l1_norm_wrong_p2 = l1_norm.call(wrong_p2)
+
+    answerGrammar = Choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2)
+    rv = NonTerm(Int(), isStart=True)
+    return {rv: answerGrammar}
 
 def runner():
-    #basename = "mat2"
-    #filename = "tests/mat2.ll"
-    #fnName = "test"
-    #loopsFile = "tests/mat2.loops"
-    #cvcPath = "cvc5"
-
-    #(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
-
-    #invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-    #lang = targetLang()
-
-    #candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
-
-    #summary = codeGen(candidates[0])
-    t = Transpiler(grammar)
+    t = Transpiler(grammar, cvcPath=shutil.which("cvc5"))
     r = t.transpile("tests/mat2.ll", "test")
 
-    print(r.codegen())
+    code = \
+"""
+import numpy as np
+""" + \
+    r.codegen() + \
+"""
+print(test(1, 3, 2, 4, 5, 6)) # 56
+
+# # Expected:
+# import numpy as np
+# def test(arg, arg1, arg2, arg3, arg4, arg5):
+#     return np.linalg.norm(np.matmul(np.array([[arg, arg1], [arg2, arg3]]).T, [arg4, arg5]), ord=1)
+"""
+
+    print(code)
+    #exec(code, globals())
 
 runner()
