@@ -1791,7 +1791,9 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
     elif (
-        tyStr.startswith("%struct.list*") or tyStr == "%struct.list**" or tyStr == "(MLList Int)"
+        tyStr.startswith("%struct.list*")
+        or tyStr == "%struct.list**"
+        or tyStr == "(MLList Int)"
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):

@@ -352,7 +352,7 @@ def parseGlobals(
 
     if log:
         print("globals:")
-        for (k, v) in globalVars.items():
+        for k, v in globalVars.items():
             print("%s -> %s" % (k, v))
     return globalVars
 

@@ -6,6 +6,7 @@ from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
+
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
 def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
@@ -92,7 +93,6 @@ def generateSynth(
     vars: List[str],
     invariant_guesses: List[Any],
 ) -> str:
-
     listvars = "(list " + " ".join(vars) + ")"
     if invariant_guesses:
         blocking_constraints = []
@@ -112,7 +112,6 @@ def generateSynth(
 
 
 def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
-
     decls = ""
     for i in loopAndPsInfo:
         all_args = (
@@ -145,7 +144,6 @@ def toRosette(
     writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
     verifyMode: bool = False,
 ) -> None:
-
     f = open(filename, "w")
     print(
         "#lang rosette\n"
