@@ -120,7 +120,8 @@ def grammar(ci: CodeInfo):
         #summary = Eq(ml_conv1d1x2(x, y), output)
         valid = Gt(ml_list_length(x), IntLit(1))
         ans = ml_conv1d1x2(an_input, ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty())))
-        summary = Ite(valid, ans, ml_list_empty())
+        check_ans = Eq(ans, an_output)
+        summary = Ite(valid, check_ans, ml_list_empty())
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
