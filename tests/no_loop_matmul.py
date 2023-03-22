@@ -69,7 +69,7 @@ def grammar(readVars, retVal, isLoop):
 
 def runner():
     t = Transpiler(grammar, cvcPath=shutil.which("cvc5"))
-    r = t.transpile("tests/l1_matmul.ll", "test")
+    r = t.transpile("tests/no_loop_matmul.ll", "test")
 
     code = \
 """
