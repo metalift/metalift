@@ -45,12 +45,14 @@ def ml_conv1d1x2(vec, kernel):
 def grammar(ci: CodeInfo):
     name = ci.name
 
+    print("INV VARS MV HERE")
+    print(*ci.modifiedVars)
+    print("INV VARS RV HERE")
+    print(*ci.readVars)
+
     if name.startswith("inv"):
         # mV[0] is list, mV[1] is int
-        print("INV VARS MV HERE")
-        print(*ci.modifiedVars)
-        print("INV VARS RV HERE")
-        print(*ci.readVars)
+
         an_input = Choose(*ci.readVars)
         #an_output = Choose(*ci.modifiedVars)
         #an_output_i32 = Choose(ci.modifiedVars[0], ci.modifiedVars[1], ci.modifiedVars[2], ci.modifiedVars[4])
@@ -58,26 +60,33 @@ def grammar(ci: CodeInfo):
         an_output_i32 = ci.modifiedVars[1]
         an_output_list = ci.modifiedVars[0]
 
-        initial = Choose(Ge(an_output_i32, IntLit(0)),
-                         Gt(an_output_i32, IntLit(0)),
-                         Le(an_output_i32, IntLit(0)),
-                         Lt(an_output_i32, IntLit(0)),
-                         Eq(an_output_i32, IntLit(0)),
-                         Ge(an_output_i32, IntLit(1)),
-                         Gt(an_output_i32, IntLit(1)),
-                         Le(an_output_i32, IntLit(1)),
-                         Lt(an_output_i32, IntLit(1)),
-                         Eq(an_output_i32, IntLit(1)))
-        initial2 = Choose(Le(an_output_i32, ml_list_length(an_input)),
-                           Lt(an_output_i32, ml_list_length(an_input)),
-                           Ge(an_output_i32, ml_list_length(an_input)),
-                           Gt(an_output_i32, ml_list_length(an_input)),
-                           Eq(an_output_i32, ml_list_length(an_input)))
-        preloop = And(initial, initial2)
-        conv = an_output_list
-        take_idx = Choose(an_output_i32, Sub(an_output_i32, IntLit(1)), Add(an_output_i32, IntLit(1)))
-        post = Eq(conv, ml_conv1d1x2(ml_list_take(an_input, an_output_i32), an_input))
-        summary = And(preloop, post)
+        #initial = Choose(Ge(an_output_i32, IntLit(0)),
+        #                 Gt(an_output_i32, IntLit(0)),
+        #                 Le(an_output_i32, IntLit(0)),
+        #                 Lt(an_output_i32, IntLit(0)),
+        #                 Eq(an_output_i32, IntLit(0)),
+        #                 Ge(an_output_i32, IntLit(1)),
+        #                 Gt(an_output_i32, IntLit(1)),
+        #                 Le(an_output_i32, IntLit(1)),
+        #                 Lt(an_output_i32, IntLit(1)),
+        #                 Eq(an_output_i32, IntLit(1)))
+        #initial2 = Choose(Le(an_output_i32, ml_list_length(an_input)),
+        #                   Lt(an_output_i32, ml_list_length(an_input)),
+        #                   Ge(an_output_i32, ml_list_length(an_input)),
+        #                   Gt(an_output_i32, ml_list_length(an_input)),
+        #                   Eq(an_output_i32, ml_list_length(an_input)))
+        #preloop = And(initial, initial2)
+        #conv = an_output_list
+        #take_idx = Choose(an_output_i32, Sub(an_output_i32, IntLit(1)), Add(an_output_i32, IntLit(1)))
+        #post = Eq(conv, ml_conv1d1x2(ml_list_take(an_input, an_output_i32), an_input))
+        #summary = And(preloop, post)
+
+        valid = Gt(ml_list_length(an_input), IntLit(1))
+        preloop = Ge(an_output_i32, IntLit(0))
+        postloop = Le(an_output_i32, Sub(ml_list_length(an_input), IntLit(1)))
+        induction = Eq(an_output_list, ml_conv1d1x2(ml_list_take(an_input, Add(an_output_i32, IntLit(1))), ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty()))))
+        summary = Implies(valid, And(preloop, And(postloop, induction)))
+
         #prod = ci.modifiedVars[0]
         #i = ci.modifiedVars[1]
         #initial = Ge(i, IntLit(0))
@@ -101,13 +110,17 @@ def grammar(ci: CodeInfo):
         #summary = BoolLit(True)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
     else:
-        output = ci.modifiedVars[0]
+        an_input = ci.readVars[0]
+        an_output = Choose(*ci.modifiedVars)
         x = ci.readVars[0]
         unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
         y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
         # change this to Implies
         #summary = Implies(ml_same_len(x, y), Eq(ml_mul1d(x, y), output))
-        summary = Eq(ml_conv1d1x2(x, y), output)
+        #summary = Eq(ml_conv1d1x2(x, y), output)
+        valid = Gt(ml_list_length(x), IntLit(1))
+        ans = ml_conv1d1x2(an_input, ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty())))
+        summary = Ite(valid, ans, ml_list_empty())
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -133,7 +146,8 @@ def targetLang():
         vec_rest = ml_list_tail(vec, IntLit(1))
         recursed = ml_conv1d1x2(vec_rest, kernel)
         general_answer = ml_list_prepend(cur_prod, recursed)
-        return Ite(Eq(vec_size, kernel_size), ml_list_prepend(cur_prod, ml_list_empty()), general_answer)
+        #return Ite(Eq(vec_size, kernel_size), ml_list_prepend(cur_prod, ml_list_empty()), general_answer)
+        return Ite(Lt(vec_size, kernel_size), ml_list_empty(), general_answer)
     conv1d1x2 = FnDecl(CONV1D1X2, ListT(Int()), conv1d1x2_body(x, y), x, y)
 
     return [dotprod2d, conv1d1x2]
@@ -183,3 +197,5 @@ def runner():
 
     for c in candidates:
         print(codeGen(c), "\n")
+
+runner()
