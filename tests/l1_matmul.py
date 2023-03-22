@@ -47,7 +47,6 @@ def targetLang():
 
 def grammar(readVars, retVal, isLoop):
     mat_mul, l1_norm = targetLang()
-    r = retVal
     (a0, a1, b0, b1, x0, x1) = readVars
     # Calculate the matrix-vector product
     a = Tuple(a0, a1)
@@ -70,7 +69,7 @@ def grammar(readVars, retVal, isLoop):
 
 def runner():
     t = Transpiler(grammar, cvcPath=shutil.which("cvc5"))
-    r = t.transpile("tests/mat2.ll", "test")
+    r = t.transpile("tests/l1_matmul.ll", "test")
 
     code = \
 """
@@ -80,7 +79,7 @@ import numpy as np
 """
 print(test(1, 3, 2, 4, 5, 6)) # 56
 
-# # Expected:
+# # Correct answer:
 # import numpy as np
 # def test(arg, arg1, arg2, arg3, arg4, arg5):
 #     return np.linalg.norm(np.matmul(np.array([[arg, arg1], [arg2, arg3]]).T, [arg4, arg5]), ord=1)
