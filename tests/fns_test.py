@@ -4,7 +4,7 @@ from metalift.ir import (
     Call,
     Int,
     IntLit,
-    FnDecl,
+    FnDeclRecursive,
     Var,
     Ite,
     ListT,
@@ -38,7 +38,7 @@ def list_append(l1, l2):
 
 
 ir.printMode = PrintMode.RosetteVC
-select_func = FnDecl(
+select_func = FnDeclRecursive(
     "Select",
     ListT(Int()),
     Ite(

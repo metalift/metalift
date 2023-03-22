@@ -306,7 +306,7 @@ def toExpr(
 
 def toSynthesize(
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
-    lang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    lang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
 ) -> typing.List[str]:
     synthNames = []
     for i in loopAndPsInfo:
@@ -322,7 +322,7 @@ def toSynthesize(
 
 def synthesize(
     basename: str,
-    targetLang: typing.Sequence[Union[FnDecl, FnDeclNonRecursive, Axiom]],
+    targetLang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
     vars: typing.Set[Var],
     invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
@@ -335,7 +335,7 @@ def synthesize(
     optimize_vc_equality: bool = False,
     listBound: int = 2,
     log: bool = True,
-) -> typing.List[FnDecl]:
+) -> typing.List[FnDeclRecursive]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
@@ -462,7 +462,7 @@ def synthesize(
                     candidateDict[ceName] = synthFun.args[1].chooseArbitrarily()
 
                 candidatesSMT.append(
-                    FnDecl(
+                    FnDeclRecursive(
                         ceName,
                         synthFun.args[1].type,
                         candidateDict[ceName],

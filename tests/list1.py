@@ -74,11 +74,11 @@ def grammar(ci: CodeInfo):
 def targetLang():
 
     arg = Var("n", Int())
-    select_pred = FnDecl("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
-    select_pred1 = FnDecl("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
-    select_pred2 = FnDecl("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
+    select_pred = FnDeclRecursive("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
+    select_pred1 = FnDeclRecursive("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
+    select_pred2 = FnDeclRecursive("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
     data = Var("l", ListT(Int()))
-    select_func = FnDecl(
+    select_func = FnDeclRecursive(
         "Select",
         ListT(Int()),
         Ite(
@@ -105,7 +105,7 @@ def targetLang():
         ),
         data,
     )
-    select_func1 = FnDecl(
+    select_func1 = FnDeclRecursive(
         "Select1",
         ListT(Int()),
         Ite(
@@ -132,7 +132,7 @@ def targetLang():
         ),
         data,
     )
-    select_func2 = FnDecl(
+    select_func2 = FnDeclRecursive(
         "Select2",
         ListT(Int()),
         Ite(

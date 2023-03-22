@@ -1,7 +1,7 @@
 import typing
 
 from metalift.analysis import CodeInfo, analyze
-from metalift.ir import Eq, Synth, Call, Int, FnDecl, Var, Add
+from metalift.ir import Eq, Synth, Call, Int, FnDeclRecursive, Var, Add
 from metalift.rosette_translator import toRosette
 
 from metalift.smt_util import toSMT
@@ -19,7 +19,7 @@ def uninterp(x: Var, y: Var):
 def targetLang():
     x = Var("x", Int())
     y = Var("y", Int())
-    uninterp = FnDecl(uninterpFnName, Int(), None, x, y)
+    uninterp = FnDeclRecursive(uninterpFnName, Int(), None, x, y)
     return [uninterp]
 
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         )
         ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
         candidatesSMT.append(
-            FnDecl(
+            FnDeclRecursive(
                 ceName,
                 ce.retT if isinstance(ce, CodeInfo) else ce.type,
                 candidateDict[ceName],
