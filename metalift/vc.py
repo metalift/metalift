@@ -376,6 +376,8 @@ class VC:
 
                 if cond == "eq":
                     r: Expr = Eq(op2, op1)
+                elif cond == "ne":
+                    r : Expr = Not(Eq(op2, op1))
                 elif cond == "sgt":
                     r = Lt(op2, op1)
                 elif cond == "sle":

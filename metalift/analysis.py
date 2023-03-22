@@ -237,7 +237,8 @@ def processLoops(
         for i in blk.instructions:
             opcode = i.opcode
             ops = list(i.operands)
-            if opcode == "store":
+            # prevent duplicate havocs in nested loops
+            if opcode == "store" and ops[1] not in havocs:
                 havocs.append(ops[1])
 
     global invNum
