@@ -526,6 +526,9 @@ class Expr:
         else:
             return Or(self, other)
 
+    def __eq__(self, other: "Expr") -> "Eq":
+        return Eq(self, other)
+
 
 class Var(Expr):
     def __init__(self, name: str, ty: Type) -> None:
