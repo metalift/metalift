@@ -514,18 +514,6 @@ class Expr:
         else:
             return Mul(self, other)
 
-    def __and__(self, other: "Expr") -> "And":
-        if isinstance(self, And):
-            return And(*self.args, other)
-        else:
-            return And(self, other)
-
-    def __or__(self, other: "Expr") -> "Or":
-        if isinstance(self, And):
-            return Or(*self.args, other)
-        else:
-            return Or(self, other)
-
 
 class Var(Expr):
     def __init__(self, name: str, ty: Type) -> None:
