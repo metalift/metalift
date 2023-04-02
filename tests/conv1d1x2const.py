@@ -85,6 +85,7 @@ def grammar(ci: CodeInfo):
         preloop = Ge(an_output_i32, IntLit(0))
         postloop = Le(an_output_i32, Sub(ml_list_length(an_input), IntLit(1)))
         induction = Eq(an_output_list, ml_conv1d1x2(ml_list_take(an_input, Add(an_output_i32, IntLit(1))), ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty()))))
+        # TODO: replace implies w equivalent
         summary = Implies(valid, And(preloop, And(postloop, induction)))
 
         #prod = ci.modifiedVars[0]
