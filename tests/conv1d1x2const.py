@@ -120,7 +120,7 @@ def grammar(ci: CodeInfo):
         #summary = Implies(ml_same_len(x, y), Eq(ml_mul1d(x, y), output))
         #summary = Eq(ml_conv1d1x2(x, y), output)
         valid = Gt(ml_list_length(x), IntLit(1))
-        ans = ml_conv1d1x2(an_input, ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty())))
+        ans = ml_conv1d1x2(an_input, y)
         check_ans = Eq(ans, an_output)
         # Note: Grammar should always return boolean value; compare w OUT to check answer
         # The answer expression should always be of the form Eq(out, ...)
