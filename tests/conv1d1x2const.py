@@ -122,7 +122,12 @@ def grammar(ci: CodeInfo):
         valid = Gt(ml_list_length(x), IntLit(1))
         ans = ml_conv1d1x2(an_input, ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty())))
         check_ans = Eq(ans, an_output)
-        summary = Ite(valid, check_ans, ml_list_empty())
+        # Note: Grammar should always return boolean value; compare w OUT to check answer
+        # The answer expression should always be of the form Eq(out, ...)
+        # Wrong:
+        #summary = Ite(valid, check_ans, ml_list_empty())
+        # Correct:
+        summary = Implies(valid, check_ans)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
 def targetLang():
@@ -195,7 +200,8 @@ def runner():
     invAndPs = [grammar(ci) for ci in loopAndPsInfo]
     lang = targetLang()
 
-    candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath)
+    # noVerify=True is OK, since synthesis will not create a candidate for kernel that's too small
+    candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
 
     for c in candidates:
         print(codeGen(c), "\n")

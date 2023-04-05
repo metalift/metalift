@@ -269,6 +269,8 @@ class Expr:
                     return Let(*newArgs)
                 elif isinstance(e, Lambda):
                     return Lambda(e.type.args[0], *newArgs)
+                elif isinstance(e, Implies):
+                    return Implies(*newArgs)
                 else:
                     raise Exception("NYI: %s" % e)
             else:
