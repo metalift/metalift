@@ -164,7 +164,7 @@ def targetLang(kernel_size=2):
         nonlocal kernel_size
         vec_size = ml_list_length(x)
         kernel_size = IntLit(kernel_size)
-        cur_prod = ml_dotprod2d(vec, kernel)
+        cur_prod = ml_dotprod(vec, kernel)
         vec_rest = ml_list_tail(vec, IntLit(1))
         recursed = ml_conv1d1x2(vec_rest, kernel)
         general_answer = ml_list_prepend(cur_prod, recursed)
@@ -226,14 +226,16 @@ def runner():
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 
     invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-    lang = targetLang()
 
     # noVerify=True is OK, since synthesis will not create a candidate for kernel that's too small
     candidates = []
-    try:
-        candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
-    except SynthesisFailed:
-        print("Synthesis failed")
+    for kernel_size in range(1, 5):
+        lang = targetLang(kernel_size)
+        try:
+            candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
+            break
+        except SynthesisFailed:
+            print("Synthesis failed")
 
     for c in candidates:
         if c.args[0] != "test":
