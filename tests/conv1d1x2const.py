@@ -59,35 +59,10 @@ def grammar(ci: CodeInfo, kernel_size=2):
     y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
 
     if name.startswith("inv"):
-        # mV[0] is list, mV[1] is int
 
         an_input = Choose(*ci.readVars)
-        #an_output = Choose(*ci.modifiedVars)
-        #an_output_i32 = Choose(ci.modifiedVars[0], ci.modifiedVars[1], ci.modifiedVars[2], ci.modifiedVars[4])
-        #an_output_list = ci.modifiedVars[3]
         an_output_i32 = ci.modifiedVars[1]
         an_output_list = ci.modifiedVars[0]
-
-        #initial = Choose(Ge(an_output_i32, IntLit(0)),
-        #                 Gt(an_output_i32, IntLit(0)),
-        #                 Le(an_output_i32, IntLit(0)),
-        #                 Lt(an_output_i32, IntLit(0)),
-        #                 Eq(an_output_i32, IntLit(0)),
-        #                 Ge(an_output_i32, IntLit(1)),
-        #                 Gt(an_output_i32, IntLit(1)),
-        #                 Le(an_output_i32, IntLit(1)),
-        #                 Lt(an_output_i32, IntLit(1)),
-        #                 Eq(an_output_i32, IntLit(1)))
-        #initial2 = Choose(Le(an_output_i32, ml_list_length(an_input)),
-        #                   Lt(an_output_i32, ml_list_length(an_input)),
-        #                   Ge(an_output_i32, ml_list_length(an_input)),
-        #                   Gt(an_output_i32, ml_list_length(an_input)),
-        #                   Eq(an_output_i32, ml_list_length(an_input)))
-        #preloop = And(initial, initial2)
-        #conv = an_output_list
-        #take_idx = Choose(an_output_i32, Sub(an_output_i32, IntLit(1)), Add(an_output_i32, IntLit(1)))
-        #post = Eq(conv, ml_conv1d1x2(ml_list_take(an_input, an_output_i32), an_input))
-        #summary = And(preloop, post)
 
         valid = Gt(ml_list_length(an_input), IntLit(1))
         preloop = Ge(an_output_i32, IntLit(0))
@@ -98,35 +73,11 @@ def grammar(ci: CodeInfo, kernel_size=2):
         # TODO: replace implies w equivalent
         summary = Implies(valid, And(preloop, And(postloop, induction)))
 
-        #prod = ci.modifiedVars[0]
-        #i = ci.modifiedVars[1]
-        #initial = Ge(i, IntLit(0))
-        #                 #Gt(i, IntLit(0)),
-        #                 #Le(i, IntLit(0)),
-        #                 #Lt(i, IntLit(0)),
-        #                 #Eq(i, IntLit(0)),
-        #                 #Ge(i, IntLit(1)),
-        #                 #Gt(i, IntLit(1)),
-        #                 #Le(i, IntLit(1)),
-        #                 #Lt(i, IntLit(1)),
-        #                 #Eq(i, IntLit(1)))
-        #loop_cond = Le(i, ml_list_length(some_input))
-        #                   #Le(i, ml_list_length(an_input)),
-        #                   #Gt(i, ml_list_length(an_input)),
-        #                   #Ge(i, ml_list_length(an_input)),
-        #                   #Eq(i, ml_list_length(an_input)))
-        #post = Eq(prod, ml_mul1d(ml_list_take(some_input, i), ml_list_take(other_input, i)))
-        #inv = And(initial, loop_cond)
-        #summary = And(inv, post)
-        #summary = BoolLit(True)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
     else:
         an_input = ci.readVars[0]
         an_output = Choose(*ci.modifiedVars)
         x = ci.readVars[0]
-        # change this to Implies
-        #summary = Implies(ml_same_len(x, y), Eq(ml_mul1d(x, y), output))
-        #summary = Eq(ml_conv1d1x2(x, y), output)
         valid = Gt(ml_list_length(x), IntLit(1))
         ans = ml_conv1d1x2(an_input, y)
         check_ans = Eq(ans, an_output)
