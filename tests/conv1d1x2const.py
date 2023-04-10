@@ -160,12 +160,18 @@ def targetLang():
     return [dotprod2d, conv1d1x2]
 
 def codeGen(summary: FnDecl):
-    expr = summary.body() 
     def eval(expr):
         if isinstance(expr, Eq):
             return f"ans = {eval(expr.e2())}"
+        elif isinstance(expr, Gt):
+            left = expr.args[0]
+            right = expr.args[1]
+            return f"({eval(left)}) > ({eval(right)})"
         elif isinstance(expr, Add):
             return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
+        elif isinstance(expr, FnDecl):
+            return f"def {expr.name()}({', '.join([eval(arg) for arg in expr.arguments()])}):\n    " \
+                    f"return {eval(expr.body())}"
         elif isinstance(expr, Call):
             eval_args = []
             for a in expr.arguments():
@@ -181,12 +187,19 @@ def codeGen(summary: FnDecl):
             return f"{name}({', '.join(eval_args)})"
         elif isinstance(expr, Lit):
             return str(expr.val())
+        elif isinstance(expr, Var):
+            return expr.name()
         elif isinstance(expr, Tuple):
             eval_args = map(lambda expr: eval(expr), expr.args)
             return f"[{', '.join(eval_args)}]"
+        elif isinstance(expr, Implies):
+            left = expr.args[0]
+            right = expr.args[1]
+            return f"not ({eval(left)}) or ({eval(right)})"
         else:
+            print(type(expr))
             return str(expr)
-    return eval(expr)
+    return eval(summary)
 
 def runner():
     basename = "conv1d1x2"
@@ -204,6 +217,10 @@ def runner():
     candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
 
     for c in candidates:
+        if c.args[0] != "test":
+            continue
+        print(c.args[0])
+        #print(c)
         print(codeGen(c), "\n")
 
 runner()
