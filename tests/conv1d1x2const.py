@@ -119,7 +119,7 @@ def grammar(ci: CodeInfo):
         an_input = ci.readVars[0]
         an_output = Choose(*ci.modifiedVars)
         x = ci.readVars[0]
-        unknown_const = Choose(IntLit(0), IntLit(5), IntLit(2), IntLit(3))
+        unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
         y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
         # change this to Implies
         #summary = Implies(ml_same_len(x, y), Eq(ml_mul1d(x, y), output))
@@ -156,7 +156,7 @@ def targetLang(kernel_size=2):
         y_rest = ml_list_tail(y, IntLit(1))
         recursed = ml_dotprod(x_rest, y_rest)
         return Ite(Lt(kernel_size, IntLit(2)), cur_prod, Add(cur_prod, recursed))
-    dotprod = FnDecl(DOTPROD, Int(), dotprod_body(x, y))
+    dotprod = FnDecl(DOTPROD, Int(), dotprod_body(x, y), x, y)
 
     # TODO: handle input size < 2
     # TODO: for size < 2, don't call dotprod
@@ -164,7 +164,7 @@ def targetLang(kernel_size=2):
         nonlocal kernel_size
         vec_size = ml_list_length(x)
         kernel_size = IntLit(kernel_size)
-        cur_prod = ml_dotprod(vec, kernel)
+        cur_prod = ml_dotprod2d(vec, kernel)
         vec_rest = ml_list_tail(vec, IntLit(1))
         recursed = ml_conv1d1x2(vec_rest, kernel)
         general_answer = ml_list_prepend(cur_prod, recursed)
@@ -234,8 +234,6 @@ def runner():
         candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
     except SynthesisFailed:
         print("Synthesis failed")
-    except:
-        print("unexpected error")
 
     for c in candidates:
         if c.args[0] != "test":
