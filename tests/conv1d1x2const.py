@@ -1,4 +1,5 @@
 import shutil
+from functools import reduce
 
 # modified runner to check larger arrays
 
@@ -56,7 +57,9 @@ def grammar(ci: CodeInfo, kernel_size=2):
     print(*ci.readVars)
 
     unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
+    #y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
+    # "Dynamic" version
+    y = reduce(lambda acc, _cur: ml_list_prepend(unknown_const, acc), range(kernel_size), ml_list_empty())
 
     if name.startswith("inv"):
 
