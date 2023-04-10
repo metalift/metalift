@@ -47,13 +47,16 @@ def ml_dotprod(x, y):
 def ml_conv1d1x2(vec, kernel):
     return Call(CONV1D1X2, ListT(Int()), vec, kernel)
 
-def grammar(ci: CodeInfo):
+def grammar(ci: CodeInfo, kernel_size=2):
     name = ci.name
 
     print("INV VARS MV HERE")
     print(*ci.modifiedVars)
     print("INV VARS RV HERE")
     print(*ci.readVars)
+
+    unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
+    y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
 
     if name.startswith("inv"):
         # mV[0] is list, mV[1] is int
@@ -89,7 +92,9 @@ def grammar(ci: CodeInfo):
         valid = Gt(ml_list_length(an_input), IntLit(1))
         preloop = Ge(an_output_i32, IntLit(0))
         postloop = Le(an_output_i32, Sub(ml_list_length(an_input), IntLit(1)))
-        induction = Eq(an_output_list, ml_conv1d1x2(ml_list_take(an_input, Add(an_output_i32, IntLit(1))), ml_list_prepend(IntLit(1), ml_list_prepend(IntLit(1), ml_list_empty()))))
+        induction = Eq(an_output_list,
+                       ml_conv1d1x2(ml_list_take(an_input, Add(an_output_i32, IntLit(1))),
+                                    y))
         # TODO: replace implies w equivalent
         summary = Implies(valid, And(preloop, And(postloop, induction)))
 
@@ -119,8 +124,6 @@ def grammar(ci: CodeInfo):
         an_input = ci.readVars[0]
         an_output = Choose(*ci.modifiedVars)
         x = ci.readVars[0]
-        unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-        y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
         # change this to Implies
         #summary = Implies(ml_same_len(x, y), Eq(ml_mul1d(x, y), output))
         #summary = Eq(ml_conv1d1x2(x, y), output)
@@ -225,11 +228,11 @@ def runner():
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 
-    invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
     # noVerify=True is OK, since synthesis will not create a candidate for kernel that's too small
     candidates = []
     for kernel_size in range(1, 5):
+        invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
         lang = targetLang(kernel_size)
         try:
             candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
