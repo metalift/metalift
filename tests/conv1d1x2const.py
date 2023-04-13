@@ -168,7 +168,11 @@ def codeGen(summary: FnDecl):
             left = expr.args[0]
             right = expr.args[1]
             return f"not ({eval(left)}) or ({eval(right)})"
+        elif parseTypeRef(expr.type) == ListT(Int()):
+            # This is a List of Ints
+            return f"[{', '.join(map(lambda expr: eval(expr), expr.args))}]"
         else:
+            print(parseTypeRef(expr.type) == ListT(Int()))
             print(type(expr))
             return str(expr)
     return eval(summary)
