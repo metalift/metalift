@@ -13,7 +13,6 @@ from metalift.synthesis_common import (
     verify_synth_result,
 )
 from metalift import process_tracker
-
 import typing
 from typing import Any, Callable, Dict, Union, IO
 
@@ -95,6 +94,10 @@ def toExpr(
             )
         elif ast[0] == "length":
             return Call("list_length", Int(), toExpr(ast[1], fnsType, varType, choices))
+        elif ast[0] == "list-list-length":
+            return Call(
+                "list_list_length", Int(), toExpr(ast[1], fnsType, varType, choices)
+            )
         elif ast[0] == "=":
             return Eq(
                 toExpr(ast[1], fnsType, varType, choices),
@@ -110,6 +113,7 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
+
         elif ast[0] == "list-prepend":
             elem = toExpr(ast[1], fnsType, varType, choices)
             return Call(
@@ -134,6 +138,14 @@ def toExpr(
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
             )
+        elif ast[0] == "list-list-tail-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_list_tail",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+            )
         elif ast[0] == "list-concat":
             return Call(
                 "list_concat",
@@ -145,6 +157,13 @@ def toExpr(
             return Call(
                 "list_take",
                 ListT(Int()),
+                toExpr(ast[1], fnsType, varType, choices),
+                toExpr(ast[2], fnsType, varType, choices),
+            )
+        elif ast[0] == "list-list-take-noerr":
+            return Call(
+                "list_list_take",
+                ListT(ListT(Int())),
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )

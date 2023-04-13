@@ -351,12 +351,18 @@ class Expr:
 
     listFns = {
         "list_get": "list-ref-noerr",
+        "list_list_get": "list-list-ref-noerr",
         "list_append": "list-append",
+        "list_list_append": "list-list-append",
         "list_empty": "list-empty",
+        "list_list_empty": "list-list-empty",
         "list_tail": "list-tail-noerr",
+        "list_list_tail": "list-list-tail-noerr",
         "list_length": "length",
+        "list_list_length": "list-list-length",
         "list_take": "list-take-noerr",
         "list_prepend": "list-prepend",
+        "list_list_prepend": "list-list-prepend",
         "list_eq": "equal?",
         "list_concat": "list-concat",
     }
@@ -1796,6 +1802,8 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     elif tyStr.startswith("%struct.tup"):
         # TODO: FIX return type for multiple values
         return TupleT(Int(), Int())
+    elif tyStr.startswith("%struct.nestedlist"):
+        return ListT(ListT(Int()))
     else:
         raise Exception("NYI %s" % t)
 

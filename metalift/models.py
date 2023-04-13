@@ -18,16 +18,55 @@ def newlist(
     return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
 
+def nestednewList(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
+    return ReturnValue(
+        Call("list_list_empty", Type("MLList", Type("MLList", Int()))), None
+    )
+
+
 def listLength(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(Call("list_length", Int(), regs[args[0]]), None)
 
 
+def nestedLength(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
+    return ReturnValue(Call("list_list_length", Int(), regs[args[0]]), None)
+
+
 def listGet(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
+    if args[1] in regs.keys():
+        return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
+    else:
+        return ReturnValue(
+            Call("list_get", Int(), regs[args[0]], parseOperand(args[1], regs)), None
+        )
+
+
+def nestedGet(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
+    if args[1] in regs.keys():
+        return ReturnValue(
+            Call("list_list_get", Type("MLList", Int()), regs[args[0]], regs[args[1]]),
+            None,
+        )
+    else:
+        return ReturnValue(
+            Call(
+                "list_list_get",
+                Type("MLList", Int()),
+                regs[args[0]],
+                parseOperand(args[1], regs),
+            ),
+            None,
+        )
 
 
 def listAppend(
@@ -35,6 +74,28 @@ def listAppend(
 ) -> ReturnValue:
     return ReturnValue(
         Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
+        None,
+    )
+
+
+def nestedAppend(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
+    return ReturnValue(
+        Call(
+            "list_list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]
+        ),
+        None,
+    )
+
+
+def nestedlAppend(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
+    return ReturnValue(
+        Call(
+            "list_list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]
+        ),
         None,
     )
 
@@ -103,6 +164,10 @@ fnModels: Dict[str, Callable[..., ReturnValue]] = {
     "_Z10listLengthIiEiP4listIT_E": listLength,
     "_Z7listGetIiET_P4listIS0_Ei": listGet,
     "_Z10listAppendIiEP4listIT_ES3_S1_": listAppend,
+    "_Z9nestedGetIiEP4listIT_EP10nestedlistIS1_Ei": nestedGet,
+    "_Z13nestednewListIiEP10nestedlistIT_Ev": nestednewList,
+    "_Z12nestedLengthIiEiP10nestedlistIT_E": nestedLength,
+    "_Z12nestedAppendIiEP10nestedlistIT_ES3_P4listIS1_E": nestedAppend,
     "getField": getField,
     "setField": setField,
     # names for set.h

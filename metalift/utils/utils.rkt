@@ -146,3 +146,29 @@
 
 (define (map-values m)
   (map (lambda (a) (cdr a)) m))
+
+
+;nested list functions
+(define (list-list-ref-noerr l i)
+  (if (&&  (>= i 0) (< i (length l))) (list-ref l i)
+      (list)))
+
+(define (list-list-tail-noerr l i)
+  (if (&& (>= i 0) (<= i (length l))) (list-tail l i)
+      (list)))
+
+(define (list-list-prepend i l)
+  (if (list? i)
+    (if (> (length i ) 0)
+    (append (list i) l) (append l i)) (append (list i) l) ))
+
+(define (list-list-take-noerr l i)
+  (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
+
+(define (list-list-length l) (length l))
+
+(define (list-list-append l i)
+(append l (list i)))
+
+(define (list-list-empty)
+  (list))

@@ -30,7 +30,9 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif v.type.name == "MLList" or v.type.name == "Set":
+    elif (
+        v.type.name == "MLList" and v.type.args[0].name == "Int"
+    ) or v.type.name == "Set":
         tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
 
         for t in tmp:
@@ -74,6 +76,27 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
+    elif v.type.name == "MLList":
+        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(2 * listBound)]
+        for t in tmp:
+            genVar(Var(t, v.type.args[0].args[0]), decls, vars_all, listBound)
+        len_name = v.args[0] + "_BOUNDEDSET-len"
+        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+        decls.append(
+            "(define %s (take %s %s))"
+            % (
+                v.args[0],
+                "(list "
+                + " ".join(
+                    [
+                        "(list " + " ".join(tmp[i : i + listBound]) + ")"
+                        for i in range(0, len(tmp) - 1, listBound)
+                    ]
+                )
+                + ")",
+                len_name,
+            )
+        )
     else:
         raise Exception(f"Unknown type: {v.type}")
 

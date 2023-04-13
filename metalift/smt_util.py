@@ -53,6 +53,7 @@ def toSMT(
         out.write(resources.read_text(utils, "tuples.smt"))
         if not isSynthesis:
             out.write(resources.read_text(utils, "list-axioms.smt"))
+            # out.write(resources.read_text(utils, "list-axioms-nested.smt"))
             out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
