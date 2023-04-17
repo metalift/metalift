@@ -223,6 +223,7 @@ class CodeInfo:
 
 
 invNum = 0
+havocs = []
 
 
 def processLoops(
@@ -232,7 +233,7 @@ def processLoops(
     latches: List[Block],
     fnArgs: List[ValueRef],
 ) -> CodeInfo:
-    havocs = []
+    global havocs
     for blk in [header, *body, *exits, *latches]:
         for i in blk.instructions:
             opcode = i.opcode
