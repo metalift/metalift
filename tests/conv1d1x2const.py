@@ -9,6 +9,8 @@ from metalift.synthesis_common import SynthesisFailed
 
 from metalift.synthesize_auto import synthesize
 
+LIST_BOUND = 3
+
 MUL1D = "elementwise_mul"
 SAME_LEN = "same_length"
 CONV1D1X2 = "conv1d1x2"
@@ -133,14 +135,39 @@ def targetLang(kernel_size=2):
 
 def codeGen(summary: FnDecl):
     def eval(expr):
+        if isinstance(expr, ValueRef):
+            return expr.name
         if isinstance(expr, Eq):
-            return f"ans = {eval(expr.e2())}"
+            left = expr.e1()
+            right = expr.e2()
+            if isinstance(left, Call):
+                return f"({eval(left)})"
+            else:
+                return f"({eval(right)})"
         elif isinstance(expr, Gt):
             left = expr.args[0]
             right = expr.args[1]
             return f"({eval(left)}) > ({eval(right)})"
+        elif isinstance(expr, Ge):
+            left = expr.args[0]
+            right = expr.args[1]
+            return f"({eval(left)}) >= ({eval(right)})"
+        elif isinstance(expr, Lt):
+            left = expr.args[0]
+            right = expr.args[1]
+            return f"({eval(left)}) < ({eval(right)})"
+        elif isinstance(expr, Le):
+            left = expr.args[0]
+            right = expr.args[1]
+            return f"({eval(left)}) <= ({eval(right)})"
+        elif isinstance(expr, And):
+            eval_args = map(lambda arg: eval(arg), expr.args)
+            eval_args = map(lambda ea: f"({ea})", eval_args)
+            return f"({' && '.join(eval_args)})"
         elif isinstance(expr, Add):
             return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
+        elif isinstance(expr, Sub):
+            return f"{eval(expr.args[0])} - {eval(expr.args[1])}"
         elif isinstance(expr, FnDecl):
             return f"def {expr.name()}({', '.join([eval(arg) for arg in expr.arguments()])}):\n    " \
                     f"return {eval(expr.body())}"
@@ -151,12 +178,20 @@ def codeGen(summary: FnDecl):
             name = expr.name()
             if name == CONV1D1X2:
                 name = "torch.nn.functional.conv1d"
-                args = expr.arguments()
-                assert(len(args) == 2)
-                input = f"torch.tensor({args[0]})"
-                kernel = f"torch.tensor({args[1]})"
+                assert(len(eval_args) == 2)
+                input = f"torch.tensor({eval_args[0]})"
+                kernel = f"torch.tensor({eval_args[1]})"
                 return f"{name}({input}, {kernel})"
-            return f"{name}({', '.join(eval_args)})"
+            elif name == "list_length":
+                assert(len(eval_args) == 1)
+                return f"{name}({eval_args[0]})"
+            elif name == "list_take" or name == "list_prepend":
+                assert(len(eval_args) == 2)
+                return f"{name}({eval_args[0]}, {eval_args[1]})"
+            elif name == "list_empty":
+                return f"list_empty()"
+                
+            raise NotImplementedError(f"codegen not implemented for function call {name}")
         elif isinstance(expr, Lit):
             return str(expr.val())
         elif isinstance(expr, Var):
@@ -167,11 +202,14 @@ def codeGen(summary: FnDecl):
         elif isinstance(expr, Implies):
             left = expr.args[0]
             right = expr.args[1]
+            return eval(right)
             return f"not ({eval(left)}) or ({eval(right)})"
-        elif parseTypeRef(expr.type) == ListT(Int()):
-            # This is a List of Ints
-            return f"[{', '.join(map(lambda expr: eval(expr), expr.args))}]"
+        #elif parseTypeRef(expr.type) == ListT(Int()):
+        #    # This is a List of Ints
+        #    print(expr.name)
+        #    return f"[{', '.join(map(lambda expr: eval(expr), expr.args))}]"
         else:
+            raise "missing"
             print(parseTypeRef(expr.type) == ListT(Int()))
             print(type(expr))
             return str(expr)
@@ -189,11 +227,11 @@ def runner():
 
     # noVerify=True is OK, since synthesis will not create a candidate for kernel that's too small
     candidates = []
-    for kernel_size in range(1, 5):
+    for kernel_size in range(1, LIST_BOUND):
         invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
         lang = targetLang(kernel_size)
         try:
-            candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, noVerify=True)
+            candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, listBound=LIST_BOUND, noVerify=True)
             break
         except SynthesisFailed:
             print("Synthesis failed")
