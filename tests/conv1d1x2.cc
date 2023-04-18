@@ -33,19 +33,18 @@ extern "C" List<int> test(List<int> vec)
   return convolved;
 }
 
-//int main(int argc, char** argv) {
-//	List<int> l = newList<int>();
-//	l = listAppend(l, 1);
-//	l = listAppend(l, 2);
-//	l = listAppend(l, 1);
-//	l = listAppend(l, 2);
-//	List<int> r = newList<int>();
-//	r = listAppend(r, 3);
-//	r = listAppend(r, 4);
-//	List<int> o = test(l, r);
-//
-//	std::cout << o->contents[0] << std::endl;
-//
-//	return 0;
-//
-//}
+int main(int argc, char** argv) {
+	List<int> l = newList<int>();
+  for (int i = 0; i < 10000; i++) {
+  	l = listAppend(l, i);
+  }
+	List<int> o = test(l);
+
+  std::cout << "[";
+  for (int i = 0; i < 9; i++) {
+	  std::cout << o->contents[i] << ", ";
+  }
+  std::cout << "]" << std::endl;
+	return 0;
+
+}
