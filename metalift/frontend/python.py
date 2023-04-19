@@ -2,15 +2,16 @@ from collections import deque
 from typing import Dict, List, Optional, Set, Tuple
 from metalift.analysis import CodeInfo
 from metalift.analysis_new import VariableTracker
+from metalift.synthesize_rosette import synthesize as run_synthesis
 
-from metalift.ir import And, Assert, Bool, Call, Eq, Expr, Ge, Gt, Implies, Int, IntLit, Ite, Le, Lt, Or, Not, Synth, Type as MLType, Var
+from metalift.ir import And, Assert, Bool, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt, Implies, Int, IntLit, Ite, Le, Lt, Mul, Or, Not, Synth, Type as MLType, Var
 from mypy import build
 from mypy.build import BuildResult
 from mypy.options import Options
 from mypy.defaults import PYTHON3_VERSION
 from mypy.modulefinder import BuildSource
 from mypy.traverser import TraverserVisitor, ExtendedTraverserVisitor
-from mypy.nodes import AssignmentStmt, ComparisonExpr, FuncDef, IfStmt, IntExpr, MypyFile, NameExpr, Node as MypyNode, OpExpr, ReturnStmt
+from mypy.nodes import AssignmentStmt, ComparisonExpr, FuncDef, IfStmt, IntExpr, MypyFile, NameExpr, Node as MypyNode, OpExpr, ReturnStmt, WhileStmt
 from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
 from mypy.visitor import ExpressionVisitor
 
@@ -31,21 +32,18 @@ MypyVar = Tuple[str, MypyType]
 # Scope = Dict[str, Var]
 
 class State:
-    fn : CallableType
-    precond : List[Expr]
+    precond: List[Expr]
     vars: Dict[str, Var]
-    asserts : List[Assert]
-    has_returned : Bool
+    asserts: List[Assert]
+    has_returned: bool
 
     def __init__(
         self,
-        fn_type: CallableType = None,
         precond: Optional[List[Expr]] = None, 
         vars: Optional[Dict[str, Var]] = None,
         asserts: List[Assert] = None,
-        has_returned: Bool = None
+        has_returned: bool = None
     ) -> None:
-        self.fn = fn_type
         self.precond = list() if not precond else precond
         self.vars = dict() if not vars else vars
         self.asserts = list() if not asserts else asserts
@@ -74,12 +72,12 @@ class State:
         print(f"[{var}] -> {val}")
 
 
-    def copy(self) -> "State":
-        return State(self.fn,  # mypy.types.CallableType fails to deepcopy
-                     copy.deepcopy(self.precond), 
-                     copy.deepcopy(self.vars), 
-                     copy.deepcopy(self.asserts), 
-                     self.has_returned)
+    # def copy(self) -> "State":
+    #     return State(self.fn,  # mypy.types.CallableType fails to deepcopy
+    #                  copy.deepcopy(self.precond), 
+    #                  copy.deepcopy(self.vars), 
+    #                  copy.deepcopy(self.asserts), 
+    #                  self.has_returned)
 
 
 def to_mltype(t: MypyType) -> MLType:
@@ -97,39 +95,53 @@ def to_mltype(t: MypyType) -> MLType:
 
 class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
 # class VCVisitor(ExtendedTraverserVisitor):
-    types : Dict[MypyNode, MypyType]
-    state : State
-    tracker : VariableTracker
+    types: Dict[MypyNode, MypyType]
+    state: State
+    tracker: VariableTracker    
+    fn_name: str
+    fn_type: CallableType
+    args: List[Expr]
+    ret_val: Expr
 
 
-    def __init__(self, types, state = None, tracker = None):
+    def __init__(self, 
+                 types: Dict[MypyNode, MypyType], 
+                 fn_name: str, 
+                 fn_type: CallableType = None,
+                 state: State = None, 
+                 tracker: VariableTracker = None, 
+                 args: List[Expr] = None):
         self.types = types
+        self.fn_name = fn_name
+        self.fn_type = fn_type
         self.state = State() if not state else state
         self.tracker = VariableTracker() if not tracker else tracker
+        self.args = list() if not args else args
+        self.ret_val = None
 
 
     def lookup_type_or_none(self, node: MypyNode):
-        if node in self.types:
-            return self.types[node]
-        return None
+        return self.types[node] if node in self.types else None
 
 
     def visit_func_def(self, o: FuncDef) -> None:
-        print(f"fn {o.name} has type: {o.type}")
-        self.state.fn = o.type
-        for (n, t) in zip(o.type.arg_names, o.type.arg_types):
-            if n is None:
-                raise RuntimeError(f"non kw argument not handled: {o.type}")        
-            # print(f"arg: {a.variable.name}, type: {a.type_annotation}, " +
-            #       f"in ts: {self.lookup_type_or_none(a.variable)}")
-            self.state.write(n, self.tracker.variable(n, to_mltype(t)))
-    
-        if o.type.ret_type is None:
-            raise RuntimeError(f"fn must return a value: {o.type}")
+        if o.name == self.fn_name:
+            print(f"analyze fn {o.name} type: {o.type}")
+            self.fn_type = o.type
+            self.ret_val = self.tracker.variable(self.fn_name, to_mltype(o.type.ret_type))
+
+            if len(o.type.arg_names) != len(self.args):
+                raise RuntimeError(f"expect {len(o.type.arg_names)} args passed to {self.fn_name} got {len(self.args)} instead")
+
+            for (actual, formal, t) in zip(self.args, o.type.arg_names, o.type.arg_types):
+                if to_mltype(t) != actual.type:
+                    raise RuntimeError(f"expect {actual} to have type {to_mltype(t)} rather than {actual.type}")
+                self.state.write(formal, actual)
         
-        self.state.write("rv", self.tracker.variable("rv", to_mltype(o.type.ret_type)))
-        
-        o.body.accept(self)
+            if o.type.ret_type is None:
+                raise RuntimeError(f"fn must return a value: {o.type}")
+            
+            o.body.accept(self)
 
 
 
@@ -150,12 +162,12 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
         print(f"if stmt with cond {cond}")
 
         # clone the current state
-        c_state = self.state.copy()
+        c_state = copy.deepcopy(self.state)
         c_state.precond.append(cond)
-        consequent = VCVisitor(self.types, c_state, self.tracker)
-        a_state = self.state.copy()
+        consequent = VCVisitor(self.types, self.fn_name, self.fn_type, c_state, self.tracker)
+        a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
-        alternate = VCVisitor(self.types, a_state, self.tracker)
+        alternate = VCVisitor(self.types, self.fn_name, self.fn_type, a_state, self.tracker)
 
         for s in o.body:
             s.accept(consequent)
@@ -195,21 +207,34 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
 
 
     def visit_return_stmt(self, o: ReturnStmt) -> None:
-        # construct ps: concat all args to this fn, followed by the return value
-        ps_args = [Var(n,t) for (n,t) in zip(self.state.fn.arg_names, self.state.fn.arg_types)]
-        ps_args.append(o.expr.accept(self))   
-        ps = Call("ps", Bool(), *ps_args)
+        # # construct ps: concat all args to this fn, followed by the return value
+        # ps_args = [Var(n,t) for (n,t) in zip(self.fn_type.arg_names, self.fn_type.arg_types)]
+        # ps_args.append(o.expr.accept(self))   
+        # ps = Call("ps", Bool(), *ps_args)
 
-        # generate assertion: path cond -> ps(...)
-        if self.state.precond:
-            p = And(*self.state.precond) if len(self.state.precond) > 1 else self.state.precond[0]
-            ps = Implies(p, ps)
+        # # generate assertion: path cond -> ps(...)
+        # if self.state.precond:
+        #     p = And(*self.state.precond) if len(self.state.precond) > 1 else self.state.precond[0]
+        #     ps = Implies(p, ps)
 
-        self.state.asserts.append(ps)
-        self.state.has_returned = True
-        print(f"add assert: {ps}")
+        # self.state.asserts.append(ps)
+        # print(f"add assert: {ps}")
         
+        rv = Eq(self.ret_val, o.expr.accept(self))
+        if self.state.precond:
+            cond = And(*self.state.precond) if len(self.state.precond) > 1 else self.state.precond[0]
+            self.state.asserts.append(Implies(cond, rv))
+        else:
+            self.state.asserts.append(rv)
+        
+        self.state.has_returned = True
 
+
+        
+        
+    def visit_while_stmt(self, o: WhileStmt) -> None:
+
+        return super().visit_while_stmt(o)
 
     ##
     ## Expressions
@@ -276,29 +301,68 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
     #     # If returns True, will continue to nested nodes.
     #     return True
 
-def analyze(
-    path: str,
-    modulename: str,
-    fnNameSuffix: str = "",
-    log: bool = True,
-) -> Tuple[Set[Var], List[Synth], List[Expr], Expr, List[CodeInfo]]:
 
-    r = parse(path, modulename)
-    print("r: %s" % r.graph[modulename].tree)
-    # print(f"size of typed dic: {len(r.types)}")
+class Driver:
+    tracker: VariableTracker
+    asserts: List[Expr]
 
-    tree = r.graph[modulename].tree
-    assert tree is not None
+    def __init__(self) -> None:
+        self.tracker = VariableTracker()
+        self.asserts = []
+        
+    def analyze(self, filepath: str, fn_name: str):
+        modulename: str = "metalift"
+        r = parse(filepath, modulename)  # modulename doesn't really matter?
+        print("r: %s" % r.graph[modulename].tree)
 
-    v = VCVisitor(r.types)
-    tree.accept(v)
-    print(f"final asserts: {v.state.asserts}")
+        tree = r.graph[modulename].tree
+        assert tree is not None
+
+        def wrapper (*args: Expr) -> Expr:
+            v = VCVisitor(r.types, fn_name, tracker=self.tracker, args=args)
+            tree.accept(v)
+            print(f"final asserts: {v.state.asserts}")
+            self.asserts = self.asserts + v.state.asserts        
+            return v.ret_val
+        
+        return wrapper
+
+    def synthesize(self, e: Synth) -> List[FnDeclRecursive]:
+        invAndPs = [e]
+        loopAndPsInfo = [e]
+        lang = []
     
-    return None
+        vc = Implies(And(*self.asserts), Call(e.name(), Bool(), *e.arguments()))
+        return run_synthesis(
+            "test", lang, driver.tracker.all(), invAndPs, [], vc, loopAndPsInfo, "cvc5" #, noVerify=True
+        )
+
+
+
+def grammar(name: str, arg: Expr, ret: Expr) -> Synth:
+    multipler = Choose(IntLit(1), IntLit(2), IntLit(3), IntLit(4))
+    body = Eq(ret, arg * multipler)
+    return Synth(name, body, ret, arg)
+
+
+def codegen(fn: FnDeclRecursive) -> None:
+    body: Mul = fn.body().e2()  # i * lit
+    print(f"def {fn.name()} ({fn.args[3]}): ")
+    print(f"    return {body.args[0]} * {body.args[1].val()}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         raise RuntimeError("Usage: python.py <input filename>")
     filename = sys.argv[1]
-    analyze(filename, "test")
+
+    driver = Driver()    
+    test = driver.analyze(filename, "test")
+
+    i = driver.tracker.variable("i", Int())
+    ret_val = test(i)
+    ret_val = test(ret_val)
+    
+    candidate = driver.synthesize(grammar("synthesized", i, ret_val))
+    
+    codegen(candidate[0])
