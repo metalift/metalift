@@ -4,13 +4,14 @@ from metalift.analysis import CodeInfo
 from metalift.analysis_new import VariableTracker
 from metalift.synthesize_rosette import synthesize as run_synthesis
 
-from metalift.ir import And, Assert, Bool, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt, Implies, Int, IntLit, Ite, Le, Lt, Mul, Or, Not, Synth, Type as MLType, Var
+from metalift.ir import And, Assert, Bool, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt, Implies, Int, IntLit, Ite, Le, Lt, Mul, NonTerm, Or, Not, Synth, Type as MLType, Var
+from metalift.visitor import CountVarsVisitor
 from mypy import build
 from mypy.build import BuildResult
 from mypy.options import Options
 from mypy.defaults import PYTHON3_VERSION
 from mypy.modulefinder import BuildSource
-from mypy.traverser import TraverserVisitor, ExtendedTraverserVisitor
+from mypy.traverser import TraverserVisitor
 from mypy.nodes import AssignmentStmt, ComparisonExpr, FuncDef, IfStmt, IntExpr, MypyFile, NameExpr, Node as MypyNode, OpExpr, ReturnStmt, WhileStmt
 from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
 from mypy.visitor import ExpressionVisitor
@@ -313,7 +314,7 @@ class Driver:
     def analyze(self, filepath: str, fn_name: str):
         modulename: str = "metalift"
         r = parse(filepath, modulename)  # modulename doesn't really matter?
-        print("r: %s" % r.graph[modulename].tree)
+        # print("r: %s" % r.graph[modulename].tree)
 
         tree = r.graph[modulename].tree
         assert tree is not None
@@ -321,28 +322,32 @@ class Driver:
         def wrapper (*args: Expr) -> Expr:
             v = VCVisitor(r.types, fn_name, tracker=self.tracker, args=args)
             tree.accept(v)
-            print(f"final asserts: {v.state.asserts}")
+            # print(f"final asserts: {v.state.asserts}")
             self.asserts = self.asserts + v.state.asserts        
             return v.ret_val
         
         return wrapper
 
-    def synthesize(self, e: Synth) -> List[FnDeclRecursive]:
+    def synthesize(self, e: Expr) -> List[FnDeclRecursive]:
+        # create a synth expr from the expr to check
+        v = CountVarsVisitor()
+        e.accept(v)
+        e = Synth("synthesized", e, *v.vars)
+
         invAndPs = [e]
         loopAndPsInfo = [e]
         lang = []
-    
+
         vc = Implies(And(*self.asserts), Call(e.name(), Bool(), *e.arguments()))
         return run_synthesis(
             "test", lang, driver.tracker.all(), invAndPs, [], vc, loopAndPsInfo, "cvc5" #, noVerify=True
         )
 
+## begin user code 
 
-
-def grammar(name: str, arg: Expr, ret: Expr) -> Synth:
-    multipler = Choose(IntLit(1), IntLit(2), IntLit(3), IntLit(4))
-    body = Eq(ret, arg * multipler)
-    return Synth(name, body, ret, arg)
+def retval_grammar(arg: Expr, num_runs: int) -> Expr:
+    multipler = Choose(*[IntLit(i) for i in range(pow(2, num_runs) + 1)])
+    return arg * multipler
 
 
 def codegen(fn: FnDeclRecursive) -> None:
@@ -352,17 +357,17 @@ def codegen(fn: FnDeclRecursive) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        raise RuntimeError("Usage: python.py <input filename>")
-    filename = sys.argv[1]
+    filename = "tests/python/add.py" if len(sys.argv) == 1 else sys.argv[1]
 
     driver = Driver()    
     test = driver.analyze(filename, "test")
 
     i = driver.tracker.variable("i", Int())
-    ret_val = test(i)
-    ret_val = test(ret_val)
+    r = i
+    num_runs = 4
+    for x in range(num_runs):
+        r = test(r)  # test returns r+r, so this is equivalent to calculating (i * 2^num_runs)
     
-    candidate = driver.synthesize(grammar("synthesized", i, ret_val))
+    candidate = driver.synthesize(Eq(r, retval_grammar(i, num_runs)))
     
     codegen(candidate[0])
