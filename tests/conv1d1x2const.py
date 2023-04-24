@@ -106,7 +106,7 @@ def targetLang(kernel_size=2):
         y_rest = ml_list_tail(y, IntLit(1))
         element2 = Mul(ml_list_head(x_rest), ml_list_head(y_rest))
         return Add(element1, element2)
-    dotprod2d = FnDeclNonRecursive(DOTPROD2D, Int(), dotprod2d_body(x, y), x, y)
+    dotprod2d = FnDecl(DOTPROD2D, Int(), dotprod2d_body(x, y), x, y)
 
     def dotprod_body(x, y):
         kernel_size = ml_list_length(y)
@@ -115,7 +115,7 @@ def targetLang(kernel_size=2):
         y_rest = ml_list_tail(y, IntLit(1))
         recursed = ml_dotprod(x_rest, y_rest)
         return Ite(Lt(kernel_size, IntLit(2)), cur_prod, Add(cur_prod, recursed))
-    dotprod = FnDecl(DOTPROD, Int(), dotprod_body(x, y), x, y)
+    dotprod = FnDeclRecursive(DOTPROD, Int(), dotprod_body(x, y), x, y)
 
     # TODO: handle input size < 2
     # TODO: for size < 2, don't call dotprod
@@ -129,7 +129,7 @@ def targetLang(kernel_size=2):
         general_answer = ml_list_prepend(cur_prod, recursed)
         #return Ite(Eq(vec_size, kernel_size), ml_list_prepend(cur_prod, ml_list_empty()), general_answer)
         return Ite(Lt(vec_size, kernel_size), ml_list_empty(), general_answer)
-    conv1d1x2 = FnDecl(CONV1D1X2, ListT(Int()), conv1d1x2_body(x, y), x, y)
+    conv1d1x2 = FnDeclRecursive(CONV1D1X2, ListT(Int()), conv1d1x2_body(x, y), x, y)
 
     return [dotprod2d, dotprod, conv1d1x2]
 
