@@ -24,18 +24,10 @@ def listLength(
     return ReturnValue(Call("list_length", Int(), regs[args[0]]), None)
 
 
-#def listGet(
-#    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
-#) -> ReturnValue:
-#    return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
-
 def listGet(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    if args[1] in regs.keys():
-        return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
-    else:
-        return ReturnValue(Call("list_get", Int(), regs[args[0]], parseOperand(args[1], regs)), None)
+    return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
 
 
 def listAppend(

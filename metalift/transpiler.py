@@ -3,7 +3,7 @@ from typing import Callable, List, Dict, cast, Optional, Union, Any
 from llvmlite.binding import ValueRef
 
 from metalift.analysis import analyze
-from metalift.ir import Expr, Var, NonTerm, FnDecl, Target, Synth, Eq
+from metalift.ir import Expr, Var, NonTerm, FnDeclRecursive, Target, Synth, Eq
 from metalift.synthesize_auto import synthesize  # type: ignore
 
 
@@ -97,4 +97,4 @@ class Transpiler:
                 for a in r.arguments()
             ],
         )
-        return FnDecl(r.name(), r.returnT(), cast(Eq, r.body()).e2(), *args)
+        return FnDeclRecursive(r.name(), r.returnT(), cast(Eq, r.body()).e2(), *args)

@@ -269,8 +269,6 @@ class Expr:
                     return Let(*newArgs)
                 elif isinstance(e, Lambda):
                     return Lambda(e.type.args[0], *newArgs)
-                elif isinstance(e, Implies):
-                    return Implies(*newArgs)
                 else:
                     raise Exception("NYI: %s" % e)
             else:
@@ -1444,6 +1442,138 @@ class Choose(Expr):
         return self.args[0]  # type: ignore
 
 
+class FnDeclRecursive(Expr):
+    def __init__(
+        self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
+    ) -> None:
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
+
+    def name(self) -> str:
+        return self.args[0]  # type: ignore
+
+    def returnT(self) -> Type:
+        return self.type.args[0]
+
+    def body(self) -> Union[Expr, str]:
+        return self.args[1]  # type: ignore
+
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[2:]  # type: ignore
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        if self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
+            return "(define-symbolic %s (~> %s %s))" % (
+                self.args[0],
+                args_type,
+                toRosetteType(self.type),
+            )
+
+        else:
+            args = " ".join(
+                [
+                    "%s" % (a.name)
+                    if isinstance(a, ValueRef) and a.name != ""
+                    else "%s" % (a.args[0])
+                    for a in self.args[2:]
+                ]
+            )
+
+            return "(define-bounded (%s %s) \n%s)" % (
+                self.args[0],
+                args,
+                self.args[1].toRosette(),
+            )
+
+    def toSMT(self) -> str:
+        if self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
+            return "(declare-fun %s (%s) %s)" % (
+                self.args[0],
+                args_type,
+                parseTypeRef(self.type),
+            )
+        else:
+            declarations = []
+            for a in self.args[2:]:
+                if isinstance(a, ValueRef):
+                    declarations.append((a.name, parseTypeRef(a.type)))
+                else:
+                    declarations.append((a.args[0], a.type))
+
+            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
+
+            return "(define-fun-rec %s (%s) %s\n%s)" % (
+                self.args[0],
+                args,
+                (
+                    self.type if self.type.name != "Function" else self.type.args[0]
+                ).toSMT(),
+                self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
+            )
+
+
+class FnDefine(Expr):
+    def __init__(self, name: str, returnT: Type, *args: Expr) -> None:
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, *args])
+
+    def name(self) -> str:
+        return self.args[0]  # type: ignore
+
+    def returnT(self) -> Type:
+        return self.type.args[0]
+
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]  # type: ignore
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return ""  # only for verification
+
+    def toSMT(self) -> str:
+        args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
+        return "(declare-fun %s (%s) %s)" % (
+            self.args[0],
+            args_type,
+            parseTypeRef(self.type),
+        )
+
+
+class Lambda(Expr):
+    def __init__(self, returnT: Type, body: Expr, *args: Expr) -> None:
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [body, *args])
+
+    def body(self) -> Expr:
+        return self.args[0]  # type: ignore
+
+    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
+        return self.args[1:]  # type: ignore
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        args = " ".join(
+            [
+                "%s" % (a.name)
+                if isinstance(a, ValueRef) and a.name != ""
+                else "%s" % (a.args[0])
+                for a in self.args[1:]
+            ]
+        )
+
+        return "(lambda (%s) %s)" % (
+            args,
+            self.args[0].toRosette(),
+        )
+
+    def toSMT(self) -> str:
+        # TODO(shadaj): extract during filtering assuming no captures
+        raise Exception("Lambda not supported")
+
+
 class FnDecl(Expr):
     def __init__(
         self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
@@ -1483,190 +1613,20 @@ class FnDecl(Expr):
                 ]
             )
 
-            def_str = (
-                "define" if isinstance(self, FnDeclNonRecursive) else "define-bounded"
-            )
-
-            return "(%s (%s %s) \n%s)" % (
-                def_str,
+            return "(define (%s %s) \n%s)" % (
                 self.args[0],
                 args,
                 self.args[1].toRosette(),
             )
 
     def toSMT(self) -> str:
-        if isinstance(self, FnDefine) or self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
-            return "(declare-fun %s (%s) %s)" % (
-                self.args[0],
-                args_type,
-                parseTypeRef(self.type),
-            )
-
-        else:
-            declarations = []
-            for a in self.args[2:]:
-                if isinstance(a, ValueRef):
-                    declarations.append((a.name, parseTypeRef(a.type)))
-                else:
-                    declarations.append((a.args[0], a.type))
-
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
-
-            def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
-
-            return "(%s %s (%s) %s\n%s)" % (
-                def_str,
-                self.args[0],
-                args,
-                (
-                    self.type if self.type.name != "Function" else self.type.args[0]
-                ).toSMT(),
-                self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
-            )
-
-
-class FnDefine(Expr):
-    def __init__(self, name: str, returnT: Type, *args: Expr) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, *args])
-
-    def name(self) -> str:
-        return self.args[0]  # type: ignore
-
-    def returnT(self) -> Type:
-        return self.type.args[0]
-
-    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]  # type: ignore
-
-    def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
-    ) -> str:
-        return ""  # only for verification
-
-    def toSMT(self) -> str:
-        if isinstance(self, FnDefine) or self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
-            return "(declare-fun %s (%s) %s)" % (
-                self.args[0],
-                args_type,
-                parseTypeRef(self.type),
-            )
-
-        else:
-            declarations = []
-            for a in self.args[2:]:
-                if isinstance(a, ValueRef):
-                    declarations.append((a.name, parseTypeRef(a.type)))
-                else:
-                    declarations.append((a.args[0], a.type))
-
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
-
-            def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
-
-            return "(%s %s (%s) %s\n%s)" % (
-                def_str,
-                self.args[0],
-                args,
-                (
-                    self.type if self.type.name != "Function" else self.type.args[0]
-                ).toSMT(),
-                self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
-            )
-
-
-class Lambda(Expr):
-    def __init__(self, returnT: Type, body: Expr, *args: Expr) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [body, *args])
-
-    def body(self) -> Expr:
-        return self.args[0]  # type: ignore
-
-    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
-        return self.args[1:]  # type: ignore
-
-    def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
-    ) -> str:
-        args = " ".join(
-            [
-                "%s" % (a.name)
-                if isinstance(a, ValueRef) and a.name != ""
-                else "%s" % (a.args[0])
-                for a in self.args[1:]
-            ]
-        )
-
-        return "(lambda (%s) %s)" % (
-            args,
-            self.args[0].toRosette(),
-        )
-
-    def toSMT(self) -> str:
-        # TODO(shadaj): extract during filtering assuming no captures
-        raise Exception("Lambda not supported")
-
-
-class FnDeclNonRecursive(Expr):
-    def __init__(
-        self, name: str, returnT: Type, body: Union[Expr, str], *args: Expr
-    ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
-
-    def name(self) -> str:
-        return self.args[0]  # type: ignore
-
-    def returnT(self) -> Type:
-        return self.type.args[0]
-
-    def body(self) -> Union[Expr, str]:
-        return self.args[1]  # type: ignore
-
-    def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
-        return self.args[2:]  # type: ignore
-
-    def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
-    ) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
-            return "(define-symbolic %s (~> %s %s))" % (
-                self.args[0],
-                args_type,
-                toRosetteType(self.type),
-            )
-
-        else:
-            args = " ".join(
-                [
-                    "%s" % (a.name)
-                    if isinstance(a, ValueRef) and a.name != ""
-                    else "%s" % (a.args[0])
-                    for a in self.args[2:]
-                ]
-            )
-
-            def_str = (
-                "define" if isinstance(self, FnDeclNonRecursive) else "define-bounded"
-            )
-
-            return "(%s (%s %s) \n%s)" % (
-                def_str,
-                self.args[0],
-                args,
-                self.args[1].toRosette(),
-            )
-
-    def toSMT(self) -> str:
-        if isinstance(self, FnDefine) or self.args[1] is None:  # uninterpreted function
             args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
                 parseTypeRef(self.type),
             )
-
         else:
             declarations = []
             for a in self.args[2:]:
@@ -1677,10 +1637,7 @@ class FnDeclNonRecursive(Expr):
 
             args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
 
-            def_str = "define-fun-rec" if isinstance(self, FnDecl) else "define-fun"
-
-            return "(%s %s (%s) %s\n%s)" % (
-                def_str,
+            return "(define-fun %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
                 (
@@ -1707,7 +1664,7 @@ class TargetCall(Call):
         return self._codegen(*self.args[1:])  # type: ignore
 
 
-class Target(FnDeclNonRecursive):
+class Target(FnDecl):
     definedFns: Dict[str, "Target"] = {}  # stores all fns that have been defined so far
 
     semantics: Optional[Callable[[Expr], Expr]]

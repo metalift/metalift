@@ -13,7 +13,7 @@ from metalift.ir import (
     Call,
     Int,
     IntLit,
-    FnDecl,
+    FnDeclRecursive,
     Var,
     Add,
     Ite,

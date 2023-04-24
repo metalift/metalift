@@ -74,27 +74,18 @@ def grammar(ci: CodeInfo):
 def targetLang():
 
     arg = Var("n", Int())
-    # true if arg is more than 2
-    select_pred = FnDecl("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
-    # true if arg is less than 10
-    select_pred1 = FnDecl("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
-    # true if arg is between 2 and 10, exclusive
-    select_pred2 = FnDecl("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
+    select_pred = FnDeclRecursive("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
+    select_pred1 = FnDeclRecursive("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
+    select_pred2 = FnDeclRecursive("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
     data = Var("l", ListT(Int()))
-    # remove elements <= 2
-    select_func = FnDecl(
+    select_func = FnDeclRecursive(
         "Select",
         ListT(Int()),
         Ite(
-            # if data is empty,
             Eq(Call("list_length", Int(), data), IntLit(0)),
-            # empty list
             Call("list_empty", ListT(Int())),
-            # else,
             Ite(
-                # if data[0] > 2
                 Call("Select-pred", Bool(), Call("list_get", Int(), data, IntLit(0))),
-                # recurse on tail and append data[0]
                 Call(
                     "list_append",
                     ListT(Int()),
@@ -105,7 +96,6 @@ def targetLang():
                     ),
                     Call("list_get", Int(), data, IntLit(0)),
                 ),
-                # else, recurse on tail
                 Call(
                     "Select",
                     ListT(Int()),
@@ -115,8 +105,7 @@ def targetLang():
         ),
         data,
     )
-    # remove elements >= 10
-    select_func1 = FnDecl(
+    select_func1 = FnDeclRecursive(
         "Select1",
         ListT(Int()),
         Ite(
@@ -143,8 +132,7 @@ def targetLang():
         ),
         data,
     )
-    # remove elements <= 2 or >= 10
-    select_func2 = FnDecl(
+    select_func2 = FnDeclRecursive(
         "Select2",
         ListT(Int()),
         Ite(

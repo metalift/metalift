@@ -2,7 +2,7 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import Expr, FnDecl, FnDeclNonRecursive, Var
+from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
@@ -133,9 +133,9 @@ def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
 
 def toRosette(
     filename: str,
-    targetLang: Sequence[Union[FnDecl, FnDeclNonRecursive, ir.Axiom]],
+    targetLang: Sequence[Union[FnDeclRecursive, FnDecl, ir.Axiom]],
     vars: Set[Var],
-    invAndPs: typing.Sequence[Union[FnDecl, ir.Synth]],
+    invAndPs: typing.Sequence[Union[FnDeclRecursive, ir.Synth]],
     preds: List[Expr],
     vc: Expr,
     loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],

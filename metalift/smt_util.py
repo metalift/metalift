@@ -40,7 +40,7 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
 def toSMT(
     targetLang: typing.Sequence[Any],
     vars: typing.Set[Var],
-    invAndPs: typing.Sequence[Union[FnDecl, Synth]],
+    invAndPs: typing.Sequence[Union[FnDeclRecursive, Synth]],
     preds: Union[str, typing.List[Any]],
     vc: Expr,
     outFile: str,
@@ -61,8 +61,8 @@ def toSMT(
         axioms = []
         for t in targetLang:
             if (
-                isinstance(t, FnDecl)
-                or isinstance(t, FnDeclNonRecursive)
+                isinstance(t, FnDeclRecursive)
+                or isinstance(t, FnDecl)
                 # t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
             ) and t.args[0] in fnCalls:
                 found_inline = False
@@ -76,15 +76,15 @@ def toSMT(
                         # remove function type args
                         newArgs = filterArgs(t.args[2:])
                         fnDecls.append(
-                            FnDecl(
+                            FnDeclRecursive(
                                 t.args[0] + "_" + i[1],
                                 t.type.args[0],
                                 newBody,
                                 *newArgs,
                             )
                             # if t.kind == Expr.Kind.FnDecl
-                            if isinstance(t, FnDecl)
-                            else FnDeclNonRecursive(
+                            if isinstance(t, FnDeclRecursive)
+                            else FnDecl(
                                 t.args[0] + "_" + i[1],
                                 t.type.args[0],
                                 newBody,
@@ -109,11 +109,13 @@ def toSMT(
 
             # if cand.kind == Expr.Kind.Synth:
             if isinstance(cand, Synth):
-                decl: Union[Synth, FnDecl] = Synth(
+                decl: Union[Synth, FnDeclRecursive] = Synth(
                     cand.args[0], newBody, *cand.args[2:]
                 )
             else:
-                decl = FnDecl(cand.args[0], cand.type.args[0], newBody, *cand.args[2:])
+                decl = FnDeclRecursive(
+                    cand.args[0], cand.type.args[0], newBody, *cand.args[2:]
+                )
 
             if cand.args[0] in early_candidates_names:
                 early_candidates.append(decl)
