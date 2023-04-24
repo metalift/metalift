@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Run this script to create a binary executable from C++
+
 file="$1"
 ext="${file##*.}"
 clang_out=${file/.$ext/.exe}

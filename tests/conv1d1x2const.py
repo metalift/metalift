@@ -137,37 +137,13 @@ def codeGen(summary: FnDecl):
     def eval(expr):
         if isinstance(expr, ValueRef):
             return expr.name
-        if isinstance(expr, Eq):
+        elif isinstance(expr, Eq):
             left = expr.e1()
             right = expr.e2()
             if isinstance(left, Call):
                 return f"({eval(left)})"
             else:
                 return f"({eval(right)})"
-        elif isinstance(expr, Gt):
-            left = expr.args[0]
-            right = expr.args[1]
-            return f"({eval(left)}) > ({eval(right)})"
-        elif isinstance(expr, Ge):
-            left = expr.args[0]
-            right = expr.args[1]
-            return f"({eval(left)}) >= ({eval(right)})"
-        elif isinstance(expr, Lt):
-            left = expr.args[0]
-            right = expr.args[1]
-            return f"({eval(left)}) < ({eval(right)})"
-        elif isinstance(expr, Le):
-            left = expr.args[0]
-            right = expr.args[1]
-            return f"({eval(left)}) <= ({eval(right)})"
-        elif isinstance(expr, And):
-            eval_args = map(lambda arg: eval(arg), expr.args)
-            eval_args = map(lambda ea: f"({ea})", eval_args)
-            return f"({' && '.join(eval_args)})"
-        elif isinstance(expr, Add):
-            return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
-        elif isinstance(expr, Sub):
-            return f"{eval(expr.args[0])} - {eval(expr.args[1])}"
         elif isinstance(expr, FnDecl):
             return f"def {expr.name()}({', '.join([eval(arg) for arg in expr.arguments()])}):\n    " \
                     f"return {eval(expr.body())}"
@@ -179,26 +155,31 @@ def codeGen(summary: FnDecl):
             if name == CONV1D1X2:
                 name = "torch.nn.functional.conv1d"
                 assert(len(eval_args) == 2)
-                input = f"torch.tensor({eval_args[0]})"
-                kernel = f"torch.tensor({eval_args[1]})"
+                input = f"torch.tensor([[{eval_args[0]}]]).float().to(mps_device)"
+                kernel = f"torch.tensor([[{eval_args[1]}]]).float().to(mps_device)"
                 return f"{name}({input}, {kernel})"
-            elif name == "list_length":
-                assert(len(eval_args) == 1)
-                return f"{name}({eval_args[0]})"
-            elif name == "list_take" or name == "list_prepend":
-                assert(len(eval_args) == 2)
-                return f"{name}({eval_args[0]}, {eval_args[1]})"
             elif name == "list_empty":
                 return f"list_empty()"
-                
+            elif name == "list_prepend":
+                def flatten_prepends(expr):
+                    name = expr.name()
+                    # Base case
+                    if name == "list_empty":
+                        return []
+                    # General case
+                    assert(name == "list_prepend")
+                    arguments = expr.arguments()
+                    assert(len(arguments) == 2)
+                    car = eval(arguments[0])
+                    cdr = flatten_prepends(arguments[1])
+                    return [car] + cdr
+                flattened = flatten_prepends(expr)
+                return f"[{', '.join(flattened)}]"
             raise NotImplementedError(f"codegen not implemented for function call {name}")
         elif isinstance(expr, Lit):
             return str(expr.val())
         elif isinstance(expr, Var):
             return expr.name()
-        elif isinstance(expr, Tuple):
-            eval_args = map(lambda expr: eval(expr), expr.args)
-            return f"[{', '.join(eval_args)}]"
         elif isinstance(expr, Implies):
             left = expr.args[0]
             right = expr.args[1]
@@ -209,10 +190,7 @@ def codeGen(summary: FnDecl):
         #    print(expr.name)
         #    return f"[{', '.join(map(lambda expr: eval(expr), expr.args))}]"
         else:
-            raise "missing"
-            print(parseTypeRef(expr.type) == ListT(Int()))
-            print(type(expr))
-            return str(expr)
+            raise NotImplementedError(f"codegen not implemented for {expr}")
     return eval(summary)
 
 def runner():
@@ -241,6 +219,18 @@ def runner():
             continue
         print(c.args[0])
         #print(c)
-        print(codeGen(c), "\n")
+        inner = codeGen(c)
+        code = \
+"""
+import torch
+mps_device = torch.device("mps")
+""" + \
+inner + \
+"""
+l = [i for i in range(100000)]
+o = test(None, l)
+print(o)
+"""
+        print(code)
 
 runner()
