@@ -144,7 +144,7 @@ def codeGen(summary: FnDecl):
                 return f"({eval(left)})"
             else:
                 return f"({eval(right)})"
-        elif isinstance(expr, FnDecl):
+        elif isinstance(expr, FnDecl) or isinstance(expr, FnDeclRecursive):
             return f"def {expr.name()}({', '.join([eval(arg) for arg in expr.arguments()])}):\n    " \
                     f"return {eval(expr.body())}"
         elif isinstance(expr, Call):
