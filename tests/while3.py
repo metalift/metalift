@@ -32,8 +32,8 @@ def grammar(ci: CodeInfo):
         f = Choose(IntLit(0), IntLit(1), IntLit(2))
         e = Choose(*ci.modifiedVars)
         d = And(
-            Ge(e, IntLit(1)), # ans is greater than 1
-            And(Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f)))), # ans is less than input
+            Ge(e, IntLit(1)),
+            And(Le(e, ci.readVars[0]), Eq(e, Call("sum_n", Int(), Sub(e, f)))),
         )
         c = Choose(Ge(IntLit(1), ci.readVars[0]), Le(IntLit(1), ci.readVars[0]))
         b = Or(c, d)
@@ -51,7 +51,7 @@ def grammar(ci: CodeInfo):
 
 def targetLang():
     x = Var("x", Int())
-    sum_n = FnDecl(
+    sum_n = FnDeclRecursive(
         "sum_n",
         Int(),
         Ite(

@@ -21,18 +21,18 @@ Our first step is to define the semantics of the target language. Using Metalift
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.ir import Var, FnDecl, FnDeclNonRecursive, Choose, Synth
+from metalift.ir import Var, FnDecl, FnDeclRecursive, Choose, Synth
 from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit
-from metalift.ir import Int
+from metalift.ir import Int, Bool
 
 def targetLang():
   x = Var("x", Int()) # variables to be used in semantic function definition
   y = Var("y", Int())
   z = Var("z", Int())
-  fma = FnDeclNonRecursive("fma",             # function name
-                           Int(),             # return type
-                           Add(x, Mul(y, z)), # body of the function
-                           x, y, z)           # function inputs
+  fma = FnDecl("fma",             # function name
+               Int(),             # return type
+               Add(x, Mul(y, z)), # body of the function
+               x, y, z)           # function inputs
   return [fma]
 ```
 
@@ -66,22 +66,19 @@ After that, we tell Metalift that all values should be computed using the gramma
 
 <!--phmdoctest-share-names-->
 ```python
-def grammar(ci):
-  name = ci.name
-
-  inputVars = Choose(*ci.readVars, IntLit(0))
+def grammar(name, args):
+  inputVars = Choose(*args, IntLit(0))
   var_or_add = Add(inputVars, inputVars)
   var_or_fma = Choose(
-    *ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
+    *args, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
   )
   
-  rv = ci.modifiedVars[0]
   # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma 
-  summary = Eq(rv, Add(var_or_fma, var_or_fma))
+  summary = Add(var_or_fma, var_or_fma)
 
   return Synth(name,                            # name of the function we are transpiling
                summary,                         # grammar defined above
-               *ci.modifiedVars, *ci.readVars)  # list of input and output variables
+               *args)  # list of input variables
 
 ```
 We wrap this in a `Synth` AST node and return it afterwards.
@@ -111,7 +108,7 @@ We pass these file names to Metalift's `analyze` function, which returns a numbe
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.analysis import analyze
+from metalift.analysis_new import VariableTracker, analyze
 
 filename = "tests/fma_dsl.ll"
 basename = "fma_dsl"
@@ -120,10 +117,22 @@ fnName = "test"
 loopsFile = "tests/fma_dsl.loops"
 cvcPath = "cvc5"
 
-(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
+test_analysis = analyze(filename, fnName, loopsFile)
+
+variable_tracker = VariableTracker()
+base = variable_tracker.variable("base", Int())
+arg1 = variable_tracker.variable("arg1", Int())
+base2 = variable_tracker.variable("base2", Int())
+arg2 = variable_tracker.variable("arg2", Int())
 
 print("====== grammar")
-invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+invAndPs = [grammar(fnName, [base, arg1, base2, arg2])]
+
+vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Eq(ret, Call(
+  fnName,
+  Int(),
+  base, arg1, base2, arg2
+)))
 
 lang = targetLang()
 ```
@@ -135,7 +144,7 @@ After we defined our target language and search space grammar, we call Metalift'
 from metalift.synthesize_auto import synthesize
 
 candidates = synthesize(
-  basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath
+  "example", lang, variable_tracker.all(), invAndPs, [], vc, invAndPs, cvcPath
 )
 ```
 
@@ -143,12 +152,10 @@ The synthesized code can then pass through our code generator to produce executa
 
 <!--phmdoctest-share-names-->
 ```python
-def codeGen(summary: FnDecl):
+def codeGen(summary: FnDeclRecursive):
   expr = summary.body() 
   def eval(expr):
-    if isinstance(expr, Eq):
-      return f"{expr.e1()} = {eval(expr.e2())}"
-    elif isinstance(expr, Add):
+    if isinstance(expr, Add):
       return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
     elif isinstance(expr, Call):
       eval_args = []
@@ -167,5 +174,5 @@ print(summary)
 ```
 
 ```
-i18 = fma(arg2 + arg, 0 + 0, arg3 + arg) + fma(arg + arg2, arg3 + arg3, 0 + arg1)
+fma(base + base, base2 + 0, 0 + 0) + fma(base2 + base2, arg2 + 0, arg1 + arg1)
 ```

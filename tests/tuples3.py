@@ -29,7 +29,7 @@ def grammar(ci: CodeInfo):
 
 def targetLang():
     x = Var("x", Int())
-    double = FnDecl("double", Int(), Add(x, x), x)
+    double = FnDeclRecursive("double", Int(), Add(x, x), x)
     return [double]
 
 
