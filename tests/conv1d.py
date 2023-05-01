@@ -62,14 +62,23 @@ def grammar(ci: CodeInfo, kernel_size=2):
     y = reduce(lambda acc, _cur: ml_list_prepend(unknown_const, acc), range(kernel_size), ml_list_empty())
 
     if name.startswith("inv"):
+        # Invariant
+        # The invariant enforces 3 properties.
 
         an_input = Choose(*ci.readVars)
         an_output_i32 = ci.modifiedVars[1]
         an_output_list = ci.modifiedVars[0]
 
         valid = Gt(ml_list_length(an_input), IntLit(1))
+        # This enforces the pre-loop invariant condition, that the looping index
+        # is always at least 0.
         preloop = Ge(an_output_i32, IntLit(0))
+        # This enforces the post-loop invariant condition, that the looping
+        # index is at most the last index of the list.
         postloop = Le(an_output_i32, Sub(ml_list_length(an_input), IntLit(1)))
+        # This enforces the inductive property, that if the output so far is
+        # the convolution of the input and kernel so far, then it will continue
+        # being the convolution of the input and kernel.
         induction = Eq(an_output_list,
                        ml_conv1d1x2(ml_list_take(an_input, Add(an_output_i32, IntLit(1))),
                                     y))
@@ -77,6 +86,10 @@ def grammar(ci: CodeInfo, kernel_size=2):
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
     else:
+        # Post condition
+        # We require that, when the input and kernel lists are the same size,
+        # that the output list is what we expect (the 1D convolution of the
+        # kernel over the input).
         an_input = ci.readVars[0]
         an_output = Choose(*ci.modifiedVars)
         x = ci.readVars[0]
