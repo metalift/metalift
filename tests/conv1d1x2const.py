@@ -59,8 +59,6 @@ def grammar(ci: CodeInfo, kernel_size=2):
     print(*ci.readVars)
 
     unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    #y = ml_list_prepend(unknown_const, ml_list_prepend(unknown_const, ml_list_empty()))
-    # "Dynamic" version
     y = reduce(lambda acc, _cur: ml_list_prepend(unknown_const, acc), range(kernel_size), ml_list_empty())
 
     if name.startswith("inv"):
@@ -75,7 +73,6 @@ def grammar(ci: CodeInfo, kernel_size=2):
         induction = Eq(an_output_list,
                        ml_conv1d1x2(ml_list_take(an_input, Add(an_output_i32, IntLit(1))),
                                     y))
-        # TODO: replace implies w equivalent
         summary = Implies(valid, And(preloop, And(postloop, induction)))
 
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
@@ -86,11 +83,6 @@ def grammar(ci: CodeInfo, kernel_size=2):
         valid = Gt(ml_list_length(x), IntLit(1))
         ans = ml_conv1d1x2(an_input, y)
         check_ans = Eq(ans, an_output)
-        # Note: Grammar should always return boolean value; compare w OUT to check answer
-        # The answer expression should always be of the form Eq(out, ...)
-        # Wrong:
-        #summary = Ite(valid, check_ans, ml_list_empty())
-        # Correct:
         summary = Implies(valid, check_ans)
         return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
 
@@ -127,7 +119,6 @@ def targetLang(kernel_size=2):
         vec_rest = ml_list_tail(vec, IntLit(1))
         recursed = ml_conv1d1x2(vec_rest, kernel)
         general_answer = ml_list_prepend(cur_prod, recursed)
-        #return Ite(Eq(vec_size, kernel_size), ml_list_prepend(cur_prod, ml_list_empty()), general_answer)
         return Ite(Lt(vec_size, kernel_size), ml_list_empty(), general_answer)
     conv1d1x2 = FnDeclRecursive(CONV1D1X2, ListT(Int()), conv1d1x2_body(x, y), x, y)
 
@@ -185,10 +176,6 @@ def codeGen(summary: FnDecl):
             right = expr.args[1]
             return eval(right)
             return f"not ({eval(left)}) or ({eval(right)})"
-        #elif parseTypeRef(expr.type) == ListT(Int()):
-        #    # This is a List of Ints
-        #    print(expr.name)
-        #    return f"[{', '.join(map(lambda expr: eval(expr), expr.args))}]"
         else:
             raise NotImplementedError(f"codegen not implemented for {expr}")
     return eval(summary)
@@ -203,7 +190,6 @@ def runner():
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 
 
-    # noVerify=True is OK, since synthesis will not create a candidate for kernel that's too small
     candidates = []
     for kernel_size in range(1, LIST_BOUND):
         invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
@@ -218,7 +204,6 @@ def runner():
         if c.args[0] != "test":
             continue
         print(c.args[0])
-        #print(c)
         inner = codeGen(c)
         code = \
 """
