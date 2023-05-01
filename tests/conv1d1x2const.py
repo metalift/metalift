@@ -231,6 +231,14 @@ l = [i for i in range(100000)]
 o = test(None, l)
 print(o)
 """
+        # # Expected:
+        # import torch
+        # mps_device = torch.device("mps")
+        # def test(i27, arg):
+        #     return (torch.nn.functional.conv1d(torch.tensor([[arg]]).float().to(mps_device), torch.tensor([[[1, 1]]]).float().to(mps_device)))
+        # l = [i for i in range(100000)]
+        # o = test(None, l)
+        # print(o)
         print(code)
 
 runner()
