@@ -181,10 +181,10 @@ def codeGen(summary: FnDecl):
     return eval(summary)
 
 def runner():
-    basename = "conv1d1x2"
-    filename = "tests/conv1d1x2.ll"
+    basename = "conv1d"
+    filename = "tests/conv1d.ll"
     fnName = "test"
-    loopsFile = "tests/conv1d1x2.loops"
+    loopsFile = "tests/conv1d.loops"
     cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
