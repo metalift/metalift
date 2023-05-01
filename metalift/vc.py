@@ -100,7 +100,6 @@ class VC:
         gvars: Dict[str, str],
         uninterpFuncs: typing.List[str] = [],
     ) -> typing.Tuple[typing.Set[Var], typing.List[Synth], typing.List[Expr], Expr]:
-
         initBlock = blocksMap[firstBlockName]
         initBlock.state.assumes.append(BoolLit(True))
         initBlock.state.gvars = gvars
@@ -376,6 +375,8 @@ class VC:
 
                 if cond == "eq":
                     r: Expr = Eq(op2, op1)
+                elif cond == "ne":
+                    r = Not(Eq(op2, op1))
                 elif cond == "sgt":
                     r = Lt(op2, op1)
                 elif cond == "sle":

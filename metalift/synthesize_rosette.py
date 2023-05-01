@@ -53,7 +53,6 @@ def toExpr(
     choices: Dict[str, Expr],
     typeHint: typing.Optional[Type] = None,
 ) -> Expr:
-
     expr_bi: Dict[str, Callable[..., Expr]] = {
         "equal?": Eq,
         "+": Add,

@@ -251,6 +251,8 @@ class Expr:
                     return Or(*newArgs)
                 elif isinstance(e, Not):
                     return Not(*newArgs)
+                elif isinstance(e, Implies):
+                    return Implies(*newArgs)
                 elif isinstance(e, Add):
                     return Add(*newArgs)
                 elif isinstance(e, Sub):
@@ -513,18 +515,6 @@ class Expr:
             return Mul(*self.args, other)
         else:
             return Mul(self, other)
-
-    def __and__(self, other: "Expr") -> "And":
-        if isinstance(self, And):
-            return And(*self.args, other)
-        else:
-            return And(self, other)
-
-    def __or__(self, other: "Expr") -> "Or":
-        if isinstance(self, And):
-            return Or(*self.args, other)
-        else:
-            return Or(self, other)
 
 
 class Var(Expr):
@@ -1791,7 +1781,9 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
     elif (
-        tyStr == "%struct.list*" or tyStr == "%struct.list**" or tyStr == "(MLList Int)"
+        tyStr.startswith("%struct.list*")
+        or tyStr == "%struct.list**"
+        or tyStr == "(MLList Int)"
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):

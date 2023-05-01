@@ -133,6 +133,7 @@ jobs:
         python -m tests.tuples3
         python -m tests.while3
         python -m tests.while4
+        python -m tests.no_loop_matmul
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
