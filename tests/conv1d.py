@@ -193,11 +193,10 @@ def codeGen(summary: FnDecl):
             raise NotImplementedError(f"codegen not implemented for {expr}")
     return eval(summary)
 
-def runner():
-    basename = "conv1d"
-    filename = "tests/conv1d.ll"
+def runner(basename):
+    filename = f"tests/{basename}.ll"
     fnName = "test"
-    loopsFile = "tests/conv1d.loops"
+    loopsFile = f"tests/{basename}.loops"
     cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
@@ -239,4 +238,4 @@ print(o)
         # print(o)
         print(code)
 
-runner()
+runner("conv1d")
