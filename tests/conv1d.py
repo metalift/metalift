@@ -137,7 +137,7 @@ def targetLang(kernel_size=2):
 
     return [dotprod2d, dotprod, conv1d1x2]
 
-def codeGen(summary: FnDecl):
+def codeGenToPytorch(summary: FnDecl):
     def eval(expr):
         if isinstance(expr, ValueRef):
             return expr.name
@@ -216,7 +216,7 @@ def runner(basename):
         if c.args[0] != "test":
             continue
         print(c.args[0])
-        inner = codeGen(c)
+        inner = codeGenToPytorch(c)
         code = \
 """
 import torch
