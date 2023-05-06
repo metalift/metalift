@@ -58,7 +58,7 @@ def grammar(ci: CodeInfo, kernel_size=2):
     print("INV VARS RV HERE")
     print(*ci.readVars)
 
-    unknown_const = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
+    unknown_const = Choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
     y = reduce(lambda acc, _cur: ml_list_prepend(unknown_const, acc), range(kernel_size), ml_list_empty())
 
     if name.startswith("inv"):
@@ -228,14 +228,24 @@ l = [i for i in range(100000)]
 o = test(None, l)
 print(o)
 """
-        # # Expected:
-        # import torch
-        # mps_device = torch.device("mps")
-        # def test(i27, arg):
-        #     return (torch.nn.functional.conv1d(torch.tensor([[arg]]).float().to(mps_device), torch.tensor([[[1, 1]]]).float().to(mps_device)))
-        # l = [i for i in range(100000)]
-        # o = test(None, l)
-        # print(o)
         print(code)
 
+# # Expected:
+# import torch
+# mps_device = torch.device("mps")
+# def test(i27, arg):
+#     return (torch.nn.functional.conv1d(torch.tensor([[arg]]).float().to(mps_device), torch.tensor([[[1, 1]]]).float().to(mps_device)))
+# l = [i for i in range(100000)]
+# o = test(None, l)
+# print(o)
 runner("conv1d")
+
+# # Expected:
+# import torch
+# mps_device = torch.device("mps")
+# def test(i27, arg):
+#     return (torch.nn.functional.conv1d(torch.tensor([[arg]]).float().to(mps_device), torch.tensor([[[2, -1]]]).float().to(mps_device)))
+# l = [i for i in range(100000)]
+# o = test(None, l)
+# print(o)
+runner("conv1d_2")
