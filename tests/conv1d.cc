@@ -29,3 +29,24 @@ int main(int argc, char** argv) {
 	return 0;
 
 }
+
+int main_n(int argc, char** argv) {
+  std::vector<int> vec(10000000, 0);
+  for (int i = 0; i < 10000000; i++) {
+    vec[i] = i;
+  }
+
+  // test() in pure c++
+  int slides = int(vec.size()) - 1;
+  std::vector<int> convolved;
+  for (int i = 0; i < slides; i++) {
+    convolved.push_back(vec[i] + vec[i+1]);
+  }
+
+  std::cout << "[";
+  for (int i = 0; i < convolved.size(); i++) {
+    std::cout << convolved[i] << ", ";
+  }
+  std::cout << "]" << std::endl;
+  return 0;
+}
