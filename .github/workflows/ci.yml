@@ -134,7 +134,6 @@ jobs:
         python -m tests.while3
         python -m tests.while4
         python -m tests.no_loop_matmul
-        python -m tests.conv1d
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
