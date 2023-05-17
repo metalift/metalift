@@ -17,4 +17,3 @@ distribution*.png
 dist/
 rosette-packages/
 nixos.qcow2
-poetry.lock

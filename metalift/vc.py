@@ -130,6 +130,7 @@ class VC:
         blockVCs: ListT[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
 
         body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
+
         invAndPs = [
             Synth(p.args[0], Lit(True, Bool()), *p.args[1:])
             for p in filter(

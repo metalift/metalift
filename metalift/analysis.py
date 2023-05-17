@@ -342,7 +342,7 @@ def parseGlobals(
 ) -> Dict[str, ValueRef]:
     globalVars = {}
     for g in global_variables:
-        if re.search("\[.+ x i8\]\*", str(g.type)):  # strings have type [n x i8]*
+        if re.search("\[. x i8\]\*", str(g.type)):  # strings have type [n x i8]*
             o = re.search('"(.+)"', str(g))
             if o:
                 v = o.group(1).replace("\\00", "")
@@ -451,9 +451,5 @@ def analyze(
         globalVars,
         uninterpFuncs,
     )
-    if len(invAndPs) > 0:
-        raise Exception("Length of invAndPs > 0")
-    if len(preds) > 0:
-        raise Exception("Length of preds > 0")
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)
