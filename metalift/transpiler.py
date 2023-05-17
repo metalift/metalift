@@ -63,9 +63,7 @@ class Transpiler:
                 )
                 for ci in loopAndPsInfo
             ]
-
         lang = list(Target.definedFns.values())
-
         # # rosette synthesizer  + CVC verfication
         print("====== synthesis")
 
