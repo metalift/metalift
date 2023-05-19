@@ -50,3 +50,18 @@ int main_n(int argc, char** argv) {
   std::cout << "]" << std::endl;
   return 0;
 }
+
+#define LEN 10
+#define SLIDES (LEN - 1)
+
+int main_c(int argc, char** argv) {
+  int vec[LEN];
+  for (int i = 0; i < LEN; i++) {
+    vec[i] = i;
+  }
+
+  int convolved[SLIDES];
+  for (int i = 0; i < SLIDES; i++) {
+    convolved[i] = vec[i] + vec[i+1];
+  }
+}
