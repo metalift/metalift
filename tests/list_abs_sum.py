@@ -134,7 +134,7 @@ if __name__ == "__main__":
     basename = "list_abs_sum"
     filename = f"tests/{basename}.ll"
     loops_filename = f"tests/{basename}.loops"
-    fn_name = "forward_sum"
+    fn_name = "test"
     cvc_path = "cvc5"
 
     (vars, inv_and_ps, preds, vc, loop_and_ps_info) = analyze(filename, fn_name, loops_filename)
