@@ -59,8 +59,6 @@ def grammar(ci: CodeInfo):
             read_var
         )
         return Synth(name, Eq(modified_var, lst_sum), *ci.modifiedVars, *ci.readVars)
-        # return Synth(name, Eq(modified_var, Add(lst_sum, lst_sum)), *ci.modifiedVars, *ci.readVars)
-
 
 def target_lang():
     lst = Var("lst", ListT(Int()))
