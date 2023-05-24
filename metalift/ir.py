@@ -5,6 +5,7 @@ from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
 from typing import Any, Callable, Dict, TypeVar, Union, Optional
+from visitor import Visitor
 
 class PrintMode(Enum):
     SMT = 0
@@ -328,7 +329,7 @@ class Expr:
     def toSMT(self) -> str:
         raise NotImplementedError
     
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         raise NotImplementedError("not implemented")
 
     @staticmethod
@@ -535,7 +536,7 @@ class Var(Expr):
     def toSMT(self) -> str:
         return str(self.args[0])
     
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Var(self)
 
 
@@ -550,7 +551,7 @@ class NonTerm(Var):
         Var.__init__(self, name, t)
         self.isStart = isStart
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_NonTerm(self)
 
 class Lit(Expr):
@@ -574,7 +575,7 @@ class Lit(Expr):
         else:
             return str(self.args[0])
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Lit(self)
 
 
@@ -590,7 +591,7 @@ class Object(Expr):
     def toSMT(self) -> str:
         raise Exception("NYI")
     
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Object(self)
 
 
@@ -627,7 +628,7 @@ class Add(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
     
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Add(self)
 
 
@@ -652,7 +653,7 @@ class Sub(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Sub(self)
 
 class Mul(Expr):
@@ -676,7 +677,7 @@ class Mul(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Mul(self)
 
 
@@ -706,7 +707,7 @@ class Eq(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Eq(self)
 
 
@@ -734,7 +735,7 @@ class Lt(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Lt(self)
 
 class Le(Expr):
@@ -761,7 +762,7 @@ class Le(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Le(self)
 
 class Gt(Expr):
@@ -788,7 +789,7 @@ class Gt(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Gt(self)
 
 class Ge(Expr):
@@ -815,7 +816,7 @@ class Ge(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Ge(self)
 
 class And(Expr):
@@ -837,7 +838,7 @@ class And(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_And(self)
 
 class Or(Expr):
@@ -861,7 +862,7 @@ class Or(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Or(self)
 
 class Not(Expr):
@@ -881,7 +882,7 @@ class Not(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Not(self)
 
 class Implies(Expr):
@@ -902,7 +903,7 @@ class Implies(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Implies(self)
 
 class Ite(Expr):
@@ -937,7 +938,7 @@ class Ite(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Ite(self)
 
 class Let(Expr):
@@ -973,7 +974,7 @@ class Let(Expr):
             self.args[2].toSMT(),
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Let(self)
 
 
@@ -1103,7 +1104,7 @@ class Call(Expr):
 
         return retT
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Call(self)
 
 class CallValue(Expr):
@@ -1220,7 +1221,7 @@ class CallValue(Expr):
 
         return retT
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_CallValue(self)
 
 class Assert(Expr):
@@ -1240,7 +1241,7 @@ class Assert(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Assert(self)
 
 class Constraint(Expr):
@@ -1260,7 +1261,7 @@ class Constraint(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Constraint(self)
 
 ## tuple functions
@@ -1284,7 +1285,7 @@ class Tuple(Expr):
         )
         return "(tuple%d %s)" % (len(self.args), args)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Tuple(self)
 
 class TupleGet(Expr):
@@ -1310,7 +1311,7 @@ class TupleGet(Expr):
             self.args[0].toSMT(),
         )  # args[1] must be an int literal
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_TupleGet(self)
 
 class Axiom(Expr):
@@ -1332,7 +1333,7 @@ class Axiom(Expr):
         vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Axiom(self)
 
 # the body of a synth-fun
@@ -1445,7 +1446,7 @@ class Synth(Expr):
             body,
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Synth(self)
 
 class Choose(Expr):
@@ -1492,7 +1493,7 @@ class Choose(Expr):
     def chooseArbitrarily(self) -> "Expr":
         return self.args[0]  # type: ignore
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Choose(self)
 
 class FnDeclRecursive(Expr):
@@ -1567,7 +1568,7 @@ class FnDeclRecursive(Expr):
                 self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_FnDeclRecursive(self)
 
 
@@ -1597,7 +1598,7 @@ class FnDefine(Expr):
             parseTypeRef(self.type),
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_FnDefine(self)
 
 
@@ -1632,7 +1633,7 @@ class Lambda(Expr):
         # TODO(shadaj): extract during filtering assuming no captures
         raise Exception("Lambda not supported")
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Lambda(self)
 
 
@@ -1708,7 +1709,7 @@ class FnDecl(Expr):
                 self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_FnDecl(self)
 
 
@@ -1728,7 +1729,7 @@ class TargetCall(Call):
     def codegen(self) -> str:
         return self._codegen(*self.args[1:])  # type: ignore
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_TargetCall(self)
 
 
@@ -1757,7 +1758,7 @@ class Target(FnDecl):
     def call(self, *args: Expr) -> Call:
         return TargetCall(self.name(), self.returnT(), self._codegen, *args)
 
-    def accept(self, v: "Visitor[T]") -> T:
+    def accept(self, v: Visitor[T]) -> T:
         return v.visit_Target(self)
 
 

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Generic, Set, TypeVar
+from typing import Any, Generic, Set, TypeVar
 
 from metalift.ir import Add, And, Assert, Axiom, Call, CallValue, Choose, Constraint, Eq, Expr, FnDecl, FnDeclRecursive, FnDefine, Ge, Gt, Implies, Ite, Lambda, Le, Let, Lit, Lt, Mul, NonTerm, Not, Object, Or, Sub, Synth, Target, TargetCall, Tuple, TupleGet, Var
 
@@ -156,7 +156,7 @@ class ExtendedVisitor(Visitor[None]):
   def visit_Object(self, o: Object) -> None:
     pass
 
-  def generic_visit(self, o: Expr, args=None) -> None:
+  def generic_visit(self, o: Expr, args: Any =None) -> None:
     args = args if args else o.args
     for arg in args:
       arg.accept(self)
@@ -260,3 +260,4 @@ class CountVarsVisitor(ExtendedVisitor):
 
     def visit_NonTerm(self, o: NonTerm) -> None:
         self.vars.add(o)
+        
