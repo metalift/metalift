@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
 from metalift.synthesize_rosette import synthesize as run_synthesis
 
@@ -33,25 +33,52 @@ from mypy.defaults import PYTHON3_VERSION
 from mypy.modulefinder import BuildSource
 from mypy.traverser import TraverserVisitor
 from mypy.nodes import (
+    AssertStmt,
     AssignmentStmt,
+    Block,
+    BreakStmt,
+    ClassDef,
     ComparisonExpr,
+    ContinueStmt,
+    Decorator,
+    DelStmt,
+    ExpressionStmt,
+    ForStmt,
     FuncDef,
+    GlobalDecl,
     IfStmt,
+    Import,
+    ImportAll,
+    ImportFrom,
     IntExpr,
+    MatchStmt,
     MypyFile,
     NameExpr,
-    Node as MypyNode,
+    Expression as MypyExpr,
+    NonlocalDecl,
     OpExpr,
+    OperatorAssignmentStmt,
+    OverloadedFuncDef,
+    PassStmt,
+    RaiseStmt,
     ReturnStmt,
+    Statement,
+    TryStmt,
     WhileStmt,
+    WithStmt,
 )
-from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
-from mypy.visitor import ExpressionVisitor
+from mypy.types import CallableType, Instance, ProperType, Type as MypyType, UnboundType
+from mypy.visitor import ExpressionVisitor, NodeVisitor, StatementVisitor
 
 import copy
 
+# Run the interpreted version of mypy instead of the compiled one to avoid
+# TypeError: interpreted classes cannot inherit from compiled traits
+# from https://github.com/python/mypy
+# python3 -m pip install --no-binary mypy -U mypy
 
-def parse(path: str, modulename: str) -> Optional[BuildResult]:
+
+def parse(path: str, modulename: str) -> BuildResult:
     options = Options()
     options.incremental = False  # turn off caching of previously typed results
     # options.export_types = True
@@ -67,20 +94,20 @@ MypyVar = Tuple[str, MypyType]
 
 class State:
     precond: List[Expr]
-    vars: Dict[str, Var]
-    asserts: List[Assert]
+    vars: Dict[str, Expr]
+    asserts: List[Expr]
     has_returned: bool
 
     def __init__(
         self,
-        precond: Optional[List[Expr]] = None,
-        vars: Optional[Dict[str, Var]] = None,
-        asserts: List[Assert] = None,
-        has_returned: bool = None,
+        precond: List[Expr] = list(),
+        vars: Dict[str, Expr] = dict(),
+        asserts: List[Expr] = list(),
+        has_returned: bool = False,
     ) -> None:
-        self.precond = list() if not precond else precond
-        self.vars = dict() if not vars else vars
-        self.asserts = list() if not asserts else asserts
+        self.precond = precond
+        self.vars = vars
+        self.asserts = asserts
         self.has_returned = has_returned if not has_returned else has_returned
 
     def read(self, var: str) -> Expr:
@@ -116,9 +143,9 @@ def to_mltype(t: MypyType) -> MLType:
 class RWVarsVisitor(TraverserVisitor):
     writes: Set[MypyVar]
     reads: Set[MypyVar]
-    types: Dict[MypyNode, MypyType]
+    types: Dict[MypyExpr, MypyType]
 
-    def __init__(self, types: Dict[MypyNode, MypyType]) -> None:
+    def __init__(self, types: Dict[MypyExpr, MypyType]) -> None:
         self.writes = set()
         self.reads = set()
         self.types = types
@@ -126,16 +153,20 @@ class RWVarsVisitor(TraverserVisitor):
     def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
         if len(o.lvalues) > 1:
             raise RuntimeError(f"multi assignments not supported: {o}")
-        lval = o.lvalues[
-            0
-        ]  # XXX lvalues is a list of Lvalue which can also be indexes or tuples
-        self.writes.add((lval.name, self.types.get(lval)))
+        lval = cast(
+            NameExpr, o.lvalues[0]
+        )  # XXX lvalues is a list of Lvalue which can also be indexes or tuples
+        t = self.types.get(lval)
+        assert t is not None
+        self.writes.add((lval.name, t))
 
         o.rvalue.accept(self)
 
     # getting here means we are visiting the RHS of an assignment or a general read only expr
     def visit_name_expr(self, o: NameExpr) -> None:
-        self.reads.add((o.name, self.types.get(o)))
+        t = self.types.get(o)
+        assert t is not None
+        self.reads.add((o.name, t))
 
 
 class Predicate:
@@ -144,22 +175,22 @@ class Predicate:
     reads: List[MypyVar]
     in_scope: List[MypyVar]
     name: str
-    grammar: Callable
-    ast: WhileStmt
-    synth: Synth
+    grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    ast: Union[WhileStmt, FuncDef]
+    synth: Optional[Synth]
 
     # argument ordering convention:
     # original arguments of the fn first in its original order, then vars that are in scope
     # and not one of the original arguments in sorted order
     def __init__(
         self,
-        ast: WhileStmt,
+        ast: Union[WhileStmt, FuncDef],
         args: List[MypyVar],
         writes: List[MypyVar],
         reads: List[MypyVar],
         in_scope: List[MypyVar],
         name: str,
-        grammar: Callable,
+        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -189,8 +220,8 @@ class Predicate:
 
 
 class PredicateTracker:
-    types: Dict[MypyNode, MypyType]
-    predicates: Dict[WhileStmt, Predicate]
+    types: Dict[MypyExpr, MypyType]
+    predicates: Dict[Union[WhileStmt, FuncDef], Predicate]
     num: int  #  current invariant number
 
     def __init__(self) -> None:
@@ -206,7 +237,7 @@ class PredicateTracker:
         writes: List[MypyVar],
         reads: List[MypyVar],
         in_scope: List[MypyVar],
-        grammar: Callable,
+        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -225,7 +256,11 @@ class PredicateTracker:
             return inv
 
     def postcondition(
-        self, o: FuncDef, outs: List[MypyVar], ins: List[MypyVar], grammar: Callable
+        self,
+        o: FuncDef,
+        outs: List[MypyVar],
+        ins: List[MypyVar],
+        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -238,52 +273,77 @@ class PredicateTracker:
         return self.predicates[o].call(s)
 
 
-class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
+class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     # class VCVisitor(ExtendedTraverserVisitor):
-    types: Dict[MypyNode, MypyType]
+    types: Dict[MypyExpr, MypyType]
     state: State
-    tracker: VariableTracker
+    var_tracker: VariableTracker
+    pred_tracker: PredicateTracker
     fn_name: str
     fn_type: CallableType
     args: List[Expr]
-    ret_val: Expr
+    ret_val: Optional[Expr]
     invariants: Dict[WhileStmt, Predicate]
     ast: FuncDef
 
     def __init__(
         self,
-        types: Dict[MypyNode, MypyType],
+        types: Dict[MypyExpr, MypyType],
         fn_name: str,
-        fn_type: CallableType = None,
-        state: State = None,
-        var_tracker: VariableTracker = None,
-        inv_tracker: PredicateTracker = None,
-        args: List[Expr] = None,
-        inv_grammar: Callable = None,
-        ps_grammar: Callable = None,
+        fn_type: CallableType,
+        state: State = State(),
+        var_tracker: VariableTracker = VariableTracker(),
+        pred_tracker: PredicateTracker = PredicateTracker(),
+        args: List[Expr] = list(),
+        inv_grammar: Optional[
+            Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+        ] = None,
+        ps_grammar: Optional[
+            Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+        ] = None,
     ) -> None:
         self.types = types
         self.fn_name = fn_name
         self.fn_type = fn_type
-        self.state = State() if not state else state
-        self.var_tracker = VariableTracker() if not var_tracker else var_tracker
-        self.pred_tracker = PredicateTracker() if not inv_tracker else inv_tracker
-        self.args = list() if not args else args
+        self.state = state
+        self.var_tracker = var_tracker
+        self.pred_tracker = pred_tracker
+        self.args = args
         self.ret_val = None
         self.invariants = dict()
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
 
+    # Definitions
+
+    def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
+        if len(o.lvalues) > 1:
+            raise RuntimeError(f"multi assignments not supported: {o}")
+        target = cast(NameExpr, o.lvalues[0]).name
+        self.state.write(target, o.rvalue.accept(self))
+
+    def visit_for_stmt(self, o: ForStmt) -> None:
+        raise NotImplementedError()
+
+    def visit_with_stmt(self, o: WithStmt) -> None:
+        raise NotImplementedError()
+
+    def visit_del_stmt(self, o: DelStmt) -> None:
+        raise NotImplementedError()
+
     def visit_func_def(self, o: FuncDef) -> None:
         if o.name == self.fn_name:
+            fn_type = cast(CallableType, o.type)
             # print(f"analyze fn {o.name} type: {o.type}")
-            self.fn_type = o.type
+            self.fn_type = fn_type
             self.ret_val = self.var_tracker.variable(
-                self.fn_name, to_mltype(o.type.ret_type)
+                self.fn_name, to_mltype(fn_type.ret_type)
             )
             self.ast = o
 
-            formals = list(zip(o.type.arg_names, o.type.arg_types))
+            arg_names = cast(List[str], fn_type.arg_names)
+            formals = list(zip(arg_names, fn_type.arg_types))
+            assert self.ps_grammar is not None
             self.pred_tracker.postcondition(
                 o,
                 [(f"{self.fn_name}_rv", self.fn_type.ret_type)],
@@ -291,9 +351,9 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
                 self.ps_grammar,
             )
 
-            if len(o.type.arg_names) != len(self.args):
+            if len(fn_type.arg_names) != len(self.args):
                 raise RuntimeError(
-                    f"expect {len(o.type.arg_names)} args passed to {self.fn_name} got {len(self.args)} instead"
+                    f"expect {len(fn_type.arg_names)} args passed to {self.fn_name} got {len(self.args)} instead"
                 )
 
             for actual, formal in zip(self.args, formals):
@@ -303,25 +363,151 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
                     )
                 self.state.write(formal[0], actual)
 
-            if o.type.ret_type is None:
-                raise RuntimeError(f"fn must return a value: {o.type}")
+            if fn_type.ret_type is None:
+                raise RuntimeError(f"fn must return a value: {fn_type}")
 
             self.pred_tracker.postcondition(
-                o, [(self.fn_name, o.type.ret_type)], formals, self.ps_grammar
+                o, [(self.fn_name, fn_type.ret_type)], formals, self.ps_grammar
             )
 
             o.body.accept(self)
 
-        ##
-        ## Statements
-        ##
+    def visit_overloaded_func_def(self, o: OverloadedFuncDef) -> None:
+        raise NotImplementedError()
 
-    def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
-        if len(o.lvalues) > 1:
-            raise RuntimeError(f"multi assignments not supported: {o}")
-        target = o.lvalues[0].name
-        val = o.rvalue.accept(self)
-        self.state.write(target, val)
+    def visit_class_def(self, o: ClassDef) -> None:
+        raise NotImplementedError()
+
+    def visit_global_decl(self, o: GlobalDecl) -> None:
+        raise NotImplementedError()
+
+    def visit_nonlocal_decl(self, o: NonlocalDecl) -> None:
+        raise NotImplementedError()
+
+    def visit_decorator(self, o: Decorator) -> None:
+        raise NotImplementedError()
+
+    # Module structure
+
+    def visit_import(self, o: Import) -> None:
+        raise NotImplementedError()
+
+    def visit_import_from(self, o: ImportFrom) -> None:
+        raise NotImplementedError()
+
+    def visit_import_all(self, o: ImportAll) -> None:
+        raise NotImplementedError()
+
+    # Statements
+
+    def visit_block(self, o: Block) -> None:
+        for s in o.body:
+            s.accept(self)
+
+    def visit_expression_stmt(self, o: ExpressionStmt) -> None:
+        raise NotImplementedError()
+
+    def visit_operator_assignment_stmt(self, o: OperatorAssignmentStmt) -> None:
+        raise NotImplementedError()
+
+    def in_scope_vars(
+        self, vars: Dict[str, Expr], types: Dict[MypyExpr, MypyType]
+    ) -> Set[MypyVar]:
+        r = set()
+        for v in vars:
+            for k, t in types.items():
+                if isinstance(k, NameExpr) and k.name == v:
+                    r.add((v, t))
+        return r
+
+    def visit_while_stmt(self, o: WhileStmt) -> None:
+        v = RWVarsVisitor(self.types)
+        o.accept(v)
+
+        writes = list(v.writes)
+        writes.sort()
+
+        reads = list(v.reads)
+        reads.sort()
+
+        in_scope = list(self.in_scope_vars(self.state.vars, self.types))
+        in_scope.sort()
+
+        print(f"loop writes: {writes}, reads: {reads}, scope: {in_scope}")
+
+        assert None not in self.fn_type.arg_names
+        formals = list(
+            zip(cast(List[str], self.fn_type.arg_names), self.fn_type.arg_types)
+        )
+
+        assert self.inv_grammar is not None
+        inv = self.pred_tracker.invariant(
+            self.fn_name, o, formals, writes, reads, in_scope, self.inv_grammar
+        )
+        self.invariants[o] = inv
+
+        # inv is true on loop entry
+        self.state.asserts.append(
+            Implies(And(*self.state.precond), inv.call(self.state))
+            if self.state.precond
+            else inv.call(self.state)
+        )
+        print(f"inv is init true: {self.state.asserts[-1]}")
+
+        # havoc the modified vars
+        for var in v.writes:
+            new_value = self.var_tracker.variable(var[0], to_mltype(var[1]))
+            self.state.write(var[0], new_value)
+            # print(f"havoc: {var[0]} -> {new_value}")
+
+        body_visitor = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            self.types,
+            self.fn_name,
+            self.fn_type,
+            copy.deepcopy(self.state),
+            self.var_tracker,
+            self.pred_tracker,
+            self.args,
+        )
+        o.body.accept(body_visitor)
+
+        # inv is preserved
+        cond = o.expr.accept(self)
+        c = (
+            And(*self.state.precond, cond, inv.call(self.state))
+            if self.state.precond
+            else And(cond, inv.call(self.state))
+        )
+        self.state.asserts.append(Implies(c, inv.call(body_visitor.state)))
+        print(f"inv is preserved: {self.state.asserts[-1]}")
+
+        # the invariant is true from this point on
+        self.state.precond.append(And(Not(cond), inv.call(self.state)))
+
+    def visit_return_stmt(self, o: ReturnStmt) -> None:
+        assert o.expr is not None
+        # precond -> ps(...)
+        ps = Call(
+            self.pred_tracker.predicates[self.ast].name,
+            Bool(),
+            *self.args,
+            o.expr.accept(self),
+        )
+        if self.state.precond:
+            cond = (
+                And(*self.state.precond)
+                if len(self.state.precond) > 1
+                else self.state.precond[0]
+            )
+            self.state.asserts.append(Implies(cond, ps))
+        else:
+            self.state.asserts.append(ps)
+
+        print(f"ps: {self.state.asserts[-1]}")
+        self.state.has_returned = True
+
+    def visit_assert_stmt(self, o: AssertStmt) -> None:
+        raise NotImplementedError()
 
     def visit_if_stmt(self, o: IfStmt) -> None:
         assert len(o.expr) == 1  # not sure why it is a list
@@ -331,7 +517,7 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
         # clone the current state
         c_state = copy.deepcopy(self.state)
         c_state.precond.append(cond)
-        consequent = VCVisitor(
+        consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.types,
             self.fn_name,
             self.fn_type,
@@ -341,7 +527,7 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
         )
         a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
-        alternate = VCVisitor(
+        alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.types,
             self.fn_name,
             self.fn_type,
@@ -387,98 +573,23 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
 
             print(f"merged state: {self.state.vars}")
 
-    def visit_return_stmt(self, o: ReturnStmt) -> None:
-        # precond -> ps(...)
-        ps = Call(
-            self.pred_tracker.predicates[self.ast].name,
-            Bool(),
-            *self.args,
-            o.expr.accept(self),
-        )
-        if self.state.precond:
-            cond = (
-                And(*self.state.precond)
-                if len(self.state.precond) > 1
-                else self.state.precond[0]
-            )
-            self.state.asserts.append(Implies(cond, ps))
-        else:
-            self.state.asserts.append(ps)
+    def visit_break_stmt(self, o: BreakStmt) -> None:
+        raise NotImplementedError()
 
-        print(f"ps: {self.state.asserts[-1]}")
-        self.state.has_returned = True
+    def visit_continue_stmt(self, o: ContinueStmt) -> None:
+        raise NotImplementedError()
 
-    def in_scope_vars(
-        self, vars: Dict[str, Var], types: Dict[MypyNode, MypyType]
-    ) -> Set[MypyVar]:
-        r = set()
-        for v in vars:
-            for k, t in types.items():
-                if isinstance(k, NameExpr) and k.name == v:
-                    r.add((v, t))
-        return r
+    def visit_pass_stmt(self, o: PassStmt) -> None:
+        raise NotImplementedError()
 
-    def visit_while_stmt(self, o: WhileStmt) -> None:
-        v = RWVarsVisitor(self.types)
-        o.accept(v)
+    def visit_raise_stmt(self, o: RaiseStmt) -> None:
+        raise NotImplementedError()
 
-        in_scope = self.in_scope_vars(self.state.vars, self.types)
+    def visit_try_stmt(self, o: TryStmt) -> None:
+        raise NotImplementedError()
 
-        writes = list(v.writes)
-        writes.sort()
-
-        reads = v.reads
-        reads = list(reads)
-        reads.sort()
-
-        in_scope = list(in_scope)
-        in_scope.sort()
-
-        print(f"loop writes: {writes}, reads: {reads}, scope: {in_scope}")
-
-        formals = list(zip(self.fn_type.arg_names, self.fn_type.arg_types))
-        inv = self.pred_tracker.invariant(
-            self.fn_name, o, formals, writes, reads, in_scope, self.inv_grammar
-        )
-        self.invariants[o] = inv
-
-        # inv is true on loop entry
-        self.state.asserts.append(
-            Implies(And(*self.state.precond), inv.call(self.state))
-            if self.state.precond
-            else inv.call(self.state)
-        )
-        print(f"inv is init true: {self.state.asserts[-1]}")
-
-        # havoc the modified vars
-        for var in v.writes:
-            new_value = self.var_tracker.variable(var[0], to_mltype(var[1]))
-            self.state.write(var[0], new_value)
-            # print(f"havoc: {var[0]} -> {new_value}")
-
-        body_visitor = VCVisitor(
-            self.types,
-            self.fn_name,
-            self.fn_type,
-            copy.deepcopy(self.state),
-            self.var_tracker,
-            self.pred_tracker,
-            self.args,
-        )
-        o.body.accept(body_visitor)
-
-        # inv is preserved
-        cond = o.expr.accept(self)
-        c = (
-            And(*self.state.precond, cond, inv.call(self.state))
-            if self.state.precond
-            else And(cond, inv.call(self.state))
-        )
-        self.state.asserts.append(Implies(c, inv.call(body_visitor.state)))
-        print(f"inv is preserved: {self.state.asserts[-1]}")
-
-        # the invariant is true from this point on
-        self.state.precond.append(And(Not(cond), inv.call(self.state)))
+    def visit_match_stmt(self, o: MatchStmt) -> None:
+        raise NotImplementedError()
 
     ##
     ## Expressions
@@ -527,9 +638,9 @@ class VCVisitor(TraverserVisitor, ExpressionVisitor[Expr]):
         elif op == "*":
             return l * r
         elif op == "/":
-            return l / r
+            raise NotImplementedError(f"Division not supported in {o}")
         elif op == "%":
-            return l % r
+            raise NotImplementedError(f"Modulo not supported in {o}")
         elif op == "and":
             return And(l, r)
         elif op == "or":
@@ -558,16 +669,16 @@ class Driver:
         self.postconditions = []
         self.fns = dict()
 
-    def variable(self, name: str, type: MLType):
+    def variable(self, name: str, type: MLType) -> Var:
         return self.var_tracker.variable(name, type)
 
     def analyze(
         self,
         filepath: str,
         fn_name: str,
-        target_lang_fn: Callable,
-        inv_grammar: Callable,
-        ps_grammar: Callable,
+        target_lang_fn: Callable[[], List[FnDecl]],
+        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             self, filepath, fn_name, target_lang_fn, inv_grammar, ps_grammar
@@ -588,6 +699,7 @@ class Driver:
     def synthesize(self) -> None:
         synths = [i.gen_Synth() for i in self.inv_tracker.predicates.values()]
 
+        print("asserts: %s" % self.asserts)
         vc = And(*self.asserts)
 
         target = []
@@ -595,22 +707,22 @@ class Driver:
             target += fn.target_lang_fn()
 
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            "test", target, self.var_tracker.all(), synths, [], vc, synths, "cvc5"
+            "test", target, set(self.var_tracker.all()), synths, [], vc, synths, "cvc5"
         )
 
-        for fn in synthesized:
-            m = re.match("(\w+)_ps", fn.name())  # ignore the invariants
+        for f in synthesized:
+            m = re.match("(\w+)_ps", f.name())  # ignore the invariants
             if m:
                 name = m.groups()[0]
-                if isinstance(fn.body(), Eq):
-                    self.fns[name].synthesized = fn.body().e2()
+                if isinstance(f.body(), Eq):
+                    self.fns[name].synthesized = cast(Eq, f.body()).e2()
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 else:
                     raise Exception(
-                        f"synthesized fn body doesn't have form val = ...: {fn.body()}"
+                        f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )
 
-    def add_precondition(self, e: Expr):
+    def add_precondition(self, e: Expr) -> None:
         # this gets propagated to the State when it is created
         self.postconditions.append(e)
 
@@ -618,12 +730,12 @@ class Driver:
 class MetaliftFunc:
     driver: Driver
     ast: FuncDef
-    types: Dict[MypyNode, MypyType]
+    types: Dict[MypyExpr, MypyType]
     name: str
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammar: Callable
-    ps_grammar: Callable
-    synthesized: Expr
+    inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    synthesized: Optional[Expr]
 
     def __init__(
         self,
@@ -631,8 +743,8 @@ class MetaliftFunc:
         filepath: str,
         name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable,
-        ps_grammar: Callable,
+        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.driver = driver
 
@@ -640,7 +752,9 @@ class MetaliftFunc:
         r = parse(filepath, modulename)  # modulename doesn't really matter?
         # print("r: %s" % r.graph[modulename].tree)
 
-        tree: MypyFile = r.graph[modulename].tree  # tree of the entire module / file
+        tree: MypyFile = cast(
+            MypyFile, r.graph[modulename].tree
+        )  # tree of the entire module / file
         assert tree is not None
 
         for o in tree.defs:
@@ -661,10 +775,10 @@ class MetaliftFunc:
         # from previous invocations
         state = State()
         state.precond += self.driver.postconditions
-        v = VCVisitor(
+        v = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.types,
             self.name,
-            self.ast.type,
+            cast(CallableType, self.ast.type),
             state,
             self.driver.var_tracker,
             self.driver.inv_tracker,
@@ -677,7 +791,7 @@ class MetaliftFunc:
         self.driver.asserts += v.state.asserts
 
         ret_val = self.driver.var_tracker.variable(
-            f"{self.name}_rv", to_mltype(self.ast.type.ret_type)
+            f"{self.name}_rv", to_mltype(cast(CallableType, self.ast.type).ret_type)
         )
 
         ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
