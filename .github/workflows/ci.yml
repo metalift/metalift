@@ -79,6 +79,12 @@ jobs:
         nix-store --import < ~/nix-cache/cache.nar
         rm -rf ~/nix-cache
 
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.3.0
+        installer-no-binary: "[mypy]"
+
     # https://github.com/Bogdanp/setup-racket-cache-example
     - name: Cache Racket dependencies
       id: cache-racket
