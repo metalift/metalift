@@ -511,6 +511,8 @@ def analyze(
     with open(filename, mode="r") as file:
         ref = llvm.parse_assembly(file.read())
 
+    for f in ref.functions:
+        raise Exception("name: %s" % f.name)
     fn = ref.get_function(fnName)
     blocks = {
         block.name: RawBlock(block.name, list(block.instructions))
