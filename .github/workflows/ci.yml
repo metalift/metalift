@@ -135,7 +135,7 @@ jobs:
     - name: Test Core Examples
       shell: nix develop --command bash -e {0}
       run: |
-        poetry cache clear mypy --all
+        poetry remove mypy
         poetry install
         mypy --version
         python -m tests.llvm.fma_dsl
