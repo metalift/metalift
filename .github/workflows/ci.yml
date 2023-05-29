@@ -135,8 +135,6 @@ jobs:
     - name: Test Core Examples
       shell: nix develop --command bash -e {0}
       run: |
-        pip uninstall mypy
-        pip install --no-binary mypy 
         mypy --version
         python -m tests.llvm.fma_dsl
         python -m tests.llvm.ite1
