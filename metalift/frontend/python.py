@@ -275,7 +275,7 @@ class PredicateTracker:
 
 class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     # class VCVisitor(ExtendedTraverserVisitor):
-    
+
     fn_name: str
     fn_type: CallableType
     ast: FuncDef
@@ -287,12 +287,11 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
-        
+
     inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
-        
+
     types: Dict[MypyExpr, MypyType]
-    
 
     def __init__(
         self,
@@ -306,10 +305,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],        
+        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         types: Dict[MypyExpr, MypyType],
     ) -> None:
-        
         self.fn_name = fn_name
         self.fn_type = fn_type
         self.ast = ast
@@ -320,7 +318,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         self.invariants = invariants
         self.var_tracker = var_tracker
         self.pred_tracker = pred_tracker
-        
+
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
         self.types = types
@@ -353,7 +351,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.ast = o
 
             arg_names = cast(List[str], fn_type.arg_names)
-            formals = list(zip(arg_names, fn_type.arg_types))            
+            formals = list(zip(arg_names, fn_type.arg_types))
             self.pred_tracker.postcondition(
                 o,
                 [(f"{self.fn_name}_rv", self.fn_type.ret_type)],
@@ -469,19 +467,19 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.state.write(var[0], new_value)
             # print(f"havoc: {var[0]} -> {new_value}")
 
-        body_visitor = VCVisitor( # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
-            self.fn_name, 
-            self.fn_type, 
-            self.ast, 
-            self.args, 
+        body_visitor = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            self.fn_name,
+            self.fn_type,
+            self.ast,
+            self.args,
             self.ret_val,
             copy.deepcopy(self.state),
-            self.invariants,           
+            self.invariants,
             self.var_tracker,
             self.pred_tracker,
             self.inv_grammar,
             self.ps_grammar,
-            self.types           
+            self.types,
         )
         o.body.accept(body_visitor)
 
@@ -500,7 +498,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def visit_return_stmt(self, o: ReturnStmt) -> None:
         assert o.expr is not None
-        # precond -> ps(...)      
+        # precond -> ps(...)
         ps = Call(
             self.pred_tracker.predicates[self.ast].name,
             Bool(),
@@ -530,8 +528,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         # clone the current state
         c_state = copy.deepcopy(self.state)
-        c_state.precond.append(cond)        
-        consequent = VCVisitor( # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+        c_state.precond.append(cond)
+        consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.fn_name,
             self.fn_type,
             self.ast,
@@ -543,11 +541,11 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.pred_tracker,
             self.inv_grammar,
             self.ps_grammar,
-            self.types,            
+            self.types,
         )
         a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
-        alternate = VCVisitor( # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+        alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.fn_name,
             self.fn_type,
             self.ast,
@@ -559,7 +557,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.pred_tracker,
             self.inv_grammar,
             self.ps_grammar,
-            self.types,            
+            self.types,
         )
 
         for s in o.body:
@@ -802,7 +800,7 @@ class MetaliftFunc:
         state = State()
         state.precond += self.driver.postconditions
 
-        v = VCVisitor( # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+        v = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.name,
             cast(CallableType, self.ast.type),
             self.ast,
@@ -811,7 +809,7 @@ class MetaliftFunc:
             state,
             dict(),
             self.driver.var_tracker,
-            self.driver.inv_tracker,            
+            self.driver.inv_tracker,
             self.inv_grammar,
             self.ps_grammar,
             self.types,
