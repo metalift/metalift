@@ -136,6 +136,8 @@ jobs:
       shell: nix develop --command bash -e {0}
       run: |
         poetry config --list
+        poetry cache clear mypy
+        poetry install
         python -m tests.llvm.fma_dsl
         python -m tests.llvm.ite1
         python -m tests.llvm.ite3
