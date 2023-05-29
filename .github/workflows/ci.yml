@@ -136,7 +136,7 @@ jobs:
       shell: nix develop --command bash -e {0}
       run: |
         pip uninstall mypy
-        poetry install
+        python3 -m pip install --no-binary mypy -U mypy
         mypy --version
         python -m tests.llvm.fma_dsl
         python -m tests.llvm.ite1
