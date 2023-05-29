@@ -83,7 +83,8 @@ jobs:
       uses: snok/install-poetry@v1
       with:
         version: 1.3.0
-      run: poetry config installer.no-binary mypy
+      run: |
+        poetry config installer.no-binary mypy
 
     # https://github.com/Bogdanp/setup-racket-cache-example
     - name: Cache Racket dependencies
