@@ -13,11 +13,11 @@ int fma(int x, int y, int z) {
 }
 ```
 
-The full transpiler from this tutorial can be found [in our repository](https://github.com/metalift/metalift/blob/main/tests/fma_dsl.py).
+The full transpiler from this tutorial can be found [in our repository](https://github.com/metalift/metalift/blob/main/tests/llvm/fma_dsl.py).
 
 ## Define the Target Language
 
-Our first step is to define the semantics of the target language. Using Metalift, we define each construct in the target language as a _semantic function_. Such functions are just normal Python functions, except that its body is defined using the Metalift IR. For FMA [this looks like](https://github.com/metalift/metalift/blob/main/tests/fma_dsl.py#L47):
+Our first step is to define the semantics of the target language. Using Metalift, we define each construct in the target language as a _semantic function_. Such functions are just normal Python functions, except that its body is defined using the Metalift IR. For FMA [this looks like](https://github.com/metalift/metalift/blob/main/tests/llvm/fma_dsl.py#L47):
 
 <!--phmdoctest-share-names-->
 ```python
@@ -45,7 +45,7 @@ If our target language has more constructs, we would define more semantic functi
 
 After we have defined the target language, we next describe the space of programs our synthesizer should consider during transpilation. We do so by specifying a _grammar_, much like a programming language, except that we are restricted to using the semantic functions we have defined, along with any of the constructs from the Metalift base IR.
 
-For our example, we want the synthesizer to consider transpiling the input code to programs that are either just an addition of the input variables, or the result of calling our `fma` instruction. We do it [as follows](https://github.com/metalift/metalift/blob/main/tests/fma_dsl.py#L37):
+For our example, we want the synthesizer to consider transpiling the input code to programs that are either just an addition of the input variables, or the result of calling our `fma` instruction. We do it [as follows](https://github.com/metalift/metalift/blob/main/tests/llvm/fma_dsl.py#L37):
 
 <!--phmdoctest-mark.skip-->
 ```python
@@ -90,7 +90,7 @@ Where do the read and written variables come from? They are provided by Metalift
 
 We can now finally put our transpiler together. First, we compile the input code to be transpiled into LLVM bitcode.
 
-```cpp title="tests/fma_dsl.c"
+```cpp title="tests/llvm/fma_dsl.c"
 int test(int base, int arg1, int base2, int arg2) {
   int a = 0;
 
@@ -110,11 +110,11 @@ We pass these file names to Metalift's `analyze` function, which returns a numbe
 ```python
 from metalift.analysis_new import VariableTracker, analyze
 
-filename = "tests/fma_dsl.ll"
+filename = "tests/llvm/fma_dsl.ll"
 basename = "fma_dsl"
 
 fnName = "test"
-loopsFile = "tests/fma_dsl.loops"
+loopsFile = "tests/llvm/fma_dsl.loops"
 cvcPath = "cvc5"
 
 test_analysis = analyze(filename, fnName, loopsFile)
