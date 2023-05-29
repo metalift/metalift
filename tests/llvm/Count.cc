@@ -1,4 +1,4 @@
-#include "headers/list.h"
+#include "list.h"
 #include <iostream>
 
 	
