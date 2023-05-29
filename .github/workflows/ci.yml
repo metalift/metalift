@@ -117,9 +117,9 @@ jobs:
     - name: Build Test Inputs
       shell: nix develop --command bash -e {0}
       run: |
-        cd tests
+        cd tests/llvm
         ./compile-all
-        cd ..
+        cd ../..
 
     - name: Test Core Examples
       shell: nix develop --command bash -e {0}
