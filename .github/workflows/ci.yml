@@ -88,6 +88,7 @@ jobs:
       run: |
         poetry config installer.no-binary mypy
         poetry install
+        poetry config --list
 
     # https://github.com/Bogdanp/setup-racket-cache-example
     - name: Cache Racket dependencies
