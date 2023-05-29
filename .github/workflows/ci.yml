@@ -85,7 +85,9 @@ jobs:
         version: 1.5.0
 
     - name: Configure Poetry
-      run: poetry config installer.no-binary mypy
+      run: |
+        poetry config installer.no-binary mypy
+        poetry install
 
     # https://github.com/Bogdanp/setup-racket-cache-example
     - name: Cache Racket dependencies
