@@ -1,3 +1,9 @@
+[virtualenvs]
+in-project = true
+
+[installer]
+no-binary = ["mypy"]
+
 [tool.poetry]
 name = "metalift"
 version = "0.1.0"

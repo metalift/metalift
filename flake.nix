@@ -23,6 +23,13 @@
             preferWheels = true;
 
             overrides = [ (_: poetrySuper: {
+              mypy = (poetrySuper.mypy.override {
+                preferWheel = false;
+              }).overrideAttrs(_: super: {
+                nativeBuildInputs = super.nativeBuildInputs ++ [ poetrySuper.setuptools ];
+                MYPY_USE_MYPYC = "0";
+              });
+
               monotable = poetrySuper.monotable.overrideAttrs(_: super: {
                 nativeBuildInputs = super.nativeBuildInputs ++ [ poetrySuper.setuptools ];
               });

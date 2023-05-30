@@ -1,7 +1,7 @@
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
-from metalift.synthesize_rosette import synthesize as run_synthesis
+from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
     And,
