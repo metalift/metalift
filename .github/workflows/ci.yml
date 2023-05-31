@@ -124,7 +124,6 @@ jobs:
     - name: Test Core Examples
       shell: nix develop --command bash -e {0}
       run: |
-        mypy --version
         python -m tests.llvm.fma_dsl
         python -m tests.llvm.ite1
         python -m tests.llvm.ite3
