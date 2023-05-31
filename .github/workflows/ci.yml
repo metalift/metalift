@@ -124,22 +124,7 @@ jobs:
     - name: Test Core Examples
       shell: nix develop --command bash -e {0}
       run: |
-        python -m tests.llvm.fma_dsl
-        python -m tests.llvm.ite1
-        python -m tests.llvm.ite3
-        python -m tests.llvm.set1
-        python -m tests.llvm.tuples1
-        python -m tests.llvm.tuples2
-        python -m tests.llvm.tuples3
-        python -m tests.llvm.while3
-        python -m tests.llvm.while4
-        python -m tests.llvm.no_loop_matmul
-        python -m tests.python.fma1-driver
-        python -m tests.python.fma2-driver
-        python -m tests.python.ite1-driver
-        python -m tests.python.ite2-driver
-        python -m tests.python.ite3-driver
-        python -m tests.python.while1-driver
+        ./run-core-tests.sh
       env:
         SYNTH_CVC5: ${{ matrix.synth_cvc5 }}
 
@@ -147,11 +132,7 @@ jobs:
       if: matrix.synth_cvc5 == '0'
       shell: nix develop --command bash -e {0}
       run: |
-        python -m tests.llvm.count
-        python -m tests.llvm.list1
-        python -m tests.llvm.list1_fns
-        python -m tests.llvm.uninterp
-        python -m tests.llvm.struct1
+        ./run-rosette-tests.sh
 
     - name: Test Docs
       shell: nix develop --command bash -e {0}
