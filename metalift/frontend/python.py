@@ -1,6 +1,7 @@
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
+from metalift.objects import Int
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
@@ -15,7 +16,7 @@ from metalift.ir import (
     Ge,
     Gt,
     Implies,
-    Int,
+    Int as IntT,
     IntLit,
     Ite,
     Le,
@@ -130,11 +131,11 @@ class State:
 def to_mltype(t: MypyType) -> MLType:
     # user annotated types
     if isinstance(t, UnboundType) and t.name == "int":
-        return Int()
+        return IntT()
 
     # inferred types
     elif isinstance(t, Instance) and t.type.fullname == "builtins.int":
-        return Int()
+        return IntT()
 
     else:
         raise RuntimeError(f"unknown Mypy type: {t}")
@@ -694,7 +695,10 @@ class Driver:
         self.fns = dict()
 
     def variable(self, name: str, type: MLType) -> Var:
-        return self.var_tracker.variable(name, type)
+        if type == IntT():
+            return Int(self.var_tracker.variable(name, type))
+        else:
+            return self.var_tracker.variable(name, type)
 
     def analyze(
         self,
