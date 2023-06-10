@@ -684,18 +684,14 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         return MLTuple(*[expr.accept(self) for expr in o.items])            
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
-        # Currently only supports integer indices
-        if not isinstance(o.index, IntExpr):
+        # Currently only supports indexing into tuples using integers
+        index = o.index.accept(self)
+        base = o.base.accept(self)
+        if index.type != Int():
             raise Exception("Index must be int!")
-        if isinstance(o.base, NameExpr):
-            base_type = self.types.get(o.base)
-            if not isinstance(base_type, TupleType):
-                raise Exception("Expression must be tuple!")
-            # TODO: do we need accept here
-            return TupleGet(o.base.accept(self), o.index.accept(self))
-        else:
-            # TODO
-            raise Exception("Expression must be nameexpr")
+        if not isinstance(base, MLTuple):
+            raise Exception("Can only index into tuples!")
+        return TupleGet(o.base.accept(self), o.index.accept(self))
 
 class Driver:
     var_tracker: VariableTracker
