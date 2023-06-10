@@ -1,7 +1,7 @@
 ; ModuleID = 'tuples2.ll'
 source_filename = "tuples2.cc"
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx11.0.0"
+target triple = "x86_64-apple-macosx12.0.0"
 
 %struct.tup = type { %"class.std::__1::tuple" }
 %"class.std::__1::tuple" = type { %"struct.std::__1::__tuple_impl" }
@@ -468,10 +468,9 @@ attributes #3 = { argmemonly nounwind willreturn writeonly }
 attributes #4 = { nounwind }
 attributes #5 = { builtin allocsize(0) }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0, !1}
+!llvm.ident = !{!2}
 
-!0 = !{i32 2, !"SDK Version", [2 x i32] [i32 11, i32 3]}
-!1 = !{i32 1, !"wchar_size", i32 4}
-!2 = !{i32 7, !"PIC Level", i32 2}
-!3 = !{!"Homebrew clang version 11.1.0"}
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{i32 7, !"PIC Level", i32 2}
+!2 = !{!"Homebrew clang version 11.1.0"}

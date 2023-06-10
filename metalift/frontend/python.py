@@ -5,7 +5,6 @@ from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
     And,
-    Assert,
     Bool,
     Call,
     Eq,
@@ -20,9 +19,11 @@ from metalift.ir import (
     Ite,
     Le,
     Lt,
-    Or,
     Not,
+    Or,
     Synth,
+    Tuple as MLTuple,
+    TupleGet,
     Type as MLType,
     Var,
 )
@@ -42,6 +43,7 @@ from mypy.nodes import (
     ContinueStmt,
     Decorator,
     DelStmt,
+    Expression as MypyExpr,
     ExpressionStmt,
     ForStmt,
     FuncDef,
@@ -51,23 +53,24 @@ from mypy.nodes import (
     ImportAll,
     ImportFrom,
     IntExpr,
+    IndexExpr,
     MatchStmt,
     MypyFile,
     NameExpr,
-    Expression as MypyExpr,
     NonlocalDecl,
-    OpExpr,
     OperatorAssignmentStmt,
+    OpExpr,
     OverloadedFuncDef,
     PassStmt,
     RaiseStmt,
     ReturnStmt,
     Statement,
     TryStmt,
+    TupleExpr,
     WhileStmt,
     WithStmt,
 )
-from mypy.types import CallableType, Instance, ProperType, Type as MypyType, UnboundType
+from mypy.types import CallableType, Instance, ProperType, Type as MypyType, UnboundType, TupleType
 from mypy.visitor import ExpressionVisitor, NodeVisitor, StatementVisitor
 
 import copy
@@ -677,6 +680,22 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     #     # If returns True, will continue to nested nodes.
     #     return True
 
+    def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
+        return MLTuple(*[expr.accept(self) for expr in o.items])            
+
+    def visit_index_expr(self, o: IndexExpr) -> Expr:
+        # Currently only supports integer indices
+        if not isinstance(o.index, IntExpr):
+            raise Exception("Index must be int!")
+        if isinstance(o.base, NameExpr):
+            base_type = self.types.get(o.base)
+            if not isinstance(base_type, TupleType):
+                raise Exception("Expression must be tuple!")
+            # TODO: do we need accept here
+            return TupleGet(o.base.accept(self), o.index.accept(self))
+        else:
+            # TODO
+            raise Exception("Expression must be nameexpr")
 
 class Driver:
     var_tracker: VariableTracker

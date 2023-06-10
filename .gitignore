@@ -3,8 +3,8 @@
 *.pyc
 llvm-pass/build/
 synthesisLogs/
-tests/*.ll
-tests/*.loops
+tests/llvm/*.ll
+tests/llvm/*.loops
 crdt_tests/*.ll
 crdt_tests/*.loops
 tests/struct1.rkt
