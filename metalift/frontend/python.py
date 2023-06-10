@@ -70,8 +70,8 @@ from mypy.nodes import (
     WhileStmt,
     WithStmt,
 )
-from mypy.types import CallableType, Instance, ProperType, Type as MypyType, UnboundType, TupleType
-from mypy.visitor import ExpressionVisitor, NodeVisitor, StatementVisitor
+from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
+from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
 
