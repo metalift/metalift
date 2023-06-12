@@ -681,7 +681,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     #     return True
 
     def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
-        return MLTuple(*[expr.accept(self) for expr in o.items])            
+        return MLTuple(*[expr.accept(self) for expr in o.items])
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
         # Currently only supports indexing into tuples using integers
@@ -692,6 +692,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         if not isinstance(base, MLTuple):
             raise Exception("Can only index into tuples!")
         return TupleGet(o.base.accept(self), o.index.accept(self))
+
 
 class Driver:
     var_tracker: VariableTracker
