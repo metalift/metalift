@@ -160,16 +160,16 @@ Once the target operators semantics and the search space description is defined,
 
 ```python
 from metalift.analysis import CodeInfo, analyze
-def runner(basename):
-    filename = f"tests/{basename}.ll"
-    fnName = "test"
-    loopsFile = f"tests/{basename}.loops"
-    cvcPath = "cvc5"
 
-    (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile, log=False)
+filename = "tests/conv1d.ll"
+fnName = "test"
+loopsFile = "tests/conv1d.loops"
+cvcPath = "cvc5"
 
-    invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
-    lang = targetLang()
+(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile, log=False)
+
+invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
+lang = targetLang()
 ```
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains information about the code to be transpiled. The ```codeInfo``` is then used to generate our grammar as described above.
