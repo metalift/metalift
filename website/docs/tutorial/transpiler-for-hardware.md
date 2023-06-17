@@ -159,6 +159,7 @@ The ```CodeInfo``` object consists of all the variables that are modified in the
 Once the target operators semantics and the search space description is defined, we can build the transpiler now. First, we need to compiler the source code to LLVM bytecode using the [script provided by Metalift].(https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
 ```python
+from metalift.analysis import CodeInfo, analyze
 def runner(basename):
     filename = f"tests/{basename}.ll"
     fnName = "test"
@@ -175,6 +176,7 @@ We pass these file names to Metalift's `analyze` function, which returns a numbe
 
 After we defined our target language and search space grammar, we call Metalift's `synthesize` function to search for the program and the ivariants which can prove the equivalence between the source code and the generated code in the target language.
 ```python
+from metalift.synthesize_auto import synthesize
 candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, listBound=3, noVerify=True)
 print(f"Synthesis took {end_time - start_time} seconds")
 ```
