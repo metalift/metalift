@@ -132,7 +132,7 @@ def inv_grammar(ci: CodeInfo):
         kernel := [val,val]
         val := -3 | -2 | -1 | 0 | 1 | 2 | 3
     '''
-def post_condition_grammr(ci: CodeInfo):
+def post_condition_grammar(ci: CodeInfo):
     # We require that, when the input and kernel lists are the same size,
     # that the output list is  1D convolution of the kernel over the input .
     an_input = ci.readVars[0]
@@ -161,9 +161,9 @@ Once the target operators semantics and the search space description is defined,
 ```python
 from metalift.analysis import CodeInfo, analyze
 
-filename = "tests/llvm/fma_dsl.ll.ll"
+filename = "tests/llvm/fma_dsl.ll"
 fnName = "test"
-loopsFile = "tests/llvm/fma_dsl.ll.loops"
+loopsFile = "tests/llvm/fma_dsl.loops"
 cvcPath = "cvc5"
 
 (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile, log=False)
