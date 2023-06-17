@@ -26,7 +26,9 @@ Readers familiar with primitives for tensor accelerators may recognize this as a
 The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation. 
 
 ```python
-from metalift.ir import *
+from metalift.ir import Var, FnDecl, FnDeclRecursive, Choose, Synth
+from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit, Ite
+from metalift.ir import Int, Bool, ListT, And, Or, Not, Ge, Gt, Le, Lt, Sub
 
 def ml_list_get(lst, i):
     return Call("list_get", Int(), lst, i) #returns lst[i]
@@ -45,6 +47,9 @@ def ml_list_empty():
 
 def ml_list_take(lst, i):
     return Call("list_take", ListT(Int()), lst, i) #returns lst[:i]
+
+def ml_list_head(lst):
+    return ml_list_get(lst, IntLit(0)) #return lst[0]
 
 def targetLang():
     x = Var("x", ListT(Int()))
