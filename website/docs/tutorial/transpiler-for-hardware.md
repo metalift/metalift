@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Hardware accelerators have proven to be very effective in optimizing computationally expensive DNN workflows. [Gemmini](https://github.com/ucb-bar/gemmini) is an open-source framework for building custom DNN accelerators. It allows developers to generate accelerators and customize them end-to-end, from architectural templates (such as spatial arrays and scratchpads) to programming support (including ONNX format and low-level C++ APIs) to system support (such as microcontrollers and server-class CPUs).
 
-At present, Gemmini offers two front-ends for running DNN workloads: high-level push-button support for executing workloads from ONNX files and hand-tuned C/C++ APIs of different popular kernels like  matrix multiplication and convolutions and max-pools. 
+At present, Gemmini offers two front-ends for running DNN workloads: high-level push-button support for executing workloads from ONNX files and hand-tuned C/C++ APIs of different popular kernels that perform operations such as matrix multiplication, convolutions, and max-pools. 
 
 
 Now, suppose we have the following source code:
@@ -20,10 +20,10 @@ vector<int> program(vector<int> data){
 }
 ```
 
-Readers familiar with primitives for tensor accelerators may recognize this as a convolution, but this is not explicit in the code. With current programming model support, developers would need to manually convert this code to one of the supported front-end of Gemmini. In this tutorial, we demonstrate how to build a transpiler that can convert this code to the C/C++ APIs of Gemmini.
+Readers familiar with primitives for tensor accelerators may recognize this as a convolution, but this is not explicit in the code. With current programming model support, developers would need to manually convert this code to one of the supported front-end of Gemmini. In this tutorial, we demonstrate how to build a transpiler using Metalift that can convert this code to the C/C++ APIs of Gemmini.
 
 ## Define the Target Language
-The first step in building this transpiler is to define the semantics of the opertors in Gemmin's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial,  we will just need the definition of 1D convolution operation. 
+The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation. 
 
 ```python
 from metalift.ir import *
@@ -87,17 +87,17 @@ def conv1d1x2(vec,kernel):
 
 ## Search Space Description
 
-After defining the target language, we need to define the search space which describes the space of possible programs the synthesizer will explore during the search process. The search search space describes the the possible values for the output variables w.r.t. the target language. Metalift internally translates the source code to a Hoare-style verification condition (VC). As the given source code involves loops, an additional predicate called the loop invariant would be required to prove the equivalence between source code and the translated code. We need to define the search for the loop invariants as well. 
+After defining the target language, we will define the search space which describes the space of possible programs the synthesizer will explore during the search process. The search space describes the possible ways that our output variables (i.e., values that are returned to the user in our source code) can be computed using our target language. Metalift internally translates the source code to a Hoare-style verification condition (VC). As the given source code involves loops, an additional predicate called the [loop invariant](https://en.wikipedia.org/wiki/Loop_invariant) is required to prove the equivalence between source code and the translated code. Similar to how we define the search space for our output variables, we will define the search for the loop invariants as well. 
 
 Metalift IR provides ```Choose``` construct to define the search space. For our example, one possible search space is given below:
 
 
 ```python
-#defining the possible values for the kernel 
+# defining the possible values for the kernel 
 unknown_const = Choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
 kernel = reduce(lambda acc, _cur: ml_list_prepend(unknown_const, acc), range(2), ml_list_empty()) 
 
-#invariant grammar
+# invariant grammar
 def inv_grammar(ci: CodeInfo):
     an_input = Choose(*ci.readVars)
     an_output_i32 = ci.modifiedVars[1] #loop counter `i` of source code
@@ -152,7 +152,7 @@ The ```CodeInfo``` object consists of all the variables that are modified in the
 
 
 ## Transpiler flow
-Once the target operators semantics and the search space description is defined, we can build the transpiler now. First, we need to compiler the source code using the [script].(https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information.
+Once the target operators semantics and the search space description is defined, we can build the transpiler now. First, we need to compiler the source code to LLVM bytecode using the [script provided by Metalift].(https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
 ```python
 def runner(basename):
@@ -178,5 +178,7 @@ print(f"Synthesis took {end_time - start_time} seconds")
 The synthesis phase returns the following solution:
 
 ```result = conv1d(data, kernel = [1,1])```
+
+which means that Metalift's synthesizer found the output value computed by our source code can also be computed by calling the `conv1d` function defined in our target language when passed with the appropriate arguments. 
 
 The synthesized code can then pass through our [code generator](https://github.com/starptr/metalift/blob/6267e705841776767a16999cd32c14829b277114/tests/conv1d.py#L213) to produce executable gemmini code. The generated code can be run on gemmini by following the instructions [here](https://github.com/ucb-bar/gemmini/tree/dev). The full example can be found [here](https://github.com/starptr/metalift/blob/6267e705841776767a16999cd32c14829b277114/tests/conv1d.py). 
