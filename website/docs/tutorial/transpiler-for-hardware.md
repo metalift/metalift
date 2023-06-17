@@ -116,10 +116,10 @@ def inv_grammar(ci: CodeInfo):
     # This enforces the inductive property, that if the output so far is
     # the convolution of the input and kernel so far, then it will continue
     # being the convolution of the input and kernel.
-   induction = Eq(an_output_list,Call("conv1d", ListT(Int()),ml_list_take(an_input, Add(an_output_i32, IntLit(1)))),kernel)
-   summary = Implies(valid, And(preloop, And(postloop, induction)))
+    induction = Eq(an_output_list,Call("conv1d", ListT(Int()),ml_list_take(an_input, Add(an_output_i32, IntLit(1)))),kernel)
+    summary = Implies(valid, And(preloop, And(postloop, induction)))
 
-   return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
    '''
         BNF representation of the above code
         summary := And(i >= 0, i <= len(input) - 1, induction)
