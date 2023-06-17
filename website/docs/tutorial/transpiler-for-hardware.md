@@ -23,8 +23,9 @@ vector<int> program(vector<int> data){
 Readers familiar with primitives for tensor accelerators may recognize this as a convolution, but this is not explicit in the code. With current programming model support, developers would need to manually convert this code to one of the supported front-end of Gemmini. In this tutorial, we demonstrate how to build a transpiler using Metalift that can convert this code to the C/C++ APIs of Gemmini.
 
 ## Define the Target Language
-The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation. 
+The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation.
 
+<!--phmdoctest-share-names-->
 ```python
 from metalift.ir import Var, FnDecl, FnDeclRecursive, Choose, Synth
 from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit, Ite
@@ -96,7 +97,7 @@ After defining the target language, we will define the search space which descri
 
 Metalift IR provides ```Choose``` construct to define the search space. For our example, one possible search space is given below:
 
-
+<!--phmdoctest-mark.skip-->
 ```python
 # defining the possible values for the kernel 
 unknown_const = Choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
@@ -158,22 +159,24 @@ The ```CodeInfo``` object consists of all the variables that are modified in the
 ## Transpiler flow
 Once the target operators semantics and the search space description is defined, we can build the transpiler now. First, we need to compiler the source code to LLVM bytecode using the [script provided by Metalift].(https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
+<!--phmdoctest-mark.skip-->
 ```python
 from metalift.analysis import CodeInfo, analyze
 
-filename = "tests/llvm/fma_dsl.ll"
+filename = "tests/llvm/conv1d.ll"
 fnName = "test"
-loopsFile = "tests/llvm/fma_dsl.loops"
+loopsFile = "tests/llvm/conv1d.loops"
 cvcPath = "cvc5"
 
 (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile, log=False)
 
-invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
+invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 ```
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains information about the code to be transpiled. The ```codeInfo``` is then used to generate our grammar as described above.
 
 After we defined our target language and search space grammar, we call Metalift's `synthesize` function to search for the program and the ivariants which can prove the equivalence between the source code and the generated code in the target language.
+<!--phmdoctest-mark.skip-->
 ```python
 from metalift.synthesize_auto import synthesize
 lang = targetLang()
