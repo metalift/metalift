@@ -177,7 +177,7 @@ We pass these file names to Metalift's `analyze` function, which returns a numbe
 After we defined our target language and search space grammar, we call Metalift's `synthesize` function to search for the program and the ivariants which can prove the equivalence between the source code and the generated code in the target language.
 ```python
 from metalift.synthesize_auto import synthesize
-candidates = synthesize(basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, listBound=3, noVerify=True)
+candidates = synthesize("conv1d", lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, listBound=3, noVerify=True)
 print(f"Synthesis took {end_time - start_time} seconds")
 ```
 
