@@ -120,13 +120,13 @@ def inv_grammar(ci: CodeInfo):
     summary = Implies(valid, And(preloop, And(postloop, induction)))
 
     return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
-   '''
+    '''
         BNF representation of the above code
         summary := And(i >= 0, i <= len(input) - 1, induction)
         induction := result = conv1d1x2(input[:i+1], kernel)
         kernel := [val,val]
         val := -3 | -2 | -1 | 0 | 1 | 2 | 3
-   '''
+    '''
 def post_condition_grammr(ci: CodeInfo):
     # We require that, when the input and kernel lists are the same size,
     # that the output list is  1D convolution of the kernel over the input .
