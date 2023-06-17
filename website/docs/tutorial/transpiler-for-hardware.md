@@ -161,15 +161,14 @@ Once the target operators semantics and the search space description is defined,
 ```python
 from metalift.analysis import CodeInfo, analyze
 
-filename = "tests/conv1d.ll"
+filename = "tests/llvm/fma_dsl.ll.ll"
 fnName = "test"
-loopsFile = "tests/conv1d.loops"
+loopsFile = "tests/llvm/fma_dsl.ll.loops"
 cvcPath = "cvc5"
 
 (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile, log=False)
 
 invAndPs = [grammar(ci, kernel_size) for ci in loopAndPsInfo]
-lang = targetLang()
 ```
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains information about the code to be transpiled. The ```codeInfo``` is then used to generate our grammar as described above.
@@ -177,6 +176,7 @@ We pass these file names to Metalift's `analyze` function, which returns a numbe
 After we defined our target language and search space grammar, we call Metalift's `synthesize` function to search for the program and the ivariants which can prove the equivalence between the source code and the generated code in the target language.
 ```python
 from metalift.synthesize_auto import synthesize
+lang = targetLang()
 candidates = synthesize("conv1d", lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, listBound=3, noVerify=True)
 print(f"Synthesis took {end_time - start_time} seconds")
 ```
