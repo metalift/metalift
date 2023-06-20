@@ -18,6 +18,7 @@ from metalift.ir import (
     IntLit,
     Ite,
     Le,
+    ListT,
     Lt,
     Not,
     Or,
@@ -48,6 +49,7 @@ from mypy.nodes import (
     ForStmt,
     FuncDef,
     GlobalDecl,
+    MemberExpr,
     IfStmt,
     Import,
     ImportAll,
@@ -62,6 +64,7 @@ from mypy.nodes import (
     OpExpr,
     OverloadedFuncDef,
     PassStmt,
+    ListExpr,
     RaiseStmt,
     ReturnStmt,
     Statement,
@@ -69,11 +72,20 @@ from mypy.nodes import (
     TupleExpr,
     WhileStmt,
     WithStmt,
+    CallExpr,
 )
 from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
+
+from metalift.ir_util import is_list_type_expr
+
+from metalift.mypy_util import (
+    is_func_call,
+    is_func_call_with_name,
+    is_method_call_with_name,
+)
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -136,9 +148,17 @@ def to_mltype(t: MypyType) -> MLType:
         return Int()
 
     # inferred types
-    elif isinstance(t, Instance) and t.type.fullname == "builtins.int":
-        return Int()
-
+    elif isinstance(t, Instance):
+        if t.type.fullname == "builtins.int":
+            return Int()
+        elif (
+            t.type.fullname == "builtins.list"
+            and len(t.args) == 1
+            and to_mltype(t.args[0]) == Int()
+        ):
+            return ListT(Int())
+        else:
+            raise RuntimeError(f"unknown Mypy type: {t}")
     else:
         raise RuntimeError(f"unknown Mypy type: {t}")
 
@@ -153,15 +173,18 @@ class RWVarsVisitor(TraverserVisitor):
         self.reads = set()
         self.types = types
 
+    def _write_name_expr(self, o: NameExpr) -> None:
+        t = self.types.get(o)
+        assert t is not None
+        self.writes.add((o.name, t))
+
     def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
         if len(o.lvalues) > 1:
             raise RuntimeError(f"multi assignments not supported: {o}")
         lval = cast(
             NameExpr, o.lvalues[0]
         )  # XXX lvalues is a list of Lvalue which can also be indexes or tuples
-        t = self.types.get(lval)
-        assert t is not None
-        self.writes.add((lval.name, t))
+        self._write_name_expr(lval)
 
         o.rvalue.accept(self)
 
@@ -170,6 +193,19 @@ class RWVarsVisitor(TraverserVisitor):
         t = self.types.get(o)
         assert t is not None
         self.reads.add((o.name, t))
+
+    def visit_call_expr(self, o: CallExpr) -> None:
+        # If it is an "append" call on a variable, then the variable is modified
+        if is_method_call_with_name(o, "append"):
+            callee_expr = o.callee.expr  # type: ignore
+            if isinstance(callee_expr, NameExpr):
+                self._write_name_expr(callee_expr)
+
+        # If it is a function call, then we don't want to evaluate the function type
+        if not is_func_call(o):
+            o.callee.accept(self)
+        for a in o.args:
+            a.accept(self)
 
 
 class Predicate:
@@ -416,7 +452,27 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             s.accept(self)
 
     def visit_expression_stmt(self, o: ExpressionStmt) -> None:
-        raise NotImplementedError()
+        o.expr.accept(self)
+
+    def visit_call_expr(self, o: CallExpr) -> Expr:
+        if is_func_call_with_name(o, "len"):
+            assert len(o.args) == 1
+            arg = o.args[0].accept(self)
+            if not is_list_type_expr(arg):
+                raise Exception("len only supported on lists!")
+            return Call("list_length", Int(), arg)
+        elif is_method_call_with_name(o, "append"):
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
+            if not is_list_type_expr(callee_expr):
+                raise Exception(".append only supported on lists!")
+            assert len(o.args) == 1
+            elem_to_append = o.args[0].accept(self)
+            list_after_append = Call(
+                "list_append", callee_expr.type, callee_expr, elem_to_append
+            )
+            self.state.write(callee_expr.name(), list_after_append)
+            return list_after_append
+        raise Exception("Unrecognized call expression!")
 
     def visit_operator_assignment_stmt(self, o: OperatorAssignmentStmt) -> None:
         raise NotImplementedError()
@@ -684,14 +740,21 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         return MLTuple(*[expr.accept(self) for expr in o.items])
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
-        # Currently only supports indexing into tuples using integers
+        # Currently only supports indexing into tuples and lists using integers
         index = o.index.accept(self)
         base = o.base.accept(self)
         if index.type != Int():
             raise Exception("Index must be int!")
-        if not isinstance(base, MLTuple):
-            raise Exception("Can only index into tuples!")
-        return TupleGet(o.base.accept(self), o.index.accept(self))
+        if isinstance(base, MLTuple):
+            return TupleGet(base, index)
+        if is_list_type_expr(base):
+            return Call("list_get", Int(), base, index)
+        raise Exception("Can only index into tuples and lists!")
+
+    def visit_list_expr(self, o: ListExpr) -> Expr:
+        if len(o.items) > 0:
+            raise Exception("Initialization of non-empty lists is not supported!")
+        return Call("list_empty", ListT(Int()))
 
 
 class Driver:
@@ -716,7 +779,7 @@ class Driver:
         self,
         filepath: str,
         fn_name: str,
-        target_lang_fn: Callable[[], List[FnDecl]],
+        target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> "MetaliftFunc":
@@ -772,7 +835,7 @@ class MetaliftFunc:
     ast: FuncDef
     types: Dict[MypyExpr, MypyType]
     name: str
-    target_lang_fn: Callable[[], List[FnDecl]]
+    target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
     inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     synthesized: Optional[Expr]
@@ -782,7 +845,7 @@ class MetaliftFunc:
         driver: Driver,
         filepath: str,
         name: str,
-        target_lang_fn: Callable[[], List[FnDecl]],
+        target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
