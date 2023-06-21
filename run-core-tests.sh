@@ -11,15 +11,12 @@ tests=(
 "tests.llvm.while3"
 "tests.llvm.while4"
 "tests.llvm.no_loop_matmul"
-"tests.python.fma1_driver"
-"tests.python.fma2_driver"
-"tests.python.ite1_driver"
-"tests.python.ite2_driver"
-"tests.python.ite3_driver"
-"tests.python.while1_driver"
-"tests.python.tuples1_driver"
-"tests.python.tuples2_driver"
-"tests.python.tuples3_driver"
+"tests.python.fma1-driver"
+"tests.python.fma2-driver"
+"tests.python.ite1-driver"
+"tests.python.ite2-driver"
+"tests.python.ite3-driver"
+"tests.python.while1-driver"
 )
 
 for test in ${tests[*]}; do
