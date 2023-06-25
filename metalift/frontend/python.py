@@ -1,7 +1,6 @@
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
-from metalift.objects import Int
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
@@ -72,6 +71,8 @@ from mypy.types import CallableType, Instance, ProperType, Type as MypyType, Unb
 from mypy.visitor import ExpressionVisitor, NodeVisitor, StatementVisitor
 
 import copy
+
+from metalift.types import ListT
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -695,10 +696,14 @@ class Driver:
         self.fns = dict()
 
     def variable(self, name: str, type: MLType) -> Var:
-        if type == IntT():
-            return Int(self.var_tracker.variable(name, type))
-        else:
-            return self.var_tracker.variable(name, type)
+        # if type == MLInt:
+        #     return MLInt(self.var_tracker.variable(name, IntT()))
+        # elif type == MLList[MLInt]:
+        #     return MLList[MLInt](self.var_tracker.variable(name, ListT(IntT())))
+        # else:   
+        #     print("xxx")
+        #     return self.var_tracker.variable(name, type)
+        return self.var_tracker.variable(name, type)
 
     def analyze(
         self,
