@@ -1,20 +1,23 @@
-from abc import abstractclassmethod
-from typing import Union, Dict, Optional, Callable
+# from abc import abstractclassmethod
+from typing import Generic, TypeVar, Union, Optional, Callable
 
+from typing import _GenericAlias
 import typing
 from metalift.frontend.python import Driver
+from metalift.frontend.utils import qual_name
 
-from metalift.ir import And, Call, Expr, Gt, Ge, IntLit, Add, Eq, BoolLit, FnDecl, Lt, Le, Mul, Not, Or, Sub, Var
-from metalift.types import ListT, Type, getTypeName, Int as IntT, Bool as BoolT
+from metalift.ir import And, Call, Expr, Gt, Ge, IntLit, Add, Eq, BoolLit, Lt, Le, Mul, Not, Or, Sub
+from metalift.types import Type, getTypeName
 
 
-class MLObject:
-    src: Expr
+class Object(Expr):
     driver: Driver
+    src: Expr
 
-    def __init__(self, driver: Driver, src: Expr) -> None:
+    def __init__(self, driver: Driver, src: Expr, type: Union[type, _GenericAlias]) -> None:
         self.driver = driver
-        self.src = src
+        self.src = src  # pass this to parent class?
+        super().__init__(type, None)
 
     def type_name(self) -> str:
         if isParameterizedObject(self):
@@ -22,10 +25,10 @@ class MLObject:
         else:
             return getTypeName(self.__class__)
 
-    def to_rosette(self) -> str:
+    def toRosette(self) -> str:
         return self.src.toRosette()
 
-    def to_SMT(self) -> str:
+    def toSMT(self) -> str:
         return self.src.toSMT()
 
     def codegen(self) -> str:
@@ -34,87 +37,97 @@ class MLObject:
     def __hash__(self) -> int:
         return hash(self.src)
 
-    @abstractclassmethod
-    def expr_type() -> Type:
-        raise NotImplementedError()
+    # @abstractclassmethod
+    # def Expr_type() -> Type:
+    #     raise NotImplementedError()
 
 
-class Bool(MLObject):
+class Bool(Object):
 
     def __init__(self, driver: Driver, value: Optional[Union[bool, str, Expr]] = None) -> None:
         if value is None:  # a symbolic variable
-            src = driver.variable("v", BoolT())  # XXX: change to Bool 
+            src = driver.variable("v", Bool) # XXX change to Bool
         elif isinstance(value, bool):
             src = BoolLit(value)
         elif isinstance(value, Expr):
-            if value.type != BoolT():
-                raise TypeError(f"Cannot create Bool from {value.type}")
+            # if value.type != BoolT() and 
+            # if value.type != Bool: # XXX change to Bool
+            #     raise TypeError(f"Cannot create Bool from {value.type}")
             src = value            
         else:
             raise TypeError(f"Cannot create Bool from {value}")
        
-        super().__init__(driver, src)
+        super().__init__(driver, src, Bool)
 
 
     # python doesn't have hooks for and, or, not
-    @staticmethod
-    def And(e: "Bool", *es: "Bool") -> "Bool":
-        return Bool(e.driver, And(e.src, *es))
+    def And(self, *args: "Bool") -> "Bool":      
+        if len(args) == 0:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        # if not all(map(lambda e: e.type == Bool, args)):
+        #     raise Exception(f"Cannot apply AND to values of type {args}")
+        return Bool(self.driver, And(self, *args))
     
-    @staticmethod
-    def Or(e: "Bool", *es: "Bool") -> "Bool":
-        return Bool(e.driver, Or(e.src, *es))
+    def Or(self, *args: "Bool") -> "Bool":
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        # if not all(map(lambda e: e.type == Bool, args)):
+        #     raise Exception(
+        #         f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
+        #     )
+        return Bool(self.driver, Or(self, *args))
     
-    @staticmethod
-    def Not(e: "Bool") -> "Bool":
-        return Bool(e.driver, Not(e.src))
+    def Not(self) -> "Bool":
+        return Bool(self.driver, Not(self))
 
     def __eq__(self, other: Union["Bool", bool]) -> "Bool":
         if isinstance(other, bool):
-            other = Bool(self.driver, BoolLit(other))
-        return Bool(self.driver, Eq(self.src, other.src))
+            other = Bool(self.driver, other)
+        return Bool(self.driver, Eq(self, other))
         
     def __ne__(self, other: Union["Bool", bool]) -> "Bool":
         if isinstance(other, bool):
-            other = Bool(self.driver, BoolLit(other))
-        return Bool(self.driver, Not(Eq(self.src, other.src)))
+            other = Bool(self.driver, other)
+        return Bool(self.driver, Not(Eq(self, other)))
     
     
-
-
-    @staticmethod
-    def expr_type() -> Type:
-        return BoolT()
+    # @staticmethod
+    # def Expr_type() -> Type:
+    #     return BoolT()
 
     def __repr__(self):
-        return f"Bool{self.src}"
+        return f"Bool({self.src})"
 
 
-class Int(MLObject):
+class Int(Object):
 
-    def __init__(self, driver: Driver, value: Optional[Union[int, Expr]] = None) -> None:
+    def __init__(self, driver: Driver, value: Optional[Union[int, str, Expr]] = None) -> None:
         if value is None:  # a symbolic variable
-            src = driver.variable("v", IntT())  # change to Int
+            src = driver.variable("v", Int)  # XXX change to Int
         elif isinstance(value, int):
-            src = IntLit(value)
-        elif isinstance(value, Expr):
-            if value.type != IntT():
-                raise TypeError(f"Cannot create Int from {value.type}")
+            src = IntLit(value)            
+        elif isinstance(value, Expr):     
+            # if value.type != IntT() and 
+            # if value.type != Int: # XXX change to Int
+            #     raise TypeError(f"Cannot create Int from {value.type}")       
             src = value
+        elif isinstance(value, str):
+            src = driver.variable(value, Int)
         else:
             raise TypeError(f"Cannot create Int from {value}")
        
-        super().__init__(driver, src)
+        super().__init__(driver, src, Int)
 
-    @staticmethod
-    def expr_type() -> Type:
-        return IntT()
+    # @staticmethod
+    # def Expr_type() -> Type:
+    #     return IntT()
+
+    def toRosette(self) -> str:
+        return self.src.toRosette()
 
     def binary_op(self, other: Union["Int", int], op: Callable[[Expr, Expr], Expr]) -> "Int":
-        if isinstance(other, Int):
-            return Int(self.driver, op(self.src, other.src))
-        elif isinstance(other, int):
-            return Int(self.driver, op(self.src, IntLit(other)))
+        if isinstance(other, Int) or isinstance(other, int):
+            return Int(self.driver, op(self, other))
         else:
             raise TypeError(f"Cannot call {op} on Int and {other}")
 
@@ -133,107 +146,106 @@ class Int(MLObject):
 
     def __radd__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return Int(IntLit(other)) + self
+            return Int(self.driver, other) + self
         else:
             return other + self
     
     def __rsub__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return Int(IntLit(other)) - self
+            return Int(self.driver, other) - self
         else:
             return other - self
     
     def __rmul__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return Int(IntLit(other)) * self
+            return Int(self.driver, other) * self
         else:
             return other * self
 
     # logical comparison operators
     def __eq__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = Int(self.driver, IntLit(other))
-        return Bool(self.driver, Eq(self.src, other.src))
+            other = Int(self.driver, other)
+        return Bool(self.driver, Eq(self, other))
         
     def __ne__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = Int(self.driver, IntLit(other))
-        return Bool(self.driver, Not(Eq(self.src, other.src)))
+            other = Int(self.driver, other)
+        return Bool(self.driver, Not(Eq(self, other)))
 
     def __ge__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = Int(self.driver, IntLit(other))
-        return Bool(self.driver, Ge(self.src, other.src))
+            other = Int(self.driver, other)
+        return Bool(self.driver, Ge(self, other))
 
     def __gt__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = Int(self.driver, IntLit(other))
-        return Bool(self.driver, Gt(self.src, other.src))
+            other = Int(self.driver, other)
+        return Bool(self.driver, Gt(self, other))
 
     def __lt__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = Int(self.driver, IntLit(other))
-        return Bool(self.driver, Lt(self.src, other.src))
+            other = Int(self.driver, other)
+        return Bool(self.driver, Lt(self, other))
 
     def __le__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = Int(self.driver, IntLit(other))
-        return Bool(self.driver, Le(self.src, other.src))
+            other = Int(self.driver, other)
+        return Bool(self.driver, Le(self, other))
 
 
     def __repr__(self):
-        return f"Int{self.src}"
+        return f"Int({self.src})"
 
     def __hash__(self) -> int:
         return super().__hash__()
 
 
-T = typing.TypeVar("T", bound=MLObject)
-class List(typing.Generic[T], MLObject):
-    containedT: Type
-    driver: Driver
+T = TypeVar("T", bound=Object)
+class List(Generic[T], Object):
 
-    def __init__(self, driver: Driver, containedT: Type, value: Optional[Union[Expr, str]] = None) -> None:
-        
-        # containedT is either a type or a typing._GenericAlias
-        # typing._GenericAlias has __origin__ and __args__ attributes
+    def __init__(self, driver: Driver, containedT: Union[type, _GenericAlias], value: Optional[Union[Expr, str]] = None) -> None:
+        # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
                     
-        self.containedT = containedT
-        self.driver = driver
-
         if value is None:  # a symbolic variable
-            src = driver.variable("v", ListT(containedT))
+            src = driver.variable("v", List[containedT])
         elif isinstance(value, Expr):
-            if value.type.name != "MLList":
-                raise TypeError(f"Cannot create List from {value.type}")
             src = value
         elif isinstance(value, str):
-            # XXX add support for nested list. containedT will be a _GenericAlias
-            src = driver.variable(value, ListT(containedT))
+            src = driver.variable(value, List[containedT])
         else:
             raise TypeError(f"Cannot create List from {value}")
        
-        super().__init__(driver, src)
+        super().__init__(driver, src, List[containedT])
 
 
     @staticmethod
-    def empty(driver: Driver, t: Type) -> "List":
-        return List(driver, t, Call("list_empty", ListT(t.expr_type())))
+    def empty(driver: Driver, containedT: Union[type, _GenericAlias]) -> "List":
+        return List(driver, containedT, Call("list_empty", List[containedT]))
 
     # @staticmethod
-    # def expr_type() -> Type:
+    # def Expr_type() -> Type:
     #     return ListT()
 
-    def __len__(self) -> Int:
-        return Int(self.driver, Call("list_length", IntT(), self.src))
+    def __len__(self) -> int:
+        raise NotImplementedError("len must return an int, call len() instead")
+    
+    def len(self) -> Int:
+        return Int(self.driver, Call("list_length", Int, self.src))
 
     def __getitem__(self, index: Union[Int, int]) -> Expr:  # index can also be slice
-        # containedT = self.__orig_class__.__args__[0]
-
         if isinstance(index, int):  # promote to Int
             index = Int(self.driver, index)
 
-        return self.containedT(self.driver, Call("list_get", self.src.type.args[0], self.src, index.src))
+        containedT = typing.get_args(self.type)[0]  
+        if isinstance(containedT, type): # non generic type
+            return containedT(self.driver, Call("list_get", containedT, self.src, index.src))
+        elif isinstance(containedT, _GenericAlias): # generic type 
+            subcontainedT = typing.get_args(containedT)[0]
+            return containedT(self.driver, subcontainedT, Call("list_get", containedT, self.src, index.src))
+        else:
+            raise NotImplementedError(f"Cannot get item from list containing type {containedT}")
+
 
         # elif isinstance(index, slice):
         #     (start, stop, step) = (index.start, index.stop, index.step)
@@ -256,43 +268,41 @@ class List(typing.Generic[T], MLObject):
         #         raise NotImplementedError(f"Slice not implemented: {index}")
         
 
-    def __setitem__(self, index: Union[Int, int], value: MLObject) -> None:
+    def __setitem__(self, index: Union[Int, int], value: T) -> None:
         if isinstance(index, int):  # promote to Int
-            index = IntLit(index)
+            index = Int(self.driver, index)
 
-        # containedT = self.__orig_class__.__args__[0]
-        if value.type != self.containedT:
-            raise TypeError(f"Trying to set list element of type: {value.type} to list containing: {self.containedT}")
+        containedT = typing.get_args(self.type)[0]
+        if value.type != containedT:
+            raise TypeError(f"Trying to set list element of type: {value.type} to list containing: {containedT}")
         
-        return List(self.driver, self.containedT, Call("list_set", self.src.type, self.src, index.src, value.src))
+        self.src = Call("list_set", self.type, self.src, index.src, value.src)
         
+    # in place append
+    def append(self, value: T) -> None:
+        containedT = typing.get_args(self.type)[0]
+        if value.type != containedT:
+            raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
 
-    def append(self, o: MLObject) -> "List":
-        # containedT = self.__orig_class__.__args__[0]
-        if type(o) != self.containedT:
-            raise TypeError(f"Trying to append element of type: {o.type} to list containing: {self.containedT}")
-        
-        return List(self.driver, self.containedT, Call("list_append", self.src.type, self.src, o.src))
+        self.src = Call("list_append", self.type, self.src, value.src)
 
-    # # list concat
+    # list concat that returns a new list
     def __add__(self, other: "List") -> "List":
-        # containedT = self.__orig_class__.__args__[0]
-        if type(other) != type(self):
-            raise TypeError(f"can't add lists of different types: {type(other)} and {type(self)}")
-        return List(self.driver, self.containedT, Call("list_concat", self.src.type, self, other))
+        if other.type != self.type:
+            raise TypeError(f"can't add lists of different types: {other.type} and {self.type}")
+        containedT = typing.get_args(self.type)[0]
+        return List(self.driver, containedT, Call("list_concat", self.type, self.src, other.src))
 
 
     def __eq__(self, other: "List") -> Bool:        
-        if type(other) != type(self):
-            return Bool(BoolLit(False))
+        if other.type != self.type:
+            return Bool(self.driver, False)
         else:
-            return Bool(self.driver, Call("list_eq", BoolT(), self.src, other.src))
+            return Bool(self.driver, Call("list_eq", Bool, self.src, other.src))
 
 
     def __repr__(self):
-        # containedT = f"{self.__orig_class__.__args__[0].__name__}"
-        # return f"List[{containedT}]({self.src})"
-        return f"List[{self.containedT}]({self.src})"
+        return f"{qual_name(self.type)}({self.src})"
 
 
 
@@ -301,10 +311,10 @@ class List(typing.Generic[T], MLObject):
 def isParameterizedType(t: type) -> bool:
     return "__origin__" in t.__dict__
 
-def isParameterizedObject(o: MLObject) -> bool:
+def isParameterizedObject(o: Object) -> bool:
     return "__orig_class__" in o.__dict__
 
-def getType(o: MLObject) -> type:
+def getType(o: Object) -> type:
     return o.__orig_class__ if isParameterizedObject(o) else type(o)
 
 

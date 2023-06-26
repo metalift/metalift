@@ -7,9 +7,9 @@ from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
 from typing import Any, Callable, Dict, Generic, Set, TypeVar, Union, Optional
+from metalift.frontend.utils import qual_name
 
 from metalift.types import *
-
 
 class PrintMode(Enum):
     SMT = 0
@@ -163,7 +163,8 @@ class Expr:
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
         return (
-            f"({type(self).__name__}:{self.type} "
+            # f"({type(self).__name__}:{self.type} "
+            f"({type(self).__name__} "
             f'{" ".join(fn(a) for a in self.args)})'
         )
 
@@ -381,17 +382,17 @@ class Expr:
     #     else:
     #         return Add(self, other)
 
-    def __sub__(self, other: "Expr") -> "Sub":
-        if isinstance(self, Sub):
-            return Sub(*self.args, other)
-        else:
-            return Sub(self, other)
+    # def __sub__(self, other: "Expr") -> "Sub":
+    #     if isinstance(self, Sub):
+    #         return Sub(*self.args, other)
+    #     else:
+    #         return Sub(self, other)
 
-    def __mul__(self, other: "Expr") -> "Mul":
-        if isinstance(self, Mul):
-            return Mul(*self.args, other)
-        else:
-            return Mul(self, other)
+    # def __mul__(self, other: "Expr") -> "Mul":
+    #     if isinstance(self, Mul):
+    #         return Mul(*self.args, other)
+    #     else:
+    #         return Mul(self, other)
 
 
 class Var(Expr):
@@ -455,7 +456,7 @@ class Lit(Expr):
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Lit(self)
 
-
+# XXX: to remove
 class Object(Expr):
     def __init__(self, ty: Type) -> None:
         Expr.__init__(self, ty, {})
@@ -491,11 +492,12 @@ class Add(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+            # XXX: retire parseTypeRef once the ML types are removed
+            if arg.type != args[0].type and parseTypeRef(arg.type) != parseTypeRef(args[0].type):
                 raise Exception(
                     f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
                 )
-        Expr.__init__(self, Int(), args)
+        Expr.__init__(self, args[0].type, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -516,11 +518,12 @@ class Sub(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+            # XXX: retire parseTypeRef once the ML types are removed
+            if arg.type != args[0].type and parseTypeRef(arg.type) != parseTypeRef(args[0].type):
                 raise Exception(
                     f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
                 )
-        Expr.__init__(self, Int(), args)
+        Expr.__init__(self, args[0].type, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -541,11 +544,12 @@ class Mul(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+            # XXX: retire parseTypeRef once the ML types are removed
+            if arg.type != args[0].type and parseTypeRef(arg.type) != parseTypeRef(args[0].type):
                 raise Exception(
                     f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
                 )
-        Expr.__init__(self, Int(), args)
+        Expr.__init__(self, args[0].type, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -558,17 +562,18 @@ class Mul(Expr):
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mul(self)
 
-
 class Eq(Expr):
     RosetteName = "equal?"
     SMTName = "="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        # XXX: retire parseTypeRef once the ML types are removed
+        if e1.type != e2.type and not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
-        Expr.__init__(self, Bool(), [e1, e2])
+        # Expr.__init__(self, Bool(), [e1, e2])    
+        Expr.__init__(self, None, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -593,11 +598,13 @@ class Lt(Expr):
     RosetteName = SMTName = "<"
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        # XXX: retire parseTypeRef once the ML types are removed
+        if e1.type != e2.type and not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
-        Expr.__init__(self, Bool(), [e1, e2])
+        # Expr.__init__(self, Bool(), [e1, e2])
+        Expr.__init__(self, None, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -621,7 +628,8 @@ class Le(Expr):
     RosetteName = SMTName = "<="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        # XXX: retire parseTypeRef once the ML types are removed
+        if e1.type != e2.type and not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
@@ -649,7 +657,8 @@ class Gt(Expr):
     RosetteName = SMTName = ">"
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        # XXX: retire parseTypeRef once the ML types are removed
+        if e1.type != e2.type and not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
@@ -677,7 +686,8 @@ class Ge(Expr):
     RosetteName = SMTName = ">="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        # XXX: retire parseTypeRef once the ML types are removed
+        if e1.type != e2.type and not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
             )
@@ -706,11 +716,11 @@ class And(Expr):
     SMTName = "and"
 
     def __init__(self, *args: Expr) -> None:
-        if len(args) < 1:
+        if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == Bool(), args)):
-            raise Exception(f"Cannot apply AND to values of type {args}")
-        Expr.__init__(self, Bool(), args)
+        # if not all(map(lambda e: e.type == Bool(), args)):
+        #     raise Exception(f"Cannot apply AND to values of type {args}")
+        Expr.__init__(self, args[0].type, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -731,10 +741,10 @@ class Or(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == Bool(), args)):
-            raise Exception(
-                f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
-            )
+        # if not all(map(lambda e: e.type == Bool(), args)):
+        #     raise Exception(
+        #         f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
+        #     )
         Expr.__init__(self, Bool(), args)
 
     def toRosette(
@@ -754,8 +764,8 @@ class Not(Expr):
     SMTName = "not"
 
     def __init__(self, e: Expr) -> None:
-        if e.type != Bool():
-            raise Exception(f"Cannot apply NOT to value of type {e.type}")
+        # if e.type != Bool():
+        #     raise Exception(f"Cannot apply NOT to value of type {e.type}")
         Expr.__init__(self, Bool(), [e])
 
     def toRosette(
@@ -879,7 +889,7 @@ class Call(Expr):
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        return f"({self.args[0]}:{self.type} {' '.join(fn(a) for a in self.args[1:])})"
+        return f"({self.args[0]}:{qual_name(self.type)} {' '.join(fn(a) for a in self.args[1:])})"
 
     def codegen(self) -> str:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
