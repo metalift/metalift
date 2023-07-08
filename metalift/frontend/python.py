@@ -22,6 +22,7 @@ from metalift.ir import (
     Lt,
     Not,
     Or,
+    SetT,
     Synth,
     Tuple as MLTuple,
     TupleGet,
@@ -79,7 +80,7 @@ from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
 
-from metalift.ir_util import is_list_type_expr
+from metalift.ir_util import is_list_type_expr, is_set_type_expr
 
 from metalift.mypy_util import (
     is_func_call,
@@ -157,6 +158,12 @@ def to_mltype(t: MypyType) -> MLType:
             and to_mltype(t.args[0]) == Int()
         ):
             return ListT(Int())
+        elif (
+            t.type.fullname == "builtins.set"
+            and len(t.args) == 1
+            and to_mltype(t.args[0]) == Int()
+        ):
+            return SetT(Int())
         else:
             raise RuntimeError(f"unknown Mypy type: {t}")
     else:
@@ -472,6 +479,29 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             )
             self.state.write(callee_expr.name(), list_after_append)
             return list_after_append
+        elif is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
+
+            if is_method_call_with_name(o, "add"):
+                method_name, func_call_name = ".add", "set-union"
+            else:
+                method_name, func_call_name = ".remove", "set-minus"
+
+            if not is_set_type_expr(callee_expr):
+                raise Exception(f"{method_name} only supported on sets!")
+            assert len(o.args) == 1
+            elem = o.args[0].accept(self)
+            singleton_set = Call("set-singleton", SetT(elem.type), elem)
+            set_after_modification = Call(
+                func_call_name,
+                callee_expr.type,
+                callee_expr,
+                singleton_set
+            )
+            self.state.write(callee_expr.name(), set_after_modification)
+            return set_after_modification
+
+        import pdb; pdb.set_trace()
         raise Exception("Unrecognized call expression!")
 
     def visit_operator_assignment_stmt(self, o: OperatorAssignmentStmt) -> None:
