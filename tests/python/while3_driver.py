@@ -45,7 +45,7 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
     # reads = [input_arg, x, y]
     input_arg, x, y = reads
     int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
-    choose_x_y = Choose(x, y)
+    choose_x_y = Choose(*reads)
     inv_cond = And(
         Ge(choose_x_y, IntLit(1)),
         And(
