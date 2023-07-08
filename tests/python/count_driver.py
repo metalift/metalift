@@ -1,10 +1,11 @@
-from typing import List, Tuple, Union
+from typing import List, Union
+
+from mypy.nodes import Statement
+
 from metalift.frontend.python import Driver
-
-from metalift.ir import Add, And, Axiom, BoolLit, Call, CallValue, Choose, Eq, Expr, FnDecl, FnDeclRecursive, FnT, Ge, Gt, Implies, Int, IntLit, Ite, Le, ListT, Lit, Lt, Mul, Sub, Synth, Var
-
-from mypy.nodes import Statement, WhileStmt
-
+from metalift.ir import (Add, And, Axiom, BoolLit, Call, CallValue, Choose, Eq,
+                         Expr, FnDecl, FnDeclRecursive, FnT, Ge, Gt, Implies,
+                         Int, IntLit, Ite, Le, ListT, Lt, Mul, Sub, Synth, Var)
 from tests.python.utils.utils import codegen
 
 # We need to define some global variables as they need to persist across function calls
@@ -41,60 +42,52 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     def list_tail(l, i):
         return Call("list_tail", ListT(Int()), l, i)
 
-    data = Var("data", ListT(Int()))
-
+    in_lst = Var("in_lst", ListT(Int()))
 
     lm_fn = Var("f", FnT(Int(), Int()))
     lr_fn = Var("f", FnT(Int(), Int(), Int()))
 
     mapper = FnDecl(LM_NAME, Int(), None, arg2)
     reducer = FnDecl(LR_NAME, Int(), None, arg2, arg3)
-    # if len(data) == 0:
-    #     return []
-    # else:
-    #     return list_prepend(lm_fn(data[0]), map(list_tail(data, 1), lm_fn))
+
     map_fn = FnDeclRecursive(
         "map",
         ListT(Int()),
         Ite(
-            Eq(list_length(data), IntLit(0)),
+            Eq(list_length(in_lst), IntLit(0)),
             list_empty(),
             Call(
                 "list_prepend",
                 ListT(Int()),
-                CallValue(lm_fn, list_get(data, IntLit(0))),
-                Call("map", ListT(Int()), list_tail(data, IntLit(1)), lm_fn),
+                CallValue(lm_fn, list_get(in_lst, IntLit(0))),
+                Call("map", ListT(Int()), list_tail(in_lst, IntLit(1)), lm_fn),
             ),
         ),
-        data,
+        in_lst,
         lm_fn,
     )
 
-    # if len(data) == 0:
-    #     return 0
-    # else:
-    #     return lr_fn(data[0], reduce(list_tail(data, 1)), lr_fn)
     reduce_fn = FnDeclRecursive(
         "reduce",
         Int(),
         Ite(
-            Eq(list_length(data), IntLit(0)),
+            Eq(list_length(in_lst), IntLit(0)),
             IntLit(0),
             CallValue(
                 lr_fn,
-                list_get(data, IntLit(0)),
-                Call("reduce", Int(), list_tail(data, IntLit(1)), lr_fn),
+                list_get(in_lst, IntLit(0)),
+                Call("reduce", Int(), list_tail(in_lst, IntLit(1)), lr_fn),
             ),
         ),
-        data,
+        in_lst,
         lr_fn,
     )
 
-    mr_axiom_data = Var("data", ListT(Int()))
+    mr_axiom_in_lst = Var("in_lst", ListT(Int()))
     mr_axiom_index = Var("index", Int())
     map_reduce_axiom = Axiom(
         Implies(
-            And(Ge(mr_axiom_index, IntLit(0)), Lt(mr_axiom_index, list_length(mr_axiom_data))),
+            And(Ge(mr_axiom_index, IntLit(0)), Lt(mr_axiom_index, list_length(mr_axiom_in_lst))),
             Eq(
                 Call(
                     "reduce",
@@ -105,7 +98,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
                         Call(
                             "list_take",
                             ListT(Int()),
-                            mr_axiom_data,
+                            mr_axiom_in_lst,
                             Add(mr_axiom_index, IntLit(1))
                         ),
                         Var(LM_NAME, FnT(Int(), Int()))
@@ -124,7 +117,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
                             Call(
                                 "list_take",
                                 ListT(Int()),
-                                mr_axiom_data,
+                                mr_axiom_in_lst,
                                 mr_axiom_index
                             ),
                             Var(LM_NAME, FnT(Int(), Int()))
@@ -137,26 +130,19 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
                         Call(
                             "list_get",
                             Int(),
-                            mr_axiom_data,
+                            mr_axiom_in_lst,
                             mr_axiom_index
                         )
                     ),
                 ),
             ),
         ),
-        mr_axiom_data,
+        mr_axiom_in_lst,
         mr_axiom_index,
     )
 
     return [map_fn, reduce_fn, map_reduce_axiom, mapper, reducer]
 
-
-# var := *reads | 0
-# added := var + var
-# var_or_fma := *reads | fma(added, added, added)
-#
-# return value := var_or_fma + var_or_fma
-#
 def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     # reads = [in_lst]
     in_lst = reads[0]
@@ -250,7 +236,7 @@ if __name__ == "__main__":
     driver.fns_synths = fns_synths()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    v1 = driver.variable("data", ListT(Int()))
+    v1 = driver.variable("in_lst", ListT(Int()))
 
     test(v1)
 
