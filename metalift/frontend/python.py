@@ -764,6 +764,7 @@ class Driver:
     postconditions: List[Expr]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
+    fns_synths: List[Synth]
 
     def __init__(self) -> None:
         self.var_tracker = VariableTracker()
@@ -771,6 +772,7 @@ class Driver:
         self.asserts = []
         self.postconditions = []
         self.fns = dict()
+        self.fns_synths = []
 
     def variable(self, name: str, type: MLType) -> Var:
         return self.var_tracker.variable(name, type)
@@ -810,7 +812,14 @@ class Driver:
             target += fn.target_lang_fn()
 
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            "test", target, set(self.var_tracker.all()), synths, [], vc, synths, "cvc5"
+            basename="test",
+            targetLang=target,
+            vars=set(self.var_tracker.all()),
+            invAndPs=synths + self.fns_synths,
+            preds=[],
+            vc=vc,
+            loopAndPsInfo=synths, # TODO: does this need fns synths
+            cvcPath="cvc5"
         )
 
         for f in synthesized:
