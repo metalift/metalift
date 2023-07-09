@@ -501,7 +501,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.state.write(callee_expr.name(), set_after_modification)
             return set_after_modification
 
-        import pdb; pdb.set_trace()
         raise Exception("Unrecognized call expression!")
 
     def visit_operator_assignment_stmt(self, o: OperatorAssignmentStmt) -> None:
@@ -860,6 +859,8 @@ class Driver:
                     self.fns[name].synthesized = cast(Eq, f.body()).e2()
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 else:
+                    print("HAHAHA", f)
+                    return
                     raise Exception(
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )

@@ -10,8 +10,3 @@ int test(int arg)
 
   return x;
 }
-
-
-arg = 0 -> 0
-arg = 1 -> 1
-arg = 2

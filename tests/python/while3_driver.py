@@ -1,10 +1,10 @@
 from typing import List
+
+from mypy.nodes import Statement
+
 from metalift.frontend.python import Driver
-
-from metalift.ir import Add, And, BoolLit, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursive, Ge, Int, IntLit, Ite, Le, Lit, Lt, Or, Sub, Var
-
-from mypy.nodes import Statement, WhileStmt
-
+from metalift.ir import (Add, And, BoolLit, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt,
+                         Int, IntLit, Ite, Le, Lt, Or, Sub, Var)
 from tests.python.utils.utils import codegen
 
 
@@ -14,49 +14,69 @@ def target_lang() -> List[FnDeclRecursive]:
         "sum_n",
         Int(),
         Ite(
-            Ge(x, IntLit(1)),
-            Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))),
-            IntLit(0)
+            Ge(x, IntLit(1)), Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))), IntLit(0)
         ),
         x,
     )
     return [sum_n]
 
+
 def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    # writes = [test_rv]
-    # reads = [input_arg]
-    input_arg = reads[0]
-    int_lit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    return Eq(
-        ret_val,
-        Ite(
-            Ge(input_arg, int_lit),
-            Call("sum_n", Int(), Sub(input_arg, int_lit)),
-            IntLit(0),
-        )
+    # input_arg = reads[0]
+    choices = Choose(IntLit(1), IntLit(2), IntLit(3))
+    # cond = Ite(
+    #     Eq(IntLit(0), reads[0]),
+    #     IntLit(0),
+    #     Call("sum_n", Int(), Sub(reads[0], choices))
+    # )
+    # return Eq(ret_val, cond)
+    # b = Or(Ge(IntLit(1), reads[0]), Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
+    int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
+    input_arg_cond = Choose(
+        Ge(reads[0], int_lit),
+        Le(reads[0], int_lit),
+        Gt(reads[0], int_lit),
+        Lt(reads[0], int_lit),
+        Eq(reads[0], int_lit),
     )
+    b = Or(input_arg_cond, Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
+    return b
 
 def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     if v.name() != "x":
         return BoolLit(True)
-
-    # writes = [x, y]
-    # reads = [input_arg, x, y]
-    input_arg, x, y = reads
+    x, y = writes
     int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
-    choose_x_y = Choose(x, y)
+    y_bound_int_lit_cond = Choose(
+        Ge(y, int_lit),
+        Le(y, int_lit),
+        Gt(y, int_lit),
+        Lt(y, int_lit),
+        Eq(y, int_lit),
+    )
+    y_bound_arg_cond = Choose(
+        Ge(y, reads[0]),
+        Le(y, reads[0]),
+        Gt(y, reads[0]),
+        Lt(y, reads[0]),
+        Eq(y, reads[0]),
+    )
     inv_cond = And(
-        Ge(choose_x_y, IntLit(1)),
-        And(
-            Le(choose_x_y, input_arg),
-            Eq(choose_x_y, Call("sum_n", Int(), Sub(choose_x_y, int_lit)))
-        ),
+        y_bound_int_lit_cond,
+        And(y_bound_arg_cond, Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))),
     )
-    input_arg_bound = Choose(
-        Ge(IntLit(1), input_arg),
-        Le(IntLit(1), input_arg)
+    # return Choose(inv_cond)
+    input_arg_cond = Choose(
+        Ge(reads[0], int_lit),
+        Le(reads[0], int_lit),
+        Gt(reads[0], int_lit),
+        Lt(reads[0], int_lit),
+        Eq(reads[0], int_lit),
     )
-    return Or(input_arg_bound, inv_cond)
+    x_cond = Eq(x, int_lit)
+    # b = Or(inv_cond, And(input_arg_cond, x_cond))
+    b = Or(inv_cond, x_cond)
+    return b
 
 if __name__ == "__main__":
     filename = "tests/python/while3.py"

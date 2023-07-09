@@ -29,7 +29,6 @@ def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
-        import pdb; pdb.set_trace()
         f = Choose(IntLit(0), IntLit(1), IntLit(2))
         e = Choose(*ci.modifiedVars)
         d = And(
