@@ -33,7 +33,14 @@ def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var]
     # b = Or(Ge(IntLit(1), reads[0]), Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
     int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
     input_arg_cond = Lt(reads[0], IntLit(1))
-    b = Or(input_arg_cond, Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
+    ite_stmt = Ite(
+        Lt(reads[0], IntLit(1)),
+        Eq(ret_val, IntLit(0)),
+        Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices)))
+    )
+    # b = Or(input_arg_cond, Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
+    # b = Eq(ret_val, ite_stmt)
+    b = ite_stmt
     return b
 
 def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
