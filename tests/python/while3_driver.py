@@ -32,13 +32,7 @@ def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var]
     # return Eq(ret_val, cond)
     # b = Or(Ge(IntLit(1), reads[0]), Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
     int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
-    input_arg_cond = Choose(
-        Ge(reads[0], int_lit),
-        Le(reads[0], int_lit),
-        Gt(reads[0], int_lit),
-        Lt(reads[0], int_lit),
-        Eq(reads[0], int_lit),
-    )
+    input_arg_cond = Lt(reads[0], IntLit(1))
     b = Or(input_arg_cond, Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
     return b
 
@@ -61,21 +55,27 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
         Lt(y, reads[0]),
         Eq(y, reads[0]),
     )
+    input_arg_cond_1 = Ge(reads[0], IntLit(1))
     inv_cond = And(
         y_bound_int_lit_cond,
-        And(y_bound_arg_cond, Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))),
+        And(
+            input_arg_cond_1,
+            And(y_bound_arg_cond, Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))),
+        )
     )
+    # inv_cond = And(
+    #     y_bound_arg_cond,
+    #     Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))
+    # )
     # return Choose(inv_cond)
-    input_arg_cond = Choose(
-        Ge(reads[0], int_lit),
-        Le(reads[0], int_lit),
-        Gt(reads[0], int_lit),
-        Lt(reads[0], int_lit),
-        Eq(reads[0], int_lit),
-    )
-    x_cond = Eq(x, int_lit)
+    input_arg_cond = Lt(reads[0], IntLit(1))
+    x_cond = Eq(x, IntLit(0))
+
+    # b = Or(inv_cond, And(y_bound_invalid_cond, x_cond))
+    b = Or(inv_cond, input_arg_cond)
     # b = Or(inv_cond, And(input_arg_cond, x_cond))
-    b = Or(inv_cond, x_cond)
+    # input_arg <= 1 and y > input_arg
+    # b = Or(inv_cond, And(input_arg_cond, y_bound_invalid_cond))
     return b
 
 if __name__ == "__main__":
