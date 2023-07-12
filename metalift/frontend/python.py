@@ -23,6 +23,7 @@ from metalift.ir import (
     Not,
     Or,
     SetT,
+    Sub,
     Synth,
     Tuple as MLTuple,
     TupleGet,
@@ -71,6 +72,7 @@ from mypy.nodes import (
     Statement,
     TryStmt,
     TupleExpr,
+    UnaryExpr,
     WhileStmt,
     WithStmt,
     CallExpr,
@@ -461,48 +463,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_expression_stmt(self, o: ExpressionStmt) -> None:
         o.expr.accept(self)
 
-    def visit_call_expr(self, o: CallExpr) -> Expr:
-        if is_func_call_with_name(o, "len"):
-            assert len(o.args) == 1
-            arg = o.args[0].accept(self)
-            if not is_list_type_expr(arg):
-                raise Exception("len only supported on lists!")
-            return Call("list_length", Int(), arg)
-        elif is_method_call_with_name(o, "append"):
-            callee_expr = o.callee.expr.accept(self)  # type: ignore
-            if not is_list_type_expr(callee_expr):
-                raise Exception(".append only supported on lists!")
-            assert len(o.args) == 1
-            elem_to_append = o.args[0].accept(self)
-            list_after_append = Call(
-                "list_append", callee_expr.type, callee_expr, elem_to_append
-            )
-            self.state.write(callee_expr.name(), list_after_append)
-            return list_after_append
-        elif is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
-            callee_expr = o.callee.expr.accept(self)  # type: ignore
-
-            if is_method_call_with_name(o, "add"):
-                method_name, func_call_name = ".add", "set-union"
-            else:
-                method_name, func_call_name = ".remove", "set-minus"
-
-            if not is_set_type_expr(callee_expr):
-                raise Exception(f"{method_name} only supported on sets!")
-            assert len(o.args) == 1
-            elem = o.args[0].accept(self)
-            singleton_set = Call("set-singleton", SetT(elem.type), elem)
-            set_after_modification = Call(
-                func_call_name,
-                callee_expr.type,
-                callee_expr,
-                singleton_set
-            )
-            self.state.write(callee_expr.name(), set_after_modification)
-            return set_after_modification
-
-        raise Exception("Unrecognized call expression!")
-
     def visit_operator_assignment_stmt(self, o: OperatorAssignmentStmt) -> None:
         raise NotImplementedError()
 
@@ -650,6 +610,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         for s in o.body:
             s.accept(consequent)
+
         if o.else_body:  # mypy.nodes.Block
             o.else_body.accept(alternate)
 
@@ -784,6 +745,56 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         if len(o.items) > 0:
             raise Exception("Initialization of non-empty lists is not supported!")
         return Call("list_empty", ListT(Int()))
+
+    def visit_unary_expr(self, o: UnaryExpr) -> None:
+        if o.op == "-":
+            expr = o.expr.accept(self)
+            if expr.type != Int():
+                raise Exception("Unary operator '-' only supported on integers!")
+            return Sub(IntLit(0), expr)
+        raise Exception(f"Unsupported unary operator '{o.op}'")
+
+    def visit_call_expr(self, o: CallExpr) -> Expr:
+        if is_func_call_with_name(o, "len"):
+            assert len(o.args) == 1
+            arg = o.args[0].accept(self)
+            if not is_list_type_expr(arg):
+                raise Exception("len only supported on lists!")
+            return Call("list_length", Int(), arg)
+        elif is_method_call_with_name(o, "append"):
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
+            if not is_list_type_expr(callee_expr):
+                raise Exception(".append only supported on lists!")
+            assert len(o.args) == 1
+            elem_to_append = o.args[0].accept(self)
+            list_after_append = Call(
+                "list_append", callee_expr.type, callee_expr, elem_to_append
+            )
+            self.state.write(callee_expr.name(), list_after_append)
+            return list_after_append
+        elif is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
+
+            if is_method_call_with_name(o, "add"):
+                method_name, func_call_name = ".add", "set-union"
+            else:
+                method_name, func_call_name = ".remove", "set-minus"
+
+            if not is_set_type_expr(callee_expr):
+                raise Exception(f"{method_name} only supported on sets!")
+            assert len(o.args) == 1
+            elem = o.args[0].accept(self)
+            singleton_set = Call("set-singleton", SetT(elem.type), elem)
+            set_after_modification = Call(
+                func_call_name,
+                callee_expr.type,
+                callee_expr,
+                singleton_set
+            )
+            self.state.write(callee_expr.name(), set_after_modification)
+            return set_after_modification
+
+        raise Exception("Unrecognized call expression!")
 
 
 class Driver:
