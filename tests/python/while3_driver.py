@@ -22,26 +22,21 @@ def target_lang() -> List[FnDeclRecursive]:
 
 
 def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    # input_arg = reads[0]
-    choices = Choose(IntLit(1), IntLit(2), IntLit(3))
-    # cond = Ite(
-    #     Eq(IntLit(0), reads[0]),
-    #     IntLit(0),
-    #     Call("sum_n", Int(), Sub(reads[0], choices))
-    # )
-    # return Eq(ret_val, cond)
-    # b = Or(Ge(IntLit(1), reads[0]), Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
+    input_arg = reads[0]
     int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
-    input_arg_cond = Lt(reads[0], IntLit(1))
-    ite_stmt = Ite(
-        Lt(reads[0], IntLit(1)),
-        IntLit(0),
-        Call("sum_n", Int(), Sub(reads[0], choices))
+    input_arg_bound = Choose(
+        Ge(input_arg, int_lit),
+        Le(input_arg, int_lit),
+        Gt(input_arg, int_lit),
+        Lt(input_arg, int_lit),
+        Eq(input_arg, int_lit),
     )
-    # b = Or(input_arg_cond, Eq(ret_val, Call("sum_n", Int(), Sub(reads[0], choices))))
-    b = Eq(ret_val, ite_stmt)
-    # b = ite_stmt
-    return b
+    ite_stmt = Ite(
+        input_arg_bound,
+        IntLit(0),
+        Call("sum_n", Int(), Sub(reads[0], int_lit))
+    )
+    return Eq(ret_val, ite_stmt)
 
 def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     if v.name() != "x":
@@ -64,7 +59,14 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
         Lt(x_or_y, input_arg),
         Eq(x_or_y, input_arg),
     )
-    input_arg_bound = Ge(input_arg, int_lit)
+    input_arg_bound = Choose(
+        Ge(input_arg, int_lit),
+        Le(input_arg, int_lit),
+        Gt(input_arg, int_lit),
+        Lt(input_arg, int_lit),
+        Eq(input_arg, int_lit),
+    )
+
     inv_cond = And(
         input_arg_bound,
         And(
@@ -75,21 +77,15 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
             ),
         )
     )
-    # inv_cond = And(
-    #     y_bound_arg_cond,
-    #     Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))
-    # )
-    # return Choose(inv_cond)
-    input_arg_cond = Lt(reads[0], IntLit(1))
-    x_cond = Eq(x, IntLit(0))
-    y_cond = Eq(y, IntLit(1))
+    not_in_loop_cond = And(
+        input_arg_bound,
+        And(
+            Eq(x, int_lit),
+            Eq(y, int_lit)
+        )
+    )
 
-    # b = Or(inv_cond, And(y_bound_invalid_cond, x_cond))
-    b = Or(inv_cond, input_arg_cond)
-    b = Or(inv_cond, And(input_arg_cond, And(x_cond, y_cond)))
-    # input_arg <= 1 and y > input_arg
-    # b = Or(inv_cond, And(input_arg_cond, y_bound_invalid_cond))
-    return b
+    return Or(inv_cond, not_in_loop_cond)
 
 if __name__ == "__main__":
     filename = "tests/python/while3.py"
