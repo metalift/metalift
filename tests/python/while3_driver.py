@@ -77,10 +77,11 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
     # return Choose(inv_cond)
     input_arg_cond = Lt(reads[0], IntLit(1))
     x_cond = Eq(x, IntLit(0))
+    y_cond = Eq(y, IntLit(1))
 
     # b = Or(inv_cond, And(y_bound_invalid_cond, x_cond))
     b = Or(inv_cond, input_arg_cond)
-    b = Or(inv_cond, And(input_arg_cond, x_cond))
+    b = Or(inv_cond, And(input_arg_cond, And(x_cond, y_cond)))
     # input_arg <= 1 and y > input_arg
     # b = Or(inv_cond, And(input_arg_cond, y_bound_invalid_cond))
     return b
