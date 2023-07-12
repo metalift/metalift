@@ -47,27 +47,32 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
     if v.name() != "x":
         return BoolLit(True)
     x, y = writes
+    input_arg = reads[0]
     int_lit = Choose(IntLit(0), IntLit(1), IntLit(2))
-    y_bound_int_lit_cond = Choose(
-        Ge(y, int_lit),
-        Le(y, int_lit),
-        Gt(y, int_lit),
-        Lt(y, int_lit),
-        Eq(y, int_lit),
+    x_or_y = Choose(x, y)
+    x_or_y_int_lit_bound = Choose(
+        Ge(x_or_y, int_lit),
+        Le(x_or_y, int_lit),
+        Gt(x_or_y, int_lit),
+        Lt(x_or_y, int_lit),
+        Eq(x_or_y, int_lit),
     )
-    y_bound_arg_cond = Choose(
-        Ge(y, reads[0]),
-        Le(y, reads[0]),
-        Gt(y, reads[0]),
-        Lt(y, reads[0]),
-        Eq(y, reads[0]),
+    x_or_y_input_arg_bound = Choose(
+        Ge(x_or_y, input_arg),
+        Le(x_or_y, input_arg),
+        Gt(x_or_y, input_arg),
+        Lt(x_or_y, input_arg),
+        Eq(x_or_y, input_arg),
     )
-    input_arg_cond_1 = Ge(reads[0], IntLit(1))
+    input_arg_bound = Ge(input_arg, int_lit)
     inv_cond = And(
-        y_bound_int_lit_cond,
+        input_arg_bound,
         And(
-            input_arg_cond_1,
-            And(y_bound_arg_cond, Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))),
+            x_or_y_int_lit_bound,
+            And(
+                x_or_y_input_arg_bound,
+                Eq(x, Call("sum_n", Int(), Sub(y, int_lit)))
+            ),
         )
     )
     # inv_cond = And(
