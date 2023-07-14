@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List
 
 from mypy.nodes import Statement
 
@@ -7,6 +7,7 @@ from metalift.ir import (Add, And, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursi
                          Int, IntLit, Ite, Lt, Mul, Sub, Tuple, TupleGet,
                          TupleT, Var)
 from metalift.rosette_translator import toRosette
+from metalift.smt_util import toSMT
 from tests.python.utils.utils import codegen
 
 UNINTERP_FN_NAME = "uninterp"
@@ -44,55 +45,64 @@ if __name__ == "__main__":
 
     lang = target_lang()
 
+    vars = set(driver.var_tracker.all())
+
     synths = [i.gen_Synth() for i in driver.inv_tracker.predicates.values()]
+    preds = [] # TODO: add type
+    vc = And(*driver.asserts)
     inv_guess = []
     toRosette(
         filename=synthFile,
         targetLang=lang,
-        vars=set(driver.var_tracker.all()),
+        vars=vars,
         invAndPs=synths,
-        preds=[],
-        vc=And(*driver.asserts),
+        preds=preds,
+        vc=vc,
         loopAndPsInfo=synths,
         invGuess=inv_guess,
         unboundedInts=False,
         listBound=2
     )
 
-    exit(0)
-
 
     ### SMT
     print("====== verification")
 
     #####identifying call sites for inlining #####
-    inCalls: typing.List[typing.Any] = []
-    fnCalls: typing.List[typing.Any] = []
+    inCalls: List[Any] = []
+    fnCalls: List[Any] = []
 
     ##### generating function definitions of all the functions to be synthesized#####
     candidatesSMT = []
     candidateDict = {}
-    r = Var("tmp9", Int())
-    x = Var("arg", Int())
-    y = Var("arg1", Int())
+    ret_val = Var("test_rv", Int())
+    x = Var("x", Int())
+    y = Var("y", Int())
     # pretend that we have run synthesis and insert the result into candidateDict to print
-    candidateDict[fnName] = summary(r, x, y)
+    candidateDict["test_ps"] = Eq(ret_val, Add(uninterp(x, x), uninterp(y, y)))
 
-    for ce in loopAndPsInfo:
-        allVars = (
-            ce.modifiedVars + ce.readVars if isinstance(ce, CodeInfo) else ce.args[2:]
-        )
-        ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
+    for synth in synths:
+        all_vars = synth.args[2:]
+        ce_name = synth.args[0]
         candidatesSMT.append(
             FnDeclRecursive(
-                ceName,
-                ce.retT if isinstance(ce, CodeInfo) else ce.type,
-                candidateDict[ceName],
-                *allVars,
+                ce_name,
+                synth.body(),
+                candidateDict[ce_name],
+                *all_vars,
             )
         )
 
-    verifFile = synthDir + basename + ".smt"
+    verif_file = synthDir + "test" + ".smt"
 
-    toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
+    toSMT(
+        targetLang=lang,
+        vars=vars,
+        invAndPs=candidatesSMT,
+        preds=preds,
+        vc=vc,
+        outFile=verif_file,
+        inCalls=[],
+        fnCalls=[]
+    )
 
