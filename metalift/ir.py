@@ -1687,7 +1687,9 @@ class FnDecl(Expr):
         return self.args[2:]  # type: ignore
 
     def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None, is_uninterp: bool = False
+        self,
+        writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None,
+        is_uninterp: bool = False
     ) -> str:
         if self.args[1] is None and is_uninterp:  # uninterpreted function
             args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])

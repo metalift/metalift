@@ -41,6 +41,7 @@ from mypy.nodes import (
     AssignmentStmt,
     Block,
     BreakStmt,
+    CallExpr,
     ClassDef,
     ComparisonExpr,
     ContinueStmt,
@@ -51,13 +52,13 @@ from mypy.nodes import (
     ForStmt,
     FuncDef,
     GlobalDecl,
-    MemberExpr,
     IfStmt,
     Import,
     ImportAll,
     ImportFrom,
-    IntExpr,
     IndexExpr,
+    IntExpr,
+    ListExpr,
     MatchStmt,
     MypyFile,
     NameExpr,
@@ -66,7 +67,6 @@ from mypy.nodes import (
     OpExpr,
     OverloadedFuncDef,
     PassStmt,
-    ListExpr,
     RaiseStmt,
     ReturnStmt,
     Statement,
@@ -75,7 +75,6 @@ from mypy.nodes import (
     UnaryExpr,
     WhileStmt,
     WithStmt,
-    CallExpr,
 )
 from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
@@ -618,7 +617,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         for s in o.body:
             s.accept(consequent)
-
         if o.else_body:  # mypy.nodes.Block
             o.else_body.accept(alternate)
 
@@ -783,13 +781,12 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             return list_after_append
         elif is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
             # set add or set remove
-            callee_expr = o.callee.expr.accept(self)  # type: ignore
-
             if is_method_call_with_name(o, "add"):
                 method_name, func_call_name = ".add", "set-union"
             else:
                 method_name, func_call_name = ".remove", "set-minus"
 
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
             if not is_set_type_expr(callee_expr):
                 raise Exception(f"{method_name} only supported on sets!")
             assert len(o.args) == 1
@@ -846,7 +843,13 @@ class Driver:
         uninterp_fns: List[str] = []
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
-            self, filepath, fn_name, target_lang_fn, inv_grammar, ps_grammar, uninterp_fns
+            driver=self,
+            filepath=filepath,
+            name=fn_name,
+            target_lang_fn=target_lang_fn,
+            inv_grammar=inv_grammar,
+            ps_grammar=ps_grammar,
+            uninterp_fns=uninterp_fns
         )
         self.fns[fn_name] = f
         return f
