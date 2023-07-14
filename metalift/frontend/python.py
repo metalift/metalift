@@ -533,6 +533,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns
         )
         o.body.accept(body_visitor)
 
