@@ -1574,7 +1574,7 @@ class FnDeclRecursive(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parseTypeRef(self.type),
+                parseTypeRef(self.returnT()),
             )
         else:
             declarations = []
@@ -1690,7 +1690,7 @@ class FnDecl(Expr):
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
                 args_type,
-                toRosetteType(self.type),
+                toRosetteType(self.returnT()),
             )
 
         else:
@@ -1715,7 +1715,7 @@ class FnDecl(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parseTypeRef(self.type),
+                parseTypeRef(self.returnT()),
             )
         else:
             declarations = []

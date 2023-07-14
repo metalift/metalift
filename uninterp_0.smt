@@ -143,14 +143,17 @@
 
 (define-fun map_get_direct ( (m (Map K_Map V_Map)) (K_Map K_Map) (d V_Map) ) V_Map (select (map_internal_array m) K_Map))
 
-(define-fun-rec test ((i9 Int) (arg Int) (arg1 Int)) Bool
-(= tmp9 (+ (uninterp arg arg) (uninterp arg1 arg1))))
+(declare-fun uninterp (Int Int) Int)
 
-(declare-const test_i3 Int)
-(declare-const test_arg1 Int)
-(declare-const test_i4 Int)
+
+(define-fun-rec test ((i9 Int) (arg Int) (arg1 Int)) Bool
+(= i9 (+ (uninterp arg arg) (uninterp arg1 arg1))))
+
 (declare-const test_arg Int)
+(declare-const test_i3 Int)
+(declare-const test_i4 Int)
 (declare-const test_i5 Int)
+(declare-const test_arg1 Int)
 (declare-const test_i6 Int)
 (declare-const test_i7 Int)
 (declare-const test_i8 Int)
@@ -158,7 +161,7 @@
 
 
 
-(assert (not (=> (and (= test_bb (=> (and (and (= test_i3 test_arg) (= test_i4 test_arg) (= test_i5 (uninterp test_arg test_arg)) (= test_i6 test_arg1) (= test_i7 test_arg1) (= test_i8 (uninterp test_arg1 test_arg1))) (and true true true)) (test (+ (uninterp test_arg test_arg) (uninterp test_arg1 test_arg1)) test_arg test_arg1)))) test_bb)))
+(assert (not (=> (= test_bb (=> (and (= test_i3 test_arg) (= test_i4 test_arg) (= test_i5 (uninterp test_arg test_arg)) (= test_i6 test_arg1) (= test_i7 test_arg1) (= test_i8 (uninterp test_arg1 test_arg1))) (test (+ (uninterp test_arg test_arg) (uninterp test_arg1 test_arg1)) test_arg test_arg1))) test_bb)))
 
 (check-sat)
 (get-model)

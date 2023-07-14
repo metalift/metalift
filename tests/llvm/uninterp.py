@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     fnName = "test"
     loopsFile = "tests/llvm/uninterp.loops"
-    cvcPath = ""
+    cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
         filename, fnName, loopsFile, None, uninterpFuncs=[uninterpFnName]

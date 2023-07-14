@@ -155,7 +155,6 @@ def toRosette(
 
     # struct declarations and function definition of target constructs
     for t in targetLang:
-        # import pdb; pdb.set_trace()
         # if t.args[1] != None:
         #     print("\n", t.toRosette(), "\n", file=f)
         print("\n", t.toRosette(), "\n", file=f)
@@ -173,11 +172,12 @@ def toRosette(
     print(generateInvPs(loopAndPsInfo), file=f)
 
     fnsDecls = []
-    for t in targetLang:
-        if t.args[1] == None:
-            fnsDecls.append(t)
-    if fnsDecls:
-        print(generateInvPs(fnsDecls), file=f)
+    # for t in targetLang:
+    #     if t.args[1] == None:
+    #         fnsDecls.append(t)
+    # if fnsDecls:
+    #     import pdb; pdb.set_trace()
+    #     print(generateInvPs(fnsDecls), file=f)
 
     # vars declaration
     varDecls, vars_all = generateVars(vars, listBound)

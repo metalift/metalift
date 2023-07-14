@@ -4,14 +4,15 @@
 (require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)
 
 
+
+ (define-symbolic uninterp (~> integer? integer? integer?)) 
+
 (define-grammar (test_gram i9 arg arg1)
  [rv (choose (equal? i9 (+ (uninterp arg arg) (uninterp arg1 arg1) ) ))]
 
 ) 
 
 (define (test i9 arg arg1) (test_gram i9 arg arg1 #:depth 10))
-
-(define (uninterp x y) (uninterp_gram x y #:depth 10))
 
 (define-symbolic test_arg integer?)
 (define-symbolic test_arg1 integer?)

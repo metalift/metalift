@@ -805,7 +805,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 to_mltype(self.types.get(o)),
                 *args
             )
-        import pdb; pdb.set_trace()
         raise Exception("Unrecognized call expression!")
 
 
