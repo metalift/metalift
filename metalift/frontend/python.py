@@ -822,6 +822,7 @@ class Driver:
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
     fns_synths: List[Synth]
+    uninterp_fns: List[str]
 
     def __init__(self) -> None:
         self.var_tracker = VariableTracker()
@@ -830,6 +831,7 @@ class Driver:
         self.postconditions = []
         self.fns = dict()
         self.fns_synths = []
+        self.uninterp_fns = []
 
     def variable(self, name: str, type: MLType) -> Var:
         return self.var_tracker.variable(name, type)
@@ -877,7 +879,8 @@ class Driver:
             preds=[],
             vc=vc,
             loopAndPsInfo=synths, # TODO: does this need fns synths
-            cvcPath="cvc5"
+            cvcPath="cvc5",
+            uninterp_fns=self.uninterp_fns
         )
 
         for f in synthesized:

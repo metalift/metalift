@@ -1349,7 +1349,9 @@ class Axiom(Expr):
         return self.args[1:]  # type: ignore
 
     def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+        self,
+        writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None,
+        is_uninterp: bool = True
     ) -> str:
         return ""  # axioms are only for verification
 
@@ -1542,9 +1544,11 @@ class FnDeclRecursive(Expr):
         return self.args[2:]  # type: ignore
 
     def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+        self,
+        writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None,
+        is_uninterp: bool = False
     ) -> str:
-        if self.args[1] is None:  # uninterpreted function
+        if self.args[1] is None and is_uninterp:  # uninterpreted function
             args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
@@ -1683,9 +1687,9 @@ class FnDecl(Expr):
         return self.args[2:]  # type: ignore
 
     def toRosette(
-        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None, is_uninterp: bool = False
     ) -> str:
-        if self.args[1] is None:  # uninterpreted function
+        if self.args[1] is None and is_uninterp:  # uninterpreted function
             args_type = " ".join(["%s" % toRosetteType(a.type) for a in self.args[2:]])
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],

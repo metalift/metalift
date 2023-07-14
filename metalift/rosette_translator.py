@@ -143,6 +143,7 @@ def toRosette(
     listBound: int,
     writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
     verifyMode: bool = False,
+    uninterp_fns: List[str] = []
 ) -> None:
     f = open(filename, "w")
     print(
@@ -157,7 +158,10 @@ def toRosette(
     for t in targetLang:
         # if t.args[1] != None:
         #     print("\n", t.toRosette(), "\n", file=f)
-        print("\n", t.toRosette(), "\n", file=f)
+        is_uninterp = (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)) and t.name() in uninterp_fns
+        if t.args[1] == None and not is_uninterp:
+            continue
+        print("\n", t.toRosette(is_uninterp=is_uninterp), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
     # inv and ps grammar definition
@@ -172,12 +176,11 @@ def toRosette(
     print(generateInvPs(loopAndPsInfo), file=f)
 
     fnsDecls = []
-    # for t in targetLang:
-    #     if t.args[1] == None:
-    #         fnsDecls.append(t)
-    # if fnsDecls:
-    #     import pdb; pdb.set_trace()
-    #     print(generateInvPs(fnsDecls), file=f)
+    for t in targetLang:
+        if t.args[1] == None and t.name() not in uninterp_fns:
+            fnsDecls.append(t)
+    if fnsDecls:
+        print(generateInvPs(fnsDecls), file=f)
 
     # vars declaration
     varDecls, vars_all = generateVars(vars, listBound)
