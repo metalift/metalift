@@ -39,6 +39,9 @@ if __name__ == "__main__":
     j = driver.variable("j", Int())
 
     test(i, j)
+    driver.synthesize()
+    print("\n\ngenerated code:" + test.codegen(codegen))
+    exit(0)
 
     synthDir = "./synthesisLogs/"
     synthFile = synthDir + "uninterp" + ".rkt"

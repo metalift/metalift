@@ -595,6 +595,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns
         )
         a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
@@ -611,6 +612,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns
         )
 
         for s in o.body:
