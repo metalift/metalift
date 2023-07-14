@@ -205,8 +205,8 @@ class RWVarsVisitor(TraverserVisitor):
         self.reads.add((o.name, t))
 
     def visit_call_expr(self, o: CallExpr) -> None:
-        # If it is an "append" call on a variable, then the variable is modified
-        if is_method_call_with_name(o, "append"):
+        # If it is a list append, set add, or set remove call on a variable, then the variable is modified
+        if is_method_call_with_name(o, "append") or is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
             callee_expr = o.callee.expr  # type: ignore
             if isinstance(callee_expr, NameExpr):
                 self._write_name_expr(callee_expr)
@@ -770,6 +770,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 raise Exception("len only supported on lists!")
             return Call("list_length", Int(), arg)
         elif is_method_call_with_name(o, "append"):
+            # list append
             callee_expr = o.callee.expr.accept(self)  # type: ignore
             if not is_list_type_expr(callee_expr):
                 raise Exception(".append only supported on lists!")
@@ -781,6 +782,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.state.write(callee_expr.name(), list_after_append)
             return list_after_append
         elif is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
+            # set add or set remove
             callee_expr = o.callee.expr.accept(self)  # type: ignore
 
             if is_method_call_with_name(o, "add"):
@@ -802,6 +804,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.state.write(callee_expr.name(), set_after_modification)
             return set_after_modification
         elif get_fn_name(o) in self.uninterp_fns:
+            # Uninterpreted functions
             args = [a.accept(self) for a in o.args]
             return Call(
                 get_fn_name(o),
@@ -885,8 +888,6 @@ class Driver:
                     self.fns[name].synthesized = cast(Eq, f.body()).e2()
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 else:
-                    print("HAHAHA", f)
-                    return
                     raise Exception(
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )

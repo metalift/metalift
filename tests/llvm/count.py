@@ -94,6 +94,7 @@ def grammar(ci: CodeInfo):
 
 
 def grammarFns(fns):
+
     if fns.args[0] == "lm":
         choices = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
         return Synth(fns.args[0], choices, *fns.args[2:])
