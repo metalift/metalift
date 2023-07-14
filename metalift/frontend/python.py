@@ -85,6 +85,7 @@ import copy
 from metalift.ir_util import is_list_type_expr, is_set_type_expr
 
 from metalift.mypy_util import (
+    get_fn_name,
     is_func_call,
     is_func_call_with_name,
     is_method_call_with_name,
@@ -341,6 +342,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     types: Dict[MypyExpr, MypyType]
 
+    uninterp_fns: List[str]
+
     def __init__(
         self,
         fn_name: str,
@@ -355,6 +358,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         types: Dict[MypyExpr, MypyType],
+        uninterp_fns: List[str]
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
@@ -370,6 +374,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
         self.types = types
+        self.uninterp_fns = uninterp_fns
 
     # Definitions
 
@@ -793,6 +798,13 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             )
             self.state.write(callee_expr.name(), set_after_modification)
             return set_after_modification
+        elif get_fn_name(o) in self.uninterp_fns:
+            args = [a.accept(self) for a in o.args]
+            return Call(
+                get_fn_name(o),
+                to_mltype(self.types.get(o)),
+                *args
+            )
 
         raise Exception("Unrecognized call expression!")
 
@@ -824,9 +836,10 @@ class Driver:
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        uninterp_fns: List[str] = []
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
-            self, filepath, fn_name, target_lang_fn, inv_grammar, ps_grammar
+            self, filepath, fn_name, target_lang_fn, inv_grammar, ps_grammar, uninterp_fns
         )
         self.fns[fn_name] = f
         return f
@@ -890,6 +903,7 @@ class MetaliftFunc:
     inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     synthesized: Optional[Expr]
+    uninterp_fns: List[str]
 
     def __init__(
         self,
@@ -899,6 +913,7 @@ class MetaliftFunc:
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        uninterp_fns: List[str]
     ) -> None:
         self.driver = driver
 
@@ -923,6 +938,7 @@ class MetaliftFunc:
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
         self.synthesized = None
+        self.uninterp_fns = uninterp_fns
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # set up new state for the call: should contain all global vars and all postconditions
@@ -943,6 +959,7 @@ class MetaliftFunc:
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns
         )
 
         self.ast.accept(v)

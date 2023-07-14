@@ -12,3 +12,6 @@ def is_func_call_with_name(o: CallExpr, func_name: str) -> bool:
 
 def is_method_call_with_name(o: CallExpr, method_name: str) -> bool:
     return isinstance(o.callee, MemberExpr) and o.callee.name == method_name
+
+def get_fn_name(o: CallExpr) -> str:
+    return o.callee.name
