@@ -146,15 +146,15 @@
 (define-fun-rec test ((i9 Int) (arg Int) (arg1 Int)) Bool
 (= tmp9 (+ (uninterp arg arg) (uninterp arg1 arg1))))
 
-(declare-const test_i4 Int)
-(declare-const test_i5 Int)
-(declare-const test_arg Int)
 (declare-const test_i3 Int)
+(declare-const test_arg Int)
+(declare-const test_arg1 Int)
+(declare-const test_i5 Int)
+(declare-const test_i4 Int)
 (declare-const test_i6 Int)
 (declare-const test_i7 Int)
 (declare-const test_i8 Int)
 (declare-const test_bb Bool)
-(declare-const test_arg1 Int)
 
 
 

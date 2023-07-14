@@ -155,8 +155,10 @@ def toRosette(
 
     # struct declarations and function definition of target constructs
     for t in targetLang:
-        if t.args[1] != None:
-            print("\n", t.toRosette(), "\n", file=f)
+        # import pdb; pdb.set_trace()
+        # if t.args[1] != None:
+        #     print("\n", t.toRosette(), "\n", file=f)
+        print("\n", t.toRosette(), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
     # inv and ps grammar definition

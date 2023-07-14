@@ -6,6 +6,8 @@ from metalift.ir import *
 from metalift.rosette_translator import toRosette
 from metalift.smt_util import toSMT
 
+from metalift.synthesize_rosette import synthesize
+
 
 # postcondition for struct1.c
 def summary(r, x, y):
@@ -36,7 +38,7 @@ if __name__ == "__main__":
     fnName = "test"
     loopsFile = "tests/llvm/struct1.loops"
 
-    cvcPath = ""
+    cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 
@@ -44,6 +46,20 @@ if __name__ == "__main__":
     invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
     lang = targetLang()
+    candidates = synthesize(
+        basename,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        cvcPath,
+    )
+    print("====== verified candidates")
+    for c in candidates:
+        print(c, "\n")
+    exit(0)
     invGuess: typing.List[Any] = []
     unboundedInts = False
     synthDir = "./tests/llvm/"

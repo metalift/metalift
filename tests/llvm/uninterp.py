@@ -6,6 +6,9 @@ from metalift.rosette_translator import toRosette
 
 from metalift.smt_util import toSMT
 
+from metalift.synthesize_rosette import synthesize
+
+
 # define an uninterpreted function in the target language that doesn't have a body
 # it should have the same name as the uninterpreted fn that we don't want the VC generator
 # to process in the source (otherwise why are you using an uninterpreted function?)
@@ -58,6 +61,22 @@ if __name__ == "__main__":
     unboundedInts = False
     synthDir = "./tests/llvm/"
     synthFile = synthDir + basename + ".rkt"
+
+    lang = targetLang()
+    candidates = synthesize(
+        basename,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        cvcPath,
+    )
+    print("====== verified candidates")
+    for c in candidates:
+        print(c, "\n")
+    exit(0)
 
     toRosette(
         synthFile,

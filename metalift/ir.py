@@ -1549,7 +1549,7 @@ class FnDeclRecursive(Expr):
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
                 args_type,
-                toRosetteType(self.type),
+                toRosetteType(self.returnT()),
             )
 
         else:
