@@ -373,17 +373,18 @@ def synthesize(
         ##### synthesis procedure #####
         choices: Dict[str, Dict[str, Expr]] = {}
         toRosette(
-            synthFile,
-            targetLang,
-            vars,
-            invAndPs,
-            preds,
-            vc,
-            loopAndPsInfo,
-            invGuess,
-            unboundedInts,
-            listBound,
-            choices,
+            filename=synthFile,
+            targetLang=targetLang,
+            vars=vars,
+            invAndPs=invAndPs,
+            preds=preds,
+            vc=vc,
+            loopAndPsInfo=loopAndPsInfo,
+            invGuess=invGuess,
+            unboundedInts=unboundedInts,
+            listBound=listBound,
+            writeChoicesTo=choices,
+            uninterp_fns=uninterp_fns
         )
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)

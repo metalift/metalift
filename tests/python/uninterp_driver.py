@@ -31,9 +31,11 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
 
 if __name__ == "__main__":
     filename = "tests/python/uninterp.py"
+    uninterp_fns = [UNINTERP_FN_NAME]
 
     driver = Driver()
-    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar, uninterp_fns=[UNINTERP_FN_NAME])
+    driver.uninterp_fns = uninterp_fns
+    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar, uninterp_fns=uninterp_fns)
 
     i = driver.variable("i", Int())
     j = driver.variable("j", Int())
