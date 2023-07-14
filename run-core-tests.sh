@@ -16,7 +16,11 @@ tests=(
 "tests.python.ite1_driver"
 "tests.python.ite2_driver"
 "tests.python.ite3_driver"
+"tests.python.set1_driver"
 "tests.python.while1_driver"
+"tests.python.while3_driver"
+"tests.python.while4_driver"
+"tests.python.no_loop_matmul_driver"
 )
 
 for test in ${tests[*]}; do
