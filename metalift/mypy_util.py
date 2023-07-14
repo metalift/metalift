@@ -13,5 +13,8 @@ def is_func_call_with_name(o: CallExpr, func_name: str) -> bool:
 def is_method_call_with_name(o: CallExpr, method_name: str) -> bool:
     return isinstance(o.callee, MemberExpr) and o.callee.name == method_name
 
+
 def get_fn_name(o: CallExpr) -> str:
-    return o.callee.name
+    if not is_func_call(o):
+        raise Exception(f"Cannot get function name of call expression {o}!")
+    return cast(NameExpr, o.callee).name

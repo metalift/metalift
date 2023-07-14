@@ -334,7 +334,7 @@ def synthesize(
     optimize_vc_equality: bool = False,
     listBound: int = 2,
     log: bool = True,
-    uninterp_fns: List[str] = []
+    uninterp_fns: List[str] = [],
 ) -> typing.List[FnDeclRecursive]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -384,7 +384,7 @@ def synthesize(
             unboundedInts=unboundedInts,
             listBound=listBound,
             writeChoicesTo=choices,
-            uninterp_fns=uninterp_fns
+            uninterp_fns=uninterp_fns,
         )
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)

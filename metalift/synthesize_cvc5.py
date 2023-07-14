@@ -8,7 +8,7 @@ from metalift.ir import *
 from metalift.smt_util import toSMT
 
 import typing
-from typing import IO, Any, Callable, Dict, Generator, Union
+from typing import IO, Any, Callable, Dict, Generator, List, Union
 
 from metalift.synthesis_common import (
     SynthesisFailed,
@@ -222,6 +222,7 @@ def synthesize(
     optimize_vc_equality: bool = False,
     listBound: int = 2,  # currently ignored
     log: bool = True,  # currently ignored
+    uninterp_fns: List[str] = [],  # currently ignored
 ) -> typing.List[FnDeclRecursive]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):

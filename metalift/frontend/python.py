@@ -205,7 +205,11 @@ class RWVarsVisitor(TraverserVisitor):
 
     def visit_call_expr(self, o: CallExpr) -> None:
         # If it is a list append, set add, or set remove call on a variable, then the variable is modified
-        if is_method_call_with_name(o, "append") or is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
+        if (
+            is_method_call_with_name(o, "append")
+            or is_method_call_with_name(o, "add")
+            or is_method_call_with_name(o, "remove")
+        ):
             callee_expr = o.callee.expr  # type: ignore
             if isinstance(callee_expr, NameExpr):
                 self._write_name_expr(callee_expr)
@@ -357,7 +361,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         types: Dict[MypyExpr, MypyType],
-        uninterp_fns: List[str]
+        uninterp_fns: List[str],
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
@@ -532,7 +536,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
-            self.uninterp_fns
+            self.uninterp_fns,
         )
         o.body.accept(body_visitor)
 
@@ -595,7 +599,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
-            self.uninterp_fns
+            self.uninterp_fns,
         )
         a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
@@ -612,7 +616,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
-            self.uninterp_fns
+            self.uninterp_fns,
         )
 
         for s in o.body:
@@ -752,7 +756,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             raise Exception("Initialization of non-empty lists is not supported!")
         return Call("list_empty", ListT(Int()))
 
-    def visit_unary_expr(self, o: UnaryExpr) -> None:
+    def visit_unary_expr(self, o: UnaryExpr) -> Expr:
         if o.op == "-":
             expr = o.expr.accept(self)
             if expr.type != Int():
@@ -779,7 +783,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             )
             self.state.write(callee_expr.name(), list_after_append)
             return list_after_append
-        elif is_method_call_with_name(o, "add") or is_method_call_with_name(o, "remove"):
+        elif is_method_call_with_name(o, "add") or is_method_call_with_name(
+            o, "remove"
+        ):
             # set add or set remove
             if is_method_call_with_name(o, "add"):
                 method_name, func_call_name = ".add", "set-union"
@@ -793,21 +799,16 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             elem = o.args[0].accept(self)
             singleton_set = Call("set-singleton", SetT(elem.type), elem)
             set_after_modification = Call(
-                func_call_name,
-                callee_expr.type,
-                callee_expr,
-                singleton_set
+                func_call_name, callee_expr.type, callee_expr, singleton_set
             )
             self.state.write(callee_expr.name(), set_after_modification)
             return set_after_modification
-        elif get_fn_name(o) in self.uninterp_fns:
+        elif is_func_call(o) and get_fn_name(o) in self.uninterp_fns:
             # Uninterpreted functions
             args = [a.accept(self) for a in o.args]
-            return Call(
-                get_fn_name(o),
-                to_mltype(self.types.get(o)),
-                *args
-            )
+            expr_type = self.types.get(o)
+            assert expr_type is not None
+            return Call(get_fn_name(o), to_mltype(expr_type), *args)
         raise Exception("Unrecognized call expression!")
 
 
@@ -840,7 +841,7 @@ class Driver:
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        uninterp_fns: List[str] = []
+        uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -849,7 +850,7 @@ class Driver:
             target_lang_fn=target_lang_fn,
             inv_grammar=inv_grammar,
             ps_grammar=ps_grammar,
-            uninterp_fns=uninterp_fns
+            uninterp_fns=uninterp_fns,
         )
         self.fns[fn_name] = f
         return f
@@ -881,9 +882,9 @@ class Driver:
             invAndPs=synths + self.fns_synths,
             preds=[],
             vc=vc,
-            loopAndPsInfo=synths, # TODO: does this need fns synths
+            loopAndPsInfo=synths,  # TODO: does this need fns synths
             cvcPath="cvc5",
-            uninterp_fns=self.uninterp_fns
+            uninterp_fns=self.uninterp_fns,
         )
 
         for f in synthesized:
@@ -922,7 +923,7 @@ class MetaliftFunc:
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        uninterp_fns: List[str]
+        uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
 
@@ -968,7 +969,7 @@ class MetaliftFunc:
             self.inv_grammar,
             self.ps_grammar,
             self.types,
-            self.uninterp_fns
+            self.uninterp_fns,
         )
 
         self.ast.accept(v)

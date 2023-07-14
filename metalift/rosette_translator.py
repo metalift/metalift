@@ -143,7 +143,7 @@ def toRosette(
     listBound: int,
     writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
     verifyMode: bool = False,
-    uninterp_fns: List[str] = []
+    uninterp_fns: List[str] = [],
 ) -> None:
     f = open(filename, "w")
     print(
@@ -156,8 +156,9 @@ def toRosette(
 
     # struct declarations and function definition of target constructs
     for t in targetLang:
-        is_fn = isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)
-        is_uninterp_fn = is_fn and t.name() in uninterp_fns
+        is_uninterp_fn = (
+            isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)
+        ) and t.name() in uninterp_fns
         if t.args[1] == None and not is_uninterp_fn:
             continue
         print("\n", t.toRosette(is_uninterp=is_uninterp_fn), "\n", file=f)
@@ -176,8 +177,11 @@ def toRosette(
 
     fnsDecls = []
     for t in targetLang:
-        is_fn = isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)
-        if t.args[1] == None and is_fn and t.name() not in uninterp_fns:
+        if (
+            t.args[1] == None
+            and (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive))
+            and t.name() not in uninterp_fns
+        ):
             fnsDecls.append(t)
     if fnsDecls:
         print(generateInvPs(fnsDecls), file=f)
