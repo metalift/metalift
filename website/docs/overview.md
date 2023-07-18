@@ -22,6 +22,9 @@ Each extracted code fragment is then passed to a program synthesizer (we current
 
 Each successfully verified candidate program is then processed by the code generator, which translates the candidate program into the concrete syntax of the DSL. The resulting DSL program is then "stitched" back into the original code, with glue code generated to call the generated DSL program as needed. This is illustrated in the diagram above.
 
+## Technical Overview
+For those who would like to get a more in-depth understanding of the concepts behind lifting, check out [this overview paper]( https://drops.dagstuhl.de/opus/volltexte/2023/18231/)!
+
 ## Prior Results
 While we are still building out Metalift, our goal is to use it to reproduce the prior standalone transpilers that were constructed using verified lifting:
 
