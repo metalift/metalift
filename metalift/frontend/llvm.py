@@ -1,6 +1,6 @@
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
-from metalift.analysis_new import VariableTracker
+from metalift.analysis_new import RawBlock, VariableTracker
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
@@ -21,12 +21,17 @@ from metalift.ir import (
     IntLit,
     Ite,
     Le,
+    ListT,
+    Lit,
     Lt,
     Not,
+    Object,
     Or,
+    SetT,
     Synth,
     Tuple as MLTuple,
     TupleGet,
+    TupleT,
     Type as MLType,
     Var,
     parseTypeRef,
@@ -78,6 +83,8 @@ from mypy.types import CallableType, Instance, Type as TypeRef, UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
+
+from metalift.analysis import setupBlocks
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -300,6 +307,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     types: Dict[ValueRef, TypeRef]
 
+    fn_blocks: Dict[str, Block]
+
     def __init__(
         self,
         fn_name: str,
@@ -314,6 +323,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         types: Dict[ValueRef, TypeRef],
+        fn_blocks: Dict[str, Block]
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
@@ -330,6 +340,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         self.ps_grammar = ps_grammar
         self.types = types
 
+        self.fn_blocks = fn_blocks
     # Definitions
 
     def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
@@ -350,42 +361,76 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_func_def(self, o: ValueRef) -> None:
         if o.name != self.fn_name:
             return
-
-        # TODO: we don't have return type
-        # self.ret_val = self.var_tracker.variable(
-        #     self.fn_name, to_mltype(fn_type.ret_type)
-        # )
-        arg_names = [a.name for a in self.fn.arguments]
-        arg_types = self.fn_type.args[1]
+        ret_type: MLType = self.fn_type.args[0]
+        arg_types: List[MLType] = self.fn_type.args[1]
+        arg_names: List[str] = [a.name for a in self.fn.arguments]
         formals = list(zip(arg_names, arg_types))
 
         self.pred_tracker.postcondition(
             o,
-            [(f"{self.fn_name}_rv", self.fn_type.ret_type)],
+            [(f"{self.fn_name}_rv", ret_type)],
             formals,
             self.ps_grammar,
         )
 
-        if len(fn_type.arg_names) != len(self.args):
+        if len(arg_names) != len(self.args):
             raise RuntimeError(
-                f"expect {len(fn_type.arg_names)} args passed to {self.fn_name} got {len(self.args)} instead"
+                f"expect {len(arg_names)} args passed to {self.fn_name} got {len(self.args)} instead"
             )
 
         for actual, formal in zip(self.args, formals):
-            if to_mltype(formal[1]) != actual.type:
+            if actual.type != formal[1]:
                 raise RuntimeError(
-                    f"expect {actual} to have type {to_mltype(formal[1])} rather than {actual.type}"
+                    f"expect {actual} to have type {formal[1]} rather than {actual.type}"
                 )
             self.state.write(formal[0], actual)
 
-        if fn_type.ret_type is None:
-            raise RuntimeError(f"fn must return a value: {fn_type}")
+        if ret_type is None:
+            raise RuntimeError(f"fn must return a value: {self.fn_type}")
 
-        self.pred_tracker.postcondition(
-            o, [(self.fn_name, fn_type.ret_type)], formals, self.ps_grammar
-        )
+        for blk in self.fn_blocks.values():
+            self.visit_llvm_block(blk)
 
-        o.body.accept(self)
+    def visit_llvm_block(self, o: ValueRef) -> None:
+        for instr in o.instructions:
+            if instr.opcode == "alloca":
+                self.visit_alloca_instruction(instr)
+
+    def visit_alloca_instruction(self, o: ValueRef) -> None:
+        # alloca <type>, align <num> or alloca <type>
+        t = re.search("alloca ([^$|,]+)", str(o)).group(  # type: ignore
+            1
+        )  # bug: ops[0] always return i32 1 regardless of type
+        if t == "i32":
+            val = Lit(0, Int())
+        elif t == "i8":
+            val = Lit(False, Bool())
+        elif t == "i1":
+            val = Lit(False, Bool())
+        elif t == "%struct.list*":
+            val = Lit(0, ListT(Int()))
+        elif t.startswith("%struct.set"):
+            val = Lit(0, SetT(Int()))
+        elif t.startswith("%struct.tup."):
+            retType = [Int() for i in range(int(t[-2]) + 1)]
+            val = Lit(0, TupleT(*retType))
+        elif t.startswith("%struct.tup"):
+            val = Lit(0, TupleT(Int(), Int()))
+        elif t.startswith(
+            "%struct."
+        ):  # not a tuple or set, assume to be user defined type
+            o = re.search("%struct.(.+)", t)
+            if o:
+                tname = o.group(1)
+            else:
+                raise Exception("failed to match struct %s: " % t)
+
+            val = Object(MLType(tname))
+        else:
+            raise Exception("NYI: %s" % o)
+
+        # o.name is the register name
+        self.state.write(o.name, val)
 
     def visit_overloaded_func_def(self, o: OverloadedFuncDef) -> None:
         raise NotImplementedError()
@@ -788,6 +833,7 @@ class MetaliftFunc:
     inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     synthesized: Optional[Expr]
+    fn_blocks: Dict[str, Block]
 
     def __init__(
         self,
@@ -802,10 +848,23 @@ class MetaliftFunc:
         self.driver = driver
         with open(llvm_filepath, mode="r") as file:
             ref = llvm.parse_assembly(file.read())
-        fn = ref.get_function(name)
-        self.fn = fn
-        fn_args_types = [parseTypeRef(a.type) for a in fn.arguments]
-        self.fn_type = FnT(None, fn_args_types)
+        self.fn = ref.get_function(name)
+        self.fn_blocks = setupBlocks(self.fn.blocks)
+
+        # Find the return type of function
+        blocks = {
+            block.name: RawBlock(block.name, list(block.instructions))
+            for block in self.fn.blocks
+        }
+        found_return = None
+        for block in blocks.values():
+            if block.return_type:
+                if found_return:
+                    assert found_return == block.return_type
+                found_return = block.return_type
+        return_type = found_return  # type: ignore
+        fn_args_types = [parseTypeRef(a.type) for a in self.fn.arguments]
+        self.fn_type = FnT(return_type, fn_args_types)
 
         # TODO: maybe we don't need the types because
         # self.types = r.types
@@ -835,7 +894,8 @@ class MetaliftFunc:
             self.driver.inv_tracker,
             self.inv_grammar,
             self.ps_grammar,
-            self.types
+            self.types,
+            self.fn_blocks
         )
 
         v.visit_func_def(self.fn)
