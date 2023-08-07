@@ -327,6 +327,7 @@ def processBranches(
             ps: Union[MLInst, Expr] = MLInst_Call(
                 fnName, Bool(), returnArg, *filteredArgs
             )
+            # Jie TODO: not sure what wrapSummaryCheck is doing
             if wrapSummaryCheck:
                 ps, transformedArgs = wrapSummaryCheck(cast(MLInst, ps))
                 returnArg = transformedArgs[0]
