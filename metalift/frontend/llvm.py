@@ -6,6 +6,7 @@ from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 
 from metalift.ir import (
+    Add,
     And,
     Bool,
     Call,
@@ -24,10 +25,13 @@ from metalift.ir import (
     ListT,
     Lit,
     Lt,
+    Mul,
     Not,
     Object,
     Or,
+    Pointer,
     SetT,
+    Sub,
     Synth,
     Tuple as MLTuple,
     TupleGet,
@@ -109,6 +113,7 @@ LLVMVar = Tuple[str, TypeRef]
 class State:
     precond: List[Expr]
     vars: Dict[str, Expr]
+    mem: Dict[str, Expr]
     asserts: List[Expr]
     has_returned: bool
 
@@ -395,6 +400,18 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         for instr in o.instructions:
             if instr.opcode == "alloca":
                 self.visit_alloca_instruction(instr)
+            elif instr.opcode == "load":
+                self.visit_load_instruction(instr)
+            elif instr.opcode == "store":
+                self.visit_store_instruction(instr)
+            elif instr.opcode == "add":
+                self.visit_add_instruction(instr)
+            elif instr.opcode == "sub":
+                self.visit_sub_instruction(instr)
+            elif instr.opcode == "mul":
+                self.visit_mul_instruction(instr)
+            elif instr.opcode == "icmp":
+                self.visit_icmp_instruction(instr)
 
     def visit_alloca_instruction(self, o: ValueRef) -> None:
         # alloca <type>, align <num> or alloca <type>
@@ -430,7 +447,68 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             raise Exception("NYI: %s" % o)
 
         # o.name is the register name
-        self.state.write(o.name, val)
+        self.state.write(o.name, Pointer(val))
+
+    def visit_load_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        ptr_expr = self.state.read(ops[0].name)
+        assert ptr_expr.type.name == "Pointer"
+        self.state.write(o.name, ptr_expr.value)
+
+    def visit_store_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        value_to_store = self.state.read(ops[0].name)
+
+        # store into the location stored in ops[1].name
+        ptr_expr = self.state.read(ops[1].name)
+        assert ptr_expr.type.name == "Pointer"
+        ptr_expr.set_value(value_to_store)
+
+    def visit_add_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        add_expr = Add(
+            self.state.read(ops[0].name),
+            self.state.read(ops[1].name)
+        )
+        self.state.write(o.name, add_expr)
+
+    def visit_sub_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        sub_expr = Sub(
+            self.state.read(ops[0].name),
+            self.state.read(ops[1].name)
+        )
+        self.state.write(o.name, sub_expr)
+
+    def visit_mul_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        mul_expr = Mul(
+            self.state.read(ops[0].name),
+            self.state.read(ops[1].name)
+        )
+        self.state.write(o.name, mul_expr)
+
+    def visit_icmp_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(o).strip()).group(1)
+        # TODO: use parseOperand
+        op0 = self.state.read(ops[0].name)
+        op1 = self.state.read(ops[1].name)
+
+        if cond == "eq":
+            value = Eq(op0, op1)
+        elif cond == "ne":
+            value = Not(Eq(op0, op1))
+        elif cond == "sgt":
+            value = Gt(op0, op1)
+        elif cond == "sle":
+            value = Le(op0, op1)
+        elif cond == "slt" or cond == "ult":
+            value = Lt(op0, op1)
+        else:
+            raise Exception("NYI %s" % cond)
+
+        self.state.write(o.name, value)
 
     def visit_overloaded_func_def(self, o: OverloadedFuncDef) -> None:
         raise NotImplementedError()

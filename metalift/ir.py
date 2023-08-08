@@ -146,6 +146,8 @@ def MapT(keyT: Type, valT: Type) -> Type:
 def TupleT(e1T: Type, *elemT: Type) -> Type:
     return Type("Tuple", e1T, *elemT)
 
+def PointerT(elemT: Type) -> Type:
+    return Type("Pointer", elemT)
 
 T = TypeVar("T")
 
@@ -561,6 +563,16 @@ class NonTerm(Var):
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_NonTerm(self)
 
+class Pointer(Expr):
+    def __init__(self, val: Expr) -> None:
+        Expr.__init__(self, PointerT(val.type), [val])
+
+    @property
+    def value(self) -> Expr:
+        return self.args[0]
+
+    def set_value(self, value: Expr) -> None:
+        self.args[0] = value
 
 class Lit(Expr):
     def __init__(self, val: Union[bool, int, str], ty: Type) -> None:
