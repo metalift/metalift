@@ -129,6 +129,18 @@ class State:
         self.asserts = asserts
         self.has_returned = has_returned if not has_returned else has_returned
 
+    def read_operand(self, op: ValueRef) -> Expr:
+        if op.name:
+            return self.read(op.name)
+
+        val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
+        if val == "true":
+            return Lit(True, Bool())
+        elif val == "false":
+            return Lit(False, Bool())
+        else:  # assuming it's a number
+            return Lit(int(val), Int())
+
     def read(self, var: str) -> Expr:
         if var in self.vars:
             return self.vars[var]
@@ -310,8 +322,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
 
-    types: Dict[ValueRef, TypeRef]
-
     fn_blocks: Dict[str, Block]
 
     def __init__(
@@ -327,7 +337,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        types: Dict[ValueRef, TypeRef],
         fn_blocks: Dict[str, Block]
     ) -> None:
         self.fn_name = fn_name
@@ -343,7 +352,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
-        self.types = types
 
         self.fn_blocks = fn_blocks
     # Definitions
@@ -412,6 +420,12 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 self.visit_mul_instruction(instr)
             elif instr.opcode == "icmp":
                 self.visit_icmp_instruction(instr)
+            elif instr.opcode == "br":
+                self.visit_br_instruction(instr)
+            elif instr.opcode == "ret":
+                self.visit_ret_instruction(instr)
+            else:
+                print("MISSING SUPPORT FOR INSTR", instr.opcode)
 
     def visit_alloca_instruction(self, o: ValueRef) -> None:
         # alloca <type>, align <num> or alloca <type>
@@ -457,7 +471,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def visit_store_instruction(self, o: ValueRef) -> None:
         ops = list(o.operands)
-        value_to_store = self.state.read(ops[0].name)
+        value_to_store = self.state.read_operand(ops[0])
 
         # store into the location stored in ops[1].name
         ptr_expr = self.state.read(ops[1].name)
@@ -467,24 +481,24 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_add_instruction(self, o: ValueRef) -> None:
         ops = list(o.operands)
         add_expr = Add(
-            self.state.read(ops[0].name),
-            self.state.read(ops[1].name)
+            self.state.read_operand(ops[0]),
+            self.state.read_operand(ops[1])
         )
         self.state.write(o.name, add_expr)
 
     def visit_sub_instruction(self, o: ValueRef) -> None:
         ops = list(o.operands)
         sub_expr = Sub(
-            self.state.read(ops[0].name),
-            self.state.read(ops[1].name)
+            self.state.read_operand(ops[0]),
+            self.state.read_operand(ops[1])
         )
         self.state.write(o.name, sub_expr)
 
     def visit_mul_instruction(self, o: ValueRef) -> None:
         ops = list(o.operands)
         mul_expr = Mul(
-            self.state.read(ops[0].name),
-            self.state.read(ops[1].name)
+            self.state.read_operand(ops[0]),
+            self.state.read_operand(ops[1])
         )
         self.state.write(o.name, mul_expr)
 
@@ -492,8 +506,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         ops = list(o.operands)
         cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(o).strip()).group(1)
         # TODO: use parseOperand
-        op0 = self.state.read(ops[0].name)
-        op1 = self.state.read(ops[1].name)
+        op0 = self.state.read_operand(ops[0])
+        op1 = self.state.read_operand(ops[1])
 
         if cond == "eq":
             value = Eq(op0, op1)
@@ -509,6 +523,37 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             raise Exception("NYI %s" % cond)
 
         self.state.write(o.name, value)
+
+    def visit_br_instruction(self, o: ValueRef) -> None:
+        ops = list(o.operands)
+        import pdb; pdb.set_trace()
+        # LLVMLite switches the order of branches for some reason
+        true_branch = ops[2].name
+        false_branch = ops[1].name
+        cond = self.state.read_operand(ops[0])
+
+        # clone the current state
+        c_state = copy.deepcopy(self.state)
+        c_state.precond.append(cond)
+        consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            fn_name=self.fn_name,
+            fn_type=self.fn_type,
+            fn=self.fn,
+            args=self.args,
+            ret_val=self.ret_val,
+            state=c_state,
+            invariants=self.invariants,
+            var_tracker=self.var_tracker,
+            pred_tracker=self.pred_tracker,
+            inv_grammar=self.inv_grammar,
+            ps_grammar=self.ps_grammar,
+        )
+        # TODO: finish this
+
+
+
+    def visit_ret_instruction(self, o: ValueRef) -> None:
+        pass
 
     def visit_overloaded_func_def(self, o: OverloadedFuncDef) -> None:
         raise NotImplementedError()
@@ -944,9 +989,6 @@ class MetaliftFunc:
         fn_args_types = [parseTypeRef(a.type) for a in self.fn.arguments]
         self.fn_type = FnT(return_type, fn_args_types)
 
-        # TODO: maybe we don't need the types because
-        # self.types = r.types
-        self.types = {}
         self.name = name
         self.target_lang_fn = target_lang_fn
         self.inv_grammar = inv_grammar
@@ -961,26 +1003,25 @@ class MetaliftFunc:
         state.precond += self.driver.postconditions
 
         v = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
-            self.name,
-            self.fn_type,
-            self.fn,
-            list(args),
-            None,
-            state,
-            dict(),
-            self.driver.var_tracker,
-            self.driver.inv_tracker,
-            self.inv_grammar,
-            self.ps_grammar,
-            self.types,
-            self.fn_blocks
+            fn_name=self.name,
+            fn_type=self.fn_type,
+            fn=self.fn,
+            args=list(args),
+            ret_val=None,
+            state=state,
+            invariants=dict(),
+            var_tracker=self.driver.var_tracker,
+            pred_tracker=self.driver.inv_tracker,
+            inv_grammar=self.inv_grammar,
+            ps_grammar=self.ps_grammar,
+            fn_blocks=self.fn_blocks
         )
 
         v.visit_func_def(self.fn)
         self.driver.asserts += v.state.asserts
 
         ret_val = self.driver.var_tracker.variable(
-            f"{self.name}_rv", to_mltype(cast(CallableType, self.ast.type).ret_type)
+            f"{self.name}_rv", self.fn_type.args[0]
         )
 
         ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
