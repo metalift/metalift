@@ -49,7 +49,6 @@ from mypy.traverser import TraverserVisitor
 from mypy.nodes import (
     AssertStmt,
     AssignmentStmt,
-    Block,
     BreakStmt,
     ClassDef,
     ComparisonExpr,
@@ -89,6 +88,8 @@ from mypy.visitor import ExpressionVisitor, StatementVisitor
 import copy
 
 from metalift.analysis import setupBlocks
+
+from metalift.vc import Block
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -404,28 +405,31 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         for blk in self.fn_blocks.values():
             self.visit_llvm_block(blk)
 
+    def visit_instruction(self, o: ValueRef) -> None:
+        if o.opcode == "alloca":
+            self.visit_alloca_instruction(o)
+        elif o.opcode == "load":
+            self.visit_load_instruction(o)
+        elif o.opcode == "store":
+            self.visit_store_instruction(o)
+        elif o.opcode == "add":
+            self.visit_add_instruction(o)
+        elif o.opcode == "sub":
+            self.visit_sub_instruction(o)
+        elif o.opcode == "mul":
+            self.visit_mul_instruction(o)
+        elif o.opcode == "icmp":
+            self.visit_icmp_instruction(o)
+        elif o.opcode == "br":
+            self.visit_br_instruction(o)
+        elif o.opcode == "ret":
+            self.visit_ret_instruction(o)
+        else:
+            print("MISSING SUPPORT FOR INSTRUCTION", o.opcode)
+
     def visit_llvm_block(self, o: ValueRef) -> None:
         for instr in o.instructions:
-            if instr.opcode == "alloca":
-                self.visit_alloca_instruction(instr)
-            elif instr.opcode == "load":
-                self.visit_load_instruction(instr)
-            elif instr.opcode == "store":
-                self.visit_store_instruction(instr)
-            elif instr.opcode == "add":
-                self.visit_add_instruction(instr)
-            elif instr.opcode == "sub":
-                self.visit_sub_instruction(instr)
-            elif instr.opcode == "mul":
-                self.visit_mul_instruction(instr)
-            elif instr.opcode == "icmp":
-                self.visit_icmp_instruction(instr)
-            elif instr.opcode == "br":
-                self.visit_br_instruction(instr)
-            elif instr.opcode == "ret":
-                self.visit_ret_instruction(instr)
-            else:
-                print("MISSING SUPPORT FOR INSTR", instr.opcode)
+            self.visit_instruction(o)
 
     def visit_alloca_instruction(self, o: ValueRef) -> None:
         # alloca <type>, align <num> or alloca <type>
@@ -526,7 +530,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def visit_br_instruction(self, o: ValueRef) -> None:
         ops = list(o.operands)
-        import pdb; pdb.set_trace()
         # LLVMLite switches the order of branches for some reason
         true_branch = ops[2].name
         false_branch = ops[1].name
@@ -549,8 +552,61 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             ps_grammar=self.ps_grammar,
         )
         # TODO: finish this
+        a_state = copy.deepcopy(self.state)
+        a_state.precond.append(Not(cond))
+        alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            fn_name=self.fn_name,
+            fn_type=self.fn_type,
+            fn=self.fn,
+            args=self.args,
+            ret_val=self.ret_val,
+            state=c_state,
+            invariants=self.invariants,
+            var_tracker=self.var_tracker,
+            pred_tracker=self.pred_tracker,
+            inv_grammar=self.inv_grammar,
+            ps_grammar=self.ps_grammar,
+        )
 
+        true_branch_block = self.fn_blocks[true_branch]
+        for instr in true_branch_block.instructions:
+            consequent.visit_instruction(instr)
 
+        false_branch_block = self.fn_blocks[false_branch]
+        for instr in false_branch_block.instructions:
+            consequent.visit_instruction(instr)
+
+        # merge
+        c_state = consequent.state
+        a_state = alternate.state
+
+        for e in c_state.asserts + a_state.asserts:
+            if e not in self.state.asserts:
+                self.state.asserts.append(e)
+
+        if c_state.has_returned and a_state.has_returned:
+            return
+        elif c_state.has_returned and not a_state.has_returned:
+            self.state.vars = a_state.vars
+        elif not c_state.has_returned and a_state.has_returned:
+            self.state.vars = c_state.vars
+        else:  # both have not returned, need to merge
+            for v in set().union(c_state.vars, a_state.vars):
+                if v not in self.state.vars and (
+                    (v not in c_state.vars and v in a_state.vars)
+                    or (v in c_state.vars and v not in a_state.vars)
+                ):
+                    raise RuntimeError(f"{v} only in one of the branches for ite {o}")
+
+            # at this point we know that all vars exist in both c_state and a_state
+            for v, c_e in c_state.vars.items():
+                a_e = a_state.vars[v]
+                if c_e != a_e:
+                    self.state.vars[v] = Ite(cond, c_e, a_e)
+                else:
+                    self.state.vars[v] = c_e
+
+            print(f"merged state: {self.state.vars}")
 
     def visit_ret_instruction(self, o: ValueRef) -> None:
         pass
