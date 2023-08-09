@@ -403,7 +403,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             raise RuntimeError(f"fn must return a value: {self.fn_type}")
 
         for blk in self.fn_blocks.values():
-            self.visit_llvm_block(blk)
+            self.visit_instructions(blk.instructions)
 
     def visit_instruction(self, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -427,8 +427,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         else:
             print("MISSING SUPPORT FOR INSTRUCTION", o.opcode)
 
-    def visit_llvm_block(self, o: ValueRef) -> None:
-        for instr in o.instructions:
+    def visit_instructions(self, instructions: List[ValueRef]) -> None:
+        for instr in instructions:
             self.visit_instruction(instr)
 
     def visit_alloca_instruction(self, o: ValueRef) -> None:
@@ -533,8 +533,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         if len(ops) == 1:
             # Unconditional branch
             next_block = self.fn_blocks[ops[0].name]
-            for instr in next_block.instructions:
-                self.visit_instruction(instr)
+            self.visit_instructions(next_block.instructions)
         else:
             # LLVMLite switches the order of branches for some reason
             true_branch = ops[2].name
@@ -577,12 +576,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             )
 
             true_branch_block = self.fn_blocks[true_branch]
-            for instr in true_branch_block.instructions:
-                consequent.visit_instruction(instr)
+            consequent.visit_instructions(true_branch_block.instructions)
 
             false_branch_block = self.fn_blocks[false_branch]
-            for instr in false_branch_block.instructions:
-                consequent.visit_instruction(instr)
+            alternate.visit_instructions(false_branch_block.instructions)
 
             # merge
             c_state = consequent.state
