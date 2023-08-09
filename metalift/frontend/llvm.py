@@ -429,7 +429,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def visit_llvm_block(self, o: ValueRef) -> None:
         for instr in o.instructions:
-            self.visit_instruction(o)
+            self.visit_instruction(instr)
 
     def visit_alloca_instruction(self, o: ValueRef) -> None:
         # alloca <type>, align <num> or alloca <type>
@@ -530,86 +530,114 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def visit_br_instruction(self, o: ValueRef) -> None:
         ops = list(o.operands)
-        # LLVMLite switches the order of branches for some reason
-        true_branch = ops[2].name
-        false_branch = ops[1].name
-        cond = self.state.read_operand(ops[0])
+        if len(ops) == 1:
+            # Unconditional branch
+            next_block = self.fn_blocks[ops[0].name]
+            for instr in next_block.instructions:
+                self.visit_instruction(instr)
+        else:
+            # LLVMLite switches the order of branches for some reason
+            true_branch = ops[2].name
+            false_branch = ops[1].name
+            cond = self.state.read_operand(ops[0])
 
-        # clone the current state
-        c_state = copy.deepcopy(self.state)
-        c_state.precond.append(cond)
-        consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
-            fn_name=self.fn_name,
-            fn_type=self.fn_type,
-            fn=self.fn,
-            args=self.args,
-            ret_val=self.ret_val,
-            state=c_state,
-            invariants=self.invariants,
-            var_tracker=self.var_tracker,
-            pred_tracker=self.pred_tracker,
-            inv_grammar=self.inv_grammar,
-            ps_grammar=self.ps_grammar,
-        )
-        # TODO: finish this
-        a_state = copy.deepcopy(self.state)
-        a_state.precond.append(Not(cond))
-        alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
-            fn_name=self.fn_name,
-            fn_type=self.fn_type,
-            fn=self.fn,
-            args=self.args,
-            ret_val=self.ret_val,
-            state=c_state,
-            invariants=self.invariants,
-            var_tracker=self.var_tracker,
-            pred_tracker=self.pred_tracker,
-            inv_grammar=self.inv_grammar,
-            ps_grammar=self.ps_grammar,
-        )
+            # clone the current state
+            c_state = copy.deepcopy(self.state)
+            c_state.precond.append(cond)
+            consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+                fn_name=self.fn_name,
+                fn_type=self.fn_type,
+                fn=self.fn,
+                args=self.args,
+                ret_val=self.ret_val,
+                state=c_state,
+                invariants=self.invariants,
+                var_tracker=self.var_tracker,
+                pred_tracker=self.pred_tracker,
+                inv_grammar=self.inv_grammar,
+                ps_grammar=self.ps_grammar,
+                fn_blocks=self.fn_blocks
+            )
+            # TODO: finish this
+            a_state = copy.deepcopy(self.state)
+            a_state.precond.append(Not(cond))
+            alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+                fn_name=self.fn_name,
+                fn_type=self.fn_type,
+                fn=self.fn,
+                args=self.args,
+                ret_val=self.ret_val,
+                state=c_state,
+                invariants=self.invariants,
+                var_tracker=self.var_tracker,
+                pred_tracker=self.pred_tracker,
+                inv_grammar=self.inv_grammar,
+                ps_grammar=self.ps_grammar,
+                fn_blocks=self.fn_blocks
+            )
 
-        true_branch_block = self.fn_blocks[true_branch]
-        for instr in true_branch_block.instructions:
-            consequent.visit_instruction(instr)
+            true_branch_block = self.fn_blocks[true_branch]
+            for instr in true_branch_block.instructions:
+                consequent.visit_instruction(instr)
 
-        false_branch_block = self.fn_blocks[false_branch]
-        for instr in false_branch_block.instructions:
-            consequent.visit_instruction(instr)
+            false_branch_block = self.fn_blocks[false_branch]
+            for instr in false_branch_block.instructions:
+                consequent.visit_instruction(instr)
 
-        # merge
-        c_state = consequent.state
-        a_state = alternate.state
+            # merge
+            c_state = consequent.state
+            a_state = alternate.state
 
-        for e in c_state.asserts + a_state.asserts:
-            if e not in self.state.asserts:
-                self.state.asserts.append(e)
+            for e in c_state.asserts + a_state.asserts:
+                if e not in self.state.asserts:
+                    self.state.asserts.append(e)
 
-        if c_state.has_returned and a_state.has_returned:
-            return
-        elif c_state.has_returned and not a_state.has_returned:
-            self.state.vars = a_state.vars
-        elif not c_state.has_returned and a_state.has_returned:
-            self.state.vars = c_state.vars
-        else:  # both have not returned, need to merge
-            for v in set().union(c_state.vars, a_state.vars):
-                if v not in self.state.vars and (
-                    (v not in c_state.vars and v in a_state.vars)
-                    or (v in c_state.vars and v not in a_state.vars)
-                ):
-                    raise RuntimeError(f"{v} only in one of the branches for ite {o}")
+            if c_state.has_returned and a_state.has_returned:
+                return
+            elif c_state.has_returned and not a_state.has_returned:
+                self.state.vars = a_state.vars
+            elif not c_state.has_returned and a_state.has_returned:
+                self.state.vars = c_state.vars
+            else:  # both have not returned, need to merge
+                for v in set().union(c_state.vars, a_state.vars):
+                    if v not in self.state.vars and (
+                        (v not in c_state.vars and v in a_state.vars)
+                        or (v in c_state.vars and v not in a_state.vars)
+                    ):
+                        raise RuntimeError(f"{v} only in one of the branches for ite {o}")
 
-            # at this point we know that all vars exist in both c_state and a_state
-            for v, c_e in c_state.vars.items():
-                a_e = a_state.vars[v]
-                if c_e != a_e:
-                    self.state.vars[v] = Ite(cond, c_e, a_e)
-                else:
-                    self.state.vars[v] = c_e
+                # at this point we know that all vars exist in both c_state and a_state
+                for v, c_e in c_state.vars.items():
+                    a_e = a_state.vars[v]
+                    if c_e != a_e:
+                        self.state.vars[v] = Ite(cond, c_e, a_e)
+                    else:
+                        self.state.vars[v] = c_e
 
-            print(f"merged state: {self.state.vars}")
+                print(f"merged state: {self.state.vars}")
 
     def visit_ret_instruction(self, o: ValueRef) -> None:
-        pass
+        # precond -> ps(...)
+        # TODO: hanlde ret void
+        ops = list(o.operands)
+        ps = Call(
+            self.pred_tracker.predicates[self.fn].name,
+            Bool(),
+            *self.args,
+            self.state.read_operand(ops[0]),
+        )
+        if self.state.precond:
+            cond = (
+                And(*self.state.precond)
+                if len(self.state.precond) > 1
+                else self.state.precond[0]
+            )
+            self.state.asserts.append(Implies(cond, ps))
+        else:
+            self.state.asserts.append(ps)
+
+        print(f"ps: {self.state.asserts[-1]}")
+        self.state.has_returned = True
 
     def visit_overloaded_func_def(self, o: OverloadedFuncDef) -> None:
         raise NotImplementedError()
