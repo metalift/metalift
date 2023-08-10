@@ -159,7 +159,9 @@ class State:
     #                  self.has_returned)
 
 
-def to_mltype(t: TypeRef) -> MLType:
+def to_mltype(t: Union[TypeRef, MLType]) -> MLType:
+    if isinstance(t, MLType):
+        return t
     # user annotated types
     if isinstance(t, UnboundType) and t.name == "int":
         return Int()
@@ -238,7 +240,6 @@ class Predicate:
 
     def gen_Synth(self) -> Synth:
         # print(f"gen args: {self.args}, writes: {self.writes}, reads: {self.reads}, scope: {self.in_scope}")
-
         writes = [Var(v[0], to_mltype(v[1])) for v in self.writes]
         reads = [Var(v[0], to_mltype(v[1])) for v in self.reads]
         in_scope = [Var(v[0], to_mltype(v[1])) for v in self.in_scope]
