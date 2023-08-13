@@ -317,7 +317,6 @@ class PredicateTracker:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            import pdb; pdb.set_trace()
             ps = Predicate(o, ins + outs, outs, ins, [], f"{o.name}_ps", grammar)
             self.predicates[o] = ps
             return ps

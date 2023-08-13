@@ -378,9 +378,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             return
         ret_type: MLType = self.fn_type.args[0]
         arg_types: List[MLType] = self.fn_type.args[1]
-        arg_names: List[str] = [a.name for a in self.fn.arguments]
+        arg_names: List[str] = [a.name() for a in self.args]
         formals = list(zip(arg_names, arg_types))
-
         self.pred_tracker.postcondition(
             o,
             [(f"{self.fn_name}_rv", ret_type)],
@@ -388,7 +387,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.ps_grammar,
         )
 
-        if len(arg_names) != len(self.args):
+        if len(list(self.fn.arguments)) != len(self.args):
             raise RuntimeError(
                 f"expect {len(arg_names)} args passed to {self.fn_name} got {len(self.args)} instead"
             )
