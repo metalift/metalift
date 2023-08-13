@@ -44,6 +44,7 @@ class Block:
     regs: Dict[ValueRef, Expr]
     preds: typing.List[Any]
     succs: typing.List[Any]
+    state: State
 
     def __init__(self, name: str, instructions: typing.List[ValueRef]) -> None:
         self.name = name

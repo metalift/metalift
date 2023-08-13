@@ -1,4 +1,4 @@
-from metalift.analysis_new import VariableTracker, analyze
+from metalift.analysis import analyze
 from metalift.ir import *
 
 from metalift.synthesize_auto import synthesize
@@ -26,29 +26,24 @@ if __name__ == "__main__":
     loopsFile = "tests/llvm/ite1.loops"
     cvcPath = "cvc5"
 
-    test_analysis = analyze(filename, fnName, loopsFile)
-
-    variable_tracker = VariableTracker()
-    i = variable_tracker.variable("i", Int())
-
-    synth_fun = grammar(fnName, [i], Var("ret", Int()))
-
-    vc = test_analysis.call(i)(variable_tracker, lambda ret: Call(
-        fnName,
-        Bool(),
-        ret,
-        i
-    ))
-
-    vars = variable_tracker.all()
+    (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile)
 
     print("====== synthesis")
-    invAndPs = [synth_fun]
-    loopAndPsInfo = [synth_fun]
+    invAndPs = [grammar(ci) for ci in loopAndPsInfo]
 
     lang = targetLang()
+
     candidates = synthesize(
-        basename, lang, vars, invAndPs, [], vc, loopAndPsInfo, cvcPath
+        basename,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        cvcPath,
     )
+    print("====== verified candidates")
     for c in candidates:
         print(c, "\n")
+

@@ -117,6 +117,7 @@ class State:
     mem: Dict[str, Expr]
     asserts: List[Expr]
     has_returned: bool
+    processed: bool
 
     def __init__(
         self,
@@ -129,6 +130,7 @@ class State:
         self.vars = vars
         self.asserts = asserts
         self.has_returned = has_returned if not has_returned else has_returned
+        self.processed = False
 
     def read_operand(self, op: ValueRef) -> Expr:
         if op.name:
@@ -325,6 +327,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
 
     fn_blocks: Dict[str, Block]
+    block_states: Dict[str, State]
 
     def __init__(
         self,
@@ -356,6 +359,17 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         self.ps_grammar = ps_grammar
 
         self.fn_blocks = fn_blocks
+
+        self.block_states: Dict[str, State] = {}
+
+        # TODO: use defaultdict
+        for block_name in self.fn_blocks.keys():
+            self.block_states[block_name] = State()
+
+    def get_blk_state(self, block_name: str) -> Block:
+        if block_name not in self.block_states.keys():
+            raise Exception(f"Block '{block_name}' does not exist!")
+        return self.block_states[block_name]
     # Definitions
 
     def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
@@ -402,36 +416,43 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         if ret_type is None:
             raise RuntimeError(f"fn must return a value: {self.fn_type}")
 
-        for blk in self.fn_blocks.values():
-            self.visit_instructions(blk.instructions)
+        for block_name, block in self.fn_blocks.values():
+            self.visit_instructions(block_name, block.instructions)
 
-    def visit_instruction(self, o: ValueRef) -> None:
+    def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
-            self.visit_alloca_instruction(o)
+            self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
-            self.visit_load_instruction(o)
+            self.visit_load_instruction(block_name, o)
         elif o.opcode == "store":
-            self.visit_store_instruction(o)
+            self.visit_store_instruction(block_name, o)
         elif o.opcode == "add":
-            self.visit_add_instruction(o)
+            self.visit_add_instruction(block_name, o)
         elif o.opcode == "sub":
-            self.visit_sub_instruction(o)
+            self.visit_sub_instruction(block_name, o)
         elif o.opcode == "mul":
-            self.visit_mul_instruction(o)
+            self.visit_mul_instruction(block_name, o)
         elif o.opcode == "icmp":
-            self.visit_icmp_instruction(o)
+            self.visit_icmp_instruction(block_name, o)
         elif o.opcode == "br":
-            self.visit_br_instruction(o)
+            self.visit_br_instruction(block_name, o)
         elif o.opcode == "ret":
-            self.visit_ret_instruction(o)
+            self.visit_ret_instruction(block_name, o)
         else:
             print("MISSING SUPPORT FOR INSTRUCTION", o.opcode)
 
-    def visit_instructions(self, instructions: List[ValueRef]) -> None:
-        for instr in instructions:
-            self.visit_instruction(instr)
+    def visit_llvm_block(self, block: ValueRef) -> None:
+        self.visit_instructions(block.name, block.instructions)
 
-    def visit_alloca_instruction(self, o: ValueRef) -> None:
+    def visit_instructions(
+        self,
+        block_name: str,
+        instructions: List[ValueRef]
+    ) -> None:
+        for instr in instructions:
+            self.visit_instruction(block_name, instr)
+
+    def visit_alloca_instruction(self, block_name: str, o: ValueRef) -> None:
         # alloca <type>, align <num> or alloca <type>
         t = re.search("alloca ([^$|,]+)", str(o)).group(  # type: ignore
             1
@@ -465,53 +486,53 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             raise Exception("NYI: %s" % o)
 
         # o.name is the register name
-        self.state.write(o.name, Pointer(val))
+        self.get_blk_state(block_name).write(o.name, Pointer(val))
 
-    def visit_load_instruction(self, o: ValueRef) -> None:
+    def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         ptr_expr = self.state.read(ops[0].name)
         assert ptr_expr.type.name == "Pointer"
-        self.state.write(o.name, ptr_expr.value)
+        self.get_blk_state(block_name).write(o.name, ptr_expr.value)
 
-    def visit_store_instruction(self, o: ValueRef) -> None:
+    def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        value_to_store = self.state.read_operand(ops[0])
+        value_to_store = self.get_blk_state(block_name).read_operand(ops[0])
 
         # store into the location stored in ops[1].name
-        ptr_expr = self.state.read(ops[1].name)
+        ptr_expr = self.get_blk_state(block_name).read(ops[1].name)
         assert ptr_expr.type.name == "Pointer"
         ptr_expr.set_value(value_to_store)
 
-    def visit_add_instruction(self, o: ValueRef) -> None:
+    def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         add_expr = Add(
-            self.state.read_operand(ops[0]),
-            self.state.read_operand(ops[1])
+            self.get_blk_state(block_name).read_operand(ops[0]),
+            self.get_blk_state(block_name).read_operand(ops[1])
         )
-        self.state.write(o.name, add_expr)
+        self.get_blk_state(block_name).write(o.name, add_expr)
 
-    def visit_sub_instruction(self, o: ValueRef) -> None:
+    def visit_sub_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         sub_expr = Sub(
-            self.state.read_operand(ops[0]),
-            self.state.read_operand(ops[1])
+            self.get_blk_state(block_name).read_operand(ops[0]),
+            self.get_blk_state(block_name).read_operand(ops[1])
         )
-        self.state.write(o.name, sub_expr)
+        self.get_blk_state(block_name).write(o.name, sub_expr)
 
-    def visit_mul_instruction(self, o: ValueRef) -> None:
+    def visit_mul_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         mul_expr = Mul(
-            self.state.read_operand(ops[0]),
-            self.state.read_operand(ops[1])
+            self.get_blk_state(block_name).read_operand(ops[0]),
+            self.get_blk_state(block_name).read_operand(ops[1])
         )
-        self.state.write(o.name, mul_expr)
+        self.get_blk_state(block_name).write(o.name, mul_expr)
 
-    def visit_icmp_instruction(self, o: ValueRef) -> None:
+    def visit_icmp_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(o).strip()).group(1)
         # TODO: use parseOperand
-        op0 = self.state.read_operand(ops[0])
-        op1 = self.state.read_operand(ops[1])
+        op0 = self.get_blk_state(block_name).read_operand(ops[0])
+        op1 = self.get_blk_state(block_name).read_operand(ops[1])
 
         if cond == "eq":
             value = Eq(op0, op1)
@@ -526,10 +547,11 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         else:
             raise Exception("NYI %s" % cond)
 
-        self.state.write(o.name, value)
+        self.get_blk_state(block_name).write(o.name, value)
 
-    def visit_br_instruction(self, o: ValueRef) -> None:
+    def visit_br_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
+        blk_state = self.get_blk_state(block_name)
         if len(ops) == 1:
             # Unconditional branch
             next_block = self.fn_blocks[ops[0].name]
@@ -538,10 +560,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             # LLVMLite switches the order of branches for some reason
             true_branch = ops[2].name
             false_branch = ops[1].name
-            cond = self.state.read_operand(ops[0])
+            cond = blk_state.read_operand(ops[0])
 
             # clone the current state
-            c_state = copy.deepcopy(self.state)
+            c_state = copy.deepcopy(blk_state)
             c_state.precond.append(cond)
             consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
                 fn_name=self.fn_name,
@@ -558,7 +580,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 fn_blocks=self.fn_blocks
             )
             # TODO: finish this
-            a_state = copy.deepcopy(self.state)
+            a_state = copy.deepcopy(blk_state)
             a_state.precond.append(Not(cond))
             alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
                 fn_name=self.fn_name,
@@ -586,18 +608,18 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             a_state = alternate.state
 
             for e in c_state.asserts + a_state.asserts:
-                if e not in self.state.asserts:
-                    self.state.asserts.append(e)
+                if e not in blk_state.asserts:
+                    blk_state.asserts.append(e)
 
             if c_state.has_returned and a_state.has_returned:
                 return
             elif c_state.has_returned and not a_state.has_returned:
-                self.state.vars = a_state.vars
+                blk_state.vars = a_state.vars
             elif not c_state.has_returned and a_state.has_returned:
-                self.state.vars = c_state.vars
+                blk_state.vars = c_state.vars
             else:  # both have not returned, need to merge
                 for v in set().union(c_state.vars, a_state.vars):
-                    if v not in self.state.vars and (
+                    if v not in blk_state.vars and (
                         (v not in c_state.vars and v in a_state.vars)
                         or (v in c_state.vars and v not in a_state.vars)
                     ):
@@ -607,34 +629,35 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 for v, c_e in c_state.vars.items():
                     a_e = a_state.vars[v]
                     if c_e != a_e:
-                        self.state.vars[v] = Ite(cond, c_e, a_e)
+                        blk_state.vars[v] = Ite(cond, c_e, a_e)
                     else:
-                        self.state.vars[v] = c_e
+                        blk_state.vars[v] = c_e
 
-                print(f"merged state: {self.state.vars}")
+                print(f"merged state: {blk_state.vars}")
 
-    def visit_ret_instruction(self, o: ValueRef) -> None:
+    def visit_ret_instruction(self, block_name: str, o: ValueRef) -> None:
         # precond -> ps(...)
         # TODO: hanlde ret void
+        blk_state = self.get_blk_state(block_name)
         ops = list(o.operands)
         ps = Call(
             self.pred_tracker.predicates[self.fn].name,
             Bool(),
             *self.args,
-            self.state.read_operand(ops[0]),
+            blk_state.read_operand(ops[0]),
         )
-        if self.state.precond:
+        if blk_state.precond:
             cond = (
-                And(*self.state.precond)
-                if len(self.state.precond) > 1
-                else self.state.precond[0]
+                And(*blk_state.precond)
+                if len(blk_state.precond) > 1
+                else blk_state.precond[0]
             )
-            self.state.asserts.append(Implies(cond, ps))
+            blk_state.asserts.append(Implies(cond, ps))
         else:
-            self.state.asserts.append(ps)
+            blk_state.asserts.append(ps)
 
-        print(f"ps: {self.state.asserts[-1]}")
-        self.state.has_returned = True
+        print(f"ps: {blk_state.asserts[-1]}")
+        blk_state.has_returned = True
 
     def visit_overloaded_func_def(self, o: OverloadedFuncDef) -> None:
         raise NotImplementedError()
@@ -1097,13 +1120,21 @@ class MetaliftFunc:
             ps_grammar=self.ps_grammar,
             fn_blocks=self.fn_blocks
         )
+        done = False
+        while not done:
+            done = True
+            for b in self.fn_blocks.values():
+                if b.state.vc is None and (
+                    not b.preds or all([p.state.vc is not None for p in b.preds])
+                ):
+                    v.visit_llvm_block(b)
+                    done = False
+        # v.visit_func_def(self.fn)
+        # self.driver.asserts += v.state.asserts
 
-        v.visit_func_def(self.fn)
-        self.driver.asserts += v.state.asserts
-
-        ret_val = self.driver.var_tracker.variable(
-            f"{self.name}_rv", self.fn_type.args[0]
-        )
+        # ret_val = self.driver.var_tracker.variable(
+        #     f"{self.name}_rv", self.fn_type.args[0]
+        # )
 
         ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
 
