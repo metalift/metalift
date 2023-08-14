@@ -10,6 +10,7 @@ from metalift.ir import (
     Add,
     And,
     Bool,
+    BoolLit,
     Call,
     Eq,
     Expr,
@@ -388,15 +389,14 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_del_stmt(self, o: DelStmt) -> None:
         raise NotImplementedError()
 
-    def visit_func_def(self, o: ValueRef) -> None:
-        if o.name != self.fn_name:
-            return
+    def visit_initial_llvm_block(self, block: ValueRef) -> None:
+        block_state = self.get_blk_state(block.name)
         ret_type: MLType = self.fn_type.args[0]
         arg_types: List[MLType] = self.fn_type.args[1]
         arg_names: List[str] = [a.name() for a in self.args]
         formals = list(zip(arg_names, arg_types))
         self.pred_tracker.postcondition(
-            o,
+            self.fn,
             [(f"{self.fn_name}_rv", ret_type)],
             formals,
             self.ps_grammar,
@@ -412,10 +412,13 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 raise RuntimeError(
                     f"expect {actual} to have type {formal[1]} rather than {actual.type}"
                 )
-            self.get_blk_state("bb_initial").write(formal[0], actual)
+            block_state.write(formal[0], actual)
 
         if ret_type is None:
             raise RuntimeError(f"fn must return a value: {self.fn_type}")
+        block_state.processed = True
+        block_state.precond = [BoolLit(True)]
+
 
         # for block_name, block in self.fn_blocks.values():
         #     self.visit_instructions(block_name, block.instructions)
@@ -456,10 +459,14 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             # Merge preconditions
             pred_preconds: List[Expr] = []
             for pred in block.preds:
-                if len(pred.state.assumes) > 1:
+                if len(pred.state.precond) > 1:
                     pred_preconds.append(And(*pred.state.precond))
                 else:
-                    pred_preconds.append(pred.state.precond)
+                    pred_preconds.append(pred.state.precond[0])
+            if len(pred_preconds) > 1:
+                new_state.precond = Or(*pred_preconds)
+            else:
+                new_state.precond = pred_preconds[0]
 
             # TODO: handle global vars and uninterpreted functions
 
@@ -467,8 +474,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             # Mapping from variable (register/arg names) to a mapping from values to assume statements
             var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
-                for var_name, var_value in block.preds.state.vars:
-                    var_state[var_name][var_value].append(block.state.precond)
+                for var_name, var_value in pred.state.vars.items():
+                    var_state[var_name][var_value].append(pred.state.precond)
 
             merged_vars: Dict[str, Expr] = {}
             for var_name, value_to_precond_mapping in var_state.items():
@@ -476,12 +483,18 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                     merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
                 else:
                     value_to_aggregated_precond: Dict[Expr, Expr] = {}
-                    for value, preconds in value_to_precond_mapping.items():
-                        if len(preconds) > 1:
-                            aggregated_precond = And(*preconds)
+                    for value, all_preconds in value_to_precond_mapping.items():
+                        all_aggregated_preconds: List[Expr] = []
+                        for preconds in all_preconds:
+                            if len(preconds) > 1:
+                                aggregated_precond = And(*preconds)
+                            else:
+                                aggregated_precond = preconds[0]
+                            all_aggregated_preconds.append(aggregated_precond)
+                        if len(all_aggregated_preconds) > 1:
+                            value_to_aggregated_precond[value] = Or(*all_aggregated_preconds)
                         else:
-                            aggregated_precond = preconds[0]
-                        value_to_aggregated_precond[value] = aggregated_precond
+                            value_to_aggregated_precond[value] = all_aggregated_preconds[0]
 
                     merged_value = None
                     for value, aggregated_precond in value_to_aggregated_precond.items():
@@ -494,17 +507,17 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             return new_state
 
 
-
-
-
-
     def visit_llvm_block(self, block: ValueRef) -> None:
-        # First we need to merge states
-
-        print(f"VISITING LLVM BLOCK {block.name}")
-        self.visit_instructions(block.name, block.instructions)
-        print(f"DONE VISITING LLVM BLOCK {block.name}")
-        self.get_blk_state(block.name).processed = True
+        if block.name == "bb_initial":
+            self.visit_initial_llvm_block(block)
+        else:
+            # First we need to merge states
+            block.state = self.merge_states(block)
+            print(f"VISITING LLVM BLOCK {block.name}")
+            print("MERGED STATE", block.state)
+            self.visit_instructions(block.name, block.instructions)
+            print(f"DONE VISITING LLVM BLOCK {block.name}")
+            self.get_blk_state(block.name).processed = True
 
     def visit_instructions(
         self,
@@ -614,10 +627,20 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_br_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         blk_state = self.get_blk_state(block_name)
+        if len(ops) > 1:
+            # LLVMLite switches the order of branches for some reason
+            true_branch = ops[2].name
+            false_branch = ops[1].name
+            cond = blk_state.read_operand(ops[0])
+            self.get_blk_state(true_branch).precond.append(cond)
+            self.get_blk_state(false_branch).precond.append(Not(cond))
+        return
+        ops = list(o.operands)
+        blk_state = self.get_blk_state(block_name)
         if len(ops) == 1:
             # Unconditional branch
             next_block = self.fn_blocks[ops[0].name]
-            self.visit_instructions(next_block.instructions)
+            self.visit_instructions(block_name, next_block.instructions)
         else:
             # LLVMLite switches the order of branches for some reason
             true_branch = ops[2].name
@@ -660,10 +683,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             )
 
             true_branch_block = self.fn_blocks[true_branch]
-            consequent.visit_instructions(true_branch_block.instructions)
+            consequent.visit_instructions(block_name, true_branch_block.instructions)
 
             false_branch_block = self.fn_blocks[false_branch]
-            alternate.visit_instructions(false_branch_block.instructions)
+            alternate.visit_instructions(block_name, false_branch_block.instructions)
 
             # merge
             c_state = consequent.state
@@ -1196,9 +1219,9 @@ class MetaliftFunc:
         # v.visit_func_def(self.fn)
         # self.driver.asserts += v.state.asserts
 
-        # ret_val = self.driver.var_tracker.variable(
-        #     f"{self.name}_rv", self.fn_type.args[0]
-        # )
+        ret_val = self.driver.var_tracker.variable(
+            f"{self.name}_rv", self.fn_type.args[0]
+        )
 
         ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
 

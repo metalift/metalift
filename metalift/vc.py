@@ -161,7 +161,6 @@ class VC:
             ValueRef, Dict[Expr, typing.List[typing.List[Expr]]]
         ] = defaultdict(lambda: defaultdict(list))
         for pname, path, container in containers:
-            import pdb; pdb.set_trace()
             for k, v in container.items():
                 # groups[k][v].append(self.makeVar(pname, bool))
                 groups[k][v].append(path)
