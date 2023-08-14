@@ -1,3 +1,4 @@
+from collections import defaultdict
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 from metalift.analysis_new import RawBlock, VariableTracker
@@ -114,7 +115,6 @@ LLVMVar = Tuple[str, TypeRef]
 class State:
     precond: List[Expr]
     vars: Dict[str, Expr]
-    mem: Dict[str, Expr]
     asserts: List[Expr]
     has_returned: bool
     processed: bool
@@ -442,7 +442,65 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         else:
             print("MISSING SUPPORT FOR INSTRUCTION", o.opcode)
 
+    def merge_states(self, block: ValueRef) -> State:
+        if len(block.preds) == 0:
+            return self.get_blk_state(block.name)
+        elif len(block.preds) == 1:
+            pred_state = self.get_blk_state(block.preds[0].name)
+            new_state = copy.deepcopy(pred_state)
+            new_state.has_returned = False
+            new_state.processed = False
+            return new_state
+        else:
+            new_state = State()
+            # Merge preconditions
+            pred_preconds: List[Expr] = []
+            for pred in block.preds:
+                if len(pred.state.assumes) > 1:
+                    pred_preconds.append(And(*pred.state.precond))
+                else:
+                    pred_preconds.append(pred.state.precond)
+
+            # TODO: handle global vars and uninterpreted functions
+
+            # Merge state
+            # Mapping from variable (register/arg names) to a mapping from values to assume statements
+            var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(lambda: defaultdict(list))
+            for pred in block.preds:
+                for var_name, var_value in block.preds.state.vars:
+                    var_state[var_name][var_value].append(block.state.precond)
+
+            merged_vars: Dict[str, Expr] = {}
+            for var_name, value_to_precond_mapping in var_state.items():
+                if len(value_to_precond_mapping) == 1:
+                    merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
+                else:
+                    value_to_aggregated_precond: Dict[Expr, Expr] = {}
+                    for value, preconds in value_to_precond_mapping.items():
+                        if len(preconds) > 1:
+                            aggregated_precond = And(*preconds)
+                        else:
+                            aggregated_precond = preconds[0]
+                        value_to_aggregated_precond[value] = aggregated_precond
+
+                    merged_value = None
+                    for value, aggregated_precond in value_to_aggregated_precond.items():
+                        if merged_value is None:
+                            merged_value = value
+                        else:
+                            merged_value = Ite(aggregated_precond, value, merged_value)
+            new_state.vars = merged_vars
+            # TODO: how to handle asserts here?
+            return new_state
+
+
+
+
+
+
     def visit_llvm_block(self, block: ValueRef) -> None:
+        # First we need to merge states
+
         print(f"VISITING LLVM BLOCK {block.name}")
         self.visit_instructions(block.name, block.instructions)
         print(f"DONE VISITING LLVM BLOCK {block.name}")
