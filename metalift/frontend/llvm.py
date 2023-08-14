@@ -362,11 +362,12 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         self.block_states: Dict[str, State] = {}
 
+
         # TODO: use defaultdict
         for block_name in self.fn_blocks.keys():
             self.block_states[block_name] = State()
 
-    def get_blk_state(self, block_name: str) -> Block:
+    def get_blk_state(self, block_name: str) -> State:
         if block_name not in self.block_states.keys():
             raise Exception(f"Block '{block_name}' does not exist!")
         return self.block_states[block_name]
@@ -411,13 +412,13 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 raise RuntimeError(
                     f"expect {actual} to have type {formal[1]} rather than {actual.type}"
                 )
-            self.state.write(formal[0], actual)
+            self.get_blk_state("bb_initial").write(formal[0], actual)
 
         if ret_type is None:
             raise RuntimeError(f"fn must return a value: {self.fn_type}")
 
-        for block_name, block in self.fn_blocks.values():
-            self.visit_instructions(block_name, block.instructions)
+        # for block_name, block in self.fn_blocks.values():
+        #     self.visit_instructions(block_name, block.instructions)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -442,7 +443,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             print("MISSING SUPPORT FOR INSTRUCTION", o.opcode)
 
     def visit_llvm_block(self, block: ValueRef) -> None:
+        print(f"VISITING LLVM BLOCK {block.name}")
         self.visit_instructions(block.name, block.instructions)
+        print(f"DONE VISITING LLVM BLOCK {block.name}")
+        self.get_blk_state(block.name).processed = True
 
     def visit_instructions(
         self,
@@ -1120,12 +1124,14 @@ class MetaliftFunc:
             ps_grammar=self.ps_grammar,
             fn_blocks=self.fn_blocks
         )
+        # v.visit_func_def(self.fn)
+        # v.visit_llvm_block(self.fn_blocks["bb_initial"])
         done = False
         while not done:
             done = True
             for b in self.fn_blocks.values():
-                if b.state.vc is None and (
-                    not b.preds or all([p.state.vc is not None for p in b.preds])
+                if not v.get_blk_state(b.name).processed and (
+                    not b.preds or all([v.get_blk_state(p.name).processed for p in b.preds])
                 ):
                     v.visit_llvm_block(b)
                     done = False
