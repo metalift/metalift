@@ -420,8 +420,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             raise RuntimeError(f"fn must return a value: {self.fn_type}")
         block_state.processed = True
 
-        # for block_name, block in self.fn_blocks.values():
-        #     self.visit_instructions(block_name, block.instructions)
+        self.visit_instructions(block.name, block.instructions)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -460,7 +459,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         else:
             blk_state = self.get_blk_state(block.name)
             # Merge preconditions
-            pred_preconds: List[Expr] = []
 
             # TODO: do we really need the preconds here
             # for pred in block.preds:
@@ -508,7 +506,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
 
     def visit_llvm_block(self, block: ValueRef) -> None:
-        if block.name == "bb_initial":
+        if len(block.preds) == 0:
             self.visit_initial_llvm_block(block)
         else:
             # First we need to merge states
@@ -1202,8 +1200,6 @@ class MetaliftFunc:
             ps_grammar=self.ps_grammar,
             fn_blocks=self.fn_blocks
         )
-        # v.visit_func_def(self.fn)
-        # v.visit_llvm_block(self.fn_blocks["bb_initial"])
         done = False
         while not done:
             done = True

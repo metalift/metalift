@@ -72,22 +72,6 @@ def setupBlocks(blks: Iterable[ValueRef]) -> Dict[str, Block]:
         for t in targets:
             bbs[t.name].preds.append(b)
 
-    # Sentinel block
-    initial_block = Block("bb_initial", [])
-    bbs["bb_initial"] = initial_block
-    for block in bbs.values():
-        if len(block.preds) == 0 and block.name != "bb_initial":
-            # TODO: extract as constant
-            block.preds.append(initial_block)
-        bbs["bb_initial"].succs.append(block)
-
-    # end_block = Block("bb_end", [])
-    # bbs["bb_end"] = end_block
-    # for block in bbs.values():
-    #     if len(block.succs) == 0 and block.name != "bb_end":
-    #         block.succs.append(end_block)
-    #     bbs["bb_end"].preds.append(block)
-
     return bbs
 
 

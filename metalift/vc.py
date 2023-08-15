@@ -130,10 +130,8 @@ class VC:
         sorted_values.sort(key=lambda b: b.name)
         blockVCs: ListT[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
 
-        # TODO: what is this boolean variable introduce (seen on page 10 on paper https://drops.dagstuhl.de/opus/volltexte/2023/18231/pdf/LIPIcs-ECOOP-2023-38.pdf)
         body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
 
-        # TODO: invAndPs and preds are always [] if no preds are supplied? Jie to check how the returned values are used.
         invAndPs = [
             Synth(p.args[0], Lit(True, Bool()), *p.args[1:])
             for p in filter(
@@ -471,8 +469,6 @@ class VC:
 
             elif opcode == "havoc":
                 for op in ops:
-                    # TODO Jie: does this mean that op was evaluated before this line? because otherwise s.mem[op] would throw an error.
-                    # It seems like this assumes alloca always happen before the entire loop, is that always true?
                     s.mem[op] = self.makeVar(
                         "%s_%s" % (op.name, self.havocNum), s.mem[op].type
                     )
