@@ -1,7 +1,7 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import Expr, Lit, Bool, Int
+from metalift.ir import And, Expr, Lit, Bool, Int, Or
 from typing import Dict
 
 
@@ -26,3 +26,16 @@ def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) 
             return Lit(int(val), Int())
     else:  # 0
         return Lit(int(op), Int())
+
+def and_exprs(*exprs: Expr) -> Expr:
+    if len(exprs) == 1:
+        return exprs[0]
+    else:
+        return And(*exprs)
+
+# TODO: should this belong to the same function as and_exprs or different?
+def or_exprs(*exprs: Expr) -> Expr:
+    if len(exprs) == 1:
+        return exprs[0]
+    else:
+        return Or(*exprs)

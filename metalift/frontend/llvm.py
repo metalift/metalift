@@ -93,6 +93,8 @@ from metalift.analysis import setupBlocks
 
 from metalift.vc import Block
 
+from metalift.vc_util import and_exprs, or_exprs
+
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
 # from https://github.com/python/mypy
@@ -249,7 +251,7 @@ class Predicate:
 
         v_exprs = [self.grammar(v, self.ast, writes, reads, in_scope) for v in writes]
 
-        body = And(*v_exprs) if len(v_exprs) > 1 else v_exprs[0]
+        body = and_exprs(*v_exprs)
 
         vars = [Var(v[0], to_mltype(v[1])) for v in self.args]
         return Synth(self.name, body, *vars)
@@ -417,8 +419,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         if ret_type is None:
             raise RuntimeError(f"fn must return a value: {self.fn_type}")
         block_state.processed = True
-        block_state.precond = [BoolLit(True)]
-
 
         # for block_name, block in self.fn_blocks.values():
         #     self.visit_instructions(block_name, block.instructions)
@@ -493,15 +493,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                     for value, all_preconds in value_to_precond_mapping.items():
                         all_aggregated_preconds: List[Expr] = []
                         for preconds in all_preconds:
-                            if len(preconds) > 1:
-                                aggregated_precond = And(*preconds)
-                            else:
-                                aggregated_precond = preconds[0]
-                            all_aggregated_preconds.append(aggregated_precond)
-                        if len(all_aggregated_preconds) > 1:
-                            value_to_aggregated_precond[value] = Or(*all_aggregated_preconds)
-                        else:
-                            value_to_aggregated_precond[value] = all_aggregated_preconds[0]
+                            all_aggregated_preconds.append(and_exprs(*preconds))
+                        value_to_aggregated_precond[value] = or_exprs(*all_aggregated_preconds)
 
                     merged_value = None
                     for value, aggregated_precond in value_to_aggregated_precond.items():
@@ -745,12 +738,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             blk_state.read_operand(ops[0]),
         )
         if blk_state.precond:
-            cond = (
-                And(*blk_state.precond)
-                if len(blk_state.precond) > 1
-                else blk_state.precond[0]
-            )
-            blk_state.asserts.append(Implies(cond, ps))
+            blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), ps))
         else:
             blk_state.asserts.append(ps)
 
@@ -832,7 +820,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         # inv is true on loop entry
         self.state.asserts.append(
-            Implies(And(*self.state.precond), inv.call(self.state))
+            Implies(and_exprs(*self.state.precond), inv.call(self.state))
             if self.state.precond
             else inv.call(self.state)
         )
@@ -883,11 +871,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             o.expr.accept(self),
         )
         if self.state.precond:
-            cond = (
-                And(*self.state.precond)
-                if len(self.state.precond) > 1
-                else self.state.precond[0]
-            )
+            cond = and_exprs(*self.state.precond)
             self.state.asserts.append(Implies(cond, ps))
         else:
             self.state.asserts.append(ps)
@@ -1121,7 +1105,7 @@ class Driver:
         synths = [i.gen_Synth() for i in self.inv_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
-        vc = And(*self.asserts)
+        vc = and_exprs(*self.asserts)
 
         target = []
         for fn in self.fns.values():
