@@ -463,16 +463,16 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             pred_preconds: List[Expr] = []
 
             # TODO: do we really need the preconds here
-            for pred in block.preds:
-                pred_state = self.get_blk_state(pred.name)
-                if len(pred_state.precond) > 1:
-                    pred_preconds.append(And(*pred_state.precond))
-                else:
-                    pred_preconds.append(pred_state.precond[0])
-            if len(pred_preconds) > 1:
-                blk_state.precond = [Or(*pred_preconds)]
-            else:
-                blk_state.precond = pred_preconds[0]
+            # for pred in block.preds:
+            #     pred_state = self.get_blk_state(pred.name)
+            #     if len(pred_state.precond) > 1:
+            #         pred_preconds.append(And(*pred_state.precond))
+            #     else:
+            #         pred_preconds.append(pred_state.precond[0])
+            # if len(pred_preconds) > 1:
+            #     blk_state.precond = [Or(*pred_preconds)]
+            # else:
+            #     blk_state.precond = pred_preconds[0]
 
             # TODO: handle global vars and uninterpreted functions
 
