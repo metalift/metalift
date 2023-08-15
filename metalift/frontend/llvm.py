@@ -461,6 +461,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             blk_state = self.get_blk_state(block.name)
             # Merge preconditions
             pred_preconds: List[Expr] = []
+
+            # TODO: do we really need the preconds here
             for pred in block.preds:
                 pred_state = self.get_blk_state(pred.name)
                 if len(pred_state.precond) > 1:
@@ -478,6 +480,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             # Mapping from variable (register/arg names) to a mapping from values to assume statements
             var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
+                pred_state = self.get_blk_state(pred.name)
                 for var_name, var_value in pred_state.vars.items():
                     var_state[var_name][var_value].append(pred_state.precond)
 
@@ -506,6 +509,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                             merged_value = value
                         else:
                             merged_value = Ite(aggregated_precond, value, merged_value)
+                    merged_vars[var_name] = merged_value
             blk_state.vars = merged_vars
             # TODO: how to handle asserts here?
 
@@ -568,7 +572,14 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         ops = list(o.operands)
         ptr_expr = self.get_blk_state(block_name).read(ops[0].name)
         assert ptr_expr.type.name == "Pointer"
-        self.get_blk_state(block_name).write(o.name, ptr_expr.value)
+
+        # TODO: change this, this is a bit of a hack.
+        if isinstance(ptr_expr, Ite):
+            referenced_value = Ite(ptr_expr.c(), ptr_expr.e1().value, ptr_expr.e2().value)
+        else:
+            referenced_value = ptr_expr.value
+
+        self.get_blk_state(block_name).write(o.name, referenced_value)
 
     def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -1228,6 +1239,10 @@ class MetaliftFunc:
         ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
 
         self.driver.postconditions.append(ps)
+
+        for block in self.fn_blocks.values():
+            self.driver.asserts.extend(v.get_blk_state(block.name).asserts)
+        # self.driver.asserts += v.state.asserts
 
         return ret_val
 
