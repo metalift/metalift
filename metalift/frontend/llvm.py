@@ -122,14 +122,14 @@ class State:
 
     def __init__(
         self,
-        precond: List[Expr] = list(),
-        vars: Dict[str, Expr] = dict(),
-        asserts: List[Expr] = list(),
+        precond: Optional[List[Expr]] = None,
+        vars: Optional[Dict[str, Expr]] = None,
+        asserts: Optional[List[Expr]] = None,
         has_returned: bool = False,
     ) -> None:
-        self.precond = precond
-        self.vars = vars
-        self.asserts = asserts
+        self.precond = precond or []
+        self.vars = vars or {}
+        self.asserts = asserts or []
         self.has_returned = has_returned if not has_returned else has_returned
         self.processed = False
 
@@ -447,26 +447,30 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def merge_states(self, block: ValueRef) -> State:
         if len(block.preds) == 0:
-            return self.get_blk_state(block.name)
+            return
         elif len(block.preds) == 1:
+            blk_state = self.get_blk_state(block.name)
             pred_state = self.get_blk_state(block.preds[0].name)
-            new_state = copy.deepcopy(pred_state)
-            new_state.has_returned = False
-            new_state.processed = False
-            return new_state
+            blk_state.vars = copy.deepcopy(pred_state.vars)
+            # TODO: do we need to copy over asserts
+            blk_state.asserts = copy.deepcopy(pred_state.asserts)
+            blk_state.precond.extend(copy.deepcopy(pred_state.precond))
+            blk_state.has_returned = False
+            blk_state.processed = False
         else:
-            new_state = State()
+            blk_state = self.get_blk_state(block.name)
             # Merge preconditions
             pred_preconds: List[Expr] = []
             for pred in block.preds:
-                if len(pred.state.precond) > 1:
-                    pred_preconds.append(And(*pred.state.precond))
+                pred_state = self.get_blk_state(pred.name)
+                if len(pred_state.precond) > 1:
+                    pred_preconds.append(And(*pred_state.precond))
                 else:
-                    pred_preconds.append(pred.state.precond[0])
+                    pred_preconds.append(pred_state.precond[0])
             if len(pred_preconds) > 1:
-                new_state.precond = Or(*pred_preconds)
+                blk_state.precond = [Or(*pred_preconds)]
             else:
-                new_state.precond = pred_preconds[0]
+                blk_state.precond = pred_preconds[0]
 
             # TODO: handle global vars and uninterpreted functions
 
@@ -474,8 +478,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             # Mapping from variable (register/arg names) to a mapping from values to assume statements
             var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
-                for var_name, var_value in pred.state.vars.items():
-                    var_state[var_name][var_value].append(pred.state.precond)
+                for var_name, var_value in pred_state.vars.items():
+                    var_state[var_name][var_value].append(pred_state.precond)
 
             merged_vars: Dict[str, Expr] = {}
             for var_name, value_to_precond_mapping in var_state.items():
@@ -502,9 +506,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                             merged_value = value
                         else:
                             merged_value = Ite(aggregated_precond, value, merged_value)
-            new_state.vars = merged_vars
+            blk_state.vars = merged_vars
             # TODO: how to handle asserts here?
-            return new_state
 
 
     def visit_llvm_block(self, block: ValueRef) -> None:
@@ -512,11 +515,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.visit_initial_llvm_block(block)
         else:
             # First we need to merge states
-            block.state = self.merge_states(block)
-            print(f"VISITING LLVM BLOCK {block.name}")
-            print("MERGED STATE", block.state)
+            self.merge_states(block)
+            # TODO: add key checking
             self.visit_instructions(block.name, block.instructions)
-            print(f"DONE VISITING LLVM BLOCK {block.name}")
             self.get_blk_state(block.name).processed = True
 
     def visit_instructions(
@@ -565,7 +566,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        ptr_expr = self.state.read(ops[0].name)
+        ptr_expr = self.get_blk_state(block_name).read(ops[0].name)
         assert ptr_expr.type.name == "Pointer"
         self.get_blk_state(block_name).write(o.name, ptr_expr.value)
 
@@ -634,6 +635,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             cond = blk_state.read_operand(ops[0])
             self.get_blk_state(true_branch).precond.append(cond)
             self.get_blk_state(false_branch).precond.append(Not(cond))
+
         return
         ops = list(o.operands)
         blk_state = self.get_blk_state(block_name)
