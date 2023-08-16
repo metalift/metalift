@@ -281,7 +281,6 @@ class VCVisitor:
     fn_blocks: Dict[str, Block]
     fn_blocks_states: Dict[str, State]
 
-    state: State
     invariants: Dict[WhileStmt, Predicate]
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
@@ -296,7 +295,6 @@ class VCVisitor:
         fn_ref: ValueRef,
         fn_args: List[Expr],
         fn_blocks: Dict[str, Block],
-        state: State,
         invariants: Dict[WhileStmt, Predicate],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
@@ -310,7 +308,6 @@ class VCVisitor:
         self.fn_blocks = fn_blocks
         self.fn_blocks_states: Dict[str, State] = defaultdict(lambda: State())
 
-        self.state = state
         self.invariants = invariants
         self.var_tracker = var_tracker
         self.pred_tracker = pred_tracker
@@ -318,11 +315,28 @@ class VCVisitor:
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
 
+    # Helper functions
+    def write_to_block(self, block_name: str, var: str, val: Expr) -> None:
+        self.fn_blocks_states[block_name].vars[var] = val
+
+    def read_from_block(self, block_name: str, ref: ValueRef) -> Expr:
+        blk_state_vars = self.fn_blocks_states[block_name].vars
+        if ref.name:
+            if ref.name in blk_state_vars.keys():
+                return blk_state_vars[ref.name]
+            else:
+                raise Exception(f"{ref.name} not found in {blk_state_vars}")
+        else:
+            val = re.search("\w+ (\S+)", str(ref)).group(1)  # type: ignore
+            if val == "true":
+                return Lit(True, Bool())
+            elif val == "false":
+                return Lit(False, Bool())
+            else:  # assuming it's a number
+                return Lit(int(val), Int())
 
     # Definitions
-    def visit_initial_llvm_block(self, block: ValueRef) -> None:
-        blk_state = self.fn_blocks_states[block.name]
-
+    def preprocess(self, block: ValueRef) -> None:
         ret_type: MLType = self.fn_type.args[0]
         arg_types: List[MLType] = self.fn_type.args[1]
         arg_names: List[str] = [a.name() for a in self.fn_args]
@@ -333,12 +347,8 @@ class VCVisitor:
             formals,
             self.ps_grammar,
         )
-
         for arg in self.fn_args:
-            blk_state.write(arg.name(), arg)
-
-        self.visit_instructions(block.name, block.instructions)
-        blk_state.processed = True
+            self.write_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -360,7 +370,7 @@ class VCVisitor:
         elif o.opcode == "ret":
             self.visit_ret_instruction(block_name, o)
         else:
-            print("MISSING SUPPORT FOR INSTRUCTION", o.opcode)
+            raise Exception(f"Unsupported instruction opcode {o.opcode}")
 
     def merge_states(self, block: ValueRef) -> State:
         if len(block.preds) == 0:
@@ -425,13 +435,12 @@ class VCVisitor:
 
     def visit_llvm_block(self, block: ValueRef) -> None:
         if len(block.preds) == 0:
-            self.visit_initial_llvm_block(block)
+            self.preprocess(block)
         else:
             # First we need to merge states
             self.merge_states(block)
-            # TODO: add key checking
-            self.visit_instructions(block.name, block.instructions)
-            self.fn_blocks_states[block.name].processed = True
+        self.visit_instructions(block.name, block.instructions)
+        self.fn_blocks_states[block.name].processed = True
 
     def visit_instructions(
         self,
@@ -475,12 +484,15 @@ class VCVisitor:
             raise Exception("NYI: %s" % o)
 
         # o.name is the register name
-        self.fn_blocks_states[block_name].write(o.name, Pointer(val))
+        self.write_to_block(block_name, o.name, Pointer(val))
 
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        ptr_expr = self.fn_blocks_states[block_name].read(ops[0].name)
-        assert ptr_expr.type.name == "Pointer"
+        ptr_expr = self.read_from_block(block_name, ops[0])
+        # TODO:
+        # if not isinstance(ptr_expr, Pointer):
+        #     import pdb; pdb.set_trace()
+        #     raise Exception(f"Load instruction {o} must load from a pointer!")
 
         # TODO: change this, this is a bit of a hack.
         if isinstance(ptr_expr, Ite):
@@ -488,47 +500,46 @@ class VCVisitor:
         else:
             referenced_value = ptr_expr.value
 
-        self.fn_blocks_states[block_name].write(o.name, referenced_value)
+        self.write_to_block(block_name, o.name, referenced_value)
 
     def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        value_to_store = self.fn_blocks_states[block_name].read_operand(ops[0])
-
+        value_to_store = self.read_from_block(block_name, ops[0])
         # store into the location stored in ops[1].name
-        ptr_expr = self.fn_blocks_states[block_name].read(ops[1].name)
-        assert ptr_expr.type.name == "Pointer"
-        ptr_expr.set_value(value_to_store)
+        ptr_expr = self.read_from_block(block_name, ops[1])
+        if not isinstance(ptr_expr, Pointer):
+            raise Exception(f"Store instruction {o} must store into a pointer!")
+        cast(Pointer, ptr_expr).set_value(value_to_store)
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         add_expr = Add(
-            self.fn_blocks_states[block_name].read_operand(ops[0]),
-            self.fn_blocks_states[block_name].read_operand(ops[1])
+            self.read_from_block(block_name, ops[0]),
+            self.read_from_block(block_name, ops[1])
         )
-        self.fn_blocks_states[block_name].write(o.name, add_expr)
+        self.write_to_block(block_name, o.name, add_expr)
 
     def visit_sub_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         sub_expr = Sub(
-            self.fn_blocks_states[block_name].read_operand(ops[0]),
-            self.fn_blocks_states[block_name].read_operand(ops[1])
+            self.read_from_block(block_name, ops[0]),
+            self.read_from_block(block_name, ops[1])
         )
-        self.fn_blocks_states[block_name].write(o.name, sub_expr)
+        self.write_to_block(block_name, o.name, sub_expr)
 
     def visit_mul_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         mul_expr = Mul(
-            self.fn_blocks_states[block_name].read_operand(ops[0]),
-            self.fn_blocks_states[block_name].read_operand(ops[1])
+            self.read_from_block(block_name, ops[0]),
+            self.read_from_block(block_name, ops[1])
         )
-        self.fn_blocks_states[block_name].write(o.name, mul_expr)
+        self.write_to_block(block_name, o.name, mul_expr)
 
     def visit_icmp_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(o).strip()).group(1)
-        # TODO: use parseOperand
-        op0 = self.fn_blocks_states[block_name].read_operand(ops[0])
-        op1 = self.fn_blocks_states[block_name].read_operand(ops[1])
+        op0 = self.read_from_block(block_name, ops[0])
+        op1 = self.read_from_block(block_name, ops[1])
 
         if cond == "eq":
             value = Eq(op0, op1)
@@ -543,16 +554,15 @@ class VCVisitor:
         else:
             raise Exception("NYI %s" % cond)
 
-        self.fn_blocks_states[block_name].write(o.name, value)
+        self.write_to_block(block_name, o.name, value)
 
     def visit_br_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        blk_state = self.fn_blocks_states[block_name]
         if len(ops) > 1:
             # LLVMLite switches the order of branches for some reason
             true_branch = ops[2].name
             false_branch = ops[1].name
-            cond = blk_state.read_operand(ops[0])
+            cond = self.read_from_block(block_name, ops[0])
             self.fn_blocks_states[true_branch].precond.append(cond)
             self.fn_blocks_states[false_branch].precond.append(Not(cond))
 
@@ -565,13 +575,12 @@ class VCVisitor:
             self.pred_tracker.predicates[self.fn_ref].name,
             Bool(),
             *self.fn_args,
-            blk_state.read_operand(ops[0]),
+            self.read_from_block(block_name, ops[0]),
         )
         if blk_state.precond:
             blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), ps))
         else:
             blk_state.asserts.append(ps)
-
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
@@ -695,12 +704,6 @@ class MetaliftFunc:
         self.synthesized = None
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
-        # set up new state for the call: should contain all global vars and all postconditions
-        # from previous invocations
-        state = State()
-        # TODO jie: do I need to anything with this
-        state.precond += self.driver.postconditions
-
         # Check that the arguments passed in have the same names and types as the function definition.
         if len(list(self.fn_ref.arguments)) != len(args):
             raise RuntimeError(
@@ -723,7 +726,6 @@ class MetaliftFunc:
             fn_ref=self.fn_ref,
             fn_args=list(args),
             fn_blocks=self.fn_blocks,
-            state=state,
             invariants=dict(),
             var_tracker=self.driver.var_tracker,
             pred_tracker=self.driver.inv_tracker,
