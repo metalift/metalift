@@ -44,7 +44,6 @@ class Block:
     regs: Dict[ValueRef, Expr]
     preds: typing.List[Any]
     succs: typing.List[Any]
-    state: State
 
     def __init__(self, name: str, instructions: typing.List[ValueRef]) -> None:
         self.name = name
@@ -404,7 +403,6 @@ class VC:
             elif opcode == "call":  # last arg is fn to be called
                 fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
                 if fnName == "":
-                    # TODO(jie): what is this
                     # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
                     fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
                 if fnName in models.fnModels:
