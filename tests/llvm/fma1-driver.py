@@ -22,26 +22,26 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     var = Choose(*reads, IntLit(0))
     added = var + var
     var_or_fma = Choose(*reads, Call("fma", Int(), added, added, added))
 
     return Eq(ret_val, var_or_fma + var_or_fma)
 
-def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def inv_grammar(v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     raise Exception("no loop in the source")
 
 
 if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(
-        "tests/llvm/fma_dsl.ll",
-        "tests/llvm/fma_dsl.loops",
-        "test",
-        target_lang,
-        inv_grammar,
-        ps_grammar
+        llvm_filepath="tests/llvm/fma_dsl.ll",
+        loops_filepath="tests/llvm/fma_dsl.loops",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
     )
 
     v1 = driver.variable("base", Int())

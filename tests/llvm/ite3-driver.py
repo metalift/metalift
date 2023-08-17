@@ -21,7 +21,6 @@ def target_lang() -> List[FnDecl]:
 
 def ps_grammar(
     ret_val: Var,
-    ast: Statement,
     writes: List[Var],
     reads: List[Var],
     in_scope: List[Var],
@@ -31,7 +30,7 @@ def ps_grammar(
 
 
 def inv_grammar(
-    v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]
+    v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]
 ) -> Expr:
     raise Exception("no loop in the source")
 
@@ -39,12 +38,12 @@ def inv_grammar(
 if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(
-        "tests/llvm/ite3.ll",
-        "tests/llvm/ite3.loops",
-        "test",
-        target_lang,
-        inv_grammar,
-        ps_grammar
+        llvm_filepath="tests/llvm/ite3.ll",
+        loops_filepath="tests/llvm/ite3.loops",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
     )
 
     i = driver.variable("i", Int())

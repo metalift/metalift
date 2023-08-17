@@ -27,11 +27,13 @@ def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) 
     else:  # 0
         return Lit(int(op), Int())
 
+
 def and_exprs(*exprs: Expr) -> Expr:
     if len(exprs) == 1:
         return exprs[0]
     else:
         return And(*exprs)
+
 
 # TODO: should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:

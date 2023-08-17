@@ -1,27 +1,34 @@
 from collections import defaultdict
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union, cast
-from metalift.analysis_new import RawBlock, VariableTracker
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    cast,
+)
+from llvmlite.binding import ValueRef, TypeRef
+
+from metalift.analysis_new import VariableTracker
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from llvmlite import binding as llvm
-from llvmlite import ir as llvm_ir
 
 from metalift.ir import (
     Add,
-    And,
     Bool,
-    BoolLit,
     Call,
     Eq,
     Expr,
     FnDecl,
     FnDeclRecursive,
     FnT,
-    Ge,
     Gt,
     Implies,
     Int,
-    IntLit,
     Ite,
     Le,
     ListT,
@@ -30,62 +37,15 @@ from metalift.ir import (
     Mul,
     Not,
     Object,
-    Or,
     Pointer,
     SetT,
     Sub,
     Synth,
-    Tuple as MLTuple,
-    TupleGet,
     TupleT,
     Type as MLType,
     Var,
     parseTypeRef,
 )
-from mypy import build
-from mypy.build import BuildResult
-from mypy.options import Options
-from mypy.defaults import PYTHON3_VERSION
-from mypy.modulefinder import BuildSource
-from mypy.traverser import TraverserVisitor
-from mypy.nodes import (
-    AssertStmt,
-    AssignmentStmt,
-    BreakStmt,
-    ClassDef,
-    ComparisonExpr,
-    ContinueStmt,
-    Decorator,
-    DelStmt,
-    Expression as ValueRef,
-    ExpressionStmt,
-    ForStmt,
-    FuncDef,
-    GlobalDecl,
-    IfStmt,
-    Import,
-    ImportAll,
-    ImportFrom,
-    IntExpr,
-    IndexExpr,
-    MatchStmt,
-    MypyFile,
-    NameExpr,
-    NonlocalDecl,
-    OperatorAssignmentStmt,
-    OpExpr,
-    OverloadedFuncDef,
-    PassStmt,
-    RaiseStmt,
-    ReturnStmt,
-    Statement,
-    TryStmt,
-    TupleExpr,
-    WhileStmt,
-    WithStmt,
-)
-from mypy.types import CallableType, Instance, Type as TypeRef, UnboundType
-from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
 
@@ -101,16 +61,6 @@ from metalift.vc_util import and_exprs, or_exprs
 # python3 -m pip install --no-binary mypy -U mypy
 
 
-def parse(path: str, modulename: str) -> BuildResult:
-    options = Options()
-    options.incremental = False  # turn off caching of previously typed results
-    # options.export_types = Trueref = llvm.parse_assembly
-    options.show_traceback = True
-    options.python_version = PYTHON3_VERSION
-    options.preserve_asts = True
-    options.export_types = True
-    return build.build(sources=[BuildSource(path, modulename, None)], options=options)
-
 # Helper functions
 def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
     return_type = None
@@ -125,6 +75,7 @@ def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
     if return_type is None:
         raise RuntimeError(f"fn must return a value!")
     return return_type
+
 
 # TODO: make it namedtuple
 LLVMVar = Tuple[str, TypeRef]
@@ -176,8 +127,7 @@ class Predicate:
     reads: List[LLVMVar]
     in_scope: List[LLVMVar]
     name: str
-    grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
-    ast: Union[WhileStmt, FuncDef]
+    grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -185,13 +135,12 @@ class Predicate:
     # and not one of the original arguments in sorted order
     def __init__(
         self,
-        ast: Union[WhileStmt, FuncDef],
         args: List[LLVMVar],
         writes: List[LLVMVar],
         reads: List[LLVMVar],
         in_scope: List[LLVMVar],
         name: str,
-        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -199,7 +148,6 @@ class Predicate:
         self.in_scope = in_scope
         self.name = name
         self.grammar = grammar
-        self.ast = ast
         self.synth = None
 
     def call(self, state: State) -> Call:
@@ -211,7 +159,7 @@ class Predicate:
         reads = [Var(v[0], v[1]) for v in self.reads]
         in_scope = [Var(v[0], v[1]) for v in self.in_scope]
 
-        v_exprs = [self.grammar(v, self.ast, writes, reads, in_scope) for v in writes]
+        v_exprs = [self.grammar(v, writes, reads, in_scope) for v in writes]
 
         body = and_exprs(*v_exprs)
 
@@ -221,7 +169,7 @@ class Predicate:
 
 class PredicateTracker:
     types: Dict[ValueRef, TypeRef]
-    predicates: Dict[Union[WhileStmt, FuncDef], Predicate]
+    predicates: Dict[ValueRef, Predicate]
     num: int  #  current invariant number
 
     def __init__(self) -> None:
@@ -232,12 +180,12 @@ class PredicateTracker:
     def invariant(
         self,
         fn_name: str,
-        o: WhileStmt,
+        o: ValueRef,
         args: List[LLVMVar],
         writes: List[LLVMVar],
         reads: List[LLVMVar],
         in_scope: List[LLVMVar],
-        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -257,19 +205,19 @@ class PredicateTracker:
 
     def postcondition(
         self,
-        o: FuncDef,
+        o: ValueRef,
         outs: List[LLVMVar],
         ins: List[LLVMVar],
-        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            ps = Predicate(o, ins + outs, outs, ins, [], f"{o.name}_ps", grammar)
+            ps = Predicate(ins + outs, outs, ins, [], f"{o.name}_ps", grammar)
             self.predicates[o] = ps
             return ps
 
-    def call(self, o: WhileStmt, s: State) -> Call:
+    def call(self, o: ValueRef, s: State) -> Call:
         return self.predicates[o].call(s)
 
 
@@ -281,12 +229,12 @@ class VCVisitor:
     fn_blocks: Dict[str, Block]
     fn_blocks_states: Dict[str, State]
 
-    invariants: Dict[WhileStmt, Predicate]
+    invariants: Dict[ValueRef, Predicate]
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
-    ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
+    ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
 
     def __init__(
         self,
@@ -295,11 +243,11 @@ class VCVisitor:
         fn_ref: ValueRef,
         fn_args: List[Expr],
         fn_blocks: Dict[str, Block],
-        invariants: Dict[WhileStmt, Predicate],
+        invariants: Dict[ValueRef, Predicate],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
+        ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
@@ -404,7 +352,9 @@ class VCVisitor:
 
             # Merge state
             # Mapping from variable (register/arg names) to a mapping from values to assume statements
-            var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(lambda: defaultdict(list))
+            var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
+                lambda: defaultdict(list)
+            )
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 for var_name, var_value in pred_state.vars.items():
@@ -420,10 +370,15 @@ class VCVisitor:
                         all_aggregated_preconds: List[Expr] = []
                         for preconds in all_preconds:
                             all_aggregated_preconds.append(and_exprs(*preconds))
-                        value_to_aggregated_precond[value] = or_exprs(*all_aggregated_preconds)
+                        value_to_aggregated_precond[value] = or_exprs(
+                            *all_aggregated_preconds
+                        )
 
                     merged_value = None
-                    for value, aggregated_precond in value_to_aggregated_precond.items():
+                    for (
+                        value,
+                        aggregated_precond,
+                    ) in value_to_aggregated_precond.items():
                         if merged_value is None:
                             merged_value = value
                         else:
@@ -431,7 +386,6 @@ class VCVisitor:
                     merged_vars[var_name] = merged_value
             blk_state.vars = merged_vars
             # TODO: how to handle asserts here?
-
 
     def visit_llvm_block(self, block: ValueRef) -> None:
         if len(block.preds) == 0:
@@ -442,11 +396,7 @@ class VCVisitor:
         self.visit_instructions(block.name, block.instructions)
         self.fn_blocks_states[block.name].processed = True
 
-    def visit_instructions(
-        self,
-        block_name: str,
-        instructions: List[ValueRef]
-    ) -> None:
+    def visit_instructions(self, block_name: str, instructions: List[ValueRef]) -> None:
         for instr in instructions:
             self.visit_instruction(block_name, instr)
 
@@ -489,16 +439,20 @@ class VCVisitor:
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         ptr_expr = self.read_from_block(block_name, ops[0])
-        # TODO:
-        # if not isinstance(ptr_expr, Pointer):
-        #     import pdb; pdb.set_trace()
-        #     raise Exception(f"Load instruction {o} must load from a pointer!")
-
-        # TODO: change this, this is a bit of a hack.
-        if isinstance(ptr_expr, Ite):
-            referenced_value = Ite(ptr_expr.c(), ptr_expr.e1().value, ptr_expr.e2().value)
-        else:
+        is_ptr_expr = isinstance(ptr_expr, Pointer)
+        is_ite_expr_with_ptr = (
+            isinstance(ptr_expr, Ite)
+            and isinstance(ptr_expr.e1(), Pointer)
+            and isinstance(ptr_expr.e2(), Pointer)
+        )
+        if is_ptr_expr:
             referenced_value = ptr_expr.value
+        elif is_ite_expr_with_ptr:
+            referenced_value = Ite(
+                ptr_expr.c(), ptr_expr.e1().value, ptr_expr.e2().value
+            )
+        else:
+            raise Exception
 
         self.write_to_block(block_name, o.name, referenced_value)
 
@@ -515,7 +469,7 @@ class VCVisitor:
         ops = list(o.operands)
         add_expr = Add(
             self.read_from_block(block_name, ops[0]),
-            self.read_from_block(block_name, ops[1])
+            self.read_from_block(block_name, ops[1]),
         )
         self.write_to_block(block_name, o.name, add_expr)
 
@@ -523,7 +477,7 @@ class VCVisitor:
         ops = list(o.operands)
         sub_expr = Sub(
             self.read_from_block(block_name, ops[0]),
-            self.read_from_block(block_name, ops[1])
+            self.read_from_block(block_name, ops[1]),
         )
         self.write_to_block(block_name, o.name, sub_expr)
 
@@ -531,7 +485,7 @@ class VCVisitor:
         ops = list(o.operands)
         mul_expr = Mul(
             self.read_from_block(block_name, ops[0]),
-            self.read_from_block(block_name, ops[1])
+            self.read_from_block(block_name, ops[1]),
         )
         self.write_to_block(block_name, o.name, mul_expr)
 
@@ -567,7 +521,6 @@ class VCVisitor:
             self.fn_blocks_states[false_branch].precond.append(Not(cond))
 
     def visit_ret_instruction(self, block_name: str, o: ValueRef) -> None:
-        # precond -> ps(...)
         # TODO: hanlde ret void
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
@@ -583,6 +536,7 @@ class VCVisitor:
             blk_state.asserts.append(ps)
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
+
 
 class Driver:
     var_tracker: VariableTracker
@@ -608,8 +562,8 @@ class Driver:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
+        ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -618,20 +572,10 @@ class Driver:
             name=fn_name,
             target_lang_fn=target_lang_fn,
             inv_grammar=inv_grammar,
-            ps_grammar=ps_grammar
+            ps_grammar=ps_grammar,
         )
         self.fns[fn_name] = f
         return f
-
-    # def synthesize_invariants(self,
-    #                           grammar_fn: Callable[[Var, WhileStmt, Set[Var], Set[Var], Set[Var]], Expr]) -> None:
-    #     for (o, inv) in self.inv_tracker.predicates.items():
-    #         writes = [self.var_tracker.variable(v[0], to_mltype(v[1])) for v in inv.writes]
-    #         reads = [self.var_tracker.variable(v[0], to_mltype(v[1])) for v in inv.reads]
-    #         in_scope = [self.var_tracker.variable(v[0], to_mltype(v[1])) for v in inv.in_scope]
-    #         v_exprs = [grammar_fn(v, o, writes, reads, in_scope) for v in writes]
-    #         body = And(*v_exprs) if len(v_exprs) > 1 else v_exprs[0]
-    #         inv.synth_fn = Synth(inv.name, body, *(writes + reads + in_scope))
 
     def synthesize(self) -> None:
         synths = [i.gen_Synth() for i in self.inv_tracker.predicates.values()]
@@ -666,13 +610,13 @@ class Driver:
 
 class MetaliftFunc:
     driver: Driver
-    fn_ref: ValueRef # TODO jie: should I change this to llvm_ir.Function
+    fn_ref: ValueRef  # TODO jie: should I change this to llvm_ir.Function
     fn_type: MLType
     types: Dict[ValueRef, TypeRef]
     name: str
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
-    ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
+    ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
     synthesized: Optional[Expr]
     fn_blocks: Dict[str, Block]
 
@@ -683,8 +627,8 @@ class MetaliftFunc:
         loops_filepath: str,
         name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
+        ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.driver = driver
         with open(llvm_filepath, mode="r") as file:
@@ -714,7 +658,9 @@ class MetaliftFunc:
             passed_in_arg_name, passed_in_arg_type = args[i].name(), args[i].type
             fn_arg_name, fn_arg_type = fn_ref_args[i].name, self.fn_type.args[1][i]
             if passed_in_arg_name != fn_arg_name:
-                raise Exception(f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}")
+                raise Exception(
+                    f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
+                )
             if passed_in_arg_type != fn_arg_type:
                 raise RuntimeError(
                     f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_name}"
@@ -737,7 +683,8 @@ class MetaliftFunc:
             done = True
             for b in self.fn_blocks.values():
                 if not v.fn_blocks_states[b.name].processed and (
-                    not b.preds or all([v.fn_blocks_states[p.name].processed for p in b.preds])
+                    not b.preds
+                    or all([v.fn_blocks_states[p.name].processed for p in b.preds])
                 ):
                     v.visit_llvm_block(b)
                     done = False
