@@ -238,6 +238,7 @@ def processLoops(
             opcode = i.opcode
             ops = list(i.operands)
             # prevent duplicate havocs in nested loops
+            # TODO jie: why are havocs only from store instructions
             if opcode == "store" and ops[1] not in havocs:
                 havocs.append(ops[1])
 

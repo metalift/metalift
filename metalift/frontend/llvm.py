@@ -6,6 +6,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    NamedTuple,
     Optional,
     Tuple,
     TypeVar,
@@ -60,8 +61,135 @@ from metalift.vc_util import and_exprs, or_exprs
 # from https://github.com/python/mypy
 # python3 -m pip install --no-binary mypy -U mypy
 
+# Helper classes
+RawLoopInfo = NamedTuple(
+    "LoopInfo",
+    [
+        ("header_name", List[str]),
+        ("body_names", List[str]),
+        ("exit_names", List[str]),
+        ("latche_names", List[str]),
+    ],
+)
+
+class LoopInfo:
+    header: Block
+    body: List[Block]
+    exits: List[Block]
+    latches: List[Block]
+    havocs: List[ValueRef]
+
+    def __init__(
+        self,
+        header: Block,
+        body: List[Block],
+        exits: List[Block],
+        latches: List[Block],
+    ) -> None:
+        self.header = header
+        self.body = body
+        self.exits = exits
+        self.latches = latches
+
+        self.havocs: List[ValueRef] = []
+        for block in [self.header, *self.body, *self.exits, *self.latches]:
+            for i in block.instructions:
+                opcode = i.opcode
+                ops = list(i.operands)
+                # prevent duplicate havocs in nested loops
+                # TODO jie: why are havocs only from store instructions
+                if opcode == "store" and ops[1] not in self.havocs:
+                    self.havocs.append(ops[1])
+
+        # Remove back edges
+        for latch in self.latches:
+            latch.succs.remove(self.header)
+            self.header.preds.remove(latch)
+
+    @staticmethod
+    def from_raw_loop_info(raw_loop_info: RawLoopInfo, blocks: Dict[str, Block]) -> "LoopInfo":
+        return LoopInfo(
+            header=blocks[raw_loop_info.header_name],
+            body=[blocks[body_name] for body_name in raw_loop_info.body_names],
+            exit=[blocks[exit_name] for exit_name in raw_loop_info.exit_names],
+            latch=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
+        )
+
+    @staticmethod
+    def from_block_names(
+        header_name: str,
+        body_names: List[str],
+        exit_names: List[str],
+        latch_names: List[str],
+        blocks: Dict[str, Block]
+    ) -> "LoopInfo":
+        return LoopInfo(
+            header=blocks[header_name],
+            body=[blocks[body_name] for body_name in body_names],
+            exit=[blocks[exit_name] for exit_name in exit_names],
+            latch=[blocks[latch_name] for latch_name in latch_names],
+        )
+
 
 # Helper functions
+def parse_loops(loops_filepath: str, fn_name: str) -> List[RawLoopInfo]:
+    with open(loops_filepath, mode="r") as f:
+        found_lines = []
+        found = False
+        for l in f.readlines():
+            if re.match(
+                "Printing analysis 'Natural Loop Information' for function '%s':"
+                % fn_name,
+                l,
+            ):
+                found = True
+            elif found:
+                loop_match = re.match("Loop at depth \d+ containing: (\S+)", l.strip())
+                if loop_match:
+                    found_lines.append(loop_match.group(1))
+                elif re.match(
+                    "Printing analysis 'Natural Loop Information' for function '\S+':",
+                    l,
+                ):
+                    found = False
+
+        loops: List[LoopInfo] = []
+        for m in found_lines:
+            header_names: List[str] = []
+            body_names: List[str] = []
+            exit_names: List[str] = []
+            latch_names: List[str] = []
+
+            blks = m.replace("%", "").split(",")
+            for b in blks:
+                name: str = re.search("([^<]+)", b).group(0)  # type: ignore
+                print("name: %s" % b)
+                if "<header>" in b:
+                    header_names.append(name)
+                if "<exiting>" in b:
+                    exit_names.append(name)
+                if "<latch>" in b:
+                    latch_names.append(name)
+                if "<header>" not in b and "<exiting>" not in b and "latch" not in b:
+                    body_names.append(name)
+            if len(header_names) > 1:
+                raise Exception(f"Detected more than one header block! {header_names}")
+
+            raw_loop_info = RawLoopInfo(
+                header_name=header_names[0],
+                body_names=body_names,
+                exit_names=exit_names,
+                latch_names=latch_names
+            )
+            loops.append(raw_loop_info)
+
+        for loop in loops:
+            print(
+                "found loop: header: %s, body: %s, exits: %s, latches: %s"
+                % (loop.header, loop.body, loop.exits, loop.latches)
+            )
+        return loops
+
 def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
     return_type = None
     for block in blocks:
@@ -169,26 +297,24 @@ class Predicate:
 
 class PredicateTracker:
     types: Dict[ValueRef, TypeRef]
-    predicates: Dict[ValueRef, Predicate]
-    num: int  #  current invariant number
+    predicates: Dict[int, Predicate]
 
     def __init__(self) -> None:
         self.types = dict()
         self.predicates = dict()
-        self.num = 0
 
     def invariant(
         self,
         fn_name: str,
-        o: ValueRef,
+        inv_num: int,
         args: List[LLVMVar],
         writes: List[LLVMVar],
         reads: List[LLVMVar],
         in_scope: List[LLVMVar],
         grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
-        if o in self.predicates:
-            return self.predicates[o]
+        if inv_num in self.predicates.keys():
+            return self.predicates[inv_num]
         else:
             non_args_scope_vars = list(set(in_scope) - set(args))
             non_args_scope_vars.sort()
@@ -197,10 +323,14 @@ class PredicateTracker:
             )  # add the vars that are in scope but not part of args, in sorted order
 
             inv = Predicate(
-                o, args, writes, reads, in_scope, f"{fn_name}_inv{self.num}", grammar
+                args=args,
+                writes=writes,
+                reads=reads,
+                in_scope=in_scope,
+                name=f"{fn_name}_inv{inv_num}",
+                grammar=grammar
             )
-            self.num += 1
-            self.predicates[o] = inv
+            self.predicates[inv_num] = inv
             return inv
 
     def postcondition(
@@ -226,15 +356,17 @@ class VCVisitor:
     fn_type: MLType
     fn_ref: ValueRef
     fn_args: List[Expr]
+    formals: List[LLVMVar] # TODO jie: refactor this by using fn_args
     fn_blocks: Dict[str, Block]
     fn_blocks_states: Dict[str, State]
 
-    invariants: Dict[ValueRef, Predicate]
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
     inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
+
+    loops: List[LoopInfo]
 
     def __init__(
         self,
@@ -243,11 +375,11 @@ class VCVisitor:
         fn_ref: ValueRef,
         fn_args: List[Expr],
         fn_blocks: Dict[str, Block],
-        invariants: Dict[ValueRef, Predicate],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
+        loops: List[LoopInfo]
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
@@ -256,12 +388,13 @@ class VCVisitor:
         self.fn_blocks = fn_blocks
         self.fn_blocks_states: Dict[str, State] = defaultdict(lambda: State())
 
-        self.invariants = invariants
         self.var_tracker = var_tracker
         self.pred_tracker = pred_tracker
 
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
+
+        self.loops = loops
 
     # Helper functions
     def write_to_block(self, block_name: str, var: str, val: Expr) -> None:
@@ -283,16 +416,41 @@ class VCVisitor:
             else:  # assuming it's a number
                 return Lit(int(val), Int())
 
+    def find_header_loops(self, block_name: str) -> List[LoopInfo]:
+        # TODO: an a block be the header of two loops
+        relevant_loops: List[LoopInfo] = []
+        for loop in self.loops:
+            if block_name == loop.header.name:
+                relevant_loops.append(loop)
+        return relevant_loops
+
+    def find_header_pred_loops(self, block_name: str) -> List[LoopInfo]:
+        # TODO: an a block be the header preprocessor of two loops
+        relevant_loops: List[LoopInfo] = []
+        for loop in self.loops:
+            header_preds = loop.header.preds
+            if any([block_name == pred.name for pred in header_preds]):
+                relevant_loops.append(loop)
+        return relevant_loops
+
+    def find_latch_loops(self, block_name: str) -> List[LoopInfo]:
+        # TODO: an a block be the header preprocessor of two loops
+        relevant_loops: List[LoopInfo] = []
+        for loop in self.loops:
+            if any([block_name == latch.name for latch in loop.latches]):
+                relevant_loops.append(loop)
+        return relevant_loops
+
     # Definitions
     def preprocess(self, block: ValueRef) -> None:
         ret_type: MLType = self.fn_type.args[0]
         arg_types: List[MLType] = self.fn_type.args[1]
         arg_names: List[str] = [a.name() for a in self.fn_args]
-        formals = list(zip(arg_names, arg_types))
+        self.formals = list(zip(arg_names, arg_types))
         self.pred_tracker.postcondition(
             self.fn_ref,
             [(f"{self.fn_name}_rv", ret_type)],
-            formals,
+            self.formals,
             self.ps_grammar,
         )
         for arg in self.fn_args:
@@ -388,6 +546,27 @@ class VCVisitor:
             # TODO: how to handle asserts here?
 
     def visit_llvm_block(self, block: ValueRef) -> None:
+        # If this block is the header of a loop, havoc the modified vars
+        header_loops = self.find_header_loops(block.name)
+        if len(header_loops) > 0:
+            for loop in header_loops:
+                havocs: List[LLVMVar] = []
+                for var in loop.havocs:
+                    var_name, var_type = var.name, parseTypeRef(var.type)
+                    havocs.append(LLVMVar(var_name, var_type))
+                    new_value = self.var_tracker.variable(var_name, var_type)
+                    self.write_to_block(var_name, new_value)
+                loop_index = self.loops.index(loop)
+                inv = self.pred_tracker.invariant(
+                    fn_name=self.fn_name,
+                    args=self.formals,
+                    writes=havocs,
+                    reads=[], # TODO
+                    in_scope=[], # TODO
+                    grammar=self.inv_grammar
+                )
+
+        # Visit the block
         if len(block.preds) == 0:
             self.preprocess(block)
         else:
@@ -395,6 +574,11 @@ class VCVisitor:
             self.merge_states(block)
         self.visit_instructions(block.name, block.instructions)
         self.fn_blocks_states[block.name].processed = True
+
+        # If this block is the latch of some loops, assert inv is true
+        latch_loops = self.find_latch_loops(block.name)
+        if len(latch_loops) > 0:
+            self.fn_blocks_states[block.name].asserts.append()
 
     def visit_instructions(self, block_name: str, instructions: List[ValueRef]) -> None:
         for instr in instructions:
@@ -540,7 +724,7 @@ class VCVisitor:
 
 class Driver:
     var_tracker: VariableTracker
-    inv_tracker: PredicateTracker
+    pred_tracker: PredicateTracker
     asserts: List[Expr]
     postconditions: List[Expr]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
@@ -548,7 +732,7 @@ class Driver:
 
     def __init__(self) -> None:
         self.var_tracker = VariableTracker()
-        self.inv_tracker = PredicateTracker()
+        self.pred_tracker = PredicateTracker()
         self.asserts = []
         self.postconditions = []
         self.fns = dict()
@@ -569,7 +753,7 @@ class Driver:
             driver=self,
             llvm_filepath=llvm_filepath,
             loops_filepath=loops_filepath,
-            name=fn_name,
+            fn_name=fn_name,
             target_lang_fn=target_lang_fn,
             inv_grammar=inv_grammar,
             ps_grammar=ps_grammar,
@@ -578,7 +762,7 @@ class Driver:
         return f
 
     def synthesize(self) -> None:
-        synths = [i.gen_Synth() for i in self.inv_tracker.predicates.values()]
+        synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
         vc = and_exprs(*self.asserts)
@@ -610,42 +794,49 @@ class Driver:
 
 class MetaliftFunc:
     driver: Driver
-    fn_ref: ValueRef  # TODO jie: should I change this to llvm_ir.Function
+    fn_name: str
     fn_type: MLType
-    types: Dict[ValueRef, TypeRef]
-    name: str
+    fn_ref: ValueRef  # TODO jie: should I change this to llvm_ir.Function
+    fn_blocks: Dict[str, Block]
+
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
     synthesized: Optional[Expr]
-    fn_blocks: Dict[str, Block]
+
+    loops: List[LoopInfo]
+
 
     def __init__(
         self,
         driver: Driver,
         llvm_filepath: str,
         loops_filepath: str,
-        name: str,
+        fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.driver = driver
+
+        self.fn_name = fn_name
         with open(llvm_filepath, mode="r") as file:
             ref = llvm.parse_assembly(file.read())
-        self.fn_ref = ref.get_function(name)
-        self.fn_blocks = setupBlocks(self.fn_ref.blocks)
-
+        self.fn_ref = ref.get_function(fn_name)
         # Find the return type of function, and set self.fn_type
         return_type = find_return_type(self.fn_blocks.values())
         fn_args_types = [parseTypeRef(a.type) for a in self.fn_ref.arguments]
         self.fn_type = FnT(return_type, fn_args_types)
+        self.fn_blocks = setupBlocks(self.fn_ref.blocks)
 
-        self.name = name
         self.target_lang_fn = target_lang_fn
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
         self.synthesized = None
+
+        # Parse and process loops
+        raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_name)
+        self.loops = [LoopInfo.from_raw_loop_info(raw_loop) for raw_loop in raw_loops]
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
@@ -667,16 +858,16 @@ class MetaliftFunc:
                 )
 
         v = VCVisitor(
-            fn_name=self.name,
+            fn_name=self.fn_name,
             fn_type=self.fn_type,
             fn_ref=self.fn_ref,
             fn_args=list(args),
             fn_blocks=self.fn_blocks,
-            invariants=dict(),
             var_tracker=self.driver.var_tracker,
-            pred_tracker=self.driver.inv_tracker,
+            pred_tracker=self.driver.pred_tracker,
             inv_grammar=self.inv_grammar,
             ps_grammar=self.ps_grammar,
+            loops=self.loops
         )
         done = False
         while not done:
@@ -690,10 +881,10 @@ class MetaliftFunc:
                     done = False
 
         ret_val = self.driver.var_tracker.variable(
-            f"{self.name}_rv", self.fn_type.args[0]
+            f"{self.fn_name}_rv", self.fn_type.args[0]
         )
 
-        ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
+        ps = Call(f"{self.fn_name}_ps", Bool(), ret_val, *args)
 
         self.driver.postconditions.append(ps)
 
@@ -706,6 +897,6 @@ class MetaliftFunc:
 
     def codegen(self, codegen_fn: Callable[[Expr], T]) -> T:
         if self.synthesized is None:
-            raise Exception(f"{self.name} is not synthesized yet")
+            raise Exception(f"{self.fn_name} is not synthesized yet")
         else:
             return codegen_fn(self.synthesized)
