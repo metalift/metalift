@@ -63,12 +63,12 @@ from metalift.vc_util import and_exprs, or_exprs
 
 # Helper classes
 RawLoopInfo = NamedTuple(
-    "LoopInfo",
+    "RawLoopInfo",
     [
         ("header_name", List[str]),
         ("body_names", List[str]),
         ("exit_names", List[str]),
-        ("latche_names", List[str]),
+        ("latch_names", List[str]),
     ],
 )
 
@@ -111,8 +111,8 @@ class LoopInfo:
         return LoopInfo(
             header=blocks[raw_loop_info.header_name],
             body=[blocks[body_name] for body_name in raw_loop_info.body_names],
-            exit=[blocks[exit_name] for exit_name in raw_loop_info.exit_names],
-            latch=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
+            exits=[blocks[exit_name] for exit_name in raw_loop_info.exit_names],
+            latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
 
     @staticmethod
@@ -186,7 +186,7 @@ def parse_loops(loops_filepath: str, fn_name: str) -> List[RawLoopInfo]:
         for loop in loops:
             print(
                 "found loop: header: %s, body: %s, exits: %s, latches: %s"
-                % (loop.header, loop.body, loop.exits, loop.latches)
+                % (loop.header_name, loop.body_names, loop.exit_names, loop.latch_names)
             )
         return loops
 
@@ -206,12 +206,20 @@ def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
 
 
 # TODO: make it namedtuple
-LLVMVar = Tuple[str, TypeRef]
+LLVMVar = NamedTuple(
+    "LLVMVar",
+    [
+        ("var_name", str),
+        ("var_type", TypeRef),
+    ],
+)
+
 
 
 class State:
     precond: List[Expr]
-    vars: Dict[str, Expr]
+    primitive_vars: Dict[str, Expr]
+    pointer_vars: Dict[str, Expr]
     asserts: List[Expr]
     has_returned: bool
     processed: bool
@@ -219,19 +227,21 @@ class State:
     def __init__(
         self,
         precond: Optional[List[Expr]] = None,
-        vars: Optional[Dict[str, Expr]] = None,
+        primitive_vars: Optional[Dict[str, Expr]] = None,
+        pointer_vars: Optional[Dict[str, Expr]] = None,
         asserts: Optional[List[Expr]] = None,
         has_returned: bool = False,
     ) -> None:
         self.precond = precond or []
-        self.vars = vars or {}
+        self.primitive_vars = primitive_vars or {}
+        self.pointer_vars = pointer_vars or {}
         self.asserts = asserts or []
         self.has_returned = has_returned if not has_returned else has_returned
         self.processed = False
 
     def read_operand(self, op: ValueRef) -> Expr:
         if op.name:
-            return self.read(op.name)
+            return self.read_var(op.name)
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
             return Lit(True, Bool())
@@ -240,14 +250,33 @@ class State:
         else:  # assuming it's a number
             return Lit(int(val), Int())
 
-    def read(self, var: str) -> Expr:
-        if var in self.vars:
-            return self.vars[var]
-        raise RuntimeError(f"{var} not found in {self.vars}")
+    def load_operand(self, op: ValueRef) -> Expr:
+        if not op.name:
+            raise Exception(f"Cannot load value from an operand without name")
+        if op.name in self.pointer_vars.keys():
+            return self.pointer_vars[op.name]
+        raise RuntimeError(f"{op.name} not found in pointer vars {self.pointer_vars}")
 
-    def write(self, var: str, val: Expr) -> None:
-        self.vars[var] = val
+    def write_operand(self, op: ValueRef, value: Expr) -> Expr:
+        if not op.name:
+            raise Exception("Cannot write value for an operand without name")
+        self.primitive_vars[op.name] = value
 
+    def store_operand(self, op: ValueRef, value: Expr) -> Expr:
+        if not op.name:
+            raise Exception("Cannot store value into an operand without name")
+        self.pointer_vars[op.name] = value
+
+    def read_var(self, var_name: str) -> Expr:
+        if var_name in self.primitive_vars.keys():
+            return self.primitive_vars[var_name]
+        raise RuntimeError(f"{var_name} not found in primitive vars {self.primitive_vars}")
+
+    def write_var(self, var_name: str, value: Expr) -> Expr:
+        self.primitive_vars[var_name] = value
+
+    def store_var(self, var_name: str, value: Expr) -> Expr:
+        self.pointer_vars[var_name] = value
 
 class Predicate:
     args: List[LLVMVar]
@@ -276,7 +305,7 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Call:
-        return Call(self.name, Bool(), *[state.read(v[0]) for v in self.args])
+        return Call(self.name, Bool(), *[state.read_var(v[0]) for v in self.args])
 
     def gen_Synth(self) -> Synth:
         # print(f"gen args: {self.args}, writes: {self.writes}, reads: {self.reads}, scope: {self.in_scope}")
@@ -331,7 +360,7 @@ class PredicateTracker:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            ps = Predicate(ins + outs, outs, ins, [], f"{o.name}_ps", grammar)
+            ps = Predicate(ins + outs, outs, ins, f"{o.name}_ps", grammar)
             self.predicates[o] = ps
             return ps
 
@@ -385,24 +414,29 @@ class VCVisitor:
         self.loops = loops
 
     # Helper functions
-    def write_to_block(self, block_name: str, var: str, val: Expr) -> None:
-        self.fn_blocks_states[block_name].vars[var] = val
+    def read_operand_from_block(self, block_name: str, op: ValueRef) -> Expr:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.read_operand(op)
 
-    def read_from_block(self, block_name: str, ref: ValueRef) -> Expr:
-        blk_state_vars = self.fn_blocks_states[block_name].vars
-        if ref.name:
-            if ref.name in blk_state_vars.keys():
-                return blk_state_vars[ref.name]
-            else:
-                raise Exception(f"{ref.name} not found in {blk_state_vars}")
-        else:
-            val = re.search("\w+ (\S+)", str(ref)).group(1)  # type: ignore
-            if val == "true":
-                return Lit(True, Bool())
-            elif val == "false":
-                return Lit(False, Bool())
-            else:  # assuming it's a number
-                return Lit(int(val), Int())
+    def load_operand_from_block(self, block_name: str, op: ValueRef) -> Expr:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.load_operand(op)
+
+    def write_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.write_operand(op, val)
+
+    def store_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.store_operand(op, val)
+
+    def write_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.write_var(var_name, val)
+
+    def store_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.store_var(var_name, val)
 
     def find_header_loops(self, block_name: str) -> List[LoopInfo]:
         # TODO: an a block be the header of two loops
@@ -442,7 +476,7 @@ class VCVisitor:
             self.ps_grammar,
         )
         for arg in self.fn_args:
-            self.write_to_block(block.name, arg.name(), arg)
+            self.write_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -472,9 +506,8 @@ class VCVisitor:
         elif len(block.preds) == 1:
             blk_state = self.fn_blocks_states[block.name]
             pred_state = self.fn_blocks_states[block.preds[0].name]
-            blk_state.vars = copy.deepcopy(pred_state.vars)
-            # TODO: do we need to copy over asserts
-            blk_state.asserts = copy.deepcopy(pred_state.asserts)
+            blk_state.primitive_vars = copy.deepcopy(pred_state.primitive_vars)
+            blk_state.pointer_vars = copy.deepcopy(pred_state.pointer_vars)
             blk_state.precond.extend(copy.deepcopy(pred_state.precond))
             blk_state.has_returned = False
             blk_state.processed = False
@@ -498,12 +531,13 @@ class VCVisitor:
 
             # Merge state
             # Mapping from variable (register/arg names) to a mapping from values to assume statements
+            # Merge primitive vars
             var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
                 lambda: defaultdict(list)
             )
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                for var_name, var_value in pred_state.vars.items():
+                for var_name, var_value in pred_state.primitive_vars.items():
                     var_state[var_name][var_value].append(pred_state.precond)
 
             merged_vars: Dict[str, Expr] = {}
@@ -530,10 +564,47 @@ class VCVisitor:
                         else:
                             merged_value = Ite(aggregated_precond, value, merged_value)
                     merged_vars[var_name] = merged_value
-            blk_state.vars = merged_vars
+            blk_state.primitive_vars = merged_vars
+
+            # Merge pointer vars
+            var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
+                lambda: defaultdict(list)
+            )
+            for pred in block.preds:
+                pred_state = self.fn_blocks_states[pred.name]
+                for var_name, var_value in pred_state.pointer_vars.items():
+                    var_state[var_name][var_value].append(pred_state.precond)
+
+            merged_vars: Dict[str, Expr] = {}
+            for var_name, value_to_precond_mapping in var_state.items():
+                if len(value_to_precond_mapping) == 1:
+                    merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
+                else:
+                    value_to_aggregated_precond: Dict[Expr, Expr] = {}
+                    for value, all_preconds in value_to_precond_mapping.items():
+                        all_aggregated_preconds: List[Expr] = []
+                        for preconds in all_preconds:
+                            all_aggregated_preconds.append(and_exprs(*preconds))
+                        value_to_aggregated_precond[value] = or_exprs(
+                            *all_aggregated_preconds
+                        )
+
+                    merged_value = None
+                    for (
+                        value,
+                        aggregated_precond,
+                    ) in value_to_aggregated_precond.items():
+                        if merged_value is None:
+                            merged_value = value
+                        else:
+                            merged_value = Ite(aggregated_precond, value, merged_value)
+                    merged_vars[var_name] = merged_value
+            blk_state.pointer_vars = merged_vars
             # TODO: how to handle asserts here?
 
     def visit_llvm_block(self, block: ValueRef) -> None:
+        # First we need to merge states
+        self.merge_states(block)
         blk_state = self.fn_blocks_states[block.name]
 
         # If this block is the header of a loop, havoc the modified vars and assume inv
@@ -544,7 +615,7 @@ class VCVisitor:
                 var_name, var_type = var.name, parseTypeRef(var.type)
                 havocs.append(LLVMVar(var_name, var_type))
                 new_value = self.var_tracker.variable(var_name, var_type)
-                self.write_to_block(var_name, new_value)
+                self.store_var_to_block(block.name, var_name, new_value)
             loop_index = self.loops.index(loop)
             inv = self.pred_tracker.invariant(
                 fn_name=self.fn_name,
@@ -559,9 +630,6 @@ class VCVisitor:
         # Visit the block
         if len(block.preds) == 0:
             self.preprocess(block)
-        else:
-            # First we need to merge states
-            self.merge_states(block)
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
 
@@ -623,66 +691,48 @@ class VCVisitor:
             raise Exception("NYI: %s" % o)
 
         # o.name is the register name
-        self.write_to_block(block_name, o.name, Pointer(val))
+        self.store_var_to_block(block_name, o.name, val)
 
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        ptr_expr = self.read_from_block(block_name, ops[0])
-        is_ptr_expr = isinstance(ptr_expr, Pointer)
-        is_ite_expr_with_ptr = (
-            isinstance(ptr_expr, Ite)
-            and isinstance(ptr_expr.e1(), Pointer)
-            and isinstance(ptr_expr.e2(), Pointer)
-        )
-        if is_ptr_expr:
-            referenced_value = ptr_expr.value
-        elif is_ite_expr_with_ptr:
-            referenced_value = Ite(
-                ptr_expr.c(), ptr_expr.e1().value, ptr_expr.e2().value
-            )
-        else:
-            raise Exception
+        loaded_value = self.load_operand_from_block(block_name, ops[0])
 
-        self.write_to_block(block_name, o.name, referenced_value)
+        self.write_operand_to_block(block_name, o, loaded_value)
 
     def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        value_to_store = self.read_from_block(block_name, ops[0])
-        # store into the location stored in ops[1].name
-        ptr_expr = self.read_from_block(block_name, ops[1])
-        if not isinstance(ptr_expr, Pointer):
-            raise Exception(f"Store instruction {o} must store into a pointer!")
-        cast(Pointer, ptr_expr).set_value(value_to_store)
+        value_to_store = self.read_operand_from_block(block_name, ops[0])
+        self.store_operand_to_block(block_name, ops[1], value_to_store)
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         add_expr = Add(
-            self.read_from_block(block_name, ops[0]),
-            self.read_from_block(block_name, ops[1]),
+            self.read_operand_from_block(block_name, ops[0]),
+            self.read_operand_from_block(block_name, ops[1]),
         )
-        self.write_to_block(block_name, o.name, add_expr)
+        self.write_operand_to_block(block_name, o, add_expr)
 
     def visit_sub_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         sub_expr = Sub(
-            self.read_from_block(block_name, ops[0]),
-            self.read_from_block(block_name, ops[1]),
+            self.read_operand_from_block(block_name, ops[0]),
+            self.read_operand_from_block(block_name, ops[1]),
         )
-        self.write_to_block(block_name, o.name, sub_expr)
+        self.write_operand_to_block(block_name, o, sub_expr)
 
     def visit_mul_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         mul_expr = Mul(
-            self.read_from_block(block_name, ops[0]),
-            self.read_from_block(block_name, ops[1]),
+            self.read_operand_from_block(block_name, ops[0]),
+            self.read_operand_from_block(block_name, ops[1]),
         )
-        self.write_to_block(block_name, o.name, mul_expr)
+        self.write_operand_to_block(block_name, o, mul_expr)
 
     def visit_icmp_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(o).strip()).group(1)
-        op0 = self.read_from_block(block_name, ops[0])
-        op1 = self.read_from_block(block_name, ops[1])
+        op0 = self.read_operand_from_block(block_name, ops[0])
+        op1 = self.read_operand_from_block(block_name, ops[1])
 
         if cond == "eq":
             value = Eq(op0, op1)
@@ -697,7 +747,7 @@ class VCVisitor:
         else:
             raise Exception("NYI %s" % cond)
 
-        self.write_to_block(block_name, o.name, value)
+        self.write_operand_to_block(block_name, o, value)
 
     def visit_br_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -705,7 +755,7 @@ class VCVisitor:
             # LLVMLite switches the order of branches for some reason
             true_branch = ops[2].name
             false_branch = ops[1].name
-            cond = self.read_from_block(block_name, ops[0])
+            cond = self.read_operand_from_block(block_name, ops[0])
             self.fn_blocks_states[true_branch].precond.append(cond)
             self.fn_blocks_states[false_branch].precond.append(Not(cond))
 
@@ -717,7 +767,7 @@ class VCVisitor:
             self.pred_tracker.predicates[self.fn_ref].name,
             Bool(),
             *self.fn_args,
-            self.read_from_block(block_name, ops[0]),
+            self.read_operand_from_block(block_name, ops[0]),
         )
         if blk_state.precond:
             blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), ps))
@@ -828,11 +878,11 @@ class MetaliftFunc:
         with open(llvm_filepath, mode="r") as file:
             ref = llvm.parse_assembly(file.read())
         self.fn_ref = ref.get_function(fn_name)
+        self.fn_blocks = setupBlocks(self.fn_ref.blocks)
         # Find the return type of function, and set self.fn_type
         return_type = find_return_type(self.fn_blocks.values())
         fn_args_types = [parseTypeRef(a.type) for a in self.fn_ref.arguments]
         self.fn_type = FnT(return_type, fn_args_types)
-        self.fn_blocks = setupBlocks(self.fn_ref.blocks)
 
         self.target_lang_fn = target_lang_fn
         self.inv_grammar = inv_grammar
@@ -841,7 +891,7 @@ class MetaliftFunc:
 
         # Parse and process loops
         raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_name)
-        self.loops = [LoopInfo.from_raw_loop_info(raw_loop) for raw_loop in raw_loops]
+        self.loops = [LoopInfo.from_raw_loop_info(raw_loop, self.fn_blocks) for raw_loop in raw_loops]
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
