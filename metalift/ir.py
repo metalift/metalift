@@ -1724,7 +1724,6 @@ class FnDecl(Expr):
                     for a in self.args[2:]
                 ]
             )
-
             return "(define (%s %s) \n%s)" % (
                 self.args[0],
                 args,

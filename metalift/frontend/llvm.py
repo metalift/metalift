@@ -253,9 +253,8 @@ class Predicate:
     args: List[LLVMVar]
     writes: List[LLVMVar]
     reads: List[LLVMVar]
-    in_scope: List[LLVMVar]
     name: str
-    grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr]
+    grammar: Callable[[Var, List[Var], List[Var]], Expr]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -266,14 +265,12 @@ class Predicate:
         args: List[LLVMVar],
         writes: List[LLVMVar],
         reads: List[LLVMVar],
-        in_scope: List[LLVMVar],
         name: str,
-        grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[Var, List[Var], List[Var]], Expr],
     ) -> None:
         self.args = args
         self.writes = writes
         self.reads = reads
-        self.in_scope = in_scope
         self.name = name
         self.grammar = grammar
         self.synth = None
@@ -285,9 +282,8 @@ class Predicate:
         # print(f"gen args: {self.args}, writes: {self.writes}, reads: {self.reads}, scope: {self.in_scope}")
         writes = [Var(v[0], v[1]) for v in self.writes]
         reads = [Var(v[0], v[1]) for v in self.reads]
-        in_scope = [Var(v[0], v[1]) for v in self.in_scope]
 
-        v_exprs = [self.grammar(v, writes, reads, in_scope) for v in writes]
+        v_exprs = [self.grammar(v, writes, reads) for v in writes]
 
         body = and_exprs(*v_exprs)
 
@@ -310,23 +306,15 @@ class PredicateTracker:
         args: List[LLVMVar],
         writes: List[LLVMVar],
         reads: List[LLVMVar],
-        in_scope: List[LLVMVar],
         grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
         if inv_num in self.predicates.keys():
             return self.predicates[inv_num]
         else:
-            non_args_scope_vars = list(set(in_scope) - set(args))
-            non_args_scope_vars.sort()
-            args = (
-                args + non_args_scope_vars
-            )  # add the vars that are in scope but not part of args, in sorted order
-
             inv = Predicate(
                 args=args,
                 writes=writes,
                 reads=reads,
-                in_scope=in_scope,
                 name=f"{fn_name}_inv{inv_num}",
                 grammar=grammar
             )
@@ -546,25 +534,27 @@ class VCVisitor:
             # TODO: how to handle asserts here?
 
     def visit_llvm_block(self, block: ValueRef) -> None:
-        # If this block is the header of a loop, havoc the modified vars
+        blk_state = self.fn_blocks_states[block.name]
+
+        # If this block is the header of a loop, havoc the modified vars and assume inv
         header_loops = self.find_header_loops(block.name)
-        if len(header_loops) > 0:
-            for loop in header_loops:
-                havocs: List[LLVMVar] = []
-                for var in loop.havocs:
-                    var_name, var_type = var.name, parseTypeRef(var.type)
-                    havocs.append(LLVMVar(var_name, var_type))
-                    new_value = self.var_tracker.variable(var_name, var_type)
-                    self.write_to_block(var_name, new_value)
-                loop_index = self.loops.index(loop)
-                inv = self.pred_tracker.invariant(
-                    fn_name=self.fn_name,
-                    args=self.formals,
-                    writes=havocs,
-                    reads=[], # TODO
-                    in_scope=[], # TODO
-                    grammar=self.inv_grammar
-                )
+        for loop in header_loops:
+            havocs: List[LLVMVar] = []
+            for var in loop.havocs:
+                var_name, var_type = var.name, parseTypeRef(var.type)
+                havocs.append(LLVMVar(var_name, var_type))
+                new_value = self.var_tracker.variable(var_name, var_type)
+                self.write_to_block(var_name, new_value)
+            loop_index = self.loops.index(loop)
+            inv = self.pred_tracker.invariant(
+                fn_name=self.fn_name,
+                inv_num=loop_index,
+                args=self.formals,
+                writes=havocs,
+                reads=self.formals,
+                grammar=self.inv_grammar
+            )
+            blk_state.precond.append(inv.call(blk_state))
 
         # Visit the block
         if len(block.preds) == 0:
@@ -573,12 +563,27 @@ class VCVisitor:
             # First we need to merge states
             self.merge_states(block)
         self.visit_instructions(block.name, block.instructions)
-        self.fn_blocks_states[block.name].processed = True
+        blk_state.processed = True
 
-        # If this block is the latch of some loops, assert inv is true
+        # If this block is the predecessor of the header of a loop, or the latch of a loop, assert inv
+        header_pred_loops = self.find_header_pred_loops(block.name)
         latch_loops = self.find_latch_loops(block.name)
-        if len(latch_loops) > 0:
-            self.fn_blocks_states[block.name].asserts.append()
+        for loop in header_pred_loops + latch_loops:
+            loop_index = self.loops.index(loop)
+            # TODO: extract the havoc logic as a helper function
+            havocs: List[LLVMVar] = []
+            for var in loop.havocs:
+                var_name, var_type = var.name, parseTypeRef(var.type)
+                havocs.append(LLVMVar(var_name, var_type))
+            inv = self.pred_tracker.invariant(
+                fn_name=self.fn_name,
+                inv_num=loop_index,
+                args=self.formals,
+                writes=havocs,
+                reads=self.formals,
+                grammar=self.inv_grammar
+            )
+            blk_state.asserts.append(inv.call(blk_state))
 
     def visit_instructions(self, block_name: str, instructions: List[ValueRef]) -> None:
         for instr in instructions:
