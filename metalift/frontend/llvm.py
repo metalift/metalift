@@ -272,11 +272,23 @@ class State:
             return self.primitive_vars[var_name]
         raise RuntimeError(f"{var_name} not found in primitive vars {self.primitive_vars}")
 
+    def load_var(self, var_name: str) -> Expr:
+        if var_name in self.pointer_vars.keys():
+            return self.pointer_vars[var_name]
+        raise RuntimeError(f"{var_name} not found in primitive vars {self.pointer_vars}")
+
     def write_var(self, var_name: str, value: Expr) -> Expr:
         self.primitive_vars[var_name] = value
 
     def store_var(self, var_name: str, value: Expr) -> Expr:
         self.pointer_vars[var_name] = value
+
+    def read_or_load_var(self, var_name: str) -> Expr:
+        if var_name in self.primitive_vars.keys():
+            return self.primitive_vars[var_name]
+        if var_name in self.pointer_vars.keys():
+            return self.pointer_vars[var_name]
+        raise RuntimeError(f"{var_name} not found in primitive vars {self.primitive_vars} and pointer vars {self.pointer_vars}")
 
 class Predicate:
     args: List[LLVMVar]
@@ -305,7 +317,7 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Call:
-        return Call(self.name, Bool(), *[state.read_var(v[0]) for v in self.args])
+        return Call(self.name, Bool(), *[state.read_or_load_var(v[0]) for v in self.args])
 
     def gen_Synth(self) -> Synth:
         # print(f"gen args: {self.args}, writes: {self.writes}, reads: {self.reads}, scope: {self.in_scope}")
@@ -604,8 +616,12 @@ class VCVisitor:
 
     def visit_llvm_block(self, block: ValueRef) -> None:
         # First we need to merge states
-        self.merge_states(block)
         blk_state = self.fn_blocks_states[block.name]
+        if len(block.preds) == 0:
+            self.preprocess(block)
+        self.merge_states(block)
+        print(f"VISITING BLOCK {block.name}")
+        print("PRIMITIVE VARS")
 
         # If this block is the header of a loop, havoc the modified vars and assume inv
         header_loops = self.find_header_loops(block.name)
@@ -620,7 +636,7 @@ class VCVisitor:
             inv = self.pred_tracker.invariant(
                 fn_name=self.fn_name,
                 inv_num=loop_index,
-                args=self.formals,
+                args=havocs + self.formals,
                 writes=havocs,
                 reads=self.formals,
                 grammar=self.inv_grammar
@@ -628,8 +644,6 @@ class VCVisitor:
             blk_state.precond.append(inv.call(blk_state))
 
         # Visit the block
-        if len(block.preds) == 0:
-            self.preprocess(block)
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
 
@@ -646,7 +660,7 @@ class VCVisitor:
             inv = self.pred_tracker.invariant(
                 fn_name=self.fn_name,
                 inv_num=loop_index,
-                args=self.formals,
+                args=havocs + self.formals,
                 writes=havocs,
                 reads=self.formals,
                 grammar=self.inv_grammar
