@@ -1,65 +1,24 @@
-from collections import defaultdict
-import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    Tuple,
-    TypeVar,
-    cast,
-)
-from llvmlite.binding import ValueRef, TypeRef
-
-from metalift.analysis_new import VariableTracker
-from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
-from llvmlite import binding as llvm
-
-from metalift.ir import (
-    Add,
-    Bool,
-    Call,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    FnT,
-    Gt,
-    Implies,
-    Int,
-    Ite,
-    Le,
-    ListT,
-    Lit,
-    Lt,
-    Mul,
-    Not,
-    Object,
-    Pointer,
-    SetT,
-    Sub,
-    Synth,
-    TupleT,
-    Type as MLType,
-    Var,
-    parseTypeRef,
-)
-
 import copy
+import re
+from collections import defaultdict
+from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
+                    TypeVar, cast)
+
+from llvmlite import binding as llvm
+from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
-
+from metalift.analysis_new import VariableTracker
+from metalift.ir import (Add, And, Bool, Call, Eq, Expr, FnDecl,
+                         FnDeclRecursive, FnT, Gt, Implies, Int, Ite, Le,
+                         ListT, Lit, Lt, Mul, Not, Object, Or, Pointer, SetT,
+                         Sub, Synth, TupleT)
+from metalift.ir import Type as MLType
+from metalift.ir import Var, parseTypeRef
+from metalift.synthesize_auto import \
+    synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
-
 from metalift.vc_util import and_exprs, or_exprs
-
-# Run the interpreted version of mypy instead of the compiled one to avoid
-# TypeError: interpreted classes cannot inherit from compiled traits
-# from https://github.com/python/mypy
-# python3 -m pip install --no-binary mypy -U mypy
 
 # Helper classes
 RawLoopInfo = NamedTuple(
@@ -77,6 +36,7 @@ class LoopInfo:
     body: List[Block]
     exits: List[Block]
     latches: List[Block]
+    # We use a list instead of a set here to make sure they are always sorted
     havocs: List[ValueRef]
 
     def __init__(
@@ -96,8 +56,6 @@ class LoopInfo:
             for i in block.instructions:
                 opcode = i.opcode
                 ops = list(i.operands)
-                # prevent duplicate havocs in nested loops
-                # TODO jie: why are havocs only from store instructions
                 if opcode == "store" and ops[1] not in self.havocs:
                     self.havocs.append(ops[1])
 
@@ -113,21 +71,6 @@ class LoopInfo:
             body=[blocks[body_name] for body_name in raw_loop_info.body_names],
             exits=[blocks[exit_name] for exit_name in raw_loop_info.exit_names],
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
-        )
-
-    @staticmethod
-    def from_block_names(
-        header_name: str,
-        body_names: List[str],
-        exit_names: List[str],
-        latch_names: List[str],
-        blocks: Dict[str, Block]
-    ) -> "LoopInfo":
-        return LoopInfo(
-            header=blocks[header_name],
-            body=[blocks[body_name] for body_name in body_names],
-            exit=[blocks[exit_name] for exit_name in exit_names],
-            latch=[blocks[latch_name] for latch_name in latch_names],
         )
 
 
@@ -205,7 +148,6 @@ def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
     return return_type
 
 
-# TODO: make it namedtuple
 LLVMVar = NamedTuple(
     "LLVMVar",
     [
@@ -334,7 +276,7 @@ class Predicate:
 
 class PredicateTracker:
     types: Dict[ValueRef, TypeRef]
-    predicates: Dict[int, Predicate]
+    predicates: Dict[str, Predicate]
 
     def __init__(self) -> None:
         self.types = dict()
@@ -342,50 +284,46 @@ class PredicateTracker:
 
     def invariant(
         self,
-        fn_name: str,
-        inv_num: int,
+        inv_name: str,
         args: List[LLVMVar],
         writes: List[LLVMVar],
         reads: List[LLVMVar],
         grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
-        if inv_num in self.predicates.keys():
-            return self.predicates[inv_num]
+        if inv_name in self.predicates.keys():
+            return self.predicates[inv_name]
         else:
             inv = Predicate(
                 args=args,
                 writes=writes,
                 reads=reads,
-                name=f"{fn_name}_inv{inv_num}",
+                name=inv_name,
                 grammar=grammar
             )
-            self.predicates[inv_num] = inv
+            self.predicates[inv_name] = inv
             return inv
 
     def postcondition(
         self,
-        o: ValueRef,
+        fn_name: str,
         outs: List[LLVMVar],
         ins: List[LLVMVar],
         grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> Predicate:
-        if o in self.predicates:
-            return self.predicates[o]
+        if fn_name in self.predicates:
+            return self.predicates[fn_name]
         else:
-            ps = Predicate(ins + outs, outs, ins, f"{o.name}_ps", grammar)
-            self.predicates[o] = ps
+            ps = Predicate(ins + outs, outs, ins, f"{fn_name}_ps", grammar)
+            self.predicates[fn_name] = ps
             return ps
 
-    def call(self, o: ValueRef, s: State) -> Call:
-        return self.predicates[o].call(s)
-
+    def call(self, name: str, s: State) -> Call:
+        return self.predicates[name].call(s)
 
 class VCVisitor:
     fn_name: str
     fn_type: MLType
-    fn_ref: ValueRef
     fn_args: List[Expr]
-    formals: List[LLVMVar] # TODO jie: refactor this by using fn_args
     fn_blocks: Dict[str, Block]
     fn_blocks_states: Dict[str, State]
 
@@ -401,7 +339,6 @@ class VCVisitor:
         self,
         fn_name: str,
         fn_type: MLType,
-        fn_ref: ValueRef,
         fn_args: List[Expr],
         fn_blocks: Dict[str, Block],
         var_tracker: VariableTracker,
@@ -412,7 +349,6 @@ class VCVisitor:
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
-        self.fn_ref = fn_ref
         self.fn_args = fn_args
         self.fn_blocks = fn_blocks
         self.fn_blocks_states: Dict[str, State] = defaultdict(lambda: State())
@@ -425,7 +361,13 @@ class VCVisitor:
 
         self.loops = loops
 
+    # Computed properties
+    @property
+    def formals(self) -> List[LLVMVar]:
+        return [LLVMVar(arg.name(), arg.type) for arg in self.fn_args]
+
     # Helper functions
+    # Helper functions for reading and writing variables
     def read_operand_from_block(self, block_name: str, op: ValueRef) -> Expr:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_operand(op)
@@ -450,8 +392,8 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
 
+    # Helper functions for loops
     def find_header_loops(self, block_name: str) -> List[LoopInfo]:
-        # TODO: an a block be the header of two loops
         relevant_loops: List[LoopInfo] = []
         for loop in self.loops:
             if block_name == loop.header.name:
@@ -459,7 +401,6 @@ class VCVisitor:
         return relevant_loops
 
     def find_header_pred_loops(self, block_name: str) -> List[LoopInfo]:
-        # TODO: an a block be the header preprocessor of two loops
         relevant_loops: List[LoopInfo] = []
         for loop in self.loops:
             header_preds = loop.header.preds
@@ -468,21 +409,26 @@ class VCVisitor:
         return relevant_loops
 
     def find_latch_loops(self, block_name: str) -> List[LoopInfo]:
-        # TODO: an a block be the header preprocessor of two loops
         relevant_loops: List[LoopInfo] = []
         for loop in self.loops:
             if any([block_name == latch.name for latch in loop.latches]):
                 relevant_loops.append(loop)
         return relevant_loops
 
-    # Definitions
+    def get_havocs(self, loop_info: LoopInfo) -> List[LLVMVar]:
+        return [
+            LLVMVar(var.name, parseTypeRef(var.type))
+            for var in loop_info.havocs
+        ]
+
+
+    # Functions to step through the blocks
     def preprocess(self, block: ValueRef) -> None:
+        """Preprocess the entry block of the entire function. This includes setting up the postcondition, as well as writing all the arguments to the state of the entry block.
+        """
         ret_type: MLType = self.fn_type.args[0]
-        arg_types: List[MLType] = self.fn_type.args[1]
-        arg_names: List[str] = [a.name() for a in self.fn_args]
-        self.formals = list(zip(arg_names, arg_types))
         self.pred_tracker.postcondition(
-            self.fn_ref,
+            self.fn_name,
             [(f"{self.fn_name}_rv", ret_type)],
             self.formals,
             self.ps_grammar,
@@ -525,115 +471,88 @@ class VCVisitor:
             blk_state.processed = False
         else:
             blk_state = self.fn_blocks_states[block.name]
-            # Merge preconditions
 
-            # TODO: do we really need the preconds here
-            # for pred in block.preds:
-            #     pred_state = self.fn_blocks_states[pred.name]
-            #     if len(pred_state.precond) > 1:
-            #         pred_preconds.append(And(*pred_state.precond))
-            #     else:
-            #         pred_preconds.append(pred_state.precond[0])
-            # if len(pred_preconds) > 1:
-            #     blk_state.precond = [Or(*pred_preconds)]
-            # else:
-            #     blk_state.precond = pred_preconds[0]
+            # Merge preconditions
+            pred_preconds: List[Expr] = []
+            for pred in block.preds:
+                pred_state = self.fn_blocks_states[pred.name]
+                if len(pred_state.precond) > 1:
+                    pred_preconds.append(And(*pred_state.precond))
+                else:
+                    pred_preconds.append(pred_state.precond[0])
+            if len(pred_preconds) > 1:
+                blk_state.precond = [Or(*pred_preconds)]
+            else:
+                blk_state.precond = pred_preconds[0]
 
             # TODO: handle global vars and uninterpreted functions
 
-            # Merge state
-            # Mapping from variable (register/arg names) to a mapping from values to assume statements
+            # Merge primitive and pointer variables
+            # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
+            primitive_var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
+                lambda: defaultdict(list)
+            )
+            pointer_var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
                 lambda: defaultdict(list)
             )
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 for var_name, var_value in pred_state.primitive_vars.items():
-                    var_state[var_name][var_value].append(pred_state.precond)
-
-            merged_vars: Dict[str, Expr] = {}
-            for var_name, value_to_precond_mapping in var_state.items():
-                if len(value_to_precond_mapping) == 1:
-                    merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
-                else:
-                    value_to_aggregated_precond: Dict[Expr, Expr] = {}
-                    for value, all_preconds in value_to_precond_mapping.items():
-                        all_aggregated_preconds: List[Expr] = []
-                        for preconds in all_preconds:
-                            all_aggregated_preconds.append(and_exprs(*preconds))
-                        value_to_aggregated_precond[value] = or_exprs(
-                            *all_aggregated_preconds
-                        )
-
-                    merged_value = None
-                    for (
-                        value,
-                        aggregated_precond,
-                    ) in value_to_aggregated_precond.items():
-                        if merged_value is None:
-                            merged_value = value
-                        else:
-                            merged_value = Ite(aggregated_precond, value, merged_value)
-                    merged_vars[var_name] = merged_value
-            blk_state.primitive_vars = merged_vars
-
-            # Merge pointer vars
-            var_state: Dict[str, Dict[Expr, List[Expr]]] = defaultdict(
-                lambda: defaultdict(list)
-            )
-            for pred in block.preds:
-                pred_state = self.fn_blocks_states[pred.name]
+                    primitive_var_state[var_name][var_value].append(pred_state.precond)
                 for var_name, var_value in pred_state.pointer_vars.items():
-                    var_state[var_name][var_value].append(pred_state.precond)
+                    pointer_var_state[var_name][var_value].append(pred_state.precond)
 
-            merged_vars: Dict[str, Expr] = {}
-            for var_name, value_to_precond_mapping in var_state.items():
-                if len(value_to_precond_mapping) == 1:
-                    merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
-                else:
-                    value_to_aggregated_precond: Dict[Expr, Expr] = {}
-                    for value, all_preconds in value_to_precond_mapping.items():
-                        all_aggregated_preconds: List[Expr] = []
-                        for preconds in all_preconds:
-                            all_aggregated_preconds.append(and_exprs(*preconds))
-                        value_to_aggregated_precond[value] = or_exprs(
-                            *all_aggregated_preconds
-                        )
 
-                    merged_value = None
-                    for (
-                        value,
-                        aggregated_precond,
-                    ) in value_to_aggregated_precond.items():
-                        if merged_value is None:
-                            merged_value = value
-                        else:
-                            merged_value = Ite(aggregated_precond, value, merged_value)
-                    merged_vars[var_name] = merged_value
-            blk_state.pointer_vars = merged_vars
-            # TODO: how to handle asserts here?
+            for field_name, var_state in [
+                ("primitive_vars", primitive_var_state),
+                ("pointer_vars", pointer_var_state)
+            ]:
+                merged_vars: Dict[str, Expr] = {}
+                for var_name, value_to_precond_mapping in var_state.items():
+                    if len(value_to_precond_mapping) == 1:
+                        # If there is just one possible value for this variable, we keep this value.
+                        merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
+                    else:
+                        # Otherwise if there are multiple possible values for this variable, we create a mapping from possible values to their associated preconditions.
+                        value_to_aggregated_precond: Dict[Expr, Expr] = {}
+                        for value, all_preconds in value_to_precond_mapping.items():
+                            all_aggregated_preconds: List[Expr] = []
+                            for preconds in all_preconds:
+                                all_aggregated_preconds.append(and_exprs(*preconds))
+                            value_to_aggregated_precond[value] = or_exprs(
+                                *all_aggregated_preconds
+                            )
+                        # Merge the different possible values with an Ite statement.
+                        merged_value = None
+                        for (
+                            value,
+                            aggregated_precond,
+                        ) in value_to_aggregated_precond.items():
+                            if merged_value is None:
+                                merged_value = value
+                            else:
+                                merged_value = Ite(aggregated_precond, value, merged_value)
+                        merged_vars[var_name] = merged_value
+                setattr(blk_state, field_name, merged_vars)
 
     def visit_llvm_block(self, block: ValueRef) -> None:
-        # First we need to merge states
-        blk_state = self.fn_blocks_states[block.name]
+        # First we need to preprocess the entry block or merge states for non-entry blocks
         if len(block.preds) == 0:
             self.preprocess(block)
-        self.merge_states(block)
+        else:
+            self.merge_states(block)
 
+        blk_state = self.fn_blocks_states[block.name]
         # If this block is the header of a loop, havoc the modified vars and assume inv
         header_loops = self.find_header_loops(block.name)
         for loop in header_loops:
-            havocs: List[LLVMVar] = []
-            for var in loop.havocs:
-                var_name, var_type = var.name, parseTypeRef(var.type)
-                havocs.append(LLVMVar(var_name, var_type))
-                new_value = self.var_tracker.variable(var_name, var_type)
-                self.store_var_to_block(block.name, var_name, new_value)
-            loop_index = self.loops.index(loop)
+            havocs = self.get_havocs(loop)
+            for havoc in havocs:
+                new_value = self.var_tracker.variable(havoc.var_name, havoc.var_type)
+                self.store_var_to_block(block.name, havoc.var_name, new_value)
             inv = self.pred_tracker.invariant(
-                fn_name=self.fn_name,
-                inv_num=loop_index,
+                inv_name=f"{self.fn_name}_inv{self.loops.index(loop)}",
                 args=havocs + self.formals,
                 writes=havocs,
                 reads=self.formals,
@@ -649,21 +568,14 @@ class VCVisitor:
         header_pred_loops = self.find_header_pred_loops(block.name)
         latch_loops = self.find_latch_loops(block.name)
         for loop in header_pred_loops + latch_loops:
-            loop_index = self.loops.index(loop)
-            # TODO: extract the havoc logic as a helper function
-            havocs: List[LLVMVar] = []
-            for var in loop.havocs:
-                var_name, var_type = var.name, parseTypeRef(var.type)
-                havocs.append(LLVMVar(var_name, var_type))
+            havocs = self.get_havocs(loop)
             inv = self.pred_tracker.invariant(
-                fn_name=self.fn_name,
-                inv_num=loop_index,
-                args=havocs + self.formals, # TODO: this needs to be better
+                inv_name=f"{self.fn_name}_inv{self.loops.index(loop)}",
+                args=havocs + self.formals,
                 writes=havocs,
                 reads=self.formals,
                 grammar=self.inv_grammar
             )
-            # TODO: what exactly is this logic doing
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), inv.call(blk_state)))
             else:
@@ -780,7 +692,7 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         ps = Call(
-            self.pred_tracker.predicates[self.fn_ref].name,
+            self.pred_tracker.predicates[self.fn_name].name,
             Bool(),
             *self.fn_args,
             self.read_operand_from_block(block_name, ops[0]),
@@ -931,7 +843,6 @@ class MetaliftFunc:
         v = VCVisitor(
             fn_name=self.fn_name,
             fn_type=self.fn_type,
-            fn_ref=self.fn_ref,
             fn_args=list(args),
             fn_blocks=self.fn_blocks,
             var_tracker=self.driver.var_tracker,
