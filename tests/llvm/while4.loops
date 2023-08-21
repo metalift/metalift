@@ -1,2 +1,2 @@
 Printing analysis 'Natural Loop Information' for function 'test':
-Loop at depth 1 containing: %bb2<header><exiting>,%bb13,%bb5<latch>
+Loop at depth 1 containing: %while.cond<header><exiting>,%bb,%while.body<latch>

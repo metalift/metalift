@@ -620,8 +620,6 @@ class VCVisitor:
         if len(block.preds) == 0:
             self.preprocess(block)
         self.merge_states(block)
-        print(f"VISITING BLOCK {block.name}")
-        print("PRIMITIVE VARS")
 
         # If this block is the header of a loop, havoc the modified vars and assume inv
         header_loops = self.find_header_loops(block.name)
@@ -660,12 +658,16 @@ class VCVisitor:
             inv = self.pred_tracker.invariant(
                 fn_name=self.fn_name,
                 inv_num=loop_index,
-                args=havocs + self.formals,
+                args=havocs + self.formals, # TODO: this needs to be better
                 writes=havocs,
                 reads=self.formals,
                 grammar=self.inv_grammar
             )
-            blk_state.asserts.append(inv.call(blk_state))
+            # TODO: what exactly is this logic doing
+            if len(blk_state.precond) > 0:
+                blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), inv.call(blk_state)))
+            else:
+                blk_state.asserts.append(inv.call(blk_state))
 
     def visit_instructions(self, block_name: str, instructions: List[ValueRef]) -> None:
         for instr in instructions:

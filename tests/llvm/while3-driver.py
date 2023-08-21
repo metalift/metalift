@@ -1,10 +1,9 @@
 from typing import List
 
-from mypy.nodes import Statement
-
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, And, BoolLit, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt,
-                         Int, IntLit, Ite, Le, Lt, Or, Sub, Var)
+from metalift.ir import (Add, And, BoolLit, Call, Choose, Eq, Expr,
+                         FnDeclRecursive, Ge, Gt, Int, IntLit, Ite, Le, Lt, Or,
+                         Sub, Var)
 from tests.python.utils.utils import codegen
 
 
