@@ -324,7 +324,6 @@ class VCVisitor:
     fn_name: str
     fn_type: MLType
     fn_args: List[Expr]
-    fn_blocks: Dict[str, Block]
     fn_blocks_states: Dict[str, State]
 
     var_tracker: VariableTracker
@@ -340,7 +339,6 @@ class VCVisitor:
         fn_name: str,
         fn_type: MLType,
         fn_args: List[Expr],
-        fn_blocks: Dict[str, Block],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
@@ -350,7 +348,6 @@ class VCVisitor:
         self.fn_name = fn_name
         self.fn_type = fn_type
         self.fn_args = fn_args
-        self.fn_blocks = fn_blocks
         self.fn_blocks_states: Dict[str, State] = defaultdict(lambda: State())
 
         self.var_tracker = var_tracker
@@ -844,7 +841,6 @@ class MetaliftFunc:
             fn_name=self.fn_name,
             fn_type=self.fn_type,
             fn_args=list(args),
-            fn_blocks=self.fn_blocks,
             var_tracker=self.driver.var_tracker,
             pred_tracker=self.driver.pred_tracker,
             inv_grammar=self.inv_grammar,
