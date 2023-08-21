@@ -1,10 +1,7 @@
 from typing import List
+
 from metalift.frontend.llvm import Driver
-
-from metalift.ir import Add, Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Lit, Var
-
-from mypy.nodes import Statement, WhileStmt
-
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Var
 from tests.python.utils.utils import codegen
 
 
@@ -22,14 +19,14 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
     var = Choose(*reads, IntLit(0))
     added = var + var
     var_or_fma = Choose(*reads, Call("fma", Int(), added, added, added))
 
     return Eq(ret_val, var_or_fma + var_or_fma)
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
     raise Exception("no loop in the source")
 
 
