@@ -452,6 +452,8 @@ class VCVisitor:
             self.visit_br_instruction(block_name, o)
         elif o.opcode == "ret":
             self.visit_ret_instruction(block_name, o)
+        elif o.opcode == "call":
+            self.visit_call_instruction(block_name, o)
         else:
             raise Exception(f"Unsupported instruction opcode {o.opcode}")
 
@@ -700,6 +702,21 @@ class VCVisitor:
             blk_state.asserts.append(ps)
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
+
+    def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
+        # TODO(colin): fix this to work with MakeTuple(). and then for general function call 
+        ops = list(o.operands)
+        fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+        if fnName == "":
+            # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+            fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
+        
+        if fnName in models_new.fn_models:
+            return models_new.fn_models[fnName](
+                [self.read_operand_from_block(block_name, arg) for arg in ops[:-1]]
+            )
+        else:
+            raise Exception("Unknown function %s" % fnName)
 
 
 class Driver:

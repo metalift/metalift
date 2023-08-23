@@ -27,7 +27,7 @@ def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var]
     )
 
 def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    raise Exception("no loop in the source")
+    raise Exception("no invariant")
     
 if __name__ == "__main__":
     filename = "tests/python/tuples2.py"
