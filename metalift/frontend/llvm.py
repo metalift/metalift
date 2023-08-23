@@ -19,6 +19,7 @@ from metalift.synthesize_auto import \
     synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
 from metalift.vc_util import and_exprs, or_exprs
+from metalift import models
 
 # Helper classes
 RawLoopInfo = NamedTuple(
@@ -146,6 +147,41 @@ def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
     if return_type is None:
         raise RuntimeError(f"fn must return a value!")
     return return_type
+
+def parse_object_func(blocksMap: Dict[str, Block]) -> None:
+    p = re.compile("ML_(\w+)_(set|get)_(\w+)")
+    for b in blocksMap.values():
+        for i in b.instructions:
+            opcode = i.opcode
+            ops = list(i.operands)
+
+            if opcode == "call":
+                fnName = ops[-1].name
+                r = p.search(fnName)
+                if r:
+                    className = r.group(1)  # not used
+                    op = r.group(2)
+                    fieldName = r.group(3)
+                    if op == "set":
+                        # newInst = MLInst_Call("setField", i.type, Lit(fieldName, String()), ops[0], ops[1])
+                        setattr(
+                            i,
+                            "my_operands",
+                            [
+                                Lit(fieldName, String()),
+                                ops[0],
+                                ops[1],
+                                "setField",
+                            ],
+                        )
+                    else:
+                        # i.operands = ["getField", i.type, Lit(fieldName, String()), ops[0], "getField"]
+                        setattr(
+                            i,
+                            "my_operands",
+                            [Lit(fieldName, String()), ops[0], "getField"],
+                        )
+                        # print("inst: %s" % i)
 
 
 LLVMVar = NamedTuple(
@@ -317,7 +353,7 @@ class PredicateTracker:
             self.predicates[fn_name] = ps
             return ps
 
-    def call(self, name: str, s: State) -> Call:
+    def VCall(self, name: str, s: State) -> Call:
         return self.predicates[name].call(s)
 
 class VCVisitor:
@@ -705,19 +741,28 @@ class VCVisitor:
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
         # TODO(colin): fix this to work with MakeTuple(). and then for general function call 
+        s = self.fn_blocks_states[block_name]
+        assigns = set()
+
         ops = list(o.operands)
         fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
         if fnName == "":
             # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
             fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
-        
-        if fnName in models_new.fn_models:
-            return models_new.fn_models[fnName](
-                [self.read_operand_from_block(block_name, arg) for arg in ops[:-1]]
-            )
-        else:
-            raise Exception("Unknown function %s" % fnName)
+        if fnName in models.fnModels:
+            # TODO: handle global var
+            # rv = models.fnModels[fnName](s.primitive_vars, s.pointer_vars, s.global_var, *ops[:-1])
+            rv = models.fnModels[fnName]({}, {}, {}, *ops[:-1])
+            if rv.val:
+                self.write_operand_to_block(block_name=block_name,op=o,val=rv.val)
+            if rv.assigns:
+                for k, v in rv.assigns:
+                    self.write_operand_to_block(block_name=block_name,op=k,val=v)
+        # s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
 
+        # if self.log:
+        #     print("final state: %s" % s)
+        # b.state = s
 
 class Driver:
     var_tracker: VariableTracker
@@ -826,6 +871,9 @@ class MetaliftFunc:
         fn_args_types = [parseTypeRef(a.type) for a in self.fn_ref.arguments]
         self.fn_type = FnT(return_type, fn_args_types)
 
+        # Parse and process object functions
+        parse_object_func(self.fn_blocks)
+
         self.target_lang_fn = target_lang_fn
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
@@ -834,6 +882,13 @@ class MetaliftFunc:
         # Parse and process loops
         raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_name)
         self.loops = [LoopInfo.from_raw_loop_info(raw_loop, self.fn_blocks) for raw_loop in raw_loops]
+
+        #TODO: debug only
+        print("====== after transforms")
+        for b in self.fn_blocks.values():
+            print("blk: %s" % b.name)
+            for i in b.instructions:
+                print("%s" % i)
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
