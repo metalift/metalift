@@ -1,10 +1,10 @@
 ; ModuleID = 'tuples1.ll'
-source_filename = "tuples1.c"
+source_filename = "tuples1.cc"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx11.0.0"
 
 ; Function Attrs: noinline nounwind optnone sspstrong uwtable
-define i32 @test(i32 %x, i32 %y) #0 {
+define i32 @_Z4testii(i32 %x, i32 %y) #0 {
 entry:
   %x.addr = alloca i32, align 4
   %y.addr = alloca i32, align 4
