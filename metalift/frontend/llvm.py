@@ -1,11 +1,14 @@
 import copy
 import re
 from collections import defaultdict
+import subprocess
 from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
                     TypeVar, cast)
 
 from llvmlite import binding as llvm
+from llvmlite import ir as llvm_ir
 from llvmlite.binding import TypeRef, ValueRef
+import llvmlite
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
@@ -77,6 +80,7 @@ class LoopInfo:
 
 # Helper functions
 def parse_loops(loops_filepath: str, fn_name: str) -> List[RawLoopInfo]:
+    # fn_name may be mangled
     with open(loops_filepath, mode="r") as f:
         found_lines = []
         found = False
@@ -134,15 +138,29 @@ def parse_loops(loops_filepath: str, fn_name: str) -> List[RawLoopInfo]:
             )
         return loops
 
-def find_return_type(blocks: Iterable[ValueRef]) -> MLType:
+def is_sret_arg(arg: ValueRef) -> bool:
+    return b"sret" in arg.attributes
+
+def find_return_type(fn_ref: ValueRef, blocks: Iterable[ValueRef]) -> MLType:
+    # First check if there are sret arguments
+    sret_arg: Optional[ValueRef] = None
+    for arg in fn_ref.arguments:
+        if is_sret_arg(arg):
+            if sret_arg is None:
+                sret_arg = arg
+            else:
+                raise Exception("multiple sret arguments: %s and %s" % (sret_arg, arg))
     return_type = None
     for block in blocks:
         final_instruction = block.instructions[-1]
         if final_instruction.opcode == "ret":
-            ops = list(final_instruction.operands)
-            curr_return_type = parseTypeRef(ops[0].type)
-            if return_type is not None and return_type != curr_return_type:
-                raise Exception("Return types are not consistent across blocks!")
+            if sret_arg is not None:
+                curr_return_type = parseTypeRef(sret_arg.type)
+            else:
+                ops = list(final_instruction.operands)
+                curr_return_type = parseTypeRef(ops[0].type)
+                if return_type is not None and return_type != curr_return_type:
+                    raise Exception("Return types are not consistent across blocks!")
             return_type = curr_return_type
     if return_type is None:
         raise RuntimeError(f"fn must return a value!")
@@ -360,6 +378,7 @@ class VCVisitor:
     fn_name: str
     fn_type: MLType
     fn_args: List[Expr]
+    fn_sret_args: List[Expr]
     fn_blocks_states: Dict[str, State]
 
     var_tracker: VariableTracker
@@ -375,6 +394,7 @@ class VCVisitor:
         fn_name: str,
         fn_type: MLType,
         fn_args: List[Expr],
+        fn_sret_args: List[Expr],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
@@ -384,6 +404,7 @@ class VCVisitor:
         self.fn_name = fn_name
         self.fn_type = fn_type
         self.fn_args = fn_args
+        self.fn_sret_args = fn_sret_args
         self.fn_blocks_states: Dict[str, State] = defaultdict(lambda: State())
 
         self.var_tracker = var_tracker
@@ -468,6 +489,8 @@ class VCVisitor:
         )
         for arg in self.fn_args:
             self.write_var_to_block(block.name, arg.name(), arg)
+        for arg in self.fn_sret_args:
+            self.write_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -482,6 +505,10 @@ class VCVisitor:
             self.visit_sub_instruction(block_name, o)
         elif o.opcode == "mul":
             self.visit_mul_instruction(block_name, o)
+        elif o.opcode == "bitcast":
+            self.visit_bitcast_instruction(block_name, o)
+        elif o.opcode == "sext":
+            self.visit_sext_instruction(block_name, o)
         elif o.opcode == "icmp":
             self.visit_icmp_instruction(block_name, o)
         elif o.opcode == "br":
@@ -650,6 +677,9 @@ class VCVisitor:
                 raise Exception("failed to match struct %s: " % t)
 
             val = Object(MLType(tname))
+        elif t == "i8*":
+            # TODO (jie) this could be either a byte pointer or a pointer to a boolean
+            pass
         else:
             raise Exception("NYI: %s" % o)
 
@@ -690,6 +720,20 @@ class VCVisitor:
             self.read_operand_from_block(block_name, ops[1]),
         )
         self.write_operand_to_block(block_name, o, mul_expr)
+
+    def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:
+        ops = list(o.operands)
+        try:
+            val = self.read_operand_from_block(block_name, ops[0])
+            self.write_operand_to_block(block_name, o, val)
+        except:
+            val = self.load_operand_from_block(block_name, ops[0])
+            self.store_operand_to_block(block_name, o, val)
+
+    def visit_sext_instruction(self, block_name: str, o: ValueRef) -> None:
+        ops = list(o.operands)
+        val = self.read_operand_from_block(block_name, ops[0])
+        self.write_operand_to_block(block_name, o, val)
 
     def visit_icmp_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -740,7 +784,7 @@ class VCVisitor:
         blk_state.has_returned = True
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
-        # TODO(colin): fix this to work with MakeTuple(). and then for general function call 
+        # TODO(colin): fix this to work with MakeTuple(). and then for general function call
         s = self.fn_blocks_states[block_name]
         assigns = set()
 
@@ -838,7 +882,9 @@ class MetaliftFunc:
     driver: Driver
     fn_name: str
     fn_type: MLType
-    fn_ref: ValueRef  # TODO jie: should I change this to llvm_ir.Function
+    # fn_ref: ValueRef  # TODO jie: should I change this to llvm_ir.Function
+    fn_args: List[ValueRef]
+    fn_sret_args: List[ValueRef]
     fn_blocks: Dict[str, Block]
 
     target_lang_fn: Callable[[], List[FnDecl]]
@@ -862,13 +908,25 @@ class MetaliftFunc:
         self.driver = driver
 
         self.fn_name = fn_name
+        raw_fn_name = None
         with open(llvm_filepath, mode="r") as file:
             ref = llvm.parse_assembly(file.read())
-        self.fn_ref = ref.get_function(fn_name)
-        self.fn_blocks = setupBlocks(self.fn_ref.blocks)
+        functions = list(ref.functions)
+        fn_ref = None
+        for func in functions:
+            result = subprocess.run(["c++filt", "-n", func.name], stdout=subprocess.PIPE, check=True)
+            stdout = result.stdout.decode("utf-8").strip()
+            if re.match(f"^{fn_name}\(.*\)$", stdout) or re.match(f"^{fn_name}$", stdout):
+                fn_ref = ref.get_function(func.name)
+                raw_fn_name = func.name
+        if fn_ref is None:
+            raise Exception(f"Did not find function declaration for {fn_name} in {llvm_filepath}")
+        self.fn_blocks = setupBlocks(fn_ref.blocks)
         # Find the return type of function, and set self.fn_type
-        return_type = find_return_type(self.fn_blocks.values())
-        fn_args_types = [parseTypeRef(a.type) for a in self.fn_ref.arguments]
+        return_type = find_return_type(fn_ref, self.fn_blocks.values())
+        self.fn_args = list(filter(lambda arg: not is_sret_arg(arg), fn_ref.arguments))
+        self.fn_sret_args = list(filter(lambda arg: is_sret_arg(arg), fn_ref.arguments))
+        fn_args_types = [parseTypeRef(a.type) for a in self.fn_args]
         self.fn_type = FnT(return_type, fn_args_types)
 
         # Parse and process object functions
@@ -880,7 +938,7 @@ class MetaliftFunc:
         self.synthesized = None
 
         # Parse and process loops
-        raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_name)
+        raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, raw_fn_name)
         self.loops = [LoopInfo.from_raw_loop_info(raw_loop, self.fn_blocks) for raw_loop in raw_loops]
 
         #TODO: debug only
@@ -892,14 +950,14 @@ class MetaliftFunc:
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
-        if len(list(self.fn_ref.arguments)) != len(args):
+        num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
+        if num_expected_args != num_actual_args:
             raise RuntimeError(
-                f"expect {len(args)} args passed to {self.fn_name} got {len(self.fn_args)} instead"
+                f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
             )
         for i in range(len(args)):
-            fn_ref_args = list(self.fn_ref.arguments)
             passed_in_arg_name, passed_in_arg_type = args[i].name(), args[i].type
-            fn_arg_name, fn_arg_type = fn_ref_args[i].name, self.fn_type.args[1][i]
+            fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1][i]
             if passed_in_arg_name != fn_arg_name:
                 raise Exception(
                     f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
@@ -910,9 +968,14 @@ class MetaliftFunc:
                 )
 
         v = VCVisitor(
+        fn_sret_args: List[Expr] = []
+        for arg in self.fn_sret_args:
+            fn_sret_args.append(self.driver.var_tracker.variable(arg.name, parseTypeRef(arg.type)))
+
             fn_name=self.fn_name,
             fn_type=self.fn_type,
             fn_args=list(args),
+            fn_sret_args=list(fn_sret_args),
             var_tracker=self.driver.var_tracker,
             pred_tracker=self.driver.pred_tracker,
             inv_grammar=self.inv_grammar,

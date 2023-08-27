@@ -1926,6 +1926,9 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
     elif tyStr.startswith("%struct.tup"):
         # TODO: FIX return type for multiple values
         return TupleT(Int(), Int())
+    elif tyStr == '%"class.std::__1::vector"*':
+        # we only support int vectors now
+        return ListT(Int())
     else:
         raise Exception("NYI %s" % t)
 
