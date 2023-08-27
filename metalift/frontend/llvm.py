@@ -6,9 +6,7 @@ from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
                     TypeVar, cast)
 
 from llvmlite import binding as llvm
-from llvmlite import ir as llvm_ir
 from llvmlite.binding import TypeRef, ValueRef
-import llvmlite
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
@@ -79,15 +77,15 @@ class LoopInfo:
 
 
 # Helper functions
-def parse_loops(loops_filepath: str, fn_name: str) -> List[RawLoopInfo]:
-    # fn_name may be mangled
+def parse_loops(loops_filepath: str, raw_fn_name: str) -> List[RawLoopInfo]:
+    # raw_fn_name may be mangled
     with open(loops_filepath, mode="r") as f:
         found_lines = []
         found = False
         for l in f.readlines():
             if re.match(
                 "Printing analysis 'Natural Loop Information' for function '%s':"
-                % fn_name,
+                % raw_fn_name,
                 l,
             ):
                 found = True
@@ -142,7 +140,7 @@ def is_sret_arg(arg: ValueRef) -> bool:
     return b"sret" in arg.attributes
 
 def find_return_type(fn_ref: ValueRef, blocks: Iterable[ValueRef]) -> MLType:
-    # First check if there are sret arguments
+    # First check if there are sret arguments. Currently, we only support at most one sret argument.
     sret_arg: Optional[ValueRef] = None
     for arg in fn_ref.arguments:
         if is_sret_arg(arg):
@@ -150,17 +148,18 @@ def find_return_type(fn_ref: ValueRef, blocks: Iterable[ValueRef]) -> MLType:
                 sret_arg = arg
             else:
                 raise Exception("multiple sret arguments: %s and %s" % (sret_arg, arg))
+    if sret_arg is not None:
+        return parseTypeRef(sret_arg.type)
+
+    # If there are no sret args, we try to find the return type by parsing the ret instructions
     return_type = None
     for block in blocks:
         final_instruction = block.instructions[-1]
         if final_instruction.opcode == "ret":
-            if sret_arg is not None:
-                curr_return_type = parseTypeRef(sret_arg.type)
-            else:
-                ops = list(final_instruction.operands)
-                curr_return_type = parseTypeRef(ops[0].type)
-                if return_type is not None and return_type != curr_return_type:
-                    raise Exception("Return types are not consistent across blocks!")
+            ops = list(final_instruction.operands)
+            curr_return_type = parseTypeRef(ops[0].type)
+            if return_type is not None and return_type != curr_return_type:
+                raise Exception("Return types are not consistent across blocks!")
             return_type = curr_return_type
     if return_type is None:
         raise RuntimeError(f"fn must return a value!")
@@ -487,9 +486,7 @@ class VCVisitor:
             self.formals,
             self.ps_grammar,
         )
-        for arg in self.fn_args:
-            self.write_var_to_block(block.name, arg.name(), arg)
-        for arg in self.fn_sret_args:
+        for arg in self.fn_args + self.fn_sret_args:
             self.write_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
@@ -906,13 +903,14 @@ class MetaliftFunc:
         ps_grammar: Callable[[Var, List[Var], List[Var], List[Var]], Expr],
     ) -> None:
         self.driver = driver
-
         self.fn_name = fn_name
-        raw_fn_name = None
+
+        # Try to find the function reference in compiled LLVM IR code
         with open(llvm_filepath, mode="r") as file:
             ref = llvm.parse_assembly(file.read())
         functions = list(ref.functions)
-        fn_ref = None
+        # raw_fn_name is potentially-mangled name of fn_name
+        fn_ref, raw_fn_name = None, None
         for func in functions:
             result = subprocess.run(["c++filt", "-n", func.name], stdout=subprocess.PIPE, check=True)
             stdout = result.stdout.decode("utf-8").strip()
@@ -921,7 +919,10 @@ class MetaliftFunc:
                 raw_fn_name = func.name
         if fn_ref is None:
             raise Exception(f"Did not find function declaration for {fn_name} in {llvm_filepath}")
+
+        # Set up blocks
         self.fn_blocks = setupBlocks(fn_ref.blocks)
+
         # Find the return type of function, and set self.fn_type
         return_type = find_return_type(fn_ref, self.fn_blocks.values())
         self.fn_args = list(filter(lambda arg: not is_sret_arg(arg), fn_ref.arguments))
@@ -967,11 +968,12 @@ class MetaliftFunc:
                     f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_name}"
                 )
 
-        v = VCVisitor(
+        # Make variables (exprs) for sret arguments
         fn_sret_args: List[Expr] = []
         for arg in self.fn_sret_args:
             fn_sret_args.append(self.driver.var_tracker.variable(arg.name, parseTypeRef(arg.type)))
 
+        v = VCVisitor(
             fn_name=self.fn_name,
             fn_type=self.fn_type,
             fn_args=list(args),
@@ -982,6 +984,8 @@ class MetaliftFunc:
             ps_grammar=self.ps_grammar,
             loops=self.loops
         )
+
+        # Visit blocks in a DAG order
         done = False
         while not done:
             done = True
