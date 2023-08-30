@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int, 
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
                          FnDeclRecursive, IntLit, Mul, Sub, Tuple, TupleGet, TupleT, Var)
 from tests.python.utils.utils import codegen
 
@@ -9,16 +9,17 @@ def double(t):
     return Call("double", Int(), t)
 
 def target_lang():
-    x = Var("x", TupleT(Int(), Int()))
-    tuple_add = FnDeclRecursive(
-        "tuple_add", Int(), Add(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))), x
+    x = Var("x", Int())
+    double = FnDeclRecursive(
+        "double", Int(), Add(x, x), x
     )
-    return [tuple_add]
+    return [double]
 
 def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
     raise Exception("no invariant")
 
 def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+    r = writes[0]
     (x, y) = reads
     summary = Choose(
         Eq(ret_val, Add(double(x), double(y))),

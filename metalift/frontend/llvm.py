@@ -781,9 +781,7 @@ class VCVisitor:
         blk_state.has_returned = True
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
-        # TODO(colin): fix this to work with MakeTuple(). and then for general function call
         s = self.fn_blocks_states[block_name]
-        assigns = set()
 
         ops = list(o.operands)
         fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
@@ -791,9 +789,10 @@ class VCVisitor:
             # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
             fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
         if fnName in models.fnModels:
-            # TODO: handle global var
-            # rv = models.fnModels[fnName](s.primitive_vars, s.pointer_vars, s.global_var, *ops[:-1])
-            rv = models.fnModels[fnName]({}, {}, {}, *ops[:-1])
+            # TODO(colin): handle global var
+            # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
+            # TODO(colin): migrate over the rest of modeled functions to new structure
+            rv = models.fnModels[fnName](s.primitive_vars, s.pointer_vars, {}, *ops[:-1])
             if rv.val:
                 self.write_operand_to_block(block_name=block_name,op=o,val=rv.val)
             if rv.assigns:
@@ -941,13 +940,6 @@ class MetaliftFunc:
         # Parse and process loops
         raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, raw_fn_name)
         self.loops = [LoopInfo.from_raw_loop_info(raw_loop, self.fn_blocks) for raw_loop in raw_loops]
-
-        #TODO: debug only
-        print("====== after transforms")
-        for b in self.fn_blocks.values():
-            print("blk: %s" % b.name)
-            for i in b.instructions:
-                print("%s" % i)
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.

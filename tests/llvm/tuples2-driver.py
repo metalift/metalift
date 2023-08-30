@@ -31,7 +31,7 @@ if __name__ == "__main__":
     test = driver.analyze(
         llvm_filepath="tests/llvm/tuples2.ll",
         loops_filepath="tests/llvm/tuples2.loops",
-        fn_name="_Z4testii",
+        fn_name="test",
         target_lang_fn=target_lang,
         inv_grammar=inv_grammar,
         ps_grammar=ps_grammar
