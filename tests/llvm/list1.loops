@@ -1,12 +1,12 @@
 Printing analysis 'Natural Loop Information' for function 'test':
-Loop at depth 1 containing: %bb4<header><exiting>,%bb20,%bb9,%bb15<latch>
+Loop at depth 1 containing: %for.cond<header><exiting>,%bb,%for.body,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_Z7newListIiEP4listIT_Ev':
 Printing analysis 'Natural Loop Information' for function '_Z10listLengthIiEiP4listIT_E':
 Printing analysis 'Natural Loop Information' for function '_Z10listAppendIiEP4listIT_ES3_S1_':
-Loop at depth 1 containing: %bb7<header><exiting>,%bb25,%bb12,%bb18<latch>
+Loop at depth 1 containing: %for.cond<header><exiting>,%bb,%for.body,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_Z7listGetIiET_P4listIS0_Ei':
 Printing analysis 'Natural Loop Information' for function 'main':
-Loop at depth 1 containing: %bb20<header><exiting>,%bb34,%bb26,%bb31<latch>
+Loop at depth 1 containing: %for.cond<header><exiting>,%bb,%for.body,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE5beginEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__111__wrap_iterIPKiEC1IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__1neIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE':
@@ -109,7 +109,7 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE8capacityEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPi':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPiNS_17integral_constantIbLb0EEE':
-Loop at depth 1 containing: %bb5<header><exiting>,%bb18,%bb10,%bb16<latch>
+Loop at depth 1 containing: %while.cond<header><exiting>,%bb,%while.body,%invoke.cont<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE7destroyIiEEvRS2_PT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9__destroyIiEEvNS_17integral_constantIbLb1EEERS2_PT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiE7destroyEPi':

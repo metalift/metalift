@@ -21,20 +21,20 @@ def newlist(
 def listLength(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    return ReturnValue(Call("list_length", Int(), regs[args[0]]), None)
+    return ReturnValue(Call("list_length", Int(), regs[args[0].name]), None)
 
 
 def listGet(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
+    return ReturnValue(Call("list_get", Int(), regs[args[0].name], regs[args[1].name]), None)
 
 
 def listAppend(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
-        Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
+        Call("list_append", parseTypeRef(args[0].type), regs[args[0].name], regs[args[1].name]),
         None,
     )
 
@@ -43,7 +43,7 @@ def listConcat(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
-        Call("list_concat", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
+        Call("list_concat", parseTypeRef(args[0].type), regs[args[0].name], regs[args[1].name]),
         None,
     )
 
@@ -77,7 +77,7 @@ def getField(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     (fieldName, obj) = args
-    val = mem[obj].args[fieldName.args[0]]
+    val = mem[obj.name].args[fieldName.args[0]]
     # regs[i] = mem[obj].args[fieldName.args[0]
     return ReturnValue(val, None)
 
@@ -86,7 +86,7 @@ def setField(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     (fieldName, obj, val) = args
-    mem[obj].args[fieldName.args[0]] = regs[val]
+    mem[obj.name].args[fieldName.args[0]] = regs[val.name]
     # XXX: not tracking memory writes as assigns for now. This might be fine for now since all return vals must be loaded to regs
     return ReturnValue(None, None)
 

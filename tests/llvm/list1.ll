@@ -1,7 +1,7 @@
 ; ModuleID = 'list1.ll'
 source_filename = "list1.cc"
-target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx11.0.0"
+target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
+target triple = "arm64-apple-macosx11.0.0"
 
 %"class.std::__1::basic_ostream" = type { i32 (...)**, %"class.std::__1::basic_ios.base" }
 %"class.std::__1::basic_ios.base" = type <{ %"class.std::__1::ios_base", %"class.std::__1::basic_ostream"*, i32 }>
@@ -48,385 +48,391 @@ target triple = "x86_64-apple-macosx11.0.0"
 @_ZTVSt12length_error = external unnamed_addr constant { [5 x i8*] }, align 8
 @_ZNSt3__15ctypeIcE2idE = external global %"class.std::__1::locale::id", align 8
 
-; Function Attrs: noinline optnone ssp uwtable
-define %struct.list* @test(%struct.list* %arg) #0 {
-bb:
-  %i = alloca %struct.list*, align 8
-  %i1 = alloca %struct.list*, align 8
-  %i2 = alloca i32, align 4
-  store %struct.list* %arg, %struct.list** %i, align 8
-  %i3 = call %struct.list* @_Z7newListIiEP4listIT_Ev()
-  store %struct.list* %i3, %struct.list** %i1, align 8
-  store i32 0, i32* %i2, align 4
-  br label %bb4
-
-bb4:                                              ; preds = %bb15, %bb
-  %i5 = load i32, i32* %i2, align 4
-  %i6 = load %struct.list*, %struct.list** %i, align 8
-  %i7 = call i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %i6)
-  %i8 = icmp slt i32 %i5, %i7
-  br i1 %i8, label %bb20, label %bb21
-
-bb9:                                              ; preds = %bb20
-  %i10 = load %struct.list*, %struct.list** %i1, align 8
-  %i11 = load %struct.list*, %struct.list** %i, align 8
-  %i12 = load i32, i32* %i2, align 4
-  %i13 = call i32 @_Z7listGetIiET_P4listIS0_Ei(%struct.list* %i11, i32 %i12)
-  %i14 = call %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %i10, i32 %i13)
-  store %struct.list* %i14, %struct.list** %i1, align 8
-  br label %bb15
-
-bb15:                                             ; preds = %bb9
-  %i16 = load i32, i32* %i2, align 4
-  %i17 = add nsw i32 %i16, 1
-  store i32 %i17, i32* %i2, align 4
-  br label %bb4
-
-bb18:                                             ; preds = %bb21
-  %i19 = load %struct.list*, %struct.list** %i1, align 8
-  ret %struct.list* %i19
-
-bb20:                                             ; preds = %bb4
-  br label %bb9
-
-bb21:                                             ; preds = %bb4
-  br label %bb18
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr %struct.list* @_Z7newListIiEP4listIT_Ev() #0 {
-bb:
-  %i = call noalias nonnull i8* @_Znwm(i64 24) #13
-  %i1 = bitcast i8* %i to %struct.list*
-  %i2 = bitcast %struct.list* %i1 to i8*
-  call void @llvm.memset.p0i8.i64(i8* align 16 %i2, i8 0, i64 24, i1 false)
-  call void @_ZN4listIiEC1Ev(%struct.list* %i1) #14
-  ret %struct.list* %i1
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %arg) #1 {
-bb:
-  %i = alloca %struct.list*, align 8
-  store %struct.list* %arg, %struct.list** %i, align 8
-  %i1 = load %struct.list*, %struct.list** %i, align 8
-  %i2 = getelementptr inbounds %struct.list, %struct.list* %i1, i32 0, i32 0
-  %i3 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i2) #14
-  %i4 = trunc i64 %i3 to i32
-  ret i32 %i4
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %arg, i32 %arg1) #0 {
-bb:
-  %i = alloca %struct.list*, align 8
-  %i2 = alloca i32, align 4
-  %i3 = alloca %struct.list*, align 8
-  %i4 = alloca i32, align 4
-  %i5 = alloca i32, align 4
-  store %struct.list* %arg, %struct.list** %i, align 8
-  store i32 %arg1, i32* %i2, align 4
-  %i6 = call %struct.list* @_Z7newListIiEP4listIT_Ev()
-  store %struct.list* %i6, %struct.list** %i3, align 8
-  store i32 0, i32* %i4, align 4
-  br label %bb7
-
-bb7:                                              ; preds = %bb18, %bb
-  %i8 = load i32, i32* %i4, align 4
-  %i9 = load %struct.list*, %struct.list** %i, align 8
-  %i10 = call i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %i9)
-  %i11 = icmp slt i32 %i8, %i10
-  br i1 %i11, label %bb25, label %bb26
-
-bb12:                                             ; preds = %bb25
-  %i13 = load %struct.list*, %struct.list** %i3, align 8
-  %i14 = getelementptr inbounds %struct.list, %struct.list* %i13, i32 0, i32 0
-  %i15 = load %struct.list*, %struct.list** %i, align 8
-  %i16 = load i32, i32* %i4, align 4
-  %i17 = call i32 @_Z7listGetIiET_P4listIS0_Ei(%struct.list* %i15, i32 %i16)
-  store i32 %i17, i32* %i5, align 4
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi(%"class.std::__1::vector"* %i14, i32* nonnull align 4 dereferenceable(4) %i5)
-  br label %bb18
-
-bb18:                                             ; preds = %bb12
-  %i19 = load i32, i32* %i4, align 4
-  %i20 = add nsw i32 %i19, 1
-  store i32 %i20, i32* %i4, align 4
-  br label %bb7
-
-bb21:                                             ; preds = %bb26
-  %i22 = load %struct.list*, %struct.list** %i3, align 8
-  %i23 = getelementptr inbounds %struct.list, %struct.list* %i22, i32 0, i32 0
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %i23, i32* nonnull align 4 dereferenceable(4) %i2)
-  %i24 = load %struct.list*, %struct.list** %i3, align 8
-  ret %struct.list* %i24
-
-bb25:                                             ; preds = %bb7
-  br label %bb12
-
-bb26:                                             ; preds = %bb7
-  br label %bb21
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr i32 @_Z7listGetIiET_P4listIS0_Ei(%struct.list* %arg, i32 %arg1) #1 {
-bb:
-  %i = alloca %struct.list*, align 8
-  %i2 = alloca i32, align 4
-  store %struct.list* %arg, %struct.list** %i, align 8
-  store i32 %arg1, i32* %i2, align 4
-  %i3 = load %struct.list*, %struct.list** %i, align 8
-  %i4 = getelementptr inbounds %struct.list, %struct.list* %i3, i32 0, i32 0
-  %i5 = load i32, i32* %i2, align 4
-  %i6 = sext i32 %i5 to i64
-  %i7 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %i4, i64 %i6) #14
-  %i8 = load i32, i32* %i7, align 4
-  ret i32 %i8
-}
-
-; Function Attrs: noinline norecurse optnone ssp uwtable
-define i32 @main(i32 %arg, i8** %arg1) #2 {
-bb:
+; Function Attrs: noinline optnone sspstrong uwtable
+define %struct.list* @test(%struct.list* %in) #0 {
+entry:
+  %in.addr = alloca %struct.list*, align 8
+  %out = alloca %struct.list*, align 8
   %i = alloca i32, align 4
-  %i2 = alloca i32, align 4
-  %i3 = alloca i8**, align 8
-  %i4 = alloca %struct.list*, align 8
-  %i5 = alloca %struct.list*, align 8
-  %i6 = alloca %"class.std::__1::__wrap_iter", align 8
-  %i7 = alloca %"class.std::__1::__wrap_iter.1", align 8
-  %i8 = alloca %"class.std::__1::__wrap_iter.1", align 8
+  store %struct.list* %in, %struct.list** %in.addr, align 8
+  %call = call %struct.list* @_Z7newListIiEP4listIT_Ev()
+  store %struct.list* %call, %struct.list** %out, align 8
   store i32 0, i32* %i, align 4
-  store i32 %arg, i32* %i2, align 4
-  store i8** %arg1, i8*** %i3, align 8
-  %i9 = call %struct.list* @_Z7newListIiEP4listIT_Ev()
-  store %struct.list* %i9, %struct.list** %i4, align 8
-  %i10 = load %struct.list*, %struct.list** %i4, align 8
-  %i11 = call %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %i10, i32 1)
-  store %struct.list* %i11, %struct.list** %i4, align 8
-  %i12 = load %struct.list*, %struct.list** %i4, align 8
-  %i13 = call %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %i12, i32 2)
-  store %struct.list* %i13, %struct.list** %i4, align 8
-  %i14 = load %struct.list*, %struct.list** %i4, align 8
-  %i15 = call %struct.list* @test(%struct.list* %i14)
-  store %struct.list* %i15, %struct.list** %i5, align 8
-  %i16 = load %struct.list*, %struct.list** %i5, align 8
-  %i17 = getelementptr inbounds %struct.list, %struct.list* %i16, i32 0, i32 0
-  %i18 = call i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE5beginEv(%"class.std::__1::vector"* %i17) #14
-  %i19 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i7, i32 0, i32 0
-  store i32* %i18, i32** %i19, align 8
-  call void @_ZNSt3__111__wrap_iterIPKiEC1IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* %i6, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %i7, i8* null) #14
-  br label %bb20
+  br label %for.cond
 
-bb20:                                             ; preds = %bb31, %bb
-  %i21 = load %struct.list*, %struct.list** %i5, align 8
-  %i22 = getelementptr inbounds %struct.list, %struct.list* %i21, i32 0, i32 0
-  %i23 = call i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE3endEv(%"class.std::__1::vector"* %i22) #14
-  %i24 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i8, i32 0, i32 0
-  store i32* %i23, i32** %i24, align 8
-  %i25 = call zeroext i1 @_ZNSt3__1neIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %i6, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %i8) #14
-  br i1 %i25, label %bb34, label %bb35
+for.cond:                                         ; preds = %for.inc, %entry
+  %i1 = load i32, i32* %i, align 4
+  %i2 = load %struct.list*, %struct.list** %in.addr, align 8
+  %call1 = call i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %i2)
+  %cmp = icmp slt i32 %i1, %call1
+  br i1 %cmp, label %bb, label %bb8
 
-bb26:                                             ; preds = %bb34
-  %i27 = call nonnull align 4 dereferenceable(4) i32* @_ZNKSt3__111__wrap_iterIPKiEdeEv(%"class.std::__1::__wrap_iter"* %i6) #14
-  %i28 = load i32, i32* %i27, align 4
-  %i29 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEi(%"class.std::__1::basic_ostream"* @_ZNSt3__14coutE, i32 %i28)
-  %i30 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEPFRS3_S4_E(%"class.std::__1::basic_ostream"* %i29, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)* @_ZNSt3__14endlIcNS_11char_traitsIcEEEERNS_13basic_ostreamIT_T0_EES7_)
-  br label %bb31
+for.body:                                         ; preds = %bb
+  %i3 = load %struct.list*, %struct.list** %out, align 8
+  %i4 = load %struct.list*, %struct.list** %in.addr, align 8
+  %i5 = load i32, i32* %i, align 4
+  %call2 = call i32 @_Z7listGetIiET_P4listIS0_Ei(%struct.list* %i4, i32 %i5)
+  %call3 = call %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %i3, i32 %call2)
+  store %struct.list* %call3, %struct.list** %out, align 8
+  br label %for.inc
 
-bb31:                                             ; preds = %bb26
-  %i32 = call nonnull align 8 dereferenceable(8) %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEppEv(%"class.std::__1::__wrap_iter"* %i6) #14
-  br label %bb20
+for.inc:                                          ; preds = %for.body
+  %i6 = load i32, i32* %i, align 4
+  %inc = add i32 %i6, 1
+  store i32 %inc, i32* %i, align 4
+  br label %for.cond
 
-bb33:                                             ; preds = %bb35
+for.end:                                          ; preds = %bb8
+  %i7 = load %struct.list*, %struct.list** %out, align 8
+  ret %struct.list* %i7
+
+bb:                                               ; preds = %for.cond
+  br label %for.body
+
+bb8:                                              ; preds = %for.cond
+  br label %for.end
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %struct.list* @_Z7newListIiEP4listIT_Ev() #0 {
+entry:
+  %call = call noalias nonnull i8* @_Znwm(i64 24) #13
+  %i = bitcast i8* %call to %struct.list*
+  %i1 = bitcast %struct.list* %i to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %i1, i8 0, i64 24, i1 false)
+  %call1 = call %struct.list* @_ZN4listIiEC1Ev(%struct.list* %i) #14
+  ret %struct.list* %i
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %l) #1 {
+entry:
+  %l.addr = alloca %struct.list*, align 8
+  store %struct.list* %l, %struct.list** %l.addr, align 8
+  %i = load %struct.list*, %struct.list** %l.addr, align 8
+  %contents = getelementptr inbounds %struct.list, %struct.list* %i, i32 0, i32 0
+  %call = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %contents) #14
+  %conv = trunc i64 %call to i32
+  ret i32 %conv
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %in, i32 %e) #0 {
+entry:
+  %in.addr = alloca %struct.list*, align 8
+  %e.addr = alloca i32, align 4
+  %r = alloca %struct.list*, align 8
+  %i = alloca i32, align 4
+  %ref.tmp = alloca i32, align 4
+  store %struct.list* %in, %struct.list** %in.addr, align 8
+  store i32 %e, i32* %e.addr, align 4
+  %call = call %struct.list* @_Z7newListIiEP4listIT_Ev()
+  store %struct.list* %call, %struct.list** %r, align 8
+  store i32 0, i32* %i, align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i1 = load i32, i32* %i, align 4
+  %i2 = load %struct.list*, %struct.list** %in.addr, align 8
+  %call1 = call i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %i2)
+  %cmp = icmp slt i32 %i1, %call1
+  br i1 %cmp, label %bb, label %bb9
+
+for.body:                                         ; preds = %bb
+  %i3 = load %struct.list*, %struct.list** %r, align 8
+  %contents = getelementptr inbounds %struct.list, %struct.list* %i3, i32 0, i32 0
+  %i4 = load %struct.list*, %struct.list** %in.addr, align 8
+  %i5 = load i32, i32* %i, align 4
+  %call2 = call i32 @_Z7listGetIiET_P4listIS0_Ei(%struct.list* %i4, i32 %i5)
+  store i32 %call2, i32* %ref.tmp, align 4
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi(%"class.std::__1::vector"* %contents, i32* nonnull align 4 dereferenceable(4) %ref.tmp)
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i6 = load i32, i32* %i, align 4
+  %inc = add i32 %i6, 1
+  store i32 %inc, i32* %i, align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %bb9
+  %i7 = load %struct.list*, %struct.list** %r, align 8
+  %contents3 = getelementptr inbounds %struct.list, %struct.list* %i7, i32 0, i32 0
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %contents3, i32* nonnull align 4 dereferenceable(4) %e.addr)
+  %i8 = load %struct.list*, %struct.list** %r, align 8
+  ret %struct.list* %i8
+
+bb:                                               ; preds = %for.cond
+  br label %for.body
+
+bb9:                                              ; preds = %for.cond
+  br label %for.end
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr i32 @_Z7listGetIiET_P4listIS0_Ei(%struct.list* %l, i32 %i) #1 {
+entry:
+  %l.addr = alloca %struct.list*, align 8
+  %i.addr = alloca i32, align 4
+  store %struct.list* %l, %struct.list** %l.addr, align 8
+  store i32 %i, i32* %i.addr, align 4
+  %i1 = load %struct.list*, %struct.list** %l.addr, align 8
+  %contents = getelementptr inbounds %struct.list, %struct.list* %i1, i32 0, i32 0
+  %i2 = load i32, i32* %i.addr, align 4
+  %conv = sext i32 %i2 to i64
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %contents, i64 %conv) #14
+  %i3 = load i32, i32* %call, align 4
+  ret i32 %i3
+}
+
+; Function Attrs: noinline norecurse optnone sspstrong uwtable
+define i32 @main(i32 %argc, i8** %argv) #2 {
+entry:
+  %retval = alloca i32, align 4
+  %argc.addr = alloca i32, align 4
+  %argv.addr = alloca i8**, align 8
+  %l = alloca %struct.list*, align 8
+  %r = alloca %struct.list*, align 8
+  %i = alloca %"class.std::__1::__wrap_iter", align 8
+  %ref.tmp = alloca %"class.std::__1::__wrap_iter.1", align 8
+  %ref.tmp6 = alloca %"class.std::__1::__wrap_iter.1", align 8
+  store i32 0, i32* %retval, align 4
+  store i32 %argc, i32* %argc.addr, align 4
+  store i8** %argv, i8*** %argv.addr, align 8
+  %call = call %struct.list* @_Z7newListIiEP4listIT_Ev()
+  store %struct.list* %call, %struct.list** %l, align 8
+  %i1 = load %struct.list*, %struct.list** %l, align 8
+  %call1 = call %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %i1, i32 1)
+  store %struct.list* %call1, %struct.list** %l, align 8
+  %i2 = load %struct.list*, %struct.list** %l, align 8
+  %call2 = call %struct.list* @_Z10listAppendIiEP4listIT_ES3_S1_(%struct.list* %i2, i32 2)
+  store %struct.list* %call2, %struct.list** %l, align 8
+  %i3 = load %struct.list*, %struct.list** %l, align 8
+  %call3 = call %struct.list* @test(%struct.list* %i3)
+  store %struct.list* %call3, %struct.list** %r, align 8
+  %i4 = load %struct.list*, %struct.list** %r, align 8
+  %contents = getelementptr inbounds %struct.list, %struct.list* %i4, i32 0, i32 0
+  %call4 = call i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE5beginEv(%"class.std::__1::vector"* %contents) #14
+  %coerce.dive = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %ref.tmp, i32 0, i32 0
+  %coerce.val.ip = inttoptr i64 %call4 to i32*
+  store i32* %coerce.val.ip, i32** %coerce.dive, align 8
+  %call5 = call %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEC1IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* %i, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %ref.tmp, i8* null) #14
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i5 = load %struct.list*, %struct.list** %r, align 8
+  %contents7 = getelementptr inbounds %struct.list, %struct.list* %i5, i32 0, i32 0
+  %call8 = call i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE3endEv(%"class.std::__1::vector"* %contents7) #14
+  %coerce.dive9 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %ref.tmp6, i32 0, i32 0
+  %coerce.val.ip10 = inttoptr i64 %call8 to i32*
+  store i32* %coerce.val.ip10, i32** %coerce.dive9, align 8
+  %call11 = call zeroext i1 @_ZNSt3__1neIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %i, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %ref.tmp6) #14
+  br i1 %call11, label %bb, label %bb7
+
+for.body:                                         ; preds = %bb
+  %call12 = call nonnull align 4 dereferenceable(4) i32* @_ZNKSt3__111__wrap_iterIPKiEdeEv(%"class.std::__1::__wrap_iter"* %i) #14
+  %i6 = load i32, i32* %call12, align 4
+  %call13 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEi(%"class.std::__1::basic_ostream"* @_ZNSt3__14coutE, i32 %i6)
+  %call14 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEPFRS3_S4_E(%"class.std::__1::basic_ostream"* %call13, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)* @_ZNSt3__14endlIcNS_11char_traitsIcEEEERNS_13basic_ostreamIT_T0_EES7_)
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %call15 = call nonnull align 8 dereferenceable(8) %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEppEv(%"class.std::__1::__wrap_iter"* %i) #14
+  br label %for.cond
+
+for.end:                                          ; preds = %bb7
   ret i32 0
 
-bb34:                                             ; preds = %bb20
-  br label %bb26
+bb:                                               ; preds = %for.cond
+  br label %for.body
 
-bb35:                                             ; preds = %bb20
-  br label %bb33
+bb7:                                              ; preds = %for.cond
+  br label %for.end
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE5beginEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter.1", align 8
-  %i1 = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i1, align 8
-  %i2 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i1, align 8
-  %i3 = bitcast %"class.std::__1::vector"* %i2 to %"class.std::__1::__vector_base"*
-  %i4 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i3, i32 0, i32 0
-  %i5 = load i32*, i32** %i4, align 8
-  %i6 = call i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE11__make_iterEPi(%"class.std::__1::vector"* %i2, i32* %i5) #14
-  %i7 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i, i32 0, i32 0
-  store i32* %i6, i32** %i7, align 8
-  %i8 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i, i32 0, i32 0
-  %i9 = load i32*, i32** %i8, align 8
-  ret i32* %i9
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE5beginEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %retval = alloca %"class.std::__1::__wrap_iter.1", align 8
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 0
+  %i1 = load i32*, i32** %__begin_, align 8
+  %call = call i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE11__make_iterEPi(%"class.std::__1::vector"* %this1, i32* %i1) #14
+  %coerce.dive = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %retval, i32 0, i32 0
+  %coerce.val.ip = inttoptr i64 %call to i32*
+  store i32* %coerce.val.ip, i32** %coerce.dive, align 8
+  %coerce.dive2 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %retval, i32 0, i32 0
+  %i2 = load i32*, i32** %coerce.dive2, align 8
+  %coerce.val.pi = ptrtoint i32* %i2 to i64
+  ret i64 %coerce.val.pi
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__111__wrap_iterIPKiEC1IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %arg1, i8* %arg2) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  %i3 = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  %i4 = alloca i8*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg1, %"class.std::__1::__wrap_iter.1"** %i3, align 8
-  store i8* %arg2, i8** %i4, align 8
-  %i5 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i6 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i3, align 8
-  %i7 = load i8*, i8** %i4, align 8
-  call void @_ZNSt3__111__wrap_iterIPKiEC2IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* %i5, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %i6, i8* %i7) #14
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEC1IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* returned %this, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %__u, i8* %arg) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  %__u.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  %.addr = alloca i8*, align 8
+  store %"class.std::__1::__wrap_iter"* %this, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  store %"class.std::__1::__wrap_iter.1"* %__u, %"class.std::__1::__wrap_iter.1"** %__u.addr, align 8
+  store i8* %arg, i8** %.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %i = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %__u.addr, align 8
+  %i1 = load i8*, i8** %.addr, align 8
+  %call = call %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEC2IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* %this1, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %i, i8* %i1) #14
+  ret %"class.std::__1::__wrap_iter"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden zeroext i1 @_ZNSt3__1neIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %arg, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %arg1) #1 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  %i2 = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg1, %"class.std::__1::__wrap_iter.1"** %i2, align 8
-  %i3 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i4 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i2, align 8
-  %i5 = call zeroext i1 @_ZNSt3__1eqIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %i3, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %i4) #14
-  %i6 = xor i1 %i5, true
-  ret i1 %i6
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden zeroext i1 @_ZNSt3__1neIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %__x, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %__y) #1 {
+entry:
+  %__x.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  %__y.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  store %"class.std::__1::__wrap_iter"* %__x, %"class.std::__1::__wrap_iter"** %__x.addr, align 8
+  store %"class.std::__1::__wrap_iter.1"* %__y, %"class.std::__1::__wrap_iter.1"** %__y.addr, align 8
+  %i = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %__x.addr, align 8
+  %i1 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %__y.addr, align 8
+  %call = call zeroext i1 @_ZNSt3__1eqIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %i, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %i1) #14
+  %lnot = xor i1 %call, true
+  ret i1 %lnot
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE3endEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter.1", align 8
-  %i1 = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i1, align 8
-  %i2 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i1, align 8
-  %i3 = bitcast %"class.std::__1::vector"* %i2 to %"class.std::__1::__vector_base"*
-  %i4 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i3, i32 0, i32 1
-  %i5 = load i32*, i32** %i4, align 8
-  %i6 = call i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE11__make_iterEPi(%"class.std::__1::vector"* %i2, i32* %i5) #14
-  %i7 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i, i32 0, i32 0
-  store i32* %i6, i32** %i7, align 8
-  %i8 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i, i32 0, i32 0
-  %i9 = load i32*, i32** %i8, align 8
-  ret i32* %i9
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE3endEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %retval = alloca %"class.std::__1::__wrap_iter.1", align 8
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 1
+  %i1 = load i32*, i32** %__end_, align 8
+  %call = call i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE11__make_iterEPi(%"class.std::__1::vector"* %this1, i32* %i1) #14
+  %coerce.dive = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %retval, i32 0, i32 0
+  %coerce.val.ip = inttoptr i64 %call to i32*
+  store i32* %coerce.val.ip, i32** %coerce.dive, align 8
+  %coerce.dive2 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %retval, i32 0, i32 0
+  %i2 = load i32*, i32** %coerce.dive2, align 8
+  %coerce.val.pi = ptrtoint i32* %i2 to i64
+  ret i64 %coerce.val.pi
 }
 
 declare nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEi(%"class.std::__1::basic_ostream"*, i32) #3
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNKSt3__111__wrap_iterIPKiEdeEv(%"class.std::__1::__wrap_iter"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %i1, i32 0, i32 0
-  %i3 = load i32*, i32** %i2, align 8
-  ret i32* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNKSt3__111__wrap_iterIPKiEdeEv(%"class.std::__1::__wrap_iter"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  store %"class.std::__1::__wrap_iter"* %this, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %__i = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %this1, i32 0, i32 0
+  %i = load i32*, i32** %__i, align 8
+  ret i32* %i
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEPFRS3_S4_E(%"class.std::__1::basic_ostream"* %arg, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)* %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::basic_ostream"*, align 8
-  %i2 = alloca %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)*, align 8
-  store %"class.std::__1::basic_ostream"* %arg, %"class.std::__1::basic_ostream"** %i, align 8
-  store %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)* %arg1, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)** %i2, align 8
-  %i3 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %i, align 8
-  %i4 = load %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)*, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)** %i2, align 8
-  %i5 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* %i4(%"class.std::__1::basic_ostream"* nonnull align 8 dereferenceable(8) %i3)
-  ret %"class.std::__1::basic_ostream"* %i5
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEElsEPFRS3_S4_E(%"class.std::__1::basic_ostream"* %this, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)* %__pf) #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::basic_ostream"*, align 8
+  %__pf.addr = alloca %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)*, align 8
+  store %"class.std::__1::basic_ostream"* %this, %"class.std::__1::basic_ostream"** %this.addr, align 8
+  store %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)* %__pf, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)** %__pf.addr, align 8
+  %this1 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %this.addr, align 8
+  %i = load %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)*, %"class.std::__1::basic_ostream"* (%"class.std::__1::basic_ostream"*)** %__pf.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* %i(%"class.std::__1::basic_ostream"* nonnull align 8 dereferenceable(8) %this1)
+  ret %"class.std::__1::basic_ostream"* %call
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__14endlIcNS_11char_traitsIcEEEERNS_13basic_ostreamIT_T0_EES7_(%"class.std::__1::basic_ostream"* nonnull align 8 dereferenceable(8) %arg) #0 {
-bb:
-  %i = alloca %"class.std::__1::basic_ostream"*, align 8
-  store %"class.std::__1::basic_ostream"* %arg, %"class.std::__1::basic_ostream"** %i, align 8
-  %i1 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %i, align 8
-  %i2 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %i, align 8
-  %i3 = bitcast %"class.std::__1::basic_ostream"* %i2 to i8**
-  %i4 = load i8*, i8** %i3, align 8
-  %i5 = getelementptr i8, i8* %i4, i64 -24
-  %i6 = bitcast i8* %i5 to i64*
-  %i7 = load i64, i64* %i6, align 8
-  %i8 = bitcast %"class.std::__1::basic_ostream"* %i2 to i8*
-  %i9 = getelementptr inbounds i8, i8* %i8, i64 %i7
-  %i10 = bitcast i8* %i9 to %"class.std::__1::basic_ios"*
-  %i11 = call signext i8 @_ZNKSt3__19basic_iosIcNS_11char_traitsIcEEE5widenEc(%"class.std::__1::basic_ios"* %i10, i8 signext 10)
-  %i12 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE3putEc(%"class.std::__1::basic_ostream"* %i1, i8 signext %i11)
-  %i13 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %i, align 8
-  %i14 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE5flushEv(%"class.std::__1::basic_ostream"* %i13)
-  %i15 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %i, align 8
-  ret %"class.std::__1::basic_ostream"* %i15
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__14endlIcNS_11char_traitsIcEEEERNS_13basic_ostreamIT_T0_EES7_(%"class.std::__1::basic_ostream"* nonnull align 8 dereferenceable(8) %__os) #0 {
+entry:
+  %__os.addr = alloca %"class.std::__1::basic_ostream"*, align 8
+  store %"class.std::__1::basic_ostream"* %__os, %"class.std::__1::basic_ostream"** %__os.addr, align 8
+  %i = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %__os.addr, align 8
+  %i1 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %__os.addr, align 8
+  %i2 = bitcast %"class.std::__1::basic_ostream"* %i1 to i8**
+  %vtable = load i8*, i8** %i2, align 8
+  %vbase.offset.ptr = getelementptr i8, i8* %vtable, i64 -24
+  %i3 = bitcast i8* %vbase.offset.ptr to i64*
+  %vbase.offset = load i64, i64* %i3, align 8
+  %i4 = bitcast %"class.std::__1::basic_ostream"* %i1 to i8*
+  %add.ptr = getelementptr inbounds i8, i8* %i4, i64 %vbase.offset
+  %i5 = bitcast i8* %add.ptr to %"class.std::__1::basic_ios"*
+  %call = call signext i8 @_ZNKSt3__19basic_iosIcNS_11char_traitsIcEEE5widenEc(%"class.std::__1::basic_ios"* %i5, i8 signext 10)
+  %call1 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE3putEc(%"class.std::__1::basic_ostream"* %i, i8 signext %call)
+  %i6 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %__os.addr, align 8
+  %call2 = call nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE5flushEv(%"class.std::__1::basic_ostream"* %i6)
+  %i7 = load %"class.std::__1::basic_ostream"*, %"class.std::__1::basic_ostream"** %__os.addr, align 8
+  ret %"class.std::__1::basic_ostream"* %i7
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEppEv(%"class.std::__1::__wrap_iter"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %i1, i32 0, i32 0
-  %i3 = load i32*, i32** %i2, align 8
-  %i4 = getelementptr inbounds i32, i32* %i3, i32 1
-  store i32* %i4, i32** %i2, align 8
-  ret %"class.std::__1::__wrap_iter"* %i1
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEppEv(%"class.std::__1::__wrap_iter"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  store %"class.std::__1::__wrap_iter"* %this, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %__i = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %this1, i32 0, i32 0
+  %i = load i32*, i32** %__i, align 8
+  %incdec.ptr = getelementptr i32, i32* %i, i32 1
+  store i32* %incdec.ptr, i32** %__i, align 8
+  ret %"class.std::__1::__wrap_iter"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__111__wrap_iterIPKiEC2IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %arg1, i8* %arg2) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  %i3 = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  %i4 = alloca i8*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg1, %"class.std::__1::__wrap_iter.1"** %i3, align 8
-  store i8* %arg2, i8** %i4, align 8
-  %i5 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i6 = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %i5, i32 0, i32 0
-  %i7 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i3, align 8
-  %i8 = call i32* @_ZNKSt3__111__wrap_iterIPiE4baseEv(%"class.std::__1::__wrap_iter.1"* %i7) #14
-  store i32* %i8, i32** %i6, align 8
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"class.std::__1::__wrap_iter"* @_ZNSt3__111__wrap_iterIPKiEC2IPiEERKNS0_IT_EEPNS_9enable_ifIXsr14is_convertibleIS6_S2_EE5valueEvE4typeE(%"class.std::__1::__wrap_iter"* returned %this, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %__u, i8* %arg) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  %__u.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  %.addr = alloca i8*, align 8
+  store %"class.std::__1::__wrap_iter"* %this, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  store %"class.std::__1::__wrap_iter.1"* %__u, %"class.std::__1::__wrap_iter.1"** %__u.addr, align 8
+  store i8* %arg, i8** %.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %__i = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %this1, i32 0, i32 0
+  %i = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %__u.addr, align 8
+  %call = call i32* @_ZNKSt3__111__wrap_iterIPiE4baseEv(%"class.std::__1::__wrap_iter.1"* %i) #14
+  store i32* %call, i32** %__i, align 8
+  ret %"class.std::__1::__wrap_iter"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNKSt3__111__wrap_iterIPiE4baseEv(%"class.std::__1::__wrap_iter.1"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg, %"class.std::__1::__wrap_iter.1"** %i, align 8
-  %i1 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i1, i32 0, i32 0
-  %i3 = load i32*, i32** %i2, align 8
-  ret i32* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i32* @_ZNKSt3__111__wrap_iterIPiE4baseEv(%"class.std::__1::__wrap_iter.1"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  store %"class.std::__1::__wrap_iter.1"* %this, %"class.std::__1::__wrap_iter.1"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %this.addr, align 8
+  %__i = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %this1, i32 0, i32 0
+  %i = load i32*, i32** %__i, align 8
+  ret i32* %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden zeroext i1 @_ZNSt3__1eqIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %arg, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %arg1) #1 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  %i2 = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg1, %"class.std::__1::__wrap_iter.1"** %i2, align 8
-  %i3 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i4 = call i32* @_ZNKSt3__111__wrap_iterIPKiE4baseEv(%"class.std::__1::__wrap_iter"* %i3) #14
-  %i5 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i2, align 8
-  %i6 = call i32* @_ZNKSt3__111__wrap_iterIPiE4baseEv(%"class.std::__1::__wrap_iter.1"* %i5) #14
-  %i7 = icmp eq i32* %i4, %i6
-  ret i1 %i7
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden zeroext i1 @_ZNSt3__1eqIPKiPiEEbRKNS_11__wrap_iterIT_EERKNS4_IT0_EE(%"class.std::__1::__wrap_iter"* nonnull align 8 dereferenceable(8) %__x, %"class.std::__1::__wrap_iter.1"* nonnull align 8 dereferenceable(8) %__y) #1 {
+entry:
+  %__x.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  %__y.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  store %"class.std::__1::__wrap_iter"* %__x, %"class.std::__1::__wrap_iter"** %__x.addr, align 8
+  store %"class.std::__1::__wrap_iter.1"* %__y, %"class.std::__1::__wrap_iter.1"** %__y.addr, align 8
+  %i = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %__x.addr, align 8
+  %call = call i32* @_ZNKSt3__111__wrap_iterIPKiE4baseEv(%"class.std::__1::__wrap_iter"* %i) #14
+  %i1 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %__y.addr, align 8
+  %call1 = call i32* @_ZNKSt3__111__wrap_iterIPiE4baseEv(%"class.std::__1::__wrap_iter.1"* %i1) #14
+  %cmp = icmp eq i32* %call, %call1
+  ret i1 %cmp
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNKSt3__111__wrap_iterIPKiE4baseEv(%"class.std::__1::__wrap_iter"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter"*, align 8
-  store %"class.std::__1::__wrap_iter"* %arg, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %i1, i32 0, i32 0
-  %i3 = load i32*, i32** %i2, align 8
-  ret i32* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i32* @_ZNKSt3__111__wrap_iterIPKiE4baseEv(%"class.std::__1::__wrap_iter"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter"*, align 8
+  store %"class.std::__1::__wrap_iter"* %this, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter"*, %"class.std::__1::__wrap_iter"** %this.addr, align 8
+  %__i = getelementptr inbounds %"class.std::__1::__wrap_iter", %"class.std::__1::__wrap_iter"* %this1, i32 0, i32 0
+  %i = load i32*, i32** %__i, align 8
+  ret i32* %i
 }
 
 ; Function Attrs: nobuiltin allocsize(0)
@@ -435,81 +441,81 @@ declare nonnull i8* @_Znwm(i64) #4
 ; Function Attrs: argmemonly nounwind willreturn writeonly
 declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #5
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZN4listIiEC1Ev(%struct.list* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %struct.list*, align 8
-  store %struct.list* %arg, %struct.list** %i, align 8
-  %i1 = load %struct.list*, %struct.list** %i, align 8
-  call void @_ZN4listIiEC2Ev(%struct.list* %i1) #14
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %struct.list* @_ZN4listIiEC1Ev(%struct.list* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %struct.list*, align 8
+  store %struct.list* %this, %struct.list** %this.addr, align 8
+  %this1 = load %struct.list*, %struct.list** %this.addr, align 8
+  %call = call %struct.list* @_ZN4listIiEC2Ev(%struct.list* %this1) #14
+  ret %struct.list* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZN4listIiEC2Ev(%struct.list* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %struct.list*, align 8
-  store %struct.list* %arg, %struct.list** %i, align 8
-  %i1 = load %struct.list*, %struct.list** %i, align 8
-  %i2 = getelementptr inbounds %struct.list, %struct.list* %i1, i32 0, i32 0
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector"* %i2) #14
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %struct.list* @_ZN4listIiEC2Ev(%struct.list* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %struct.list*, align 8
+  store %struct.list* %this, %struct.list** %this.addr, align 8
+  %this1 = load %struct.list*, %struct.list** %this.addr, align 8
+  %contents = getelementptr inbounds %struct.list, %struct.list* %this1, i32 0, i32 0
+  %call = call %"class.std::__1::vector"* @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector"* %contents) #14
+  ret %struct.list* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::vector"* %i1) #14
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::vector"* @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %call = call %"class.std::__1::vector"* @_ZNSt3__16vectorIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::vector"* %this1) #14
+  ret %"class.std::__1::vector"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::vector"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i2 = bitcast %"class.std::__1::vector"* %i1 to %"class.std::__1::__vector_base"*
-  call void @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::__vector_base"* %i2) #14
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::vector"* @_ZNSt3__16vectorIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::vector"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call %"class.std::__1::__vector_base"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::__vector_base"* %i) #14
+  ret %"class.std::__1::vector"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::__vector_base"* %arg) unnamed_addr #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::__vector_base"*, align 8
-  %i1 = alloca i8*, align 8
-  %i2 = alloca %"struct.std::__1::__default_init_tag", align 1
-  store %"class.std::__1::__vector_base"* %arg, %"class.std::__1::__vector_base"** %i, align 8
-  %i3 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %i, align 8
-  %i4 = bitcast %"class.std::__1::__vector_base"* %i3 to %"class.std::__1::__vector_base_common"*
-  call void @_ZNSt3__120__vector_base_commonILb1EEC2Ev(%"class.std::__1::__vector_base_common"* %i4)
-  br label %bb5
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::__vector_base"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEEC2Ev(%"class.std::__1::__vector_base"* returned %this) unnamed_addr #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base"*, align 8
+  %ref.tmp = alloca i8*, align 8
+  %ref.tmp2 = alloca %"struct.std::__1::__default_init_tag", align 1
+  store %"class.std::__1::__vector_base"* %this, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__vector_base"* %this1 to %"class.std::__1::__vector_base_common"*
+  %call = call %"class.std::__1::__vector_base_common"* @_ZNSt3__120__vector_base_commonILb1EEC2Ev(%"class.std::__1::__vector_base_common"* %i)
+  br label %invoke.cont
 
-bb5:                                              ; preds = %bb
-  %i6 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i3, i32 0, i32 0
-  store i32* null, i32** %i6, align 8
-  %i7 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i3, i32 0, i32 1
-  store i32* null, i32** %i7, align 8
-  %i8 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i3, i32 0, i32 2
-  store i8* null, i8** %i1, align 8
-  call void @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC1IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* %i8, i8** nonnull align 8 dereferenceable(8) %i1, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %i2)
-  br label %bb9
+invoke.cont:                                      ; preds = %entry
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 0
+  store i32* null, i32** %__begin_, align 8
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 1
+  store i32* null, i32** %__end_, align 8
+  %__end_cap_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 2
+  store i8* null, i8** %ref.tmp, align 8
+  %call4 = call %"class.std::__1::__compressed_pair"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC1IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* %__end_cap_, i8** nonnull align 8 dereferenceable(8) %ref.tmp, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %ref.tmp2)
+  br label %invoke.cont3
 
-bb9:                                              ; preds = %bb5
-  ret void
+invoke.cont3:                                     ; preds = %invoke.cont
+  ret %"class.std::__1::__vector_base"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__120__vector_base_commonILb1EEC2Ev(%"class.std::__1::__vector_base_common"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__vector_base_common"*, align 8
-  store %"class.std::__1::__vector_base_common"* %arg, %"class.std::__1::__vector_base_common"** %i, align 8
-  %i1 = load %"class.std::__1::__vector_base_common"*, %"class.std::__1::__vector_base_common"** %i, align 8
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::__vector_base_common"* @_ZNSt3__120__vector_base_commonILb1EEC2Ev(%"class.std::__1::__vector_base_common"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base_common"*, align 8
+  store %"class.std::__1::__vector_base_common"* %this, %"class.std::__1::__vector_base_common"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base_common"*, %"class.std::__1::__vector_base_common"** %this.addr, align 8
+  ret %"class.std::__1::__vector_base_common"* %this1
 }
 
 declare i32 @__gxx_personality_v0(...)
@@ -526,1213 +532,1216 @@ declare i8* @__cxa_begin_catch(i8*)
 
 declare void @_ZSt9terminatev()
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC1IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* %arg, i8** nonnull align 8 dereferenceable(8) %arg1, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %arg2) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair"*, align 8
-  %i3 = alloca i8**, align 8
-  %i4 = alloca %"struct.std::__1::__default_init_tag"*, align 8
-  store %"class.std::__1::__compressed_pair"* %arg, %"class.std::__1::__compressed_pair"** %i, align 8
-  store i8** %arg1, i8*** %i3, align 8
-  store %"struct.std::__1::__default_init_tag"* %arg2, %"struct.std::__1::__default_init_tag"** %i4, align 8
-  %i5 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i6 = load i8**, i8*** %i3, align 8
-  %i7 = load %"struct.std::__1::__default_init_tag"*, %"struct.std::__1::__default_init_tag"** %i4, align 8
-  call void @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC2IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* %i5, i8** nonnull align 8 dereferenceable(8) %i6, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %i7)
-  ret void
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"class.std::__1::__compressed_pair"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC1IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* returned %this, i8** nonnull align 8 dereferenceable(8) %__t1, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %__t2) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair"*, align 8
+  %__t1.addr = alloca i8**, align 8
+  %__t2.addr = alloca %"struct.std::__1::__default_init_tag"*, align 8
+  store %"class.std::__1::__compressed_pair"* %this, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  store i8** %__t1, i8*** %__t1.addr, align 8
+  store %"struct.std::__1::__default_init_tag"* %__t2, %"struct.std::__1::__default_init_tag"** %__t2.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %i = load i8**, i8*** %__t1.addr, align 8
+  %i1 = load %"struct.std::__1::__default_init_tag"*, %"struct.std::__1::__default_init_tag"** %__t2.addr, align 8
+  %call = call %"class.std::__1::__compressed_pair"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC2IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* %this1, i8** nonnull align 8 dereferenceable(8) %i, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %i1)
+  ret %"class.std::__1::__compressed_pair"* %this1
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC2IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* %arg, i8** nonnull align 8 dereferenceable(8) %arg1, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %arg2) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair"*, align 8
-  %i3 = alloca i8**, align 8
-  %i4 = alloca %"struct.std::__1::__default_init_tag"*, align 8
-  %i5 = alloca %"struct.std::__1::__default_init_tag", align 1
-  store %"class.std::__1::__compressed_pair"* %arg, %"class.std::__1::__compressed_pair"** %i, align 8
-  store i8** %arg1, i8*** %i3, align 8
-  store %"struct.std::__1::__default_init_tag"* %arg2, %"struct.std::__1::__default_init_tag"** %i4, align 8
-  %i6 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i7 = bitcast %"class.std::__1::__compressed_pair"* %i6 to %"struct.std::__1::__compressed_pair_elem"*
-  %i8 = load i8**, i8*** %i3, align 8
-  %i9 = call nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %i8) #14
-  call void @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_(%"struct.std::__1::__compressed_pair_elem"* %i7, i8** nonnull align 8 dereferenceable(8) %i9)
-  %i10 = bitcast %"class.std::__1::__compressed_pair"* %i6 to %"struct.std::__1::__compressed_pair_elem.0"*
-  %i11 = load %"struct.std::__1::__default_init_tag"*, %"struct.std::__1::__default_init_tag"** %i4, align 8
-  %i12 = call nonnull align 1 dereferenceable(1) %"struct.std::__1::__default_init_tag"* @_ZNSt3__17forwardINS_18__default_init_tagEEEOT_RNS_16remove_referenceIS2_E4typeE(%"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %i11) #14
-  call void @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EEC2ENS_18__default_init_tagE(%"struct.std::__1::__compressed_pair_elem.0"* %i10)
-  ret void
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"class.std::__1::__compressed_pair"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEEC2IDnNS_18__default_init_tagEEEOT_OT0_(%"class.std::__1::__compressed_pair"* returned %this, i8** nonnull align 8 dereferenceable(8) %__t1, %"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %__t2) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair"*, align 8
+  %__t1.addr = alloca i8**, align 8
+  %__t2.addr = alloca %"struct.std::__1::__default_init_tag"*, align 8
+  %agg.tmp = alloca %"struct.std::__1::__default_init_tag", align 1
+  store %"class.std::__1::__compressed_pair"* %this, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  store i8** %__t1, i8*** %__t1.addr, align 8
+  store %"struct.std::__1::__default_init_tag"* %__t2, %"struct.std::__1::__default_init_tag"** %__t2.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair"* %this1 to %"struct.std::__1::__compressed_pair_elem"*
+  %i1 = load i8**, i8*** %__t1.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %i1) #14
+  %call2 = call %"struct.std::__1::__compressed_pair_elem"* @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_(%"struct.std::__1::__compressed_pair_elem"* %i, i8** nonnull align 8 dereferenceable(8) %call)
+  %i2 = bitcast %"class.std::__1::__compressed_pair"* %this1 to %"struct.std::__1::__compressed_pair_elem.0"*
+  %i3 = load %"struct.std::__1::__default_init_tag"*, %"struct.std::__1::__default_init_tag"** %__t2.addr, align 8
+  %call3 = call nonnull align 1 dereferenceable(1) %"struct.std::__1::__default_init_tag"* @_ZNSt3__17forwardINS_18__default_init_tagEEEOT_RNS_16remove_referenceIS2_E4typeE(%"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %i3) #14
+  %call4 = call %"struct.std::__1::__compressed_pair_elem.0"* @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EEC2ENS_18__default_init_tagE(%"struct.std::__1::__compressed_pair_elem.0"* %i2)
+  ret %"class.std::__1::__compressed_pair"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %arg) #1 {
-bb:
-  %i = alloca i8**, align 8
-  store i8** %arg, i8*** %i, align 8
-  %i1 = load i8**, i8*** %i, align 8
-  ret i8** %i1
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %__t) #1 {
+entry:
+  %__t.addr = alloca i8**, align 8
+  store i8** %__t, i8*** %__t.addr, align 8
+  %i = load i8**, i8*** %__t.addr, align 8
+  ret i8** %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_(%"struct.std::__1::__compressed_pair_elem"* %arg, i8** nonnull align 8 dereferenceable(8) %arg1) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem"*, align 8
-  %i2 = alloca i8**, align 8
-  store %"struct.std::__1::__compressed_pair_elem"* %arg, %"struct.std::__1::__compressed_pair_elem"** %i, align 8
-  store i8** %arg1, i8*** %i2, align 8
-  %i3 = load %"struct.std::__1::__compressed_pair_elem"*, %"struct.std::__1::__compressed_pair_elem"** %i, align 8
-  %i4 = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem", %"struct.std::__1::__compressed_pair_elem"* %i3, i32 0, i32 0
-  %i5 = load i8**, i8*** %i2, align 8
-  %i6 = call nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %i5) #14
-  store i32* null, i32** %i4, align 8
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::__compressed_pair_elem"* @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_(%"struct.std::__1::__compressed_pair_elem"* returned %this, i8** nonnull align 8 dereferenceable(8) %__u) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem"*, align 8
+  %__u.addr = alloca i8**, align 8
+  store %"struct.std::__1::__compressed_pair_elem"* %this, %"struct.std::__1::__compressed_pair_elem"** %this.addr, align 8
+  store i8** %__u, i8*** %__u.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem"*, %"struct.std::__1::__compressed_pair_elem"** %this.addr, align 8
+  %__value_ = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem", %"struct.std::__1::__compressed_pair_elem"* %this1, i32 0, i32 0
+  %i = load i8**, i8*** %__u.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %i) #14
+  store i32* null, i32** %__value_, align 8
+  ret %"struct.std::__1::__compressed_pair_elem"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"struct.std::__1::__default_init_tag"* @_ZNSt3__17forwardINS_18__default_init_tagEEEOT_RNS_16remove_referenceIS2_E4typeE(%"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %arg) #1 {
-bb:
-  %i = alloca %"struct.std::__1::__default_init_tag"*, align 8
-  store %"struct.std::__1::__default_init_tag"* %arg, %"struct.std::__1::__default_init_tag"** %i, align 8
-  %i1 = load %"struct.std::__1::__default_init_tag"*, %"struct.std::__1::__default_init_tag"** %i, align 8
-  ret %"struct.std::__1::__default_init_tag"* %i1
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"struct.std::__1::__default_init_tag"* @_ZNSt3__17forwardINS_18__default_init_tagEEEOT_RNS_16remove_referenceIS2_E4typeE(%"struct.std::__1::__default_init_tag"* nonnull align 1 dereferenceable(1) %__t) #1 {
+entry:
+  %__t.addr = alloca %"struct.std::__1::__default_init_tag"*, align 8
+  store %"struct.std::__1::__default_init_tag"* %__t, %"struct.std::__1::__default_init_tag"** %__t.addr, align 8
+  %i = load %"struct.std::__1::__default_init_tag"*, %"struct.std::__1::__default_init_tag"** %__t.addr, align 8
+  ret %"struct.std::__1::__default_init_tag"* %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EEC2ENS_18__default_init_tagE(%"struct.std::__1::__compressed_pair_elem.0"* %arg) unnamed_addr #1 align 2 {
-bb:
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"struct.std::__1::__compressed_pair_elem.0"* @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EEC2ENS_18__default_init_tagE(%"struct.std::__1::__compressed_pair_elem.0"* returned %this) unnamed_addr #1 align 2 {
+entry:
   %i = alloca %"struct.std::__1::__default_init_tag", align 1
-  %i1 = alloca %"struct.std::__1::__compressed_pair_elem.0"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem.0"* %arg, %"struct.std::__1::__compressed_pair_elem.0"** %i1, align 8
-  %i2 = load %"struct.std::__1::__compressed_pair_elem.0"*, %"struct.std::__1::__compressed_pair_elem.0"** %i1, align 8
-  %i3 = bitcast %"struct.std::__1::__compressed_pair_elem.0"* %i2 to %"class.std::__1::allocator"*
-  call void @_ZNSt3__19allocatorIiEC2Ev(%"class.std::__1::allocator"* %i3) #14
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem.0"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem.0"* %this, %"struct.std::__1::__compressed_pair_elem.0"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem.0"*, %"struct.std::__1::__compressed_pair_elem.0"** %this.addr, align 8
+  %i1 = bitcast %"struct.std::__1::__compressed_pair_elem.0"* %this1 to %"class.std::__1::allocator"*
+  %call = call %"class.std::__1::allocator"* @_ZNSt3__19allocatorIiEC2Ev(%"class.std::__1::allocator"* %i1) #14
+  ret %"struct.std::__1::__compressed_pair_elem.0"* %this1
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::allocator"* @_ZNSt3__19allocatorIiEC2Ev(%"class.std::__1::allocator"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
+  ret %"class.std::__1::allocator"* %this1
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 1
+  %i1 = load i32*, i32** %__end_, align 8
+  %i2 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i2, i32 0, i32 0
+  %i3 = load i32*, i32** %__begin_, align 8
+  %sub.ptr.lhs.cast = ptrtoint i32* %i1 to i64
+  %sub.ptr.rhs.cast = ptrtoint i32* %i3 to i64
+  %sub.ptr.sub = sub i64 %sub.ptr.lhs.cast, %sub.ptr.rhs.cast
+  %sub.ptr.div = sdiv exact i64 %sub.ptr.sub, 4
+  ret i64 %sub.ptr.div
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %this, i64 %__n) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 0
+  %i1 = load i32*, i32** %__begin_, align 8
+  %i2 = load i64, i64* %__n.addr, align 8
+  %arrayidx = getelementptr i32, i32* %i1, i64 %i2
+  ret i32* %arrayidx
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__x) #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__x.addr = alloca i32*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__x, i32** %__x.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 1
+  %i1 = load i32*, i32** %__end_, align 8
+  %i2 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i2) #14
+  %i3 = load i32*, i32** %call, align 8
+  %cmp = icmp ult i32* %i1, %i3
+  br i1 %cmp, label %bb, label %bb6
+
+if.then:                                          ; preds = %bb
+  %i4 = load i32*, i32** %__x.addr, align 8
+  %call2 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_(i32* nonnull align 4 dereferenceable(4) %i4) #14
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJiEEEvDpOT_(%"class.std::__1::vector"* %this1, i32* nonnull align 4 dereferenceable(4) %call2)
+  br label %if.end
+
+if.else:                                          ; preds = %bb6
+  %i5 = load i32*, i32** %__x.addr, align 8
+  %call3 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_(i32* nonnull align 4 dereferenceable(4) %i5) #14
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIiEEvOT_(%"class.std::__1::vector"* %this1, i32* nonnull align 4 dereferenceable(4) %call3)
+  br label %if.end
+
+if.end:                                           ; preds = %if.else, %if.then
+  ret void
+
+bb:                                               ; preds = %entry
+  br label %if.then
+
+bb6:                                              ; preds = %entry
+  br label %if.else
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__x) #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__x.addr = alloca i32*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__x, i32** %__x.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 1
+  %i1 = load i32*, i32** %__end_, align 8
+  %i2 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i2) #14
+  %i3 = load i32*, i32** %call, align 8
+  %cmp = icmp ne i32* %i1, %i3
+  br i1 %cmp, label %bb, label %bb6
+
+if.then:                                          ; preds = %bb
+  %i4 = load i32*, i32** %__x.addr, align 8
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJRKiEEEvDpOT_(%"class.std::__1::vector"* %this1, i32* nonnull align 4 dereferenceable(4) %i4)
+  br label %if.end
+
+if.else:                                          ; preds = %bb6
+  %i5 = load i32*, i32** %__x.addr, align 8
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIRKiEEvOT_(%"class.std::__1::vector"* %this1, i32* nonnull align 4 dereferenceable(4) %i5)
+  br label %if.end
+
+if.end:                                           ; preds = %if.else, %if.then
+  ret void
+
+bb:                                               ; preds = %entry
+  br label %if.then
+
+bb6:                                              ; preds = %entry
+  br label %if.else
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base"*, align 8
+  store %"class.std::__1::__vector_base"* %this, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 2
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %__end_cap_) #14
+  ret i32** %call
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJiEEEvDpOT_(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__args) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__args.addr = alloca i32*, align 8
+  %__tx = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", align 8
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %call = call %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %this1, i64 1)
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call2 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i) #14
+  %__pos_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx, i32 0, i32 1
+  %i1 = load i32*, i32** %__pos_, align 8
+  %call3 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i1) #14
+  %i2 = load i32*, i32** %__args.addr, align 8
+  %call4 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i2) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call2, i32* %call3, i32* nonnull align 4 dereferenceable(4) %call4)
+  br label %invoke.cont
+
+invoke.cont:                                      ; preds = %entry
+  %__pos_5 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx, i32 0, i32 1
+  %i3 = load i32*, i32** %__pos_5, align 8
+  %incdec.ptr = getelementptr i32, i32* %i3, i32 1
+  store i32* %incdec.ptr, i32** %__pos_5, align 8
+  %call6 = call %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx) #14
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__19allocatorIiEC2Ev(%"class.std::__1::allocator"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_(i32* nonnull align 4 dereferenceable(4) %__t) #1 {
+entry:
+  %__t.addr = alloca i32*, align 8
+  store i32* %__t, i32** %__t.addr, align 8
+  %i = load i32*, i32** %__t.addr, align 8
+  ret i32* %i
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIiEEvOT_(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__x) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__x.addr = alloca i32*, align 8
+  %__a = alloca %"class.std::__1::allocator"*, align 8
+  %__v = alloca %"struct.std::__1::__split_buffer", align 8
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__x, i32** %__x.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i) #14
+  store %"class.std::__1::allocator"* %call, %"class.std::__1::allocator"** %__a, align 8
+  %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this1) #14
+  %add = add i64 %call2, 1
+  %call3 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm(%"class.std::__1::vector"* %this1, i64 %add)
+  %call4 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this1) #14
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a, align 8
+  %call5 = call %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_(%"struct.std::__1::__split_buffer"* %__v, i64 %call3, i64 %call4, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1)
+  %i2 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a, align 8
+  %__end_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %__v, i32 0, i32 2
+  %i3 = load i32*, i32** %__end_, align 8
+  %call6 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i3) #14
+  %i4 = load i32*, i32** %__x.addr, align 8
+  %call7 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i4) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i2, i32* %call6, i32* nonnull align 4 dereferenceable(4) %call7)
+  br label %invoke.cont
+
+invoke.cont:                                      ; preds = %entry
+  %__end_8 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %__v, i32 0, i32 2
+  %i5 = load i32*, i32** %__end_8, align 8
+  %incdec.ptr = getelementptr i32, i32* %i5, i32 1
+  store i32* %incdec.ptr, i32** %__end_8, align 8
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__swap_out_circular_bufferERNS_14__split_bufferIiRS2_EE(%"class.std::__1::vector"* %this1, %"struct.std::__1::__split_buffer"* nonnull align 8 dereferenceable(40) %__v)
+  br label %invoke.cont9
+
+invoke.cont9:                                     ; preds = %invoke.cont
+  %call10 = call %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED1Ev(%"struct.std::__1::__split_buffer"* %__v) #14
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair"*, align 8
+  store %"class.std::__1::__compressed_pair"* %this, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair"* %this1 to %"struct.std::__1::__compressed_pair_elem"*
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i) #14
+  ret i32** %call
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem"* %this, %"struct.std::__1::__compressed_pair_elem"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem"*, %"struct.std::__1::__compressed_pair_elem"** %this.addr, align 8
+  %__value_ = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem", %"struct.std::__1::__compressed_pair_elem"* %this1, i32 0, i32 0
+  ret i32** %__value_
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* returned %this, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %__v, i64 %__n) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
+  %__v.addr = alloca %"class.std::__1::vector"*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  store %"class.std::__1::vector"* %__v, %"class.std::__1::vector"** %__v.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %this1 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  %i = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %__v.addr, align 8
+  %i1 = load i64, i64* %__n.addr, align 8
+  %call = call %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC2ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %i, i64 %i1)
+  ret %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p, i32* nonnull align 4 dereferenceable(4) %__args) #0 align 2 {
+entry:
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__args.addr = alloca i32*, align 8
+  %agg.tmp = alloca %"struct.std::__1::integral_constant", align 1
+  %ref.tmp = alloca %"struct.std::__1::__has_construct", align 1
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %i = bitcast %"struct.std::__1::__has_construct"* %ref.tmp to %"struct.std::__1::integral_constant"*
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i2 = load i32*, i32** %__p.addr, align 8
+  %i3 = load i32*, i32** %__args.addr, align 8
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i3) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1, i32* %i2, i32* nonnull align 4 dereferenceable(4) %call)
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base"*, align 8
+  store %"class.std::__1::__vector_base"* %this, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 2
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %__end_cap_) #14
+  ret %"class.std::__1::allocator"* %call
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %__p) #1 {
+entry:
+  %__p.addr = alloca i32*, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  %i = load i32*, i32** %__p.addr, align 8
+  ret i32* %i
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %__t) #1 {
+entry:
+  %__t.addr = alloca i32*, align 8
+  store i32* %__t, i32** %__t.addr, align 8
+  %i = load i32*, i32** %__t.addr, align 8
+  ret i32* %i
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
+  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  %call = call %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD2Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1) #14
+  ret %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC2ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* returned %this, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %__v, i64 %__n) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
+  %__v.addr = alloca %"class.std::__1::vector"*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  store %"class.std::__1::vector"* %__v, %"class.std::__1::vector"** %__v.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %this1 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  %__v_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1, i32 0, i32 0
+  %i = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %__v.addr, align 8
+  store %"class.std::__1::vector"* %i, %"class.std::__1::vector"** %__v_, align 8
+  %__pos_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1, i32 0, i32 1
+  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %__v.addr, align 8
   %i2 = bitcast %"class.std::__1::vector"* %i1 to %"class.std::__1::__vector_base"*
-  %i3 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i2, i32 0, i32 1
-  %i4 = load i32*, i32** %i3, align 8
-  %i5 = bitcast %"class.std::__1::vector"* %i1 to %"class.std::__1::__vector_base"*
-  %i6 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i5, i32 0, i32 0
-  %i7 = load i32*, i32** %i6, align 8
-  %i8 = ptrtoint i32* %i4 to i64
-  %i9 = ptrtoint i32* %i7 to i64
-  %i10 = sub i64 %i8, %i9
-  %i11 = sdiv exact i64 %i10, 4
-  ret i64 %i11
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i2, i32 0, i32 1
+  %i3 = load i32*, i32** %__end_, align 8
+  store i32* %i3, i32** %__pos_, align 8
+  %__new_end_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1, i32 0, i32 2
+  %i4 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %__v.addr, align 8
+  %i5 = bitcast %"class.std::__1::vector"* %i4 to %"class.std::__1::__vector_base"*
+  %__end_2 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i5, i32 0, i32 1
+  %i6 = load i32*, i32** %__end_2, align 8
+  %i7 = load i64, i64* %__n.addr, align 8
+  %add.ptr = getelementptr i32, i32* %i6, i64 %i7
+  store i32* %add.ptr, i32** %__new_end_, align 8
+  ret %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %arg, i64 %arg1) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i64, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i64 %arg1, i64* %i2, align 8
-  %i3 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i4 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i5 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i4, i32 0, i32 0
-  %i6 = load i32*, i32** %i5, align 8
-  %i7 = load i64, i64* %i2, align 8
-  %i8 = getelementptr inbounds i32, i32* %i6, i64 %i7
-  ret i32* %i8
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi(%"class.std::__1::vector"* %arg, i32* nonnull align 4 dereferenceable(4) %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i32*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i3 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i4 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i5 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i4, i32 0, i32 1
-  %i6 = load i32*, i32** %i5, align 8
-  %i7 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i8 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i7) #14
-  %i9 = load i32*, i32** %i8, align 8
-  %i10 = icmp ult i32* %i6, %i9
-  br i1 %i10, label %bb18, label %bb19
-
-bb11:                                             ; preds = %bb18
-  %i12 = load i32*, i32** %i2, align 8
-  %i13 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_(i32* nonnull align 4 dereferenceable(4) %i12) #14
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJiEEEvDpOT_(%"class.std::__1::vector"* %i3, i32* nonnull align 4 dereferenceable(4) %i13)
-  br label %bb17
-
-bb14:                                             ; preds = %bb19
-  %i15 = load i32*, i32** %i2, align 8
-  %i16 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_(i32* nonnull align 4 dereferenceable(4) %i15) #14
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIiEEvOT_(%"class.std::__1::vector"* %i3, i32* nonnull align 4 dereferenceable(4) %i16)
-  br label %bb17
-
-bb17:                                             ; preds = %bb14, %bb11
-  ret void
-
-bb18:                                             ; preds = %bb
-  br label %bb11
-
-bb19:                                             ; preds = %bb
-  br label %bb14
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %arg, i32* nonnull align 4 dereferenceable(4) %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i32*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i3 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i4 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i5 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i4, i32 0, i32 1
-  %i6 = load i32*, i32** %i5, align 8
-  %i7 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i8 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i7) #14
-  %i9 = load i32*, i32** %i8, align 8
-  %i10 = icmp ne i32* %i6, %i9
-  br i1 %i10, label %bb16, label %bb17
-
-bb11:                                             ; preds = %bb16
-  %i12 = load i32*, i32** %i2, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJRKiEEEvDpOT_(%"class.std::__1::vector"* %i3, i32* nonnull align 4 dereferenceable(4) %i12)
-  br label %bb15
-
-bb13:                                             ; preds = %bb17
-  %i14 = load i32*, i32** %i2, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIRKiEEvOT_(%"class.std::__1::vector"* %i3, i32* nonnull align 4 dereferenceable(4) %i14)
-  br label %bb15
-
-bb15:                                             ; preds = %bb13, %bb11
-  ret void
-
-bb16:                                             ; preds = %bb
-  br label %bb11
-
-bb17:                                             ; preds = %bb
-  br label %bb13
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__vector_base"*, align 8
-  store %"class.std::__1::__vector_base"* %arg, %"class.std::__1::__vector_base"** %i, align 8
-  %i1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i1, i32 0, i32 2
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %i2) #14
-  ret i32** %i3
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJiEEEvDpOT_(%"class.std::__1::vector"* %arg, i32* nonnull align 4 dereferenceable(4) %arg1) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i32*, align 8
-  %i3 = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", align 8
-  %i4 = alloca i8*, align 8
-  %i5 = alloca i32, align 4
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i6 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %i6, i64 1)
-  %i7 = bitcast %"class.std::__1::vector"* %i6 to %"class.std::__1::__vector_base"*
-  %i8 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i7) #14
-  %i9 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3, i32 0, i32 1
-  %i10 = load i32*, i32** %i9, align 8
-  %i11 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i10) #14
-  %i12 = load i32*, i32** %i2, align 8
-  %i13 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i12) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i8, i32* %i11, i32* nonnull align 4 dereferenceable(4) %i13)
-  br label %bb14
-
-bb14:                                             ; preds = %bb
-  %i15 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3, i32 0, i32 1
-  %i16 = load i32*, i32** %i15, align 8
-  %i17 = getelementptr inbounds i32, i32* %i16, i32 1
-  store i32* %i17, i32** %i15, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3) #14
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_(i32* nonnull align 4 dereferenceable(4) %arg) #1 {
-bb:
-  %i = alloca i32*, align 8
-  store i32* %arg, i32** %i, align 8
-  %i1 = load i32*, i32** %i, align 8
-  ret i32* %i1
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIiEEvOT_(%"class.std::__1::vector"* %arg, i32* nonnull align 4 dereferenceable(4) %arg1) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i32*, align 8
-  %i3 = alloca %"class.std::__1::allocator"*, align 8
-  %i4 = alloca %"struct.std::__1::__split_buffer", align 8
-  %i5 = alloca i8*, align 8
-  %i6 = alloca i32, align 4
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i7 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i8 = bitcast %"class.std::__1::vector"* %i7 to %"class.std::__1::__vector_base"*
-  %i9 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i8) #14
-  store %"class.std::__1::allocator"* %i9, %"class.std::__1::allocator"** %i3, align 8
-  %i10 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i7) #14
-  %i11 = add i64 %i10, 1
-  %i12 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm(%"class.std::__1::vector"* %i7, i64 %i11)
-  %i13 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i7) #14
-  %i14 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i3, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_(%"struct.std::__1::__split_buffer"* %i4, i64 %i12, i64 %i13, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i14)
-  %i15 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i3, align 8
-  %i16 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i4, i32 0, i32 2
-  %i17 = load i32*, i32** %i16, align 8
-  %i18 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i17) #14
-  %i19 = load i32*, i32** %i2, align 8
-  %i20 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i19) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i15, i32* %i18, i32* nonnull align 4 dereferenceable(4) %i20)
-  br label %bb21
-
-bb21:                                             ; preds = %bb
-  %i22 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i4, i32 0, i32 2
-  %i23 = load i32*, i32** %i22, align 8
-  %i24 = getelementptr inbounds i32, i32* %i23, i32 1
-  store i32* %i24, i32** %i22, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__swap_out_circular_bufferERNS_14__split_bufferIiRS2_EE(%"class.std::__1::vector"* %i7, %"struct.std::__1::__split_buffer"* nonnull align 8 dereferenceable(40) %i4)
-  br label %bb25
-
-bb25:                                             ; preds = %bb21
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED1Ev(%"struct.std::__1::__split_buffer"* %i4) #14
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair"*, align 8
-  store %"class.std::__1::__compressed_pair"* %arg, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair"* %i1 to %"struct.std::__1::__compressed_pair_elem"*
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i2) #14
-  ret i32** %i3
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem"* %arg, %"struct.std::__1::__compressed_pair_elem"** %i, align 8
-  %i1 = load %"struct.std::__1::__compressed_pair_elem"*, %"struct.std::__1::__compressed_pair_elem"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem", %"struct.std::__1::__compressed_pair_elem"* %i1, i32 0, i32 0
-  ret i32** %i2
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %arg1, i64 %arg2) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
-  %i3 = alloca %"class.std::__1::vector"*, align 8
-  %i4 = alloca i64, align 8
-  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  store %"class.std::__1::vector"* %arg1, %"class.std::__1::vector"** %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i5 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  %i6 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i3, align 8
-  %i7 = load i64, i64* %i4, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC2ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i5, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %i6, i64 %i7)
-  ret void
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1, i32* nonnull align 4 dereferenceable(4) %arg2) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  %i4 = alloca i32*, align 8
-  %i5 = alloca %"struct.std::__1::integral_constant", align 1
-  %i6 = alloca %"struct.std::__1::__has_construct", align 1
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i3, align 8
-  store i32* %arg2, i32** %i4, align 8
-  %i7 = bitcast %"struct.std::__1::__has_construct"* %i6 to %"struct.std::__1::integral_constant"*
-  %i8 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i9 = load i32*, i32** %i3, align 8
-  %i10 = load i32*, i32** %i4, align 8
-  %i11 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i10) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i8, i32* %i9, i32* nonnull align 4 dereferenceable(4) %i11)
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__vector_base"*, align 8
-  store %"class.std::__1::__vector_base"* %arg, %"class.std::__1::__vector_base"** %i, align 8
-  %i1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i1, i32 0, i32 2
-  %i3 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %i2) #14
-  ret %"class.std::__1::allocator"* %i3
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %arg) #1 {
-bb:
-  %i = alloca i32*, align 8
-  store i32* %arg, i32** %i, align 8
-  %i1 = load i32*, i32** %i, align 8
-  ret i32* %i1
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %arg) #1 {
-bb:
-  %i = alloca i32*, align 8
-  store i32* %arg, i32** %i, align 8
-  %i1 = load i32*, i32** %i, align 8
-  ret i32* %i1
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
-  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  %i1 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD2Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i1) #14
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC2ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %arg1, i64 %arg2) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
-  %i3 = alloca %"class.std::__1::vector"*, align 8
-  %i4 = alloca i64, align 8
-  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  store %"class.std::__1::vector"* %arg1, %"class.std::__1::vector"** %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i5 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  %i6 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i5, i32 0, i32 0
-  %i7 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i3, align 8
-  store %"class.std::__1::vector"* %i7, %"class.std::__1::vector"** %i6, align 8
-  %i8 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i5, i32 0, i32 1
-  %i9 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i3, align 8
-  %i10 = bitcast %"class.std::__1::vector"* %i9 to %"class.std::__1::__vector_base"*
-  %i11 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i10, i32 0, i32 1
-  %i12 = load i32*, i32** %i11, align 8
-  store i32* %i12, i32** %i8, align 8
-  %i13 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i5, i32 0, i32 2
-  %i14 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i3, align 8
-  %i15 = bitcast %"class.std::__1::vector"* %i14 to %"class.std::__1::__vector_base"*
-  %i16 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i15, i32 0, i32 1
-  %i17 = load i32*, i32** %i16, align 8
-  %i18 = load i64, i64* %i4, align 8
-  %i19 = getelementptr inbounds i32, i32* %i17, i64 %i18
-  store i32* %i19, i32** %i13, align 8
-  ret void
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1, i32* nonnull align 4 dereferenceable(4) %arg2) #0 align 2 {
-bb:
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p, i32* nonnull align 4 dereferenceable(4) %__args) #0 align 2 {
+entry:
   %i = alloca %"struct.std::__1::integral_constant", align 1
-  %i3 = alloca %"class.std::__1::allocator"*, align 8
-  %i4 = alloca i32*, align 8
-  %i5 = alloca i32*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i3, align 8
-  store i32* %arg1, i32** %i4, align 8
-  store i32* %arg2, i32** %i5, align 8
-  %i6 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i3, align 8
-  %i7 = load i32*, i32** %i4, align 8
-  %i8 = load i32*, i32** %i5, align 8
-  %i9 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i8) #14
-  call void @_ZNSt3__19allocatorIiE9constructIiJiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %i6, i32* %i7, i32* nonnull align 4 dereferenceable(4) %i9)
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__args.addr = alloca i32*, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i2 = load i32*, i32** %__p.addr, align 8
+  %i3 = load i32*, i32** %__args.addr, align 8
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i3) #14
+  call void @_ZNSt3__19allocatorIiE9constructIiJiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %i1, i32* %i2, i32* nonnull align 4 dereferenceable(4) %call)
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__19allocatorIiE9constructIiJiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %arg, i32* %arg1, i32* nonnull align 4 dereferenceable(4) %arg2) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  %i4 = alloca i32*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i3, align 8
-  store i32* %arg2, i32** %i4, align 8
-  %i5 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i6 = load i32*, i32** %i3, align 8
-  %i7 = bitcast i32* %i6 to i8*
-  %i8 = bitcast i8* %i7 to i32*
-  %i9 = load i32*, i32** %i4, align 8
-  %i10 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i9) #14
-  %i11 = load i32, i32* %i10, align 4
-  store i32 %i11, i32* %i8, align 4
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__19allocatorIiE9constructIiJiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %this, i32* %__p, i32* nonnull align 4 dereferenceable(4) %__args) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__args.addr = alloca i32*, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
+  %i = load i32*, i32** %__p.addr, align 8
+  %i1 = bitcast i32* %i to i8*
+  %i2 = bitcast i8* %i1 to i32*
+  %i3 = load i32*, i32** %__args.addr, align 8
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE(i32* nonnull align 4 dereferenceable(4) %i3) #14
+  %i4 = load i32, i32* %call, align 4
+  store i32 %i4, i32* %i2, align 4
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair"*, align 8
-  store %"class.std::__1::__compressed_pair"* %arg, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair"* %i1 to %"struct.std::__1::__compressed_pair_elem.0"*
-  %i3 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %i2) #14
-  ret %"class.std::__1::allocator"* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair"*, align 8
+  store %"class.std::__1::__compressed_pair"* %this, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair"* %this1 to %"struct.std::__1::__compressed_pair_elem.0"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %i) #14
+  ret %"class.std::__1::allocator"* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem.0"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem.0"* %arg, %"struct.std::__1::__compressed_pair_elem.0"** %i, align 8
-  %i1 = load %"struct.std::__1::__compressed_pair_elem.0"*, %"struct.std::__1::__compressed_pair_elem.0"** %i, align 8
-  %i2 = bitcast %"struct.std::__1::__compressed_pair_elem.0"* %i1 to %"class.std::__1::allocator"*
-  ret %"class.std::__1::allocator"* %i2
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem.0"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem.0"* %this, %"struct.std::__1::__compressed_pair_elem.0"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem.0"*, %"struct.std::__1::__compressed_pair_elem.0"** %this.addr, align 8
+  %i = bitcast %"struct.std::__1::__compressed_pair_elem.0"* %this1 to %"class.std::__1::allocator"*
+  ret %"class.std::__1::allocator"* %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD2Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
-  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %arg, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  %i1 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i1, i32 0, i32 1
-  %i3 = load i32*, i32** %i2, align 8
-  %i4 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i1, i32 0, i32 0
-  %i5 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i4, align 8
-  %i6 = bitcast %"class.std::__1::vector"* %i5 to %"class.std::__1::__vector_base"*
-  %i7 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i6, i32 0, i32 1
-  store i32* %i3, i32** %i7, align 8
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD2Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, align 8
+  store %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"*, %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"** %this.addr, align 8
+  %__pos_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1, i32 0, i32 1
+  %i = load i32*, i32** %__pos_, align 8
+  %__v_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1, i32 0, i32 0
+  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %__v_, align 8
+  %i2 = bitcast %"class.std::__1::vector"* %i1 to %"class.std::__1::__vector_base"*
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i2, i32 0, i32 1
+  store i32* %i, i32** %__end_, align 8
+  ret %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %this1
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm(%"class.std::__1::vector"* %arg, i64 %arg1) #0 align 2 {
-bb:
-  %i = alloca i64, align 8
-  %i2 = alloca %"class.std::__1::vector"*, align 8
-  %i3 = alloca i64, align 8
-  %i4 = alloca i64, align 8
-  %i5 = alloca i64, align 8
-  %i6 = alloca i64, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i2, align 8
-  store i64 %arg1, i64* %i3, align 8
-  %i7 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i2, align 8
-  %i8 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8max_sizeEv(%"class.std::__1::vector"* %i7) #14
-  store i64 %i8, i64* %i4, align 8
-  %i9 = load i64, i64* %i3, align 8
-  %i10 = load i64, i64* %i4, align 8
-  %i11 = icmp ugt i64 %i9, %i10
-  br i1 %i11, label %bb29, label %bb30
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm(%"class.std::__1::vector"* %this, i64 %__new_size) #0 align 2 {
+entry:
+  %retval = alloca i64, align 8
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__new_size.addr = alloca i64, align 8
+  %__ms = alloca i64, align 8
+  %__cap = alloca i64, align 8
+  %ref.tmp = alloca i64, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i64 %__new_size, i64* %__new_size.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %call = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8max_sizeEv(%"class.std::__1::vector"* %this1) #14
+  store i64 %call, i64* %__ms, align 8
+  %i = load i64, i64* %__new_size.addr, align 8
+  %i1 = load i64, i64* %__ms, align 8
+  %cmp = icmp ugt i64 %i, %i1
+  br i1 %cmp, label %bb, label %bb9
 
-bb12:                                             ; preds = %bb29
-  %i13 = bitcast %"class.std::__1::vector"* %i7 to %"class.std::__1::__vector_base_common"*
-  call void @_ZNKSt3__120__vector_base_commonILb1EE20__throw_length_errorEv(%"class.std::__1::__vector_base_common"* %i13) #16
+if.then:                                          ; preds = %bb
+  %i2 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base_common"*
+  call void @_ZNKSt3__120__vector_base_commonILb1EE20__throw_length_errorEv(%"class.std::__1::__vector_base_common"* %i2) #16
   unreachable
 
-bb14:                                             ; preds = %bb30
-  %i15 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %i7) #14
-  store i64 %i15, i64* %i5, align 8
-  %i16 = load i64, i64* %i5, align 8
-  %i17 = load i64, i64* %i4, align 8
-  %i18 = udiv i64 %i17, 2
-  %i19 = icmp uge i64 %i16, %i18
-  br i1 %i19, label %bb31, label %bb32
+if.end:                                           ; preds = %bb9
+  %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this1) #14
+  store i64 %call2, i64* %__cap, align 8
+  %i3 = load i64, i64* %__cap, align 8
+  %i4 = load i64, i64* %__ms, align 8
+  %div = udiv i64 %i4, 2
+  %cmp3 = icmp uge i64 %i3, %div
+  br i1 %cmp3, label %bb10, label %bb11
 
-bb20:                                             ; preds = %bb31
-  %i21 = load i64, i64* %i4, align 8
-  store i64 %i21, i64* %i, align 8
-  br label %bb27
+if.then4:                                         ; preds = %bb10
+  %i5 = load i64, i64* %__ms, align 8
+  store i64 %i5, i64* %retval, align 8
+  br label %return
 
-bb22:                                             ; preds = %bb32
-  %i23 = load i64, i64* %i5, align 8
-  %i24 = mul i64 2, %i23
-  store i64 %i24, i64* %i6, align 8
-  %i25 = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %i6, i64* nonnull align 8 dereferenceable(8) %i3)
-  %i26 = load i64, i64* %i25, align 8
-  store i64 %i26, i64* %i, align 8
-  br label %bb27
+if.end5:                                          ; preds = %bb11
+  %i6 = load i64, i64* %__cap, align 8
+  %mul = mul i64 2, %i6
+  store i64 %mul, i64* %ref.tmp, align 8
+  %call6 = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %ref.tmp, i64* nonnull align 8 dereferenceable(8) %__new_size.addr)
+  %i7 = load i64, i64* %call6, align 8
+  store i64 %i7, i64* %retval, align 8
+  br label %return
 
-bb27:                                             ; preds = %bb22, %bb20
-  %i28 = load i64, i64* %i, align 8
-  ret i64 %i28
+return:                                           ; preds = %if.end5, %if.then4
+  %i8 = load i64, i64* %retval, align 8
+  ret i64 %i8
 
-bb29:                                             ; preds = %bb
-  br label %bb12
+bb:                                               ; preds = %entry
+  br label %if.then
 
-bb30:                                             ; preds = %bb
-  br label %bb14
+bb9:                                              ; preds = %entry
+  br label %if.end
 
-bb31:                                             ; preds = %bb14
-  br label %bb20
+bb10:                                             ; preds = %if.end
+  br label %if.then4
 
-bb32:                                             ; preds = %bb14
-  br label %bb22
+bb11:                                             ; preds = %if.end
+  br label %if.end5
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_(%"struct.std::__1::__split_buffer"* %arg, i64 %arg1, i64 %arg2, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg3) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  %i4 = alloca i64, align 8
-  %i5 = alloca i64, align 8
-  %i6 = alloca %"class.std::__1::allocator"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  store i64 %arg1, i64* %i4, align 8
-  store i64 %arg2, i64* %i5, align 8
-  store %"class.std::__1::allocator"* %arg3, %"class.std::__1::allocator"** %i6, align 8
-  %i7 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i8 = load i64, i64* %i4, align 8
-  %i9 = load i64, i64* %i5, align 8
-  %i10 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i6, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC2EmmS3_(%"struct.std::__1::__split_buffer"* %i7, i64 %i8, i64 %i9, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i10)
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_(%"struct.std::__1::__split_buffer"* returned %this, i64 %__cap, i64 %__start, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  %__cap.addr = alloca i64, align 8
+  %__start.addr = alloca i64, align 8
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  store i64 %__cap, i64* %__cap.addr, align 8
+  store i64 %__start, i64* %__start.addr, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %i = load i64, i64* %__cap.addr, align 8
+  %i1 = load i64, i64* %__start.addr, align 8
+  %i2 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %call = call %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC2EmmS3_(%"struct.std::__1::__split_buffer"* %this1, i64 %i, i64 %i1, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i2)
+  ret %"struct.std::__1::__split_buffer"* %this1
+}
+
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__swap_out_circular_bufferERNS_14__split_bufferIiRS2_EE(%"class.std::__1::vector"* %this, %"struct.std::__1::__split_buffer"* nonnull align 8 dereferenceable(40) %__v) #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__v.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store %"struct.std::__1::__split_buffer"* %__v, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE17__annotate_deleteEv(%"class.std::__1::vector"* %this1) #14
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i) #14
+  %i1 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i1, i32 0, i32 0
+  %i2 = load i32*, i32** %__begin_, align 8
+  %i3 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i3, i32 0, i32 1
+  %i4 = load i32*, i32** %__end_, align 8
+  %i5 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %__begin_2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i5, i32 0, i32 1
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE46__construct_backward_with_exception_guaranteesIiEENS_9enable_ifIXaaooL_ZNS_17integral_constantIbLb1EE5valueEEntsr15__has_constructIS2_PT_S8_EE5valuesr31is_trivially_move_constructibleIS8_EE5valueEvE4typeERS2_S9_S9_RS9_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call, i32* %i2, i32* %i4, i32** nonnull align 8 dereferenceable(8) %__begin_2)
+  %i6 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__begin_3 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i6, i32 0, i32 0
+  %i7 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %__begin_4 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i7, i32 0, i32 1
+  call void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %__begin_3, i32** nonnull align 8 dereferenceable(8) %__begin_4) #14
+  %i8 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__end_5 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i8, i32 0, i32 1
+  %i9 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %__end_6 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i9, i32 0, i32 2
+  call void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %__end_5, i32** nonnull align 8 dereferenceable(8) %__end_6) #14
+  %i10 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call7 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i10) #14
+  %i11 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %call8 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %i11) #14
+  call void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %call7, i32** nonnull align 8 dereferenceable(8) %call8) #14
+  %i12 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %__begin_9 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i12, i32 0, i32 1
+  %i13 = load i32*, i32** %__begin_9, align 8
+  %i14 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %__v.addr, align 8
+  %__first_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i14, i32 0, i32 0
+  store i32* %i13, i32** %__first_, align 8
+  %call10 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this1) #14
+  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE14__annotate_newEm(%"class.std::__1::vector"* %this1, i64 %call10) #14
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__invalidate_all_iteratorsEv(%"class.std::__1::vector"* %this1)
   ret void
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__swap_out_circular_bufferERNS_14__split_bufferIiRS2_EE(%"class.std::__1::vector"* %arg, %"struct.std::__1::__split_buffer"* nonnull align 8 dereferenceable(40) %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store %"struct.std::__1::__split_buffer"* %arg1, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i3 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE17__annotate_deleteEv(%"class.std::__1::vector"* %i3) #14
-  %i4 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i5 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i4) #14
-  %i6 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i7 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i6, i32 0, i32 0
-  %i8 = load i32*, i32** %i7, align 8
-  %i9 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i10 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i9, i32 0, i32 1
-  %i11 = load i32*, i32** %i10, align 8
-  %i12 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i13 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i12, i32 0, i32 1
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE46__construct_backward_with_exception_guaranteesIiEENS_9enable_ifIXaaooL_ZNS_17integral_constantIbLb1EE5valueEEntsr15__has_constructIS2_PT_S8_EE5valuesr31is_trivially_move_constructibleIS8_EE5valueEvE4typeERS2_S9_S9_RS9_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i5, i32* %i8, i32* %i11, i32** nonnull align 8 dereferenceable(8) %i13)
-  %i14 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i15 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i14, i32 0, i32 0
-  %i16 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i17 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i16, i32 0, i32 1
-  call void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %i15, i32** nonnull align 8 dereferenceable(8) %i17) #14
-  %i18 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i19 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i18, i32 0, i32 1
-  %i20 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i21 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i20, i32 0, i32 2
-  call void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %i19, i32** nonnull align 8 dereferenceable(8) %i21) #14
-  %i22 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i23 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i22) #14
-  %i24 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i25 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %i24) #14
-  call void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %i23, i32** nonnull align 8 dereferenceable(8) %i25) #14
-  %i26 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i27 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i26, i32 0, i32 1
-  %i28 = load i32*, i32** %i27, align 8
-  %i29 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  %i30 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i29, i32 0, i32 0
-  store i32* %i28, i32** %i30, align 8
-  %i31 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i3) #14
-  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE14__annotate_newEm(%"class.std::__1::vector"* %i3, i64 %i31) #14
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__invalidate_all_iteratorsEv(%"class.std::__1::vector"* %i3)
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED1Ev(%"struct.std::__1::__split_buffer"* returned %this) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %call = call %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED2Ev(%"struct.std::__1::__split_buffer"* %this1) #14
+  ret %"struct.std::__1::__split_buffer"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED1Ev(%"struct.std::__1::__split_buffer"* %arg) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED2Ev(%"struct.std::__1::__split_buffer"* %i1) #14
-  ret void
-}
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8max_sizeEv(%"class.std::__1::vector"* %this) #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %ref.tmp = alloca i64, align 8
+  %ref.tmp3 = alloca i64, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i) #14
+  %call2 = call i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8max_sizeERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call) #14
+  store i64 %call2, i64* %ref.tmp, align 8
+  %call4 = call i64 @_ZNSt3__114numeric_limitsIlE3maxEv() #14
+  store i64 %call4, i64* %ref.tmp3, align 8
+  %call5 = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %ref.tmp, i64* nonnull align 8 dereferenceable(8) %ref.tmp3)
+  br label %invoke.cont
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8max_sizeEv(%"class.std::__1::vector"* %arg) #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i1 = alloca i64, align 8
-  %i2 = alloca i64, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i3 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i4 = bitcast %"class.std::__1::vector"* %i3 to %"class.std::__1::__vector_base"*
-  %i5 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i4) #14
-  %i6 = call i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8max_sizeERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i5) #14
-  store i64 %i6, i64* %i1, align 8
-  %i7 = call i64 @_ZNSt3__114numeric_limitsIlE3maxEv() #14
-  store i64 %i7, i64* %i2, align 8
-  %i8 = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %i1, i64* nonnull align 8 dereferenceable(8) %i2)
-  br label %bb9
-
-bb9:                                              ; preds = %bb
-  %i10 = load i64, i64* %i8, align 8
-  ret i64 %i10
+invoke.cont:                                      ; preds = %entry
+  %i1 = load i64, i64* %call5, align 8
+  ret i64 %i1
 }
 
 ; Function Attrs: noreturn
 declare void @_ZNKSt3__120__vector_base_commonILb1EE20__throw_length_errorEv(%"class.std::__1::__vector_base_common"*) #7
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i2 = bitcast %"class.std::__1::vector"* %i1 to %"class.std::__1::__vector_base"*
-  %i3 = call i64 @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::__vector_base"* %i2) #14
-  ret i64 %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call i64 @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::__vector_base"* %i) #14
+  ret i64 %call
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %arg, i64* nonnull align 8 dereferenceable(8) %arg1) #0 {
-bb:
-  %i = alloca i64*, align 8
-  %i2 = alloca i64*, align 8
-  %i3 = alloca %"struct.std::__1::__less", align 1
-  store i64* %arg, i64** %i, align 8
-  store i64* %arg1, i64** %i2, align 8
-  %i4 = load i64*, i64** %i, align 8
-  %i5 = load i64*, i64** %i2, align 8
-  %i6 = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %i4, i64* nonnull align 8 dereferenceable(8) %i5)
-  ret i64* %i6
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %__a, i64* nonnull align 8 dereferenceable(8) %__b) #0 {
+entry:
+  %__a.addr = alloca i64*, align 8
+  %__b.addr = alloca i64*, align 8
+  %agg.tmp = alloca %"struct.std::__1::__less", align 1
+  store i64* %__a, i64** %__a.addr, align 8
+  store i64* %__b, i64** %__b.addr, align 8
+  %i = load i64*, i64** %__a.addr, align 8
+  %i1 = load i64*, i64** %__b.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %i, i64* nonnull align 8 dereferenceable(8) %i1)
+  ret i64* %call
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %arg, i64* nonnull align 8 dereferenceable(8) %arg1) #0 {
-bb:
-  %i = alloca i64*, align 8
-  %i2 = alloca i64*, align 8
-  %i3 = alloca %"struct.std::__1::__less", align 1
-  store i64* %arg, i64** %i, align 8
-  store i64* %arg1, i64** %i2, align 8
-  %i4 = load i64*, i64** %i, align 8
-  %i5 = load i64*, i64** %i2, align 8
-  %i6 = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %i4, i64* nonnull align 8 dereferenceable(8) %i5)
-  ret i64* %i6
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImEERKT_S3_S3_(i64* nonnull align 8 dereferenceable(8) %__a, i64* nonnull align 8 dereferenceable(8) %__b) #0 {
+entry:
+  %__a.addr = alloca i64*, align 8
+  %__b.addr = alloca i64*, align 8
+  %agg.tmp = alloca %"struct.std::__1::__less", align 1
+  store i64* %__a, i64** %__a.addr, align 8
+  store i64* %__b, i64** %__b.addr, align 8
+  %i = load i64*, i64** %__a.addr, align 8
+  %i1 = load i64*, i64** %__b.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %i, i64* nonnull align 8 dereferenceable(8) %i1)
+  ret i64* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8max_sizeERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i1 = alloca %"struct.std::__1::integral_constant", align 1
-  %i2 = alloca %"struct.std::__1::__has_max_size", align 1
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  %i3 = bitcast %"struct.std::__1::__has_max_size"* %i2 to %"struct.std::__1::integral_constant"*
-  %i4 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i5 = call i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10__max_sizeENS_17integral_constantIbLb1EEERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i4) #14
-  ret i64 %i5
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8max_sizeERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a) #1 align 2 {
+entry:
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %agg.tmp = alloca %"struct.std::__1::integral_constant", align 1
+  %ref.tmp = alloca %"struct.std::__1::__has_max_size", align 1
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i = bitcast %"struct.std::__1::__has_max_size"* %ref.tmp to %"struct.std::__1::integral_constant"*
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %call = call i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10__max_sizeENS_17integral_constantIbLb1EEERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1) #14
+  ret i64 %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__vector_base"*, align 8
-  store %"class.std::__1::__vector_base"* %arg, %"class.std::__1::__vector_base"** %i, align 8
-  %i1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i1, i32 0, i32 2
-  %i3 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %i2) #14
-  ret %"class.std::__1::allocator"* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base"*, align 8
+  store %"class.std::__1::__vector_base"* %this, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 2
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %__end_cap_) #14
+  ret %"class.std::__1::allocator"* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
 define linkonce_odr hidden i64 @_ZNSt3__114numeric_limitsIlE3maxEv() #1 align 2 {
-bb:
-  %i = call i64 @_ZNSt3__123__libcpp_numeric_limitsIlLb1EE3maxEv() #14
-  ret i64 %i
+entry:
+  %call = call i64 @_ZNSt3__123__libcpp_numeric_limitsIlLb1EE3maxEv() #14
+  ret i64 %call
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %arg, i64* nonnull align 8 dereferenceable(8) %arg1) #0 {
-bb:
-  %i = alloca %"struct.std::__1::__less", align 1
-  %i2 = alloca i64*, align 8
-  %i3 = alloca i64*, align 8
-  store i64* %arg, i64** %i2, align 8
-  store i64* %arg1, i64** %i3, align 8
-  %i4 = load i64*, i64** %i3, align 8
-  %i5 = load i64*, i64** %i2, align 8
-  %i6 = call zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %i, i64* nonnull align 8 dereferenceable(8) %i4, i64* nonnull align 8 dereferenceable(8) %i5)
-  br i1 %i6, label %bb13, label %bb14
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13minImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %__a, i64* nonnull align 8 dereferenceable(8) %__b) #0 {
+entry:
+  %__comp = alloca %"struct.std::__1::__less", align 1
+  %__a.addr = alloca i64*, align 8
+  %__b.addr = alloca i64*, align 8
+  store i64* %__a, i64** %__a.addr, align 8
+  store i64* %__b, i64** %__b.addr, align 8
+  %i = load i64*, i64** %__b.addr, align 8
+  %i1 = load i64*, i64** %__a.addr, align 8
+  %call = call zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %__comp, i64* nonnull align 8 dereferenceable(8) %i, i64* nonnull align 8 dereferenceable(8) %i1)
+  br i1 %call, label %bb, label %bb4
 
-bb7:                                              ; preds = %bb13
-  %i8 = load i64*, i64** %i3, align 8
-  br label %bb11
+cond.true:                                        ; preds = %bb
+  %i2 = load i64*, i64** %__b.addr, align 8
+  br label %cond.end
 
-bb9:                                              ; preds = %bb14
-  %i10 = load i64*, i64** %i2, align 8
-  br label %bb11
+cond.false:                                       ; preds = %bb4
+  %i3 = load i64*, i64** %__a.addr, align 8
+  br label %cond.end
 
-bb11:                                             ; preds = %bb9, %bb7
-  %i12 = phi i64* [ %i8, %bb7 ], [ %i10, %bb9 ]
-  ret i64* %i12
+cond.end:                                         ; preds = %cond.false, %cond.true
+  %cond-lvalue = phi i64* [ %i2, %cond.true ], [ %i3, %cond.false ]
+  ret i64* %cond-lvalue
 
-bb13:                                             ; preds = %bb
-  br label %bb7
+bb:                                               ; preds = %entry
+  br label %cond.true
 
-bb14:                                             ; preds = %bb
-  br label %bb9
+bb4:                                              ; preds = %entry
+  br label %cond.false
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %arg, i64* nonnull align 8 dereferenceable(8) %arg1, i64* nonnull align 8 dereferenceable(8) %arg2) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__less"*, align 8
-  %i3 = alloca i64*, align 8
-  %i4 = alloca i64*, align 8
-  store %"struct.std::__1::__less"* %arg, %"struct.std::__1::__less"** %i, align 8
-  store i64* %arg1, i64** %i3, align 8
-  store i64* %arg2, i64** %i4, align 8
-  %i5 = load %"struct.std::__1::__less"*, %"struct.std::__1::__less"** %i, align 8
-  %i6 = load i64*, i64** %i3, align 8
-  %i7 = load i64, i64* %i6, align 8
-  %i8 = load i64*, i64** %i4, align 8
-  %i9 = load i64, i64* %i8, align 8
-  %i10 = icmp ult i64 %i7, %i9
-  ret i1 %i10
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %this, i64* nonnull align 8 dereferenceable(8) %__x, i64* nonnull align 8 dereferenceable(8) %__y) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__less"*, align 8
+  %__x.addr = alloca i64*, align 8
+  %__y.addr = alloca i64*, align 8
+  store %"struct.std::__1::__less"* %this, %"struct.std::__1::__less"** %this.addr, align 8
+  store i64* %__x, i64** %__x.addr, align 8
+  store i64* %__y, i64** %__y.addr, align 8
+  %this1 = load %"struct.std::__1::__less"*, %"struct.std::__1::__less"** %this.addr, align 8
+  %i = load i64*, i64** %__x.addr, align 8
+  %i1 = load i64, i64* %i, align 8
+  %i2 = load i64*, i64** %__y.addr, align 8
+  %i3 = load i64, i64* %i2, align 8
+  %cmp = icmp ult i64 %i1, %i3
+  ret i1 %cmp
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10__max_sizeENS_17integral_constantIbLb1EEERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg) #1 align 2 {
-bb:
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10__max_sizeENS_17integral_constantIbLb1EEERKS2_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a) #1 align 2 {
+entry:
   %i = alloca %"struct.std::__1::integral_constant", align 1
-  %i1 = alloca %"class.std::__1::allocator"*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i1, align 8
-  %i2 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i1, align 8
-  %i3 = call i64 @_ZNKSt3__19allocatorIiE8max_sizeEv(%"class.std::__1::allocator"* %i2) #14
-  ret i64 %i3
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %call = call i64 @_ZNKSt3__19allocatorIiE8max_sizeEv(%"class.std::__1::allocator"* %i1) #14
+  ret i64 %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__19allocatorIiE8max_sizeEv(%"class.std::__1::allocator"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNKSt3__19allocatorIiE8max_sizeEv(%"class.std::__1::allocator"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
   ret i64 4611686018427387903
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair"*, align 8
-  store %"class.std::__1::__compressed_pair"* %arg, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair"* %i1 to %"struct.std::__1::__compressed_pair_elem.0"*
-  %i3 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %i2) #14
-  ret %"class.std::__1::allocator"* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair"*, align 8
+  store %"class.std::__1::__compressed_pair"* %this, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair"* %this1 to %"struct.std::__1::__compressed_pair_elem.0"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %i) #14
+  ret %"class.std::__1::allocator"* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem.0"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem.0"* %arg, %"struct.std::__1::__compressed_pair_elem.0"** %i, align 8
-  %i1 = load %"struct.std::__1::__compressed_pair_elem.0"*, %"struct.std::__1::__compressed_pair_elem.0"** %i, align 8
-  %i2 = bitcast %"struct.std::__1::__compressed_pair_elem.0"* %i1 to %"class.std::__1::allocator"*
-  ret %"class.std::__1::allocator"* %i2
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNKSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv(%"struct.std::__1::__compressed_pair_elem.0"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem.0"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem.0"* %this, %"struct.std::__1::__compressed_pair_elem.0"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem.0"*, %"struct.std::__1::__compressed_pair_elem.0"** %this.addr, align 8
+  %i = bitcast %"struct.std::__1::__compressed_pair_elem.0"* %this1 to %"class.std::__1::allocator"*
+  ret %"class.std::__1::allocator"* %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
 define linkonce_odr hidden i64 @_ZNSt3__123__libcpp_numeric_limitsIlLb1EE3maxEv() #1 align 2 {
-bb:
+entry:
   ret i64 9223372036854775807
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::__vector_base"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__vector_base"*, align 8
-  store %"class.std::__1::__vector_base"* %arg, %"class.std::__1::__vector_base"** %i, align 8
-  %i1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %i, align 8
-  %i2 = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i1) #14
-  %i3 = load i32*, i32** %i2, align 8
-  %i4 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i1, i32 0, i32 0
-  %i5 = load i32*, i32** %i4, align 8
-  %i6 = ptrtoint i32* %i3 to i64
-  %i7 = ptrtoint i32* %i5 to i64
-  %i8 = sub i64 %i6, %i7
-  %i9 = sdiv exact i64 %i8, 4
-  ret i64 %i9
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::__vector_base"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base"*, align 8
+  store %"class.std::__1::__vector_base"* %this, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %this1) #14
+  %i = load i32*, i32** %call, align 8
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 0
+  %i1 = load i32*, i32** %__begin_, align 8
+  %sub.ptr.lhs.cast = ptrtoint i32* %i to i64
+  %sub.ptr.rhs.cast = ptrtoint i32* %i1 to i64
+  %sub.ptr.sub = sub i64 %sub.ptr.lhs.cast, %sub.ptr.rhs.cast
+  %sub.ptr.div = sdiv exact i64 %sub.ptr.sub, 4
+  ret i64 %sub.ptr.div
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__vector_base"*, align 8
-  store %"class.std::__1::__vector_base"* %arg, %"class.std::__1::__vector_base"** %i, align 8
-  %i1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %i, align 8
-  %i2 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i1, i32 0, i32 2
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %i2) #14
-  ret i32** %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__vector_base"*, align 8
+  store %"class.std::__1::__vector_base"* %this, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__vector_base"*, %"class.std::__1::__vector_base"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 2
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %__end_cap_) #14
+  ret i32** %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair"*, align 8
-  store %"class.std::__1::__compressed_pair"* %arg, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair"* %i1 to %"struct.std::__1::__compressed_pair_elem"*
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i2) #14
-  ret i32** %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair"*, align 8
+  store %"class.std::__1::__compressed_pair"* %this, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair"*, %"class.std::__1::__compressed_pair"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair"* %this1 to %"struct.std::__1::__compressed_pair_elem"*
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i) #14
+  ret i32** %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem"* %arg, %"struct.std::__1::__compressed_pair_elem"** %i, align 8
-  %i1 = load %"struct.std::__1::__compressed_pair_elem"*, %"struct.std::__1::__compressed_pair_elem"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem", %"struct.std::__1::__compressed_pair_elem"* %i1, i32 0, i32 0
-  ret i32** %i2
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem"* %this, %"struct.std::__1::__compressed_pair_elem"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem"*, %"struct.std::__1::__compressed_pair_elem"** %this.addr, align 8
+  %__value_ = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem", %"struct.std::__1::__compressed_pair_elem"* %this1, i32 0, i32 0
+  ret i32** %__value_
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %arg, i64* nonnull align 8 dereferenceable(8) %arg1) #1 {
-bb:
-  %i = alloca %"struct.std::__1::__less", align 1
-  %i2 = alloca i64*, align 8
-  %i3 = alloca i64*, align 8
-  store i64* %arg, i64** %i2, align 8
-  store i64* %arg1, i64** %i3, align 8
-  %i4 = load i64*, i64** %i2, align 8
-  %i5 = load i64*, i64** %i3, align 8
-  %i6 = call zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %i, i64* nonnull align 8 dereferenceable(8) %i4, i64* nonnull align 8 dereferenceable(8) %i5)
-  br i1 %i6, label %bb13, label %bb14
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i64* @_ZNSt3__13maxImNS_6__lessImmEEEERKT_S5_S5_T0_(i64* nonnull align 8 dereferenceable(8) %__a, i64* nonnull align 8 dereferenceable(8) %__b) #1 {
+entry:
+  %__comp = alloca %"struct.std::__1::__less", align 1
+  %__a.addr = alloca i64*, align 8
+  %__b.addr = alloca i64*, align 8
+  store i64* %__a, i64** %__a.addr, align 8
+  store i64* %__b, i64** %__b.addr, align 8
+  %i = load i64*, i64** %__a.addr, align 8
+  %i1 = load i64*, i64** %__b.addr, align 8
+  %call = call zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %__comp, i64* nonnull align 8 dereferenceable(8) %i, i64* nonnull align 8 dereferenceable(8) %i1)
+  br i1 %call, label %bb, label %bb4
 
-bb7:                                              ; preds = %bb13
-  %i8 = load i64*, i64** %i3, align 8
-  br label %bb11
+cond.true:                                        ; preds = %bb
+  %i2 = load i64*, i64** %__b.addr, align 8
+  br label %cond.end
 
-bb9:                                              ; preds = %bb14
-  %i10 = load i64*, i64** %i2, align 8
-  br label %bb11
+cond.false:                                       ; preds = %bb4
+  %i3 = load i64*, i64** %__a.addr, align 8
+  br label %cond.end
 
-bb11:                                             ; preds = %bb9, %bb7
-  %i12 = phi i64* [ %i8, %bb7 ], [ %i10, %bb9 ]
-  ret i64* %i12
+cond.end:                                         ; preds = %cond.false, %cond.true
+  %cond-lvalue = phi i64* [ %i2, %cond.true ], [ %i3, %cond.false ]
+  ret i64* %cond-lvalue
 
-bb13:                                             ; preds = %bb
-  br label %bb7
+bb:                                               ; preds = %entry
+  br label %cond.true
 
-bb14:                                             ; preds = %bb
-  br label %bb9
+bb4:                                              ; preds = %entry
+  br label %cond.false
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC2EmmS3_(%"struct.std::__1::__split_buffer"* %arg, i64 %arg1, i64 %arg2, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg3) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  %i4 = alloca i64, align 8
-  %i5 = alloca i64, align 8
-  %i6 = alloca %"class.std::__1::allocator"*, align 8
-  %i7 = alloca i8*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  store i64 %arg1, i64* %i4, align 8
-  store i64 %arg2, i64* %i5, align 8
-  store %"class.std::__1::allocator"* %arg3, %"class.std::__1::allocator"** %i6, align 8
-  %i8 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i9 = bitcast %"struct.std::__1::__split_buffer"* %i8 to %"class.std::__1::__split_buffer_common"*
-  %i10 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i8, i32 0, i32 3
-  store i8* null, i8** %i7, align 8
-  %i11 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i6, align 8
-  call void @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC1IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* %i10, i8** nonnull align 8 dereferenceable(8) %i7, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i11)
-  %i12 = load i64, i64* %i4, align 8
-  %i13 = icmp ne i64 %i12, 0
-  br i1 %i13, label %bb33, label %bb34
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC2EmmS3_(%"struct.std::__1::__split_buffer"* returned %this, i64 %__cap, i64 %__start, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a) unnamed_addr #0 align 2 {
+entry:
+  %retval = alloca %"struct.std::__1::__split_buffer"*, align 8
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  %__cap.addr = alloca i64, align 8
+  %__start.addr = alloca i64, align 8
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %ref.tmp = alloca i8*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  store i64 %__cap, i64* %__cap.addr, align 8
+  store i64 %__start, i64* %__start.addr, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  store %"struct.std::__1::__split_buffer"* %this1, %"struct.std::__1::__split_buffer"** %retval, align 8
+  %i = bitcast %"struct.std::__1::__split_buffer"* %this1 to %"class.std::__1::__split_buffer_common"*
+  %__end_cap_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 3
+  store i8* null, i8** %ref.tmp, align 8
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %call = call %"class.std::__1::__compressed_pair.2"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC1IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* %__end_cap_, i8** nonnull align 8 dereferenceable(8) %ref.tmp, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1)
+  %i2 = load i64, i64* %__cap.addr, align 8
+  %cmp = icmp ne i64 %i2, 0
+  br i1 %cmp, label %bb, label %bb9
 
-bb14:                                             ; preds = %bb33
-  %i15 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %i8) #14
-  %i16 = load i64, i64* %i4, align 8
-  %i17 = call i32* @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8allocateERS2_m(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i15, i64 %i16)
-  br label %bb19
+cond.true:                                        ; preds = %bb
+  %call2 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this1) #14
+  %i3 = load i64, i64* %__cap.addr, align 8
+  %call3 = call i32* @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8allocateERS2_m(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call2, i64 %i3)
+  br label %cond.end
 
-bb18:                                             ; preds = %bb34
-  br label %bb19
+cond.false:                                       ; preds = %bb9
+  br label %cond.end
 
-bb19:                                             ; preds = %bb18, %bb14
-  %i20 = phi i32* [ %i17, %bb14 ], [ null, %bb18 ]
-  %i21 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i8, i32 0, i32 0
-  store i32* %i20, i32** %i21, align 8
-  %i22 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i8, i32 0, i32 0
-  %i23 = load i32*, i32** %i22, align 8
-  %i24 = load i64, i64* %i5, align 8
-  %i25 = getelementptr inbounds i32, i32* %i23, i64 %i24
-  %i26 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i8, i32 0, i32 2
-  store i32* %i25, i32** %i26, align 8
-  %i27 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i8, i32 0, i32 1
-  store i32* %i25, i32** %i27, align 8
-  %i28 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i8, i32 0, i32 0
-  %i29 = load i32*, i32** %i28, align 8
-  %i30 = load i64, i64* %i4, align 8
-  %i31 = getelementptr inbounds i32, i32* %i29, i64 %i30
-  %i32 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %i8) #14
-  store i32* %i31, i32** %i32, align 8
-  ret void
+cond.end:                                         ; preds = %cond.false, %cond.true
+  %cond = phi i32* [ %call3, %cond.true ], [ null, %cond.false ]
+  %__first_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
+  store i32* %cond, i32** %__first_, align 8
+  %__first_4 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
+  %i4 = load i32*, i32** %__first_4, align 8
+  %i5 = load i64, i64* %__start.addr, align 8
+  %add.ptr = getelementptr i32, i32* %i4, i64 %i5
+  %__end_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 2
+  store i32* %add.ptr, i32** %__end_, align 8
+  %__begin_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 1
+  store i32* %add.ptr, i32** %__begin_, align 8
+  %__first_5 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
+  %i6 = load i32*, i32** %__first_5, align 8
+  %i7 = load i64, i64* %__cap.addr, align 8
+  %add.ptr6 = getelementptr i32, i32* %i6, i64 %i7
+  %call7 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %this1) #14
+  store i32* %add.ptr6, i32** %call7, align 8
+  %i8 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %retval, align 8
+  ret %"struct.std::__1::__split_buffer"* %i8
 
-bb33:                                             ; preds = %bb
-  br label %bb14
+bb:                                               ; preds = %entry
+  br label %cond.true
 
-bb34:                                             ; preds = %bb
-  br label %bb18
+bb9:                                              ; preds = %entry
+  br label %cond.false
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC1IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* %arg, i8** nonnull align 8 dereferenceable(8) %arg1, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg2) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair.2"*, align 8
-  %i3 = alloca i8**, align 8
-  %i4 = alloca %"class.std::__1::allocator"*, align 8
-  store %"class.std::__1::__compressed_pair.2"* %arg, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  store i8** %arg1, i8*** %i3, align 8
-  store %"class.std::__1::allocator"* %arg2, %"class.std::__1::allocator"** %i4, align 8
-  %i5 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i6 = load i8**, i8*** %i3, align 8
-  %i7 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i4, align 8
-  call void @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC2IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* %i5, i8** nonnull align 8 dereferenceable(8) %i6, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i7)
-  ret void
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"class.std::__1::__compressed_pair.2"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC1IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* returned %this, i8** nonnull align 8 dereferenceable(8) %__t1, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__t2) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair.2"*, align 8
+  %__t1.addr = alloca i8**, align 8
+  %__t2.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"class.std::__1::__compressed_pair.2"* %this, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  store i8** %__t1, i8*** %__t1.addr, align 8
+  store %"class.std::__1::allocator"* %__t2, %"class.std::__1::allocator"** %__t2.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %i = load i8**, i8*** %__t1.addr, align 8
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__t2.addr, align 8
+  %call = call %"class.std::__1::__compressed_pair.2"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC2IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* %this1, i8** nonnull align 8 dereferenceable(8) %i, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1)
+  ret %"class.std::__1::__compressed_pair.2"* %this1
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8allocateERS2_m(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i64 %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i2 = alloca i64, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i64 %arg1, i64* %i2, align 8
-  %i3 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i4 = load i64, i64* %i2, align 8
-  %i5 = call i32* @_ZNSt3__19allocatorIiE8allocateEm(%"class.std::__1::allocator"* %i3, i64 %i4)
-  ret i32* %i5
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden i32* @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8allocateERS2_m(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i64 %__n) #0 align 2 {
+entry:
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %i = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i1 = load i64, i64* %__n.addr, align 8
+  %call = call i32* @_ZNSt3__19allocatorIiE8allocateEm(%"class.std::__1::allocator"* %i, i64 %i1)
+  ret i32* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 3
-  %i3 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair.2"* %i2) #14
-  ret %"class.std::__1::allocator"* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 3
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair.2"* %__end_cap_) #14
+  ret %"class.std::__1::allocator"* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 3
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %i2) #14
-  ret i32** %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 3
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %__end_cap_) #14
+  ret i32** %call
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC2IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* %arg, i8** nonnull align 8 dereferenceable(8) %arg1, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg2) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair.2"*, align 8
-  %i3 = alloca i8**, align 8
-  %i4 = alloca %"class.std::__1::allocator"*, align 8
-  store %"class.std::__1::__compressed_pair.2"* %arg, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  store i8** %arg1, i8*** %i3, align 8
-  store %"class.std::__1::allocator"* %arg2, %"class.std::__1::allocator"** %i4, align 8
-  %i5 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i6 = bitcast %"class.std::__1::__compressed_pair.2"* %i5 to %"struct.std::__1::__compressed_pair_elem"*
-  %i7 = load i8**, i8*** %i3, align 8
-  %i8 = call nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %i7) #14
-  call void @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_(%"struct.std::__1::__compressed_pair_elem"* %i6, i8** nonnull align 8 dereferenceable(8) %i8)
-  %i9 = bitcast %"class.std::__1::__compressed_pair.2"* %i5 to i8*
-  %i10 = getelementptr inbounds i8, i8* %i9, i64 8
-  %i11 = bitcast i8* %i10 to %"struct.std::__1::__compressed_pair_elem.3"*
-  %i12 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i4, align 8
-  %i13 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i12) #14
-  call void @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EEC2IS3_vEEOT_(%"struct.std::__1::__compressed_pair_elem.3"* %i11, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i13)
-  ret void
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr %"class.std::__1::__compressed_pair.2"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC2IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.2"* returned %this, i8** nonnull align 8 dereferenceable(8) %__t1, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__t2) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair.2"*, align 8
+  %__t1.addr = alloca i8**, align 8
+  %__t2.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"class.std::__1::__compressed_pair.2"* %this, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  store i8** %__t1, i8*** %__t1.addr, align 8
+  store %"class.std::__1::allocator"* %__t2, %"class.std::__1::allocator"** %__t2.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair.2"* %this1 to %"struct.std::__1::__compressed_pair_elem"*
+  %i1 = load i8**, i8*** %__t1.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i8** @_ZNSt3__17forwardIDnEEOT_RNS_16remove_referenceIS1_E4typeE(i8** nonnull align 8 dereferenceable(8) %i1) #14
+  %call2 = call %"struct.std::__1::__compressed_pair_elem"* @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EEC2IDnvEEOT_(%"struct.std::__1::__compressed_pair_elem"* %i, i8** nonnull align 8 dereferenceable(8) %call)
+  %i2 = bitcast %"class.std::__1::__compressed_pair.2"* %this1 to i8*
+  %i3 = getelementptr inbounds i8, i8* %i2, i64 8
+  %i4 = bitcast i8* %i3 to %"struct.std::__1::__compressed_pair_elem.3"*
+  %i5 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__t2.addr, align 8
+  %call3 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i5) #14
+  %call4 = call %"struct.std::__1::__compressed_pair_elem.3"* @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EEC2IS3_vEEOT_(%"struct.std::__1::__compressed_pair_elem.3"* %i4, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call3)
+  ret %"class.std::__1::__compressed_pair.2"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg) #1 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  ret %"class.std::__1::allocator"* %i1
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__t) #1 {
+entry:
+  %__t.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"class.std::__1::allocator"* %__t, %"class.std::__1::allocator"** %__t.addr, align 8
+  %i = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__t.addr, align 8
+  ret %"class.std::__1::allocator"* %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EEC2IS3_vEEOT_(%"struct.std::__1::__compressed_pair_elem.3"* %arg, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg1) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem.3"*, align 8
-  %i2 = alloca %"class.std::__1::allocator"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem.3"* %arg, %"struct.std::__1::__compressed_pair_elem.3"** %i, align 8
-  store %"class.std::__1::allocator"* %arg1, %"class.std::__1::allocator"** %i2, align 8
-  %i3 = load %"struct.std::__1::__compressed_pair_elem.3"*, %"struct.std::__1::__compressed_pair_elem.3"** %i, align 8
-  %i4 = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem.3", %"struct.std::__1::__compressed_pair_elem.3"* %i3, i32 0, i32 0
-  %i5 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i2, align 8
-  %i6 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i5) #14
-  store %"class.std::__1::allocator"* %i6, %"class.std::__1::allocator"** %i4, align 8
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::__compressed_pair_elem.3"* @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EEC2IS3_vEEOT_(%"struct.std::__1::__compressed_pair_elem.3"* returned %this, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__u) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem.3"*, align 8
+  %__u.addr = alloca %"class.std::__1::allocator"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem.3"* %this, %"struct.std::__1::__compressed_pair_elem.3"** %this.addr, align 8
+  store %"class.std::__1::allocator"* %__u, %"class.std::__1::allocator"** %__u.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem.3"*, %"struct.std::__1::__compressed_pair_elem.3"** %this.addr, align 8
+  %__value_ = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem.3", %"struct.std::__1::__compressed_pair_elem.3"* %this1, i32 0, i32 0
+  %i = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__u.addr, align 8
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__17forwardIRNS_9allocatorIiEEEEOT_RNS_16remove_referenceIS4_E4typeE(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i) #14
+  store %"class.std::__1::allocator"* %call, %"class.std::__1::allocator"** %__value_, align 8
+  ret %"struct.std::__1::__compressed_pair_elem.3"* %this1
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNSt3__19allocatorIiE8allocateEm(%"class.std::__1::allocator"* %arg, i64 %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i2 = alloca i64, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i64 %arg1, i64* %i2, align 8
-  %i3 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i4 = load i64, i64* %i2, align 8
-  %i5 = icmp ugt i64 %i4, 4611686018427387903
-  br i1 %i5, label %bb12, label %bb13
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden i32* @_ZNSt3__19allocatorIiE8allocateEm(%"class.std::__1::allocator"* %this, i64 %__n) #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
+  %i = load i64, i64* %__n.addr, align 8
+  %cmp = icmp ugt i64 %i, 4611686018427387903
+  br i1 %cmp, label %bb, label %bb3
 
-bb6:                                              ; preds = %bb12
+if.then:                                          ; preds = %bb
   call void @_ZNSt3__120__throw_length_errorEPKc(i8* getelementptr inbounds ([68 x i8], [68 x i8]* @.str, i64 0, i64 0)) #16
   unreachable
 
-bb7:                                              ; preds = %bb13
-  %i8 = load i64, i64* %i2, align 8
-  %i9 = mul i64 %i8, 4
-  %i10 = call i8* @_ZNSt3__117__libcpp_allocateEmm(i64 %i9, i64 4)
-  %i11 = bitcast i8* %i10 to i32*
-  ret i32* %i11
+if.end:                                           ; preds = %bb3
+  %i1 = load i64, i64* %__n.addr, align 8
+  %mul = mul i64 %i1, 4
+  %call = call i8* @_ZNSt3__117__libcpp_allocateEmm(i64 %mul, i64 4)
+  %i2 = bitcast i8* %call to i32*
+  ret i32* %i2
 
-bb12:                                             ; preds = %bb
-  br label %bb6
+bb:                                               ; preds = %entry
+  br label %if.then
 
-bb13:                                             ; preds = %bb
-  br label %bb7
+bb3:                                              ; preds = %entry
+  br label %if.end
 }
 
-; Function Attrs: noinline noreturn optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__120__throw_length_errorEPKc(i8* %arg) #8 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca i8*, align 8
-  %i1 = alloca i8*, align 8
-  %i2 = alloca i32, align 4
-  store i8* %arg, i8** %i, align 8
-  %i3 = call i8* @__cxa_allocate_exception(i64 16) #14
-  %i4 = bitcast i8* %i3 to %"class.std::length_error"*
-  %i5 = load i8*, i8** %i, align 8
-  call void @_ZNSt12length_errorC1EPKc(%"class.std::length_error"* %i4, i8* %i5)
-  br label %bb6
+; Function Attrs: noinline noreturn optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__120__throw_length_errorEPKc(i8* %__msg) #8 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %__msg.addr = alloca i8*, align 8
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  store i8* %__msg, i8** %__msg.addr, align 8
+  %exception = call i8* @__cxa_allocate_exception(i64 16) #14
+  %i = bitcast i8* %exception to %"class.std::length_error"*
+  %i1 = load i8*, i8** %__msg.addr, align 8
+  %call = call %"class.std::length_error"* @_ZNSt12length_errorC1EPKc(%"class.std::length_error"* %i, i8* %i1)
+  br label %invoke.cont
 
-bb6:                                              ; preds = %bb
-  call void @__cxa_throw(i8* %i3, i8* bitcast (i8** @_ZTISt12length_error to i8*), i8* bitcast (void (%"class.std::length_error"*)* @_ZNSt12length_errorD1Ev to i8*)) #16
+invoke.cont:                                      ; preds = %entry
+  call void @__cxa_throw(i8* %exception, i8* bitcast (i8** @_ZTISt12length_error to i8*), i8* bitcast (%"class.std::length_error"* (%"class.std::length_error"*)* @_ZNSt12length_errorD1Ev to i8*)) #16
   unreachable
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden i8* @_ZNSt3__117__libcpp_allocateEmm(i64 %arg, i64 %arg1) #0 {
-bb:
-  %i = alloca i8*, align 8
-  %i2 = alloca i64, align 8
-  %i3 = alloca i64, align 8
-  %i4 = alloca i64, align 8
-  store i64 %arg, i64* %i2, align 8
-  store i64 %arg1, i64* %i3, align 8
-  %i5 = load i64, i64* %i3, align 8
-  %i6 = call zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %i5) #14
-  br i1 %i6, label %bb21, label %bb22
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden i8* @_ZNSt3__117__libcpp_allocateEmm(i64 %__size, i64 %__align) #0 {
+entry:
+  %retval = alloca i8*, align 8
+  %__size.addr = alloca i64, align 8
+  %__align.addr = alloca i64, align 8
+  %__align_val = alloca i64, align 8
+  store i64 %__size, i64* %__size.addr, align 8
+  store i64 %__align, i64* %__align.addr, align 8
+  %i = load i64, i64* %__align.addr, align 8
+  %call = call zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %i) #14
+  br i1 %call, label %bb, label %bb6
 
-bb7:                                              ; preds = %bb21
-  %i8 = load i64, i64* %i3, align 8
-  store i64 %i8, i64* %i4, align 8
-  %i9 = load i64, i64* %i2, align 8
-  %i10 = load i64, i64* %i4, align 8
-  %i11 = call noalias nonnull i8* @_ZnwmSt11align_val_t(i64 %i9, i64 %i10) #13
-  %i12 = sub i64 %i10, 1
-  %i13 = ptrtoint i8* %i11 to i64
-  %i14 = and i64 %i13, %i12
-  %i15 = icmp eq i64 %i14, 0
-  call void @llvm.assume(i1 %i15)
-  store i8* %i11, i8** %i, align 8
-  br label %bb19
+if.then:                                          ; preds = %bb
+  %i1 = load i64, i64* %__align.addr, align 8
+  store i64 %i1, i64* %__align_val, align 8
+  %i2 = load i64, i64* %__size.addr, align 8
+  %i3 = load i64, i64* %__align_val, align 8
+  %call1 = call noalias nonnull i8* @_ZnwmSt11align_val_t(i64 %i2, i64 %i3) #13
+  %mask = sub i64 %i3, 1
+  %ptrint = ptrtoint i8* %call1 to i64
+  %maskedptr = and i64 %ptrint, %mask
+  %maskcond = icmp eq i64 %maskedptr, 0
+  call void @llvm.assume(i1 %maskcond)
+  store i8* %call1, i8** %retval, align 8
+  br label %return
 
-bb16:                                             ; preds = %bb22
-  %i17 = load i64, i64* %i2, align 8
-  %i18 = call noalias nonnull i8* @_Znwm(i64 %i17) #13
-  store i8* %i18, i8** %i, align 8
-  br label %bb19
+if.end:                                           ; preds = %bb6
+  %i4 = load i64, i64* %__size.addr, align 8
+  %call2 = call noalias nonnull i8* @_Znwm(i64 %i4) #13
+  store i8* %call2, i8** %retval, align 8
+  br label %return
 
-bb19:                                             ; preds = %bb16, %bb7
-  %i20 = load i8*, i8** %i, align 8
-  ret i8* %i20
+return:                                           ; preds = %if.end, %if.then
+  %i5 = load i8*, i8** %retval, align 8
+  ret i8* %i5
 
-bb21:                                             ; preds = %bb
-  br label %bb7
+bb:                                               ; preds = %entry
+  br label %if.then
 
-bb22:                                             ; preds = %bb
-  br label %bb16
+bb6:                                              ; preds = %entry
+  br label %if.end
 }
 
 declare i8* @__cxa_allocate_exception(i64)
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt12length_errorC1EPKc(%"class.std::length_error"* %arg, i8* %arg1) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"class.std::length_error"*, align 8
-  %i2 = alloca i8*, align 8
-  store %"class.std::length_error"* %arg, %"class.std::length_error"** %i, align 8
-  store i8* %arg1, i8** %i2, align 8
-  %i3 = load %"class.std::length_error"*, %"class.std::length_error"** %i, align 8
-  %i4 = load i8*, i8** %i2, align 8
-  call void @_ZNSt12length_errorC2EPKc(%"class.std::length_error"* %i3, i8* %i4)
-  ret void
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::length_error"* @_ZNSt12length_errorC1EPKc(%"class.std::length_error"* returned %this, i8* %__s) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::length_error"*, align 8
+  %__s.addr = alloca i8*, align 8
+  store %"class.std::length_error"* %this, %"class.std::length_error"** %this.addr, align 8
+  store i8* %__s, i8** %__s.addr, align 8
+  %this1 = load %"class.std::length_error"*, %"class.std::length_error"** %this.addr, align 8
+  %i = load i8*, i8** %__s.addr, align 8
+  %call = call %"class.std::length_error"* @_ZNSt12length_errorC2EPKc(%"class.std::length_error"* %this1, i8* %i)
+  ret %"class.std::length_error"* %this1
 }
 
 declare void @__cxa_free_exception(i8*)
 
 ; Function Attrs: nounwind
-declare void @_ZNSt12length_errorD1Ev(%"class.std::length_error"*) unnamed_addr #9
+declare %"class.std::length_error"* @_ZNSt12length_errorD1Ev(%"class.std::length_error"* returned) unnamed_addr #9
 
 declare void @__cxa_throw(i8*, i8*, i8*)
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt12length_errorC2EPKc(%"class.std::length_error"* %arg, i8* %arg1) unnamed_addr #0 align 2 {
-bb:
-  %i = alloca %"class.std::length_error"*, align 8
-  %i2 = alloca i8*, align 8
-  store %"class.std::length_error"* %arg, %"class.std::length_error"** %i, align 8
-  store i8* %arg1, i8** %i2, align 8
-  %i3 = load %"class.std::length_error"*, %"class.std::length_error"** %i, align 8
-  %i4 = bitcast %"class.std::length_error"* %i3 to %"class.std::logic_error"*
-  %i5 = load i8*, i8** %i2, align 8
-  call void @_ZNSt11logic_errorC2EPKc(%"class.std::logic_error"* %i4, i8* %i5)
-  %i6 = bitcast %"class.std::length_error"* %i3 to i32 (...)***
-  store i32 (...)** bitcast (i8** getelementptr inbounds ({ [5 x i8*] }, { [5 x i8*] }* @_ZTVSt12length_error, i32 0, inrange i32 0, i32 2) to i32 (...)**), i32 (...)*** %i6, align 8
-  ret void
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::length_error"* @_ZNSt12length_errorC2EPKc(%"class.std::length_error"* returned %this, i8* %__s) unnamed_addr #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::length_error"*, align 8
+  %__s.addr = alloca i8*, align 8
+  store %"class.std::length_error"* %this, %"class.std::length_error"** %this.addr, align 8
+  store i8* %__s, i8** %__s.addr, align 8
+  %this1 = load %"class.std::length_error"*, %"class.std::length_error"** %this.addr, align 8
+  %i = bitcast %"class.std::length_error"* %this1 to %"class.std::logic_error"*
+  %i1 = load i8*, i8** %__s.addr, align 8
+  %call = call %"class.std::logic_error"* @_ZNSt11logic_errorC2EPKc(%"class.std::logic_error"* %i, i8* %i1)
+  %i2 = bitcast %"class.std::length_error"* %this1 to i32 (...)***
+  store i32 (...)** bitcast (i8** getelementptr inbounds ({ [5 x i8*] }, { [5 x i8*] }* @_ZTVSt12length_error, i32 0, inrange i32 0, i32 2) to i32 (...)**), i32 (...)*** %i2, align 8
+  ret %"class.std::length_error"* %this1
 }
 
-declare void @_ZNSt11logic_errorC2EPKc(%"class.std::logic_error"*, i8*) unnamed_addr #3
+declare %"class.std::logic_error"* @_ZNSt11logic_errorC2EPKc(%"class.std::logic_error"* returned, i8*) unnamed_addr #3
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %arg) #1 {
-bb:
-  %i = alloca i64, align 8
-  store i64 %arg, i64* %i, align 8
-  %i1 = load i64, i64* %i, align 8
-  %i2 = icmp ugt i64 %i1, 16
-  ret i1 %i2
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %__align) #1 {
+entry:
+  %__align.addr = alloca i64, align 8
+  store i64 %__align, i64* %__align.addr, align 8
+  %i = load i64, i64* %__align.addr, align 8
+  %cmp = icmp ugt i64 %i, 8
+  ret i1 %cmp
 }
 
 ; Function Attrs: nobuiltin allocsize(0)
@@ -1741,816 +1750,819 @@ declare nonnull i8* @_ZnwmSt11align_val_t(i64, i64) #4
 ; Function Attrs: nounwind willreturn
 declare void @llvm.assume(i1) #10
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair.2"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair.2"*, align 8
-  store %"class.std::__1::__compressed_pair.2"* %arg, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair.2"* %i1 to i8*
-  %i3 = getelementptr inbounds i8, i8* %i2, i64 8
-  %i4 = bitcast i8* %i3 to %"struct.std::__1::__compressed_pair_elem.3"*
-  %i5 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem.3"* %i4) #14
-  ret %"class.std::__1::allocator"* %i5
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE6secondEv(%"class.std::__1::__compressed_pair.2"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair.2"*, align 8
+  store %"class.std::__1::__compressed_pair.2"* %this, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair.2"* %this1 to i8*
+  %add.ptr = getelementptr inbounds i8, i8* %i, i64 8
+  %i1 = bitcast i8* %add.ptr to %"struct.std::__1::__compressed_pair_elem.3"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem.3"* %i1) #14
+  ret %"class.std::__1::allocator"* %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem.3"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__compressed_pair_elem.3"*, align 8
-  store %"struct.std::__1::__compressed_pair_elem.3"* %arg, %"struct.std::__1::__compressed_pair_elem.3"** %i, align 8
-  %i1 = load %"struct.std::__1::__compressed_pair_elem.3"*, %"struct.std::__1::__compressed_pair_elem.3"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem.3", %"struct.std::__1::__compressed_pair_elem.3"* %i1, i32 0, i32 0
-  %i3 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i2, align 8
-  ret %"class.std::__1::allocator"* %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__122__compressed_pair_elemIRNS_9allocatorIiEELi1ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem.3"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__compressed_pair_elem.3"*, align 8
+  store %"struct.std::__1::__compressed_pair_elem.3"* %this, %"struct.std::__1::__compressed_pair_elem.3"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__compressed_pair_elem.3"*, %"struct.std::__1::__compressed_pair_elem.3"** %this.addr, align 8
+  %__value_ = getelementptr inbounds %"struct.std::__1::__compressed_pair_elem.3", %"struct.std::__1::__compressed_pair_elem.3"* %this1, i32 0, i32 0
+  %i = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__value_, align 8
+  ret %"class.std::__1::allocator"* %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair.2"*, align 8
-  store %"class.std::__1::__compressed_pair.2"* %arg, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair.2"* %i1 to %"struct.std::__1::__compressed_pair_elem"*
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i2) #14
-  ret i32** %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair.2"*, align 8
+  store %"class.std::__1::__compressed_pair.2"* %this, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair.2"* %this1 to %"struct.std::__1::__compressed_pair_elem"*
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i) #14
+  ret i32** %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE17__annotate_deleteEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i2 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i1) #14
-  %i3 = bitcast i32* %i2 to i8*
-  %i4 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i1) #14
-  %i5 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %i1) #14
-  %i6 = getelementptr inbounds i32, i32* %i4, i64 %i5
-  %i7 = bitcast i32* %i6 to i8*
-  %i8 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i1) #14
-  %i9 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i1) #14
-  %i10 = getelementptr inbounds i32, i32* %i8, i64 %i9
-  %i11 = bitcast i32* %i10 to i8*
-  %i12 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i1) #14
-  %i13 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %i1) #14
-  %i14 = getelementptr inbounds i32, i32* %i12, i64 %i13
-  %i15 = bitcast i32* %i14 to i8*
-  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE31__annotate_contiguous_containerEPKvS5_S5_S5_(%"class.std::__1::vector"* %i1, i8* %i3, i8* %i7, i8* %i11, i8* %i15) #14
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE17__annotate_deleteEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %call = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %i = bitcast i32* %call to i8*
+  %call2 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %call3 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this1) #14
+  %add.ptr = getelementptr i32, i32* %call2, i64 %call3
+  %i1 = bitcast i32* %add.ptr to i8*
+  %call4 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %call5 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this1) #14
+  %add.ptr6 = getelementptr i32, i32* %call4, i64 %call5
+  %i2 = bitcast i32* %add.ptr6 to i8*
+  %call7 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %call8 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this1) #14
+  %add.ptr9 = getelementptr i32, i32* %call7, i64 %call8
+  %i3 = bitcast i32* %add.ptr9 to i8*
+  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE31__annotate_contiguous_containerEPKvS5_S5_S5_(%"class.std::__1::vector"* %this1, i8* %i, i8* %i1, i8* %i2, i8* %i3) #14
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE46__construct_backward_with_exception_guaranteesIiEENS_9enable_ifIXaaooL_ZNS_17integral_constantIbLb1EE5valueEEntsr15__has_constructIS2_PT_S8_EE5valuesr31is_trivially_move_constructibleIS8_EE5valueEvE4typeERS2_S9_S9_RS9_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1, i32* %arg2, i32** nonnull align 8 dereferenceable(8) %arg3) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i4 = alloca i32*, align 8
-  %i5 = alloca i32*, align 8
-  %i6 = alloca i32**, align 8
-  %i7 = alloca i64, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i4, align 8
-  store i32* %arg2, i32** %i5, align 8
-  store i32** %arg3, i32*** %i6, align 8
-  %i8 = load i32*, i32** %i5, align 8
-  %i9 = load i32*, i32** %i4, align 8
-  %i10 = ptrtoint i32* %i8 to i64
-  %i11 = ptrtoint i32* %i9 to i64
-  %i12 = sub i64 %i10, %i11
-  %i13 = sdiv exact i64 %i12, 4
-  store i64 %i13, i64* %i7, align 8
-  %i14 = load i64, i64* %i7, align 8
-  %i15 = load i32**, i32*** %i6, align 8
-  %i16 = load i32*, i32** %i15, align 8
-  %i17 = sub i64 0, %i14
-  %i18 = getelementptr inbounds i32, i32* %i16, i64 %i17
-  store i32* %i18, i32** %i15, align 8
-  %i19 = load i64, i64* %i7, align 8
-  %i20 = icmp sgt i64 %i19, 0
-  br i1 %i20, label %bb30, label %bb31
-
-bb21:                                             ; preds = %bb30
-  %i22 = load i32**, i32*** %i6, align 8
-  %i23 = load i32*, i32** %i22, align 8
-  %i24 = bitcast i32* %i23 to i8*
-  %i25 = load i32*, i32** %i4, align 8
-  %i26 = bitcast i32* %i25 to i8*
-  %i27 = load i64, i64* %i7, align 8
-  %i28 = mul i64 %i27, 4
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 4 %i24, i8* align 4 %i26, i64 %i28, i1 false)
-  br label %bb29
-
-bb29:                                             ; preds = %bb31, %bb21
-  ret void
-
-bb30:                                             ; preds = %bb
-  br label %bb21
-
-bb31:                                             ; preds = %bb
-  br label %bb29
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %arg, i32** nonnull align 8 dereferenceable(8) %arg1) #1 {
-bb:
-  %i = alloca i32**, align 8
-  %i2 = alloca i32**, align 8
-  %i3 = alloca i32*, align 8
-  store i32** %arg, i32*** %i, align 8
-  store i32** %arg1, i32*** %i2, align 8
-  %i4 = load i32**, i32*** %i, align 8
-  %i5 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %i4) #14
-  %i6 = load i32*, i32** %i5, align 8
-  store i32* %i6, i32** %i3, align 8
-  %i7 = load i32**, i32*** %i2, align 8
-  %i8 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %i7) #14
-  %i9 = load i32*, i32** %i8, align 8
-  %i10 = load i32**, i32*** %i, align 8
-  store i32* %i9, i32** %i10, align 8
-  %i11 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %i3) #14
-  %i12 = load i32*, i32** %i11, align 8
-  %i13 = load i32**, i32*** %i2, align 8
-  store i32* %i12, i32** %i13, align 8
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE14__annotate_newEm(%"class.std::__1::vector"* %arg, i64 %arg1) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i64, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i64 %arg1, i64* %i2, align 8
-  %i3 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i4 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i3) #14
-  %i5 = bitcast i32* %i4 to i8*
-  %i6 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i3) #14
-  %i7 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %i3) #14
-  %i8 = getelementptr inbounds i32, i32* %i6, i64 %i7
-  %i9 = bitcast i32* %i8 to i8*
-  %i10 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i3) #14
-  %i11 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %i3) #14
-  %i12 = getelementptr inbounds i32, i32* %i10, i64 %i11
-  %i13 = bitcast i32* %i12 to i8*
-  %i14 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %i3) #14
-  %i15 = load i64, i64* %i2, align 8
-  %i16 = getelementptr inbounds i32, i32* %i14, i64 %i15
-  %i17 = bitcast i32* %i16 to i8*
-  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE31__annotate_contiguous_containerEPKvS5_S5_S5_(%"class.std::__1::vector"* %i3, i8* %i5, i8* %i9, i8* %i13, i8* %i17) #14
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__invalidate_all_iteratorsEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE31__annotate_contiguous_containerEPKvS5_S5_S5_(%"class.std::__1::vector"* %arg, i8* %arg1, i8* %arg2, i8* %arg3, i8* %arg4) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i5 = alloca i8*, align 8
-  %i6 = alloca i8*, align 8
-  %i7 = alloca i8*, align 8
-  %i8 = alloca i8*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i8* %arg1, i8** %i5, align 8
-  store i8* %arg2, i8** %i6, align 8
-  store i8* %arg3, i8** %i7, align 8
-  store i8* %arg4, i8** %i8, align 8
-  %i9 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  %i1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i2 = bitcast %"class.std::__1::vector"* %i1 to %"class.std::__1::__vector_base"*
-  %i3 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i2, i32 0, i32 0
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE46__construct_backward_with_exception_guaranteesIiEENS_9enable_ifIXaaooL_ZNS_17integral_constantIbLb1EE5valueEEntsr15__has_constructIS2_PT_S8_EE5valuesr31is_trivially_move_constructibleIS8_EE5valueEvE4typeERS2_S9_S9_RS9_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %__begin1, i32* %__end1, i32** nonnull align 8 dereferenceable(8) %__end2) #1 align 2 {
+entry:
+  %.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__begin1.addr = alloca i32*, align 8
+  %__end1.addr = alloca i32*, align 8
+  %__end2.addr = alloca i32**, align 8
+  %_Np = alloca i64, align 8
+  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %.addr, align 8
+  store i32* %__begin1, i32** %__begin1.addr, align 8
+  store i32* %__end1, i32** %__end1.addr, align 8
+  store i32** %__end2, i32*** %__end2.addr, align 8
+  %i = load i32*, i32** %__end1.addr, align 8
+  %i1 = load i32*, i32** %__begin1.addr, align 8
+  %sub.ptr.lhs.cast = ptrtoint i32* %i to i64
+  %sub.ptr.rhs.cast = ptrtoint i32* %i1 to i64
+  %sub.ptr.sub = sub i64 %sub.ptr.lhs.cast, %sub.ptr.rhs.cast
+  %sub.ptr.div = sdiv exact i64 %sub.ptr.sub, 4
+  store i64 %sub.ptr.div, i64* %_Np, align 8
+  %i2 = load i64, i64* %_Np, align 8
+  %i3 = load i32**, i32*** %__end2.addr, align 8
   %i4 = load i32*, i32** %i3, align 8
-  %i5 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i4) #14
-  ret i32* %i5
+  %idx.neg = sub i64 0, %i2
+  %add.ptr = getelementptr i32, i32* %i4, i64 %idx.neg
+  store i32* %add.ptr, i32** %i3, align 8
+  %i5 = load i64, i64* %_Np, align 8
+  %cmp = icmp sgt i64 %i5, 0
+  br i1 %cmp, label %bb, label %bb12
+
+if.then:                                          ; preds = %bb
+  %i6 = load i32**, i32*** %__end2.addr, align 8
+  %i7 = load i32*, i32** %i6, align 8
+  %i8 = bitcast i32* %i7 to i8*
+  %i9 = load i32*, i32** %__begin1.addr, align 8
+  %i10 = bitcast i32* %i9 to i8*
+  %i11 = load i64, i64* %_Np, align 8
+  %mul = mul i64 %i11, 4
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 4 %i8, i8* align 4 %i10, i64 %mul, i1 false)
+  br label %if.end
+
+if.end:                                           ; preds = %bb12, %if.then
+  ret void
+
+bb:                                               ; preds = %entry
+  br label %if.then
+
+bb12:                                             ; preds = %entry
+  br label %if.end
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__14swapIPiEENS_9enable_ifIXaasr21is_move_constructibleIT_EE5valuesr18is_move_assignableIS3_EE5valueEvE4typeERS3_S6_(i32** nonnull align 8 dereferenceable(8) %__x, i32** nonnull align 8 dereferenceable(8) %__y) #1 {
+entry:
+  %__x.addr = alloca i32**, align 8
+  %__y.addr = alloca i32**, align 8
+  %__t = alloca i32*, align 8
+  store i32** %__x, i32*** %__x.addr, align 8
+  store i32** %__y, i32*** %__y.addr, align 8
+  %i = load i32**, i32*** %__x.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %i) #14
+  %i1 = load i32*, i32** %call, align 8
+  store i32* %i1, i32** %__t, align 8
+  %i2 = load i32**, i32*** %__y.addr, align 8
+  %call1 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %i2) #14
+  %i3 = load i32*, i32** %call1, align 8
+  %i4 = load i32**, i32*** %__x.addr, align 8
+  store i32* %i3, i32** %i4, align 8
+  %call2 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %__t) #14
+  %i5 = load i32*, i32** %call2, align 8
+  %i6 = load i32**, i32*** %__y.addr, align 8
+  store i32* %i5, i32** %i6, align 8
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE14__annotate_newEm(%"class.std::__1::vector"* %this, i64 %__current_size) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__current_size.addr = alloca i64, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i64 %__current_size, i64* %__current_size.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %call = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %i = bitcast i32* %call to i8*
+  %call2 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %call3 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this1) #14
+  %add.ptr = getelementptr i32, i32* %call2, i64 %call3
+  %i1 = bitcast i32* %add.ptr to i8*
+  %call4 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %call5 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this1) #14
+  %add.ptr6 = getelementptr i32, i32* %call4, i64 %call5
+  %i2 = bitcast i32* %add.ptr6 to i8*
+  %call7 = call i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this1) #14
+  %i3 = load i64, i64* %__current_size.addr, align 8
+  %add.ptr8 = getelementptr i32, i32* %call7, i64 %i3
+  %i4 = bitcast i32* %add.ptr8 to i8*
+  call void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE31__annotate_contiguous_containerEPKvS5_S5_S5_(%"class.std::__1::vector"* %this1, i8* %i, i8* %i1, i8* %i2, i8* %i4) #14
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__invalidate_all_iteratorsEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNKSt3__16vectorIiNS_9allocatorIiEEE31__annotate_contiguous_containerEPKvS5_S5_S5_(%"class.std::__1::vector"* %this, i8* %arg, i8* %arg1, i8* %arg2, i8* %arg3) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %.addr = alloca i8*, align 8
+  %.addr1 = alloca i8*, align 8
+  %.addr2 = alloca i8*, align 8
+  %.addr3 = alloca i8*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i8* %arg, i8** %.addr, align 8
+  store i8* %arg1, i8** %.addr1, align 8
+  store i8* %arg2, i8** %.addr2, align 8
+  store i8* %arg3, i8** %.addr3, align 8
+  %this4 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i32* @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4dataEv(%"class.std::__1::vector"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 0
+  %i1 = load i32*, i32** %__begin_, align 8
+  %call = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i1) #14
+  ret i32* %call
 }
 
 ; Function Attrs: argmemonly nounwind willreturn
 declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i64, i1 immarg) #11
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %arg) #1 {
-bb:
-  %i = alloca i32**, align 8
-  store i32** %arg, i32*** %i, align 8
-  %i1 = load i32**, i32*** %i, align 8
-  ret i32** %i1
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNSt3__14moveIRPiEEONS_16remove_referenceIT_E4typeEOS4_(i32** nonnull align 8 dereferenceable(8) %__t) #1 {
+entry:
+  %__t.addr = alloca i32**, align 8
+  store i32** %__t, i32*** %__t.addr, align 8
+  %i = load i32**, i32*** %__t.addr, align 8
+  ret i32** %i
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED2Ev(%"struct.std::__1::__split_buffer"* %arg) unnamed_addr #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE5clearEv(%"struct.std::__1::__split_buffer"* %i1) #14
-  %i2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 0
-  %i3 = load i32*, i32** %i2, align 8
-  %i4 = icmp ne i32* %i3, null
-  br i1 %i4, label %bb12, label %bb13
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED2Ev(%"struct.std::__1::__split_buffer"* returned %this) unnamed_addr #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %retval = alloca %"struct.std::__1::__split_buffer"*, align 8
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  store %"struct.std::__1::__split_buffer"* %this1, %"struct.std::__1::__split_buffer"** %retval, align 8
+  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE5clearEv(%"struct.std::__1::__split_buffer"* %this1) #14
+  %__first_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
+  %i = load i32*, i32** %__first_, align 8
+  %tobool = icmp ne i32* %i, null
+  br i1 %tobool, label %bb, label %bb3
 
-bb5:                                              ; preds = %bb12
-  %i6 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %i1) #14
-  %i7 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 0
-  %i8 = load i32*, i32** %i7, align 8
-  %i9 = call i64 @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE8capacityEv(%"struct.std::__1::__split_buffer"* %i1)
-  br label %bb10
+if.then:                                          ; preds = %bb
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this1) #14
+  %__first_2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
+  %i1 = load i32*, i32** %__first_2, align 8
+  %call3 = call i64 @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE8capacityEv(%"struct.std::__1::__split_buffer"* %this1)
+  br label %invoke.cont
 
-bb10:                                             ; preds = %bb5
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i6, i32* %i8, i64 %i9) #14
-  br label %bb11
+invoke.cont:                                      ; preds = %if.then
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call, i32* %i1, i64 %call3) #14
+  br label %if.end
 
-bb11:                                             ; preds = %bb13, %bb10
-  ret void
+if.end:                                           ; preds = %bb3, %invoke.cont
+  %i2 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %retval, align 8
+  ret %"struct.std::__1::__split_buffer"* %i2
 
-bb12:                                             ; preds = %bb
-  br label %bb5
+bb:                                               ; preds = %entry
+  br label %if.then
 
-bb13:                                             ; preds = %bb
-  br label %bb11
+bb3:                                              ; preds = %entry
+  br label %if.end
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE5clearEv(%"struct.std::__1::__split_buffer"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 1
-  %i3 = load i32*, i32** %i2, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPi(%"struct.std::__1::__split_buffer"* %i1, i32* %i3) #14
-  ret void
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1, i64 %arg2) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  %i4 = alloca i64, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i5 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i6 = load i32*, i32** %i3, align 8
-  %i7 = load i64, i64* %i4, align 8
-  call void @_ZNSt3__19allocatorIiE10deallocateEPim(%"class.std::__1::allocator"* %i5, i32* %i6, i64 %i7) #14
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE5clearEv(%"struct.std::__1::__split_buffer"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %__begin_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 1
+  %i = load i32*, i32** %__begin_, align 8
+  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPi(%"struct.std::__1::__split_buffer"* %this1, i32* %i) #14
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE8capacityEv(%"struct.std::__1::__split_buffer"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i2 = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %i1) #14
-  %i3 = load i32*, i32** %i2, align 8
-  %i4 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 0
-  %i5 = load i32*, i32** %i4, align 8
-  %i6 = ptrtoint i32* %i3 to i64
-  %i7 = ptrtoint i32* %i5 to i64
-  %i8 = sub i64 %i6, %i7
-  %i9 = sdiv exact i64 %i8, 4
-  ret i64 %i9
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPi(%"struct.std::__1::__split_buffer"* %arg, i32* %arg1) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  %i2 = alloca i32*, align 8
-  %i3 = alloca %"struct.std::__1::integral_constant.4", align 1
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i4 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i5 = load i32*, i32** %i2, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPiNS_17integral_constantIbLb0EEE(%"struct.std::__1::__split_buffer"* %i4, i32* %i5) #14
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p, i64 %__n) #1 align 2 {
+entry:
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %i = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i1 = load i32*, i32** %__p.addr, align 8
+  %i2 = load i64, i64* %__n.addr, align 8
+  call void @_ZNSt3__19allocatorIiE10deallocateEPim(%"class.std::__1::allocator"* %i, i32* %i1, i64 %i2) #14
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPiNS_17integral_constantIbLb0EEE(%"struct.std::__1::__split_buffer"* %arg, i32* %arg1) #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE8capacityEv(%"struct.std::__1::__split_buffer"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %this1) #14
+  %i = load i32*, i32** %call, align 8
+  %__first_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
+  %i1 = load i32*, i32** %__first_, align 8
+  %sub.ptr.lhs.cast = ptrtoint i32* %i to i64
+  %sub.ptr.rhs.cast = ptrtoint i32* %i1 to i64
+  %sub.ptr.sub = sub i64 %sub.ptr.lhs.cast, %sub.ptr.rhs.cast
+  %sub.ptr.div = sdiv exact i64 %sub.ptr.sub, 4
+  ret i64 %sub.ptr.div
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPi(%"struct.std::__1::__split_buffer"* %this, i32* %__new_last) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  %__new_last.addr = alloca i32*, align 8
+  %agg.tmp = alloca %"struct.std::__1::integral_constant.4", align 1
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  store i32* %__new_last, i32** %__new_last.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %i = load i32*, i32** %__new_last.addr, align 8
+  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPiNS_17integral_constantIbLb0EEE(%"struct.std::__1::__split_buffer"* %this1, i32* %i) #14
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPiNS_17integral_constantIbLb0EEE(%"struct.std::__1::__split_buffer"* %this, i32* %__new_last) #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
   %i = alloca %"struct.std::__1::integral_constant.4", align 1
-  %i2 = alloca %"struct.std::__1::__split_buffer"*, align 8
-  %i3 = alloca i32*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i2, align 8
-  store i32* %arg1, i32** %i3, align 8
-  %i4 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i2, align 8
-  br label %bb5
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  %__new_last.addr = alloca i32*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  store i32* %__new_last, i32** %__new_last.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  br label %while.cond
 
-bb5:                                              ; preds = %bb16, %bb
-  %i6 = load i32*, i32** %i3, align 8
-  %i7 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i4, i32 0, i32 2
-  %i8 = load i32*, i32** %i7, align 8
-  %i9 = icmp ne i32* %i6, %i8
-  br i1 %i9, label %bb18, label %bb19
+while.cond:                                       ; preds = %invoke.cont, %entry
+  %i1 = load i32*, i32** %__new_last.addr, align 8
+  %__end_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 2
+  %i2 = load i32*, i32** %__end_, align 8
+  %cmp = icmp ne i32* %i1, %i2
+  br i1 %cmp, label %bb, label %bb4
 
-bb10:                                             ; preds = %bb18
-  %i11 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %i4) #14
-  %i12 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i4, i32 0, i32 2
-  %i13 = load i32*, i32** %i12, align 8
-  %i14 = getelementptr inbounds i32, i32* %i13, i32 -1
-  store i32* %i14, i32** %i12, align 8
-  %i15 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i14) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE7destroyIiEEvRS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i11, i32* %i15)
-  br label %bb16
+while.body:                                       ; preds = %bb
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this1) #14
+  %__end_2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 2
+  %i3 = load i32*, i32** %__end_2, align 8
+  %incdec.ptr = getelementptr i32, i32* %i3, i32 -1
+  store i32* %incdec.ptr, i32** %__end_2, align 8
+  %call3 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %incdec.ptr) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE7destroyIiEEvRS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call, i32* %call3)
+  br label %invoke.cont
 
-bb16:                                             ; preds = %bb10
-  br label %bb5
+invoke.cont:                                      ; preds = %while.body
+  br label %while.cond
 
-bb17:                                             ; preds = %bb19
+while.end:                                        ; preds = %bb4
   ret void
 
-bb18:                                             ; preds = %bb5
-  br label %bb10
+bb:                                               ; preds = %while.cond
+  br label %while.body
 
-bb19:                                             ; preds = %bb5
-  br label %bb17
+bb4:                                              ; preds = %while.cond
+  br label %while.end
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE7destroyIiEEvRS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i2 = alloca i32*, align 8
-  %i3 = alloca %"struct.std::__1::integral_constant", align 1
-  %i4 = alloca %"struct.std::__1::__has_destroy", align 1
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i5 = bitcast %"struct.std::__1::__has_destroy"* %i4 to %"struct.std::__1::integral_constant"*
-  %i6 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i7 = load i32*, i32** %i2, align 8
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9__destroyIiEEvNS_17integral_constantIbLb1EEERS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i6, i32* %i7)
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE7destroyIiEEvRS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p) #0 align 2 {
+entry:
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %agg.tmp = alloca %"struct.std::__1::integral_constant", align 1
+  %ref.tmp = alloca %"struct.std::__1::__has_destroy", align 1
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  %i = bitcast %"struct.std::__1::__has_destroy"* %ref.tmp to %"struct.std::__1::integral_constant"*
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i2 = load i32*, i32** %__p.addr, align 8
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9__destroyIiEEvNS_17integral_constantIbLb1EEERS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1, i32* %i2)
   ret void
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9__destroyIiEEvNS_17integral_constantIbLb1EEERS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1) #0 align 2 {
-bb:
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9__destroyIiEEvNS_17integral_constantIbLb1EEERS2_PT_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p) #0 align 2 {
+entry:
   %i = alloca %"struct.std::__1::integral_constant", align 1
-  %i2 = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i2, align 8
-  store i32* %arg1, i32** %i3, align 8
-  %i4 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i2, align 8
-  %i5 = load i32*, i32** %i3, align 8
-  call void @_ZNSt3__19allocatorIiE7destroyEPi(%"class.std::__1::allocator"* %i4, i32* %i5)
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i2 = load i32*, i32** %__p.addr, align 8
+  call void @_ZNSt3__19allocatorIiE7destroyEPi(%"class.std::__1::allocator"* %i1, i32* %i2)
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__19allocatorIiE7destroyEPi(%"class.std::__1::allocator"* %arg, i32* %arg1) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i2 = alloca i32*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i3 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__19allocatorIiE7destroyEPi(%"class.std::__1::allocator"* %this, i32* %__p) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__19allocatorIiE10deallocateEPim(%"class.std::__1::allocator"* %arg, i32* %arg1, i64 %arg2) #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  %i4 = alloca i64, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i5 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i6 = load i32*, i32** %i3, align 8
-  %i7 = bitcast i32* %i6 to i8*
-  %i8 = load i64, i64* %i4, align 8
-  %i9 = mul i64 %i8, 4
-  call void @_ZNSt3__119__libcpp_deallocateEPvmm(i8* %i7, i64 %i9, i64 4)
-  br label %bb10
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__19allocatorIiE10deallocateEPim(%"class.std::__1::allocator"* %this, i32* %__p, i64 %__n) #1 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__n.addr = alloca i64, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i64 %__n, i64* %__n.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
+  %i = load i32*, i32** %__p.addr, align 8
+  %i1 = bitcast i32* %i to i8*
+  %i2 = load i64, i64* %__n.addr, align 8
+  %mul = mul i64 %i2, 4
+  call void @_ZNSt3__119__libcpp_deallocateEPvmm(i8* %i1, i64 %mul, i64 4)
+  br label %invoke.cont
 
-bb10:                                             ; preds = %bb
+invoke.cont:                                      ; preds = %entry
   ret void
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__119__libcpp_deallocateEPvmm(i8* %arg, i64 %arg1, i64 %arg2) #0 {
-bb:
-  %i = alloca i8*, align 8
-  %i3 = alloca i64, align 8
-  %i4 = alloca i64, align 8
-  store i8* %arg, i8** %i, align 8
-  store i64 %arg1, i64* %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i5 = load i8*, i8** %i, align 8
-  %i6 = load i64, i64* %i3, align 8
-  %i7 = load i64, i64* %i4, align 8
-  call void @_ZNSt3__117_DeallocateCaller33__do_deallocate_handle_size_alignEPvmm(i8* %i5, i64 %i6, i64 %i7)
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__119__libcpp_deallocateEPvmm(i8* %__ptr, i64 %__size, i64 %__align) #0 {
+entry:
+  %__ptr.addr = alloca i8*, align 8
+  %__size.addr = alloca i64, align 8
+  %__align.addr = alloca i64, align 8
+  store i8* %__ptr, i8** %__ptr.addr, align 8
+  store i64 %__size, i64* %__size.addr, align 8
+  store i64 %__align, i64* %__align.addr, align 8
+  %i = load i8*, i8** %__ptr.addr, align 8
+  %i1 = load i64, i64* %__size.addr, align 8
+  %i2 = load i64, i64* %__align.addr, align 8
+  call void @_ZNSt3__117_DeallocateCaller33__do_deallocate_handle_size_alignEPvmm(i8* %i, i64 %i1, i64 %i2)
   ret void
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__117_DeallocateCaller33__do_deallocate_handle_size_alignEPvmm(i8* %arg, i64 %arg1, i64 %arg2) #0 align 2 {
-bb:
-  %i = alloca i8*, align 8
-  %i3 = alloca i64, align 8
-  %i4 = alloca i64, align 8
-  %i5 = alloca i64, align 8
-  store i8* %arg, i8** %i, align 8
-  store i64 %arg1, i64* %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i6 = load i64, i64* %i4, align 8
-  %i7 = call zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %i6) #14
-  br i1 %i7, label %bb17, label %bb18
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden void @_ZNSt3__117_DeallocateCaller33__do_deallocate_handle_size_alignEPvmm(i8* %__ptr, i64 %__size, i64 %__align) #0 align 2 {
+entry:
+  %__ptr.addr = alloca i8*, align 8
+  %__size.addr = alloca i64, align 8
+  %__align.addr = alloca i64, align 8
+  %__align_val = alloca i64, align 8
+  store i8* %__ptr, i8** %__ptr.addr, align 8
+  store i64 %__size, i64* %__size.addr, align 8
+  store i64 %__align, i64* %__align.addr, align 8
+  %i = load i64, i64* %__align.addr, align 8
+  %call = call zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %i) #14
+  br i1 %call, label %bb, label %bb7
 
-bb8:                                              ; preds = %bb17
-  %i9 = load i64, i64* %i4, align 8
-  store i64 %i9, i64* %i5, align 8
-  %i10 = load i8*, i8** %i, align 8
-  %i11 = load i64, i64* %i3, align 8
-  %i12 = load i64, i64* %i5, align 8
-  call void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvmSt11align_val_t(i8* %i10, i64 %i11, i64 %i12)
-  br label %bb16
+if.then:                                          ; preds = %bb
+  %i1 = load i64, i64* %__align.addr, align 8
+  store i64 %i1, i64* %__align_val, align 8
+  %i2 = load i8*, i8** %__ptr.addr, align 8
+  %i3 = load i64, i64* %__size.addr, align 8
+  %i4 = load i64, i64* %__align_val, align 8
+  call void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvmSt11align_val_t(i8* %i2, i64 %i3, i64 %i4)
+  br label %return
 
-bb13:                                             ; preds = %bb18
-  %i14 = load i8*, i8** %i, align 8
-  %i15 = load i64, i64* %i3, align 8
-  call void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvm(i8* %i14, i64 %i15)
-  br label %bb16
+if.else:                                          ; preds = %bb7
+  %i5 = load i8*, i8** %__ptr.addr, align 8
+  %i6 = load i64, i64* %__size.addr, align 8
+  call void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvm(i8* %i5, i64 %i6)
+  br label %return
 
-bb16:                                             ; preds = %bb13, %bb8
+return:                                           ; preds = %if.else, %if.then
   ret void
 
-bb17:                                             ; preds = %bb
-  br label %bb8
+bb:                                               ; preds = %entry
+  br label %if.then
 
-bb18:                                             ; preds = %bb
-  br label %bb13
+bb7:                                              ; preds = %entry
+  br label %if.else
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvmSt11align_val_t(i8* %arg, i64 %arg1, i64 %arg2) #0 align 2 {
-bb:
-  %i = alloca i8*, align 8
-  %i3 = alloca i64, align 8
-  %i4 = alloca i64, align 8
-  store i8* %arg, i8** %i, align 8
-  store i64 %arg1, i64* %i3, align 8
-  store i64 %arg2, i64* %i4, align 8
-  %i5 = load i8*, i8** %i, align 8
-  %i6 = load i64, i64* %i4, align 8
-  call void @_ZNSt3__117_DeallocateCaller9__do_callISt11align_val_tEEvPvT_(i8* %i5, i64 %i6)
-  ret void
-}
-
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvm(i8* %arg, i64 %arg1) #0 align 2 {
-bb:
-  %i = alloca i8*, align 8
-  %i2 = alloca i64, align 8
-  store i8* %arg, i8** %i, align 8
-  store i64 %arg1, i64* %i2, align 8
-  %i3 = load i8*, i8** %i, align 8
-  call void @_ZNSt3__117_DeallocateCaller9__do_callEPv(i8* %i3)
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvmSt11align_val_t(i8* %__ptr, i64 %__size, i64 %__align) #0 align 2 {
+entry:
+  %__ptr.addr = alloca i8*, align 8
+  %__size.addr = alloca i64, align 8
+  %__align.addr = alloca i64, align 8
+  store i8* %__ptr, i8** %__ptr.addr, align 8
+  store i64 %__size, i64* %__size.addr, align 8
+  store i64 %__align, i64* %__align.addr, align 8
+  %i = load i8*, i8** %__ptr.addr, align 8
+  %i1 = load i64, i64* %__align.addr, align 8
+  call void @_ZNSt3__117_DeallocateCaller9__do_callISt11align_val_tEEvPvT_(i8* %i, i64 %i1)
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117_DeallocateCaller9__do_callISt11align_val_tEEvPvT_(i8* %arg, i64 %arg1) #1 align 2 {
-bb:
-  %i = alloca i8*, align 8
-  %i2 = alloca i64, align 8
-  store i8* %arg, i8** %i, align 8
-  store i64 %arg1, i64* %i2, align 8
-  %i3 = load i8*, i8** %i, align 8
-  %i4 = load i64, i64* %i2, align 8
-  call void @_ZdlPvSt11align_val_t(i8* %i3, i64 %i4) #17
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvm(i8* %__ptr, i64 %__size) #0 align 2 {
+entry:
+  %__ptr.addr = alloca i8*, align 8
+  %__size.addr = alloca i64, align 8
+  store i8* %__ptr, i8** %__ptr.addr, align 8
+  store i64 %__size, i64* %__size.addr, align 8
+  %i = load i8*, i8** %__ptr.addr, align 8
+  call void @_ZNSt3__117_DeallocateCaller9__do_callEPv(i8* %i)
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__117_DeallocateCaller9__do_callISt11align_val_tEEvPvT_(i8* %__ptr, i64 %__a1) #1 align 2 {
+entry:
+  %__ptr.addr = alloca i8*, align 8
+  %__a1.addr = alloca i64, align 8
+  store i8* %__ptr, i8** %__ptr.addr, align 8
+  store i64 %__a1, i64* %__a1.addr, align 8
+  %i = load i8*, i8** %__ptr.addr, align 8
+  %i1 = load i64, i64* %__a1.addr, align 8
+  call void @_ZdlPvSt11align_val_t(i8* %i, i64 %i1) #17
   ret void
 }
 
 ; Function Attrs: nobuiltin nounwind
 declare void @_ZdlPvSt11align_val_t(i8*, i64) #12
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__117_DeallocateCaller9__do_callEPv(i8* %arg) #1 align 2 {
-bb:
-  %i = alloca i8*, align 8
-  store i8* %arg, i8** %i, align 8
-  %i1 = load i8*, i8** %i, align 8
-  call void @_ZdlPv(i8* %i1) #17
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__117_DeallocateCaller9__do_callEPv(i8* %__ptr) #1 align 2 {
+entry:
+  %__ptr.addr = alloca i8*, align 8
+  store i8* %__ptr, i8** %__ptr.addr, align 8
+  %i = load i8*, i8** %__ptr.addr, align 8
+  call void @_ZdlPv(i8* %i) #17
   ret void
 }
 
 ; Function Attrs: nobuiltin nounwind
 declare void @_ZdlPv(i8*) #12
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"struct.std::__1::__split_buffer"*, align 8
-  store %"struct.std::__1::__split_buffer"* %arg, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %i, align 8
-  %i2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i1, i32 0, i32 3
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %i2) #14
-  ret i32** %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"struct.std::__1::__split_buffer"*, align 8
+  store %"struct.std::__1::__split_buffer"* %this, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %this1 = load %"struct.std::__1::__split_buffer"*, %"struct.std::__1::__split_buffer"** %this.addr, align 8
+  %__end_cap_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 3
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %__end_cap_) #14
+  ret i32** %call
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %arg) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__compressed_pair.2"*, align 8
-  store %"class.std::__1::__compressed_pair.2"* %arg, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %i, align 8
-  %i2 = bitcast %"class.std::__1::__compressed_pair.2"* %i1 to %"struct.std::__1::__compressed_pair_elem"*
-  %i3 = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i2) #14
-  ret i32** %i3
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv(%"class.std::__1::__compressed_pair.2"* %this) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__compressed_pair.2"*, align 8
+  store %"class.std::__1::__compressed_pair.2"* %this, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %this1 = load %"class.std::__1::__compressed_pair.2"*, %"class.std::__1::__compressed_pair.2"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::__compressed_pair.2"* %this1 to %"struct.std::__1::__compressed_pair_elem"*
+  %call = call nonnull align 8 dereferenceable(8) i32** @_ZNKSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv(%"struct.std::__1::__compressed_pair_elem"* %i) #14
+  ret i32** %call
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJRKiEEEvDpOT_(%"class.std::__1::vector"* %arg, i32* nonnull align 4 dereferenceable(4) %arg1) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i32*, align 8
-  %i3 = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", align 8
-  %i4 = alloca i8*, align 8
-  %i5 = alloca i32, align 4
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i6 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %i6, i64 1)
-  %i7 = bitcast %"class.std::__1::vector"* %i6 to %"class.std::__1::__vector_base"*
-  %i8 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i7) #14
-  %i9 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3, i32 0, i32 1
-  %i10 = load i32*, i32** %i9, align 8
-  %i11 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i10) #14
-  %i12 = load i32*, i32** %i2, align 8
-  %i13 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i12) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i8, i32* %i11, i32* nonnull align 4 dereferenceable(4) %i13)
-  br label %bb14
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJRKiEEEvDpOT_(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__args) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__args.addr = alloca i32*, align 8
+  %__tx = alloca %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", align 8
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %call = call %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx, %"class.std::__1::vector"* nonnull align 8 dereferenceable(24) %this1, i64 1)
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call2 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i) #14
+  %__pos_ = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx, i32 0, i32 1
+  %i1 = load i32*, i32** %__pos_, align 8
+  %call3 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i1) #14
+  %i2 = load i32*, i32** %__args.addr, align 8
+  %call4 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i2) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call2, i32* %call3, i32* nonnull align 4 dereferenceable(4) %call4)
+  br label %invoke.cont
 
-bb14:                                             ; preds = %bb
-  %i15 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3, i32 0, i32 1
-  %i16 = load i32*, i32** %i15, align 8
-  %i17 = getelementptr inbounds i32, i32* %i16, i32 1
-  store i32* %i17, i32** %i15, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %i3) #14
+invoke.cont:                                      ; preds = %entry
+  %__pos_5 = getelementptr inbounds %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction", %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx, i32 0, i32 1
+  %i3 = load i32*, i32** %__pos_5, align 8
+  %incdec.ptr = getelementptr i32, i32* %i3, i32 1
+  store i32* %incdec.ptr, i32** %__pos_5, align 8
+  %call6 = call %"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* @_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev(%"struct.std::__1::vector<int, std::__1::allocator<int>>::_ConstructTransaction"* %__tx) #14
   ret void
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIRKiEEvOT_(%"class.std::__1::vector"* %arg, i32* nonnull align 4 dereferenceable(4) %arg1) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::vector"*, align 8
-  %i2 = alloca i32*, align 8
-  %i3 = alloca %"class.std::__1::allocator"*, align 8
-  %i4 = alloca %"struct.std::__1::__split_buffer", align 8
-  %i5 = alloca i8*, align 8
-  %i6 = alloca i32, align 4
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i7 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i, align 8
-  %i8 = bitcast %"class.std::__1::vector"* %i7 to %"class.std::__1::__vector_base"*
-  %i9 = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i8) #14
-  store %"class.std::__1::allocator"* %i9, %"class.std::__1::allocator"** %i3, align 8
-  %i10 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i7) #14
-  %i11 = add i64 %i10, 1
-  %i12 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm(%"class.std::__1::vector"* %i7, i64 %i11)
-  %i13 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %i7) #14
-  %i14 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i3, align 8
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_(%"struct.std::__1::__split_buffer"* %i4, i64 %i12, i64 %i13, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i14)
-  %i15 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i3, align 8
-  %i16 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i4, i32 0, i32 2
-  %i17 = load i32*, i32** %i16, align 8
-  %i18 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i17) #14
-  %i19 = load i32*, i32** %i2, align 8
-  %i20 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i19) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i15, i32* %i18, i32* nonnull align 4 dereferenceable(4) %i20)
-  br label %bb21
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIRKiEEvOT_(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__x) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__x.addr = alloca i32*, align 8
+  %__a = alloca %"class.std::__1::allocator"*, align 8
+  %__v = alloca %"struct.std::__1::__split_buffer", align 8
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__x, i32** %__x.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
+  %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %i) #14
+  store %"class.std::__1::allocator"* %call, %"class.std::__1::allocator"** %__a, align 8
+  %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this1) #14
+  %add = add i64 %call2, 1
+  %call3 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm(%"class.std::__1::vector"* %this1, i64 %add)
+  %call4 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this1) #14
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a, align 8
+  %call5 = call %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_(%"struct.std::__1::__split_buffer"* %__v, i64 %call3, i64 %call4, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1)
+  %i2 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a, align 8
+  %__end_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %__v, i32 0, i32 2
+  %i3 = load i32*, i32** %__end_, align 8
+  %call6 = call i32* @_ZNSt3__112__to_addressIiEEPT_S2_(i32* %i3) #14
+  %i4 = load i32*, i32** %__x.addr, align 8
+  %call7 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i4) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i2, i32* %call6, i32* nonnull align 4 dereferenceable(4) %call7)
+  br label %invoke.cont
 
-bb21:                                             ; preds = %bb
-  %i22 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %i4, i32 0, i32 2
-  %i23 = load i32*, i32** %i22, align 8
-  %i24 = getelementptr inbounds i32, i32* %i23, i32 1
-  store i32* %i24, i32** %i22, align 8
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__swap_out_circular_bufferERNS_14__split_bufferIiRS2_EE(%"class.std::__1::vector"* %i7, %"struct.std::__1::__split_buffer"* nonnull align 8 dereferenceable(40) %i4)
-  br label %bb25
+invoke.cont:                                      ; preds = %entry
+  %__end_8 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %__v, i32 0, i32 2
+  %i5 = load i32*, i32** %__end_8, align 8
+  %incdec.ptr = getelementptr i32, i32* %i5, i32 1
+  store i32* %incdec.ptr, i32** %__end_8, align 8
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE26__swap_out_circular_bufferERNS_14__split_bufferIiRS2_EE(%"class.std::__1::vector"* %this1, %"struct.std::__1::__split_buffer"* nonnull align 8 dereferenceable(40) %__v)
+  br label %invoke.cont9
 
-bb25:                                             ; preds = %bb21
-  call void @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED1Ev(%"struct.std::__1::__split_buffer"* %i4) #14
+invoke.cont9:                                     ; preds = %invoke.cont
+  %call10 = call %"struct.std::__1::__split_buffer"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEED1Ev(%"struct.std::__1::__split_buffer"* %__v) #14
   ret void
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1, i32* nonnull align 4 dereferenceable(4) %arg2) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  %i4 = alloca i32*, align 8
-  %i5 = alloca %"struct.std::__1::integral_constant", align 1
-  %i6 = alloca %"struct.std::__1::__has_construct.5", align 1
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i3, align 8
-  store i32* %arg2, i32** %i4, align 8
-  %i7 = bitcast %"struct.std::__1::__has_construct.5"* %i6 to %"struct.std::__1::integral_constant"*
-  %i8 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i9 = load i32*, i32** %i3, align 8
-  %i10 = load i32*, i32** %i4, align 8
-  %i11 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i10) #14
-  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJRKiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i8, i32* %i9, i32* nonnull align 4 dereferenceable(4) %i11)
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p, i32* nonnull align 4 dereferenceable(4) %__args) #0 align 2 {
+entry:
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__args.addr = alloca i32*, align 8
+  %agg.tmp = alloca %"struct.std::__1::integral_constant", align 1
+  %ref.tmp = alloca %"struct.std::__1::__has_construct.5", align 1
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %i = bitcast %"struct.std::__1::__has_construct.5"* %ref.tmp to %"struct.std::__1::integral_constant"*
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i2 = load i32*, i32** %__p.addr, align 8
+  %i3 = load i32*, i32** %__args.addr, align 8
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i3) #14
+  call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJRKiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1, i32* %i2, i32* nonnull align 4 dereferenceable(4) %call)
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %arg) #1 {
-bb:
-  %i = alloca i32*, align 8
-  store i32* %arg, i32** %i, align 8
-  %i1 = load i32*, i32** %i, align 8
-  ret i32* %i1
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %__t) #1 {
+entry:
+  %__t.addr = alloca i32*, align 8
+  store i32* %__t, i32** %__t.addr, align 8
+  %i = load i32*, i32** %__t.addr, align 8
+  ret i32* %i
 }
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJRKiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %arg, i32* %arg1, i32* nonnull align 4 dereferenceable(4) %arg2) #0 align 2 {
-bb:
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJRKiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %__a, i32* %__p, i32* nonnull align 4 dereferenceable(4) %__args) #0 align 2 {
+entry:
   %i = alloca %"struct.std::__1::integral_constant", align 1
-  %i3 = alloca %"class.std::__1::allocator"*, align 8
-  %i4 = alloca i32*, align 8
-  %i5 = alloca i32*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i3, align 8
-  store i32* %arg1, i32** %i4, align 8
-  store i32* %arg2, i32** %i5, align 8
-  %i6 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i3, align 8
-  %i7 = load i32*, i32** %i4, align 8
-  %i8 = load i32*, i32** %i5, align 8
-  %i9 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i8) #14
-  call void @_ZNSt3__19allocatorIiE9constructIiJRKiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %i6, i32* %i7, i32* nonnull align 4 dereferenceable(4) %i9)
+  %__a.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__args.addr = alloca i32*, align 8
+  store %"class.std::__1::allocator"* %__a, %"class.std::__1::allocator"** %__a.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %i1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %__a.addr, align 8
+  %i2 = load i32*, i32** %__p.addr, align 8
+  %i3 = load i32*, i32** %__args.addr, align 8
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i3) #14
+  call void @_ZNSt3__19allocatorIiE9constructIiJRKiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %i1, i32* %i2, i32* nonnull align 4 dereferenceable(4) %call)
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr void @_ZNSt3__19allocatorIiE9constructIiJRKiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %arg, i32* %arg1, i32* nonnull align 4 dereferenceable(4) %arg2) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::allocator"*, align 8
-  %i3 = alloca i32*, align 8
-  %i4 = alloca i32*, align 8
-  store %"class.std::__1::allocator"* %arg, %"class.std::__1::allocator"** %i, align 8
-  store i32* %arg1, i32** %i3, align 8
-  store i32* %arg2, i32** %i4, align 8
-  %i5 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %i, align 8
-  %i6 = load i32*, i32** %i3, align 8
-  %i7 = bitcast i32* %i6 to i8*
-  %i8 = bitcast i8* %i7 to i32*
-  %i9 = load i32*, i32** %i4, align 8
-  %i10 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i9) #14
-  %i11 = load i32, i32* %i10, align 4
-  store i32 %i11, i32* %i8, align 4
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr void @_ZNSt3__19allocatorIiE9constructIiJRKiEEEvPT_DpOT0_(%"class.std::__1::allocator"* %this, i32* %__p, i32* nonnull align 4 dereferenceable(4) %__args) #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::allocator"*, align 8
+  %__p.addr = alloca i32*, align 8
+  %__args.addr = alloca i32*, align 8
+  store %"class.std::__1::allocator"* %this, %"class.std::__1::allocator"** %this.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  store i32* %__args, i32** %__args.addr, align 8
+  %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
+  %i = load i32*, i32** %__p.addr, align 8
+  %i1 = bitcast i32* %i to i8*
+  %i2 = bitcast i8* %i1 to i32*
+  %i3 = load i32*, i32** %__args.addr, align 8
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE(i32* nonnull align 4 dereferenceable(4) %i3) #14
+  %i4 = load i32, i32* %call, align 4
+  store i32 %i4, i32* %i2, align 4
   ret void
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEE11__make_iterEPi(%"class.std::__1::vector"* %arg, i32* %arg1) #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter.1", align 8
-  %i2 = alloca %"class.std::__1::vector"*, align 8
-  %i3 = alloca i32*, align 8
-  store %"class.std::__1::vector"* %arg, %"class.std::__1::vector"** %i2, align 8
-  store i32* %arg1, i32** %i3, align 8
-  %i4 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %i2, align 8
-  %i5 = load i32*, i32** %i3, align 8
-  call void @_ZNSt3__111__wrap_iterIPiEC1ES1_(%"class.std::__1::__wrap_iter.1"* %i, i32* %i5) #14
-  %i6 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i, i32 0, i32 0
-  %i7 = load i32*, i32** %i6, align 8
-  ret i32* %i7
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden i64 @_ZNSt3__16vectorIiNS_9allocatorIiEEE11__make_iterEPi(%"class.std::__1::vector"* %this, i32* %__p) #1 align 2 {
+entry:
+  %retval = alloca %"class.std::__1::__wrap_iter.1", align 8
+  %this.addr = alloca %"class.std::__1::vector"*, align 8
+  %__p.addr = alloca i32*, align 8
+  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
+  store i32* %__p, i32** %__p.addr, align 8
+  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
+  %i = load i32*, i32** %__p.addr, align 8
+  %call = call %"class.std::__1::__wrap_iter.1"* @_ZNSt3__111__wrap_iterIPiEC1ES1_(%"class.std::__1::__wrap_iter.1"* %retval, i32* %i) #14
+  %coerce.dive = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %retval, i32 0, i32 0
+  %i1 = load i32*, i32** %coerce.dive, align 8
+  %coerce.val.pi = ptrtoint i32* %i1 to i64
+  ret i64 %coerce.val.pi
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__111__wrap_iterIPiEC1ES1_(%"class.std::__1::__wrap_iter.1"* %arg, i32* %arg1) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  %i2 = alloca i32*, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg, %"class.std::__1::__wrap_iter.1"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i3 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i, align 8
-  %i4 = load i32*, i32** %i2, align 8
-  call void @_ZNSt3__111__wrap_iterIPiEC2ES1_(%"class.std::__1::__wrap_iter.1"* %i3, i32* %i4) #14
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::__wrap_iter.1"* @_ZNSt3__111__wrap_iterIPiEC1ES1_(%"class.std::__1::__wrap_iter.1"* returned %this, i32* %__x) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  %__x.addr = alloca i32*, align 8
+  store %"class.std::__1::__wrap_iter.1"* %this, %"class.std::__1::__wrap_iter.1"** %this.addr, align 8
+  store i32* %__x, i32** %__x.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %this.addr, align 8
+  %i = load i32*, i32** %__x.addr, align 8
+  %call = call %"class.std::__1::__wrap_iter.1"* @_ZNSt3__111__wrap_iterIPiEC2ES1_(%"class.std::__1::__wrap_iter.1"* %this1, i32* %i) #14
+  ret %"class.std::__1::__wrap_iter.1"* %this1
 }
 
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden void @_ZNSt3__111__wrap_iterIPiEC2ES1_(%"class.std::__1::__wrap_iter.1"* %arg, i32* %arg1) unnamed_addr #1 align 2 {
-bb:
-  %i = alloca %"class.std::__1::__wrap_iter.1"*, align 8
-  %i2 = alloca i32*, align 8
-  store %"class.std::__1::__wrap_iter.1"* %arg, %"class.std::__1::__wrap_iter.1"** %i, align 8
-  store i32* %arg1, i32** %i2, align 8
-  %i3 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %i, align 8
-  %i4 = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %i3, i32 0, i32 0
-  %i5 = load i32*, i32** %i2, align 8
-  store i32* %i5, i32** %i4, align 8
-  ret void
+; Function Attrs: noinline nounwind optnone sspstrong uwtable
+define linkonce_odr hidden %"class.std::__1::__wrap_iter.1"* @_ZNSt3__111__wrap_iterIPiEC2ES1_(%"class.std::__1::__wrap_iter.1"* returned %this, i32* %__x) unnamed_addr #1 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::__wrap_iter.1"*, align 8
+  %__x.addr = alloca i32*, align 8
+  store %"class.std::__1::__wrap_iter.1"* %this, %"class.std::__1::__wrap_iter.1"** %this.addr, align 8
+  store i32* %__x, i32** %__x.addr, align 8
+  %this1 = load %"class.std::__1::__wrap_iter.1"*, %"class.std::__1::__wrap_iter.1"** %this.addr, align 8
+  %__i = getelementptr inbounds %"class.std::__1::__wrap_iter.1", %"class.std::__1::__wrap_iter.1"* %this1, i32 0, i32 0
+  %i = load i32*, i32** %__x.addr, align 8
+  store i32* %i, i32** %__i, align 8
+  ret %"class.std::__1::__wrap_iter.1"* %this1
 }
 
 declare nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE3putEc(%"class.std::__1::basic_ostream"*, i8 signext) #3
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden signext i8 @_ZNKSt3__19basic_iosIcNS_11char_traitsIcEEE5widenEc(%"class.std::__1::basic_ios"* %arg, i8 signext %arg1) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
-bb:
-  %i = alloca %"class.std::__1::basic_ios"*, align 8
-  %i2 = alloca i8, align 1
-  %i3 = alloca %"class.std::__1::locale", align 8
-  %i4 = alloca i8*, align 8
-  %i5 = alloca i32, align 4
-  store %"class.std::__1::basic_ios"* %arg, %"class.std::__1::basic_ios"** %i, align 8
-  store i8 %arg1, i8* %i2, align 1
-  %i6 = load %"class.std::__1::basic_ios"*, %"class.std::__1::basic_ios"** %i, align 8
-  %i7 = bitcast %"class.std::__1::basic_ios"* %i6 to %"class.std::__1::ios_base"*
-  call void @_ZNKSt3__18ios_base6getlocEv(%"class.std::__1::locale"* sret align 8 %i3, %"class.std::__1::ios_base"* %i7)
-  %i8 = call nonnull align 8 dereferenceable(25) %"class.std::__1::ctype"* @_ZNSt3__19use_facetINS_5ctypeIcEEEERKT_RKNS_6localeE(%"class.std::__1::locale"* nonnull align 8 dereferenceable(8) %i3)
-  br label %bb9
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden signext i8 @_ZNKSt3__19basic_iosIcNS_11char_traitsIcEEE5widenEc(%"class.std::__1::basic_ios"* %this, i8 signext %__c) #0 align 2 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+entry:
+  %this.addr = alloca %"class.std::__1::basic_ios"*, align 8
+  %__c.addr = alloca i8, align 1
+  %ref.tmp = alloca %"class.std::__1::locale", align 8
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  store %"class.std::__1::basic_ios"* %this, %"class.std::__1::basic_ios"** %this.addr, align 8
+  store i8 %__c, i8* %__c.addr, align 1
+  %this1 = load %"class.std::__1::basic_ios"*, %"class.std::__1::basic_ios"** %this.addr, align 8
+  %i = bitcast %"class.std::__1::basic_ios"* %this1 to %"class.std::__1::ios_base"*
+  call void @_ZNKSt3__18ios_base6getlocEv(%"class.std::__1::locale"* sret align 8 %ref.tmp, %"class.std::__1::ios_base"* %i)
+  %call = call nonnull align 8 dereferenceable(25) %"class.std::__1::ctype"* @_ZNSt3__19use_facetINS_5ctypeIcEEEERKT_RKNS_6localeE(%"class.std::__1::locale"* nonnull align 8 dereferenceable(8) %ref.tmp)
+  br label %invoke.cont
 
-bb9:                                              ; preds = %bb
-  %i10 = load i8, i8* %i2, align 1
-  %i11 = call signext i8 @_ZNKSt3__15ctypeIcE5widenEc(%"class.std::__1::ctype"* %i8, i8 signext %i10)
-  br label %bb12
+invoke.cont:                                      ; preds = %entry
+  %i1 = load i8, i8* %__c.addr, align 1
+  %call3 = call signext i8 @_ZNKSt3__15ctypeIcE5widenEc(%"class.std::__1::ctype"* %call, i8 signext %i1)
+  br label %invoke.cont2
 
-bb12:                                             ; preds = %bb9
-  call void @_ZNSt3__16localeD1Ev(%"class.std::__1::locale"* %i3) #14
-  ret i8 %i11
+invoke.cont2:                                     ; preds = %invoke.cont
+  %call4 = call %"class.std::__1::locale"* @_ZNSt3__16localeD1Ev(%"class.std::__1::locale"* %ref.tmp) #14
+  ret i8 %call3
 }
 
 declare nonnull align 8 dereferenceable(8) %"class.std::__1::basic_ostream"* @_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE5flushEv(%"class.std::__1::basic_ostream"*) #3
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden nonnull align 8 dereferenceable(25) %"class.std::__1::ctype"* @_ZNSt3__19use_facetINS_5ctypeIcEEEERKT_RKNS_6localeE(%"class.std::__1::locale"* nonnull align 8 dereferenceable(8) %arg) #0 {
-bb:
-  %i = alloca %"class.std::__1::locale"*, align 8
-  store %"class.std::__1::locale"* %arg, %"class.std::__1::locale"** %i, align 8
-  %i1 = load %"class.std::__1::locale"*, %"class.std::__1::locale"** %i, align 8
-  %i2 = call %"class.std::__1::locale::facet"* @_ZNKSt3__16locale9use_facetERNS0_2idE(%"class.std::__1::locale"* %i1, %"class.std::__1::locale::id"* nonnull align 8 dereferenceable(12) @_ZNSt3__15ctypeIcE2idE)
-  %i3 = bitcast %"class.std::__1::locale::facet"* %i2 to %"class.std::__1::ctype"*
-  ret %"class.std::__1::ctype"* %i3
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden nonnull align 8 dereferenceable(25) %"class.std::__1::ctype"* @_ZNSt3__19use_facetINS_5ctypeIcEEEERKT_RKNS_6localeE(%"class.std::__1::locale"* nonnull align 8 dereferenceable(8) %__l) #0 {
+entry:
+  %__l.addr = alloca %"class.std::__1::locale"*, align 8
+  store %"class.std::__1::locale"* %__l, %"class.std::__1::locale"** %__l.addr, align 8
+  %i = load %"class.std::__1::locale"*, %"class.std::__1::locale"** %__l.addr, align 8
+  %call = call %"class.std::__1::locale::facet"* @_ZNKSt3__16locale9use_facetERNS0_2idE(%"class.std::__1::locale"* %i, %"class.std::__1::locale::id"* nonnull align 8 dereferenceable(12) @_ZNSt3__15ctypeIcE2idE)
+  %i1 = bitcast %"class.std::__1::locale::facet"* %call to %"class.std::__1::ctype"*
+  ret %"class.std::__1::ctype"* %i1
 }
 
 declare void @_ZNKSt3__18ios_base6getlocEv(%"class.std::__1::locale"* sret align 8, %"class.std::__1::ios_base"*) #3
 
-; Function Attrs: noinline optnone ssp uwtable
-define linkonce_odr hidden signext i8 @_ZNKSt3__15ctypeIcE5widenEc(%"class.std::__1::ctype"* %arg, i8 signext %arg1) #0 align 2 {
-bb:
-  %i = alloca %"class.std::__1::ctype"*, align 8
-  %i2 = alloca i8, align 1
-  store %"class.std::__1::ctype"* %arg, %"class.std::__1::ctype"** %i, align 8
-  store i8 %arg1, i8* %i2, align 1
-  %i3 = load %"class.std::__1::ctype"*, %"class.std::__1::ctype"** %i, align 8
-  %i4 = load i8, i8* %i2, align 1
-  %i5 = bitcast %"class.std::__1::ctype"* %i3 to i8 (%"class.std::__1::ctype"*, i8)***
-  %i6 = load i8 (%"class.std::__1::ctype"*, i8)**, i8 (%"class.std::__1::ctype"*, i8)*** %i5, align 8
-  %i7 = getelementptr inbounds i8 (%"class.std::__1::ctype"*, i8)*, i8 (%"class.std::__1::ctype"*, i8)** %i6, i64 7
-  %i8 = load i8 (%"class.std::__1::ctype"*, i8)*, i8 (%"class.std::__1::ctype"*, i8)** %i7, align 8
-  %i9 = call signext i8 %i8(%"class.std::__1::ctype"* %i3, i8 signext %i4)
-  ret i8 %i9
+; Function Attrs: noinline optnone sspstrong uwtable
+define linkonce_odr hidden signext i8 @_ZNKSt3__15ctypeIcE5widenEc(%"class.std::__1::ctype"* %this, i8 signext %__c) #0 align 2 {
+entry:
+  %this.addr = alloca %"class.std::__1::ctype"*, align 8
+  %__c.addr = alloca i8, align 1
+  store %"class.std::__1::ctype"* %this, %"class.std::__1::ctype"** %this.addr, align 8
+  store i8 %__c, i8* %__c.addr, align 1
+  %this1 = load %"class.std::__1::ctype"*, %"class.std::__1::ctype"** %this.addr, align 8
+  %i = load i8, i8* %__c.addr, align 1
+  %i1 = bitcast %"class.std::__1::ctype"* %this1 to i8 (%"class.std::__1::ctype"*, i8)***
+  %vtable = load i8 (%"class.std::__1::ctype"*, i8)**, i8 (%"class.std::__1::ctype"*, i8)*** %i1, align 8
+  %vfn = getelementptr inbounds i8 (%"class.std::__1::ctype"*, i8)*, i8 (%"class.std::__1::ctype"*, i8)** %vtable, i64 7
+  %i2 = load i8 (%"class.std::__1::ctype"*, i8)*, i8 (%"class.std::__1::ctype"*, i8)** %vfn, align 8
+  %call = call signext i8 %i2(%"class.std::__1::ctype"* %this1, i8 signext %i)
+  ret i8 %call
 }
 
 ; Function Attrs: nounwind
-declare void @_ZNSt3__16localeD1Ev(%"class.std::__1::locale"*) unnamed_addr #9
+declare %"class.std::__1::locale"* @_ZNSt3__16localeD1Ev(%"class.std::__1::locale"* returned) unnamed_addr #9
 
 declare %"class.std::__1::locale::facet"* @_ZNKSt3__16locale9use_facetERNS0_2idE(%"class.std::__1::locale"*, %"class.std::__1::locale::id"* nonnull align 8 dereferenceable(12)) #3
 
-attributes #0 = { noinline optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noinline nounwind optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { noinline norecurse optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #4 = { nobuiltin allocsize(0) "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { noinline optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { noinline nounwind optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { noinline norecurse optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #3 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #4 = { nobuiltin allocsize(0) "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #5 = { argmemonly nounwind willreturn writeonly }
 attributes #6 = { noinline noreturn nounwind }
-attributes #7 = { noreturn "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #8 = { noinline noreturn optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #9 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #7 = { noreturn "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #8 = { noinline noreturn optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #9 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #10 = { nounwind willreturn }
 attributes #11 = { argmemonly nounwind willreturn }
-attributes #12 = { nobuiltin nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #12 = { nobuiltin nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #13 = { builtin allocsize(0) }
 attributes #14 = { nounwind }
 attributes #15 = { noreturn nounwind }
 attributes #16 = { noreturn }
 attributes #17 = { builtin nounwind }
 
-!llvm.module.flags = !{!0, !1, !2}
-!llvm.ident = !{!3}
+!llvm.module.flags = !{!0, !1}
+!llvm.ident = !{!2}
 
-!0 = !{i32 2, !"SDK Version", [2 x i32] [i32 11, i32 3]}
-!1 = !{i32 1, !"wchar_size", i32 4}
-!2 = !{i32 7, !"PIC Level", i32 2}
-!3 = !{!"Homebrew clang version 11.1.0"}
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{i32 7, !"PIC Level", i32 2}
+!2 = !{!"clang version 11.1.0"}
