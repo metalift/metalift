@@ -520,6 +520,7 @@ class VCVisitor:
         )
         for arg in self.fn_args:
             self.write_var_to_block(block.name, arg.name(), arg)
+        # TODO: does store here have any problems
         for arg in self.fn_sret_args:
             self.store_var_to_block(block.name, arg.name(), arg)
 

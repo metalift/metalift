@@ -39,14 +39,16 @@ def list_length(
 def list_get(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
+    import pdb; pdb.set_trace()
     return ReturnValue(Call("list_get", Int(), regs[args[0].name], regs[args[1].name]), None)
 
 
 def list_append(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
+    # import pdb; pdb.set_trace()
     return ReturnValue(
-        Call("list_append", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name]),
+        Call("list_append", parse_type_ref(args[0].type), mem[args[0].name], regs[args[1].name]),
         None,
     )
 
@@ -113,6 +115,8 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # TODO add mangle name for list_concat
     "vector": new_list,
     "size": list_length,
+    "push_back": list_append,
+    "operator[]": list_get,
     "_Z7newListIiEP4listIT_Ev": new_list,
     "_Z10listLengthIiEiP4listIT_E": list_length,
     "_Z7listGetIiET_P4listIS0_Ei": list_get,
