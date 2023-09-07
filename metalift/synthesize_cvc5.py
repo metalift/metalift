@@ -67,7 +67,7 @@ def generateCandidates(
                     if isinstance(v, Expr):
                         args[v.args[0]] = v.type
                     else:
-                        args[v.name] = parseTypeRef(v.type)
+                        args[v.name] = parse_type_ref(v.type)
 
                 candidatesExpr[a[0]] = toExpr(a[1], funName, returnType, args, {})
                 candidates.append(

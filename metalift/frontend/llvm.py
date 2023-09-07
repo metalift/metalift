@@ -10,12 +10,12 @@ from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
-from metalift.ir import (Add, And, Bool, Call, Eq, Expr, FnDecl,
+from metalift.ir import (Add, And, Bool, BoolLit, Call, Eq, Expr, FnDecl,
                          FnDeclRecursive, FnT, Gt, Implies, Int, Ite, Le,
                          ListT, Lit, Lt, Mul, Not, Object, Or, Pointer, SetT,
-                         Sub, Synth, TupleT)
+                         Sub, Synth, TupleT, Type)
 from metalift.ir import Type as MLType
-from metalift.ir import Var, parseTypeRef
+from metalift.ir import Var, parse_type_ref
 from metalift.synthesize_auto import \
     synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
@@ -149,7 +149,7 @@ def find_return_type(fn_ref: ValueRef, blocks: Iterable[ValueRef]) -> MLType:
             else:
                 raise Exception("multiple sret arguments: %s and %s" % (sret_arg, arg))
     if sret_arg is not None:
-        return parseTypeRef(sret_arg.type)
+        return parse_type_ref(sret_arg.type)
 
     # If there are no sret args, we try to find the return type by parsing the ret instructions
     return_type = None
@@ -157,7 +157,7 @@ def find_return_type(fn_ref: ValueRef, blocks: Iterable[ValueRef]) -> MLType:
         final_instruction = block.instructions[-1]
         if final_instruction.opcode == "ret":
             ops = list(final_instruction.operands)
-            curr_return_type = parseTypeRef(ops[0].type)
+            curr_return_type = parse_type_ref(ops[0].type)
             if return_type is not None and return_type != curr_return_type:
                 raise Exception("Return types are not consistent across blocks!")
             return_type = curr_return_type
@@ -200,12 +200,25 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                         )
                         # print("inst: %s" % i)
 
+def get_demangled_name(maybe_mangled_name: str) -> Optional[str]:
+    # Note: this function does not raise exception, it's up to the caller to raise exceptions if the name cannot be demangled
+    result = subprocess.run(["c++filt", "-n", maybe_mangled_name], stdout=subprocess.PIPE, check=True)
+    stdout = result.stdout.decode("utf-8").strip()
+    match = re.match(f"^(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)\(.*\)( const)?$", stdout)
+    if match is not None:
+        return match.group(2)
+
+    match = re.match(f"^([a-zA-Z0-9_]+)\(.*\)$", stdout)
+    if match is not None:
+        return match.group(1)
+
+    return None
 
 LLVMVar = NamedTuple(
     "LLVMVar",
     [
         ("var_name", str),
-        ("var_type", TypeRef),
+        ("var_type", Type),
     ],
 )
 
@@ -215,6 +228,7 @@ class State:
     precond: List[Expr]
     primitive_vars: Dict[str, Expr]
     pointer_vars: Dict[str, Expr]
+    double_pointer_vars: Dict[str, Expr]
     asserts: List[Expr]
     has_returned: bool
     processed: bool
@@ -224,12 +238,14 @@ class State:
         precond: Optional[List[Expr]] = None,
         primitive_vars: Optional[Dict[str, Expr]] = None,
         pointer_vars: Optional[Dict[str, Expr]] = None,
+        double_pointer_vars: Optional[Dict[str, Expr]] = None,
         asserts: Optional[List[Expr]] = None,
         has_returned: bool = False,
     ) -> None:
         self.precond = precond or []
         self.primitive_vars = primitive_vars or {}
         self.pointer_vars = pointer_vars or {}
+        self.double_pointer_vars = double_pointer_vars or {}
         self.asserts = asserts or []
         self.has_returned = has_returned if not has_returned else has_returned
         self.processed = False
@@ -262,6 +278,11 @@ class State:
             raise Exception("Cannot store value into an operand without name")
         self.pointer_vars[op.name] = value
 
+    def double_store_operand(self, op: ValueRef, value: Expr) -> Expr:
+        if not op.name:
+            raise Exception("Cannot double store value into an operand without name")
+        self.double_pointer_vars[op.name] = value
+
     def read_var(self, var_name: str) -> Expr:
         if var_name in self.primitive_vars.keys():
             return self.primitive_vars[var_name]
@@ -277,6 +298,9 @@ class State:
 
     def store_var(self, var_name: str, value: Expr) -> Expr:
         self.pointer_vars[var_name] = value
+
+    def double_store_var(self, var_name: str, value: Expr) -> Expr:
+        self.double_pointer_vars[var_name] = value
 
     def read_or_load_var(self, var_name: str) -> Expr:
         if var_name in self.primitive_vars.keys():
@@ -437,6 +461,10 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_operand(op, val)
 
+    def double_store_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.store_operand(op, val)
+
     def write_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_var(var_name, val)
@@ -444,6 +472,10 @@ class VCVisitor:
     def store_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
+
+    def double_store_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.double_store_var(var_name, val)
 
     # Helper functions for loops
     def find_header_loops(self, block_name: str) -> List[LoopInfo]:
@@ -470,7 +502,7 @@ class VCVisitor:
 
     def get_havocs(self, loop_info: LoopInfo) -> List[LLVMVar]:
         return [
-            LLVMVar(var.name, parseTypeRef(var.type))
+            LLVMVar(var.name, parse_type_ref(var.type))
             for var in loop_info.havocs
         ]
 
@@ -486,10 +518,16 @@ class VCVisitor:
             self.formals,
             self.ps_grammar,
         )
-        for arg in self.fn_args + self.fn_sret_args:
+        for arg in self.fn_args:
             self.write_var_to_block(block.name, arg.name(), arg)
+        for arg in self.fn_sret_args:
+            self.store_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
+        print(o)
+        print("Pointer vars", self.fn_blocks_states[block_name].pointer_vars)
+        print("Primitive vars", self.fn_blocks_states[block_name].primitive_vars)
+        # import pdb; pdb.set_trace()
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -607,8 +645,9 @@ class VCVisitor:
         header_loops = self.find_header_loops(block.name)
         for loop in header_loops:
             havocs = self.get_havocs(loop)
+
             for havoc in havocs:
-                new_value = self.var_tracker.variable(havoc.var_name, havoc.var_type)
+                new_value = self.var_tracker.variable(havoc.var_name, havoc.var_type.args[0])
                 self.store_var_to_block(block.name, havoc.var_name, new_value)
             inv = self.pred_tracker.invariant(
                 inv_name=f"{self.fn_name}_inv{self.loops.index(loop)}",
@@ -645,10 +684,17 @@ class VCVisitor:
             self.visit_instruction(block_name, instr)
 
     def visit_alloca_instruction(self, block_name: str, o: ValueRef) -> None:
+        print(o)
         # alloca <type>, align <num> or alloca <type>
         t = re.search("alloca ([^$|,]+)", str(o)).group(  # type: ignore
             1
         )  # bug: ops[0] always return i32 1 regardless of type
+        # TODO: clean up this code
+        if t == "i8*":
+            val = Lit(False, Bool())
+            self.double_store_var_to_block(block_name, o.name, val)
+            return
+
         if t == "i32":
             val = Lit(0, Int())
         elif t == "i8":
@@ -674,9 +720,6 @@ class VCVisitor:
                 raise Exception("failed to match struct %s: " % t)
 
             val = Object(MLType(tname))
-        elif t == "i8*":
-            # TODO (jie) this could be either a byte pointer or a pointer to a boolean
-            pass
         else:
             raise Exception("NYI: %s" % o)
 
@@ -686,13 +729,16 @@ class VCVisitor:
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
         loaded_value = self.load_operand_from_block(block_name, ops[0])
-
         self.write_operand_to_block(block_name, o, loaded_value)
 
     def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        value_to_store = self.read_operand_from_block(block_name, ops[0])
-        self.store_operand_to_block(block_name, ops[1], value_to_store)
+        if parse_type_ref(ops[0].type).name == "Pointer":
+            value_to_store = self.load_operand_from_block(block_name, ops[0])
+            self.double_store_operand_to_block(block_name, ops[1], value_to_store)
+        else:
+            value_to_store = self.read_operand_from_block(block_name, ops[0])
+            self.store_operand_to_block(block_name, ops[1], value_to_store)
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -765,13 +811,18 @@ class VCVisitor:
 
     def visit_ret_instruction(self, block_name: str, o: ValueRef) -> None:
         # TODO: hanlde ret void
+        import pdb; pdb.set_trace()
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
+        if len(ops) == 0 and len(self.fn_sret_args) == 1:
+            ret_val = self.fn_sret_args[0]
+        else:
+            ret_val = self.read_operand_from_block(block_name, ops[0])
         ps = Call(
             self.pred_tracker.predicates[self.fn_name].name,
             Bool(),
             *self.fn_args,
-            self.read_operand_from_block(block_name, ops[0]),
+            ret_val
         )
         if blk_state.precond:
             blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), ps))
@@ -784,16 +835,33 @@ class VCVisitor:
         s = self.fn_blocks_states[block_name]
 
         ops = list(o.operands)
-        fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
-        if fnName == "":
+        raw_fn_name = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+        if raw_fn_name == "":
             # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
-            fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
-        if fnName in models.fnModels:
+            fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
+        else:
+            fn_name = get_demangled_name(raw_fn_name)
+
+        if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # TODO(colin): migrate over the rest of modeled functions to new structure
-            rv = models.fnModels[fnName](s.primitive_vars, s.pointer_vars, {}, *ops[:-1])
+            if fn_name == "vector":
+                print("hehe", o)
+                rv = models.new_vector(
+                    s.primitive_vars,
+                    s.pointer_vars,
+                    s.double_pointer_vars,
+                    {},
+                    *ops[:-1]
+                )
+                for k, v in rv.assigns:
+                    self.store_operand_to_block(block_name=block_name,op=ops[:-1][0],val=v)
+                return
+            rv = models.fn_models[fn_name](s.primitive_vars, s.pointer_vars, {}, *ops[:-1])
             if rv.val:
+                if o.name == "":
+                    return
                 self.write_operand_to_block(block_name=block_name,op=o,val=rv.val)
             if rv.assigns:
                 for k, v in rv.assigns:
@@ -911,9 +979,8 @@ class MetaliftFunc:
         # raw_fn_name is potentially-mangled name of fn_name
         fn_ref, raw_fn_name = None, None
         for func in functions:
-            result = subprocess.run(["c++filt", "-n", func.name], stdout=subprocess.PIPE, check=True)
-            stdout = result.stdout.decode("utf-8").strip()
-            if re.match(f"^{fn_name}\(.*\)$", stdout) or re.match(f"^{fn_name}$", stdout):
+            demangled_name = get_demangled_name(func.name)
+            if fn_name == demangled_name:
                 fn_ref = ref.get_function(func.name)
                 raw_fn_name = func.name
         if fn_ref is None:
@@ -926,7 +993,7 @@ class MetaliftFunc:
         return_type = find_return_type(fn_ref, self.fn_blocks.values())
         self.fn_args = list(filter(lambda arg: not is_sret_arg(arg), fn_ref.arguments))
         self.fn_sret_args = list(filter(lambda arg: is_sret_arg(arg), fn_ref.arguments))
-        fn_args_types = [parseTypeRef(a.type) for a in self.fn_args]
+        fn_args_types = [parse_type_ref(a.type) for a in self.fn_args]
         self.fn_type = FnT(return_type, fn_args_types)
 
         # Parse and process object functions
@@ -963,7 +1030,7 @@ class MetaliftFunc:
         # Make variables (exprs) for sret arguments
         fn_sret_args: List[Expr] = []
         for arg in self.fn_sret_args:
-            fn_sret_args.append(self.driver.var_tracker.variable(arg.name, parseTypeRef(arg.type)))
+            fn_sret_args.append(self.driver.var_tracker.variable(arg.name, parse_type_ref(arg.type)))
 
         v = VCVisitor(
             fn_name=self.fn_name,

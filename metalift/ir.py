@@ -151,6 +151,10 @@ def PointerT(elemT: Type) -> Type:
     return Type("Pointer", elemT)
 
 
+# Byte
+def Byte() -> Type:
+    return Type("Byte")
+
 T = TypeVar("T")
 
 
@@ -315,7 +319,7 @@ class Expr:
         if isinstance(other, Expr):
             if (
                 type(self) != type(other)
-                or parseTypeRef(self.type).erase() != parseTypeRef(other.type).erase()
+                or parse_type_ref(self.type).erase() != parse_type_ref(other.type).erase()
                 or len(self.args) != len(other.args)
             ):
                 return False
@@ -638,9 +642,9 @@ class Add(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+            if parse_type_ref(arg.type) != parse_type_ref(args[0].type):
                 raise Exception(
-                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+                    f"Args types not equal: {parse_type_ref(arg.type).erase()} and {parse_type_ref(args[0].type).erase()}"
                 )
         Expr.__init__(self, Int(), args)
 
@@ -663,9 +667,9 @@ class Sub(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+            if parse_type_ref(arg.type) != parse_type_ref(args[0].type):
                 raise Exception(
-                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+                    f"Args types not equal: {parse_type_ref(arg.type).erase()} and {parse_type_ref(args[0].type).erase()}"
                 )
         Expr.__init__(self, Int(), args)
 
@@ -688,9 +692,9 @@ class Mul(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parseTypeRef(arg.type) != parseTypeRef(args[0].type):
+            if parse_type_ref(arg.type) != parse_type_ref(args[0].type):
                 raise Exception(
-                    f"Args types not equal: {parseTypeRef(arg.type).erase()} and {parseTypeRef(args[0].type).erase()}"
+                    f"Args types not equal: {parse_type_ref(arg.type).erase()} and {parse_type_ref(args[0].type).erase()}"
                 )
         Expr.__init__(self, Int(), args)
 
@@ -711,9 +715,9 @@ class Eq(Expr):
     SMTName = "="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -740,9 +744,9 @@ class Lt(Expr):
     RosetteName = SMTName = "<"
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -768,9 +772,9 @@ class Le(Expr):
     RosetteName = SMTName = "<="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -796,9 +800,9 @@ class Gt(Expr):
     RosetteName = SMTName = ">"
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -824,9 +828,9 @@ class Ge(Expr):
     RosetteName = SMTName = ">="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parseTypeRef(e1.type).erase() == parseTypeRef(e2.type).erase()):
+        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parseTypeRef(e1.type).erase()} and {e2}: {parseTypeRef(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -948,7 +952,7 @@ class Ite(Expr):
             raise Exception(
                 f"ITE condition must be Boolean and not value of type {c.type}"
             )
-        if parseTypeRef(e1.type).erase() != parseTypeRef(e1.type).erase():
+        if parse_type_ref(e1.type).erase() != parse_type_ref(e1.type).erase():
             raise Exception(
                 f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
             )
@@ -1452,7 +1456,7 @@ class Synth(Expr):
         decls = "((rv %s) %s)" % (
             self.type.toSMT(),
             " ".join(
-                "(%s %s)" % ("v%d" % i, parseTypeRef(e.type).toSMT())
+                "(%s %s)" % ("v%d" % i, parse_type_ref(e.type).toSMT())
                 for i, e in enumerate(commonExprs)
             ),
         )
@@ -1466,7 +1470,7 @@ class Synth(Expr):
             "(%s %s %s)"
             % (
                 "v%d" % i,
-                parseTypeRef(e.type).toSMT(),
+                parse_type_ref(e.type).toSMT(),
                 e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",
             )
             for i, e in enumerate(commonExprs)
@@ -1477,7 +1481,7 @@ class Synth(Expr):
         declarations = []
         for a in self.args[2:]:
             if isinstance(a, ValueRef):
-                declarations.append((a.name, parseTypeRef(a.type)))
+                declarations.append((a.name, parse_type_ref(a.type)))
             else:
                 declarations.append((a.args[0], a.type))
 
@@ -1495,7 +1499,7 @@ class Synth(Expr):
 
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
-        if not all(parseTypeRef(a.type) == parseTypeRef(args[0].type) for a in args):
+        if not all(parse_type_ref(a.type) == parse_type_ref(args[0].type) for a in args):
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a) for a in args)
@@ -1590,17 +1594,17 @@ class FnDeclRecursive(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
+            args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parseTypeRef(self.returnT()),
+                parse_type_ref(self.type),
             )
         else:
             declarations = []
             for a in self.args[2:]:
                 if isinstance(a, ValueRef):
-                    declarations.append((a.name, parseTypeRef(a.type)))
+                    declarations.append((a.name, parse_type_ref(a.type)))
                 else:
                     declarations.append((a.args[0], a.type))
 
@@ -1638,11 +1642,11 @@ class FnDefine(Expr):
         return ""  # only for verification
 
     def toSMT(self) -> str:
-        args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
+        args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
         return "(declare-fun %s (%s) %s)" % (
             self.args[0],
             args_type,
-            parseTypeRef(self.type),
+            parse_type_ref(self.type),
         )
 
     def accept(self, v: "Visitor[T]") -> T:
@@ -1732,17 +1736,17 @@ class FnDecl(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parseTypeRef(a.type).toSMT() for a in self.args[2:])
+            args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parseTypeRef(self.returnT()),
+                parse_type_ref(self.type),
             )
         else:
             declarations = []
             for a in self.args[2:]:
                 if isinstance(a, ValueRef):
-                    declarations.append((a.name, parseTypeRef(a.type)))
+                    declarations.append((a.name, parse_type_ref(a.type)))
                 else:
                     declarations.append((a.args[0], a.type))
 
@@ -1895,7 +1899,7 @@ def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Return, val)
 
 
-def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
+def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
     # ty.name returns empty string. possibly bug
     if isinstance(t, Type):
         return t
@@ -1904,8 +1908,12 @@ def parseTypeRef(t: Union[Type, TypeRef]) -> Type:
 
     if tyStr == "i64":
         return Int()
-    elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int":
+    elif tyStr == "i32" or tyStr == "Int":
         return Int()
+    elif tyStr == "i32*":
+        return PointerT(Int())
+    elif tyStr == "i8*":
+        return PointerT(Byte())
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
     elif (

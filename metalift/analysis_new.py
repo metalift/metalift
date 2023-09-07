@@ -14,7 +14,7 @@ from metalift.ir import (
     Implies,
     Type,
     Var,
-    parseTypeRef,
+    parse_type_ref,
 )
 from metalift import ir, models_new
 
@@ -138,7 +138,7 @@ class RawBlock(object):
             targets = final_operands[1::2]
         elif final_opcode == "ret":
             targets = []
-            self.return_type = parseTypeRef(final_operands[0].type)
+            self.return_type = parse_type_ref(final_operands[0].type)
         else:
             raise Exception("Unknown end block inst: %s" % final_instruction)
 
@@ -176,7 +176,7 @@ StackEnv = Dict[str, Union[ValueRef, Expr]]
 
 def gen_value(value: ValueRef, fn_group: VariableGroup) -> Expr:
     if value.name:
-        return fn_group.existing_variable(value.name, parseTypeRef(value.type))
+        return fn_group.existing_variable(value.name, parse_type_ref(value.type))
     elif str(value).startswith("i32 "):
         literal = int(re.match("i32 (\d+)", str(value).strip()).group(1))  # type: ignore
         return ir.IntLit(literal)
@@ -273,7 +273,7 @@ class RichBlock(object):
                 # TODO(shadaj): parseTypeRef silently erases all levels of pointer indirection
                 stack_var = fn_group.variable(
                     f"stack_{self.name}_{instruction.name}",
-                    parseTypeRef(instruction.type),
+                    parse_type_ref(instruction.type),
                 )
                 new_env = dict(env)
                 new_env[instruction.name] = stack_var
@@ -282,7 +282,7 @@ class RichBlock(object):
                 return (
                     Eq(
                         fn_group.variable_or_existing(
-                            instruction.name, parseTypeRef(instruction.type)
+                            instruction.name, parse_type_ref(instruction.type)
                         ),
                         gen_expr(instruction, fn_group, env),
                     ),
@@ -292,7 +292,7 @@ class RichBlock(object):
             value = gen_value(operands[0], fn_group)
             stack_target = operands[1].name
             stack_var = fn_group.variable(
-                f"stack_{self.name}_{stack_target}", parseTypeRef(operands[1].type)
+                f"stack_{self.name}_{stack_target}", parse_type_ref(operands[1].type)
             )
 
             updated_stack = dict(env)
@@ -447,7 +447,7 @@ class AnalysisResult(object):
         loop_info: Dict[str, LoopInfo],
     ) -> None:
         self.name = name
-        self.arguments = [Var(arg.name, parseTypeRef(arg.type)) for arg in arguments]
+        self.arguments = [Var(arg.name, parse_type_ref(arg.type)) for arg in arguments]
         self.blocks = blocks
 
         found_return = None
