@@ -21,7 +21,6 @@ def new_list(
 def new_vector(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
-    double_pointer_vars: Dict[str, Expr],
     global_vars: GVarsType,
     *args: ValueRef
 ) -> ReturnValue:
@@ -39,7 +38,6 @@ def list_length(
 def list_get(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    import pdb; pdb.set_trace()
     return ReturnValue(Call("list_get", Int(), regs[args[0].name], regs[args[1].name]), None)
 
 
@@ -50,6 +48,17 @@ def list_append(
     return ReturnValue(
         Call("list_append", parse_type_ref(args[0].type), mem[args[0].name], regs[args[1].name]),
         None,
+    )
+
+def vector_append(
+    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+) -> ReturnValue:
+    assert len(args) == 2
+    assign_var_name = args[0].name
+    assign_val = Call("list_append", parse_type_ref(args[0].type), mem[args[0].name], regs[args[1].name])
+    return ReturnValue(
+        None,
+        [(assign_var_name, assign_val)],
     )
 
 
@@ -115,7 +124,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # TODO add mangle name for list_concat
     "vector": new_list,
     "size": list_length,
-    "push_back": list_append,
+    "push_back": vector_append,
     "operator[]": list_get,
     "_Z7newListIiEP4listIT_Ev": new_list,
     "_Z10listLengthIiEiP4listIT_E": list_length,

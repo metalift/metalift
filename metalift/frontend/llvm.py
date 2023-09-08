@@ -528,7 +528,6 @@ class VCVisitor:
         print(o)
         print("Pointer vars", self.fn_blocks_states[block_name].pointer_vars)
         print("Primitive vars", self.fn_blocks_states[block_name].primitive_vars)
-        # import pdb; pdb.set_trace()
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -646,7 +645,6 @@ class VCVisitor:
         header_loops = self.find_header_loops(block.name)
         for loop in header_loops:
             havocs = self.get_havocs(loop)
-
             for havoc in havocs:
                 new_value = self.var_tracker.variable(havoc.var_name, havoc.var_type.args[0])
                 self.store_var_to_block(block.name, havoc.var_name, new_value)
@@ -811,8 +809,6 @@ class VCVisitor:
             self.fn_blocks_states[false_branch].precond.append(Not(cond))
 
     def visit_ret_instruction(self, block_name: str, o: ValueRef) -> None:
-        # TODO: hanlde ret void
-        import pdb; pdb.set_trace()
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         if len(ops) == 0 and len(self.fn_sret_args) == 1:
@@ -842,31 +838,23 @@ class VCVisitor:
             fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
         else:
             fn_name = get_demangled_name(raw_fn_name)
-
+        print("FN NAME", fn_name)
         if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # TODO(colin): migrate over the rest of modeled functions to new structure
-            if fn_name == "vector":
-                print("hehe", o)
-                rv = models.new_vector(
-                    s.primitive_vars,
-                    s.pointer_vars,
-                    s.double_pointer_vars,
-                    {},
-                    *ops[:-1]
-                )
-                for k, v in rv.assigns:
-                    self.store_operand_to_block(block_name=block_name,op=ops[:-1][0],val=v)
-                return
             rv = models.fn_models[fn_name](s.primitive_vars, s.pointer_vars, {}, *ops[:-1])
             if rv.val:
                 if o.name == "":
                     return
                 self.write_operand_to_block(block_name=block_name,op=o,val=rv.val)
             if rv.assigns:
-                for k, v in rv.assigns:
-                    self.write_operand_to_block(block_name=block_name,op=k,val=v)
+                if fn_name in ["vector", "push_back"]:
+                    for k, v in rv.assigns:
+                        self.store_var_to_block(block_name=block_name,var_name=ops[0].name,val=v)
+                else:
+                    for k, v in rv.assigns:
+                        self.store_operand_to_block(block_name=block_name,op=k,val=v)
         # s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
 
         # if self.log:
