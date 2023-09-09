@@ -1,10 +1,6 @@
-import typing
-
 from metalift.analysis import CodeInfo, analyze
-from metalift.ir import Eq, Synth, Call, Int, FnDeclRecursive, Var, Add
-from metalift.rosette_translator import toRosette
-
-from metalift.smt_util import toSMT
+from metalift.ir import Add, Call, Eq, FnDeclRecursive, Int, Synth, Var
+from metalift.synthesize_rosette import synthesize
 
 # define an uninterpreted function in the target language that doesn't have a body
 # it should have the same name as the uninterpreted fn that we don't want the VC generator
@@ -44,7 +40,7 @@ if __name__ == "__main__":
 
     fnName = "test"
     loopsFile = "tests/llvm/uninterp.loops"
-    cvcPath = ""
+    cvcPath = "cvc5"
 
     (vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(
         filename, fnName, loopsFile, None, uninterpFuncs=[uninterpFnName]
@@ -52,56 +48,18 @@ if __name__ == "__main__":
 
     print("====== synthesis")
     invAndPs = [grammar(ci) for ci in loopAndPsInfo]
-
     lang = targetLang()
-    invGuess: typing.List[typing.Any] = []
-    unboundedInts = False
-    synthDir = "./tests/llvm/"
-    synthFile = synthDir + basename + ".rkt"
-
-    toRosette(
-        synthFile,
+    candidates = synthesize(
+        basename,
         lang,
         vars,
         invAndPs,
         preds,
         vc,
         loopAndPsInfo,
-        invGuess,
-        unboundedInts,
-        listBound=2
+        cvcPath,
+        uninterp_fns=[uninterpFnName]
     )
-
-    ### SMT
-    print("====== verification")
-
-    #####identifying call sites for inlining #####
-    inCalls: typing.List[typing.Any] = []
-    fnCalls: typing.List[typing.Any] = []
-
-    ##### generating function definitions of all the functions to be synthesized#####
-    candidatesSMT = []
-    candidateDict = {}
-    r = Var("tmp9", Int())
-    x = Var("arg", Int())
-    y = Var("arg1", Int())
-    # pretend that we have run synthesis and insert the result into candidateDict to print
-    candidateDict[fnName] = summary(r, x, y)
-
-    for ce in loopAndPsInfo:
-        allVars = (
-            ce.modifiedVars + ce.readVars if isinstance(ce, CodeInfo) else ce.args[2:]
-        )
-        ceName = ce.name if isinstance(ce, CodeInfo) else ce.args[0]
-        candidatesSMT.append(
-            FnDeclRecursive(
-                ceName,
-                ce.retT if isinstance(ce, CodeInfo) else ce.type,
-                candidateDict[ceName],
-                *allVars,
-            )
-        )
-
-    verifFile = synthDir + basename + ".smt"
-
-    toSMT(lang, vars, candidatesSMT, preds, vc, verifFile, inCalls, fnCalls)
+    print("====== verified candidates")
+    for c in candidates:
+        print(c, "\n")

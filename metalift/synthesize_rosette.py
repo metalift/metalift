@@ -15,7 +15,7 @@ from metalift.synthesis_common import (
 from metalift import process_tracker
 
 import typing
-from typing import Any, Callable, Dict, Union, IO
+from typing import Any, Callable, Dict, List, Union, IO
 
 
 # utils for converting rosette output to IR
@@ -334,6 +334,7 @@ def synthesize(
     optimize_vc_equality: bool = False,
     listBound: int = 2,
     log: bool = True,
+    uninterp_fns: List[str] = [],
 ) -> typing.List[FnDeclRecursive]:
     invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
@@ -372,17 +373,18 @@ def synthesize(
         ##### synthesis procedure #####
         choices: Dict[str, Dict[str, Expr]] = {}
         toRosette(
-            synthFile,
-            targetLang,
-            vars,
-            invAndPs,
-            preds,
-            vc,
-            loopAndPsInfo,
-            invGuess,
-            unboundedInts,
-            listBound,
-            choices,
+            filename=synthFile,
+            targetLang=targetLang,
+            vars=vars,
+            invAndPs=invAndPs,
+            preds=preds,
+            vc=vc,
+            loopAndPsInfo=loopAndPsInfo,
+            invGuess=invGuess,
+            unboundedInts=unboundedInts,
+            listBound=listBound,
+            writeChoicesTo=choices,
+            uninterp_fns=uninterp_fns,
         )
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)

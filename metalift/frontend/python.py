@@ -18,9 +18,12 @@ from metalift.ir import (
     IntLit,
     Ite,
     Le,
+    ListT,
     Lt,
     Not,
     Or,
+    SetT,
+    Sub,
     Synth,
     Tuple as MLTuple,
     TupleGet,
@@ -38,6 +41,7 @@ from mypy.nodes import (
     AssignmentStmt,
     Block,
     BreakStmt,
+    CallExpr,
     ClassDef,
     ComparisonExpr,
     ContinueStmt,
@@ -52,8 +56,9 @@ from mypy.nodes import (
     Import,
     ImportAll,
     ImportFrom,
-    IntExpr,
     IndexExpr,
+    IntExpr,
+    ListExpr,
     MatchStmt,
     MypyFile,
     NameExpr,
@@ -67,6 +72,7 @@ from mypy.nodes import (
     Statement,
     TryStmt,
     TupleExpr,
+    UnaryExpr,
     WhileStmt,
     WithStmt,
 )
@@ -74,6 +80,15 @@ from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
+
+from metalift.ir_util import is_list_type_expr, is_set_type_expr
+
+from metalift.mypy_util import (
+    get_fn_name,
+    is_func_call,
+    is_func_call_with_name,
+    is_method_call_with_name,
+)
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -136,9 +151,23 @@ def to_mltype(t: MypyType) -> MLType:
         return Int()
 
     # inferred types
-    elif isinstance(t, Instance) and t.type.fullname == "builtins.int":
-        return Int()
-
+    elif isinstance(t, Instance):
+        if t.type.fullname == "builtins.int":
+            return Int()
+        elif (
+            t.type.fullname == "builtins.list"
+            and len(t.args) == 1
+            and to_mltype(t.args[0]) == Int()
+        ):
+            return ListT(Int())
+        elif (
+            t.type.fullname == "builtins.set"
+            and len(t.args) == 1
+            and to_mltype(t.args[0]) == Int()
+        ):
+            return SetT(Int())
+        else:
+            raise RuntimeError(f"unknown Mypy type: {t}")
     else:
         raise RuntimeError(f"unknown Mypy type: {t}")
 
@@ -153,15 +182,18 @@ class RWVarsVisitor(TraverserVisitor):
         self.reads = set()
         self.types = types
 
+    def _write_name_expr(self, o: NameExpr) -> None:
+        t = self.types.get(o)
+        assert t is not None
+        self.writes.add((o.name, t))
+
     def visit_assignment_stmt(self, o: AssignmentStmt) -> None:
         if len(o.lvalues) > 1:
             raise RuntimeError(f"multi assignments not supported: {o}")
         lval = cast(
             NameExpr, o.lvalues[0]
         )  # XXX lvalues is a list of Lvalue which can also be indexes or tuples
-        t = self.types.get(lval)
-        assert t is not None
-        self.writes.add((lval.name, t))
+        self._write_name_expr(lval)
 
         o.rvalue.accept(self)
 
@@ -170,6 +202,23 @@ class RWVarsVisitor(TraverserVisitor):
         t = self.types.get(o)
         assert t is not None
         self.reads.add((o.name, t))
+
+    def visit_call_expr(self, o: CallExpr) -> None:
+        # If it is a list append, set add, or set remove call on a variable, then the variable is modified
+        if (
+            is_method_call_with_name(o, "append")
+            or is_method_call_with_name(o, "add")
+            or is_method_call_with_name(o, "remove")
+        ):
+            callee_expr = o.callee.expr  # type: ignore
+            if isinstance(callee_expr, NameExpr):
+                self._write_name_expr(callee_expr)
+
+        # If it is a function call, then we don't want to evaluate the function type
+        if not is_func_call(o):
+            o.callee.accept(self)
+        for a in o.args:
+            a.accept(self)
 
 
 class Predicate:
@@ -296,6 +345,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     types: Dict[MypyExpr, MypyType]
 
+    uninterp_fns: List[str]
+
     def __init__(
         self,
         fn_name: str,
@@ -310,6 +361,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         types: Dict[MypyExpr, MypyType],
+        uninterp_fns: List[str],
     ) -> None:
         self.fn_name = fn_name
         self.fn_type = fn_type
@@ -325,6 +377,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
         self.types = types
+        self.uninterp_fns = uninterp_fns
 
     # Definitions
 
@@ -416,7 +469,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             s.accept(self)
 
     def visit_expression_stmt(self, o: ExpressionStmt) -> None:
-        raise NotImplementedError()
+        o.expr.accept(self)
 
     def visit_operator_assignment_stmt(self, o: OperatorAssignmentStmt) -> None:
         raise NotImplementedError()
@@ -483,6 +536,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns,
         )
         o.body.accept(body_visitor)
 
@@ -545,6 +599,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns,
         )
         a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
@@ -561,6 +616,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns,
         )
 
         for s in o.body:
@@ -684,14 +740,76 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         return MLTuple(*[expr.accept(self) for expr in o.items])
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
-        # Currently only supports indexing into tuples using integers
+        # Currently only supports indexing into tuples and lists using integers
         index = o.index.accept(self)
         base = o.base.accept(self)
         if index.type != Int():
             raise Exception("Index must be int!")
-        if not isinstance(base, MLTuple):
-            raise Exception("Can only index into tuples!")
-        return TupleGet(o.base.accept(self), o.index.accept(self))
+        if isinstance(base, MLTuple):
+            return TupleGet(base, index)
+        if is_list_type_expr(base):
+            return Call("list_get", Int(), base, index)
+        raise Exception("Can only index into tuples and lists!")
+
+    def visit_list_expr(self, o: ListExpr) -> Expr:
+        if len(o.items) > 0:
+            raise Exception("Initialization of non-empty lists is not supported!")
+        return Call("list_empty", ListT(Int()))
+
+    def visit_unary_expr(self, o: UnaryExpr) -> Expr:
+        if o.op == "-":
+            expr = o.expr.accept(self)
+            if expr.type != Int():
+                raise Exception("Unary operator '-' only supported on integers!")
+            return Sub(IntLit(0), expr)
+        raise Exception(f"Unsupported unary operator '{o.op}'")
+
+    def visit_call_expr(self, o: CallExpr) -> Expr:
+        if is_func_call_with_name(o, "len"):
+            assert len(o.args) == 1
+            arg = o.args[0].accept(self)
+            if not is_list_type_expr(arg):
+                raise Exception("len only supported on lists!")
+            return Call("list_length", Int(), arg)
+        elif is_method_call_with_name(o, "append"):
+            # list append
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
+            if not is_list_type_expr(callee_expr):
+                raise Exception(".append only supported on lists!")
+            assert len(o.args) == 1
+            elem_to_append = o.args[0].accept(self)
+            list_after_append = Call(
+                "list_append", callee_expr.type, callee_expr, elem_to_append
+            )
+            self.state.write(callee_expr.name(), list_after_append)
+            return list_after_append
+        elif is_method_call_with_name(o, "add") or is_method_call_with_name(
+            o, "remove"
+        ):
+            # set add or set remove
+            if is_method_call_with_name(o, "add"):
+                method_name, func_call_name = ".add", "set-union"
+            else:
+                method_name, func_call_name = ".remove", "set-minus"
+
+            callee_expr = o.callee.expr.accept(self)  # type: ignore
+            if not is_set_type_expr(callee_expr):
+                raise Exception(f"{method_name} only supported on sets!")
+            assert len(o.args) == 1
+            elem = o.args[0].accept(self)
+            singleton_set = Call("set-singleton", SetT(elem.type), elem)
+            set_after_modification = Call(
+                func_call_name, callee_expr.type, callee_expr, singleton_set
+            )
+            self.state.write(callee_expr.name(), set_after_modification)
+            return set_after_modification
+        elif is_func_call(o) and get_fn_name(o) in self.uninterp_fns:
+            # Uninterpreted functions
+            args = [a.accept(self) for a in o.args]
+            expr_type = self.types.get(o)
+            assert expr_type is not None
+            return Call(get_fn_name(o), to_mltype(expr_type), *args)
+        raise Exception("Unrecognized call expression!")
 
 
 class Driver:
@@ -701,6 +819,8 @@ class Driver:
     postconditions: List[Expr]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
+    fns_synths: List[Synth]
+    uninterp_fns: List[str]
 
     def __init__(self) -> None:
         self.var_tracker = VariableTracker()
@@ -708,6 +828,8 @@ class Driver:
         self.asserts = []
         self.postconditions = []
         self.fns = dict()
+        self.fns_synths = []
+        self.uninterp_fns = []
 
     def variable(self, name: str, type: MLType) -> Var:
         return self.var_tracker.variable(name, type)
@@ -716,12 +838,19 @@ class Driver:
         self,
         filepath: str,
         fn_name: str,
-        target_lang_fn: Callable[[], List[FnDecl]],
+        target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
-            self, filepath, fn_name, target_lang_fn, inv_grammar, ps_grammar
+            driver=self,
+            filepath=filepath,
+            name=fn_name,
+            target_lang_fn=target_lang_fn,
+            inv_grammar=inv_grammar,
+            ps_grammar=ps_grammar,
+            uninterp_fns=uninterp_fns,
         )
         self.fns[fn_name] = f
         return f
@@ -747,7 +876,15 @@ class Driver:
             target += fn.target_lang_fn()
 
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            "test", target, set(self.var_tracker.all()), synths, [], vc, synths, "cvc5"
+            basename="test",
+            targetLang=target,
+            vars=set(self.var_tracker.all()),
+            invAndPs=synths + self.fns_synths,
+            preds=[],
+            vc=vc,
+            loopAndPsInfo=synths,  # TODO: does this need fns synths
+            cvcPath="cvc5",
+            uninterp_fns=self.uninterp_fns,
         )
 
         for f in synthesized:
@@ -772,19 +909,21 @@ class MetaliftFunc:
     ast: FuncDef
     types: Dict[MypyExpr, MypyType]
     name: str
-    target_lang_fn: Callable[[], List[FnDecl]]
+    target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
     inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
     synthesized: Optional[Expr]
+    uninterp_fns: List[str]
 
     def __init__(
         self,
         driver: Driver,
         filepath: str,
         name: str,
-        target_lang_fn: Callable[[], List[FnDecl]],
+        target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
         ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
 
@@ -809,6 +948,7 @@ class MetaliftFunc:
         self.inv_grammar = inv_grammar
         self.ps_grammar = ps_grammar
         self.synthesized = None
+        self.uninterp_fns = uninterp_fns
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         # set up new state for the call: should contain all global vars and all postconditions
@@ -829,6 +969,7 @@ class MetaliftFunc:
             self.inv_grammar,
             self.ps_grammar,
             self.types,
+            self.uninterp_fns,
         )
 
         self.ast.accept(v)

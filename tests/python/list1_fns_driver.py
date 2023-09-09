@@ -1,0 +1,151 @@
+from typing import List
+
+from mypy.nodes import Statement
+
+from metalift.frontend.python import Driver
+from metalift.ir import *
+from tests.python.utils.utils import codegen
+
+
+def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    arg = Var("n", Int())
+    select_pred = FnDecl("Select-pred", FnT(Bool()), Gt(arg, IntLit(2)), arg)
+    select_pred1 = FnDecl("Select-pred1", FnT(Bool()), Lt(arg, IntLit(10)), arg)
+    select_pred2 = FnDecl(
+        "Select-pred2",
+        FnT(Bool()),
+        And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))),
+        arg
+    )
+    data = Var("l", ListT(Int()))
+    f = Var("f", FnT(Bool()))
+    select_func = FnDeclRecursive(
+        "Select",
+        ListT(Int()),
+        Ite(
+            Eq(Call("list_length", Int(), data), IntLit(0)),
+            Call("list_empty", ListT(Int())),
+            Ite(
+                CallValue(f, Call("list_get", Int(), data, IntLit(0))),
+                Call(
+                    "list_append",
+                    ListT(Int()),
+                    Call(
+                        "Select",
+                        ListT(Int()),
+                        Call("list_tail", ListT(Int()), data, IntLit(1)),
+                        f,
+                    ),
+                    Call("list_get", Int(), data, IntLit(0)),
+                ),
+                Call(
+                    "Select",
+                    ListT(Int()),
+                    Call("list_tail", ListT(Int()), data, IntLit(1)),
+                    f,
+                ),
+            ),
+        ),
+        data,
+        f,
+    )
+
+    return [select_pred, select_pred1, select_pred2, select_func]
+
+def inv_grammar(
+    v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]
+) -> Expr:
+    # This grammar func could be called with v as `i` or `out_lst`, and we really only want to generate this grammar once.
+    if v.name() != "out_lst":
+        return BoolLit(True)
+
+    # writes = [i, out_lst]
+    # reads = [i, in_lst, out_lst]
+    i, out_lst = writes[0], writes[1]
+    in_lst = reads[1]
+    f = Choose(
+        Call("Select-pred", FnT(Bool())),
+        Call("Select-pred1", FnT(Bool())),
+        Call("Select-pred2", FnT(Bool())),
+    )
+    lst = Choose(in_lst, out_lst, Call("Select", ListT(Int()), in_lst, f))
+    i_bound_int_lit = Choose(IntLit(0), IntLit(1))
+    lst_inv_cond = Choose(
+        Call(
+            "list_eq",
+            Bool(),
+            Call(
+                "list_concat",
+                ListT(Int()),
+                lst,
+                Call(
+                    "Select",
+                    ListT(Int()),
+                    Call("list_tail", ListT(Int()), lst, i),
+                    f,
+                ),
+            ),
+            lst,
+        ),
+        Call(
+            "list_eq",
+            Bool(),
+            Call(
+                "list_concat",
+                ListT(Int()),
+                lst,
+                Call("list_tail", ListT(Int()), lst, i),
+            ),
+            lst,
+        ),
+    )
+    in_lst_length = Call("list_length", Int(), in_lst)
+    i_bound_in_lst_length_cond = Choose(
+        Ge(i, in_lst_length),
+        Le(i, in_lst_length),
+        Gt(i, in_lst_length),
+        Lt(i, in_lst_length),
+        Eq(i, in_lst_length),
+    )
+    i_bound_int_lit_cond = Choose(
+        Ge(i, i_bound_int_lit),
+        Le(i, i_bound_int_lit),
+        Gt(i, i_bound_int_lit),
+        Lt(i, i_bound_int_lit),
+        Eq(i, i_bound_int_lit),
+    )
+    return Choose(And(And(i_bound_int_lit_cond, i_bound_in_lst_length_cond), lst_inv_cond))
+
+def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+    # reads = [in_lst]
+    in_lst = reads[0]
+    fns = Choose(
+        Call("Select-pred", FnT(Bool())),
+        Call("Select-pred1", FnT(Bool())),
+        Call("Select-pred2", FnT(Bool())),
+    )
+    return Choose(
+        Call("list_eq", Bool(), ret_val, in_lst),
+        Call(
+            "list_eq",
+            Bool(),
+            ret_val,
+            Call("Select", ListT(Int()), in_lst, fns),
+        )
+    )
+
+
+if __name__ == "__main__":
+    filename = "tests/python/list1.py"
+
+    driver = Driver()
+    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
+
+    v1 = driver.variable("in_lst", ListT(Int()))
+
+    test(v1)
+
+    driver.synthesize()
+
+    print("\n\ngenerated code:" + test.codegen(codegen))
+

@@ -91,8 +91,7 @@ def toSMT(
                                 *newArgs,
                             )
                         )
-
-                if not found_inline and t.args[1] != None:
+                if not found_inline:
                     out.write(t.toSMT() + "\n\n")
             # elif t.kind == Expr.Kind.Axiom:
             elif isinstance(t, Axiom):

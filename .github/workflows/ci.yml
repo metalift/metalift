@@ -133,6 +133,8 @@ jobs:
       shell: nix develop --command bash -e {0}
       run: |
         ./run-rosette-tests.sh
+      env:
+        SYNTH_CVC5: 0
 
     - name: Test Docs
       shell: nix develop --command bash -e {0}
