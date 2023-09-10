@@ -529,7 +529,6 @@ class VCVisitor:
             self.write_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
-        blk_state = self.fn_blocks_states[block_name]
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
