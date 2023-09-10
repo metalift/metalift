@@ -46,7 +46,7 @@ def list_append(
 ) -> ReturnValue:
     # import pdb; pdb.set_trace()
     return ReturnValue(
-        Call("list_append", parse_type_ref(args[0].type), mem[args[0].name], regs[args[1].name]),
+        Call("list_append", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name]),
         None,
     )
 
@@ -55,7 +55,7 @@ def vector_append(
 ) -> ReturnValue:
     assert len(args) == 2
     assign_var_name = args[0].name
-    assign_val = Call("list_append", parse_type_ref(args[0].type), mem[args[0].name], regs[args[1].name])
+    assign_val = Call("list_append", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name])
     return ReturnValue(
         None,
         [(assign_var_name, assign_val)],

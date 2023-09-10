@@ -518,11 +518,9 @@ class VCVisitor:
             self.formals,
             self.ps_grammar,
         )
-        for arg in self.fn_args:
+        # TODO: do we always write fn_sret_args? Are there instances where we need to write?
+        for arg in self.fn_args + self.fn_sret_args:
             self.write_var_to_block(block.name, arg.name(), arg)
-        # TODO: does store here have any problems
-        for arg in self.fn_sret_args:
-            self.store_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         print(o)
@@ -690,11 +688,8 @@ class VCVisitor:
         )  # bug: ops[0] always return i32 1 regardless of type
         # TODO: clean up this code
         if t == "i8*":
-            val = Lit(False, Bool())
-            self.double_store_var_to_block(block_name, o.name, val)
-            return
-
-        if t == "i32":
+            val = Pointer(Lit(False, Bool()))
+        elif t == "i32":
             val = Lit(0, Int())
         elif t == "i8":
             val = Lit(False, Bool())
@@ -732,12 +727,9 @@ class VCVisitor:
 
     def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        if parse_type_ref(ops[0].type).name == "Pointer":
-            value_to_store = self.load_operand_from_block(block_name, ops[0])
-            self.double_store_operand_to_block(block_name, ops[1], value_to_store)
-        else:
-            value_to_store = self.read_operand_from_block(block_name, ops[0])
-            self.store_operand_to_block(block_name, ops[1], value_to_store)
+        value_to_store = self.read_operand_from_block(block_name, ops[0])
+        self.store_operand_to_block(block_name, ops[1], value_to_store)
+
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -843,6 +835,7 @@ class VCVisitor:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # TODO(colin): migrate over the rest of modeled functions to new structure
+            # process the mangled name -> name, type
             rv = models.fn_models[fn_name](s.primitive_vars, s.pointer_vars, {}, *ops[:-1])
             if rv.val:
                 if o.name == "":
