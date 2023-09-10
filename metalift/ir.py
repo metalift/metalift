@@ -1908,10 +1908,8 @@ def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
 
     if tyStr == "i64":
         return Int()
-    elif tyStr == "i32" or tyStr == "Int":
+    elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int":
         return Int()
-    elif tyStr == "i32*":
-        return PointerT(Int())
     elif tyStr == "i8*":
         # TODO: this shouldn't be bool
         return PointerT(Bool())

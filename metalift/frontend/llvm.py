@@ -60,6 +60,12 @@ class LoopInfo:
                 ops = list(i.operands)
                 if opcode == "store" and ops[1] not in self.havocs:
                     self.havocs.append(ops[1])
+                elif opcode == "call":
+                    raw_fn_name = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+                    fn_name = get_demangled_name(raw_fn_name)
+                    args = list(i.operands)[:-1]
+                    if fn_name == "push_back":
+                        self.havocs.append(args[0])
 
         # Remove back edges
         for latch in self.latches:
@@ -208,7 +214,7 @@ def get_demangled_name(maybe_mangled_name: str) -> Optional[str]:
     if match is not None:
         return match.group(2)
 
-    match = re.match(f"^([a-zA-Z0-9_]+)\(.*\)$", stdout)
+    match = re.match(f"^([a-zA-Z0-9_]+)(\(.*\))?$", stdout)
     if match is not None:
         return match.group(1)
 
@@ -523,9 +529,7 @@ class VCVisitor:
             self.write_var_to_block(block.name, arg.name(), arg)
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
-        print(o)
-        print("Pointer vars", self.fn_blocks_states[block_name].pointer_vars)
-        print("Primitive vars", self.fn_blocks_states[block_name].primitive_vars)
+        blk_state = self.fn_blocks_states[block_name]
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -644,8 +648,13 @@ class VCVisitor:
         for loop in header_loops:
             havocs = self.get_havocs(loop)
             for havoc in havocs:
-                new_value = self.var_tracker.variable(havoc.var_name, havoc.var_type.args[0])
-                self.store_var_to_block(block.name, havoc.var_name, new_value)
+                new_value = self.var_tracker.variable(havoc.var_name, havoc.var_type)
+                # TODO: write or store
+                if havoc.var_type.name == "MLList":
+                    self.write_var_to_block(block.name, havoc.var_name, new_value)
+                else:
+                    self.store_var_to_block(block.name, havoc.var_name, new_value)
+
             inv = self.pred_tracker.invariant(
                 inv_name=f"{self.fn_name}_inv{self.loops.index(loop)}",
                 args=havocs + self.formals,
@@ -681,7 +690,6 @@ class VCVisitor:
             self.visit_instruction(block_name, instr)
 
     def visit_alloca_instruction(self, block_name: str, o: ValueRef) -> None:
-        print(o)
         # alloca <type>, align <num> or alloca <type>
         t = re.search("alloca ([^$|,]+)", str(o)).group(  # type: ignore
             1
@@ -830,21 +838,18 @@ class VCVisitor:
             fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
         else:
             fn_name = get_demangled_name(raw_fn_name)
-        print("FN NAME", fn_name)
         if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # TODO(colin): migrate over the rest of modeled functions to new structure
             # process the mangled name -> name, type
             rv = models.fn_models[fn_name](s.primitive_vars, s.pointer_vars, {}, *ops[:-1])
-            if rv.val:
-                if o.name == "":
-                    return
+            if rv.val and o.name != "":
                 self.write_operand_to_block(block_name=block_name,op=o,val=rv.val)
             if rv.assigns:
                 if fn_name in ["vector", "push_back"]:
                     for k, v in rv.assigns:
-                        self.store_var_to_block(block_name=block_name,var_name=ops[0].name,val=v)
+                        self.write_var_to_block(block_name=block_name,var_name=ops[0].name,val=v)
                 else:
                     for k, v in rv.assigns:
                         self.store_operand_to_block(block_name=block_name,op=k,val=v)

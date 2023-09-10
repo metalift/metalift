@@ -25,7 +25,7 @@ def new_vector(
     *args: ValueRef
 ) -> ReturnValue:
     assert len(args) == 1
-    assert args[0].name in pointer_vars.keys()
+    assert args[0].name in primitive_vars.keys()
     assigns = [(args[0].name, Call("list_empty", Type("MLList", Int())))]
     return ReturnValue(None, assigns)
 
@@ -44,7 +44,6 @@ def list_get(
 def list_append(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    # import pdb; pdb.set_trace()
     return ReturnValue(
         Call("list_append", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name]),
         None,
@@ -122,7 +121,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # "_Z10listAppendP4listi": listAppend
     # mangled names for template version of list.h
     # TODO add mangle name for list_concat
-    "vector": new_list,
+    "vector": new_vector,
     "size": list_length,
     "push_back": vector_append,
     "operator[]": list_get,

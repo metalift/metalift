@@ -116,13 +116,13 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
 
 def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
     # This grammar func could be called with v as `i` or `out_lst`, and we really only want to generate this grammar once.
-    if v.name() != "out_lst":
+    if v.name() != "i":
         return BoolLit(True)
 
-    # writes = [i, out_lst]
-    # reads = [i, in_lst, out_lst]
-    i, out_lst = writes[0], writes[1]
-    in_lst = reads[1]
+    # writes = [out_lst, i]
+    # reads = [in]
+    out_lst, i = writes[0], writes[1]
+    in_lst = reads[0]
     lst = Choose(in_lst, out_lst, Call("Select", ListT(Int()), in_lst))
     lst_inv_cond = Choose(
         Call(
@@ -146,7 +146,7 @@ def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
             Call(
                 "list_concat",
                 ListT(Int()),
-                writes[1],
+                out_lst,
                 Call("list_tail", ListT(Int()), lst, i),
             ),
             lst,
