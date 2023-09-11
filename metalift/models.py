@@ -1,73 +1,102 @@
-from collections import namedtuple
-from typing import Callable, Dict
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, SetT, Type, parse_type_ref
+from metalift.ir import (Bool, Call, Expr, Int, IntLit, Ite, SetT, Type,
+                         parse_type_ref)
 from metalift.vc_util import parseOperand
 
-ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
-
-RegsType = Dict[str, Expr]
-GVarsType = Dict[str, str]
-
+ReturnValue = NamedTuple(
+    "ReturnValue",
+    [
+        ("val", Optional[Expr]),
+        ("assigns", Optional[List[Tuple[str, Expr]]]),
+    ],
+)
 
 def new_list(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
 
-def new_vector(
+def list_length(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
-    global_vars: GVarsType,
-    *args: ValueRef,
+    global_vars: Dict[str, str],
+    *args: ValueRef
 ) -> ReturnValue:
-    assert len(args) == 1
-    assert args[0].name in primitive_vars.keys()
-    assigns = [(args[0].name, Call("list_empty", Type("MLList", Int())))]
-    return ReturnValue(None, assigns)
-
-
-def list_length(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
-) -> ReturnValue:
-    return ReturnValue(Call("list_length", Int(), regs[args[0].name]), None)
+    return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
 
 
 def list_get(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
-        Call("list_get", Int(), regs[args[0].name], regs[args[1].name]), None
+        Call("list_get", Int(), primitive_vars[args[0].name], primitive_vars[args[1].name]), None
     )
 
 
 def list_append(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
         Call(
             "list_append",
             parse_type_ref(args[0].type),
-            regs[args[0].name],
-            regs[args[1].name],
+            primitive_vars[args[0].name],
+            primitive_vars[args[1].name],
+        ),
+        None,
+    )
+
+def list_concat(
+    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+) -> ReturnValue:
+    return ReturnValue(
+        Call(
+            "list_concat",
+            parse_type_ref(args[0].type),
+            primitive_vars[args[0].name],
+            primitive_vars[args[1].name],
         ),
         None,
     )
 
 
+def new_vector(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    var_name: str = args[0].name
+    assigns: List[Tuple[str, Expr]] = [(var_name, Call("list_empty", Type("MLList", Int())))]
+    return ReturnValue(None, assigns)
+
 def vector_append(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef
 ) -> ReturnValue:
     assert len(args) == 2
-    assign_var_name = args[0].name
+    assign_var_name: str = args[0].name
     assign_val = Call(
         "list_append",
         parse_type_ref(args[0].type),
-        regs[args[0].name],
-        regs[args[1].name],
+        primitive_vars[args[0].name],
+        primitive_vars[args[1].name],
     )
     return ReturnValue(
         None,
@@ -75,30 +104,16 @@ def vector_append(
     )
 
 
-def listConcat(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
-) -> ReturnValue:
-    return ReturnValue(
-        Call(
-            "list_concat",
-            parse_type_ref(args[0].type),
-            regs[args[0].name],
-            regs[args[1].name],
-        ),
-        None,
-    )
-
-
 def new_tuple(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
 
 
 def make_tuple(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 ) -> ReturnValue:
-    regVals = [regs[args[i].name] for i in range(len(args))]
+    regVals = [primitive_vars[args[i].name] for i in range(len(args))]
     retVals = [Int() for i in range(len(args))]
     return ReturnValue(
         Call("make-tuple", Type("Tuple", *retVals), *regVals),
@@ -107,28 +122,28 @@ def make_tuple(
 
 
 def tuple_get(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
-        Call("tupleGet", Int(), regs[args[0].name], parseOperand(args[1], regs)), None
+        Call("tupleGet", Int(), primitive_vars[args[0].name], parseOperand(args[1], primitive_vars)), None
     )
 
 
 def get_field(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 ) -> ReturnValue:
     (fieldName, obj) = args
-    val = mem[obj.name].args[fieldName.args[0]]
-    # regs[i] = mem[obj].args[fieldName.args[0]
+    val = pointer_vars[obj.name].args[fieldName.args[0]]
+    # primitive_vars[i] = pointer_vars[obj].args[fieldName.args[0]
     return ReturnValue(val, None)
 
 
 def set_field(
-    regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 ) -> ReturnValue:
     (fieldName, obj, val) = args
-    mem[obj.name].args[fieldName.args[0]] = regs[val.name]
-    # XXX: not tracking memory writes as assigns for now. This might be fine for now since all return vals must be loaded to regs
+    pointer_vars[obj.name].args[fieldName.args[0]] = primitive_vars[val.name]
+    # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
     return ReturnValue(None, None)
 
 
@@ -151,34 +166,34 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     "getField": get_field,
     "setField": set_field,
     # names for set.h
-    "set_create": lambda regs, mem, gvars, *args: ReturnValue(
+    "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
         Call("set-create", SetT(Int())), None
     ),
-    "set_add": lambda regs, mem, gvars, *args: ReturnValue(
+    "set_add": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
         Call(
             "set-insert",
             SetT(Int()),
-            parseOperand(args[1], regs),
-            parseOperand(args[0], regs),
+            parseOperand(args[1], primitive_vars),
+            parseOperand(args[0], primitive_vars),
         ),
         None,
     ),
-    "set_remove": lambda regs, mem, gvars, *args: ReturnValue(
+    "set_remove": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
         Call(
             "set-minus",
             SetT(Int()),
-            parseOperand(args[0], regs),
-            Call("set-singleton", SetT(Int()), parseOperand(args[1], regs)),
+            parseOperand(args[0], primitive_vars),
+            Call("set-singleton", SetT(Int()), parseOperand(args[1], primitive_vars)),
         ),
         None,
     ),
-    "set_contains": lambda regs, mem, gvars, *args: ReturnValue(
+    "set_contains": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
         Ite(
             Call(
-                "set-member",
+                "set-pointer_varsber",
                 Bool(),
-                parseOperand(args[1], regs),
-                parseOperand(args[0], regs),
+                parseOperand(args[1], primitive_vars),
+                parseOperand(args[0], primitive_vars),
             ),
             IntLit(1),
             IntLit(0),
@@ -209,56 +224,56 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 
 # ReturnValue = namedtuple("ReturnValue", ["val", "assigns"])
 
-# RegsType = Dict[ValueRef, Expr]
-# GVarsType = Dict[str, str]
+# Dict[str, Expr] = Dict[ValueRef, Expr]
+# Dict[str, str] = Dict[str, str]
 
 
 # def newlist(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
 
 # def listLength(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
-#     return ReturnValue(Call("list_length", Int(), regs[args[0]]), None)
+#     return ReturnValue(Call("list_length", Int(), primitive_vars[args[0]]), None)
 
 
 # def listGet(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
-#     return ReturnValue(Call("list_get", Int(), regs[args[0]], regs[args[1]]), None)
+#     return ReturnValue(Call("list_get", Int(), primitive_vars[args[0]], primitive_vars[args[1]]), None)
 
 
 # def listAppend(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     return ReturnValue(
-#         Call("list_append", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
+#         Call("list_append", parseTypeRef(args[0].type), primitive_vars[args[0]], primitive_vars[args[1]]),
 #         None,
 #     )
 
 
 # def listConcat(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     return ReturnValue(
-#         Call("list_concat", parseTypeRef(args[0].type), regs[args[0]], regs[args[1]]),
+#         Call("list_concat", parseTypeRef(args[0].type), primitive_vars[args[0]], primitive_vars[args[1]]),
 #         None,
 #     )
 
 
 # def newTuple(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
 
 
 # def MakeTuple(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
-#     regVals = [regs[args[i]] for i in range(len(args))]
+#     regVals = [primitive_vars[args[i]] for i in range(len(args))]
 #     retVals = [Int() for i in range(len(args))]
 #     return ReturnValue(
 #         Call("make-tuple", Type("Tuple", *retVals), *regVals),
@@ -267,28 +282,28 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 
 
 # def tupleGet(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     return ReturnValue(
-#         Call("tupleGet", Int(), regs[args[0]], parseOperand(args[1], regs)), None
+#         Call("tupleGet", Int(), primitive_vars[args[0]], parseOperand(args[1], primitive_vars)), None
 #     )
 
 
 # def getField(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     (fieldName, obj) = args
-#     val = mem[obj].args[fieldName.args[0]]
-#     # regs[i] = mem[obj].args[fieldName.args[0]
+#     val = pointer_vars[obj].args[fieldName.args[0]]
+#     # primitive_vars[i] = pointer_vars[obj].args[fieldName.args[0]
 #     return ReturnValue(val, None)
 
 
 # def setField(
-#     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
+#     primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
 # ) -> ReturnValue:
 #     (fieldName, obj, val) = args
-#     mem[obj].args[fieldName.args[0]] = regs[val]
-#     # XXX: not tracking memory writes as assigns for now. This might be fine for now since all return vals must be loaded to regs
+#     pointer_vars[obj].args[fieldName.args[0]] = primitive_vars[val]
+#     # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
 #     return ReturnValue(None, None)
 
 
@@ -307,34 +322,34 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 #     "getField": getField,
 #     "setField": setField,
 #     # names for set.h
-#     "set_create": lambda regs, mem, gvars, *args: ReturnValue(
+#     "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
 #         Call("set-create", SetT(Int())), None
 #     ),
-#     "set_add": lambda regs, mem, gvars, *args: ReturnValue(
+#     "set_add": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
 #         Call(
 #             "set-insert",
 #             SetT(Int()),
-#             parseOperand(args[1], regs),
-#             parseOperand(args[0], regs),
+#             parseOperand(args[1], primitive_vars),
+#             parseOperand(args[0], primitive_vars),
 #         ),
 #         None,
 #     ),
-#     "set_remove": lambda regs, mem, gvars, *args: ReturnValue(
+#     "set_remove": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
 #         Call(
 #             "set-minus",
 #             SetT(Int()),
-#             parseOperand(args[0], regs),
-#             Call("set-singleton", SetT(Int()), parseOperand(args[1], regs)),
+#             parseOperand(args[0], primitive_vars),
+#             Call("set-singleton", SetT(Int()), parseOperand(args[1], primitive_vars)),
 #         ),
 #         None,
 #     ),
-#     "set_contains": lambda regs, mem, gvars, *args: ReturnValue(
+#     "set_contains": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
 #         Ite(
 #             Call(
-#                 "set-member",
+#                 "set-pointer_varsber",
 #                 Bool(),
-#                 parseOperand(args[1], regs),
-#                 parseOperand(args[0], regs),
+#                 parseOperand(args[1], primitive_vars),
+#                 parseOperand(args[0], primitive_vars),
 #             ),
 #             IntLit(1),
 #             IntLit(0),

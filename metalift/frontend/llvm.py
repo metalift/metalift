@@ -101,10 +101,9 @@ class LoopInfo:
                 if opcode == "store" and ops[1] not in self.non_vector_havocs:
                     self.non_vector_havocs.append(ops[1])
                 elif opcode == "call":
-                    # TODO: simplify this logic
-                    raw_fn_name = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
-                    fn_name = get_demangled_name(raw_fn_name)
-                    args = list(i.operands)[:-1]
+                    args = ops[:-1]
+                    fn_name = get_fn_name_from_call_instruction(i)
+                    # TODO(jie): should this be moved to models.py
                     if fn_name == "push_back":
                         self.vector_havocs.append(args[0])
 
@@ -128,6 +127,19 @@ class LoopInfo:
 # Helper functions
 def is_type_list(ty: Type) -> bool:
     return ty.name == "MLList"
+
+def get_fn_name_from_call_instruction(o: ValueRef) -> str:
+    ops = list(o.operands)
+    raw_fn_name: str = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+    if raw_fn_name == "":
+        # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+        fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
+    else:
+        demangled_name = get_demangled_name(raw_fn_name)
+        if demangled_name is None:
+            raise Exception(f"Could not demangle function name {raw_fn_name}")
+        fn_name = demangled_name
+    return fn_name
 
 
 def parse_loops(loops_filepath: str, raw_fn_name: str) -> List[RawLoopInfo]:
@@ -265,7 +277,7 @@ def get_demangled_name(maybe_mangled_name: str) -> Optional[str]:
         ["c++filt", "-n", maybe_mangled_name], stdout=subprocess.PIPE, check=True
     )
     stdout = result.stdout.decode("utf-8").strip()
-    match = re.match(f"^(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)\(.*\)( const)?$", stdout)
+    match = re.match(f"^(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$", stdout)
     if match is not None:
         return match.group(2)
 
@@ -645,7 +657,7 @@ class VCVisitor:
             else:
                 blk_state.precond = pred_preconds
 
-            # TODO: handle global vars and uninterpreted functions
+            # TODO(jie): handle global vars and uninterpreted functions
 
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
@@ -695,8 +707,8 @@ class VCVisitor:
                                     aggregated_precond, value, merged_value
                                 )
                         if merged_value is None:
-                            # TODO: refine error message
-                            raise Exception("Merged value is None")
+                            # This in theory should never happen, but let's just be safe
+                            raise Exception(f"Variable {var_name} has no merged value")
                         merged_vars[var_name] = merged_value
                 setattr(blk_state, field_name, merged_vars)
 
@@ -769,7 +781,7 @@ class VCVisitor:
         t = re.search("alloca ([^$|,]+)", str(o)).group(  # type: ignore
             1
         )  # bug: ops[0] always return i32 1 regardless of type
-        # TODO: clean up this code
+        # TODO(jie) retire custom list.h interface
         val: Optional[Expr] = None
         if t == "i8*":
             val = Pointer(Lit(False, Bool()))
@@ -784,8 +796,8 @@ class VCVisitor:
         elif t.startswith("%struct.set"):
             val = Lit(0, SetT(Int()))
         elif t.startswith("%struct.tup."):
-            retType = [Int() for i in range(int(t[-2]) + 1)]
-            val = Lit(0, TupleT(*retType))
+            ret_type = [Int() for _ in range(int(t[-2]) + 1)]
+            val = Lit(0, TupleT(*ret_type))
         elif t.startswith("%struct.tup"):
             val = Lit(0, TupleT(Int(), Int()))
         elif t.startswith(
@@ -911,38 +923,25 @@ class VCVisitor:
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
-    def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
-        s = self.fn_blocks_states[block_name]
 
+    def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
+        blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
-        raw_fn_name: str = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
-        if raw_fn_name == "":
-            # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
-            fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
-        else:
-            demangled_name = get_demangled_name(raw_fn_name)
-            if demangled_name is None:
-                raise Exception(f"Could not demangle function name {raw_fn_name}")
-            fn_name = demangled_name
+        fn_name = get_fn_name_from_call_instruction(o)
         if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # TODO(colin): migrate over the rest of modeled functions to new structure
             # process the mangled name -> name, type
             rv = models.fn_models[fn_name](
-                s.primitive_vars, s.pointer_vars, {}, *ops[:-1]
+                blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
             )
             if rv.val and o.name != "":
                 self.write_operand_to_block(block_name=block_name, op=o, val=rv.val)
             if rv.assigns:
-                if fn_name in ["vector", "push_back"]:
-                    for k, v in rv.assigns:
-                        self.write_var_to_block(
-                            block_name=block_name, var_name=ops[0].name, val=v
-                        )
-                else:
-                    for k, v in rv.assigns:
-                        self.store_operand_to_block(block_name=block_name, op=k, val=v)
+                for name, value in rv.assigns:
+                    self.write_var_to_block(block_name=block_name, var_name=name, val=value)
+
         # s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
 
         # if self.log:
@@ -1024,7 +1023,6 @@ class MetaliftFunc:
     driver: Driver
     fn_name: str
     fn_type: MLType
-    # fn_ref: ValueRef  # TODO jie: should I change this to llvm_ir.Function
     fn_args: List[ValueRef]
     fn_sret_arg: ValueRef
     fn_blocks: Dict[str, Block]
