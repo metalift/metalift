@@ -4,6 +4,7 @@ from llvmlite.binding import ValueRef
 from metalift.ir import And, Expr, Lit, Bool, Int, Or
 from typing import Dict
 
+
 def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Expr:
     # op is a ValueRef, and if it has a name then it's a register
     if op.name:  # a reg
@@ -26,7 +27,8 @@ def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Ex
     else:  # 0
         return Lit(int(op), Int())
 
-#TODO(colin): this is for old llvm interface. delete after migration
+
+# TODO(colin): this is for old llvm interface. delete after migration
 # def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) -> Expr:
 #     # op is a ValueRef, and if it has a name then it's a register
 #     if op.name:  # a reg

@@ -22,12 +22,13 @@ def new_vector(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: GVarsType,
-    *args: ValueRef
+    *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
     assert args[0].name in primitive_vars.keys()
     assigns = [(args[0].name, Call("list_empty", Type("MLList", Int())))]
     return ReturnValue(None, assigns)
+
 
 def list_length(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
@@ -38,23 +39,36 @@ def list_length(
 def list_get(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
-    return ReturnValue(Call("list_get", Int(), regs[args[0].name], regs[args[1].name]), None)
+    return ReturnValue(
+        Call("list_get", Int(), regs[args[0].name], regs[args[1].name]), None
+    )
 
 
 def list_append(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
-        Call("list_append", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name]),
+        Call(
+            "list_append",
+            parse_type_ref(args[0].type),
+            regs[args[0].name],
+            regs[args[1].name],
+        ),
         None,
     )
+
 
 def vector_append(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     assert len(args) == 2
     assign_var_name = args[0].name
-    assign_val = Call("list_append", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name])
+    assign_val = Call(
+        "list_append",
+        parse_type_ref(args[0].type),
+        regs[args[0].name],
+        regs[args[1].name],
+    )
     return ReturnValue(
         None,
         [(assign_var_name, assign_val)],
@@ -65,7 +79,12 @@ def listConcat(
     regs: RegsType, mem: RegsType, gvars: GVarsType, *args: ValueRef
 ) -> ReturnValue:
     return ReturnValue(
-        Call("list_concat", parse_type_ref(args[0].type), regs[args[0].name], regs[args[1].name]),
+        Call(
+            "list_concat",
+            parse_type_ref(args[0].type),
+            regs[args[0].name],
+            regs[args[1].name],
+        ),
         None,
     )
 
@@ -177,29 +196,6 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # TODO(shadaj): investigate why this is not necessary for all devs
     "_Z8tupleGetIJiiELi0EENSt9enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tuple_get,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # TODO(colin): delete the old implementation when new llvm is ready

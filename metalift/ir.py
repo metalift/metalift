@@ -122,7 +122,7 @@ def String() -> Type:
     return Type("String")
 
 
-def Pointer(t: Type) -> Type:
+def PointerT(t: Type) -> Type:
     return Type("Pointer", t)
 
 
@@ -146,14 +146,6 @@ def MapT(keyT: Type, valT: Type) -> Type:
 def TupleT(e1T: Type, *elemT: Type) -> Type:
     return Type("Tuple", e1T, *elemT)
 
-
-def PointerT(elemT: Type) -> Type:
-    return Type("Pointer", elemT)
-
-
-# Byte
-def Byte() -> Type:
-    return Type("Byte")
 
 T = TypeVar("T")
 
@@ -319,7 +311,8 @@ class Expr:
         if isinstance(other, Expr):
             if (
                 type(self) != type(other)
-                or parse_type_ref(self.type).erase() != parse_type_ref(other.type).erase()
+                or parse_type_ref(self.type).erase()
+                != parse_type_ref(other.type).erase()
                 or len(self.args) != len(other.args)
             ):
                 return False
@@ -576,7 +569,7 @@ class Pointer(Expr):
 
     @property
     def value(self) -> Expr:
-        return self.args[0]
+        return self.args[0]  # type: ignore
 
     def set_value(self, value: Expr) -> None:
         self.args[0] = value
@@ -1499,7 +1492,9 @@ class Synth(Expr):
 
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
-        if not all(parse_type_ref(a.type) == parse_type_ref(args[0].type) for a in args):
+        if not all(
+            parse_type_ref(a.type) == parse_type_ref(args[0].type) for a in args
+        ):
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a) for a in args)
