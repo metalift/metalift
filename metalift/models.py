@@ -182,23 +182,20 @@ def set_field(
 
 
 fn_models: Dict[str, Callable[..., ReturnValue]] = {
-    # mangled names for non template version of list.h
-    # "_Z7newListv": newlist,
-    # "_Z10listLengthP4list": listLength,
-    # "_Z7listGetP4listi": listGet,
-    # "_Z10listAppendP4listi": listAppend
-    # mangled names for template version of list.h
-    # TODO add mangle name for list_concat
+    # list methods
+    "newList": new_list,
+    "listLength": list_length,
+    "listAppend": list_append,
+    "listGet": list_get,
+    # vector methods
     "vector": new_vector,
     "size": list_length,
     "push_back": vector_append,
     "operator[]": list_get,
-    "_Z7newListIiEP4listIT_Ev": new_list,
-    "_Z10listLengthIiEiP4listIT_E": list_length,
-    "_Z7listGetIiET_P4listIS0_Ei": list_get,
-    "_Z10listAppendIiEP4listIT_ES3_S1_": list_append,
+
     "getField": get_field,
     "setField": set_field,
+
     # names for set.h
     "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
         Call("set-create", SetT(Int())), None
@@ -234,18 +231,10 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
+
+    # tuple methods
     "MakeTuple": make_tuple,
     "tupleGet": tuple_get,
-    # mangled names for tuple.h
-    "_Z8newTupleIiiEP3tupIT_T0_Ev": new_tuple,
-    "_Z9MakeTupleIJiiEEP3tupIJDpT_EES2_": make_tuple,
-    "_Z9MakeTupleIJiiiEEP3tupIJDpT_EES2_": make_tuple,
-    "_Z8tupleGetIJiiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tuple_get,
-    "_Z8tupleGetIJiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tuple_get,
-    "_ZL8tupleGetIJiiEEDaP3tupIJDpT_EEi": tuple_get,
-    "_Z8tupleGetIJiiiiELi0EENSt3__19enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tuple_get,
-    # TODO(shadaj): investigate why this is not necessary for all devs
-    "_Z8tupleGetIJiiELi0EENSt9enable_ifIXltT0_sZT_EiE4typeEP3tupIJDpT_EEi": tuple_get,
 }
 
 

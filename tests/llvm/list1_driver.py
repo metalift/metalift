@@ -1,55 +1,18 @@
-from typing import List
+from typing import List, Union
+
+from mypy.nodes import Statement
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, And, Call, Choose, Eq, Expr, Bool, Ge, Ite, FnT, CallValue,
-                         Le, Gt, Lt, Int, IntLit, ListT, FnDeclRecursive, Var)
+from metalift.ir import And, Bool, BoolLit, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Int, IntLit, Ite, Le, ListT, Lt, Var
 from tests.python.utils.utils import codegen
 
-def target_lang():
 
+def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     arg = Var("n", Int())
-    select_pred = FnDeclRecursive("Select-pred", FnT(Bool()), Gt(arg, IntLit(2)), arg)
-    select_pred1 = FnDeclRecursive("Select-pred1", FnT(Bool()), Lt(arg, IntLit(10)), arg)
-    select_pred2 = FnDeclRecursive("Select-pred2", FnT(Bool()), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
-    data = Var("l", ListT(Int()))
-    f = Var("f", FnT(Bool()))
-    select_func = FnDeclRecursive(
-        "Select",
-        ListT(Int()),
-        Ite(
-            Eq(Call("list_length", Int(), data), IntLit(0)),
-            Call("list_empty", ListT(Int())),
-            Ite(
-                CallValue(f, Call("list_get", Int(), data, IntLit(0))),
-                Call(
-                    "list_append",
-                    ListT(Int()),
-                    Call(
-                        "Select",
-                        ListT(Int()),
-                        Call("list_tail", ListT(Int()), data, IntLit(1)),
-                        f,
-                    ),
-                    Call("list_get", Int(), data, IntLit(0)),
-                ),
-                Call(
-                    "Select",
-                    ListT(Int()),
-                    Call("list_tail", ListT(Int()), data, IntLit(1)),
-                    f,
-                ),
-            ),
-        ),
-        data,
-        f,
-    )
+    select_pred = FnDecl("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
+    select_pred1 = FnDecl("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
+    select_pred2 = FnDecl("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
 
-    return [select_pred, select_pred1, select_pred2, select_func]
-
-    arg = Var("n", Int())
-    select_pred = FnDeclRecursive("Select-pred", Bool(), Gt(arg, IntLit(2)), arg)
-    select_pred1 = FnDeclRecursive("Select-pred1", Bool(), Lt(arg, IntLit(10)), arg)
-    select_pred2 = FnDeclRecursive("Select-pred2", Bool(), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
     data = Var("l", ListT(Int()))
     select_func = FnDeclRecursive(
         "Select",
@@ -142,84 +105,41 @@ def target_lang():
         select_func2,
     ]
 
+def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+    # reads = [in_lst]
+    return Choose(
+        Call("list_eq", Bool(), ret_val, *reads),
+        Call("list_eq", Bool(), ret_val, Call("Select", ListT(Int()), *reads)),
+        Call("list_eq", Bool(), ret_val, Call("Select1", ListT(Int()), *reads)),
+        Call("list_eq", Bool(), ret_val, Call("Select2", ListT(Int()), *reads))
+    )
+
 def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    f = Choose(
-        Call("Select-pred", FnT(Bool(), *reads)),
-        Call("Select-pred1", FnT(Bool(), *reads)),
-        Call("Select-pred2", FnT(Bool(), *reads)),
-    )
-    a = Choose(
-        writes[0],
-        *reads,
-        Call("Select", ListT(Int()), *reads, f)
-    )
-    i = Choose(IntLit(0), IntLit(1))
-    e = Choose(
-        Call(
-            "list_eq",
-            Bool(),
-            Call(
-                "list_concat",
-                ListT(Int()),
-                a,
-                Call(
-                    "Select",
-                    ListT(Int()),
-                    Call("list_tail", ListT(Int()), a, writes[1]),
-                    f,
-                ),
-            ),
-            a,
-        ),
-        Call(
-            "list_eq",
-            Bool(),
-            Call(
-                "list_concat",
-                ListT(Int()),
-                a,
-                Call("list_tail", ListT(Int()), a, writes[1]),
-            ),
-            a,
-        ),
-    )
-    d = Choose(
-        Ge(writes[1], Call("list_length", Int(), *reads)),
-        Le(writes[1], Call("list_length", Int(), *reads)),
-        Gt(writes[1], Call("list_length", Int(), *reads)),
-        Lt(writes[1], Call("list_length", Int(), *reads)),
-        Eq(writes[1], Call("list_length", Int(), *reads)),
-    )
-    c = Choose(
-        Ge(writes[1], i),
-        Le(writes[1], i),
-        Gt(writes[1], i),
-        Lt(writes[1], i),
-        Eq(writes[1], i),
-    )
-    b = Choose(And(And(c, d), e))
-    return b
+    # This grammar func could be called with v as `i` or `out_lst`, and we really only want to generate this grammar once.
+    if v.name() != "out":
+        return BoolLit(True)
 
-
-    a = Choose(
-        writes[0], *reads, Call("Select", ListT(Int()), *reads)
-    )
-    i = Choose(IntLit(0), IntLit(1))
-    e = Choose(
+    # writes = [out, i]
+    # reads = [in]
+    import pdb; pdb.set_trace()
+    out_lst, i = writes[0], writes[1]
+    in_lst = reads[0]
+    lst = Choose(in_lst, out_lst, Call("Select", ListT(Int()), in_lst))
+    lst_inv_cond = Choose(
         Call(
             "list_eq",
             Bool(),
             Call(
                 "list_append",
                 ListT(Int()),
-                a,
+                lst,
                 Call(
                     "Select",
                     ListT(Int()),
-                    Call("list_tail", ListT(Int()), a, writes[1]),
+                    Call("list_tail", ListT(Int()), lst, i),
                 ),
             ),
-            a,
+            lst,
         ),
         Call(
             "list_eq",
@@ -227,58 +147,30 @@ def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
             Call(
                 "list_concat",
                 ListT(Int()),
-                a,
-                Call("list_tail", ListT(Int()), a, writes[1]),
+                out_lst,
+                Call("list_tail", ListT(Int()), lst, i),
             ),
-            a,
+            lst,
         ),
     )
-    d = Choose(
-        Ge(writes[1], Call("list_length", Int(), *reads)),
-        Le(writes[1], Call("list_length", Int(), *reads)),
-        Gt(writes[1], Call("list_length", Int(), *reads)),
-        Lt(writes[1], Call("list_length", Int(), *reads)),
-        Eq(writes[1], Call("list_length", Int(), *reads)),
-    )
-    c = Choose(
-        Ge(writes[1], i),
-        Le(writes[1], i),
-        Gt(writes[1], i),
-        Lt(writes[1], i),
-        Eq(writes[1], i),
-    )
-    b = Choose(And(And(c, d), e))
-    return b
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    rv = writes[0]
-    fns = Choose(
-        Call("Select-pred", FnT(Bool(), rv)),
-        Call("Select-pred1", FnT(Bool(), rv)),
-        Call("Select-pred2", FnT(Bool(), rv)),
+    in_lst_length = Call("list_length", Int(), in_lst)
+    i_bound_in_lst_length_cond = Choose(
+        Ge(i, in_lst_length),
+        Le(i, in_lst_length),
+        Gt(i, in_lst_length),
+        Lt(i, in_lst_length),
+        Eq(i, in_lst_length),
     )
-    choices = Choose(
-        Call("list_eq", Bool(), rv, *reads),
-        (
-            Call(
-                "list_eq",
-                Bool(),
-                rv,
-                Call("Select", ListT(Int()), *reads, fns),
-            )
-        ),
+    i_bound_int_lit = Choose(IntLit(0), IntLit(1))
+    i_bound_int_lit_cond = Choose(
+        Ge(i, i_bound_int_lit),
+        Le(i, i_bound_int_lit),
+        Gt(i, i_bound_int_lit),
+        Lt(i, i_bound_int_lit),
+        Eq(i, i_bound_int_lit),
     )
-    return choices
-
-
-    rv = writes[0]
-    choices = Choose(
-        Call("list_eq", Bool(), rv, *reads),
-        (Call("list_eq", Bool(), rv, Call("Select", ListT(Int()), *reads))),
-        (Call("list_eq", Bool(), rv, Call("Select1", ListT(Int()), *reads))),
-        (Call("list_eq", Bool(), rv, Call("Select2", ListT(Int()), *reads))),
-    )
-    return choices
+    return Choose(And(And(i_bound_int_lit_cond, i_bound_in_lst_length_cond), lst_inv_cond))
 
 if __name__ == "__main__":
     driver = Driver()
@@ -291,9 +183,9 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    input = driver.variable("in", ListT(Int()))
+    v1 = driver.variable("in", ListT(Int()))
 
-    test(input)
+    test(v1)
 
     driver.synthesize()
 

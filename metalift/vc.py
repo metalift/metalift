@@ -252,7 +252,7 @@ class VC:
             assignE = Eq(self.makeVar(a.name, a.type), regs[a])
         else:  # r1 = v1 and r2 = v2 ...
             sorted_assigns = list(assigns)
-            sorted_assigns.sort(key=lambda a: a.name)
+            sorted_assigns.sort(key=lambda a: a.name) # type: ignore
             assignE = And(
                 *[Eq(self.makeVar(r.name, r.type), regs[r]) for r in sorted_assigns]
             )
