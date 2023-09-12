@@ -1593,7 +1593,7 @@ class FnDeclRecursive(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parse_type_ref(self.type),
+                parse_type_ref(self.returnT()),
             )
         else:
             declarations = []
@@ -1735,7 +1735,7 @@ class FnDecl(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parse_type_ref(self.type),
+                parse_type_ref(self.returnT()),
             )
         else:
             declarations = []
