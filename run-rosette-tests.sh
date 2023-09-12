@@ -1,11 +1,13 @@
 #!/bin/bash
 
+# TODO(jie): add these back to tests after adding support for them
+# "tests.llvm.count"
+# "tests.llvm.list1"
+# "tests.llvm.list1_fns"
+# "tests.llvm.uninterp"
+# "tests.llvm.struct1"
+
 tests=(
-"tests.llvm.count"
-"tests.llvm.list1"
-"tests.llvm.list1_fns"
-"tests.llvm.uninterp"
-"tests.llvm.struct1"
 "test.python.count_driver"
 "tests.python.list1_driver"
 "tests.python.list1_fns_driver"

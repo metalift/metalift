@@ -1101,14 +1101,14 @@ class MetaliftFunc:
             )
         for i in range(len(args)):
             passed_in_arg_name, passed_in_arg_type = args[i].name(), args[i].type
-            fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[i]
+            fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
             if passed_in_arg_name != fn_arg_name:
                 raise Exception(
                     f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
                 )
             if passed_in_arg_type != fn_arg_type:
                 raise RuntimeError(
-                    f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_name}"
+                    f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
                 )
 
         if self.fn_sret_arg is not None:
