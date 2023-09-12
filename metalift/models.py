@@ -192,10 +192,8 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     "size": list_length,
     "push_back": vector_append,
     "operator[]": list_get,
-
     "getField": get_field,
     "setField": set_field,
-
     # names for set.h
     "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
         Call("set-create", SetT(Int())), None
@@ -231,7 +229,6 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
-
     # tuple methods
     "MakeTuple": make_tuple,
     "tupleGet": tuple_get,
