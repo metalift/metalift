@@ -497,7 +497,7 @@ class AnalysisResult(object):
                             for b in rich_blocks.keys()
                         ]
                     ),
-                    bb_variables["bb"],
+                    bb_variables["entry"],
                 ),
             )
 
