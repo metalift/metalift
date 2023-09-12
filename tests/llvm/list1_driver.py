@@ -121,7 +121,6 @@ def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
 
     # writes = [out, i]
     # reads = [in]
-    import pdb; pdb.set_trace()
     out_lst, i = writes[0], writes[1]
     in_lst = reads[0]
     lst = Choose(in_lst, out_lst, Call("Select", ListT(Int()), in_lst))

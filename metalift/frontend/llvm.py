@@ -933,7 +933,6 @@ class VCVisitor:
         if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
-            # TODO(colin): migrate over the rest of modeled functions to new structure
             # process the mangled name -> name, type
             rv = models.fn_models[fn_name](
                 blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
@@ -945,12 +944,6 @@ class VCVisitor:
                     self.write_var_to_block(
                         block_name=block_name, var_name=name, val=value
                     )
-
-        # s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
-
-        # if self.log:
-        #     print("final state: %s" % s)
-        # b.state = s
 
 
 class Driver:
