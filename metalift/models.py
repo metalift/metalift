@@ -2,8 +2,7 @@ from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import (Bool, Call, Expr, Int, IntLit, Ite, SetT, Type,
-                         parse_type_ref)
+from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, SetT, Type, parse_type_ref
 from metalift.vc_util import parseOperand
 
 ReturnValue = NamedTuple(
@@ -14,11 +13,12 @@ ReturnValue = NamedTuple(
     ],
 )
 
+
 def new_list(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: Dict[str, str],
-    *args: ValueRef
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
 
@@ -27,7 +27,7 @@ def list_length(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: Dict[str, str],
-    *args: ValueRef
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
 
@@ -36,10 +36,16 @@ def list_get(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: Dict[str, str],
-    *args: ValueRef
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
-        Call("list_get", Int(), primitive_vars[args[0].name], primitive_vars[args[1].name]), None
+        Call(
+            "list_get",
+            Int(),
+            primitive_vars[args[0].name],
+            primitive_vars[args[1].name],
+        ),
+        None,
     )
 
 
@@ -47,7 +53,7 @@ def list_append(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: Dict[str, str],
-    *args: ValueRef
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
         Call(
@@ -59,8 +65,12 @@ def list_append(
         None,
     )
 
+
 def list_concat(
-    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
         Call(
@@ -81,14 +91,17 @@ def new_vector(
 ) -> ReturnValue:
     assert len(args) == 1
     var_name: str = args[0].name
-    assigns: List[Tuple[str, Expr]] = [(var_name, Call("list_empty", Type("MLList", Int())))]
+    assigns: List[Tuple[str, Expr]] = [
+        (var_name, Call("list_empty", Type("MLList", Int())))
+    ]
     return ReturnValue(None, assigns)
+
 
 def vector_append(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: Dict[str, str],
-    *args: ValueRef
+    *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
     assign_var_name: str = args[0].name
@@ -105,13 +118,19 @@ def vector_append(
 
 
 def new_tuple(
-    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
 
 
 def make_tuple(
-    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
 ) -> ReturnValue:
     regVals = [primitive_vars[args[i].name] for i in range(len(args))]
     retVals = [Int() for i in range(len(args))]
@@ -122,15 +141,27 @@ def make_tuple(
 
 
 def tuple_get(
-    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
-        Call("tupleGet", Int(), primitive_vars[args[0].name], parseOperand(args[1], primitive_vars)), None
+        Call(
+            "tupleGet",
+            Int(),
+            primitive_vars[args[0].name],
+            parseOperand(args[1], primitive_vars),
+        ),
+        None,
     )
 
 
 def get_field(
-    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
 ) -> ReturnValue:
     (fieldName, obj) = args
     val = pointer_vars[obj.name].args[fieldName.args[0]]
@@ -139,7 +170,10 @@ def get_field(
 
 
 def set_field(
-    primitive_vars: Dict[str, Expr], pointer_vars: Dict[str, Expr], global_vars: Dict[str, str], *args: ValueRef
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
 ) -> ReturnValue:
     (fieldName, obj, val) = args
     pointer_vars[obj.name].args[fieldName.args[0]] = primitive_vars[val.name]
@@ -200,6 +234,8 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
         ),
         None,
     ),
+    "MakeTuple": make_tuple,
+    "tupleGet": tuple_get,
     # mangled names for tuple.h
     "_Z8newTupleIiiEP3tupIT_T0_Ev": new_tuple,
     "_Z9MakeTupleIJiiEEP3tupIJDpT_EES2_": make_tuple,

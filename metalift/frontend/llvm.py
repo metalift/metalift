@@ -128,6 +128,7 @@ class LoopInfo:
 def is_type_list(ty: Type) -> bool:
     return ty.name == "MLList"
 
+
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
     ops = list(o.operands)
     raw_fn_name: str = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
@@ -277,9 +278,11 @@ def get_demangled_name(maybe_mangled_name: str) -> Optional[str]:
         ["c++filt", "-n", maybe_mangled_name], stdout=subprocess.PIPE, check=True
     )
     stdout = result.stdout.decode("utf-8").strip()
-    match = re.match(f"^(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$", stdout)
+    match = re.match(
+        f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$", stdout
+    )
     if match is not None:
-        return match.group(2)
+        return match.group(3)
 
     match = re.match(f"^([a-zA-Z0-9_]+)(\(.*\))?$", stdout)
     if match is not None:
@@ -923,7 +926,6 @@ class VCVisitor:
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
-
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
@@ -940,7 +942,9 @@ class VCVisitor:
                 self.write_operand_to_block(block_name=block_name, op=o, val=rv.val)
             if rv.assigns:
                 for name, value in rv.assigns:
-                    self.write_var_to_block(block_name=block_name, var_name=name, val=value)
+                    self.write_var_to_block(
+                        block_name=block_name, var_name=name, val=value
+                    )
 
         # s.vc = self.formVC(b.name, s.regs, assigns, s.assumes, asserts, b.succs)
 
