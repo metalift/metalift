@@ -1,7 +1,7 @@
 // case without else clause
 int test (int i) {
-  int a;
+  int a = 1;
   if (i > 10)
-    a = 1;
+    a = 2;
   return a;
 }

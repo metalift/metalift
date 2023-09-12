@@ -74,7 +74,7 @@ class VC:
 
     def makeVar(self, name: str, ty: Union[TypeRef, Type]) -> Expr:
         if isinstance(ty, TypeRef):
-            ty = parseTypeRef(ty)
+            ty = parse_type_ref(ty)
         elif isinstance(ty, Type):
             pass
         else:
@@ -405,8 +405,8 @@ class VC:
                 if fnName == "":
                     # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
                     fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
-                if fnName in models.fnModels:
-                    rv = models.fnModels[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
+                if fnName in models.fn_models:
+                    rv = models.fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
                     if rv.val:
                         s.regs[i] = rv.val
                         assigns.add(i)
@@ -417,7 +417,7 @@ class VC:
 
                 elif fnName in s.uninterpFuncs:
                     s.regs[i] = Call(
-                        fnName, parseTypeRef(i.type), *[s.regs[op] for op in ops[:-1]]
+                        fnName, parse_type_ref(i.type), *[s.regs[op] for op in ops[:-1]]
                     )
                     assigns.add(i)
 

@@ -26,12 +26,12 @@ def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Typ
             if not isinstance(l, ValueRef):
                 fnsType[l.args[0]] = l.type
             else:
-                fnsType[l.name] = parseTypeRef(l.type)
+                fnsType[l.name] = parse_type_ref(l.type)
         else:
             if not isinstance(l, ValueRef):
                 fnsType[l.args[0]] = l.type
             else:
-                fnsType[l.name] = parseTypeRef(l.type)
+                fnsType[l.name] = parse_type_ref(l.type)
     return fnsType
 
 
