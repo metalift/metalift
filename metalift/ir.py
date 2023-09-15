@@ -1910,11 +1910,7 @@ def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
         return PointerT(Bool())
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
-    elif (
-        tyStr.startswith("%struct.list*")
-        or tyStr == "%struct.list**"
-        or tyStr == "(MLList Int)"
-    ):
+    elif tyStr.startswith("%struct.list") or tyStr == "(MLList Int)":
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):
         return SetT(Int())
