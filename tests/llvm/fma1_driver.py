@@ -44,6 +44,11 @@ if __name__ == "__main__":
     arg1 = IntObject("arg1")
     base2 = IntObject("base2")
     arg2 = IntObject("arg2")
+    driver.add_var_object(base)
+    driver.add_var_object(arg1)
+    driver.add_var_object(base2)
+    driver.add_var_object(arg2)
+
 
     test(base, arg1, base2, arg2)
 

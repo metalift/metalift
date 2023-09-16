@@ -86,12 +86,15 @@ class Expr:
 
     @staticmethod
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
+        if isinstance(e, NewObject):
+            cnts = Expr.findCommonExprs(e.src, cnts)
         if e not in cnts:
             cnts[e] = 1
-            if e.args is not None:
-                for i in range(len(e.args)):
-                    if isinstance(e.args[i], Expr):
-                        cnts = Expr.findCommonExprs(e.args[i], cnts)
+            for i in range(len(e.args)):
+                if isinstance(e.args[i], Expr):
+                    cnts = Expr.findCommonExprs(e.args[i], cnts)
+
+
 
         else:
             cnts[e] = cnts[e] + 1
@@ -503,7 +506,7 @@ class BoolObject(NewObject):
     #     return BoolT()
 
     def __repr__(self):
-        return f"BoolObject({self.src})"
+        return f"{self.src}"
 
 
 class IntObject(NewObject):
@@ -600,7 +603,7 @@ class IntObject(NewObject):
 
 
     def __repr__(self):
-        return f"Int({self.src})"
+        return f"{self.src}"
 
     def __hash__(self) -> int:
         return super().__hash__()
@@ -1736,6 +1739,7 @@ class Synth(Expr):
             )
         )
         rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
+        import pdb; pdb.set_trace()
 
         # rewrite common exprs to use each other
         commonExprs = [
