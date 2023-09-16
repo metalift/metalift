@@ -1454,15 +1454,11 @@ class Driver:
     def variable(self, name: str, type: ObjectT) -> Var:
         return self.var_tracker.variable(name, type)
 
-    def add_var_object(self, var_object: Object) -> None:
+    def add_var_object(self, var_object: NewObject) -> None:
         # TODO(jie): extract this check to a more generic function
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
-        self.var_tracker.variable(var_object.var_name(), var_object.type)
-
-    def add_var_objects(self, var_objects: List[Object]) -> None:
-        for var_object in var_objects:
-            self.add_var_object(var_object)
+        self.var_tracker.variable(var_object.var_name(), var_object.src.type)
 
     def analyze(
         self,
@@ -1666,6 +1662,7 @@ class MetaliftFunc:
 
         ret_val_obj_cls = self.fn_type.args[0]
         ret_val = ret_val_obj_cls(f"{self.fn_name}_rv")
+        self.driver.add_var_object(ret_val)
 
         # TODO(jie) instead of constructin this call manually can we replace it with a method call.
         ps = call(f"{self.fn_name}_ps", Bool, ret_val, *args)
