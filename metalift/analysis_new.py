@@ -45,15 +45,9 @@ class VariableTracker(object):
         return VariableGroup(self, format_with_index(name, self.groups[name]))
 
     def variable(self, name: str, type: Type) -> Var:
-        # if name in self.existing:
-        #     self.existing[name] += 1
-        # else:
-        #     self.existing[name] = 0
-        self.existing[name] = 0
+        self.var_to_type[name] = type
 
-        self.var_to_type[format_with_index(name, self.existing[name])] = type
-
-        return Var(format_with_index(name, self.existing[name]), type)
+        return Var(name, type)
 
     def all(self) -> List[Var]:
         return [Var(name, self.var_to_type[name]) for name in self.var_to_type]

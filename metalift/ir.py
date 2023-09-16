@@ -16,147 +16,18 @@ class PrintMode(Enum):
     Rosette = 1
 
 
-class CVC5UnsupportedException(Exception):
-    pass
-
-
-class Type:
-    def __init__(self, name: str, *args: "Type") -> None:
-        self.name = name
-        self.args = args
-
-    def toSMT(self) -> str:
-        if (
-            self.name == "Int"
-            or self.name == "ClockInt"
-            or self.name == "EnumInt"
-            or self.name == "OpaqueInt"
-            or self.name == "NodeIDInt"
-        ):
-            return "Int"
-        elif self.name == "Bool":
-            return "Bool"
-        elif self.name == "String":
-            return "String"
-        elif self.name == "Tuple":
-            args = " ".join(a.toSMT() for a in self.args)
-            return "(Tuple%d %s)" % (len(self.args), args)
-        elif self.name == "Map":
-            raise CVC5UnsupportedException("Map")
-        else:
-            return "(%s %s)" % (
-                self.name,
-                " ".join(
-                    [a.toSMT() if isinstance(a, Type) else str(a) for a in self.args]
-                ),
-            )
-
-    def __repr__(self) -> str:
-        if len(self.args) == 0:
-            return self.name
-        else:
-            return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
-
-    def erase(self) -> "Type":
-        if (
-            self.name == "ClockInt"
-            or self.name == "EnumInt"
-            or self.name == "OpaqueInt"
-            or self.name == "NodeIDInt"
-        ):
-            return Int()
-        else:
-            return Type(
-                self.name, *[a.erase() if isinstance(a, Type) else a for a in self.args]
-            )
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, Type):
-            if self.name != other.name or len(self.args) != len(other.args):
-                return False
-            else:
-                return all(
-                    a1 == a2
-                    if isinstance(a1, type) and isinstance(a2, type)
-                    else a1.__eq__(a2)
-                    for a1, a2 in zip(self.args, other.args)
-                )
-        return NotImplemented
-
-    def __ne__(self, other: object) -> bool:
-        x = self.__eq__(other)
-        if x is not NotImplemented:
-            return not x
-        return NotImplemented
-
-    def __hash__(self) -> int:
-        return hash(tuple(sorted({"name": self.name, "args": tuple(self.args)})))
-
-
-def Int() -> Type:
-    return Type("Int")
-
-
-def ClockInt() -> Type:
-    return Type("ClockInt")
-
-
-def EnumInt() -> Type:
-    return Type("EnumInt")
-
-
-def OpaqueInt() -> Type:
-    return Type("OpaqueInt")
-
-
-def NodeIDInt() -> Type:
-    return Type("NodeIDInt")
-
-
-def Bool() -> Type:
-    return Type("Bool")
-
-
-# for string literals
-def String() -> Type:
-    return Type("String")
-
-
-def PointerT(t: Type) -> Type:
-    return Type("Pointer", t)
-
-
-def ListT(contentT: Type) -> Type:
-    return Type("MLList", contentT)
-
-
-def FnT(retT: Type, *argT: Type) -> Type:
-    return Type("Function", retT, *argT)
-
-
-def SetT(contentT: Type) -> Type:
-    return Type("Set", contentT)
-
-
-def MapT(keyT: Type, valT: Type) -> Type:
-    return Type("Map", keyT, valT)
-
-
-# first type is not optional
-def TupleT(e1T: Type, *elemT: Type) -> Type:
-    return Type("Tuple", e1T, *elemT)
-
-
 T = TypeVar("T")
 
 
 class Expr:
-    def __init__(self, type: Type, args: Any) -> None:
+    def __init__(self, type: "Type", args: Any) -> None:
         self.args = args
         self.type = type
 
     # TODO: move into per-type implementations
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
+        if isinstance(self, NewObject):
+            return self.src.mapArgs(f)
         if isinstance(self, Var):
             return Var(typing.cast(str, f(self.args[0])), self.type)
         elif isinstance(self, Lit):
@@ -217,9 +88,10 @@ class Expr:
     def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
         if e not in cnts:
             cnts[e] = 1
-            for i in range(len(e.args)):
-                if isinstance(e.args[i], Expr):
-                    cnts = Expr.findCommonExprs(e.args[i], cnts)
+            if e.args is not None:
+                for i in range(len(e.args)):
+                    if isinstance(e.args[i], Expr):
+                        cnts = Expr.findCommonExprs(e.args[i], cnts)
 
         else:
             cnts[e] = cnts[e] + 1
@@ -236,6 +108,8 @@ class Expr:
         if e not in commonExprs or skipTop:
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
+                if isinstance(e, NewObject):
+                    return Expr.replaceExprs(e.src, commonExprs, mode)
                 if isinstance(e, Var):
                     return Var(typing.cast(str, newArgs[0]), e.type)
                 elif isinstance(e, Lit):
@@ -311,8 +185,8 @@ class Expr:
         if isinstance(other, Expr):
             if (
                 type(self) != type(other)
-                or parse_type_ref(self.type).erase()
-                != parse_type_ref(other.type).erase()
+                or self.type.erase()
+                != other.type.erase()
                 or len(self.args) != len(other.args)
             ):
                 return False
@@ -525,6 +399,466 @@ class Expr:
         else:
             return Mul(self, other)
 
+# Objects stuff
+def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
+    ty_str = str(t)
+    if ty_str in {"i32", "i32*"}:
+        return IntObject
+    elif ty_str == "i1":
+        return BoolObject
+    else:
+        raise Exception("OH NO")
+
+class NewObject(Expr):
+    src: Expr
+
+    # TODO (jie): fix function signature
+    def __init__(self, src: Expr, type: Any) -> None:
+        self.src = src  # pass this to parent class?
+        super().__init__(type, [])
+
+    def toRosette(self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None) -> str:
+        return self.src.toRosette(writeChoicesTo)
+
+    def var_name(self) -> str:
+        if not isinstance(self.src, Var):
+            raise Exception("source is not a variable")
+        return typing.cast(Var, self.src).name()
+
+    def type_name(self) -> str:
+        if isParameterizedObject(self):
+            return getTypeName(self.__orig_class__)
+        else:
+            return getTypeName(self.__class__)
+
+
+    def toSMT(self) -> str:
+        return self.src.toSMT()
+
+    def codegen(self) -> str:
+        return self.src.codegen()
+
+    def __hash__(self) -> int:
+        return hash(self.src)
+
+    # @abstractclassmethod
+    # def Expr_type() -> Type:
+    #     raise NotImplementedError()
+
+
+class BoolObject(NewObject):
+
+    def __init__(self, value: Optional[Union[bool, str, Expr]] = None) -> None:
+        if value is None:  # a symbolic variable
+            src = Var("v", Bool()) # XXX change to Bool
+        elif isinstance(value, bool):
+            src = BoolLit(value)
+        elif isinstance(value, Expr):
+            # if value.type != BoolT() and
+            # if value.type != Bool: # XXX change to Bool
+            #     raise TypeError(f"Cannot create Bool from {value.type}")
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, Bool())
+        else:
+            raise TypeError(f"Cannot create Bool from {value}")
+
+        super().__init__(src, Bool())
+
+
+    # python doesn't have hooks for and, or, not
+    def And(self, *args: "BoolObject") -> "BoolObject":
+        if len(args) == 0:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        # if not all(map(lambda e: e.type == Bool, args)):
+        #     raise Exception(f"Cannot apply AND to values of type {args}")
+        return BoolObject(And(self, *args))
+
+    def Or(self, *args: "BoolObject") -> "BoolObject":
+        if len(args) < 1:
+            raise Exception(f"Arg list must be non-empty: {args}")
+        # if not all(map(lambda e: e.type == Bool, args)):
+        #     raise Exception(
+        #         f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
+        #     )
+        # TODO (jie): verify arg types
+        return BoolObject(Or(self, *args))
+
+    def Not(self) -> "BoolObject":
+        return BoolObject(Not(self))
+
+    def __eq__(self, other: Union["BoolObject", bool]) -> "BoolObject":
+        if isinstance(other, bool):
+            other = BoolObject(other)
+        return BoolObject(Eq(self, other))
+
+    def __ne__(self, other: Union["BoolObject", bool]) -> "BoolObject":
+        if isinstance(other, bool):
+            other = BoolObject(other)
+        return BoolObject(Not(Eq(self, other)))
+
+
+    # @staticmethod
+    # def Expr_type() -> Type:
+    #     return BoolT()
+
+    def __repr__(self):
+        return f"BoolObject({self.src})"
+
+
+class IntObject(NewObject):
+
+    def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
+        if value is None:  # a symbolic variable
+            src = Var("v", Int())  # XXX change to Int
+        elif isinstance(value, int):
+            src = IntLit(value)
+        elif isinstance(value, Expr):
+            # if value.type != IntT() and
+            # if value.type != Int: # XXX change to Int
+            #     raise TypeError(f"Cannot create Int from {value.type}")
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, Int())
+        else:
+            raise TypeError(f"Cannot create Int from {value}")
+
+        super().__init__(src, Int())
+
+    # @staticmethod
+    # def Expr_type() -> Type:
+    #     return IntT()
+
+
+    def binary_op(self, other: Union["IntObject", int], op: Callable[[Expr, Expr], Expr]) -> "IntObject":
+        if isinstance(other, IntObject) or isinstance(other, int):
+            return IntObject(op(self, other))
+        else:
+            raise TypeError(f"Cannot call {op} on Int and {other}")
+
+
+    # arithmetic operators
+    def __add__(self, other: Union["IntObject", int]) -> "IntObject":
+        return self.binary_op(other, Add)
+
+    def __sub__(self, other: Union["IntObject", int]) -> "IntObject":
+        return self.binary_op(other, Sub)
+
+    def __mul__(self, other: Union["IntObject", int]) -> "IntObject":
+        return self.binary_op(other, Mul)
+
+    # div not supported yet
+
+    def __radd__(self, other: Union["IntObject", int]) -> "IntObject":
+        if isinstance(other, int):
+            return IntObject(other) + self
+        else:
+            return other + self
+
+    def __rsub__(self, other: Union["Int", int]) -> "Int":
+        if isinstance(other, int):
+            return IntObject(other) - self
+        else:
+            return other - self
+
+    def __rmul__(self, other: Union["IntObject", int]) -> "IntObject":
+        if isinstance(other, int):
+            return IntObject(other) * self
+        else:
+            return other * self
+
+    # logical comparison operators
+    def __eq__(self, other: Union["IntObject", int]) -> BoolObject:
+        if isinstance(other, int):
+            other = IntObject(other)
+        return BoolObject(Eq(self, other))
+
+    def __ne__(self, other: Union["Int", int]) -> BoolObject:
+        if isinstance(other, int):
+            other = Int(other)
+        return BoolObject(Not(Eq(self, other)))
+
+    def __ge__(self, other: Union["Int", int]) -> BoolObject:
+        if isinstance(other, int):
+            other = IntObject(other)
+        return Bool(Ge(self, other))
+
+    def __gt__(self, other: Union["Int", int]) -> BoolObject:
+        if isinstance(other, int):
+            other = IntObject(other)
+        return BoolObject(Gt(self, other))
+
+    def __lt__(self, other: Union["Int", int]) -> BoolObject:
+        if isinstance(other, int):
+            other = IntObject(other)
+        return Bool(Lt(self, other))
+
+    def __le__(self, other: Union["Int", int]) -> BoolObject:
+        if isinstance(other, int):
+            other = IntObject(other)
+        return BoolObject(Le(self, other))
+
+
+    def __repr__(self):
+        return f"Int({self.src})"
+
+    def __hash__(self) -> int:
+        return super().__hash__()
+
+
+# T = TypeVar("T", bound=Object)
+# class List(Generic[T], Object):
+
+#     def __init__(self, driver: Driver, containedT: Union[type, _GenericAlias], value: Optional[Union[Expr, str]] = None) -> None:
+#         # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
+
+#         if value is None:  # a symbolic variable
+#             src = driver.variable("v", List[containedT])
+#         elif isinstance(value, Expr):
+#             src = value
+#         elif isinstance(value, str):
+#             src = driver.variable(value, List[containedT])
+#         else:
+#             raise TypeError(f"Cannot create List from {value}")
+
+#         super().__init__(driver, src, List[containedT])
+
+
+#     @staticmethod
+#     def empty(driver: Driver, containedT: Union[type, _GenericAlias]) -> "List":
+#         return List(driver, containedT, Call("list_empty", List[containedT]))
+
+#     # @staticmethod
+#     # def Expr_type() -> Type:
+#     #     return ListT()
+
+#     def __len__(self) -> int:
+#         raise NotImplementedError("len must return an int, call len() instead")
+
+#     def len(self) -> Int:
+#         return Int(self.driver, Call("list_length", irInt(), self.src))
+
+#     def __getitem__(self, index: Union[Int, int]) -> Expr:  # index can also be slice
+#         if isinstance(index, int):  # promote to Int
+#             index = Int(self.driver, index)
+
+#         containedT = typing.get_args(self.type)[0]
+#         if isinstance(containedT, type): # non generic type
+#             return containedT(self.driver, Call("list_get", containedT, self.src, index.src))
+#         elif isinstance(containedT, _GenericAlias): # generic type
+#             subcontainedT = typing.get_args(containedT)[0]
+#             return containedT(self.driver, subcontainedT, Call("list_get", containedT, self.src, index.src))
+#         else:
+#             raise NotImplementedError(f"Cannot get item from list containing type {containedT}")
+
+
+#         # elif isinstance(index, slice):
+#         #     (start, stop, step) = (index.start, index.stop, index.step)
+
+#         #     if stop is None and step is None:
+#         #         if isinstance(start, int):
+#         #             start = IntLit(start)
+#         #         elif isinstance(start, Int):
+#         #             start = start.src
+#         #         return List[containedT](Call("list_tail", List[containedT], self, start))
+
+#         #     elif start is None and step is None:
+#         #         if isinstance(stop, int):
+#         #             stop = IntLit(stop)
+#         #         elif isinstance(start, Int):
+#         #             stop = stop.src
+#         #         return List[containedT](Call("list_head", List[containedT], self, stop))
+
+#         #     else:
+#         #         raise NotImplementedError(f"Slice not implemented: {index}")
+
+
+#     def __setitem__(self, index: Union[Int, int], value: T) -> None:
+#         if isinstance(index, int):  # promote to Int
+#             index = Int(self.driver, index)
+
+#         containedT = typing.get_args(self.type)[0]
+#         if value.type != containedT:
+#             raise TypeError(f"Trying to set list element of type: {value.type} to list containing: {containedT}")
+
+#         self.src = Call("list_set", self.type, self.src, index.src, value.src)
+
+#     # in place append
+#     def append(self, value: T) -> None:
+#         containedT = typing.get_args(self.type)[0]
+#         if value.type != containedT:
+#             raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
+
+#         self.src = Call("list_append", self.type, self.src, value.src)
+
+#     # list concat that returns a new list
+#     def __add__(self, other: "List") -> "List":
+#         if other.type != self.type:
+#             raise TypeError(f"can't add lists of different types: {other.type} and {self.type}")
+#         containedT = typing.get_args(self.type)[0]
+#         return List(self.driver, containedT, Call("list_concat", self.type, self.src, other.src))
+
+
+#     def __eq__(self, other: "List") -> Bool:
+#         if other.type != self.type:
+#             return Bool(self.driver, False)
+#         else:
+#             return Bool(self.driver, Call("list_eq", Bool, self.src, other.src))
+
+
+#     def __repr__(self):
+#         return f"{qual_name(self.type)}({self.src})"
+
+
+
+
+def isParameterizedType(t: type) -> bool:
+    return "__origin__" in t.__dict__
+
+def isParameterizedObject(o: NewObject) -> bool:
+    return "__orig_class__" in o.__dict__
+
+def getType(o: NewObject) -> type:
+    return o.__orig_class__ if isParameterizedObject(o) else type(o)
+
+
+
+
+
+class CVC5UnsupportedException(Exception):
+    pass
+
+
+class Type:
+    def __init__(self, name: str, *args: "Type") -> None:
+        self.name = name
+        self.args = args
+
+    def toSMT(self) -> str:
+        if (
+            self.name == "Int"
+            or self.name == "ClockInt"
+            or self.name == "EnumInt"
+            or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
+        ):
+            return "Int"
+        elif self.name == "Bool":
+            return "Bool"
+        elif self.name == "String":
+            return "String"
+        elif self.name == "Tuple":
+            args = " ".join(a.toSMT() for a in self.args)
+            return "(Tuple%d %s)" % (len(self.args), args)
+        elif self.name == "Map":
+            raise CVC5UnsupportedException("Map")
+        else:
+            return "(%s %s)" % (
+                self.name,
+                " ".join(
+                    [a.toSMT() if isinstance(a, Type) else str(a) for a in self.args]
+                ),
+            )
+
+    def __repr__(self) -> str:
+        if len(self.args) == 0:
+            return self.name
+        else:
+            return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
+
+    def erase(self) -> "Type":
+        if (
+            self.name == "ClockInt"
+            or self.name == "EnumInt"
+            or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
+        ):
+            return Int()
+        else:
+            return Type(
+                self.name, *[a.erase() if isinstance(a, Type) else a for a in self.args]
+            )
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Type):
+            if self.name != other.name or len(self.args) != len(other.args):
+                return False
+            else:
+                return all(
+                    a1 == a2
+                    if isinstance(a1, type) and isinstance(a2, type)
+                    else a1.__eq__(a2)
+                    for a1, a2 in zip(self.args, other.args)
+                )
+        return NotImplemented
+
+    def __ne__(self, other: object) -> bool:
+        x = self.__eq__(other)
+        if x is not NotImplemented:
+            return not x
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(tuple(sorted({"name": self.name, "args": tuple(self.args)})))
+
+
+def Int() -> Type:
+    return Type("Int")
+
+
+def ClockInt() -> Type:
+    return Type("ClockInt")
+
+
+def EnumInt() -> Type:
+    return Type("EnumInt")
+
+
+def OpaqueInt() -> Type:
+    return Type("OpaqueInt")
+
+
+def NodeIDInt() -> Type:
+    return Type("NodeIDInt")
+
+
+def Bool() -> Type:
+    return Type("Bool")
+
+
+# for string literals
+def String() -> Type:
+    return Type("String")
+
+
+def PointerT(t: Type) -> Type:
+    return Type("Pointer", t)
+
+
+def ListT(contentT: Type) -> Type:
+    return Type("MLList", contentT)
+
+
+def FnT(retT: Type, *argT: Type) -> Type:
+    return Type("Function", retT, *argT)
+
+
+def SetT(contentT: Type) -> Type:
+    return Type("Set", contentT)
+
+
+def MapT(keyT: Type, valT: Type) -> Type:
+    return Type("Map", keyT, valT)
+
+
+# first type is not optional
+def TupleT(e1T: Type, *elemT: Type) -> Type:
+    return Type("Tuple", e1T, *elemT)
+
+
+
+
+
 
 class Var(Expr):
     def __init__(self, name: str, ty: Type) -> None:
@@ -634,10 +968,11 @@ class Add(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
+        # TODO: add this back
         for arg in args:
-            if parse_type_ref(arg.type) != parse_type_ref(args[0].type):
+            if arg.type != args[0].type:
                 raise Exception(
-                    f"Args types not equal: {parse_type_ref(arg.type).erase()} and {parse_type_ref(args[0].type).erase()}"
+                    f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
                 )
         Expr.__init__(self, Int(), args)
 
@@ -685,9 +1020,9 @@ class Mul(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parse_type_ref(arg.type) != parse_type_ref(args[0].type):
+            if arg.type != args[0].type:
                 raise Exception(
-                    f"Args types not equal: {parse_type_ref(arg.type).erase()} and {parse_type_ref(args[0].type).erase()}"
+                    f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
                 )
         Expr.__init__(self, Int(), args)
 
@@ -708,9 +1043,9 @@ class Eq(Expr):
     SMTName = "="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
+        if not (e1.type.erase() == e2.type.erase()):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {e1.type.erase()} and {e2}: {e2.type.erase()}"
             )
         Expr.__init__(self, Bool(), [e1, e2])
 
@@ -1492,9 +1827,7 @@ class Synth(Expr):
 
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
-        if not all(
-            parse_type_ref(a.type) == parse_type_ref(args[0].type) for a in args
-        ):
+        if not all(a.type == args[0].type for a in args):
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a) for a in args)
@@ -1719,8 +2052,8 @@ class FnDecl(Expr):
                 [
                     "%s" % (a.name)
                     if isinstance(a, ValueRef) and a.name != ""
-                    else "%s" % (a.args[0])
-                    for a in self.args[2:]
+                    else "%s" % (a.toRosette(writeChoicesTo))
+                    for a in self.arguments()
                 ]
             )
             return "(define (%s %s) \n%s)" % (

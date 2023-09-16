@@ -1,14 +1,13 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Var
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, IntObject, Var
 from tests.python.utils.utils import codegen
 
-
 def target_lang() -> List[FnDecl]:
-    x = Var("x", Int())
-    y = Var("y", Int())
-    z = Var("z", Int())
+    x = IntObject("x")
+    y = IntObject("y")
+    z = IntObject("z")
     fma = FnDecl("fma", Int(), x + y * z, x, y, z)
     return [fma]
 
@@ -20,7 +19,7 @@ def target_lang() -> List[FnDecl]:
 # return value := var_or_fma + var_or_fma
 #
 def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    var = Choose(*reads, IntLit(0))
+    var = Choose(*reads, IntObject(0))
     added = var + var
     var_or_fma = Choose(*reads, Call("fma", Int(), added, added, added))
 
@@ -41,12 +40,12 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    v1 = driver.variable("base", Int())
-    v2 = driver.variable("arg1", Int())
-    v3 = driver.variable("base2", Int())
-    v4 = driver.variable("arg2", Int())
+    base = IntObject("base")
+    arg1 = IntObject("arg1")
+    base2 = IntObject("base2")
+    arg2 = IntObject("arg2")
 
-    test(v1, v2, v3, v4)
+    test(base, arg1, base2, arg2)
 
     driver.synthesize()
 

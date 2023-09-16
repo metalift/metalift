@@ -159,7 +159,7 @@ def toRosette(
         is_uninterp_fn = (
             isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)
         ) and t.name() in uninterp_fns
-        if t.args[1] == None and not is_uninterp_fn:
+        if t.args[1] is None and not is_uninterp_fn:
             continue
         print("\n", t.toRosette(is_uninterp=is_uninterp_fn), "\n", file=f)
     # print(generateInter(targetLang),file=f)
@@ -178,7 +178,7 @@ def toRosette(
     fnsDecls = []
     for t in targetLang:
         if (
-            t.args[1] == None
+            t.args[1] is None
             and (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive))
             and t.name() not in uninterp_fns
         ):

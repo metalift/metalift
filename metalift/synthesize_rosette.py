@@ -314,7 +314,7 @@ def toSynthesize(
         else:
             synthNames.append(i.args[0])
     for l in lang:
-        if l.args[1] == None:
+        if l.args[1] is None:
             synthNames.append(l.args[0])
     return synthNames
 
