@@ -1490,18 +1490,9 @@ class Driver:
         target = []
         for fn in self.fns.values():
             target += fn.target_lang_fn()
-        # TODO(jie): this is a hack
+        # TODO(jie) investigate why set(self.var_tracker.all()) makes things wrong
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            # basename="test",
-            basename=list(self.fns.keys())[0],
-            targetLang=target,
-            vars=set(self.var_tracker.all()),
-            invAndPs=synths + self.fns_synths,
-            preds=[],
-            vc=vc,
-            loopAndPsInfo=synths,
-            cvcPath="cvc5",
-            **synthesize_kwargs,
+            "test", target, self.var_tracker.all(), synths, [], vc, synths, "cvc5"
         )
 
         for f in synthesized:
