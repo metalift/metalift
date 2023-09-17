@@ -340,7 +340,6 @@ def synthesize(
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
-
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
 

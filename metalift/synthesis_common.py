@@ -29,7 +29,10 @@ def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Typ
                 fnsType[l.name] = parse_type_ref(l.type)
         else:
             if not isinstance(l, ValueRef):
-                fnsType[l.args[0]] = l.type
+                if isinstance(l, NewObject):
+                    fnsType[l.src.args[0]] = l.type
+                else:
+                    fnsType[l.args[0]] = l.type
             else:
                 fnsType[l.name] = parse_type_ref(l.type)
     return fnsType
@@ -144,7 +147,7 @@ def verify_synth_result(
 
         transformedLang: typing.List[Union[FnDeclRecursive, FnDecl, Axiom]] = []
         for langFn in targetLang:
-            if langFn.args[1] != None:
+            if langFn.args[1] is not None:
                 updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
                     langFn.args[1],
                     inCalls,

@@ -5,7 +5,7 @@ from re import L
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
-from typing import Any, Callable, Dict, Generic, Set, TypeVar, Union, Optional
+from typing import Any, Callable, Dict, Generic, List, Set, TypeVar, Union, Optional, Tuple
 from metalift.types import *
 
 # from metalift.visitor import Visitor
@@ -86,19 +86,25 @@ class Expr:
         )
 
     @staticmethod
-    def findCommonExprs(e: "Expr", cnts: Dict["Expr", int]) -> Dict["Expr", int]:
+    def findCommonExprs(e: "Expr", cnts: List[Tuple["Expr", int]]) -> List[Tuple["Expr", int]]:
         if isinstance(e, NewObject):
             cnts = Expr.findCommonExprs(e.src, cnts)
-        if e not in cnts:
-            cnts[e] = 1
+            return cnts
+        def expr_index_in_cnts(e: Expr):
+            for i, (existing_expr, _) in enumerate(cnts):
+                if Expr.__eq__(e, existing_expr):
+                    return i
+            return -1
+
+        expr_index = expr_index_in_cnts(e)
+        if expr_index == -1:
+            cnts.append((e, 1))
             for i in range(len(e.args)):
                 if isinstance(e.args[i], Expr):
                     cnts = Expr.findCommonExprs(e.args[i], cnts)
-
-
-
         else:
-            cnts[e] = cnts[e] + 1
+            _, cnt = cnts[expr_index]
+            cnts[expr_index] = (e, cnt + 1)
         return cnts
 
     @staticmethod
@@ -109,7 +115,7 @@ class Expr:
         skipTop: bool = False,
     ) -> Union["Expr", ValueRef]:
         # skipTop is used to ignore the top-level match when simplifying a common expr
-        if e not in commonExprs or skipTop:
+        if all([not Expr.__eq__(e, expr) for expr in commonExprs]) or skipTop:
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
                 if isinstance(e, NewObject):
@@ -195,12 +201,12 @@ class Expr:
             ):
                 return False
             else:
-                return all(
-                    a1 == a2
-                    if isinstance(a1, Type) and isinstance(a2, Type)
-                    else a1.__eq__(a2)
-                    for a1, a2 in zip(self.args, other.args)
-                )
+                for a1, a2 in zip(self.args, other.args):
+                    if isinstance(a1, Type) and isinstance(a2, Type) and a1 != a2:
+                        return False
+                    elif isinstance(a1, Expr) and isinstance(a2, Expr) and not Expr.__eq__(a1, a2):
+                        return False
+                return True
         return NotImplemented
 
     def __ne__(self, other: Any) -> bool:
@@ -1595,15 +1601,14 @@ class Synth(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        cnts = Expr.findCommonExprs(self.args[1], {})
+        cnts = Expr.findCommonExprs(self.args[1], [])
         commonExprs = list(
             filter(
                 lambda k: isinstance(k, Choose),
-                cnts.keys(),
+                [expr_cnt_tup[0] for expr_cnt_tup in cnts],
             )
         )
         rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
-        import pdb; pdb.set_trace()
 
         # rewrite common exprs to use each other
         commonExprs = [
@@ -1801,6 +1806,8 @@ class FnDeclRecursive(Expr):
             for a in self.args[2:]:
                 if isinstance(a, ValueRef):
                     declarations.append((a.name, parse_type_ref(a.type)))
+                elif isinstance(a, NewObject):
+                    declarations.append((a.src.args[0], a.type))
                 else:
                     declarations.append((a.args[0], a.type))
 
