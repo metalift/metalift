@@ -2,174 +2,109 @@ from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple, c
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import (
-    Expr,
-    Object,
-    List as mlList,
-    Int,
-    Set as mlSet,
-    parse_type_ref_to_obj,
-    call,
-    make_tuple_type,
-)
+from metalift.ir import Expr, NewObject, ListObject, IntObject
 from metalift.vc_util import parseOperand
 
+# ReturnValue = NamedTuple(
+#     "ReturnValue",
+#     [
+#         ("val", Optional[Expr]),
+#         ("assigns", Optional[List[Tuple[str, Expr]]]),
+#     ],
+# )
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
-        ("val", Optional[Object]),
-        ("assigns", Optional[List[Tuple[str, Object, str]]]),
+        ("val", Optional[NewObject]),
+        ("assigns",  Optional[List[Tuple[str, NewObject]]]),
     ],
 )
 
-
-def set_create(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
-    global_vars: Dict[str, str],
-    *args: ValueRef,
-) -> ReturnValue:
-    return ReturnValue(mlSet.empty(Int), None)
-
-
-def set_add(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
-    global_vars: Dict[str, str],
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    s = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    item = primitive_vars[args[1].name]
-    return ReturnValue(s.add(item), None)  # type: ignore
-
-
-def set_remove(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
-    global_vars: Dict[str, str],
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    s = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    item = primitive_vars[args[1].name]
-    return ReturnValue(s.remove(item), None)  # type: ignore
-
-
-def set_contains(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
-    global_vars: Dict[str, str],
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    s = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    item = primitive_vars[args[1].name]
-    return ReturnValue(item in s, None)  # type: ignore
-
-
 def new_list(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    assert len(args) == 0
-    return ReturnValue(mlList.empty(Int), None)
+    # return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
+     return ReturnValue(ListObject.empty(IntObject), None)
 
 
 def list_length(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    assert len(args) == 1
-    # TODO(jie) think of how to better handle list of lists
-    lst = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
+    # return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
     return ReturnValue(
-        lst.len(),  # type: ignore
+        primitive_vars[args[0].name].len(), 
         None,
     )
 
-
 def list_get(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    assert len(args) == 2
-    lst = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    index = primitive_vars[args[1].name]
+    # return ReturnValue(
+    #     Call(
+    #         "list_get",
+    #         Int(),
+    #         primitive_vars[args[0].name],
+    #         primitive_vars[args[1].name],
+    #     ),
+    #     None,
+    # )
     return ReturnValue(
-        lst[index],  # type: ignore
+        primitive_vars[args[0].name][primitive_vars[args[1].name]],
         None,
     )
 
 
 def list_append(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    assert len(args) == 2
-    lst = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    value = (
-        primitive_vars[args[1].name]
-        if not args[1].type.is_pointer
-        else pointer_vars[args[1].name]
-    )
+    # return ReturnValue(
+    #     Call(
+    #         "list_append",
+    #         parse_type_ref(args[0].type),
+    #         primitive_vars[args[0].name],
+    #         primitive_vars[args[1].name],
+    #     ),
+    #     None,
+    # )
+    # print(primitive_vars[args[0].name])
+    print(args[1].name)
+    print(primitive_vars[args[1].name])
+    # print(IntObject(primitive_vars[args[1].name]).type)
     return ReturnValue(
-        lst.append(value),  # type: ignore
+        primitive_vars[args[0].name].append(IntObject(primitive_vars[args[1].name])),
         None,
     )
 
 
 def list_concat(
-    primitive_vars: Dict[str, Object],
-    pointer_vars: Dict[str, Object],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    assert len(args) == 2
-    lst1 = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    lst2 = (
-        primitive_vars[args[1].name]
-        if not args[1].type.is_pointer
-        else pointer_vars[args[1].name]
-    )
+    # return ReturnValue(
+    #     Call(
+    #         "list_concat",
+    #         parse_type_ref(args[0].type),
+    #         primitive_vars[args[0].name],
+    #         primitive_vars[args[1].name],
+    #     ),
+    #     None,
+    # )
     return ReturnValue(
-        lst1 + lst2,  # type: ignore
+        primitive_vars[args[0].name] + primitive_vars[args[1].name], 
         None,
     )
 
