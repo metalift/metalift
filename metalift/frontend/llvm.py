@@ -125,8 +125,8 @@ class LoopInfo:
 
 
 # Helper functions
-def is_type_list(ty: Type) -> bool:
-    return ty.name == "MLList"
+def is_type_pointer(ty: Type) -> bool:
+    return ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
 
 
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
@@ -592,22 +592,25 @@ class VCVisitor:
             self.ps_grammar,
         )
         for arg in self.fn_args:
-            self.write_var_to_block(block.name, arg.name(), arg)
+            # TODO: make this check for all pointer types
+            if is_type_pointer(arg.type):
+                self.store_var_to_block(block.name, arg.name(), arg)
+            else:
+                self.write_var_to_block(block.name, arg.name(), arg)
 
         if self.fn_sret_arg is None:
             return
         else:
-            if is_type_list(self.fn_sret_arg.type):
-                self.write_var_to_block(
+            if is_type_pointer(self.fn_sret_arg.type):
+                self.store_var_to_block(
                     block.name, self.fn_sret_arg.name(), self.fn_sret_arg
                 )
             else:
-                self.store_var_to_block(
+                self.write_var_to_block(
                     block.name, self.fn_sret_arg.name(), self.fn_sret_arg
                 )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
-        print(o)
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -817,16 +820,27 @@ class VCVisitor:
             raise Exception("NYI: %s" % o)
 
         # o.name is the register name
-        self.store_var_to_block(block_name, o.name, val)
+        if not o.type.is_pointer:
+            self.write_var_to_block(block_name, o.name, val)
+        else:
+            self.store_var_to_block(block_name, o.name, val)
 
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
+
         loaded_value = self.load_operand_from_block(block_name, ops[0])
-        self.write_operand_to_block(block_name, o, loaded_value)
+        if not o.type.is_pointer:
+            self.write_operand_to_block(block_name, o, loaded_value)
+        else:
+            self.store_operand_to_block(block_name, o, loaded_value)
 
     def visit_store_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        value_to_store = self.read_operand_from_block(block_name, ops[0])
+        value_to_store = None
+        if not ops[0].type.is_pointer:
+            value_to_store = self.read_operand_from_block(block_name, ops[0])
+        else:
+            value_to_store = self.load_operand_from_block(block_name, ops[0])
         self.store_operand_to_block(block_name, ops[1], value_to_store)
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
@@ -911,7 +925,10 @@ class VCVisitor:
         if ret_void and self.fn_sret_arg is not None:
             ret_val = self.fn_sret_arg
         elif not ret_void:
-            ret_val = self.read_operand_from_block(block_name, ops[0])
+            if not ops[0].type.is_pointer:
+                ret_val = self.read_operand_from_block(block_name, ops[0])
+            else:
+                ret_val = self.load_operand_from_block(block_name, ops[0])
         else:
             raise Exception("ret void not supported yet!")
         ps = Call(
@@ -928,9 +945,11 @@ class VCVisitor:
         blk_state.has_returned = True
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
+        
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         fn_name = get_fn_name_from_call_instruction(o)
+
         if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
@@ -939,18 +958,21 @@ class VCVisitor:
                 blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
             )
             if rv.val and o.name != "":
-                # TODO: how to differentiate between writing to primitive vs writing to pointer var
-                self.write_operand_to_block(block_name=block_name, op=o, val=rv.val) #primitive
-                self.store_operand_to_block(block_name=block_name, op=o, val=rv.val) #pointer
+                if not o.type.is_pointer:
+                    self.write_operand_to_block(block_name=block_name, op=o, val=rv.val) #primitive
+                else:
+                    self.store_operand_to_block(block_name=block_name, op=o, val=rv.val) #pointer
             if rv.assigns:
-                for name, value in rv.assigns:
-                    # TODO: how to differentiate between writing to primitive vs writing to pointer var
-                    self.write_var_to_block(
-                        block_name=block_name, var_name=name, val=value #primitive
-                    )
-                    self.store_var_to_block(
-                        block_name=block_name, var_name=name, val=value #pointer
-                    )
+                for name, value, location in rv.assigns:
+                    # TODO: better way to differentiate between writing to primitive vs writing to pointer var
+                    if location == "primitive":
+                        self.write_var_to_block(
+                            block_name=block_name, var_name=name, val=value #primitive
+                        )
+                    else:
+                        self.store_var_to_block(
+                            block_name=block_name, var_name=name, val=value #pointer
+                        )
 
 class Driver:
     var_tracker: VariableTracker
