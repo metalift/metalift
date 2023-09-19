@@ -132,15 +132,12 @@ def vector_append(
     assert len(args) == 2
     assign_var_name: str = args[0].name
 
-    assign_val = call(
+    # TODO: fix where the args is in pointer or primitive
+    assign_val = Call(
         "list_append",
-        parse_type_ref_to_obj(args[0].type),
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name],
-        primitive_vars[args[1].name]
-        if not args[1].type.is_pointer
-        else pointer_vars[args[1].name],
+        parse_type_ref(args[0].type),
+        primitive_vars[args[0].name] if args[0].name in primitive_vars else pointer_vars[args[0].name],
+        primitive_vars[args[1].name] if args[1].name in primitive_vars else pointer_vars[args[1].name],
     )
     return ReturnValue(
         None,
