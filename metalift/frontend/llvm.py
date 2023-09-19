@@ -516,19 +516,19 @@ class VCVisitor:
 
     # Helper functions
     # Helper functions for reading and writing variables
-    def read_operand_from_block(self, block_name: str, op: ValueRef) -> Expr:
+    def read_operand_from_block(self, block_name: str, op: ValueRef) -> Expr: #Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_operand(op)
 
-    def load_operand_from_block(self, block_name: str, op: ValueRef) -> Expr:
+    def load_operand_from_block(self, block_name: str, op: ValueRef) -> Expr: #Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_operand(op)
 
-    def write_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None:
+    def write_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None: #Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_operand(op, val)
 
-    def store_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None:
+    def store_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None: #Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_operand(op, val)
 
@@ -538,11 +538,11 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_operand(op, val)
 
-    def write_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
+    def write_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None: #Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_var(var_name, val)
 
-    def store_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None:
+    def store_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None: #Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
 
@@ -607,6 +607,7 @@ class VCVisitor:
                 )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
+        print(o)
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -938,13 +939,18 @@ class VCVisitor:
                 blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
             )
             if rv.val and o.name != "":
-                self.write_operand_to_block(block_name=block_name, op=o, val=rv.val)
+                # TODO: how to differentiate between writing to primitive vs writing to pointer var
+                self.write_operand_to_block(block_name=block_name, op=o, val=rv.val) #primitive
+                self.store_operand_to_block(block_name=block_name, op=o, val=rv.val) #pointer
             if rv.assigns:
                 for name, value in rv.assigns:
+                    # TODO: how to differentiate between writing to primitive vs writing to pointer var
                     self.write_var_to_block(
-                        block_name=block_name, var_name=name, val=value
+                        block_name=block_name, var_name=name, val=value #primitive
                     )
-
+                    self.store_var_to_block(
+                        block_name=block_name, var_name=name, val=value #pointer
+                    )
 
 class Driver:
     var_tracker: VariableTracker
