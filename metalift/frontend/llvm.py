@@ -29,6 +29,7 @@ from metalift.ir import (
     BoolObject,
     Call,
     Eq,
+    Expr,
     FnDecl,
     FnDeclRecursive,
     Int,
@@ -443,6 +444,25 @@ class LoopInfo:
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
 
+class ExprDict(dict):
+    def __init__(self) -> None:
+        self.kv_pairs = []
+
+    def __getitem__(self, __key: Expr) -> Any:
+        for k, v in self.kv_pairs:
+            if Expr.__eq__(k, __key):
+                return v
+        raise Exception(f"{__key} does not exist!")
+
+    def __setitem__(self, __key: Expr, __value: Any) -> None:
+        for i, (k, _) in enumerate(self.kv_pairs):
+            if Expr.__eq__(k, __key):
+                self.kv_pairs[i] = (__key, __value)
+                return
+        self.kv_pairs.append((__key, __value))
+
+    def __contains__(self, __key: Expr):
+        return any([Expr.__eq__(k, __key) for (k, _) in self.kv_pairs])
 
 def get_raw_fn_name_from_call_instruction(o: ValueRef) -> str:
     ops = list(o.operands)
@@ -975,6 +995,10 @@ class VCVisitor:
             )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
+        blk_state = self.fn_blocks_states["if.else"]
+        print(f"Visiting instruction {o}")
+        print("precond", blk_state.precond)
+        print("\n")
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -1019,7 +1043,6 @@ class VCVisitor:
             blk_state.has_returned = False
             blk_state.processed = False
         else:
-            # Merge preconditions
             pred_preconds: List[NewObject] = []
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
@@ -1033,26 +1056,26 @@ class VCVisitor:
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            primitive_var_state: Dict[str, Dict[NewObject, List[List[NewObject]]]] = defaultdict(
-                lambda: defaultdict(list)
+            primitive_var_state: Dict[str, ExprDict] = defaultdict(
+                lambda: ExprDict()
             )
-            pointer_var_state: Dict[str, Dict[NewObject, List[List[NewObject]]]] = defaultdict(
-                lambda: defaultdict(list)
+            pointer_var_state: Dict[str, ExprDict] = defaultdict(
+                lambda: ExprDict()
             )
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                for var_name, var_object in pred_state.primitive_vars.items():
+                for var_name, var_value in pred_state.primitive_vars.items():
+                    print("var name", var_name)
+                    print("var_value", var_value, type(var_value))
                     var_value_dict = primitive_var_state[var_name]
-                    var_expr = var_object.src
-                    if var_expr not in var_value_dict:
-                        primitive_var_state[var_name][var_expr] = []
-                    primitive_var_state[var_name][var_expr].append(pred_state.precond)
-                for var_name, var_object in pred_state.pointer_vars.items():
+                    if var_value not in var_value_dict:
+                        primitive_var_state[var_name][var_value] = []
+                    primitive_var_state[var_name][var_value].append(pred_state.precond)
+                for var_name, var_value in pred_state.pointer_vars.items():
                     var_value_dict = pointer_var_state[var_name]
-                    var_expr = var_object.src
-                    if var_expr not in var_value_dict:
-                        pointer_var_state[var_name][var_expr] = []
-                    pointer_var_state[var_name][var_expr].append(pred_state.precond)
+                    if var_value not in var_value_dict:
+                        pointer_var_state[var_name][var_value] = []
+                    pointer_var_state[var_name][var_value].append(pred_state.precond)
 
             for field_name, var_state in [
                 ("primitive_vars", primitive_var_state),
@@ -1469,6 +1492,10 @@ class Driver:
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
         self.var_tracker.variable(var_object.var_name(), var_object.src.type)
+
+    def add_var_objects(self, var_objects: List[NewObject]) -> None:
+        for var_object in var_objects:
+            self.add_var_object(var_object)
 
     def analyze(
         self,

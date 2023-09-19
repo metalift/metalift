@@ -1,7 +1,11 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import Bool, FnDecl, Int, Object, call, choose, fn_decl
+
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Var
+
+from mypy.nodes import Statement
+
 from tests.python.utils.utils import codegen
 
 
@@ -45,6 +49,8 @@ if __name__ == "__main__":
     driver.add_var_objects([base, arg1, base2, arg2])
 
     test(base, arg1, base2, arg2)
+
+    test(v1, v2, v3, v4)
 
     driver.synthesize()
 
