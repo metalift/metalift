@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Eq, Expr, FnDecl, Gt, Int, IntLit, Ite, Var
+from metalift.ir import Eq, Expr, FnDecl, Gt, Int, IntLit, Ite, Var, IntObject
 
 
 def target_lang() -> List[FnDecl]:
@@ -10,7 +10,7 @@ def target_lang() -> List[FnDecl]:
 
 def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
     i = reads[0]
-    return Eq(ret_val, Ite(Gt(i, IntLit(10)), IntLit(1), IntLit(2)))
+    return Eq(ret_val, Ite(Gt(i, IntObject(10)), IntObject(1), IntObject(2)))
 
 
 def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
@@ -28,7 +28,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    i = driver.variable("i", Int())
+    i = IntObject("i")
+    driver.add_var_object(i)
     test(i)
 
     driver.synthesize()
