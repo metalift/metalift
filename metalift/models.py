@@ -15,8 +15,8 @@ from metalift.vc_util import parseOperand
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
-        ("val", Optional[NewObject]),
-        ("assigns",  Optional[List[Tuple[str, NewObject]]]),
+        ("val", Optional[Expr]),
+        ("assigns", Optional[List[Tuple[str, Expr, str]]]),
     ],
 )
 
@@ -36,11 +36,13 @@ def list_length(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
-    return ReturnValue(
-        primitive_vars[args[0].name].len(), 
-        None,
-    )
+    return ReturnValue(Call(
+                            "list_length", 
+                            Int(), 
+                            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+                            ), 
+                        None)
+
 
 def list_get(
     primitive_vars: Dict[str, NewObject],
@@ -58,7 +60,12 @@ def list_get(
     #     None,
     # )
     return ReturnValue(
-        primitive_vars[args[0].name][primitive_vars[args[1].name]],
+        Call(
+            "list_get",
+            Int(),
+            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
+            primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
+        ),
         None,
     )
 
@@ -83,7 +90,12 @@ def list_append(
     print(primitive_vars[args[1].name])
     # print(IntObject(primitive_vars[args[1].name]).type)
     return ReturnValue(
-        primitive_vars[args[0].name].append(IntObject(primitive_vars[args[1].name])),
+        Call(
+            "list_append",
+            parse_type_ref(args[0].type),
+            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
+            primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
+        ),
         None,
     )
 
@@ -104,7 +116,12 @@ def list_concat(
     #     None,
     # )
     return ReturnValue(
-        primitive_vars[args[0].name] + primitive_vars[args[1].name], 
+        Call(
+            "list_concat",
+            parse_type_ref(args[0].type),
+            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
+            primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
+        ),
         None,
     )
 
@@ -117,8 +134,8 @@ def new_vector(
 ) -> ReturnValue:
     assert len(args) == 1
     var_name: str = args[0].name
-    assigns: List[Tuple[str, Expr, str]] = [
-        (var_name, mlList.empty(Int), "primitive")  # type: ignore
+    assigns: List[Tuple[str, Expr]] = [
+        (var_name, Call("list_empty", Type("MLList", Int())), "primitive")
     ]
     return ReturnValue(None, assigns)  # type: ignore
 
@@ -136,8 +153,8 @@ def vector_append(
     assign_val = Call(
         "list_append",
         parse_type_ref(args[0].type),
-        primitive_vars[args[0].name] if args[0].name in primitive_vars else pointer_vars[args[0].name],
-        primitive_vars[args[1].name] if args[1].name in primitive_vars else pointer_vars[args[1].name],
+        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
+        primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
     )
     return ReturnValue(
         None,
@@ -160,17 +177,12 @@ def make_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    reg_vals = [
-        primitive_vars[args[i].name]
-        if not args[i].type.is_pointer
-        else pointer_vars[args[i].name]
-        for i in range(len(args))
-    ]
-
-    # TODO(jie): handle types other than Int
-    contained_type = [Int for i in range(len(args))]
-    return_type = make_tuple_type(*contained_type)
-    return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
+    regVals = [primitive_vars[args[i].name] if not args[i].type.is_pointer else pointer_vars[args[i].name] for i in range(len(args))]
+    retVals = [Int() for i in range(len(args))]
+    return ReturnValue(
+        Call("make-tuple", Type("Tuple", *retVals), *regVals),
+        None,
+    )
 
 
 def tuple_get(
@@ -182,10 +194,8 @@ def tuple_get(
     return ReturnValue(
         call(
             "tupleGet",
-            Int,
-            primitive_vars[args[0].name]
-            if not args[0].type.is_pointer
-            else pointer_vars[args[0].name],
+            Int(),
+            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
             parseOperand(args[1], primitive_vars),
         ),
         None,
@@ -230,10 +240,40 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     "getField": get_field,
     "setField": set_field,
     # names for set.h
-    "set_create": set_create,
-    "set_add": set_add,
-    "set_remove": set_remove,
-    "set_contains": set_contains,
+    "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
+        Call("set-create", SetT(Int())), None
+    ),
+    "set_add": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
+        Call(
+            "set-insert",
+            SetT(Int()),
+            parseOperand(args[1], primitive_vars),
+            parseOperand(args[0], pointer_vars),
+        ),
+        None,
+    ),
+    "set_remove": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
+        Call(
+            "set-minus",
+            SetT(Int()),
+            parseOperand(args[0], pointer_vars),
+            Call("set-singleton", SetT(Int()), parseOperand(args[1], primitive_vars)),
+        ),
+        None,
+    ),
+    "set_contains": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
+        Ite(
+            Call(
+                "set-pointer_varsber",
+                Bool(),
+                parseOperand(args[1], primitive_vars),
+                parseOperand(args[0], pointer_vars),
+            ),
+            IntLit(1),
+            IntLit(0),
+        ),
+        None,
+    ),
     # tuple methods
     "MakeTuple": make_tuple,
     "tupleGet": tuple_get,
