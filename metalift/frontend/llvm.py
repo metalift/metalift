@@ -38,7 +38,6 @@ from metalift.ir import (
     IntObject,
     Ite,
     Le,
-    ListT,
     Lit,
     Lt,
     Mul,
@@ -52,6 +51,7 @@ from metalift.ir import (
     Sub,
     Synth,
     TupleT,
+    ListObject,
     parse_type_ref_to_obj,
 )
 from metalift.ir import Type
@@ -393,7 +393,7 @@ class Predicate:
     writes: List[NewObject]
     reads: List[NewObject]
     name: str
-    grammar: Callable[[Var, List[Var], List[Var]], NewObject]
+    grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -406,7 +406,7 @@ class Predicate:
         writes: List[NewObject],
         reads: List[NewObject],
         name: str,
-        grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
         self.driver = driver
         self.args = args
@@ -418,7 +418,7 @@ class Predicate:
 
     def call(self, state: State) -> Call:
         return Call(
-            self.name, Bool(), *[state.read_or_load_var(v[0]) for v in self.args]
+            self.name, Bool(), *[state.read_or_load_var(v.var_name()) for v in self.args]
         )
 
     def gen_Synth(self) -> Synth:
@@ -583,16 +583,26 @@ class VCVisitor:
         return relevant_loops
 
     def get_vector_havocs(self, loop_info: LoopInfo) -> List[NewObject]:
-        return [
-            parse_type_ref_to_obj(var.type)(var.name)
-            for var in loop_info.vector_havocs
-        ]
+        res = []
+        for var in loop_info.vector_havocs:
+            parsed_type = parse_type_ref_to_obj(var.type)
+            #TODO colin: add generic (ie containedT) support needed for objects
+            if parsed_type in {ListObject}:
+                res.append(parsed_type(IntObject, var.name))
+            else:
+                res.append(parsed_type(var.name))
+        return res
 
     def get_non_vector_havocs(self, loop_info: LoopInfo) -> List[NewObject]:
-        return [
-            parse_type_ref_to_obj(var.type)(var.name)
-            for var in loop_info.non_vector_havocs
-        ]
+        res = []
+        for var in loop_info.non_vector_havocs:
+            parsed_type = parse_type_ref_to_obj(var.type)
+            #TODO colin: add generic (ie containedT) support needed for objects
+            if parsed_type in {ListObject}:
+                res.append(parsed_type(IntObject, var.name))
+            else:
+                res.append(parsed_type(var.name))
+        return res
 
     # Functions to step through the blocks
     def preprocess(self, block: ValueRef) -> None:
@@ -803,7 +813,8 @@ class VCVisitor:
             val = BoolObject(False)
         elif t == "%struct.list*":
             # TODO(jie)
-            val = objects.List(IntObject)
+            # val = objects.List(IntObject)
+            val = ListObject(IntObject)
         elif t.startswith("%struct.set"):
             # TODO(jie)
             val = Lit(0, SetT(Int()))
@@ -941,6 +952,7 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         fn_name = get_fn_name_from_call_instruction(o)
+
         if fn_name in models.fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
@@ -948,8 +960,11 @@ class VCVisitor:
             rv = models.fn_models[fn_name](
                 blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
             )
-            if rv.val and o.name != "":
+
+            if rv.val is not None and o.name != "":
+                print(o.name, " ", rv.val.type)
                 self.write_operand_to_block(block_name=block_name, op=o, val=rv.val)
+
             if rv.assigns:
                 for name, value in rv.assigns:
                     self.write_var_to_block(

@@ -2,83 +2,109 @@ from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, SetT, Type, parse_type_ref
+from metalift.ir import Expr, NewObject, ListObject, IntObject
 from metalift.vc_util import parseOperand
 
+# ReturnValue = NamedTuple(
+#     "ReturnValue",
+#     [
+#         ("val", Optional[Expr]),
+#         ("assigns", Optional[List[Tuple[str, Expr]]]),
+#     ],
+# )
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
-        ("val", Optional[Expr]),
-        ("assigns", Optional[List[Tuple[str, Expr]]]),
+        ("val", Optional[NewObject]),
+        ("assigns",  Optional[List[Tuple[str, NewObject]]]),
     ],
 )
 
-
 def new_list(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
+    # return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
+     return ReturnValue(ListObject.empty(IntObject), None)
 
 
 def list_length(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
-
+    # return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
+    return ReturnValue(
+        primitive_vars[args[0].name].len(), 
+        None,
+    )
 
 def list_get(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    # return ReturnValue(
+    #     Call(
+    #         "list_get",
+    #         Int(),
+    #         primitive_vars[args[0].name],
+    #         primitive_vars[args[1].name],
+    #     ),
+    #     None,
+    # )
     return ReturnValue(
-        Call(
-            "list_get",
-            Int(),
-            primitive_vars[args[0].name],
-            primitive_vars[args[1].name],
-        ),
+        primitive_vars[args[0].name][primitive_vars[args[1].name]],
         None,
     )
 
 
 def list_append(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    # return ReturnValue(
+    #     Call(
+    #         "list_append",
+    #         parse_type_ref(args[0].type),
+    #         primitive_vars[args[0].name],
+    #         primitive_vars[args[1].name],
+    #     ),
+    #     None,
+    # )
+    # print(primitive_vars[args[0].name])
+    print(args[1].name)
+    print(primitive_vars[args[1].name])
+    # print(IntObject(primitive_vars[args[1].name]).type)
     return ReturnValue(
-        Call(
-            "list_append",
-            parse_type_ref(args[0].type),
-            primitive_vars[args[0].name],
-            primitive_vars[args[1].name],
-        ),
+        primitive_vars[args[0].name].append(IntObject(primitive_vars[args[1].name])),
         None,
     )
 
 
 def list_concat(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    # return ReturnValue(
+    #     Call(
+    #         "list_concat",
+    #         parse_type_ref(args[0].type),
+    #         primitive_vars[args[0].name],
+    #         primitive_vars[args[1].name],
+    #     ),
+    #     None,
+    # )
     return ReturnValue(
-        Call(
-            "list_concat",
-            parse_type_ref(args[0].type),
-            primitive_vars[args[0].name],
-            primitive_vars[args[1].name],
-        ),
+        primitive_vars[args[0].name] + primitive_vars[args[1].name], 
         None,
     )
 

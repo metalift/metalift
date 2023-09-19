@@ -5,7 +5,7 @@ from re import L
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
-from typing import Any, Callable, Dict, Generic, List, Set, TypeVar, Union, Optional, Tuple
+from typing import Any, Callable, Dict, Generic, List, Set, TypeVar, Union, Optional, Tuple, _GenericAlias, ForwardRef
 from metalift.types import *
 
 # from metalift.visitor import Visitor
@@ -416,8 +416,11 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         return IntObject
     elif ty_str == "i1":
         return BoolObject
+    elif ty_str in {"%struct.list*", "%struct.list**"}:
+        #TODO colin: add generic type support
+        return ListObject
     else:
-        raise Exception("OH NO")
+        raise Exception(f"no type defined for {ty_str}")
 
 class NewObject(Expr):
     src: Expr
@@ -565,7 +568,7 @@ class IntObject(NewObject):
         else:
             return other + self
 
-    def __rsub__(self, other: Union["Int", int]) -> "Int":
+    def __rsub__(self, other: Union["IntObject", int]) -> "IntObject":
         if isinstance(other, int):
             return IntObject(other) - self
         else:
@@ -583,27 +586,27 @@ class IntObject(NewObject):
             other = IntObject(other)
         return BoolObject(Eq(self, other))
 
-    def __ne__(self, other: Union["Int", int]) -> BoolObject:
+    def __ne__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = Int(other)
         return BoolObject(Not(Eq(self, other)))
 
-    def __ge__(self, other: Union["Int", int]) -> BoolObject:
+    def __ge__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
         return Bool(Ge(self, other))
 
-    def __gt__(self, other: Union["Int", int]) -> BoolObject:
+    def __gt__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
         return BoolObject(Gt(self, other))
 
-    def __lt__(self, other: Union["Int", int]) -> BoolObject:
+    def __lt__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
-        return Bool(Lt(self, other))
+        return BoolObject(Lt(self, other))
 
-    def __le__(self, other: Union["Int", int]) -> BoolObject:
+    def __le__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
         return BoolObject(Le(self, other))
@@ -616,108 +619,108 @@ class IntObject(NewObject):
         return super().__hash__()
 
 
-# T = TypeVar("T", bound=Object)
-# class List(Generic[T], Object):
+T = TypeVar("T", bound=NewObject)
+class ListObject(Generic[T], NewObject):
 
-#     def __init__(self, driver: Driver, containedT: Union[type, _GenericAlias], value: Optional[Union[Expr, str]] = None) -> None:
-#         # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
-
-#         if value is None:  # a symbolic variable
-#             src = driver.variable("v", List[containedT])
-#         elif isinstance(value, Expr):
-#             src = value
-#         elif isinstance(value, str):
-#             src = driver.variable(value, List[containedT])
-#         else:
-#             raise TypeError(f"Cannot create List from {value}")
-
-#         super().__init__(driver, src, List[containedT])
+    def __init__(self, containedT: Union[type, _GenericAlias] = Int, value: Optional[Union[Expr, str]] = None) -> None:
+        # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
+        if value is None:  # a symbolic variable
+            src = Var("v", List[containedT])
+        elif isinstance(value, Expr):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, List[containedT])
+        else:
+            raise TypeError(f"Cannot create List from {value}")
+        super().__init__(src, List[containedT])
 
 
-#     @staticmethod
-#     def empty(driver: Driver, containedT: Union[type, _GenericAlias]) -> "List":
-#         return List(driver, containedT, Call("list_empty", List[containedT]))
+    @staticmethod
+    def empty(containedT: Union[type, _GenericAlias]) -> "ListObject":
+        return ListObject(containedT, Call("list_empty", List[containedT]))
 
-#     # @staticmethod
-#     # def Expr_type() -> Type:
-#     #     return ListT()
+    # @staticmethod
+    # def Expr_type() -> Type:
+    #     return ListT()
 
-#     def __len__(self) -> int:
-#         raise NotImplementedError("len must return an int, call len() instead")
+    def __len__(self) -> int:
+        raise NotImplementedError("len must return an int, call len() instead")
 
-#     def len(self) -> Int:
-#         return Int(self.driver, Call("list_length", irInt(), self.src))
+    def len(self) -> IntObject:
+        return IntObject(Call("list_length", IntObject, self.src))
 
-#     def __getitem__(self, index: Union[Int, int]) -> Expr:  # index can also be slice
-#         if isinstance(index, int):  # promote to Int
-#             index = Int(self.driver, index)
+    def __getitem__(self, index: Union[IntObject, int]) -> IntObject:  # index can also be slice
+        if isinstance(index, int):  # promote to Int
+            index = IntObject(index)
 
-#         containedT = typing.get_args(self.type)[0]
-#         if isinstance(containedT, type): # non generic type
-#             return containedT(self.driver, Call("list_get", containedT, self.src, index.src))
-#         elif isinstance(containedT, _GenericAlias): # generic type
-#             subcontainedT = typing.get_args(containedT)[0]
-#             return containedT(self.driver, subcontainedT, Call("list_get", containedT, self.src, index.src))
-#         else:
-#             raise NotImplementedError(f"Cannot get item from list containing type {containedT}")
-
-
-#         # elif isinstance(index, slice):
-#         #     (start, stop, step) = (index.start, index.stop, index.step)
-
-#         #     if stop is None and step is None:
-#         #         if isinstance(start, int):
-#         #             start = IntLit(start)
-#         #         elif isinstance(start, Int):
-#         #             start = start.src
-#         #         return List[containedT](Call("list_tail", List[containedT], self, start))
-
-#         #     elif start is None and step is None:
-#         #         if isinstance(stop, int):
-#         #             stop = IntLit(stop)
-#         #         elif isinstance(start, Int):
-#         #             stop = stop.src
-#         #         return List[containedT](Call("list_head", List[containedT], self, stop))
-
-#         #     else:
-#         #         raise NotImplementedError(f"Slice not implemented: {index}")
+        containedT = typing.get_args(self.type)[0]
+        if isinstance(containedT, type): # non generic type
+            return containedT(Call("list_get", containedT, self.src, index.src))
+        elif isinstance(containedT, _GenericAlias): # generic type
+            subcontainedT = typing.get_args(containedT)[0]
+            return containedT(subcontainedT, Call("list_get", containedT, self.src, index.src))
+        else:
+            raise NotImplementedError(f"Cannot get item from list containing type {containedT}")
 
 
-#     def __setitem__(self, index: Union[Int, int], value: T) -> None:
-#         if isinstance(index, int):  # promote to Int
-#             index = Int(self.driver, index)
+        # elif isinstance(index, slice):
+        #     (start, stop, step) = (index.start, index.stop, index.step)
 
-#         containedT = typing.get_args(self.type)[0]
-#         if value.type != containedT:
-#             raise TypeError(f"Trying to set list element of type: {value.type} to list containing: {containedT}")
+        #     if stop is None and step is None:
+        #         if isinstance(start, int):
+        #             start = IntLit(start)
+        #         elif isinstance(start, Int):
+        #             start = start.src
+        #         return List[containedT](Call("list_tail", List[containedT], self, start))
 
-#         self.src = Call("list_set", self.type, self.src, index.src, value.src)
+        #     elif start is None and step is None:
+        #         if isinstance(stop, int):
+        #             stop = IntLit(stop)
+        #         elif isinstance(start, Int):
+        #             stop = stop.src
+        #         return List[containedT](Call("list_head", List[containedT], self, stop))
 
-#     # in place append
-#     def append(self, value: T) -> None:
-#         containedT = typing.get_args(self.type)[0]
-#         if value.type != containedT:
-#             raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
-
-#         self.src = Call("list_append", self.type, self.src, value.src)
-
-#     # list concat that returns a new list
-#     def __add__(self, other: "List") -> "List":
-#         if other.type != self.type:
-#             raise TypeError(f"can't add lists of different types: {other.type} and {self.type}")
-#         containedT = typing.get_args(self.type)[0]
-#         return List(self.driver, containedT, Call("list_concat", self.type, self.src, other.src))
+        #     else:
+        #         raise NotImplementedError(f"Slice not implemented: {index}")
 
 
-#     def __eq__(self, other: "List") -> Bool:
-#         if other.type != self.type:
-#             return Bool(self.driver, False)
-#         else:
-#             return Bool(self.driver, Call("list_eq", Bool, self.src, other.src))
+    def __setitem__(self, index: Union[IntObject, int], value: T) -> None:
+        if isinstance(index, int):  # promote to Int
+            index = IntObject(index)
+
+        containedT = typing.get_args(self.type)[0]
+        if type(value) != containedT:
+            raise TypeError(f"Trying to set list element of type: {value.type} to list containing: {containedT}")
+
+        self.src = Call("list_set", self.type, self.src, index.src, value.src)
+
+    # in place append
+    def append(self, value: T) -> "ListObject":
+        containedT = typing.get_args(self.type)[0]
+        #TODO colin: understand why IntObject().type == Int
+        if type(value) != containedT:
+            raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
+
+        self.src = Call("list_append", self.type, self.src, value.src)
+        return self
+
+    # list concat that returns a new list
+    def __add__(self, other: "ListObject") -> "ListObject":
+        if other.type != self.type:
+            raise TypeError(f"can't add lists of different types: {other.type} and {self.type}")
+        containedT = typing.get_args(self.type)[0]
+        return ListObject(containedT, Call("list_concat", self.type, self.src, other.src))
 
 
-#     def __repr__(self):
-#         return f"{qual_name(self.type)}({self.src})"
+    def __eq__(self, other: "ListObject") -> BoolObject:
+        if other == None or type(other) != type(self):
+            return BoolObject(False)
+        else:
+            return BoolObject(Call("list_eq", Bool, self.src, other.src))
+
+
+    def __repr__(self):
+        return f"{self.src}"
 
 
 
@@ -1153,7 +1156,7 @@ class Ite(Expr):
             raise Exception(
                 f"ITE condition must be Boolean and not value of type {c.type}"
             )
-        if parse_type_ref(e1.type).erase() != parse_type_ref(e1.type).erase():
+        if parse_type_ref(e1.type).erase() != parse_type_ref(e2.type).erase():
             raise Exception(
                 f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
             )
