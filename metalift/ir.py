@@ -1788,8 +1788,8 @@ class FnDeclRecursive(Expr):
                 [
                     "%s" % (a.name)
                     if isinstance(a, ValueRef) and a.name != ""
-                    else "%s" % (a.args[0])
-                    for a in self.args[2:]
+                    else "%s" % (a.toRosette(writeChoicesTo))
+                    for a in self.arguments()
                 ]
             )
 

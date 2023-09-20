@@ -450,7 +450,7 @@ class Predicate:
 
     def call(self, state: State) -> Call:
         return Call(
-            self.name, Bool(), *[state.read_or_load_var(v[0]) for v in self.args]
+            self.name, Bool(), *[state.read_or_load_var(v.var_name()) for v in self.args]
         )
 
     def gen_Synth(self) -> Synth:
@@ -781,10 +781,12 @@ class VCVisitor:
         header_loops = self.find_header_loops(block.name)
         for loop in header_loops:
             vector_havocs = self.get_vector_havocs(loop)
+            self.driver.add_var_objects(vector_havocs)
             for vector_havoc in vector_havocs:
                 self.write_var_to_block(block.name, vector_havoc.var_name(), vector_havoc)
 
             non_vector_havocs = self.get_non_vector_havocs(loop)
+            self.driver.add_var_objects(non_vector_havocs)
             for non_vector_havoc in non_vector_havocs:
                 self.store_var_to_block(
                     block.name, non_vector_havoc.var_name(), non_vector_havoc
