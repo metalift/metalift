@@ -1,57 +1,56 @@
 from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Bool, FnDeclRecursive, Expr, Int,
-                         Object, call, choose, ite, fn_decl_recursive)
-from metalift.vc_util import and_objects
+from metalift.frontend.llvm import Driver
+from metalift.ir import (Add, And, BoolLit, Call, Choose, Eq, Expr,
+                         FnDeclRecursive, Ge, Gt, Int, Ite, Le, Lt, NewObject, Or,
+                         Sub, Var, IntObject, BoolObject)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
-    x = Int("x")
-    sum_n = fn_decl_recursive(
+    x = IntObject("x")
+    sum_n = FnDeclRecursive(
         "sum_n",
-        Int,
-        ite(
-            x >= 1,
-            x + call("sum_n", Int, x - 1),
-            Int(0)
+        Int(),
+        Ite(
+            Ge(x, IntObject(1)), Add(x, Call("sum_n", Int(), Sub(x, IntObject(1)))), IntObject(0)
         ),
         x,
     )
     return [sum_n]
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     input_arg = reads[0]
-    int_lit = choose(Int(0), Int(1), Int(2))
-    input_arg_bound = choose(
-        input_arg >= int_lit,
-        input_arg <= int_lit,
-        input_arg > int_lit,
-        input_arg < int_lit,
-        input_arg == int_lit
+    int_lit = Choose(IntObject(0), IntObject(1), IntObject(2))
+    input_arg_bound = Choose(
+        Ge(input_arg, int_lit),
+        Le(input_arg, int_lit),
+        Gt(input_arg, int_lit),
+        Lt(input_arg, int_lit),
+        Eq(input_arg, int_lit),
     )
     ite_stmt = ite(
         input_arg_bound,
-        Int(0),
-        call("sum_n", Int, reads[0] - int_lit)
+        IntObject(0),
+        Call("sum_n", Int(), Sub(reads[0], int_lit))
     )
     return ret_val == ite_stmt
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+    if v.var_name() != "x":
+        return BoolObject(True)
     x, y = writes
     input_arg = reads[0]
-    int_lit = choose(Int(0), Int(1), Int(2))
-    x_or_y = choose(x, y)
-    x_or_y_int_lit_bound = choose(
-        x_or_y >= int_lit,
-        x_or_y <= int_lit,
-        x_or_y > int_lit,
-        x_or_y < int_lit,
-        x_or_y == int_lit
+    int_lit = Choose(IntObject(0), IntObject(1), IntObject(2))
+    x_or_y = Choose(x, y)
+    x_or_y_int_lit_bound = Choose(
+        Ge(x_or_y, int_lit),
+        Le(x_or_y, int_lit),
+        Gt(x_or_y, int_lit),
+        Lt(x_or_y, int_lit),
+        Eq(x_or_y, int_lit),
     )
     x_or_y_input_arg_bound = choose(
         x_or_y >= input_arg,
@@ -93,7 +92,7 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    arg = Int("arg")
+    arg = IntObject("arg")
     driver.add_var_object(arg)
     test(arg)
 
