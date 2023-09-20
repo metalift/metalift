@@ -425,7 +425,7 @@ class Predicate:
     writes: List[NewObject]
     reads: List[NewObject]
     name: str
-    grammar: Callable[[Var, List[Var], List[Var]], NewObject]
+    grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -438,7 +438,7 @@ class Predicate:
         writes: List[NewObject],
         reads: List[NewObject],
         name: str,
-        grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
         self.driver = driver
         self.args = args
@@ -521,8 +521,8 @@ class VCVisitor:
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
-    ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
 
     loops: List[LoopInfo]
 
@@ -535,8 +535,8 @@ class VCVisitor:
         fn_sret_arg: Optional[Var],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
-        ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
         loops: List[LoopInfo],
     ) -> None:
         self.driver = driver
@@ -1063,8 +1063,8 @@ class Driver:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
-        ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -1118,8 +1118,8 @@ class MetaliftFunc:
     fn_blocks: Dict[str, Block]
 
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
-    ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synthesized: Optional[NewObject]
 
     loops: List[LoopInfo]
@@ -1131,8 +1131,8 @@ class MetaliftFunc:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
-        ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name

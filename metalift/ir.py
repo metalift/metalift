@@ -589,7 +589,7 @@ class IntObject(NewObject):
             other = IntObject(other)
         return BoolObject(Eq(self, other))
 
-    def __ne__(self, other: Union["Int", int]) -> BoolObject:
+    def __ne__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = Int(other)
         return BoolObject(Not(Eq(self, other)))
@@ -597,19 +597,19 @@ class IntObject(NewObject):
     def __ge__(self, other: Union["Int", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
-        return Bool(Ge(self, other))
+        return BoolObject(Ge(self, other))
 
-    def __gt__(self, other: Union["Int", int]) -> BoolObject:
+    def __gt__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
         return BoolObject(Gt(self, other))
 
-    def __lt__(self, other: Union["Int", int]) -> BoolObject:
+    def __lt__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
-        return Bool(Lt(self, other))
+        return BoolObject(Lt(self, other))
 
-    def __le__(self, other: Union["Int", int]) -> BoolObject:
+    def __le__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
         return BoolObject(Le(self, other))

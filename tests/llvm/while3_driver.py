@@ -13,7 +13,9 @@ def target_lang() -> List[FnDeclRecursive]:
         "sum_n",
         Int(),
         Ite(
-            Ge(x, IntObject(1)), Add(x, Call("sum_n", Int(), Sub(x, IntObject(1)))), IntObject(0)
+            x >= 1,
+            Add(x, Call("sum_n", Int(), Sub(x, IntObject(1)))),
+            IntObject(0)
         ),
         x,
     )
