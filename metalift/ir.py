@@ -202,9 +202,15 @@ class Expr:
                 return False
             else:
                 for a1, a2 in zip(self.args, other.args):
-                    if isinstance(a1, Type) and isinstance(a2, Type) and a1 != a2:
-                        return False
-                    elif isinstance(a1, Expr) and isinstance(a2, Expr) and not Expr.__eq__(a1, a2):
+                    if isinstance(a1, Type) and isinstance(a2, Type):
+                        if a1 != a2:
+                            return False
+                        continue
+                    elif isinstance(a1, Expr) and isinstance(a2, Expr):
+                        if not Expr.__eq__(a1, a2):
+                            return False
+                        continue
+                    elif a1 != a2:
                         return False
                 return True
         return NotImplemented
