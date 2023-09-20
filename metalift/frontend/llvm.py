@@ -862,8 +862,8 @@ class VCVisitor:
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
-    ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
 
     loops: List[LoopInfo]
 
@@ -878,8 +878,8 @@ class VCVisitor:
         fn_sret_arg: Optional[Object],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
-        ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
     ) -> None:
@@ -1501,8 +1501,8 @@ class Driver:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
-        ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -1575,8 +1575,8 @@ class MetaliftFunc:
     fn_blocks: Dict[str, Block]
 
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
-    ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synthesized: Optional[NewObject]
 
     loops: List[LoopInfo]
@@ -1588,8 +1588,8 @@ class MetaliftFunc:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
-        ps_grammar: Callable[[Var, List[Var], List[Var]], NewObject],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name

@@ -747,7 +747,7 @@ class IntObject(NewObject):
     def __ge__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
-        return Bool(Ge(self, other))
+        return BoolObject(Ge(self, other))
 
     def __gt__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):

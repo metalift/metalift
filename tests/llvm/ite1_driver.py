@@ -2,20 +2,19 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Eq, Expr, FnDecl, Gt, IntObject, Ite, Var
+from metalift.ir import Eq, Expr, FnDecl, Gt, IntObject, Ite, NewObject
 
 
 def target_lang() -> List[FnDecl]:
     return []
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     i = reads[0]
-    return Eq(ret_val, Ite(Gt(i, IntObject(10)), IntObject(1), IntObject(2)))
+    return Eq(ret_val, Ite(i > 10, IntObject(1), IntObject(2)))
 
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     raise Exception("no loop in the source")
 
 

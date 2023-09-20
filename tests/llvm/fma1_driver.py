@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntObject, Var
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntObject, NewObject
 from tests.python.utils.utils import codegen
 
 
@@ -20,7 +20,7 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     var = Choose(*reads, IntObject(0))
     added = var + var
     fma_call_object = call("fma", Int, added, added, added)
@@ -28,7 +28,7 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
 
     return ret_val == var_or_fma + var_or_fma
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     raise Exception("no loop in the source")
 
 
