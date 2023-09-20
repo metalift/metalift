@@ -444,9 +444,37 @@ class LoopInfo:
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
 
-class ExprDict(dict):
+class ExprDict:
     def __init__(self) -> None:
         self.kv_pairs = []
+
+    def __getitem__(self, key: Expr) -> Any:
+        for k, v in self.kv_pairs:
+            if Expr.__eq__(k, key):
+                return v
+        raise Exception(f"{key} does not exist!")
+
+    def __setitem__(self, key: Expr, value: Any) -> None:
+        for i, (k, _) in enumerate(self.kv_pairs):
+            if Expr.__eq__(k, key):
+                self.kv_pairs[i] = (k, value)
+                return
+        self.kv_pairs.append((key, value))
+
+    def __contains__(self, key: Expr):
+        return any([Expr.__eq__(k, key) for (k, _) in self.kv_pairs])
+
+    def __len__(self):
+        return len(self.kv_pairs)
+
+    def keys(self) -> List[Expr]:
+        return [kv_pair[0] for kv_pair in self.kv_pairs]
+
+    def values(self) -> List[Any]:
+        return [kv_pair[1] for kv_pair in self.kv_pairs]
+
+    def items(self) -> List[Expr]:
+        return self.kv_pairs
 
 # Helper functions
 def is_type_pointer(ty: Type) -> bool:
@@ -1045,8 +1073,6 @@ class VCVisitor:
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 for var_name, var_value in pred_state.primitive_vars.items():
-                    print("var name", var_name)
-                    print("var_value", var_value, type(var_value))
                     var_value_dict = primitive_var_state[var_name]
                     if var_value not in var_value_dict:
                         primitive_var_state[var_name][var_value] = []
