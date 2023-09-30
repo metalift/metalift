@@ -14,7 +14,8 @@ entry:
   br i1 %cmp, label %bb, label %bb3
 
 if.then:                                          ; preds = %bb
-  store i32 1, i32* %a, align 4
+  store
+  i32 1, i32* %a, align 4
   br label %if.end
 
 if.else:                                          ; preds = %bb3

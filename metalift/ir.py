@@ -202,9 +202,15 @@ class Expr:
                 return False
             else:
                 for a1, a2 in zip(self.args, other.args):
-                    if isinstance(a1, Type) and isinstance(a2, Type) and a1 != a2:
-                        return False
-                    elif isinstance(a1, Expr) and isinstance(a2, Expr) and not Expr.__eq__(a1, a2):
+                    if isinstance(a1, Type) and isinstance(a2, Type):
+                        if a1 != a2:
+                            return False
+                        continue
+                    elif isinstance(a1, Expr) and isinstance(a2, Expr):
+                        if not Expr.__eq__(a1, a2):
+                            return False
+                        continue
+                    elif a1 != a2:
                         return False
                 return True
         return NotImplemented
@@ -594,7 +600,7 @@ class IntObject(NewObject):
     def __ge__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
             other = IntObject(other)
-        return Bool(Ge(self, other))
+        return BoolObject(Ge(self, other))
 
     def __gt__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
@@ -1785,8 +1791,8 @@ class FnDeclRecursive(Expr):
                 [
                     "%s" % (a.name)
                     if isinstance(a, ValueRef) and a.name != ""
-                    else "%s" % (a.args[0])
-                    for a in self.args[2:]
+                    else "%s" % (a.toRosette(writeChoicesTo))
+                    for a in self.arguments()
                 ]
             )
 

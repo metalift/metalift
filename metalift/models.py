@@ -16,7 +16,7 @@ ReturnValue = NamedTuple(
     "ReturnValue",
     [
         ("val", Optional[NewObject]),
-        ("assigns",  Optional[List[Tuple[str, NewObject]]]),
+        ("assigns",  Optional[List[Tuple[str, NewObject, str]]]),
     ],
 )
 
@@ -36,7 +36,12 @@ def list_length(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
+    # return ReturnValue(Call(
+                            "list_length", 
+                            Int(), 
+                            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+                            ), 
+                        None)
     return ReturnValue(
         primitive_vars[args[0].name].len(), 
         None,
@@ -58,7 +63,7 @@ def list_get(
     #     None,
     # )
     return ReturnValue(
-        primitive_vars[args[0].name][primitive_vars[args[1].name]],
+        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name][primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]],
         None,
     )
 
@@ -83,7 +88,7 @@ def list_append(
     print(primitive_vars[args[1].name])
     # print(IntObject(primitive_vars[args[1].name]).type)
     return ReturnValue(
-        primitive_vars[args[0].name].append(IntObject(primitive_vars[args[1].name])),
+        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name].append(IntObject(primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name])),
         None,
     )
 
@@ -104,7 +109,7 @@ def list_concat(
     #     None,
     # )
     return ReturnValue(
-        primitive_vars[args[0].name] + primitive_vars[args[1].name], 
+        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name] + primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name], 
         None,
     )
 
@@ -118,7 +123,7 @@ def new_vector(
     assert len(args) == 1
     var_name: str = args[0].name
     assigns: List[Tuple[str, Expr]] = [
-        (var_name, Call("list_empty", Type("MLList", Int())))
+        (var_name, Call("list_empty", Type("MLList", Int())), "primitive")
     ]
     return ReturnValue(None, assigns)
 
@@ -131,15 +136,17 @@ def vector_append(
 ) -> ReturnValue:
     assert len(args) == 2
     assign_var_name: str = args[0].name
+
+    # TODO: fix where the args is in pointer or primitive
     assign_val = Call(
         "list_append",
         parse_type_ref(args[0].type),
-        primitive_vars[args[0].name],
-        primitive_vars[args[1].name],
+        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
+        primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
     )
     return ReturnValue(
         None,
-        [(assign_var_name, assign_val)],
+        [(assign_var_name, assign_val, "primitive")],
     )
 
 
@@ -158,7 +165,7 @@ def make_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    regVals = [primitive_vars[args[i].name] for i in range(len(args))]
+    regVals = [primitive_vars[args[i].name] if not args[i].type.is_pointer else pointer_vars[args[i].name] for i in range(len(args))]
     retVals = [Int() for i in range(len(args))]
     return ReturnValue(
         Call("make-tuple", Type("Tuple", *retVals), *regVals),
@@ -176,7 +183,7 @@ def tuple_get(
         Call(
             "tupleGet",
             Int(),
-            primitive_vars[args[0].name],
+            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
             parseOperand(args[1], primitive_vars),
         ),
         None,
@@ -229,7 +236,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
             "set-insert",
             SetT(Int()),
             parseOperand(args[1], primitive_vars),
-            parseOperand(args[0], primitive_vars),
+            parseOperand(args[0], pointer_vars),
         ),
         None,
     ),
@@ -237,7 +244,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
         Call(
             "set-minus",
             SetT(Int()),
-            parseOperand(args[0], primitive_vars),
+            parseOperand(args[0], pointer_vars),
             Call("set-singleton", SetT(Int()), parseOperand(args[1], primitive_vars)),
         ),
         None,
@@ -248,7 +255,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
                 "set-pointer_varsber",
                 Bool(),
                 parseOperand(args[1], primitive_vars),
-                parseOperand(args[0], primitive_vars),
+                parseOperand(args[0], pointer_vars),
             ),
             IntLit(1),
             IntLit(0),

@@ -1,9 +1,9 @@
 from typing import List
 from metalift.frontend.python import Driver
 
-from metalift.ir import Add, Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Lit, Var
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Var
 
-from mypy.nodes import Statement, WhileStmt
+from mypy.nodes import Statement
 
 from tests.python.utils.utils import codegen
 
@@ -36,7 +36,7 @@ def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_
 if __name__ == "__main__":
     filename = "tests/python/fma1.py"
 
-    driver = Driver()    
+    driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
     v1 = driver.variable("base", Int())
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     v4 = driver.variable("arg2", Int())
 
     test(v1, v2, v3, v4)
-    
+
     driver.synthesize()
 
     print("\n\ngenerated code:" + test.codegen(codegen))

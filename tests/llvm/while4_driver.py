@@ -2,31 +2,31 @@ from typing import List
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import (Add, And, Call, Choose, Eq, Expr, FnDeclRecursive, Ge,
-                         Int, IntLit, Ite, Le, Sub, Var)
+                         Int, IntObject, Ite, Le, NewObject, Sub)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
-    x = Var("x", Int())
+    x = IntObject("x")
     sum_n = FnDeclRecursive(
         "sum_n",
         Int(),
         Ite(
-            Ge(x, IntLit(1)),
-            Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))),
-            IntLit(0),
+            Ge(x, IntObject(1)),
+            Add(x, Call("sum_n", Int(), Sub(x, IntObject(1)))),
+            IntObject(0),
         ),
         x,
     )
     return [sum_n]
 
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    return Eq(ret_val, Call("sum_n", Int(), Choose(IntLit(1), IntLit(2))))
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+    return Eq(ret_val, Call("sum_n", Int(), Choose(IntObject(1), IntObject(2))))
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     e = Choose(*writes)
-    f = Choose(IntLit(1), IntLit(2), IntLit(3))
+    f = Choose(IntObject(1), IntObject(2), IntObject(3))
     c = Eq(e, Call("sum_n", Int(), Sub(e, f)))
     d = And(Ge(e, f), Le(e, f))
     b = And(c, d)

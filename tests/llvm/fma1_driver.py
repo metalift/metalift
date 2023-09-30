@@ -1,8 +1,9 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, IntObject, Var
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntObject, NewObject
 from tests.python.utils.utils import codegen
+
 
 def target_lang() -> List[FnDecl]:
     x = IntObject("x")
@@ -18,14 +19,14 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     var = Choose(*reads, IntObject(0))
     added = var + var
     var_or_fma = Choose(*reads, Call("fma", Int(), added, added, added))
 
     return Eq(ret_val, var_or_fma + var_or_fma)
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     raise Exception("no loop in the source")
 
 
@@ -44,15 +45,7 @@ if __name__ == "__main__":
     arg1 = IntObject("arg1")
     base2 = IntObject("base2")
     arg2 = IntObject("arg2")
-    driver.add_var_object(base)
-    print(driver.var_tracker.all())
-    driver.add_var_object(arg1)
-    print(driver.var_tracker.all())
-    driver.add_var_object(base2)
-    print(driver.var_tracker.all())
-    driver.add_var_object(arg2)
-    print(driver.var_tracker.all())
-
+    driver.add_var_objects([base, arg1, base2, arg2])
 
     test(base, arg1, base2, arg2)
 
