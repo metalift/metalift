@@ -478,7 +478,7 @@ class ExprDict:
 
 # Helper functions
 def is_type_pointer(ty: Type) -> bool:
-    return ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
+    return hasattr(ty, "__origin__")  and ty.__origin__ == ListObject #ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
 
 
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
@@ -1439,7 +1439,9 @@ class VCVisitor:
             rv = models.fn_models[fn_name](
                 blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
             )
-            if rv.val and o.name != "":
+
+            #if rv.val and o.name != "": # TODO: rv.val errors when it's ListObject since it implicitly call len()
+            if o.name != "":
                 if not o.type.is_pointer:
                     self.write_operand_to_block(block_name=block_name, op=o, val=rv.val) #primitive
                 else:

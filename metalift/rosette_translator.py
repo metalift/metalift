@@ -3,22 +3,7 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import (
-    Bool,
-    Expr,
-    FnDeclRecursive,
-    FnDecl,
-    Int,
-    Var,
-    List as mlList,
-    get_nested_list_element_type,
-    is_list_type,
-    is_nested_list_type,
-    is_set_type,
-    is_tuple_type,
-    is_matrix_type,
-    get_matrix_element_type,
-)
+from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var, ListObject
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
 
