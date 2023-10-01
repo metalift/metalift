@@ -2,7 +2,7 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var
+from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var, ListObject
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 

@@ -26,7 +26,6 @@ def new_list(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
      return ReturnValue(ListObject.empty(IntObject), None)
 
 
@@ -36,14 +35,9 @@ def list_length(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(Call(
-                            "list_length", 
-                            Int(), 
-                            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
-                            ), 
-                        None)
+    lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
     return ReturnValue(
-        primitive_vars[args[0].name].len(), 
+        lst.len(), 
         None,
     )
 
@@ -53,19 +47,9 @@ def list_get(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(
-    #     Call(
-    #         "list_get",
-    #         Int(),
-    #         primitive_vars[args[0].name],
-    #         primitive_vars[args[1].name],
-    #     ),
-    #     None,
-    # )
-    return ReturnValue(
-        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name][primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]],
-        None,
-    )
+    lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+    index = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
+    return ReturnValue(lst[index], None,)
 
 
 def list_append(
@@ -74,21 +58,10 @@ def list_append(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(
-    #     Call(
-    #         "list_append",
-    #         parse_type_ref(args[0].type),
-    #         primitive_vars[args[0].name],
-    #         primitive_vars[args[1].name],
-    #     ),
-    #     None,
-    # )
-    # print(primitive_vars[args[0].name])
-    print(args[1].name)
-    print(primitive_vars[args[1].name])
-    # print(IntObject(primitive_vars[args[1].name]).type)
+    lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+    value = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
     return ReturnValue(
-        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name].append(IntObject(primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name])),
+        lst.append(value),
         None,
     )
 
@@ -99,17 +72,10 @@ def list_concat(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    # return ReturnValue(
-    #     Call(
-    #         "list_concat",
-    #         parse_type_ref(args[0].type),
-    #         primitive_vars[args[0].name],
-    #         primitive_vars[args[1].name],
-    #     ),
-    #     None,
-    # )
+    lst1 = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+    lst2 = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
     return ReturnValue(
-        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name] + primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name], 
+        lst1 + lst2, 
         None,
     )
 

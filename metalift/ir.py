@@ -195,8 +195,8 @@ class Expr:
         if isinstance(other, Expr):
             if (
                 type(self) != type(other)
-                or self.type.erase()
-                != other.type.erase()
+                # or self.type.erase() #TODO: add them back
+                # != other.type.erase()
                 or len(self.args) != len(other.args)
             ):
                 return False
@@ -528,6 +528,7 @@ class BoolObject(NewObject):
 class IntObject(NewObject):
 
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
+        IntObject.name = "Int"
         if value is None:  # a symbolic variable
             src = Var("v", Int())  # XXX change to Int
         elif isinstance(value, int):
@@ -630,20 +631,31 @@ class ListObject(Generic[T], NewObject):
 
     def __init__(self, containedT: Union[type, _GenericAlias] = Int, value: Optional[Union[Expr, str]] = None) -> None:
         # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
+        ListObject.name = "MLList" #TODO: better way of handling this
+        ListObject.args = [Int()]
         if value is None:  # a symbolic variable
-            src = Var("v", List[containedT])
+            src = Var("v", ListObject[containedT])
         elif isinstance(value, Expr):
             src = value
         elif isinstance(value, str):
-            src = Var(value, List[containedT])
+            src = Var(value, ListObject[containedT])
         else:
             raise TypeError(f"Cannot create List from {value}")
-        super().__init__(src, List[containedT])
+        super().__init__(src, ListObject[containedT])
 
+    #TODO: better way of handling toSMT, maybe remove types all together and push methods to Object?
+    @staticmethod
+    def toSMT():
+        return "(%s %s)" % (
+            ListObject.name,
+             " ".join(
+            [a.toSMT() if isinstance(a, Type) else str(a) for a in ListObject.args]
+            ),
+        )
 
     @staticmethod
     def empty(containedT: Union[type, _GenericAlias]) -> "ListObject":
-        return ListObject(containedT, Call("list_empty", List[containedT]))
+        return ListObject(containedT, Call("list_empty", ListObject[containedT]))
 
     # @staticmethod
     # def Expr_type() -> Type:
@@ -655,11 +667,33 @@ class ListObject(Generic[T], NewObject):
     def len(self) -> IntObject:
         return IntObject(Call("list_length", IntObject, self.src))
 
-    def __getitem__(self, index: Union[IntObject, int]) -> IntObject:  # index can also be slice
+    def __getitem__(self, index: Union[IntObject, int]):# -> IntObject:  # index can also be slice
         if isinstance(index, int):  # promote to Int
             index = IntObject(index)
 
         containedT = typing.get_args(self.type)[0]
+
+        if isinstance(index, slice):
+            (start, stop, step) = (index.start, index.stop, index.step)
+
+            if stop is None and step is None:
+                if isinstance(start, int):
+                    start = IntLit(start)
+                elif isinstance(start, Int):
+                    start = start.src
+                return ListObject(containedT, Call("list_tail", ListObject[containedT], self, start))
+
+            elif start is None and step is None:
+                if isinstance(stop, int):
+                    stop = IntLit(stop)
+                elif isinstance(start, Int):
+                    stop = stop.src
+                return ListObject(containedT, Call("list_head", ListObject[containedT], self, stop))
+
+            else:
+                raise NotImplementedError(f"Slice not implemented: {index}")
+
+
         if isinstance(containedT, type): # non generic type
             return containedT(Call("list_get", containedT, self.src, index.src))
         elif isinstance(containedT, _GenericAlias): # generic type
@@ -667,28 +701,6 @@ class ListObject(Generic[T], NewObject):
             return containedT(subcontainedT, Call("list_get", containedT, self.src, index.src))
         else:
             raise NotImplementedError(f"Cannot get item from list containing type {containedT}")
-
-
-        # elif isinstance(index, slice):
-        #     (start, stop, step) = (index.start, index.stop, index.step)
-
-        #     if stop is None and step is None:
-        #         if isinstance(start, int):
-        #             start = IntLit(start)
-        #         elif isinstance(start, Int):
-        #             start = start.src
-        #         return List[containedT](Call("list_tail", List[containedT], self, start))
-
-        #     elif start is None and step is None:
-        #         if isinstance(stop, int):
-        #             stop = IntLit(stop)
-        #         elif isinstance(start, Int):
-        #             stop = stop.src
-        #         return List[containedT](Call("list_head", List[containedT], self, stop))
-
-        #     else:
-        #         raise NotImplementedError(f"Slice not implemented: {index}")
-
 
     def __setitem__(self, index: Union[IntObject, int], value: T) -> None:
         if isinstance(index, int):  # promote to Int
@@ -703,7 +715,7 @@ class ListObject(Generic[T], NewObject):
     # in place append
     def append(self, value: T) -> "ListObject":
         containedT = typing.get_args(self.type)[0]
-        #TODO colin: understand why IntObject().type == Int
+        
         if type(value) != containedT:
             raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
 
@@ -925,10 +937,10 @@ class Eq(Expr):
     SMTName = "="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (e1.type.erase() == e2.type.erase()):
-            raise Exception(
-                f"Cannot compare values of different types: {e1}: {e1.type.erase()} and {e2}: {e2.type.erase()}"
-            )
+        # if not (e1.type.erase() == e2.type.erase()): TODO: add them back
+        #     raise Exception(
+        #         f"Cannot compare values of different types: {e1}: {e1.type.erase()} and {e2}: {e2.type.erase()}"
+        #     )
         Expr.__init__(self, Bool(), [e1, e2])
 
     def e1(self) -> Expr:
@@ -1813,12 +1825,20 @@ class FnDeclRecursive(Expr):
         else:
             declarations = []
             for a in self.args[2:]:
+                print("a:", a)
                 if isinstance(a, ValueRef):
                     declarations.append((a.name, parse_type_ref(a.type)))
                 elif isinstance(a, NewObject):
                     declarations.append((a.src.args[0], a.type))
                 else:
                     declarations.append((a.args[0], a.type))
+
+            print("\n")
+            for d in declarations:
+                print(d)
+                print(d[0])
+                print(d[1])
+                print(d[1].toSMT())
 
             args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
 
@@ -2127,10 +2147,13 @@ def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
         return PointerT(Bool())
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
+    elif tyStr.__contains__("IntObject"): #TODO: better way to handle this
+        return Int()
     elif (
         tyStr.startswith("%struct.list*")
         or tyStr == "%struct.list**"
         or tyStr == "(MLList Int)"
+        or tyStr.__contains__("ListObject") #TODO: better way to handle this
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):
