@@ -424,6 +424,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         return BoolObject
     elif ty_str in {"%struct.list*", "%struct.list**"}:
         #TODO colin: add generic type support
+        #TODO jie: retire struct.list and use STL?
         return ListObject
     else:
         raise Exception(f"no type defined for {ty_str}")
@@ -528,6 +529,7 @@ class BoolObject(NewObject):
 class IntObject(NewObject):
 
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
+        # TODO(jie)
         IntObject.name = "Int"
         if value is None:  # a symbolic variable
             src = Var("v", Int())  # XXX change to Int
@@ -628,7 +630,6 @@ class IntObject(NewObject):
 
 T = TypeVar("T", bound=NewObject)
 class ListObject(Generic[T], NewObject):
-
     def __init__(self, containedT: Union[type, _GenericAlias] = Int, value: Optional[Union[Expr, str]] = None) -> None:
         # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
         ListObject.name = "MLList" #TODO: better way of handling this
@@ -715,7 +716,7 @@ class ListObject(Generic[T], NewObject):
     # in place append
     def append(self, value: T) -> "ListObject":
         containedT = typing.get_args(self.type)[0]
-        
+
         if type(value) != containedT:
             raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
 
@@ -1825,7 +1826,6 @@ class FnDeclRecursive(Expr):
         else:
             declarations = []
             for a in self.args[2:]:
-                print("a:", a)
                 if isinstance(a, ValueRef):
                     declarations.append((a.name, parse_type_ref(a.type)))
                 elif isinstance(a, NewObject):
