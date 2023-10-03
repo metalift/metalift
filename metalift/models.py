@@ -5,13 +5,6 @@ from llvmlite.binding import ValueRef
 from metalift.ir import Expr, NewObject, ListObject, IntObject
 from metalift.vc_util import parseOperand
 
-# ReturnValue = NamedTuple(
-#     "ReturnValue",
-#     [
-#         ("val", Optional[Expr]),
-#         ("assigns", Optional[List[Tuple[str, Expr]]]),
-#     ],
-# )
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
@@ -35,9 +28,11 @@ def list_length(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 1
+    # TODO(jie) think of how to better handle list of lists
     lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
     return ReturnValue(
-        lst.len(), 
+        lst.len(),
         None,
     )
 
@@ -47,8 +42,9 @@ def list_get(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 2
     lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
-    index = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
+    index = primitive_vars[args[1].name]
     return ReturnValue(lst[index], None,)
 
 
@@ -58,6 +54,7 @@ def list_append(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 2
     lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
     value = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
     return ReturnValue(
@@ -72,10 +69,11 @@ def list_concat(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 2
     lst1 = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
     lst2 = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
     return ReturnValue(
-        lst1 + lst2, 
+        lst1 + lst2,
         None,
     )
 

@@ -420,8 +420,10 @@ class LoopInfo:
             for i in block.instructions:
                 opcode = i.opcode
                 ops = list(i.operands)
-                if opcode == "store":
-                    self.havocs.add(ops[1])
+                # TODO(jie): need a better way of distinguishing non-vector vs vector havocs?
+                # Or even maybe just storing them together
+                if opcode == "store" and ops[1] not in self.non_vector_havocs:
+                    self.non_vector_havocs.append(ops[1])
                 elif opcode == "call":
                     args = ops[:-1]
                     fn_name = get_fn_name_from_call_instruction(i)
@@ -1236,8 +1238,6 @@ class VCVisitor:
         elif t == "i1":
             val = BoolObject(False)
         elif t == "%struct.list*":
-            # TODO(jie)
-            # val = objects.List(IntObject)
             val = ListObject(IntObject)
         elif t.startswith("%struct.set"):
             # TODO(jie)
@@ -1440,8 +1440,7 @@ class VCVisitor:
                 blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
             )
 
-            #if rv.val and o.name != "": # TODO: rv.val errors when it's ListObject since it implicitly call len()
-            if o.name != "":
+            if rv.val is not None and o.name != "":
                 if not o.type.is_pointer:
                     self.write_operand_to_block(block_name=block_name, op=o, val=rv.val) #primitive
                 else:
