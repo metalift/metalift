@@ -1,13 +1,12 @@
 from abc import abstractmethod
 from enum import Enum
 from inspect import isclass
-import re
-import traceback
+from re import L
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
-from typing import Any, Callable, Dict, Generic, List, Set, TypeVar, Union, Optional, Tuple, _GenericAlias, ForwardRef
+from typing import Any, Callable, Dict, Generic, List, Set, TypeVar, Union, Optional, Tuple, _GenericAlias, ForwardRef, get_args, get_origin
 from metalift.types import *
 
 # from metalift.visitor import Visitor
@@ -100,7 +99,7 @@ def get_fn_args_types(ty: Union[type, _GenericAlias]) -> pyList[ObjectT]:
 
 
 class Expr:
-    def __init__(self, type: "Type", args: Any) -> None:
+    def __init__(self, type: typing.Type["NewObject"], args: Any) -> None:
         self.args = args
         self.type = type
         self.metadata = metadata
@@ -264,9 +263,12 @@ class Expr:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-
+        if isclass(self.type) and issubclass(self.type, NewObject):
+            type_str = self.type.cls_str()
+        else:
+            type_str = f"{self.type}"
         return (
-            f"({type(self).__name__}:{get_type_str(self.type)} "
+            f"({type(self).__name__}:{type_str} "
             f'{" ".join(fn(a) for a in self.args)})'
         )
 
@@ -275,7 +277,7 @@ class Expr:
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
         return (
-            f"({type(self).__name__}:{get_type_str(self.type)} "
+            f"({type(self).__name__}:{self.type.cls_str()} "
             f'{" ".join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args)})'
         )
 
@@ -613,11 +615,20 @@ class NewObject(Expr):
     #     raise NotImplementedError()
 
 
+    @staticmethod
+    def toSMTType(type_arg: Optional[Union[typing.Type["NewObject"], _GenericAlias]] = None) -> str:
+        raise NotImplementedError()
+
+    @staticmethod
+    def cls_str() -> str:
+        raise NotImplementedError()
+
+
 class BoolObject(NewObject):
 
     def __init__(self, value: Optional[Union[bool, str, Expr]] = None) -> None:
         if value is None:  # a symbolic variable
-            src = Var("v", Bool()) # XXX change to Bool
+            src = Var("v", BoolObject) # XXX change to Bool
         elif isinstance(value, bool):
             src = BoolLit(value)
         elif isinstance(value, Expr):
@@ -626,11 +637,11 @@ class BoolObject(NewObject):
             #     raise TypeError(f"Cannot create Bool from {value.type}")
             src = value
         elif isinstance(value, str):
-            src = Var(value, Bool())
+            src = Var(value, BoolObject)
         else:
             raise TypeError(f"Cannot create Bool from {value}")
 
-        super().__init__(src, Bool())
+        super().__init__(src, BoolObject)
 
 
     # python doesn't have hooks for and, or, not
@@ -672,6 +683,16 @@ class BoolObject(NewObject):
     def __repr__(self):
         return f"{self.src}"
 
+    @staticmethod
+    def toSMTType(type_arg: Optional[Union[typing.Type[NewObject], _GenericAlias]] = None) -> str:
+        return "Bool"
+
+
+    @staticmethod
+    def cls_str() -> str:
+        # TODO(jie): change this to Bool once we retire the Bool type
+        return "BoolObject"
+
 
 class IntObject(NewObject):
 
@@ -679,7 +700,7 @@ class IntObject(NewObject):
         # TODO(jie)
         IntObject.name = "Int"
         if value is None:  # a symbolic variable
-            src = Var("v", Int())  # XXX change to Int
+            src = Var("v", IntObject)  # XXX change to Int
         elif isinstance(value, int):
             src = IntLit(value)
         elif isinstance(value, Expr):
@@ -688,11 +709,11 @@ class IntObject(NewObject):
             #     raise TypeError(f"Cannot create Int from {value.type}")
             src = value
         elif isinstance(value, str):
-            src = Var(value, Int())
+            src = Var(value, IntObject)
         else:
             raise TypeError(f"Cannot create Int from {value}")
 
-        super().__init__(src, Int())
+        super().__init__(src, IntObject)
 
     # @staticmethod
     # def Expr_type() -> Type:
@@ -774,11 +795,19 @@ class IntObject(NewObject):
     def __hash__(self) -> int:
         return super().__hash__()
 
+    @staticmethod
+    def toSMTType(type_arg: Optional[Union[typing.Type[NewObject], _GenericAlias]] = None) -> str:
+        return "Int"
+
+    @staticmethod
+    def cls_str() -> str:
+        # TODO(jie): change this to Bool once we retire the Bool type
+        return "IntObject"
 
 T = TypeVar("T", bound=NewObject)
 class ListObject(Generic[T], NewObject):
     def __init__(self, containedT: Union[type, _GenericAlias] = Int, value: Optional[Union[Expr, str]] = None) -> None:
-        # typing._GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
+        # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
         ListObject.name = "MLList" #TODO: better way of handling this
         ListObject.args = [Int()]
         if value is None:  # a symbolic variable
@@ -888,6 +917,12 @@ class ListObject(Generic[T], NewObject):
     def __repr__(self):
         return f"{self.src}"
 
+    @staticmethod
+    def toSMTType(type_arg: Optional[Union[typing.Type[NewObject], _GenericAlias]] = None) -> str:
+        if isinstance(type_arg, _GenericAlias):
+            return f"(MLList {get_origin(type_arg).toSMTType(get_args(type_arg))})"  # this would call List.toSMTType(Int) for instance
+        else:
+            return f"(MLList {type_arg.toSMTType()})"
 
 
 
@@ -903,7 +938,7 @@ def getType(o: NewObject) -> type:
 
 
 class Var(Expr):
-    def __init__(self, name: str, ty: ObjectT) -> None:
+    def __init__(self, name: str, ty: typing.Type[NewObject]) -> None:
         Expr.__init__(self, ty, [name])
 
     def name(self) -> str:
@@ -993,7 +1028,7 @@ class ObjectExpr(Expr):
 
 
 def IntLit(val: int) -> Expr:
-    return Lit(val, Int)
+    return Lit(val, IntObject)
 
 
 def EnumIntLit(val: int) -> Expr:
@@ -1003,7 +1038,7 @@ def EnumIntLit(val: int) -> Expr:
 
 
 def BoolLit(val: bool) -> Expr:
-    return Lit(val, Bool)
+    return Lit(val, BoolObject)
 
 
 class Add(Expr):
@@ -1018,7 +1053,7 @@ class Add(Expr):
                 raise Exception(
                     f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
                 )
-        Expr.__init__(self, Int(), args)
+        Expr.__init__(self, IntObject, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1043,7 +1078,7 @@ class Sub(Expr):
                 raise Exception(
                     f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
                 )
-        Expr.__init__(self, Int, args)
+        Expr.__init__(self, IntObject, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1068,7 +1103,7 @@ class Mul(Expr):
                 raise Exception(
                     f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
                 )
-        Expr.__init__(self, Int, args)
+        Expr.__init__(self, IntObject, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1117,7 +1152,7 @@ class Eq(Expr):
         #     raise Exception(
         #         f"Cannot compare values of different types: {e1}: {e1.type.erase()} and {e2}: {e2.type.erase()}"
         #     )
-        Expr.__init__(self, Bool(), [e1, e2])
+        Expr.__init__(self, BoolObject, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1149,7 +1184,7 @@ class Lt(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, Bool, [e1, e2])
+        Expr.__init__(self, BoolObject, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1177,7 +1212,7 @@ class Le(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, Bool, [e1, e2])
+        Expr.__init__(self, BoolObject, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1205,7 +1240,7 @@ class Gt(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, Bool, [e1, e2])
+        Expr.__init__(self, BoolObject, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1233,7 +1268,7 @@ class Ge(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, Bool, [e1, e2])
+        Expr.__init__(self, BoolObject, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1260,10 +1295,10 @@ class And(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == Bool, args)):
+        if not all(map(lambda e: e.type == BoolObject, args)):
             # TODO(jie) how to check this type?
             raise Exception(f"Cannot apply AND to values of type {args}")
-        Expr.__init__(self, Bool, args)
+        Expr.__init__(self, BoolObject, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1284,11 +1319,11 @@ class Or(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == Bool, args)):
+        if not all(map(lambda e: e.type == BoolObject, args)):
             raise Exception(
                 f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
             )
-        Expr.__init__(self, Bool, args)
+        Expr.__init__(self, BoolObject, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1307,9 +1342,10 @@ class Not(Expr):
     SMTName = "not"
 
     def __init__(self, e: Expr) -> None:
-        if e.type != Bool:
+        if e.type != BoolObject:
+            import pdb; pdb.set_trace()
             raise Exception(f"Cannot apply NOT to value of type {e.type}")
-        Expr.__init__(self, Bool, [e])
+        Expr.__init__(self, BoolObject, [e])
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1327,11 +1363,11 @@ class Implies(Expr):
     RosetteName = SMTName = "=>"
 
     def __init__(self, e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> None:
-        if e1.type != Bool:  # type: ignore
+        if e1.type != BoolObject:  # type: ignore
             raise Exception(f"Cannot apply IMPLIES to value of type {e1.type}")  # type: ignore
-        if e2.type != Bool:  # type: ignore
+        if e2.type != BoolObject:  # type: ignore
             raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")  # type: ignore
-        Expr.__init__(self, Bool, [e1, e2])
+        Expr.__init__(self, BoolObject, [e1, e2])
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1350,7 +1386,7 @@ class Ite(Expr):
     SMTName = "ite"
 
     def __init__(self, c: Expr, e1: Expr, e2: Expr) -> None:
-        if c.type != Bool:
+        if c.type != BoolObject:
             raise Exception(
                 f"ITE condition must be Boolean and not value of type {c.type}"
             )
@@ -1419,7 +1455,7 @@ class Let(Expr):
 
 
 class Call(Expr):
-    def __init__(self, name: str, returnT: ObjectT, *arguments: Expr) -> None:
+    def __init__(self, name: str, returnT: typing.Type[NewObject], *arguments: Expr) -> None:
         Expr.__init__(self, returnT, [name, *arguments])
 
     def name(self) -> str:
@@ -1432,13 +1468,13 @@ class Call(Expr):
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        return f"({self.args[0]}:{get_type_str(self.type)} {' '.join(fn(a) for a in self.args[1:])})"
+        return f"({self.args[0]}:{self.type.cls_str()} {' '.join(fn(a) for a in self.args[1:])})"
 
     def codegen(self) -> str:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        return f"({self.args[0]}:{get_type_str(self.type)} {' '.join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args[1:])})"
+        return f"({self.args[0]}:{self.type.cls_str()} {' '.join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args[1:])})"
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1965,11 +2001,7 @@ class Choose(Expr):
 
 class FnDeclRecursive(Expr):
     def __init__(
-        self,
-        name: str,
-        returnT: ObjectT,
-        body: Union[Expr, str],
-        *args: Expr,
+        self, name: str, returnT: typing.Type[NewObject], body: Union[Expr, str], *args: Expr
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
@@ -1979,8 +2011,8 @@ class FnDeclRecursive(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> ObjectT:
-        return self.return_type
+    def returnT(self) -> typing.Type[NewObject]:
+        return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
         return self.args[1]  # type: ignore
@@ -2027,7 +2059,7 @@ class FnDeclRecursive(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                ret_type.toSMTType(get_args(ret_type)),  # type: ignore
+                self.returnT().toSMTType(),
             )
         else:
             declarations = []
@@ -2044,11 +2076,14 @@ class FnDeclRecursive(Expr):
                 print(d)
                 print(d[0])
                 print(d[1])
-                print(d[1].toSMT())
+                print(d[1].toSMTType())
 
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
+            args = " ".join("(%s %s)" % (d[0], d[1].toSMTType()) for d in declarations)
 
-            return_type = self.returnT().toSMTType(get_args(self.returnT()))  # type: ignore
+            if self.type.name != "Function":
+                return_type = self.type.toSMT()
+            else:
+                return_type = self.returnT().toSMTType()
             return "(define-fun-rec %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
@@ -2129,11 +2164,7 @@ class Lambda(Expr):
 
 class FnDecl(Expr):
     def __init__(
-        self,
-        name: str,
-        returnT: ObjectT,
-        body: Union[Expr, str],
-        *args: Expr,
+        self, name: str, returnT: typing.Type[NewObject], body: Union[Expr, str], *args: Expr
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
@@ -2143,8 +2174,8 @@ class FnDecl(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> ObjectT:
-        return self.return_type
+    def returnT(self) -> typing.Type[NewObject]:
+        return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
         return self.args[1]  # type: ignore
