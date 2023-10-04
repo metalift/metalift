@@ -368,11 +368,11 @@ class State:
             return self.read_var(op.name)
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, Bool())
+            return Lit(True, BoolObject)
         elif val == "false":
-            return Lit(False, Bool())
+            return Lit(False, BoolObject)
         else:  # assuming it's a number
-            return Lit(int(val), Int())
+            return Lit(int(val), IntObject)
 
     def load_operand(self, op: ValueRef) -> NewObject:
         if not op.name:
@@ -452,7 +452,7 @@ class Predicate:
 
     def call(self, state: State) -> Call:
         return Call(
-            self.name, Bool(), *[state.read_or_load_var(v.var_name()) for v in self.args]
+            self.name, BoolObject, *[state.read_or_load_var(v.var_name()) for v in self.args]
         )
 
     def gen_Synth(self) -> Synth:
@@ -992,9 +992,10 @@ class VCVisitor:
                 ret_val = self.load_operand_from_block(block_name, ops[0])
         else:
             raise Exception("ret void not supported yet!")
+        # TODO(jie) use the call method of the predicate
         ps = Call(
             self.pred_tracker.predicates[self.fn_name].name,
-            Bool(),
+            BoolObject,
             *self.fn_args,
             ret_val,
         )
@@ -1245,7 +1246,8 @@ class MetaliftFunc:
         ret_val = ret_val_obj_cls(f"{self.fn_name}_rv")
         self.driver.add_var_object(ret_val)
 
-        ps = Call(f"{self.fn_name}_ps", Bool(), ret_val, *args)
+        # TODO(jie) instead of constructin this call manually can we replace it with a method call.
+        ps = Call(f"{self.fn_name}_ps", BoolObject, ret_val, *args)
 
         self.driver.postconditions.append(ps)
 

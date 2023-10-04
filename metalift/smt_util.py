@@ -136,7 +136,7 @@ def toSMT(
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
-        declarations: typing.List[typing.Tuple[str, Type]] = []
+        declarations: typing.List[typing.Tuple[str, typing.Type[NewObject]]] = []
         for v in vars:
             declarations.append((v.args[0], v.type))
 
@@ -145,7 +145,7 @@ def toSMT(
             "\n%s\n\n"
             % "\n".join(
                 [
-                    "(%s %s %s)" % (var_decl_command, v[0], v[1].toSMT())
+                    "(%s %s %s)" % (var_decl_command, v[0], v[1].toSMTType())
                     for v in declarations
                 ]
             )

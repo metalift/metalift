@@ -9,7 +9,7 @@ def target_lang() -> List[FnDecl]:
     x = IntObject("x")
     y = IntObject("y")
     z = IntObject("z")
-    fma = FnDecl("fma", Int(), x + y * z, x, y, z)
+    fma = FnDecl("fma", IntObject, x + y * z, x, y, z)
     return [fma]
 
 
@@ -22,7 +22,7 @@ def target_lang() -> List[FnDecl]:
 def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     var = Choose(*reads, IntObject(0))
     added = var + var
-    var_or_fma = Choose(*reads, Call("fma", Int(), added, added, added))
+    var_or_fma = Choose(*reads, Call("fma", IntObject, added, added, added))
 
     return Eq(ret_val, var_or_fma + var_or_fma)
 
