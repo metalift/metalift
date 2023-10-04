@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Eq, Expr, FnDecl, Gt, IntObject, Ite, NewObject
+from metalift.ir import Eq, Expr, FnDecl, IntObject, Ite, NewObject
 
 
 def target_lang() -> List[FnDecl]:

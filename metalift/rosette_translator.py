@@ -1,3 +1,4 @@
+from inspect import isclass
 import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
@@ -16,6 +17,7 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
+    # TODO(jie)
     if (
         v.type.name == "Int"
         or v.type.name == "ClockInt"
