@@ -3,7 +3,7 @@ from typing import List
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import (Add, And, BoolObject, Call, Choose, Eq, Expr,
-                         FnDeclRecursive, Ge, Gt, Int, IntObject, Ite, Le, Lt,
+                         FnDeclRecursive, Ge, Gt, IntObject, Ite, Le, Lt,
                          NewObject, Or, Sub)
 from tests.python.utils.utils import codegen
 
@@ -12,10 +12,10 @@ def target_lang() -> List[FnDeclRecursive]:
     x = IntObject("x")
     sum_n = FnDeclRecursive(
         "sum_n",
-        Int(),
+        IntObject,
         Ite(
             x >= 1,
-            Add(x, Call("sum_n", Int(), Sub(x, IntObject(1)))),
+            Add(x, Call("sum_n", IntObject, Sub(x, IntObject(1)))),
             IntObject(0)
         ),
         x,
@@ -36,7 +36,7 @@ def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObjec
     ite_stmt = ite(
         input_arg_bound,
         IntObject(0),
-        Call("sum_n", Int(), Sub(reads[0], int_lit))
+        Call("sum_n", IntObject, Sub(reads[0], int_lit))
     )
     return ret_val == ite_stmt
 
@@ -71,9 +71,20 @@ def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -
 
     inv_cond = and_objects(
         input_arg_bound,
-        x_or_y_int_lit_bound,
-        x_or_y_input_arg_bound,
-        x == call("sum_n", Int, y - int_lit)
+        And(
+            x_or_y_int_lit_bound,
+            And(
+                x_or_y_input_arg_bound,
+                Eq(x, Call("sum_n", IntObject, Sub(y, int_lit)))
+            ),
+        )
+    )
+    not_in_loop_cond = And(
+        input_arg_bound,
+        And(
+            Eq(x, int_lit),
+            Eq(y, int_lit)
+        )
     )
 
     not_in_loop_cond = and_objects(

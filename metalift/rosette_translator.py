@@ -17,7 +17,14 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    if v.type == Int:
+    # TODO(jie)
+    if (
+        v.type.name == "Int"
+        or v.type.name == "ClockInt"
+        or v.type.name == "EnumInt"
+        or v.type.name == "OpaqueInt"
+        or v.type.name == "NodeIDInt"
+    ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 

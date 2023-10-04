@@ -12,6 +12,11 @@ from metalift.types import *
 # from metalift.visitor import Visitor
 # import metalift.visitor
 
+def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
+    if isinstance(type, Type):
+        return str(type)
+    else:
+        return type.cls_str()
 
 class PrintMode(Enum):
     SMT = 0
@@ -263,12 +268,9 @@ class Expr:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        if isclass(self.type) and issubclass(self.type, NewObject):
-            type_str = self.type.cls_str()
-        else:
-            type_str = f"{self.type}"
+
         return (
-            f"({type(self).__name__}:{type_str} "
+            f"({type(self).__name__}:{get_type_str(self.type)} "
             f'{" ".join(fn(a) for a in self.args)})'
         )
 
@@ -277,7 +279,7 @@ class Expr:
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
         return (
-            f"({type(self).__name__}:{self.type.cls_str()} "
+            f"({type(self).__name__}:{get_type_str(self.type)} "
             f'{" ".join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args)})'
         )
 
@@ -697,7 +699,7 @@ class BoolObject(NewObject):
 class IntObject(NewObject):
 
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
-        # TODO(jie)
+        # TODO(jie) remove this once all types are gone
         IntObject.name = "Int"
         if value is None:  # a symbolic variable
             src = Var("v", IntObject)  # XXX change to Int
@@ -996,13 +998,13 @@ class Lit(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        if self.type == Bool:
+        if self.type == BoolObject:
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
 
     def toSMT(self) -> str:
-        if self.type == Bool:
+        if self.type == BoolObject:
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
@@ -1050,8 +1052,12 @@ class Add(Expr):
         # TODO: add this back
         for arg in args:
             if arg.type != args[0].type:
+                # raise Exception(
+                #     f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
+                # )
+                # TODO(jie) add back `erase` once we retire types
                 raise Exception(
-                    f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
+                    f"Args types not equal: {arg.type} and {args[0].type}"
                 )
         Expr.__init__(self, IntObject, args)
 
@@ -1163,7 +1169,9 @@ class Eq(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        if is_set_type(self.e1().type):
+        cmp_type = self.args[0].type
+        # TODO(jie)
+        if isinstance(cmp_type, Type) and cmp_type.name == "Set":
             name = "set-eq"
         else:
             name = self.RosetteName
@@ -1343,7 +1351,6 @@ class Not(Expr):
 
     def __init__(self, e: Expr) -> None:
         if e.type != BoolObject:
-            import pdb; pdb.set_trace()
             raise Exception(f"Cannot apply NOT to value of type {e.type}")
         Expr.__init__(self, BoolObject, [e])
 
@@ -1468,13 +1475,13 @@ class Call(Expr):
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        return f"({self.args[0]}:{self.type.cls_str()} {' '.join(fn(a) for a in self.args[1:])})"
+        return f"({self.args[0]}:{get_type_str(self.type)} {' '.join(fn(a) for a in self.args[1:])})"
 
     def codegen(self) -> str:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
             lambda a: a.name if isinstance(a, ValueRef) and a.name != "" else str(a)
         )
-        return f"({self.args[0]}:{self.type.cls_str()} {' '.join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args[1:])})"
+        return f"({self.args[0]}:{get_type_str(self.type)} {' '.join(str(a.codegen()) if isinstance(a, Expr) else fn(a) for a in self.args[1:])})"
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
