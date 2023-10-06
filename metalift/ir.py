@@ -576,9 +576,17 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     elif ty_str in {"%struct.list*", "%struct.list**"}:
         #TODO colin: add generic type support
         #TODO jie: retire struct.list and use STL?
-        return ListObject
+        return ListObject[IntObject]
     else:
         raise Exception(f"no type defined for {ty_str}")
+
+def create_object(object_type: typing.Type["NewObject"], value: Optional[Union[bool, str, Expr]]) -> "NewObject":
+    if isinstance(object_type, _GenericAlias):
+        object_cls = get_origin(object_type)
+        contained_type = get_args(object_type)[0]
+        return object_cls(contained_type, value)
+    else:
+        return object_type(value)
 
 class NewObject(Expr):
     src: Expr
@@ -618,7 +626,7 @@ class NewObject(Expr):
 
 
     @staticmethod
-    def toSMTType(type_arg: Optional[Union[typing.Type["NewObject"], _GenericAlias]] = None) -> str:
+    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
         raise NotImplementedError()
 
     @staticmethod
@@ -686,7 +694,7 @@ class BoolObject(NewObject):
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_arg: Optional[Union[typing.Type[NewObject], _GenericAlias]] = None) -> str:
+    def toSMTType(type_arg: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
         return "Bool"
 
 
@@ -798,7 +806,7 @@ class IntObject(NewObject):
         return super().__hash__()
 
     @staticmethod
-    def toSMTType(type_arg: Optional[Union[typing.Type[NewObject], _GenericAlias]] = None) -> str:
+    def toSMTType(type_arg: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
         return "Int"
 
     @staticmethod
@@ -811,7 +819,7 @@ class ListObject(Generic[T], NewObject):
     def __init__(self, containedT: Union[type, _GenericAlias] = Int, value: Optional[Union[Expr, str]] = None) -> None:
         # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
         ListObject.name = "MLList" #TODO: better way of handling this
-        ListObject.args = [Int()]
+        ListObject.args = [IntObject]
         if value is None:  # a symbolic variable
             src = Var("v", ListObject[containedT])
         elif isinstance(value, Expr):
@@ -920,11 +928,16 @@ class ListObject(Generic[T], NewObject):
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_arg: Optional[Union[typing.Type[NewObject], _GenericAlias]] = None) -> str:
-        if isinstance(type_arg, _GenericAlias):
-            return f"(MLList {get_origin(type_arg).toSMTType(get_args(type_arg))})"  # this would call List.toSMTType(Int) for instance
+    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
         else:
-            return f"(MLList {type_arg.toSMTType()})"
+            return f"(MLList {contained_type.toSMTType()})"
+
+    @staticmethod
+    def cls_str() -> str:
+        return "ListObject"
 
 
 
@@ -2057,16 +2070,13 @@ class FnDeclRecursive(Expr):
             )
 
     def toSMT(self) -> str:
-        if self.body() is None:  # uninterpreted function
-            args_type = " ".join(
-                parse_type_ref_to_obj(a.type).toSMTType(get_args(a.type))  # type: ignore
-                for a in self.arguments()
-            )
+        if self.args[1] is None:  # uninterpreted function
+            args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
             ret_type = self.returnT()
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                self.returnT().toSMTType(),
+                ret_type.toSMTType(get_args(ret_type)),
             )
         else:
             declarations = []
@@ -2083,14 +2093,16 @@ class FnDeclRecursive(Expr):
                 print(d)
                 print(d[0])
                 print(d[1])
-                print(d[1].toSMTType())
+                print("d1 type", type(d[1]), d[1])
+                print(d[1].toSMTType(get_args(d[1])))
 
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMTType()) for d in declarations)
+            args = " ".join("(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations)
 
             if self.type.name != "Function":
                 return_type = self.type.toSMT()
             else:
-                return_type = self.returnT().toSMTType()
+                return_object_type = self.returnT()
+                return_type = return_object_type.toSMTType(get_args(return_object_type))
             return "(define-fun-rec %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
