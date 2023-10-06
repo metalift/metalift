@@ -625,10 +625,12 @@ class NewObject(Expr):
     #     raise NotImplementedError()
 
 
+    # TODO(jie): fix types and naming for type_args for all subclasses
     @staticmethod
     def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
         raise NotImplementedError()
 
+    # TODO(jie): make this handle contained types
     @staticmethod
     def cls_str() -> str:
         raise NotImplementedError()
