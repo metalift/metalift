@@ -3,16 +3,16 @@ from typing import List, Union, get_args
 from mypy.nodes import Statement
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (And, Bool, BoolLit, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Int, IntLit, Ite, Le, ListT, Lt, Var, 
+from metalift.ir import (And, Bool, BoolLit, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Int, IntLit, Ite, Le, ListT, Lt, Var,
     ListObject, IntObject, NewObject, BoolObject)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     arg = IntObject("n")
-    select_pred = FnDecl("Select-pred", Bool(), arg > IntObject(2), arg)
-    select_pred1 = FnDecl("Select-pred1", Bool(), arg < IntObject(10), arg)
-    select_pred2 = FnDecl("Select-pred2", Bool(), And(arg > IntObject(2), arg < IntObject(10)), arg)
+    select_pred = FnDecl("Select-pred", BoolObject, arg > IntObject(2), arg)
+    select_pred1 = FnDecl("Select-pred1", BoolObject, arg < IntObject(10), arg)
+    select_pred2 = FnDecl("Select-pred2", BoolObject, And(arg > IntObject(2), arg < IntObject(10)), arg)
 
     data = ListObject(IntObject, "l")
     select_func = FnDeclRecursive(
@@ -22,7 +22,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
             data.len() == IntObject(0),
             ListObject.empty(IntObject),
             Ite(
-                Call("Select-pred", Bool(), data[0]),
+                Call("Select-pred", BoolObject, data[0]),
                 Call(
                     "list_append",
                     ListObject[IntObject],
@@ -49,7 +49,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
             data.len() == IntObject(0),
             ListObject.empty(IntObject),
             Ite(
-                Call("Select-pred1", Bool(), data[0]),
+                Call("Select-pred1", BoolObject, data[0]),
                 Call(
                     "list_append",
                     ListObject[IntObject],
@@ -71,12 +71,12 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     )
     select_func2 = FnDeclRecursive(
         "Select2",
-        ListT(Int()),
+        ListObject[IntObject],
         Ite(
             data.len() == IntObject(0),
             ListObject.empty(IntObject),
             Ite(
-                Call("Select-pred2", Bool(), data[0]),
+                Call("Select-pred2", BoolObject, data[0]),
                 Call(
                     "list_append",
                     ListObject[IntObject],
@@ -109,16 +109,16 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
     # reads = [in_lst]
     return Choose(
-        Call("list_eq", Bool(), ret_val, *reads),
-        Call("list_eq", Bool(), ret_val, Call("Select", ListObject[IntObject], *reads)),
-        Call("list_eq", Bool(), ret_val, Call("Select1", ListObject[IntObject], *reads)),
-        Call("list_eq", Bool(), ret_val, Call("Select2", ListObject[IntObject], *reads))
+        Call("list_eq", BoolObject, ret_val, *reads),
+        Call("list_eq", BoolObject, ret_val, Call("Select", ListObject[IntObject], *reads)),
+        Call("list_eq", BoolObject, ret_val, Call("Select1", ListObject[IntObject], *reads)),
+        Call("list_eq", BoolObject, ret_val, Call("Select2", ListObject[IntObject], *reads))
     )
 
 def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
     # This grammar func could be called with v as `i` or `out_lst`, and we really only want to generate this grammar once.
     if v.var_name() != "out":
-        return BoolLit(True)
+        return BoolObject(True)
 
     # writes = [out, i]
     # reads = [in]
@@ -128,7 +128,7 @@ def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
     lst_inv_cond = Choose(
         Call(
             "list_eq",
-            Bool(),
+            BoolObject,
             Call(
                 "list_append",
                 ListObject[IntObject],
@@ -143,7 +143,7 @@ def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
         ),
         Call(
             "list_eq",
-            Bool(),
+            BoolObject,
             Call(
                 "list_concat",
                 ListObject[IntObject],

@@ -53,6 +53,7 @@ from metalift.ir import (
     Synth,
     TupleT,
     ListObject,
+    create_object,
     parse_type_ref_to_obj,
 )
 from metalift.ir import Type
@@ -631,33 +632,21 @@ class VCVisitor:
         res = []
         for var in loop_info.non_vector_havocs:
             parsed_type = parse_type_ref_to_obj(var.type)
-            #TODO colin: add generic (ie containedT) support needed for objects
-            if parsed_type in {ListObject}:
-                res.append(parsed_type(IntObject, var.name))
-            else:
-                res.append(parsed_type(var.name))
+            res.append(create_object(parsed_type, var.name))
         return res
 
     # Functions to step through the blocks
     def preprocess(self, block: ValueRef) -> None:
         """Preprocess the entry block of the entire function. This includes setting up the postcondition, as well as writing all the arguments to the state of the entry block."""
-        ret_type: MLType = self.fn_type.args[0]
-        self.pred_tracker.postcondition(
-            self.fn_name,
-            [ret_type(f"{self.fn_name}_rv")], # TODO: I feel like this flow could be better
-            self.fn_args,
-            self.ps_grammar,
-        )
-        for arg in self.fn_args:
+        return_arg = create_object(self.fn_type.args[0], f"{self.fn_name}_rv")
+        for arg in self.fn_args + [return_arg]:
             # TODO: make this check for all pointer types
             if is_type_pointer(arg.type):
                 self.store_var_to_block(block.name, arg.var_name(), arg)
             else:
                 self.write_var_to_block(block.name, arg.var_name(), arg)
 
-        if self.fn_sret_arg is None:
-            return
-        else:
+        if self.fn_sret_arg is not None:
             if is_type_pointer(self.fn_sret_arg.type):
                 self.store_var_to_block(
                     block.name, self.fn_sret_arg.name(), self.fn_sret_arg
@@ -666,6 +655,12 @@ class VCVisitor:
                 self.write_var_to_block(
                     block.name, self.fn_sret_arg.name(), self.fn_sret_arg
                 )
+        self.pred_tracker.postcondition(
+            self.fn_name,
+            [return_arg], # TODO: I feel like this flow could be better
+            self.fn_args,
+            self.ps_grammar,
+        )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -857,7 +852,7 @@ class VCVisitor:
         elif t == "i1":
             val = BoolObject(False)
         elif t == "%struct.list*":
-            val = ListObject(IntObject)
+            val = ListObject[IntObject](IntObject)
         elif t.startswith("%struct.set"):
             # TODO(jie)
             val = Lit(0, SetT(Int()))
@@ -1242,8 +1237,8 @@ class MetaliftFunc:
                     v.visit_llvm_block(b)
                     done = False
 
-        ret_val_obj_cls = self.fn_type.args[0]
-        ret_val = ret_val_obj_cls(f"{self.fn_name}_rv")
+        object_type = self.fn_type.args[0]
+        ret_val = create_object(object_type, f"{self.fn_name}_rv")
         self.driver.add_var_object(ret_val)
 
         # TODO(jie) instead of constructin this call manually can we replace it with a method call.
