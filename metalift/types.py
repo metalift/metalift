@@ -133,7 +133,9 @@ def TupleT(e1T: Type, *elemT: Type) -> Type:
 
 
 def getTypeName(t: type) -> str:
-    if isinstance(t, typing._GenericAlias):  # parameterized class -- python 3.9 has types.GenericAlias
+    if isinstance(
+        t, typing._GenericAlias
+    ):  # parameterized class -- python 3.9 has types.GenericAlias
         args = ",".join(a.__name__ for a in t.__args__)
         return f"{t.__origin__.__name__}[{args}]"
     else:

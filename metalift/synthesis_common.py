@@ -56,7 +56,6 @@ def parseCandidates(
                 a, inCalls, fnsType, fnCalls, extractedLambdas, inFunctionName
             )[0]
         )
-
         # if candidate.kind == Expr.Kind.Call:
         if isinstance(candidate, Call):
             if (
@@ -148,6 +147,7 @@ def verify_synth_result(
         transformedLang: typing.List[Union[FnDeclRecursive, FnDecl, Axiom]] = []
         for langFn in targetLang:
             if langFn.args[1] is not None:
+                # Things are good here
                 updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
                     langFn.args[1],
                     inCalls,
@@ -156,6 +156,7 @@ def verify_synth_result(
                     extractedLambdas,
                     langFn.args[0],
                 )
+                # Things are good here
                 if isinstance(langFn, FnDeclRecursive) or isinstance(langFn, FnDecl):
                     decl: Union[FnDeclRecursive, FnDecl, Axiom] = FnDeclRecursive(
                         langFn.args[0], langFn.returnT(), updated, *langFn.args[2:]

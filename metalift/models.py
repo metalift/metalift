@@ -9,9 +9,10 @@ ReturnValue = NamedTuple(
     "ReturnValue",
     [
         ("val", Optional[NewObject]),
-        ("assigns",  Optional[List[Tuple[str, NewObject, str]]]),
+        ("assigns", Optional[List[Tuple[str, NewObject, str]]]),
     ],
 )
+
 
 def new_list(
     primitive_vars: Dict[str, NewObject],
@@ -19,7 +20,7 @@ def new_list(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-     return ReturnValue(ListObject.empty(IntObject), None)
+    return ReturnValue(ListObject.empty(IntObject), None)
 
 
 def list_length(
@@ -30,11 +31,16 @@ def list_length(
 ) -> ReturnValue:
     assert len(args) == 1
     # TODO(jie) think of how to better handle list of lists
-    lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
     return ReturnValue(
         lst.len(),
         None,
     )
+
 
 def list_get(
     primitive_vars: Dict[str, NewObject],
@@ -43,9 +49,16 @@ def list_get(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
     index = primitive_vars[args[1].name]
-    return ReturnValue(lst[index], None,)
+    return ReturnValue(
+        lst[index],
+        None,
+    )
 
 
 def list_append(
@@ -55,8 +68,16 @@ def list_append(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    lst = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
-    value = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    value = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
     return ReturnValue(
         lst.append(value),
         None,
@@ -70,8 +91,16 @@ def list_concat(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    lst1 = primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name]
-    lst2 = primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name]
+    lst1 = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    lst2 = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
     return ReturnValue(
         lst1 + lst2,
         None,
@@ -105,8 +134,12 @@ def vector_append(
     assign_val = Call(
         "list_append",
         parse_type_ref(args[0].type),
-        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
-        primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name],
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name],
     )
     return ReturnValue(
         None,
@@ -129,7 +162,12 @@ def make_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    regVals = [primitive_vars[args[i].name] if not args[i].type.is_pointer else pointer_vars[args[i].name] for i in range(len(args))]
+    regVals = [
+        primitive_vars[args[i].name]
+        if not args[i].type.is_pointer
+        else pointer_vars[args[i].name]
+        for i in range(len(args))
+    ]
     retVals = [Int() for i in range(len(args))]
     return ReturnValue(
         Call("make-tuple", Type("Tuple", *retVals), *regVals),
@@ -147,7 +185,9 @@ def tuple_get(
         Call(
             "tupleGet",
             Int(),
-            primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
+            primitive_vars[args[0].name]
+            if not args[0].type.is_pointer
+            else pointer_vars[args[0].name],
             parseOperand(args[1], primitive_vars),
         ),
         None,
