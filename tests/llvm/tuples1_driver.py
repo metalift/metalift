@@ -24,9 +24,13 @@ def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
 
 def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
     (x, y) = reads
+    x_tuple_src = Tuple(x, x)
+    y_tuple_src = Tuple(y, y)
+    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
+    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
     summary = Choose(
-        Eq(ret_val, Add(tuple_mult(Tuple(x, x)), tuple_mult(Tuple(y, y)))),
-        Eq(ret_val, Sub(tuple_mult(Tuple(x, x)), tuple_mult(Tuple(y, y)))),
+        Eq(ret_val, Add(tuple_mult(x_tuple), tuple_mult(y_tuple))),
+        Eq(ret_val, Sub(tuple_mult(x_tuple), tuple_mult(y_tuple))),
     )
     return summary
 
