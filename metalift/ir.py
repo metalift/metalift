@@ -817,30 +817,32 @@ class IntObject(NewObject):
         return "IntObject"
 
 T = TypeVar("T", bound=NewObject)
-class ListObject(Generic[T], NewObject):
-    def __init__(self, containedT: Union[type, _GenericAlias] = Int, value: Optional[Union[Expr, str]] = None) -> None:
-        # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
-        ListObject.name = "MLList" #TODO: better way of handling this
-        ListObject.args = [IntObject]
+class ContainerObject(Generic[T], NewObject):
+    def __init__(
+        self,
+        container_object_class: typing.Type["ContainerObject"],
+        containedT: Union[type, _GenericAlias],
+        value: Optional[Union[Expr, str]] = None
+    ) -> None:
+        full_type = container_object_class[containedT]
         if value is None:  # a symbolic variable
-            src = Var("v", ListObject[containedT])
+            src = Var("v", full_type)
         elif isinstance(value, Expr):
             src = value
         elif isinstance(value, str):
-            src = Var(value, ListObject[containedT])
+            src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create List from {value}")
-        super().__init__(src, ListObject[containedT])
+            raise TypeError(f"Cannot create {container_object_class} from {value}")
+        self.containedT = containedT
+        NewObject.__init__(self, src, full_type)
 
-    #TODO: better way of handling toSMT, maybe remove types all together and push methods to Object?
-    @staticmethod
-    def toSMT():
-        return "(%s %s)" % (
-            ListObject.name,
-             " ".join(
-            [a.toSMT() if isinstance(a, Type) else str(a) for a in ListObject.args]
-            ),
-        )
+class ListObject(Generic[T], NewObject):
+    def __init__(self, containedT: Union[type, _GenericAlias] = IntObject, value: Optional[Union[Expr, str]] = None) -> None:
+        # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
+        ListObject.name = "MLList" #TODO: better way of handling this
+        ListObject.args = [IntObject]
+        # TODO(jie) should ListObject and containedT be combined
+        ContainerObject.__init__(self, ListObject, containedT, value)
 
     @staticmethod
     def empty(containedT: Union[type, _GenericAlias]) -> "ListObject":
@@ -864,7 +866,6 @@ class ListObject(Generic[T], NewObject):
 
         if isinstance(index, slice):
             (start, stop, step) = (index.start, index.stop, index.step)
-
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = IntLit(start)
@@ -938,8 +939,47 @@ class ListObject(Generic[T], NewObject):
             return f"(MLList {contained_type.toSMTType()})"
 
     @staticmethod
+    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
+        else:
+            return f"(MLList {contained_type.toSMTType()})"
+
+    @staticmethod
     def cls_str() -> str:
         return "ListObject"
+
+class TupleObject(Generic[T], NewObject):
+    def __init__(self, containedT: Union[type, _GenericAlias] = IntObject, value: Optional[Union[Expr, str]] = None) -> None:
+        # TODO(jie): this looks hacky, what do I do about it?
+        TupleObject.name = "Tuple"
+        TupleObject.args = [IntObject]
+        ContainerObject.__init__(self, TupleObject, containedT, value)
+
+    def __getitem__(self, index: Union[IntObject, int]):# -> IntObject:  # index can also be slice
+        if isinstance(index, int):  # promote to IntObject
+            index = IntObject(index)
+        if isinstance(index, IntObject):
+            if issubclass(self.containedT, NewObject):
+                return self.containedT(Call("tupleGet", self.containedT, self, index))
+            else:
+                raise Exception("Only primitive object types inside tuples are supported!")
+        if isinstance(index, slice):
+            raise Exception("slicing operation not supported on tuples!")
+
+    @staticmethod
+    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"(tuple {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
+        else:
+            return f"(tuple {contained_type.toSMTType()})"
+
+    # TODO(jie): handle contained type
+    @staticmethod
+    def cls_str() -> str:
+        return "TupleObject"
 
 
 
@@ -2098,6 +2138,7 @@ class FnDeclRecursive(Expr):
                 print("d1 type", type(d[1]), d[1])
                 print(d[1].toSMTType(get_args(d[1])))
 
+            # TODO(jie): maybe instead of get_args(d[1]) we use containedT?
             args = " ".join("(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations)
 
             if self.type.name != "Function":

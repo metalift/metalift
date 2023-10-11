@@ -1,10 +1,12 @@
 from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Bool, FnDecl, FnDeclRecursive, Int,
-                         Object, Tuple as mlTuple, call, choose, ite, make_tuple,
-                         make_tuple_type)
+from mypy.nodes import Statement
+
+from metalift.frontend.llvm import Driver
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursive,
+                         Int, IntLit, IntObject, Ite, Lt, Mul, Sub, Tuple, TupleGet,
+                         TupleT, Var)
 from tests.python.utils.utils import codegen
 
 L1_NORM = "l1_norm"
@@ -67,12 +69,12 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    a0 = Int("a0")
-    a1 = Int("a1")
-    b0 = Int("b0")
-    b1 = Int("b1")
-    x0 = Int("x0")
-    x1 = Int("x1")
+    a0 = IntObject("a0")
+    a1 = IntObject("a1")
+    b0 = IntObject("b0")
+    b1 = IntObject("b1")
+    x0 = IntObject("x0")
+    x1 = IntObject("x1")
     driver.add_var_objects([a0, a1, b0, b1, x0, x1])
 
     test(a0, a1, b0, b1, x0, x1)

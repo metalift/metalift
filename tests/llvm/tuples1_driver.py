@@ -1,21 +1,21 @@
 from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Bool, Int, Object, Tuple as mlTuple, call,
-                         choose, fn_decl_recursive, make_tuple)
+from metalift.frontend.llvm import Driver
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
+                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleObject, TupleT, Var)
 from tests.python.utils.utils import codegen
 
 
 def tuple_mult(t):
-    return call("tuple_mult", Int, t)
+    return Call("tuple_mult", IntObject, t)
 
 def target_lang():
-    x = mlTuple((Int, Int), "x")
-    tuple_mult = fn_decl_recursive(
+    x = TupleObject[IntObject](IntObject, "x")
+    tuple_mult = FnDeclRecursive(
         "tuple_mult",
-        Int,
-        (x[0] * x[1]),
+        IntObject,
+        Mul(x[0], x[1]), # TODO(jie): maybe we can even rewrite this mul using *
         x
     )
     return [tuple_mult]
@@ -45,8 +45,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = Int("x")
-    y = Int("y")
+    x = IntObject("x")
+    y = IntObject("y")
     driver.add_var_objects([x, y])
 
     test(x, y)
