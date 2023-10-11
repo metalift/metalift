@@ -22,14 +22,15 @@ def target_lang():
 def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     raise Exception("no invariant!")
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
-    x, y = reads
-    x_tuple = make_tuple(x, x)
-    y_tuple = make_tuple(y, y)
-    summary = choose(
-        ret_val == tuple_mult(x_tuple) + tuple_mult(y_tuple),
-        ret_val == tuple_mult(x_tuple) - tuple_mult(y_tuple)
+def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+    (x, y) = reads
+    x_tuple_src = Tuple(x, x)
+    y_tuple_src = Tuple(y, y)
+    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
+    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
+    summary = Choose(
+        Eq(ret_val, Add(tuple_mult(x_tuple), tuple_mult(y_tuple))),
+        Eq(ret_val, Sub(tuple_mult(x_tuple), tuple_mult(y_tuple))),
     )
     return summary
 

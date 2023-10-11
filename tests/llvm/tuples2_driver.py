@@ -1,21 +1,20 @@
-from collections import defaultdict
-from typing import List
+from typing import List, Literal
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Int, Object, Tuple as mlTuple,
-                         call, choose, make_tuple, fn_decl_recursive)
+from metalift.frontend.llvm import Driver
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
+                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleObject, TupleT, Var)
 from tests.python.utils.utils import codegen
 
 
 def tuple_add(t):
-    return call("tuple_add", Int, t)
+    return Call("tuple_add", IntObject, t)
 
 def target_lang():
-    x = mlTuple((Int, Int), "x")
-    tuple_add = fn_decl_recursive(
+    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
+    tuple_add = FnDeclRecursive(
         "tuple_add",
-        Int,
-        (x[0] + x[1]),
+        IntObject,
+        x[0] + x[1],
         x
     )
     return [tuple_add]
@@ -26,11 +25,13 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
 def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
     ret_val = writes[0]
     (x, y) = reads
-    x_tuple = make_tuple(x, x)
-    y_tuple = make_tuple(y, y)
-    summary = choose(
-        ret_val == tuple_add(x_tuple) + tuple_add(y_tuple),
-        ret_val == tuple_add(x_tuple) - tuple_add(y_tuple)
+    x_tuple_src = Tuple(x, x)
+    y_tuple_src = Tuple(y, y)
+    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
+    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
+    summary = Choose(
+        Eq(ret_val, Add(tuple_add(x_tuple), tuple_add(y_tuple))),
+        Eq(ret_val, Sub(tuple_add(x_tuple), tuple_add(y_tuple))),
     )
     return summary
 
@@ -45,8 +46,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = Int("x")
-    y = Int("y")
+    x = IntObject("x")
+    y = IntObject("y")
     driver.add_var_objects([x, y])
 
     test(x, y)
