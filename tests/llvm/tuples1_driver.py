@@ -1,17 +1,20 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int, 
-                         FnDeclRecursive, IntLit, Mul, Sub, Tuple, TupleGet, TupleT, Var)
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
+                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleObject, TupleT, Var)
 from tests.python.utils.utils import codegen
 
 def tuple_mult(t):
-    return Call("tuple_mult", Int(), t)
+    return Call("tuple_mult", IntObject, t)
 
 def target_lang():
-    x = Var("x", TupleT(Int(), Int()))
+    x = TupleObject[IntObject](IntObject, "x")
     tuple_mult = FnDeclRecursive(
-        "tuple_mult", Int(), Mul(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))), x
+        "tuple_mult",
+        IntObject,
+        Mul(x[0], x[1]), # TODO(jie): maybe we can even rewrite this mul using *
+        x
     )
     return [tuple_mult]
 
@@ -37,8 +40,9 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = driver.variable("x", Int())
-    y = driver.variable("y", Int())
+    x = IntObject("x")
+    y = IntObject("y")
+    driver.add_var_objects([x, y])
 
     test(x, y)
 

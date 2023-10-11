@@ -4,7 +4,7 @@ from mypy.nodes import Statement
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursive,
-                         Int, IntLit, Ite, Lt, Mul, Sub, Tuple, TupleGet,
+                         Int, IntLit, IntObject, Ite, Lt, Mul, Sub, Tuple, TupleGet,
                          TupleT, Var)
 from tests.python.utils.utils import codegen
 
@@ -66,12 +66,13 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    a0 = driver.variable("a0", Int())
-    a1 = driver.variable("a1", Int())
-    b0 = driver.variable("b0", Int())
-    b1 = driver.variable("b1", Int())
-    x0 = driver.variable("x0", Int())
-    x1 = driver.variable("x1", Int())
+    a0 = IntObject("a0")
+    a1 = IntObject("a1")
+    b0 = IntObject("b0")
+    b1 = IntObject("b1")
+    x0 = IntObject("x0")
+    x1 = IntObject("x1")
+    driver.add_var_objects([a0, a1, b0, b1, x0, x1])
 
     test(a0, a1, b0, b1, x0, x1)
 
