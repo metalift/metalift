@@ -153,6 +153,7 @@ def verify_synth_result(
         transformedLang: typing.List[Union[FnDeclRecursive, FnDecl, Axiom]] = []
         for langFn in targetLang:
             if langFn.args[1] is not None:
+                # Things are good here
                 updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
                     langFn.args[1],
                     inCalls,

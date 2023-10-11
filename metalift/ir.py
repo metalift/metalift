@@ -6,17 +6,35 @@ from re import L
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
 import typing
-from typing import Any, Callable, Dict, Generic, List, Set, TypeVar, Union, Optional, Tuple, _GenericAlias, ForwardRef, get_args, get_origin
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Set,
+    TypeVar,
+    Union,
+    Optional,
+    Tuple,
+    _GenericAlias,
+    ForwardRef,
+    get_args,
+    get_origin,
+)
 from metalift.types import *
 
 # from metalift.visitor import Visitor
 # import metalift.visitor
+
 
 def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
     if isinstance(type, Type):
         return str(type)
     else:
         return type.cls_str()
+
 
 class PrintMode(Enum):
     SMT = 0
@@ -104,7 +122,12 @@ def get_fn_args_types(ty: Union[type, _GenericAlias]) -> pyList[ObjectT]:
 
 
 class Expr:
-    def __init__(self, type: typing.Type["NewObject"], args: Any) -> None:
+    def __init__(
+        self,
+        type: typing.Type["NewObject"],
+        args: Any,
+        metadata: Dict[str, Any] = {}
+    ) -> None:
         self.args = args
         self.type = type
         self.metadata = metadata
@@ -112,7 +135,10 @@ class Expr:
     # TODO: move into per-type implementations
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         if isinstance(self, NewObject):
-            return self.src.mapArgs(f)
+            from copy import deepcopy
+            new_object = deepcopy(self)
+            new_object.src = self.src.mapArgs(f)
+            return new_object
         if isinstance(self, Var):
             # TODO(jie)
             return Var(typing.cast(str, f(self.args[0])), self.type)
@@ -173,10 +199,13 @@ class Expr:
         )
 
     @staticmethod
-    def findCommonExprs(e: "Expr", cnts: List[Tuple["Expr", int]]) -> List[Tuple["Expr", int]]:
+    def findCommonExprs(
+        e: "Expr", cnts: List[Tuple["Expr", int]]
+    ) -> List[Tuple["Expr", int]]:
         if isinstance(e, NewObject):
             cnts = Expr.findCommonExprs(e.src, cnts)
             return cnts
+
         def expr_index_in_cnts(e: Expr):
             for i, (existing_expr, _) in enumerate(cnts):
                 if Expr.__eq__(e, existing_expr):
@@ -566,6 +595,7 @@ class Expr:
         else:
             return Mul(self, other)
 
+
 # Objects stuff
 def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     ty_str = str(t)
@@ -574,19 +604,23 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     elif ty_str == "i1":
         return BoolObject
     elif ty_str in {"%struct.list*", "%struct.list**"}:
-        #TODO colin: add generic type support
-        #TODO jie: retire struct.list and use STL?
+        # TODO colin: add generic type support
+        # TODO jie: retire struct.list and use STL?
         return ListObject[IntObject]
     else:
         raise Exception(f"no type defined for {ty_str}")
 
-def create_object(object_type: typing.Type["NewObject"], value: Optional[Union[bool, str, Expr]]) -> "NewObject":
+
+def create_object(
+    object_type: typing.Type["NewObject"], value: Optional[Union[bool, str, Expr]]
+) -> "NewObject":
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
         contained_type = get_args(object_type)[0]
         return object_cls(contained_type, value)
     else:
         return object_type(value)
+
 
 class NewObject(Expr):
     src: Expr
@@ -596,7 +630,9 @@ class NewObject(Expr):
         self.src = src  # pass this to parent class?
         super().__init__(type, [])
 
-    def toRosette(self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None) -> str:
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
         return self.src.toRosette(writeChoicesTo)
 
     def var_name(self) -> str:
@@ -609,7 +645,6 @@ class NewObject(Expr):
             return getTypeName(self.__orig_class__)
         else:
             return getTypeName(self.__class__)
-
 
     def toSMT(self) -> str:
         return self.src.toSMT()
@@ -624,10 +659,11 @@ class NewObject(Expr):
     # def Expr_type() -> Type:
     #     raise NotImplementedError()
 
-
     # TODO(jie): fix types and naming for type_args for all subclasses
     @staticmethod
-    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
+    def toSMTType(
+        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()
+    ) -> str:
         raise NotImplementedError()
 
     # TODO(jie): make this handle contained types
@@ -637,10 +673,9 @@ class NewObject(Expr):
 
 
 class BoolObject(NewObject):
-
     def __init__(self, value: Optional[Union[bool, str, Expr]] = None) -> None:
         if value is None:  # a symbolic variable
-            src = Var("v", BoolObject) # XXX change to Bool
+            src = Var("v", BoolObject)  # XXX change to Bool
         elif isinstance(value, bool):
             src = BoolLit(value)
         elif isinstance(value, Expr):
@@ -654,7 +689,6 @@ class BoolObject(NewObject):
             raise TypeError(f"Cannot create Bool from {value}")
 
         super().__init__(src, BoolObject)
-
 
     # python doesn't have hooks for and, or, not
     def And(self, *args: "BoolObject") -> "BoolObject":
@@ -687,7 +721,6 @@ class BoolObject(NewObject):
             other = BoolObject(other)
         return BoolObject(Not(Eq(self, other)))
 
-
     # @staticmethod
     # def Expr_type() -> Type:
     #     return BoolT()
@@ -696,9 +729,10 @@ class BoolObject(NewObject):
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_arg: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
+    def toSMTType(
+        type_arg: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()
+    ) -> str:
         return "Bool"
-
 
     @staticmethod
     def cls_str() -> str:
@@ -707,7 +741,6 @@ class BoolObject(NewObject):
 
 
 class IntObject(NewObject):
-
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
         # TODO(jie) remove this once all types are gone
         IntObject.name = "Int"
@@ -731,13 +764,13 @@ class IntObject(NewObject):
     # def Expr_type() -> Type:
     #     return IntT()
 
-
-    def binary_op(self, other: Union["IntObject", int], op: Callable[[Expr, Expr], Expr]) -> "IntObject":
+    def binary_op(
+        self, other: Union["IntObject", int], op: Callable[[Expr, Expr], Expr]
+    ) -> "IntObject":
         if isinstance(other, IntObject) or isinstance(other, int):
             return IntObject(op(self, other))
         else:
             raise TypeError(f"Cannot call {op} on Int and {other}")
-
 
     # arithmetic operators
     def __add__(self, other: Union["IntObject", int]) -> "IntObject":
@@ -800,7 +833,6 @@ class IntObject(NewObject):
             other = IntObject(other)
         return BoolObject(Le(self, other))
 
-
     def __repr__(self):
         return f"{self.src}"
 
@@ -808,7 +840,9 @@ class IntObject(NewObject):
         return super().__hash__()
 
     @staticmethod
-    def toSMTType(type_arg: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()) -> str:
+    def toSMTType(
+        type_arg: Tuple[Union[typing.Type["NewObject"], _GenericAlias]] = ()
+    ) -> str:
         return "Int"
 
     @staticmethod
@@ -816,15 +850,19 @@ class IntObject(NewObject):
         # TODO(jie): change this to Bool once we retire the Bool type
         return "IntObject"
 
+
 T = TypeVar("T", bound=NewObject)
-class ContainerObject(Generic[T], NewObject):
+
+class ListObject(Generic[T], NewObject):
     def __init__(
         self,
-        container_object_class: typing.Type["ContainerObject"],
-        containedT: Union[type, _GenericAlias],
-        value: Optional[Union[Expr, str]] = None
+        containedT: Union[type, _GenericAlias] = IntObject,
+        value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = container_object_class[containedT]
+        # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
+        ListObject.name = "MLList"  # TODO: better way of handling this
+        ListObject.args = [IntObject]
+        full_type = ListObject[containedT]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
         elif isinstance(value, Expr):
@@ -832,17 +870,10 @@ class ContainerObject(Generic[T], NewObject):
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create {container_object_class} from {value}")
+            raise TypeError(f"Cannot create ListObject from {value}")
         self.containedT = containedT
-        NewObject.__init__(self, src, full_type)
-
-class ListObject(Generic[T], NewObject):
-    def __init__(self, containedT: Union[type, _GenericAlias] = IntObject, value: Optional[Union[Expr, str]] = None) -> None:
-        # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
-        ListObject.name = "MLList" #TODO: better way of handling this
-        ListObject.args = [IntObject]
         # TODO(jie) should ListObject and containedT be combined
-        ContainerObject.__init__(self, ListObject, containedT, value)
+        NewObject.__init__(self, src, full_type)
 
     @staticmethod
     def empty(containedT: Union[type, _GenericAlias]) -> "ListObject":
@@ -858,7 +889,9 @@ class ListObject(Generic[T], NewObject):
     def len(self) -> IntObject:
         return IntObject(Call("list_length", IntObject, self.src))
 
-    def __getitem__(self, index: Union[IntObject, int]):# -> IntObject:  # index can also be slice
+    def __getitem__(
+        self, index: Union[IntObject, int]
+    ):  # -> IntObject:  # index can also be slice
         if isinstance(index, int):  # promote to Int
             index = IntObject(index)
 
@@ -871,26 +904,33 @@ class ListObject(Generic[T], NewObject):
                     start = IntLit(start)
                 elif isinstance(start, Int):
                     start = start.src
-                return ListObject(containedT, Call("list_tail", ListObject[containedT], self, start))
+                return ListObject(
+                    containedT, Call("list_tail", ListObject[containedT], self, start)
+                )
 
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = IntLit(stop)
                 elif isinstance(start, Int):
                     stop = stop.src
-                return ListObject(containedT, Call("list_head", ListObject[containedT], self, stop))
+                return ListObject(
+                    containedT, Call("list_head", ListObject[containedT], self, stop)
+                )
 
             else:
                 raise NotImplementedError(f"Slice not implemented: {index}")
 
-
-        if isinstance(containedT, type): # non generic type
+        if isinstance(containedT, type):  # non generic type
             return containedT(Call("list_get", containedT, self.src, index.src))
-        elif isinstance(containedT, _GenericAlias): # generic type
+        elif isinstance(containedT, _GenericAlias):  # generic type
             subcontainedT = typing.get_args(containedT)[0]
-            return containedT(subcontainedT, Call("list_get", containedT, self.src, index.src))
+            return containedT(
+                subcontainedT, Call("list_get", containedT, self.src, index.src)
+            )
         else:
-            raise NotImplementedError(f"Cannot get item from list containing type {containedT}")
+            raise NotImplementedError(
+                f"Cannot get item from list containing type {containedT}"
+            )
 
     def __setitem__(self, index: Union[IntObject, int], value: T) -> None:
         if isinstance(index, int):  # promote to Int
@@ -898,7 +938,9 @@ class ListObject(Generic[T], NewObject):
 
         containedT = typing.get_args(self.type)[0]
         if type(value) != containedT:
-            raise TypeError(f"Trying to set list element of type: {value.type} to list containing: {containedT}")
+            raise TypeError(
+                f"Trying to set list element of type: {value.type} to list containing: {containedT}"
+            )
 
         self.src = Call("list_set", self.type, self.src, index.src, value.src)
 
@@ -907,7 +949,9 @@ class ListObject(Generic[T], NewObject):
         containedT = typing.get_args(self.type)[0]
 
         if type(value) != containedT:
-            raise TypeError(f"Trying to append element of type: {value.type} to list containing: {containedT}")
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {containedT}"
+            )
 
         self.src = Call("list_append", self.type, self.src, value.src)
         return self
@@ -915,10 +959,13 @@ class ListObject(Generic[T], NewObject):
     # list concat that returns a new list
     def __add__(self, other: "ListObject") -> "ListObject":
         if other.type != self.type:
-            raise TypeError(f"can't add lists of different types: {other.type} and {self.type}")
+            raise TypeError(
+                f"can't add lists of different types: {other.type} and {self.type}"
+            )
         containedT = typing.get_args(self.type)[0]
-        return ListObject(containedT, Call("list_concat", self.type, self.src, other.src))
-
+        return ListObject(
+            containedT, Call("list_concat", self.type, self.src, other.src)
+        )
 
     def __eq__(self, other: "ListObject") -> BoolObject:
         if other == None or type(other) != type(self):
@@ -926,12 +973,13 @@ class ListObject(Generic[T], NewObject):
         else:
             return BoolObject(Call("list_eq", Bool, self.src, other.src))
 
-
     def __repr__(self):
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]) -> str:
+    def toSMTType(
+        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+    ) -> str:
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
             return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
@@ -939,7 +987,9 @@ class ListObject(Generic[T], NewObject):
             return f"(MLList {contained_type.toSMTType()})"
 
     @staticmethod
-    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]) -> str:
+    def toSMTType(
+        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+    ) -> str:
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
             return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
@@ -950,31 +1000,63 @@ class ListObject(Generic[T], NewObject):
     def cls_str() -> str:
         return "ListObject"
 
-class TupleObject(Generic[T], NewObject):
-    def __init__(self, containedT: Union[type, _GenericAlias] = IntObject, value: Optional[Union[Expr, str]] = None) -> None:
+
+IntT = TypeVar("IntT")
+class TupleObject(Generic[T, IntT], NewObject):
+    def __init__(
+        self,
+        containedT: Union[type, _GenericAlias] = IntObject,
+        intT: type = Literal[1],
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
         # TODO(jie): this looks hacky, what do I do about it?
         TupleObject.name = "Tuple"
         TupleObject.args = [IntObject]
-        ContainerObject.__init__(self, TupleObject, containedT, value)
+        full_type = TupleObject[containedT, intT]
+        if value is None:  # a symbolic variable
+            src = Var("v", full_type)
+        elif isinstance(value, Expr):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, full_type)
+        else:
+            raise TypeError(f"Cannot create TupleObject from {value}")
+        self.containedT = containedT
+        self.intT = intT
+        NewObject.__init__(self, src, full_type)
 
-    def __getitem__(self, index: Union[IntObject, int]):# -> IntObject:  # index can also be slice
+    def __getitem__(
+        self, index: Union[IntObject, int]
+    ):  # -> IntObject:  # index can also be slice
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
         if isinstance(index, IntObject):
             if issubclass(self.containedT, NewObject):
-                return self.containedT(Call("tupleGet", self.containedT, self, index))
+                # TODO(jie) should return a containedT object
+                return Call("tupleGet", self.containedT, self, index)
+                # return self.containedT(Call("tupleGet", self.containedT, self, index))
             else:
-                raise Exception("Only primitive object types inside tuples are supported!")
+                raise Exception(
+                    "Only primitive object types inside tuples are supported!"
+                )
         if isinstance(index, slice):
             raise Exception("slicing operation not supported on tuples!")
 
+    @property
+    def length(self) -> int:
+        return get_args(self.intT)[0]
+
     @staticmethod
-    def toSMTType(type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]) -> str:
-        contained_type = type_args[0]
-        if isinstance(contained_type, _GenericAlias):
-            return f"(tuple {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
+    def toSMTType(
+        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+    ) -> str:
+        containedT, intT = type_args
+        tuple_length = get_args(intT)[0]
+        if isinstance(containedT, _GenericAlias):
+            containedT_str = get_origin(containedT).toSMTType(get_args(containedT))
         else:
-            return f"(tuple {contained_type.toSMTType()})"
+            containedT_str = containedT.toSMTType()
+        return f"(Tuple{tuple_length} {' '.join([containedT_str] * tuple_length)})"  # this would call List.toSMTType(Int) for instance
 
     # TODO(jie): handle contained type
     @staticmethod
@@ -982,16 +1064,16 @@ class TupleObject(Generic[T], NewObject):
         return "TupleObject"
 
 
-
 def isParameterizedType(t: type) -> bool:
     return "__origin__" in t.__dict__
+
 
 def isParameterizedObject(o: NewObject) -> bool:
     return "__orig_class__" in o.__dict__
 
+
 def getType(o: NewObject) -> type:
     return o.__orig_class__ if isParameterizedObject(o) else type(o)
-
 
 
 class Var(Expr):
@@ -1111,9 +1193,7 @@ class Add(Expr):
                 #     f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
                 # )
                 # TODO(jie) add back `erase` once we retire types
-                raise Exception(
-                    f"Args types not equal: {arg.type} and {args[0].type}"
-                )
+                raise Exception(f"Args types not equal: {arg.type} and {args[0].type}")
         Expr.__init__(self, IntObject, args)
 
     def toRosette(
@@ -1517,7 +1597,9 @@ class Let(Expr):
 
 
 class Call(Expr):
-    def __init__(self, name: str, returnT: typing.Type[NewObject], *arguments: Expr) -> None:
+    def __init__(
+        self, name: str, returnT: typing.Type[NewObject], *arguments: Expr
+    ) -> None:
         Expr.__init__(self, returnT, [name, *arguments])
 
     def name(self) -> str:
@@ -1604,19 +1686,7 @@ class Call(Expr):
             elif (str(a)) == "make-tuple":
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
-                index = self.args[idx + 2].args[0]
-                if isinstance(self.args[idx + 1], TupleExpr):
-                    retVal.append(
-                        "tuple%d_get%d"
-                        % (
-                            len(self.args[idx + 1].args),
-                            index,
-                        )
-                    )
-                elif (
-                    len(self.args[idx + 1].args) > 0
-                    and self.args[idx + 1].args[0] == "make-tuple"
-                ):
+                if len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple":
                     retVal.append(
                         "tuple%d_get%d"
                         % (
@@ -1624,14 +1694,14 @@ class Call(Expr):
                             index,
                         )
                     )
-                elif isinstance(self.args[idx + 1], Tuple):
+                elif isinstance(self.args[idx + 1], TupleObject):
+                    index_expr = self.args[idx + 2]
+                    # TODO(jie): this is not very clean, how to make it better?
+                    if isinstance(index_expr, IntObject):
+                        index = index_expr.src.args[0]
+                    else:
+                        index = index_expr.args[0]
                     retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
-                elif (
-                    isinstance(self.args[idx + 1], Var)
-                    and get_origin(self.args[idx + 1].type) == Tuple
-                ):
-                    length = len(get_args(get_args(self.args[idx + 1].type)[0]))
-                    retVal.append(f"tuple{length}_get{index}")
                 else:
                     # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
                     freq: typing.Counter[str] = Counter(
@@ -2063,7 +2133,11 @@ class Choose(Expr):
 
 class FnDeclRecursive(Expr):
     def __init__(
-        self, name: str, returnT: typing.Type[NewObject], body: Union[Expr, str], *args: Expr
+        self,
+        name: str,
+        returnT: typing.Type[NewObject],
+        body: Union[Expr, str],
+        *args: Expr,
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
@@ -2139,7 +2213,9 @@ class FnDeclRecursive(Expr):
                 print(d[1].toSMTType(get_args(d[1])))
 
             # TODO(jie): maybe instead of get_args(d[1]) we use containedT?
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations)
+            args = " ".join(
+                "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
+            )
 
             if self.type.name != "Function":
                 return_type = self.type.toSMT()
@@ -2226,7 +2302,11 @@ class Lambda(Expr):
 
 class FnDecl(Expr):
     def __init__(
-        self, name: str, returnT: typing.Type[NewObject], body: Union[Expr, str], *args: Expr
+        self,
+        name: str,
+        returnT: typing.Type[NewObject],
+        body: Union[Expr, str],
+        *args: Expr,
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
@@ -2455,13 +2535,13 @@ def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
         return PointerT(Bool())
     elif tyStr == "i1" or tyStr == "Bool":
         return Bool()
-    elif tyStr.__contains__("IntObject"): #TODO: better way to handle this
+    elif tyStr.__contains__("IntObject"):  # TODO: better way to handle this
         return Int()
     elif (
         tyStr.startswith("%struct.list*")
         or tyStr == "%struct.list**"
         or tyStr == "(MLList Int)"
-        or tyStr.__contains__("ListObject") #TODO: better way to handle this
+        or tyStr.__contains__("ListObject")  # TODO: better way to handle this
     ):
         return Type("MLList", Int())
     elif tyStr.startswith("%struct.set"):

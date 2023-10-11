@@ -447,6 +447,7 @@ class LoopInfo:
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
 
+
 class ExprDict:
     def __init__(self) -> None:
         self.kv_pairs = []
@@ -479,9 +480,12 @@ class ExprDict:
     def items(self) -> List[Expr]:
         return self.kv_pairs
 
+
 # Helper functions
 def is_type_pointer(ty: Type) -> bool:
-    return hasattr(ty, "__origin__")  and ty.__origin__ == ListObject #ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
+    return (
+        hasattr(ty, "__origin__") and ty.__origin__ == ListObject
+    )  # ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
 
 
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
@@ -790,7 +794,9 @@ class Predicate:
 
     def call(self, state: State) -> Call:
         return Call(
-            self.name, BoolObject, *[state.read_or_load_var(v.var_name()) for v in self.args]
+            self.name,
+            BoolObject,
+            *[state.read_or_load_var(v.var_name()) for v in self.args],
         )
         return cast(Bool, call_res)
 
@@ -831,7 +837,7 @@ class PredicateTracker:
                 writes=writes,
                 reads=reads,
                 name=inv_name,
-                grammar=grammar
+                grammar=grammar,
             )
             self.predicates[inv_name] = inv
             return inv
@@ -858,7 +864,7 @@ class VCVisitor:
     driver: "Driver"
     fn_name: str
     fn_type: MLType
-    fn_args: List[NewObject] # whose src are variables
+    fn_args: List[NewObject]  # whose src are variables
     fn_sret_arg: Optional[Var]
     fn_blocks_states: Dict[str, State]
 
@@ -905,19 +911,27 @@ class VCVisitor:
 
     # Helper functions
     # Helper functions for reading and writing variables
-    def read_operand_from_block(self, block_name: str, op: ValueRef) -> Expr: #Primitive
+    def read_operand_from_block(
+        self, block_name: str, op: ValueRef
+    ) -> NewObject:  # Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_operand(op)
 
-    def load_operand_from_block(self, block_name: str, op: ValueRef) -> Expr: #Pointer
+    def load_operand_from_block(
+        self, block_name: str, op: ValueRef
+    ) -> NewObject:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_operand(op)
 
-    def write_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None: #Primitive
+    def write_operand_to_block(
+        self, block_name: str, op: ValueRef, val: NewObject
+    ) -> None:  # Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_operand(op, val)
 
-    def store_operand_to_block(self, block_name: str, op: ValueRef, val: Expr) -> None: #Pointer
+    def store_operand_to_block(
+        self, block_name: str, op: ValueRef, val: NewObject
+    ) -> None:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_operand(op, val)
 
@@ -927,11 +941,15 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_or_store_operand(op, val)
 
-    def write_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None: #Primitive
+    def write_var_to_block(
+        self, block_name: str, var_name: str, val: NewObject
+    ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_var(var_name, val)
 
-    def store_var_to_block(self, block_name: str, var_name: str, val: Expr) -> None: #Pointer
+    def store_var_to_block(
+        self, block_name: str, var_name: str, val: NewObject
+    ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
 
@@ -962,7 +980,7 @@ class VCVisitor:
         res = []
         for var in loop_info.vector_havocs:
             parsed_type = parse_type_ref_to_obj(var.type)
-            #TODO colin: add generic (ie containedT) support needed for objects
+            # TODO colin: add generic (ie containedT) support needed for objects
             if parsed_type in {ListObject}:
                 res.append(parsed_type(IntObject, var.name))
             else:
@@ -998,7 +1016,7 @@ class VCVisitor:
                 )
         self.pred_tracker.postcondition(
             self.fn_name,
-            [return_arg], # TODO: I feel like this flow could be better
+            [return_arg],  # TODO: I feel like this flow could be better
             self.fn_args,
             self.ps_grammar,
         )
@@ -1061,12 +1079,8 @@ class VCVisitor:
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            primitive_var_state: Dict[str, ExprDict] = defaultdict(
-                lambda: ExprDict()
-            )
-            pointer_var_state: Dict[str, ExprDict] = defaultdict(
-                lambda: ExprDict()
-            )
+            primitive_var_state: Dict[str, ExprDict] = defaultdict(lambda: ExprDict())
+            pointer_var_state: Dict[str, ExprDict] = defaultdict(lambda: ExprDict())
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 for var_name, var_value in pred_state.primitive_vars.items():
@@ -1155,7 +1169,9 @@ class VCVisitor:
             vector_havocs = self.get_vector_havocs(loop)
             self.driver.add_var_objects(vector_havocs)
             for vector_havoc in vector_havocs:
-                self.write_var_to_block(block.name, vector_havoc.var_name(), vector_havoc)
+                self.write_var_to_block(
+                    block.name, vector_havoc.var_name(), vector_havoc
+                )
 
             non_vector_havocs = self.get_non_vector_havocs(loop)
             self.driver.add_var_objects(non_vector_havocs)
@@ -1425,20 +1441,25 @@ class VCVisitor:
 
             if rv.val is not None and o.name != "":
                 if not o.type.is_pointer:
-                    self.write_operand_to_block(block_name=block_name, op=o, val=rv.val) #primitive
+                    self.write_operand_to_block(
+                        block_name=block_name, op=o, val=rv.val
+                    )  # primitive
                 else:
-                    self.store_operand_to_block(block_name=block_name, op=o, val=rv.val) #pointer
+                    self.store_operand_to_block(
+                        block_name=block_name, op=o, val=rv.val
+                    )  # pointer
             if rv.assigns:
                 for name, value, location in rv.assigns:
                     # TODO: better way to differentiate between writing to primitive vs writing to pointer var
                     if location == "primitive":
                         self.write_var_to_block(
-                            block_name=block_name, var_name=name, val=value #primitive
+                            block_name=block_name, var_name=name, val=value  # primitive
                         )
                     else:
                         self.store_var_to_block(
-                            block_name=block_name, var_name=name, val=value #pointer
+                            block_name=block_name, var_name=name, val=value  # pointer
                         )
+
 
 class Driver:
     var_tracker: VariableTracker

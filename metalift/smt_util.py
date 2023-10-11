@@ -151,7 +151,8 @@ def toSMT(
             "\n%s\n\n"
             % "\n".join(
                 [
-                    "(%s %s %s)" % (var_decl_command, v[0], v[1].toSMTType(get_args(v[1])))
+                    "(%s %s %s)"
+                    % (var_decl_command, v[0], v[1].toSMTType(get_args(v[1])))
                     for v in declarations
                 ]
             )

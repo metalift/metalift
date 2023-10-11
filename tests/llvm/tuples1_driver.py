@@ -1,9 +1,8 @@
-from collections import defaultdict
-from typing import List
+from typing import List, Literal
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
-                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleObject, TupleT, Var)
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDeclRecursive,
+                         IntObject, Mul, Sub, Tuple, TupleObject, Var)
 from tests.python.utils.utils import codegen
 
 
@@ -11,7 +10,7 @@ def tuple_mult(t):
     return Call("tuple_mult", IntObject, t)
 
 def target_lang():
-    x = TupleObject[IntObject](IntObject, "x")
+    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
     tuple_mult = FnDeclRecursive(
         "tuple_mult",
         IntObject,
