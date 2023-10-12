@@ -6,7 +6,7 @@ from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
 from tests.python.utils.utils import codegen
 
 def tuple_add(t):
-    return Call("tuple_add", IntObject, t)
+    return IntObject(Call("tuple_add", IntObject, t))
 
 def target_lang():
     x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
@@ -28,8 +28,8 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
     x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
     y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
     summary = Choose(
-        Eq(ret_val, Add(tuple_add(x_tuple), tuple_add(y_tuple))),
-        Eq(ret_val, Sub(tuple_add(x_tuple), tuple_add(y_tuple))),
+        ret_val == tuple_add(x_tuple) +  tuple_add(y_tuple),
+        ret_val == tuple_add(x_tuple) - tuple_add(y_tuple)
     )
     return summary
 

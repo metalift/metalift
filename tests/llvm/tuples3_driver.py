@@ -2,16 +2,19 @@ from typing import List
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
-                         FnDeclRecursive, IntLit, Mul, Sub, Tuple, TupleGet, TupleT, Var)
+                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleT, Var)
 from tests.python.utils.utils import codegen
 
 def double(t):
-    return Call("double", Int(), t)
+    return IntObject(Call("double", IntObject, t))
 
 def target_lang():
-    x = Var("x", Int())
+    x = IntObject("x")
     double = FnDeclRecursive(
-        "double", Int(), Add(x, x), x
+        "double",
+        IntObject,
+        x + x,
+        x
     )
     return [double]
 
@@ -22,8 +25,8 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
     r = writes[0]
     (x, y) = reads
     summary = Choose(
-        Eq(ret_val, Add(double(x), double(y))),
-        Eq(ret_val, Sub(double(x), double(y))),
+        ret_val == double(x) + double(y),
+        ret_val == double(x) - double(y)
     )
     return summary
 
@@ -38,8 +41,9 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = driver.variable("x", Int())
-    y = driver.variable("y", Int())
+    x = IntObject("x")
+    y = IntObject("y")
+    driver.add_var_objects([x, y])
 
     test(x, y)
 
