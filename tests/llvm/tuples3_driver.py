@@ -1,19 +1,20 @@
 from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Int, Object, call, choose, fn_decl_recursive
+from metalift.frontend.llvm import Driver
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
+                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleT, Var)
 from tests.python.utils.utils import codegen
 
 def double(t):
-    return call("double", Int, t)
+    return IntObject(Call("double", IntObject, t))
 
 def target_lang():
-    x = Int("x")
-    double = fn_decl_recursive(
+    x = IntObject("x")
+    double = FnDeclRecursive(
         "double",
-        Int,
-        (x + x),
+        IntObject,
+        x + x,
         x
     )
     return [double]
@@ -24,7 +25,7 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
 def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
     ret_val = writes[0]
     (x, y) = reads
-    summary = choose(
+    summary = Choose(
         ret_val == double(x) + double(y),
         ret_val == double(x) - double(y)
     )
@@ -41,8 +42,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = Int("x")
-    y = Int("y")
+    x = IntObject("x")
+    y = IntObject("y")
     driver.add_var_objects([x, y])
 
     test(x, y)
