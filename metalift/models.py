@@ -2,7 +2,7 @@ from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Call, Expr, NewObject, ListObject, IntObject, TupleObject
+from metalift.ir import Call, Expr, NewObject, ListObject, IntObject, SetObject, TupleObject
 from metalift.vc_util import parseOperand
 
 ReturnValue = NamedTuple(
@@ -13,6 +13,58 @@ ReturnValue = NamedTuple(
     ],
 )
 
+def set_create(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    return ReturnValue(SetObject.empty(IntObject), None)
+
+def set_add(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.add(item), None)
+
+def set_remove(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.remove(item), None)
+
+def set_contains(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(item in s, None)
 
 def new_list(
     primitive_vars: Dict[str, NewObject],
@@ -20,6 +72,7 @@ def new_list(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 0
     return ReturnValue(ListObject.empty(IntObject), None)
 
 
@@ -243,40 +296,10 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     "getField": get_field,
     "setField": set_field,
     # names for set.h
-    "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Call("set-create", SetT(Int())), None
-    ),
-    "set_add": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Call(
-            "set-insert",
-            SetT(Int()),
-            parseOperand(args[1], primitive_vars),
-            parseOperand(args[0], pointer_vars),
-        ),
-        None,
-    ),
-    "set_remove": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Call(
-            "set-minus",
-            SetT(Int()),
-            parseOperand(args[0], pointer_vars),
-            Call("set-singleton", SetT(Int()), parseOperand(args[1], primitive_vars)),
-        ),
-        None,
-    ),
-    "set_contains": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Ite(
-            Call(
-                "set-pointer_varsber",
-                Bool(),
-                parseOperand(args[1], primitive_vars),
-                parseOperand(args[0], pointer_vars),
-            ),
-            IntLit(1),
-            IntLit(0),
-        ),
-        None,
-    ),
+    "set_create": set_create,
+    "set_add": set_add,
+    "set_remove": set_remove,
+    "set_contains": set_contains,
     # tuple methods
     "MakeTuple": make_tuple,
     "tupleGet": tuple_get,

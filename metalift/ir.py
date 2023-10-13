@@ -230,7 +230,9 @@ class Expr:
         )
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, Expr):
+        if isinstance(self, NewObject) and isinstance(other, NewObject):
+            return Expr.__eq__(self.src, other.src)
+        elif isinstance(other, Expr):
             if (
                 type(self) != type(other)
                 # or self.type.erase() #TODO: add them back
@@ -465,6 +467,9 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         # TODO colin: add generic type support
         # TODO jie: retire struct.list and use STL?
         return ListObject[IntObject]
+    elif ty_str in {"%struct.set*"}:
+        # TODO jie: how to support different contained types
+        return SetObject[IntObject]
     else:
         raise Exception(f"no type defined for {ty_str}")
 
@@ -486,6 +491,7 @@ class NewObject(Expr):
     # TODO (jie): fix function signature
     def __init__(self, src: Expr, type: Any) -> None:
         self.src = src  # pass this to parent class?
+        self.__class__.__hash__ = NewObject.__hash__
         super().__init__(type, [])
 
     def toRosette(
@@ -730,7 +736,6 @@ class ListObject(Generic[T], NewObject):
         else:
             raise TypeError(f"Cannot create ListObject from {value}")
         self.containedT = containedT
-        # TODO(jie) should ListObject and containedT be combined
         NewObject.__init__(self, src, full_type)
 
     @staticmethod
@@ -858,6 +863,92 @@ class ListObject(Generic[T], NewObject):
     def cls_str() -> str:
         return "ListObject"
 
+# TODO(jie): think of a way to unify the class constructors
+class SetObject(Generic[T], NewObject):
+    def __init__(
+        self,
+        containedT: Union[type, _GenericAlias] = IntObject,
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
+        SetObject.name = "Set"
+        SetObject.args = [IntObject]
+        full_type = SetObject[containedT]
+        if value is None:  # a symbolic variable
+            src = Var("v", full_type)
+        elif isinstance(value, Expr):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, full_type)
+        else:
+            raise TypeError(f"Cannot create SetObject from {value}")
+        self.containedT = containedT
+        NewObject.__init__(self, src, full_type)
+
+    def add(self, value: T) -> "SetObject":
+        if type(value) != self.containedT:
+            raise TypeError(
+                f"Trying to add element of type: {value.type} to set containing: {self.containedT}"
+            )
+        expr = Call("set-insert", self.type, value.src, self.src)
+        return SetObject[self.containedT](self.containedT, expr)
+
+    def remove(self, item: NewObject) -> "SetObject":
+        if type(item) != self.containedT:
+            raise TypeError(f"Trying to remove element of type: {item.type} from set containing: {self.containedT}")
+        singleton_s = SetObject.singleton(item)
+        expr = Call("set-minus", SetObject[self.containedT], self.src, singleton_s.src)
+        return SetObject[self.containedT](self.containedT, expr)
+
+    @staticmethod
+    def singleton(item: NewObject) -> "SetObject":
+        expr = Call("set-singleton", SetObject[type(item)], item)
+        return SetObject[type(item)](type(item), expr)
+
+    def union(self, s: "SetObject") -> "SetObject":
+        if s.containedT != self.containedT:
+            raise TypeError("Trying to union two sets of different types")
+        expr = Call("set-union", SetObject[self.containedT], self.src, s.src)
+        return SetObject[self.containedT](self.containedT, expr)
+
+
+    def difference(self, s: "SetObject") -> "SetObject":
+        if s.containedT != self.containedT:
+            raise TypeError("Trying to take the difference of two sets of different types")
+        expr = Call("set-minus", SetObject[self.containedT], self.src, s.src)
+        return SetObject[self.containedT](self.containedT, expr)
+
+
+    def __contains__(self, value: T) -> BoolObject:
+        if type(value) != self.containedT:
+            return BoolObject(False)
+        expr = Call(
+            "set-pointer_varsber",
+            BoolObject,
+            self.src,
+            value
+        )
+        return BoolObject(expr)
+
+    @staticmethod
+    def empty(containedT: Union[type, _GenericAlias]) -> "SetObject":
+        return SetObject[containedT](containedT, Call("set-create", SetObject[containedT]))
+
+    @staticmethod
+    def toSMTType(
+        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+    ) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"(Set {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # this would call List.toSMTType(Int) for instance
+        else:
+            return f"(Set {contained_type.toSMTType()})"
+
+    def __eq__(self, s: "SetObject") -> BoolObject:
+        return BoolObject(Call("set-eq", BoolObject, self.src, s.src))
+
+    @staticmethod
+    def cls_str() -> str:
+        return "SetObject"
 
 IntT = TypeVar("IntT")
 class TupleObject(Generic[T, IntT], NewObject):

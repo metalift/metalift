@@ -1,47 +1,71 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, SetT, Int,
+from metalift.ir import (Add, Call, Choose, Eq, Expr, IntObject, NewObject, SetObject, SetT, Int,
                          FnDeclRecursive, IntLit, Ite, Var)
 from tests.python.utils.utils import codegen
 
 def double(t):
-    return Call("double", Int(), t)
+    return IntObject(Call("double", IntObject, t))
 
 def target_lang():
-    x = Var("x", Int())
+    x = IntObject("x")
     double = FnDeclRecursive(
-        "double", Int(), Add(x, x), x
+        "double",
+        IntObject,
+        x + x,
+        x
     )
     return [double]
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     raise Exception("no invariant")
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    inputS = reads[0]
-    inputAdd = reads[1]
-    inputValue = reads[2]
-    outputVar = writes[0]
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+    input_s = reads[0]
+    input_add = reads[1]
+    input_value = reads[2]
+    output_var = writes[0]
 
-    emptySet = Call("set-create", SetT(Int()))
+    empty_set = SetObject.empty(IntObject)
 
-    intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    intValue = Choose(inputValue, intLit)
-
-    condition = Eq(inputAdd, intLit)
-
-    setIn = Choose(inputS, emptySet, Call("set-singleton", SetT(Int()), intValue))
-
-    setTransform = Choose(
-        setIn,
-        Call("set-union", SetT(Int()), setIn, setIn),
-        Call("set-minus", SetT(Int()), setIn, setIn),
+    int_lit = IntObject(
+        Choose(
+            IntObject(0),
+            IntObject(1),
+            IntObject(2),
+            IntObject(3)
+        )
     )
 
-    chosenTransform = Ite(condition, setTransform, setTransform)
+    int_value = IntObject(Choose(input_value, int_lit))
 
-    summary = Eq(outputVar, chosenTransform)
+    condition = input_add == int_lit
+
+    set_in = SetObject[IntObject](
+        IntObject,
+        Choose(
+            input_s,
+            empty_set,
+            SetObject.singleton(int_value)
+        )
+    )
+
+    set_transform = SetObject[IntObject](
+        IntObject,
+        Choose(
+            set_in,
+            set_in.union(set_in),
+            set_in.difference(set_in)
+        )
+    )
+
+    chosen_transform = SetObject[IntObject](
+        IntObject,
+        Ite(condition, set_transform, set_transform)
+    )
+
+    summary = output_var == chosen_transform
     return summary
 
 if __name__ == "__main__":
@@ -55,11 +79,12 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    s = driver.variable("s", SetT(Int()))
-    x = driver.variable("add", Int())
-    y = driver.variable("value", Int())
+    s = SetObject[IntObject](IntObject, "s")
+    add = IntObject("add")
+    value = IntObject("value")
+    driver.add_var_objects([s, add, value])
 
-    test(s, x, y)
+    test(s, add, value)
 
     driver.synthesize()
 
