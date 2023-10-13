@@ -42,8 +42,12 @@ from metalift.ir import (
     NewObject,
     Not,
     Object,
-    ObjectT,
-    Set as mlSet,
+    Or,
+    Pointer,
+    SetObject,
+    SetT,
+    String,
+    Sub,
     Synth,
     TupleT,
     ListObject,
@@ -484,7 +488,7 @@ class ExprDict:
 # Helper functions
 def is_type_pointer(ty: Type) -> bool:
     return (
-        hasattr(ty, "__origin__") and ty.__origin__ == ListObject
+        hasattr(ty, "__origin__") and ty.__origin__ in {ListObject, SetObject}
     )  # ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
 
 
@@ -736,6 +740,8 @@ class State:
         self.primitive_vars[var_name] = value
 
     def store_var(self, var_name: str, value: NewObject) -> None:
+        # if var_name == "test_rv":
+        #     import pdb; pdb.set_trace()
         self.pointer_vars[var_name] = value
 
     def read_or_load_var(self, var_name: str) -> NewObject:
@@ -1105,7 +1111,7 @@ class VCVisitor:
                         merged_expr = list(expr_value_to_precond_mapping.keys())[0]
                     else:
                         # Otherwise if there are multiple possible values for this variable, we create a mapping from possible values to their associated preconditions.
-                        value_to_aggregated_precond: Dict[NewObject, NewObject] = {}
+                        value_to_aggregated_precond = ExprDict()
                         for value, all_preconds in value_to_precond_mapping.items():
                             all_aggregated_preconds: List[NewObject] = []
                             for preconds in all_preconds:
