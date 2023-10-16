@@ -1,8 +1,8 @@
 from typing import List, Literal
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
-                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleObject, TupleT, Var)
+from metalift.ir import (Add, Call, Choose, Expr,
+                         FnDeclRecursive, IntObject, Tuple, TupleObject, Var)
 from tests.python.utils.utils import codegen
 
 
