@@ -1,7 +1,7 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import And, Expr, Lit, Bool, Int, Or
+from metalift.ir import And, Expr, Lit, BoolObject, IntObject, Or
 from typing import Dict
 
 
@@ -19,13 +19,13 @@ def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Ex
     elif hasType:  # i32 0
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, Bool())
+            return Lit(True, BoolObject)
         elif val == "false":
-            return Lit(False, Bool())
+            return Lit(False, BoolObject)
         else:  # assuming it's a number
-            return Lit(int(val), Int())
+            return Lit(int(val), IntObject)
     else:  # 0
-        return Lit(int(op), Int())
+        return Lit(int(op), IntObject)
 
 
 # TODO(colin): this is for old llvm interface. delete after migration

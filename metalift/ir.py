@@ -23,17 +23,10 @@ from typing import (
     get_args,
     get_origin,
 )
-from metalift.types import *
+from metalift.types import (Type, FnT, String, PointerT, TupleT, MapT)
 
 # from metalift.visitor import Visitor
 # import metalift.visitor
-
-
-def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
-    if isinstance(type, Type):
-        return str(type)
-    else:
-        return type.cls_str()
 
 
 class PrintMode(Enum):
@@ -399,7 +392,7 @@ class Expr:
         self, counts: Dict[str, int], new_vars: typing.Set["Var"]
     ) -> "Expr":
         if isinstance(self, Eq):
-            replacement_var = Var("useless_equality_%d" % len(new_vars), Bool())
+            replacement_var = Var("useless_equality_%d" % len(new_vars), BoolObject)
             if isinstance(self.args[0], Var) and counts[self.args[0].args[0]] == 1:
                 new_vars.add(replacement_var)
                 return replacement_var
@@ -457,6 +450,22 @@ class Expr:
 
 
 # Objects stuff
+
+def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
+    if isinstance(type, Type):
+        return str(type)
+    else:
+        return type.cls_str()
+    
+def getTypeName(t: type) -> str:
+    if isinstance(
+        t, typing._GenericAlias
+    ):  # parameterized class -- python 3.9 has types.GenericAlias
+        args = ",".join(a.__name__ for a in t.__args__)
+        return f"{t.__origin__.__name__}[{args}]"
+    else:
+        return f"{t.__name__}"
+    
 def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     ty_str = str(t)
     if ty_str in {"i32", "i32*"}:
@@ -538,6 +547,7 @@ class NewObject(Expr):
 
 class BoolObject(NewObject):
     def __init__(self, value: Optional[Union[bool, str, Expr]] = None) -> None:
+        BoolObject.name = "Bool"
         if value is None:  # a symbolic variable
             src = Var("v", BoolObject)  # XXX change to Bool
         elif isinstance(value, bool):
@@ -606,8 +616,8 @@ class BoolObject(NewObject):
 
 class IntObject(NewObject):
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
-        # TODO(jie) remove this once all types are gone
         IntObject.name = "Int"
+        # TODO(jie) remove this once all types are gone
         if value is None:  # a symbolic variable
             src = Var("v", IntObject)  # XXX change to Int
         elif isinstance(value, int):
@@ -674,7 +684,7 @@ class IntObject(NewObject):
 
     def __ne__(self, other: Union["IntObject", int]) -> BoolObject:
         if isinstance(other, int):
-            other = Int(other)
+            other = IntObject(other)
         return BoolObject(Not(Eq(self, other)))
 
     def __ge__(self, other: Union["IntObject", int]) -> BoolObject:
@@ -723,9 +733,8 @@ class ListObject(Generic[T], NewObject):
         containedT: Union[type, _GenericAlias] = IntObject,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
+        ListObject.name = "MLList"
         # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
-        ListObject.name = "MLList"  # TODO: better way of handling this
-        ListObject.args = [IntObject]
         full_type = ListObject[containedT]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -765,7 +774,7 @@ class ListObject(Generic[T], NewObject):
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = IntLit(start)
-                elif isinstance(start, Int):
+                elif isinstance(start, IntObject):
                     start = start.src
                 return ListObject(
                     containedT, Call("list_tail", ListObject[containedT], self, start)
@@ -774,7 +783,7 @@ class ListObject(Generic[T], NewObject):
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = IntLit(stop)
-                elif isinstance(start, Int):
+                elif isinstance(start, IntObject):
                     stop = stop.src
                 return ListObject(
                     containedT, Call("list_head", ListObject[containedT], self, stop)
@@ -834,7 +843,7 @@ class ListObject(Generic[T], NewObject):
         if other == None or type(other) != type(self):
             return BoolObject(False)
         else:
-            return BoolObject(Call("list_eq", Bool, self.src, other.src))
+            return BoolObject(Call("list_eq", BoolObject, self.src, other.src))
 
     def __repr__(self):
         return f"{self.src}"
@@ -1120,7 +1129,9 @@ def IntLit(val: int) -> Expr:
 
 
 def EnumIntLit(val: int) -> Expr:
-    return Lit(val, EnumInt())
+    return Lit(val, IntObject)
+    #TODO: bring EnumBack
+    # return Lit(val, EnumInt())
 
 
 def BoolLit(val: bool) -> Expr:
@@ -1162,9 +1173,9 @@ class Sub(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if parse_type_ref(arg.type) != parse_type_ref(args[0].type):
+            if get_type_str(arg.type) != get_type_str(args[0].type):
                 raise Exception(
-                    f"Args types not equal: {parse_type_ref(arg.type).erase()} and {parse_type_ref(args[0].type).erase()}"
+                    f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
                 )
         Expr.__init__(self, IntObject, args)
 
@@ -1187,9 +1198,9 @@ class Mul(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         for arg in args:
-            if arg.type != args[0].type:
+            if get_type_str(arg.type) != get_type_str(args[0].type):
                 raise Exception(
-                    f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
+                    f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
                 )
         Expr.__init__(self, IntObject, args)
 
@@ -1227,7 +1238,7 @@ class Eq(Expr):
     ) -> str:
         cmp_type = self.args[0].type
         # TODO(jie)
-        if isinstance(cmp_type, Type) and cmp_type.name == "Set":
+        if issubclass(cmp_type, NewObject) and cmp_type.name == "Set":
             name = "set-eq"
         else:
             name = self.RosetteName
@@ -1244,9 +1255,9 @@ class Lt(Expr):
     RosetteName = SMTName = "<"
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
+        if not (get_type_str(e1.type) == get_type_str(e2.type)):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
         Expr.__init__(self, BoolObject, [e1, e2])
 
@@ -1272,9 +1283,9 @@ class Le(Expr):
     RosetteName = SMTName = "<="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
+        if not (get_type_str(e1.type) == get_type_str(e2.type)):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
         Expr.__init__(self, BoolObject, [e1, e2])
 
@@ -1300,9 +1311,9 @@ class Gt(Expr):
     RosetteName = SMTName = ">"
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
+        if not (get_type_str(e1.type) == get_type_str(e2.type)):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
         Expr.__init__(self, BoolObject, [e1, e2])
 
@@ -1328,9 +1339,9 @@ class Ge(Expr):
     RosetteName = SMTName = ">="
 
     def __init__(self, e1: Expr, e2: Expr) -> None:
-        if not (parse_type_ref(e1.type).erase() == parse_type_ref(e2.type).erase()):
+        if not (get_type_str(e1.type) == get_type_str(e2.type)):
             raise Exception(
-                f"Cannot compare values of different types: {e1}: {parse_type_ref(e1.type).erase()} and {e2}: {parse_type_ref(e2.type).erase()}"
+                f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
         Expr.__init__(self, BoolObject, [e1, e2])
 
@@ -1453,7 +1464,7 @@ class Ite(Expr):
             raise Exception(
                 f"ITE condition must be Boolean and not value of type {c.type}"
             )
-        if parse_type_ref(e1.type).erase() != parse_type_ref(e2.type).erase():
+        if get_type_str(e1.type) != get_type_str(e2.type):
             raise Exception(
                 f"TE branches in ITE must have the same type: {e1.type}, {e2.type}"
             )
@@ -1779,7 +1790,7 @@ class Assert(Expr):
     RosetteName = SMTName = "assert"
 
     def __init__(self, e: Expr) -> None:
-        Expr.__init__(self, Bool(), [e])
+        Expr.__init__(self, BoolObject, [e])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1800,7 +1811,7 @@ class Constraint(Expr):
     SMTName = "constraint"
 
     def __init__(self, e: Expr) -> None:
-        Expr.__init__(self, Bool(), [e])
+        Expr.__init__(self, BoolObject, [e])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1871,7 +1882,7 @@ class TupleGet(Expr):
 
 class Axiom(Expr):
     def __init__(self, e: Expr, *vars: Expr) -> None:
-        Expr.__init__(self, Bool(), [e, *vars])
+        Expr.__init__(self, BoolObject, [e, *vars])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1967,7 +1978,7 @@ class Synth(Expr):
         decls = "((rv %s) %s)" % (
             self.type.toSMT(),
             " ".join(
-                "(%s %s)" % ("v%d" % i, parse_type_ref(e.type).toSMT())
+                "(%s %s)" % ("v%d" % i, parse_type_ref_to_obj(e.type).toSMT())
                 for i, e in enumerate(commonExprs)
             ),
         )
@@ -1981,7 +1992,7 @@ class Synth(Expr):
             "(%s %s %s)"
             % (
                 "v%d" % i,
-                parse_type_ref(e.type).toSMT(),
+                parse_type_ref_to_obj(e.type).toSMT(),
                 e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",
             )
             for i, e in enumerate(commonExprs)
@@ -1992,7 +2003,7 @@ class Synth(Expr):
         declarations = []
         for a in self.args[2:]:
             if isinstance(a, ValueRef):
-                declarations.append((a.name, parse_type_ref(a.type)))
+                declarations.append((a.name, a.type))
             else:
                 declarations.append((a.args[0], a.type))
 
@@ -2109,7 +2120,7 @@ class FnDeclRecursive(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
+            args_type = " ".join(parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:])
             ret_type = self.returnT()
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
@@ -2120,7 +2131,7 @@ class FnDeclRecursive(Expr):
             declarations = []
             for a in self.args[2:]:
                 if isinstance(a, ValueRef):
-                    declarations.append((a.name, parse_type_ref(a.type)))
+                    declarations.append((a.name, parse_type_ref_to_obj(a.type)))
                 elif isinstance(a, NewObject):
                     declarations.append((a.src.args[0], a.type))
                 else:
@@ -2174,11 +2185,11 @@ class FnDefine(Expr):
         return ""  # only for verification
 
     def toSMT(self) -> str:
-        args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
+        args_type = " ".join(parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:])
         return "(declare-fun %s (%s) %s)" % (
             self.args[0],
             args_type,
-            parse_type_ref(self.type),
+            parse_type_ref_to_obj(self.type),
         )
 
     def accept(self, v: "Visitor[T]") -> T:
@@ -2272,17 +2283,17 @@ class FnDecl(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parse_type_ref(a.type).toSMT() for a in self.args[2:])
+            args_type = " ".join(parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:])
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parse_type_ref(self.returnT()),
+                parse_type_ref_to_obj(self.returnT()),
             )
         else:
             declarations = []
             for a in self.args[2:]:
                 if isinstance(a, ValueRef):
-                    declarations.append((a.name, parse_type_ref(a.type)))
+                    declarations.append((a.name, parse_type_ref_to_obj(a.type)))
                 else:
                     declarations.append((a.args[0], a.type))
 
@@ -2435,54 +2446,54 @@ def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Return, val)
 
 
-def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
-    # ty.name returns empty string. possibly bug
-    if isinstance(t, Type):
-        return t
+# def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
+#     # ty.name returns empty string. possibly bug
+#     if isinstance(t, Type):
+#         return t
 
-    tyStr = str(t)
+#     tyStr = str(t)
 
-    if tyStr == "i64":
-        return Int()
-    elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int":
-        return Int()
-    elif tyStr == "i8*":
-        # TODO: this shouldn't be bool
-        return PointerT(Bool())
-    elif tyStr == "i1" or tyStr == "Bool":
-        return Bool()
-    elif tyStr.__contains__("IntObject"):  # TODO: better way to handle this
-        return Int()
-    elif (
-        tyStr.startswith("%struct.list*")
-        or tyStr == "%struct.list**"
-        or tyStr == "(MLList Int)"
-        or tyStr.__contains__("ListObject")  # TODO: better way to handle this
-    ):
-        return Type("MLList", Int())
-    elif tyStr.startswith("%struct.set"):
-        return SetT(Int())
-    elif tyStr == "(Function Bool)":
-        return Type("Function", Bool())
-    elif tyStr == "(Function Int)":
-        return Type("Function", Int())
-    elif tyStr.startswith("%struct.tup."):
-        retType = [Int() for i in range(int(tyStr[-2]) + 1)]
-        return TupleT(*retType)
-    elif tyStr.startswith("%struct.tup"):
-        # TODO: FIX return type for multiple values
-        return TupleT(Int(), Int())
-    elif tyStr == '%"class.std::__1::vector"*':
-        # we only support int vectors now
-        return ListT(Int())
-    else:
-        raise Exception("NYI %s" % t)
+#     if tyStr == "i64":
+#         return Int()
+#     elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int":
+#         return Int()
+#     elif tyStr == "i8*":
+#         # TODO: this shouldn't be bool
+#         return PointerT(Bool())
+#     elif tyStr == "i1" or tyStr == "Bool":
+#         return Bool()
+#     elif tyStr.__contains__("IntObject"):  # TODO: better way to handle this
+#         return Int()
+#     elif (
+#         tyStr.startswith("%struct.list*")
+#         or tyStr == "%struct.list**"
+#         or tyStr == "(MLList Int)"
+#         or tyStr.__contains__("ListObject")  # TODO: better way to handle this
+#     ):
+#         return Type("MLList", Int())
+#     elif tyStr.startswith("%struct.set"):
+#         return SetT(Int())
+#     elif tyStr == "(Function Bool)":
+#         return Type("Function", Bool())
+#     elif tyStr == "(Function Int)":
+#         return Type("Function", Int())
+#     elif tyStr.startswith("%struct.tup."):
+#         retType = [Int() for i in range(int(tyStr[-2]) + 1)]
+#         return TupleT(*retType)
+#     elif tyStr.startswith("%struct.tup"):
+#         # TODO: FIX return type for multiple values
+#         return TupleT(Int(), Int())
+#     elif tyStr == '%"class.std::__1::vector"*':
+#         # we only support int vectors now
+#         return ListT(Int())
+#     else:
+#         raise Exception("NYI %s" % t)
 
 
-def toRosetteType(t: Type) -> str:
-    if t == Int():
+def toRosetteType(t: typing.Type["NewObject"]) -> str:
+    if t == IntObject:
         return "integer?"
-    elif t == Bool():
+    elif t == BoolObject:
         return "boolean?"
     else:
         raise Exception("NYI: %s" % t)

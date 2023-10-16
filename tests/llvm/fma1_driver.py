@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntObject, NewObject
+from metalift.ir import Call, Choose, Eq, Expr, FnDecl, IntObject, NewObject
 from tests.python.utils.utils import codegen
 
 

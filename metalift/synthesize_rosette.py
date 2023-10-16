@@ -94,19 +94,19 @@ def toExpr(
                 v2,
             )
         elif ast[0] == "length":
-            return Call("list_length", Int(), toExpr(ast[1], fnsType, varType, choices))
+            return Call("list_length", IntObject, toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "=":
             return Eq(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-empty":
-            return Call("list_empty", ListT(Int()))
+            return Call("list_empty", ListObject[IntObject])
         elif ast[0] == "list-append" or ast[0] == "append":
             elem = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
-                ListT(elem.type),
+                ListObject[elem.type],
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
@@ -114,7 +114,7 @@ def toExpr(
             elem = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_prepend",
-                ListT(elem.type),
+                ListObject[elem.type],
                 elem,
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -137,14 +137,14 @@ def toExpr(
         elif ast[0] == "list-concat":
             return Call(
                 "list_concat",
-                ListT(Int()),
+                ListObject[IntObject],
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-take-noerr":
             return Call(
                 "list_take",
-                ListT(Int()),
+                ListObject[IntObject],
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -159,14 +159,14 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "set-create":
-            return Call(ast[0], SetT(Int()))
+            return Call(ast[0], SetObject[IntObject])
         elif ast[0] == "set-insert":
             v = toExpr(ast[1], fnsType, varType, choices)
             s1 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], SetT(v.type), v, s1)
+            return Call(ast[0], SetObject[v.type], v, s1)
         elif ast[0] == "set-singleton":
             v = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], SetT(v.type), v)
+            return Call(ast[0], SetObject[v.type], v)
         elif ast[0] == "set-eq":
             s1 = toExpr(ast[1], fnsType, varType, choices)
             s2 = toExpr(ast[2], fnsType, varType, choices)
@@ -178,11 +178,11 @@ def toExpr(
         elif ast[0] == "set-subset":
             s1 = toExpr(ast[1], fnsType, varType, choices)
             s2 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], Bool(), s1, s2)
+            return Call(ast[0], BoolObject, s1, s2)
         elif ast[0] == "set-member":
             v = toExpr(ast[1], fnsType, varType, choices)
             s = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], Bool(), v, s)
+            return Call(ast[0], BoolObject, v, s)
         elif ast[0] == "map-union":
             m1 = toExpr(ast[1], fnsType, varType, choices)
             m2 = toExpr(ast[2], fnsType, varType, choices)
@@ -203,7 +203,7 @@ def toExpr(
             return Call(ast[0], m1.type, m1, m2, uf)
         elif ast[0] == "map-values":
             m = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], ListT(m.type.args[1]), m)
+            return Call(ast[0], ListObject(m.type.args[1]), m)
         elif ast[0] == "map-singleton":
             k = toExpr(ast[1], fnsType, varType, choices)
             v = toExpr(ast[2], fnsType, varType, choices)
@@ -242,10 +242,10 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(Int(), data.type.args[0], Int()),
+                typeHint=FnT(IntObject, data.type.args[0], IntObject),
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
-            return Call("reduce_int", Int(), data, fn, initial)
+            return Call("reduce_int", IntObject, data, fn, initial)
         elif ast[0] == "reduce_bool":
             data = toExpr(ast[1], fnsType, varType, choices)
             fn = toExpr(
@@ -253,10 +253,10 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(Bool(), data.type.args[0], Bool()),
+                typeHint=FnT(BoolObject, data.type.args[0], BoolObject),
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
-            return Call("reduce_bool", Bool(), data, fn, initial)
+            return Call("reduce_bool", BoolObject, data, fn, initial)
         elif ast[0] in fnsType.keys():
             arg_eval = []
             for alen in range(1, len(ast)):
