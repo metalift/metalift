@@ -1,11 +1,11 @@
 import re
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
     And,
-    Bool,
+    BoolObject,
     Call,
     Eq,
     Expr,
@@ -14,15 +14,16 @@ from metalift.ir import (
     Ge,
     Gt,
     Implies,
-    Int,
     IntLit,
+    IntObject,
     Ite,
     Le,
-    ListT,
+    ListObject,
     Lt,
+    NewObject,
     Not,
     Or,
-    SetT,
+    SetObject,
     Sub,
     Synth,
     Tuple as MLTuple,
@@ -145,27 +146,27 @@ class State:
     #                  self.has_returned)
 
 
-def to_mltype(t: MypyType) -> MLType:
+def to_object_type(t: MypyType) -> Type[NewObject]:
     # user annotated types
     if isinstance(t, UnboundType) and t.name == "int":
-        return Int()
+        return IntObject
 
     # inferred types
     elif isinstance(t, Instance):
         if t.type.fullname == "builtins.int":
-            return Int()
+            return IntObject
         elif (
             t.type.fullname == "builtins.list"
             and len(t.args) == 1
-            and to_mltype(t.args[0]) == Int()
+            and to_object_type(t.args[0]) == IntObject
         ):
-            return ListT(Int())
+            return ListObject[IntObject]
         elif (
             t.type.fullname == "builtins.set"
             and len(t.args) == 1
-            and to_mltype(t.args[0]) == Int()
+            and to_object_type(t.args[0]) == IntObject
         ):
-            return SetT(Int())
+            return SetObject[IntObject]
         else:
             raise RuntimeError(f"unknown Mypy type: {t}")
     else:
@@ -227,7 +228,7 @@ class Predicate:
     reads: List[MypyVar]
     in_scope: List[MypyVar]
     name: str
-    grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     ast: Union[WhileStmt, FuncDef]
     synth: Optional[Synth]
 
@@ -242,7 +243,7 @@ class Predicate:
         reads: List[MypyVar],
         in_scope: List[MypyVar],
         name: str,
-        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -259,15 +260,15 @@ class Predicate:
     def gen_Synth(self) -> Synth:
         # print(f"gen args: {self.args}, writes: {self.writes}, reads: {self.reads}, scope: {self.in_scope}")
 
-        writes = [Var(v[0], to_mltype(v[1])) for v in self.writes]
-        reads = [Var(v[0], to_mltype(v[1])) for v in self.reads]
-        in_scope = [Var(v[0], to_mltype(v[1])) for v in self.in_scope]
+        writes = [Var(v[0], to_object_type(v[1])) for v in self.writes]
+        reads = [Var(v[0], to_object_type(v[1])) for v in self.reads]
+        in_scope = [Var(v[0], to_object_type(v[1])) for v in self.in_scope]
 
         v_exprs = [self.grammar(v, self.ast, writes, reads, in_scope) for v in writes]
 
         body = And(*v_exprs) if len(v_exprs) > 1 else v_exprs[0]
 
-        vars = [Var(v[0], to_mltype(v[1])) for v in self.args]
+        vars = [Var(v[0], to_object_type(v[1])) for v in self.args]
         return Synth(self.name, body, *vars)
 
 
@@ -289,7 +290,7 @@ class PredicateTracker:
         writes: List[MypyVar],
         reads: List[MypyVar],
         in_scope: List[MypyVar],
-        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -312,7 +313,7 @@ class PredicateTracker:
         o: FuncDef,
         outs: List[MypyVar],
         ins: List[MypyVar],
-        grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -340,8 +341,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
-    ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
 
     types: Dict[MypyExpr, MypyType]
 
@@ -358,8 +359,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         invariants: Dict[WhileStmt, Predicate],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
         types: Dict[MypyExpr, MypyType],
         uninterp_fns: List[str],
     ) -> None:
@@ -402,7 +403,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             # print(f"analyze fn {o.name} type: {o.type}")
             self.fn_type = fn_type
             self.ret_val = self.var_tracker.variable(
-                self.fn_name, to_mltype(fn_type.ret_type)
+                self.fn_name, to_object_type(fn_type.ret_type)
             )
             self.ast = o
 
@@ -421,9 +422,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 )
 
             for actual, formal in zip(self.args, formals):
-                if to_mltype(formal[1]) != actual.type:
+                if to_object_type(formal[1]) != actual.type:
                     raise RuntimeError(
-                        f"expect {actual} to have type {to_mltype(formal[1])} rather than {actual.type}"
+                        f"expect {actual} to have type {to_object_type(formal[1])} rather than {actual.type}"
                     )
                 self.state.write(formal[0], actual)
 
@@ -519,7 +520,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         # havoc the modified vars
         for var in v.writes:
-            new_value = self.var_tracker.variable(var[0], to_mltype(var[1]))
+            new_value = self.var_tracker.variable(var[0], to_object_type(var[1]))
             self.state.write(var[0], new_value)
             # print(f"havoc: {var[0]} -> {new_value}")
 
@@ -558,7 +559,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         # precond -> ps(...)
         ps = Call(
             self.pred_tracker.predicates[self.ast].name,
-            Bool(),
+            BoolObject,
             *self.args,
             o.expr.accept(self),
         )
@@ -808,7 +809,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             args = [a.accept(self) for a in o.args]
             expr_type = self.types.get(o)
             assert expr_type is not None
-            return Call(get_fn_name(o), to_mltype(expr_type), *args)
+            return Call(get_fn_name(o), to_object_type(expr_type), *args)
         raise Exception("Unrecognized call expression!")
 
 
@@ -834,13 +835,23 @@ class Driver:
     def variable(self, name: str, type: MLType) -> Var:
         return self.var_tracker.variable(name, type)
 
+    def add_var_object(self, var_object: NewObject) -> None:
+        # TODO(jie): extract this check to a more generic function
+        if not isinstance(var_object.src, Var):
+            raise Exception("source is not variable!")
+        self.var_tracker.variable(var_object.var_name(), var_object.src.type)
+
+    def add_var_objects(self, var_objects: List[NewObject]) -> None:
+        for var_object in var_objects:
+            self.add_var_object(var_object)
+
     def analyze(
         self,
         filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
         uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -854,16 +865,6 @@ class Driver:
         )
         self.fns[fn_name] = f
         return f
-
-    # def synthesize_invariants(self,
-    #                           grammar_fn: Callable[[Var, WhileStmt, Set[Var], Set[Var], Set[Var]], Expr]) -> None:
-    #     for (o, inv) in self.inv_tracker.predicates.items():
-    #         writes = [self.var_tracker.variable(v[0], to_mltype(v[1])) for v in inv.writes]
-    #         reads = [self.var_tracker.variable(v[0], to_mltype(v[1])) for v in inv.reads]
-    #         in_scope = [self.var_tracker.variable(v[0], to_mltype(v[1])) for v in inv.in_scope]
-    #         v_exprs = [grammar_fn(v, o, writes, reads, in_scope) for v in writes]
-    #         body = And(*v_exprs) if len(v_exprs) > 1 else v_exprs[0]
-    #         inv.synth_fn = Synth(inv.name, body, *(writes + reads + in_scope))
 
     def synthesize(self) -> None:
         synths = [i.gen_Synth() for i in self.inv_tracker.predicates.values()]
@@ -910,8 +911,8 @@ class MetaliftFunc:
     types: Dict[MypyExpr, MypyType]
     name: str
     target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
-    inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
-    ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synthesized: Optional[Expr]
     uninterp_fns: List[str]
 
@@ -921,8 +922,8 @@ class MetaliftFunc:
         filepath: str,
         name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-        inv_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
-        ps_grammar: Callable[[Var, Statement, List[Var], List[Var], List[Var]], Expr],
+        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
         uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
@@ -976,10 +977,10 @@ class MetaliftFunc:
         self.driver.asserts += v.state.asserts
 
         ret_val = self.driver.var_tracker.variable(
-            f"{self.name}_rv", to_mltype(cast(CallableType, self.ast.type).ret_type)
+            f"{self.name}_rv", to_object_type(cast(CallableType, self.ast.type).ret_type)
         )
 
-        ps = Call(f"{self.name}_ps", Bool(), ret_val, *args)
+        ps = Call(f"{self.name}_ps", BoolObject, ret_val, *args)
 
         self.driver.postconditions.append(ps)
 
