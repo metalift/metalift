@@ -468,7 +468,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         return IntObject
     elif ty_str == "i1":
         return BoolObject
-    elif ty_str in {"%struct.list*", "%struct.list**"}:
+    elif ty_str in {"%struct.list*", "%struct.list**", '%"class.std::__1::vector"*'}:
         # TODO colin: add generic type support
         # TODO jie: retire struct.list and use STL?
         return ListObject[IntObject]
