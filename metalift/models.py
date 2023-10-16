@@ -2,7 +2,7 @@ from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Call, Expr, NewObject, ListObject, IntObject, SetObject, TupleObject
+from metalift.ir import Call, Expr, NewObject, ListObject, IntObject, SetObject, TupleObject, parse_type_ref_to_obj
 from metalift.vc_util import parseOperand
 
 ReturnValue = NamedTuple(
@@ -186,7 +186,7 @@ def vector_append(
     # TODO: fix where the args is in pointer or primitive
     assign_val = Call(
         "list_append",
-        parse_type_ref(args[0].type),
+        parse_type_ref_to_obj(args[0].type),
         primitive_vars[args[0].name]
         if not args[0].type.is_pointer
         else pointer_vars[args[0].name],

@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     TypeVar,
     cast,
+    Union,
 )
 import typing
 
@@ -25,14 +26,19 @@ from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import (
-    Bool,
+    Add,
+    And,
+    #Bool,
     BoolObject,
     Call,
     Eq,
     Expr,
     FnDecl,
     FnDeclRecursive,
-    Int,
+    FnT,
+    Gt,
+    Implies,
+    #Int,
     IntObject,
     Ite,
     Le,
@@ -45,7 +51,6 @@ from metalift.ir import (
     Or,
     Pointer,
     SetObject,
-    SetT,
     String,
     Sub,
     Synth,
@@ -53,7 +58,10 @@ from metalift.ir import (
     ListObject,
     create_object,
     parse_type_ref_to_obj,
+    Var,
 )
+
+from metalift.ir import Type
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
 from metalift.vc import Block
@@ -386,7 +394,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 }
 
 
-import metalift.objects as objects
+MLType = Union[Type, typing.Type["NewObject"]]
 
 # Helper classes
 
@@ -486,7 +494,7 @@ class ExprDict:
 
 
 # Helper functions
-def is_type_pointer(ty: Type) -> bool:
+def is_type_pointer(ty: MLType) -> bool:
     return (
         hasattr(ty, "__origin__") and ty.__origin__ in {ListObject, SetObject}
     )  # ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
@@ -572,7 +580,7 @@ def is_sret_arg(arg: ValueRef) -> bool:
 
 def find_return_type_and_sret_arg(
     fn_ref: ValueRef, blocks: Iterable[ValueRef]
-) -> Tuple[ObjectT, ValueRef]:
+) -> Tuple[MLType, ValueRef]:
     # First check if there are sret arguments. Currently, we only support at most one sret argument.
     sret_arg: Optional[ValueRef] = None
     for arg in fn_ref.arguments:
@@ -1247,7 +1255,7 @@ class VCVisitor:
         # TODO(jie) retire custom list.h interface
         val: Optional[NewObject] = None
         if t == "i8*":
-            val = Pointer(Lit(False, Bool()))
+            val = Pointer(Lit(False, BoolObject))
         elif t == "i32":
             val = IntObject(0)
         elif t == "i8":
@@ -1258,14 +1266,14 @@ class VCVisitor:
             val = ListObject[IntObject](IntObject)
         elif t.startswith("%struct.set"):
             # TODO(jie)
-            val = Lit(0, SetT(Int()))
+            val = Lit(0, SetObject[IntObject])
         elif t.startswith("%struct.tup."):
             # TODO(jie)
-            ret_type = [Int() for _ in range(int(t[-2]) + 1)]
+            ret_type = [IntObject for _ in range(int(t[-2]) + 1)]
             val = Lit(0, TupleT(*ret_type))
         elif t.startswith("%struct.tup"):
             # TODO(jie)
-            val = Lit(0, TupleT(Int(), Int()))
+            val = Lit(0, TupleT(IntObject, IntObject))
         elif t.startswith(
             "%struct."
         ):  # not a tuple or set, assume to be user defined type
@@ -1666,8 +1674,9 @@ class MetaliftFunc:
         #         )
 
         if self.fn_sret_arg is not None:
-            sret_obj_type = parse_type_ref_to_obj(self.fn_sret_arg.type)
-            sret_obj = create_object(sret_obj_type, self.fn_sret_arg.name)
+            sret_var = self.driver.var_tracker.variable(
+                self.fn_sret_arg.name, parse_type_ref_to_obj(self.fn_sret_arg.type)
+            )
         else:
             sret_obj = None
 

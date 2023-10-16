@@ -18,56 +18,35 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     # TODO(jie)
+    type_name = v.type.cls_str()
     if (
-        v.type.name == "Int"
-        or v.type.name == "ClockInt"
-        or v.type.name == "EnumInt"
-        or v.type.name == "OpaqueInt"
-        or v.type.name == "NodeIDInt"
+        # v.type.name == "Int"
+        # or v.type.name == "ClockInt"
+        # or v.type.name == "EnumInt"
+        # or v.type.name == "OpaqueInt"
+        # or v.type.name == "NodeIDInt"
+        type_name == "IntObject"
     ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif v.type == Bool:
+    elif  type_name == "BoolObject": #v.type.name == "Bool"
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif is_matrix_type(v.type):
-        len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
+    elif type_name == "ListObject" or type_name == "SetObject": #v.type.name == "MLList" or v.type.name == "Set":
+        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
 
-        tmp = [
-            v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound * listBound)
-        ]
-        nested_element_type = get_matrix_element_type(v.type)
         for t in tmp:
-            genVar(Var(t, nested_element_type), decls, vars_all, listBound)
-        nested_lsts: List[str] = [
-            f"(list {' '.join(tmp[i : i + listBound])})"
-            for i in range(0, len(tmp) - 1, listBound)
-        ]
-        decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
-        decls.append(decl)
+            genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
 
-    elif is_list_type(v.type) or is_set_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
+        genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
 
-        is_nested_list = is_nested_list_type(v.type)
-        if is_nested_list:
-            tmp = [
-                v.args[0] + "_BOUNDEDSET-" + str(i)
-                for i in range(listBound * listBound)
-            ]
-            nested_element_type = get_nested_list_element_type(v.type)
-            for t in tmp:
-                genVar(Var(t, nested_element_type), decls, vars_all, listBound)
-            nested_lsts: List[str] = [  # type: ignore
-                f"(list {' '.join(tmp[i : i + listBound])})"
-                for i in range(0, len(tmp) - 1, listBound)
-            ]
-            decl = (
-                f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+        if type_name == "SetObject":
+            decls.append(
+                "(define %s (sort (remove-duplicates (take %s %s)) <))"
+                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
             )
             decls.append(decl)
         else:
@@ -114,6 +93,14 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             "(define %s (map-normalize (take %s %s)))"
             % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
         )
+    elif type_name == "TupleObject":
+        elem_names = []
+        for i, t in enumerate(typing.get_args(v.type)):
+            elem_name = v.args[0] + "_TUPLE-" + str(i)
+            genVar(Var(elem_name, t), decls, vars_all, listBound)
+            elem_names.append(elem_name)
+
+        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     else:
         raise Exception(f"Unknown type: {v.type}")
 

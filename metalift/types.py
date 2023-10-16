@@ -107,7 +107,7 @@ def String() -> Type:
     return Type("String")
 
 
-def Pointer(t: Type) -> Type:
+def PointerT(t: Type) -> Type:
     return Type("Pointer", t)
 
 

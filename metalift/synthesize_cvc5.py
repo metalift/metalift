@@ -97,8 +97,11 @@ def generateCandidates(
         for a in ast[0]:
             if name in a:
                 args = {}
-                for v in ce.arguments():
-                    args[v.args[0]] = v.type
+                for v in ce.args[2:]:
+                    if isinstance(v, Expr):
+                        args[v.args[0]] = v.type
+                    else:
+                        args[v.name] = parse_type_ref_to_obj(v.type)
 
                 candidatesExpr[a[0]] = toExpr(a[1], funName, returnType, args, {})
                 candidates.append(
@@ -196,14 +199,14 @@ def toExpr(
                     *arg_eval,
                 )
         elif ast[0] == "as" and ast[1] == "set.empty":
-            return Call("set-create", mlSet[Int])  # TODO(shadaj): parse the type
+            return Call("set-create", SetObject[IntObject])  # TODO(shadaj): parse the type
         elif ast[0] == "set.insert":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s1 = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-insert", mlSet[v.type], v, s1)  # type: ignore
+            return Call("set-insert", SetObject[v.type], v, s1)
         elif ast[0] == "set.singleton":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
-            return Call("set-singleton", mlSet[v.type], v)  # type: ignore
+            return Call("set-singleton", SetObject[v.type], v)
         elif ast[0] == "set.eq":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
@@ -218,11 +221,11 @@ def toExpr(
         elif ast[0] == "set.subset":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-subset", Bool, s1, s2)
+            return Call("set-subset", BoolObject, s1, s2)
         elif ast[0] == "set.member":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-member", Bool, v, s)
+            return Call("set-member", BoolObject, v, s)
         else:
             raise Exception("Unknown expression: " + repr(ast))
     else:
