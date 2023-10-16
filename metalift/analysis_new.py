@@ -11,10 +11,8 @@ from metalift.ir import (
     Eq,
     Expr,
     Implies,
-    #Type,
     Var,
     NewObject,
-    #parse_type_ref,
     parse_type_ref_to_obj,
 )
 from metalift import ir, models_new

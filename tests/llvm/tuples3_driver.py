@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
-                         FnDeclRecursive, IntLit, IntObject, Mul, Sub, Tuple, TupleGet, TupleT, Var)
+from metalift.ir import (Add, Call, Choose, Expr,
+                         FnDeclRecursive, IntObject, Var)
 from tests.python.utils.utils import codegen
 
 def double(t):

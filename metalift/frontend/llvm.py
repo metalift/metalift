@@ -28,7 +28,6 @@ from metalift.frontend.utils import ObjectSet
 from metalift.ir import (
     Add,
     And,
-    #Bool,
     BoolObject,
     Call,
     Eq,
@@ -38,7 +37,6 @@ from metalift.ir import (
     FnT,
     Gt,
     Implies,
-    #Int,
     IntObject,
     Ite,
     Le,
@@ -47,7 +45,7 @@ from metalift.ir import (
     Mul,
     NewObject,
     Not,
-    Object,
+    ObjectExpr,
     Or,
     Pointer,
     SetObject,
@@ -1282,7 +1280,7 @@ class VCVisitor:
                 tname = o.group(1)
             else:
                 raise Exception("failed to match struct %s: " % t)
-            val = Object(MLType(tname))
+            val = ObjectExpr(MLType(tname))
         else:
             raise Exception("NYI: %s" % o)
 

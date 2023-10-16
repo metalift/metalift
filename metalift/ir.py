@@ -25,9 +25,6 @@ from typing import (
 )
 from metalift.types import (Type, FnT, String, PointerT, TupleT, MapT)
 
-# from metalift.visitor import Visitor
-# import metalift.visitor
-
 
 class PrintMode(Enum):
     SMT = 0

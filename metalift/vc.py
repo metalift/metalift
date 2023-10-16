@@ -108,7 +108,7 @@ class VC:
     def makeVar(self, name: str, ty: Union[TypeRef, ObjectT]) -> Expr:
         if isinstance(ty, TypeRef):
             ty = parse_type_ref_to_obj(ty)
-        elif isinstance(ty, Object):
+        elif isinstance(ty, Type):
             pass
         else:
             raise Exception("NYI %s with type %s" % (name, ty))
@@ -162,10 +162,10 @@ class VC:
         sorted_values.sort(key=lambda b: b.name)
         blockVCs: ListT[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
 
-        body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool))
+        body = Implies(And(*blockVCs), self.makeVar(firstBlockName, BoolObject))
 
         invAndPs = [
-            Synth(p.args[0], Lit(True, Bool), *p.args[1:])
+            Synth(p.args[0], Lit(True, BoolObject), *p.args[1:])
             for p in filter(
                 lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"),
                 self.preds.values(),
@@ -309,9 +309,9 @@ class VC:
         if not succs:
             succE = None
         elif len(succs) == 1:
-            succE = self.makeVar(succs[0].name, Bool)
+            succE = self.makeVar(succs[0].name, BoolObject)
         else:
-            succE = And(*[self.makeVar(s.name, Bool) for s in succs])
+            succE = And(*[self.makeVar(s.name, BoolObject) for s in succs])
 
         if not asserts:
             assertE = None
@@ -330,7 +330,7 @@ class VC:
             rhs = And(succE, assertE)  # type: ignore
 
         vc = Eq(
-            self.makeVar(blockName, Bool),
+            self.makeVar(blockName, BoolObject),
             rhs if not lhs else Implies(lhs, rhs),  # type: ignore
         )
 
@@ -356,31 +356,30 @@ class VC:
                     1
                 )  # bug: ops[0] always return i32 1 regardless of type
                 if t == "i32":
-                    s.mem[i] = Lit(0, Int)
+                    s.mem[i] = Lit(0, IntObject)
                 elif t == "i8":
-                    s.mem[i] = Lit(False, Bool)
+                    s.mem[i] = Lit(False, BoolObject)
                 elif t == "i1":
-                    s.mem[i] = Lit(False, Bool)
+                    s.mem[i] = Lit(False, BoolObject)
                 elif t == "%struct.list*":
-                    s.mem[i] = Lit(0, mlList[Int])
+                    s.mem[i] = Lit(0, ListObject[IntObject])
                 elif t.startswith("%struct.set"):
-                    s.mem[i] = Lit(0, mlSet[Int])
+                    s.mem[i] = Lit(0, SetObject(IntObject))
                 elif t.startswith("%struct.tup."):
-                    retType = [Int for i in range(int(t[-2]) + 1)]
-                    s.mem[i] = Lit(0, make_tuple_type(*retType))
+                    retType = [IntObject for i in range(int(t[-2]) + 1)]
+                    s.mem[i] = Lit(0, TupleT(*retType))
                 elif t.startswith("%struct.tup"):
-                    s.mem[i] = Lit(0, make_tuple_type(Int, Int))
-                # TODO: see how to handle user defined structs
-                # elif t.startswith(
-                #     "%struct."
-                # ):  # not a tuple or set, assume to be user defined type
-                #     o = re.search("%struct.(.+)", t)
-                #     if o:
-                #         tname = o.group(1)
-                #     else:
-                #         raise Exception("failed to match struct %s: " % t)
+                    s.mem[i] = Lit(0, TupleT(IntObject, IntObject))
+                elif t.startswith(
+                    "%struct."
+                ):  # not a tuple or set, assume to be user defined type
+                    o = re.search("%struct.(.+)", t)
+                    if o:
+                        tname = o.group(1)
+                    else:
+                        raise Exception("failed to match struct %s: " % t)
 
-                #     s.mem[i] = ObjectExpr(Type(tname))
+                    s.mem[i] = ObjectExpr(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 
@@ -451,9 +450,7 @@ class VC:
 
                 elif fnName in s.uninterpFuncs:
                     s.regs[i] = Call(
-                        fnName,
-                        parse_type_ref_to_obj(i.type),
-                        *[s.regs[op] for op in ops[:-1]],
+                        fnName, parse_type_ref_to_obj(i.type), *[s.regs[op] for op in ops[:-1]]
                     )
                     assigns.add(i)
 

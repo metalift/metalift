@@ -7,7 +7,6 @@ from metalift.ir import (
     MLInst_Or,
     MLInst_Return,
     Synth,
-    #Type,
     MLInst,
     BoolObject,
     MLInst_Call,
