@@ -25,9 +25,6 @@ from typing import (
 )
 from metalift.types import (Type, FnT, String, PointerT, TupleT, MapT)
 
-# from metalift.visitor import Visitor
-# import metalift.visitor
-
 
 class PrintMode(Enum):
     SMT = 0
@@ -1108,7 +1105,7 @@ class Lit(Expr):
         return v.visit_Lit(self)
 
 
-class Object(Expr):
+class ObjectExpr(Expr):
     def __init__(self, ty: Type) -> None:
         Expr.__init__(self, ty, {})
 
@@ -2513,7 +2510,7 @@ class Visitor(Generic[T]):
         pass
 
     @abstractmethod
-    def visit_Object(self, o: Object) -> T:
+    def visit_Object(self, o: ObjectExpr) -> T:
         pass
 
     @abstractmethod
@@ -2643,7 +2640,7 @@ class ExtendedVisitor(Visitor[None]):
     def visit_Lit(self, o: Lit) -> None:
         pass
 
-    def visit_Object(self, o: Object) -> None:
+    def visit_Object(self, o: ObjectExpr) -> None:
         pass
 
     def generic_visit(self, o: Expr, args: Any = None) -> None:
