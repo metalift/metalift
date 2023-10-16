@@ -993,8 +993,8 @@ class VCVisitor:
         res = []
         for var in loop_info.vector_havocs:
             parsed_type = parse_type_ref_to_obj(var.type)
-            # TODO colin: add generic (ie containedT) support needed for objects
-            if parsed_type in {ListObject}:
+            # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
+            if parsed_type.cls_str() in {"List", "Set", "Tuple"}:
                 res.append(parsed_type(IntObject, var.name))
             else:
                 res.append(parsed_type(var.name))
