@@ -392,6 +392,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 }
 
 
+#TODO: change it to MLType = typing.Type["NewObject"] when all Type has removed
 MLType = Union[Type, typing.Type["NewObject"]]
 
 # Helper classes

@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Expr,
+from metalift.ir import (Call, Choose, Expr,
                          FnDeclRecursive, IntObject, Var)
 from tests.python.utils.utils import codegen
 

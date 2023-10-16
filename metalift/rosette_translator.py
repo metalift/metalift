@@ -25,16 +25,16 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         # or v.type.name == "EnumInt"
         # or v.type.name == "OpaqueInt"
         # or v.type.name == "NodeIDInt"
-        type_name == "IntObject"
+        type_name == "Int"
     ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif  type_name == "BoolObject": #v.type.name == "Bool"
+    elif  type_name == "Bool": 
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif type_name == "ListObject" or type_name == "SetObject": #v.type.name == "MLList" or v.type.name == "Set":
+    elif type_name == "List" or type_name == "Set": #v.type.name == "MLList" or v.type.name == "Set":
         tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
 
         for t in tmp:
@@ -43,29 +43,18 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         len_name = v.args[0] + "_BOUNDEDSET-len"
         genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
 
-        if type_name == "SetObject":
+        if type_name == "Set":
             decls.append(
                 "(define %s (sort (remove-duplicates (take %s %s)) <))"
                 % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
             )
             decls.append(decl)
         else:
-            tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
-
-            for t in tmp:
-                genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
-
-            if is_set_type(v.type):
-                decls.append(
-                    "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-                )
-            else:
-                decls.append(
-                    "(define %s (take %s %s))"
-                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-                )
-    elif is_tuple_type(v.type):
+            decls.append(
+                "(define %s (take %s %s))"
+                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+            )
+    elif type_name == "Tuple":
         elem_names = []
         for i, t in enumerate(typing.get_args(v.type)):
             elem_name = v.args[0] + "_TUPLE-" + str(i)
@@ -73,8 +62,8 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
-    # TODO: change this once MapObject is ready
-    elif hasattr(v.type, "name") and v.type.name == "Map":
+    #TODO: change this once MapObject is ready
+    elif v.type.name == "Map":
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
@@ -93,14 +82,6 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             "(define %s (map-normalize (take %s %s)))"
             % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
         )
-    elif type_name == "TupleObject":
-        elem_names = []
-        for i, t in enumerate(typing.get_args(v.type)):
-            elem_name = v.args[0] + "_TUPLE-" + str(i)
-            genVar(Var(elem_name, t), decls, vars_all, listBound)
-            elem_names.append(elem_name)
-
-        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     else:
         raise Exception(f"Unknown type: {v.type}")
 

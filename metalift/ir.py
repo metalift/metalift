@@ -586,7 +586,7 @@ class Expr:
             return Mul(self, other)
 
 
-# Objects stuff
+### START OF IR OBJECTS
 
 def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
     if isinstance(type, Type):
@@ -594,14 +594,13 @@ def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
     else:
         return type.cls_str()
     
-def getTypeName(t: type) -> str:
-    if isinstance(
-        t, typing._GenericAlias
-    ):  # parameterized class -- python 3.9 has types.GenericAlias
-        args = ",".join(a.__name__ for a in t.__args__)
-        return f"{t.__origin__.__name__}[{args}]"
+def toRosetteType(t: typing.Type["NewObject"]) -> str:
+    if t == IntObject:
+        return "integer?"
+    elif t == BoolObject:
+        return "boolean?"
     else:
-        return f"{t.__name__}"
+        raise Exception("NYI: %s" % t)
     
 def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     ty_str = str(t)
@@ -650,12 +649,6 @@ class NewObject(Expr):
             raise Exception("source is not a variable")
         return typing.cast(Var, self.src).name()
 
-    def type_name(self) -> str:
-        if isParameterizedObject(self):
-            return getTypeName(self.__orig_class__)
-        else:
-            return getTypeName(self.__class__)
-
     def toSMT(self) -> str:
         return self.src.toSMT()
 
@@ -664,10 +657,6 @@ class NewObject(Expr):
 
     def __hash__(self) -> int:
         return hash(self.src)
-
-    # @abstractclassmethod
-    # def Expr_type() -> Type:
-    #     raise NotImplementedError()
 
     # TODO(jie): fix types and naming for type_args for all subclasses
     @staticmethod
@@ -684,7 +673,6 @@ class NewObject(Expr):
 
 class BoolObject(NewObject):
     def __init__(self, value: Optional[Union[bool, str, Expr]] = None) -> None:
-        BoolObject.name = "Bool"
         if value is None:  # a symbolic variable
             src = Var("v", BoolObject)  # XXX change to Bool
         elif isinstance(value, bool):
@@ -732,10 +720,6 @@ class BoolObject(NewObject):
             other = BoolObject(other)
         return BoolObject(Not(Eq(self, other)))
 
-    # @staticmethod
-    # def Expr_type() -> Type:
-    #     return BoolT()
-
     def __repr__(self):
         return f"{self.src}"
 
@@ -747,14 +731,12 @@ class BoolObject(NewObject):
 
     @staticmethod
     def cls_str() -> str:
-        # TODO(jie): change this to Bool once we retire the Bool type
-        return "BoolObject"
+        return "Bool"
 
 
 class IntObject(NewObject):
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
-        IntObject.name = "Int"
-        # TODO(jie) remove this once all types are gone
+       
         if value is None:  # a symbolic variable
             src = Var("v", IntObject)  # XXX change to Int
         elif isinstance(value, int):
@@ -770,10 +752,6 @@ class IntObject(NewObject):
             raise TypeError(f"Cannot create Int from {value}")
 
         super().__init__(src, IntObject)
-
-    # @staticmethod
-    # def Expr_type() -> Type:
-    #     return IntT()
 
     def binary_op(
         self, other: Union["IntObject", int], op: Callable[[Expr, Expr], Expr]
@@ -858,8 +836,7 @@ class IntObject(NewObject):
 
     @staticmethod
     def cls_str() -> str:
-        # TODO(jie): change this to Bool once we retire the Bool type
-        return "IntObject"
+        return "Int"
 
 
 T = TypeVar("T", bound=NewObject)
@@ -870,7 +847,6 @@ class ListObject(Generic[T], NewObject):
         containedT: Union[type, _GenericAlias] = IntObject,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        ListObject.name = "MLList"
         # _GenericAlias has __origin__ and __args__ attributes, use get_origin and get_args to access
         full_type = ListObject[containedT]
         if value is None:  # a symbolic variable
@@ -887,10 +863,6 @@ class ListObject(Generic[T], NewObject):
     @staticmethod
     def empty(containedT: Union[type, _GenericAlias]) -> "ListObject":
         return ListObject(containedT, Call("list_empty", ListObject[containedT]))
-
-    # @staticmethod
-    # def Expr_type() -> Type:
-    #     return ListT()
 
     def __len__(self) -> int:
         raise NotImplementedError("len must return an int, call len() instead")
@@ -1007,7 +979,7 @@ class ListObject(Generic[T], NewObject):
 
     @staticmethod
     def cls_str() -> str:
-        return "ListObject"
+        return "List"
 
 # TODO(jie): think of a way to unify the class constructors
 class SetObject(Generic[T], NewObject):
@@ -1016,8 +988,6 @@ class SetObject(Generic[T], NewObject):
         containedT: Union[type, _GenericAlias] = IntObject,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        SetObject.name = "Set"
-        SetObject.args = [IntObject]
         full_type = SetObject[containedT]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1094,7 +1064,7 @@ class SetObject(Generic[T], NewObject):
 
     @staticmethod
     def cls_str() -> str:
-        return "SetObject"
+        return "Set"
 
 IntT = TypeVar("IntT")
 class TupleObject(Generic[T, IntT], NewObject):
@@ -1107,6 +1077,7 @@ class TupleObject(Generic[T, IntT], NewObject):
         # TODO(jie): this looks hacky, what do I do about it?
         TupleObject.name = "Tuple"
         TupleObject.args = [IntObject]
+
         full_type = TupleObject[containedT, intT]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1156,20 +1127,9 @@ class TupleObject(Generic[T, IntT], NewObject):
     # TODO(jie): handle contained type
     @staticmethod
     def cls_str() -> str:
-        return "TupleObject"
-
-
-def isParameterizedType(t: type) -> bool:
-    return "__origin__" in t.__dict__
-
-
-def isParameterizedObject(o: NewObject) -> bool:
-    return "__orig_class__" in o.__dict__
-
-
-def getType(o: NewObject) -> type:
-    return o.__orig_class__ if isParameterizedObject(o) else type(o)
-
+        return "Tuple"
+    
+### END OF IR OBJECTS
 
 class Var(Expr):
     def __init__(self, name: str, ty: typing.Type[NewObject]) -> None:
@@ -1401,7 +1361,7 @@ class Eq(Expr):
     ) -> str:
         cmp_type = self.args[0].type
         # TODO(jie)
-        if issubclass(cmp_type, NewObject) and cmp_type.name == "Set":
+        if issubclass(cmp_type, NewObject) and cmp_type.cls_str() == "Set":
             name = "set-eq"
         else:
             name = self.RosetteName
@@ -2655,15 +2615,6 @@ def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
 #         return ListT(Int())
 #     else:
 #         raise Exception("NYI %s" % t)
-
-
-def toRosetteType(t: typing.Type["NewObject"]) -> str:
-    if t == IntObject:
-        return "integer?"
-    elif t == BoolObject:
-        return "boolean?"
-    else:
-        raise Exception("NYI: %s" % t)
 
 
 class Visitor(Generic[T]):
