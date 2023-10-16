@@ -22,7 +22,8 @@ def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Typ
     fnsType = {}
 
     for l in lang:
-        if l.type.name == "Function":
+        #TODO: fix when decided if function will be IR Objects
+        if hasattr(l.type, "name") and l.type.name == "Function":
             if not isinstance(l, ValueRef):
                 fnsType[l.args[0]] = l.type
             else:
@@ -67,7 +68,8 @@ def parseCandidates(
             new_args = []
             for ar in candidate.args:
                 if not isinstance(ar, str):
-                    if ar.type.name == "Function" and ar.args[0] in fnsType.keys():
+                    #TODO: fix when decided if function will be IR Objects
+                    if hasattr(ar.type, "name") and ar.type.name == "Function" and ar.args[0] in fnsType.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))

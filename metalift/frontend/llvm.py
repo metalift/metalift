@@ -62,6 +62,7 @@ from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
 from metalift.vc_util import and_exprs, or_exprs
 
+#TODO: change it to MLType = typing.Type["NewObject"] when all Type has removed
 MLType = Union[Type, typing.Type["NewObject"]]
 
 # Helper classes
