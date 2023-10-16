@@ -78,28 +78,28 @@ class Type:
         return hash(tuple(sorted({"name": self.name, "args": tuple(self.args)})))
 
 
-def Int() -> Type:
-    return Type("Int")
+# def Int() -> Type:
+#     return Type("Int")
 
 
-def ClockInt() -> Type:
-    return Type("ClockInt")
+# def ClockInt() -> Type:
+#     return Type("ClockInt")
 
 
-def EnumInt() -> Type:
-    return Type("EnumInt")
+# def EnumInt() -> Type:
+#     return Type("EnumInt")
 
 
-def OpaqueInt() -> Type:
-    return Type("OpaqueInt")
+# def OpaqueInt() -> Type:
+#     return Type("OpaqueInt")
 
 
-def NodeIDInt() -> Type:
-    return Type("NodeIDInt")
+# def NodeIDInt() -> Type:
+#     return Type("NodeIDInt")
 
 
-def Bool() -> Type:
-    return Type("Bool")
+# def Bool() -> Type:
+#     return Type("Bool")
 
 
 # for string literals
@@ -111,16 +111,16 @@ def PointerT(t: Type) -> Type:
     return Type("Pointer", t)
 
 
-def ListT(contentT: Type) -> Type:
-    return Type("MLList", contentT)
+# def ListT(contentT: Type) -> Type:
+#     return Type("MLList", contentT)
 
 
 def FnT(retT: Type, *argT: Type) -> Type:
     return Type("Function", retT, *argT)
 
 
-def SetT(contentT: Type) -> Type:
-    return Type("Set", contentT)
+# def SetT(contentT: Type) -> Type:
+#     return Type("Set", contentT)
 
 
 def MapT(keyT: Type, valT: Type) -> Type:

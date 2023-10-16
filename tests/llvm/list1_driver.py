@@ -3,8 +3,8 @@ from typing import List, Union, get_args
 from mypy.nodes import Statement
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (And, Bool, BoolLit, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Int, IntLit, Ite, Le, ListT, Lt, Var,
-    ListObject, IntObject, NewObject, BoolObject)
+from metalift.ir import (And, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Ite, Le, Lt, Var,
+    ListObject, IntObject, BoolObject)
 from tests.python.utils.utils import codegen
 
 
