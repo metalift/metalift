@@ -1,44 +1,46 @@
 from typing import List
 
-from mypy.nodes import Statement
-
 from metalift.frontend.python import Driver
 from metalift.ir import (Add, And, Call, Choose, Eq, Expr, FnDeclRecursive, Ge,
-                         Int, IntLit, Ite, Le, Sub, Var)
+                         IntObject, Ite, Le, NewObject, Sub)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
-    x = Var("x", Int())
+    x = IntObject("x")
     sum_n = FnDeclRecursive(
         "sum_n",
-        Int(),
+        IntObject,
         Ite(
-            Ge(x, IntLit(1)),
-            Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))),
-            IntLit(0),
+            Ge(x, IntObject(1)),
+            Add(x, Call("sum_n", IntObject, Sub(x, IntObject(1)))),
+            IntObject(0),
         ),
         x,
     )
     return [sum_n]
 
 
-def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    return Eq(ret_val, Call("sum_n", Int(), Choose(IntLit(1), IntLit(2))))
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+    return Eq(ret_val, Call("sum_n", IntObject, Choose(IntObject(1), IntObject(2))))
 
-def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     e = Choose(*writes)
-    f = Choose(IntLit(1), IntLit(2), IntLit(3))
-    c = Eq(e, Call("sum_n", Int(), Sub(e, f)))
+    f = Choose(IntObject(1), IntObject(2), IntObject(3))
+    c = Eq(e, Call("sum_n", IntObject, Sub(e, f)))
     d = And(Ge(e, f), Le(e, f))
     b = And(c, d)
     return b
 
 if __name__ == "__main__":
-    filename = "tests/python/while4.py"
-
     driver = Driver()
-    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
+    test = driver.analyze(
+        filepath="tests/python/while4.py",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
+    )
 
     test()
 
