@@ -823,7 +823,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             set_after_modification = Call(
                 func_call_name, callee_expr.type, callee_expr, singleton_set
             )
-            self.state.write(callee_expr.name(), set_after_modification)
+            self.state.write(callee_expr.var_name(), set_after_modification)
             return set_after_modification
         elif is_func_call(o) and get_fn_name(o) in self.uninterp_fns:
             # Uninterpreted functions
