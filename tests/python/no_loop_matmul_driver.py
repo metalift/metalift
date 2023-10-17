@@ -1,7 +1,10 @@
-from typing import List
+from typing import List, Literal
+
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Bool, FnDecl, FnDeclRecursive, Int, Object, Tuple as mlTuple, call, choose, ite, make_tuple, make_tuple_type)
+from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursive,
+                        IntObject, Ite, Lt, Mul, Sub, Tuple, TupleGet, TupleObject,
+                         TupleT, Var)
 from tests.python.utils.utils import codegen
 
 L1_NORM = "l1_norm"
@@ -9,48 +12,49 @@ MAT_MUL = "mat_mul"
 TWO_INT_TUPLE_TYPE = make_tuple_type(Int, Int)
 
 def target_lang() -> List[FnDeclRecursive]:
-    a = mlTuple((Int, Int), "a")
-    b = mlTuple((Int, Int), "b")
-    x = mlTuple((Int, Int), "x")
+    a = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "a")
+    b = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "b")
+    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
     p0l = a[0] * x[0]
     p0r = b[0] * x[1]
     p1l = a[1] * x[0]
     p1r = b[1] * x[1]
-    mat_mul_body = make_tuple(p0l + p0r, p1l + p1r)
-    mat_mul = FnDecl(MAT_MUL, TWO_INT_TUPLE_TYPE, mat_mul_body.src, a.src, b.src, x.src)
+    mat_mul_body_expr = Tuple(p0l + p0r, p1l + p1r)
+    mat_mul_body = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], mat_mul_body_expr)
+    mat_mul = FnDecl(MAT_MUL, TupleObject[IntObject, Literal[2]], mat_mul_body, a, b, x)
 
-    p = mlTuple((Int, Int), "p")
+    p = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "p")
+
     p0 = p[0]
     p1 = p[1]
-    p0_abs = ite(p0 < 0, 0 - p0, p0)
-    p1_abs = ite(p1 < 0, 0 - p1, p1)
-    l1_norm_body = p0_abs + p1_abs
-    l1_norm = FnDecl(L1_NORM, Int, l1_norm_body.src, p.src)
+    p0_abs = Ite(p0 < 0, IntObject(0) - p0, p0)
+    p1_abs = Ite(p1 < 0, IntObject(0) - p1, p1)
+    l1_norm_body = IntObject(Add(p0_abs, p1_abs))
+    l1_norm = FnDecl(L1_NORM, IntObject, l1_norm_body, p)
 
     return [mat_mul, l1_norm]
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
+def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     a0, a1, b0, b1, x0, x1 = reads
     # Calculate the matrix-vector product
-    a = make_tuple(a0, a1)
-    b = make_tuple(b0, b1)
-    x = make_tuple(x0, x1)
-    p = call(MAT_MUL, TWO_INT_TUPLE_TYPE, a, b, x)
-    wrong_p = call(MAT_MUL, TWO_INT_TUPLE_TYPE, b, a, x)
-    wrong_p2 = call(MAT_MUL, TWO_INT_TUPLE_TYPE, a, x,  b)
+    a = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], Tuple(a0, a1))
+    b = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], Tuple(b0, b1))
+    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], Tuple(x0, x1))
+    p = Call(MAT_MUL, TupleObject[IntObject, Literal[2]], a, b, x)
+    wrong_p = Call(MAT_MUL, TupleObject[IntObject, Literal[2]], b, a, x)
+    wrong_p2 = Call(MAT_MUL, TupleObject[IntObject, Literal[2]], a, x, b)
 
     # this is the correct answer
-    l1_norm_p = call(L1_NORM, Int, p)
+    l1_norm_p = Call(L1_NORM, IntObject, p)
     # this is a wrong answer
-    l1_norm_wrong_p = call(L1_NORM, Int, wrong_p)
+    l1_norm_wrong_p = Call(L1_NORM, IntObject, wrong_p)
     # this is a wrong answer
-    l1_norm_wrong_p2 = call(L1_NORM, Int, wrong_p2)
+    l1_norm_wrong_p2 = Call(L1_NORM, IntObject, wrong_p2)
 
     return ret_val == choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2)
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     raise Exception("no loop in the source")
 
 if __name__ == "__main__":
@@ -59,12 +63,12 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    a0 = Int("a0")
-    a1 = Int("a1")
-    b0 = Int("b0")
-    b1 = Int("b1")
-    x0 = Int("x0")
-    x1 = Int("x1")
+    a0 = IntObject("a0")
+    a1 = IntObject("a1")
+    b0 = IntObject("b0")
+    b1 = IntObject("b1")
+    x0 = IntObject("x0")
+    x1 = IntObject("x1")
     driver.add_var_objects([a0, a1, b0, b1, x0, x1])
 
     test(a0, a1, b0, b1, x0, x1)

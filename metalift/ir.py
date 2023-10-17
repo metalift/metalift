@@ -1101,7 +1101,7 @@ class TupleObject(Generic[T, IntT], NewObject):
         if isinstance(index, IntObject):
             if issubclass(self.containedT, NewObject):
                 # TODO(jie) should return a containedT object
-                return Call("tupleGet", self.containedT, self, index)
+                return self.containedT(Call("tupleGet", self.containedT, self, index))
                 # return self.containedT(Call("tupleGet", self.containedT, self, index))
             else:
                 raise Exception(
