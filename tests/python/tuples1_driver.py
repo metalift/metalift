@@ -1,31 +1,33 @@
-from typing import List
+from typing import List, Literal
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Bool, Int, Tuple as mlTuple, Object, call, choose, fn_decl_recursive, make_tuple)
+from metalift.ir import (Call, Choose, Expr, FnDeclRecursive,
+                         IntObject, Mul, Tuple, TupleObject, NewObject)
 from tests.python.utils.utils import codegen
 
 
 def tuple_mult(t):
-    return call("tuple_mult", Int, t)
+    return IntObject(Call("tuple_mult", IntObject, t))
 
 def target_lang():
-    x = mlTuple((Int, Int), "x")
-    tuple_mult = fn_decl_recursive(
+    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
+    tuple_mult = FnDeclRecursive(
         "tuple_mult",
-        Int,
-        x[0] * x[1],
+        IntObject,
+        Mul(x[0], x[1]), # TODO(jie): maybe we can even rewrite this mul using *
         x
     )
     return [tuple_mult]
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     raise Exception("no invariant")
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
-    x_tuple = make_tuple(x, x)
-    y_tuple = make_tuple(y, y)
-    summary = choose(
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+    x_tuple_src = Tuple(x, x)
+    y_tuple_src = Tuple(y, y)
+    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
+    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
+    summary = Choose(
         ret_val == tuple_mult(x_tuple) + tuple_mult(y_tuple),
         ret_val == tuple_mult(x_tuple) - tuple_mult(y_tuple)
     )
@@ -41,8 +43,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = Int("x")
-    y = Int("y")
+    x = IntObject("x")
+    y = IntObject("y")
     driver.add_var_objects([x, y])
 
     test(x, y)
