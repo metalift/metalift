@@ -5,10 +5,9 @@ from metalift.ir import (
     Eq,
     Expr,
     FnDecl,
-    Int,
-    IntLit,
+    IntObject,
     Ite,
-    Var,
+    NewObject,
 )
 
 from mypy.nodes import Statement
@@ -19,22 +18,21 @@ def target_lang() -> List[FnDecl]:
 
 
 def ps_grammar(
-    ret_val: Var,
-    ast: Statement,
-    writes: List[Var],
-    reads: List[Var],
-    in_scope: List[Var],
+    ret_val: NewObject,
+    writes: List[NewObject],
+    reads: List[NewObject],
+    in_scope: List[NewObject],
 ) -> Expr:
     i = reads[0]
-    default = IntLit(40)
-    case3 = Ite(Eq(i, IntLit(3)), IntLit(30), default)
-    case2 = Ite(Eq(i, IntLit(2)), IntLit(20), case3)
-    case1 = Ite(Eq(i, IntLit(1)), IntLit(10), case2)
+    default = IntObject(40)
+    case3 = Ite(i == 3, IntObject(30), default)
+    case2 = Ite(i == 2, IntObject(20), case3)
+    case1 = Ite(i == 1, IntObject(10), case2)
     return Eq(ret_val, case1)
 
 
 def inv_grammar(
-    v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]
+    v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
 ) -> Expr:
     raise Exception("no loop in the source")
 
@@ -45,7 +43,8 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    arg = driver.variable("arg", Int())
+    arg = IntObject("arg")
+    driver.add_var_object(arg)
     test(arg)
 
     driver.synthesize()

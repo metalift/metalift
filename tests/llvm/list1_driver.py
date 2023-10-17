@@ -1,9 +1,7 @@
-from typing import List, Union, get_args
-
-from mypy.nodes import Statement
+from typing import List, Union
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (And, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Ite, Le, Lt, Var,
+from metalift.ir import (And, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Ite, Le, Lt, NewObject,
     ListObject, IntObject, BoolObject)
 from tests.python.utils.utils import codegen
 
@@ -106,7 +104,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         select_func2,
     ]
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     # reads = [in_lst]
     return Choose(
         Call("list_eq", BoolObject, ret_val, *reads),
@@ -115,7 +113,7 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
         Call("list_eq", BoolObject, ret_val, Call("Select2", ListObject[IntObject], *reads))
     )
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     # This grammar func could be called with v as `i` or `out_lst`, and we really only want to generate this grammar once.
     if v.var_name() != "out":
         return BoolObject(True)

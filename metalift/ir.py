@@ -789,7 +789,7 @@ class ListObject(Generic[T], NewObject):
     def append(self, value: T) -> "ListObject":
         containedT = typing.get_args(self.type)[0]
 
-        if type(value) != containedT:
+        if value.type != containedT:
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {containedT}"
             )
@@ -1981,7 +1981,7 @@ class Choose(Expr):
         if not all(a.type == args[0].type for a in args):
             raise Exception(
                 "Choose args are of different types: %s"
-                % " ".join(str(a) for a in args)
+                % " ".join(str(a.type) for a in args)
             )
         Expr.__init__(self, args[0].type, args)
 
