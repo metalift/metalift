@@ -463,6 +463,8 @@ def toRosetteType(t: typing.Type["NewObject"]) -> str:
         raise Exception("NYI: %s" % t)
 
 def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
+    if isclass(t) and issubclass(t, NewObject):
+        return t
     ty_str = str(t)
     if ty_str in {"i32", "i32*"}:
         return IntObject
@@ -1979,7 +1981,6 @@ class Synth(Expr):
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
         if not all(a.type == args[0].type for a in args):
-            import pdb; pdb.set_trace()
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a.type) for a in args)
@@ -2078,7 +2079,7 @@ class FnDeclRecursive(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:])
+            args_type = " ".join(parse_type_ref_to_obj(a.type).toSMTType(get_args(a.type)) for a in self.args[2:])
             ret_type = self.returnT()
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
