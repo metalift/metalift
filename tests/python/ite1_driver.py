@@ -1,7 +1,15 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import Bool, FnDecl, Int, Object, ite
+
+from metalift.ir import (
+    Eq,
+    Expr,
+    FnDecl,
+    IntObject,
+    Ite,
+    NewObject,
+)
 
 
 def target_lang() -> List[FnDecl]:
@@ -9,18 +17,18 @@ def target_lang() -> List[FnDecl]:
 
 
 def ps_grammar(
-    writes: List[Object],
-    reads: List[Object],
-    in_scope: List[Object],
-) -> Bool:
-    ret_val = writes[0]
+    ret_val: NewObject,
+    writes: List[NewObject],
+    reads: List[NewObject],
+    in_scope: List[NewObject],
+) -> Expr:
     i = reads[0]
-    return ret_val == ite(i > 10, Int(1), Int(2))
+    return Eq(ret_val, Ite(i > 10, IntObject(1), IntObject(2)))
 
 
 def inv_grammar(
-   writes: List[Object], reads: List[Object], in_scope: List[Object]
-) -> Bool:
+    v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
+) -> Expr:
     raise Exception("no loop in the source")
 
 
@@ -30,7 +38,7 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    i = Int("i")
+    i = IntObject("i")
     driver.add_var_object(i)
     test(i)
 

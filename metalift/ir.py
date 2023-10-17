@@ -593,7 +593,7 @@ def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
         return str(type)
     else:
         return type.cls_str()
-    
+
 def toRosetteType(t: typing.Type["NewObject"]) -> str:
     if t == IntObject:
         return "integer?"
@@ -601,7 +601,7 @@ def toRosetteType(t: typing.Type["NewObject"]) -> str:
         return "boolean?"
     else:
         raise Exception("NYI: %s" % t)
-    
+
 def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     ty_str = str(t)
     if ty_str in {"i32", "i32*"}:
@@ -736,7 +736,7 @@ class BoolObject(NewObject):
 
 class IntObject(NewObject):
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
-       
+
         if value is None:  # a symbolic variable
             src = Var("v", IntObject)  # XXX change to Int
         elif isinstance(value, int):
@@ -1017,8 +1017,8 @@ class SetObject(Generic[T], NewObject):
 
     @staticmethod
     def singleton(item: NewObject) -> "SetObject":
-        expr = Call("set-singleton", SetObject[type(item)], item)
-        return SetObject[type(item)](type(item), expr)
+        expr = Call("set-singleton", SetObject[item.type], item)
+        return SetObject[type(item)](item.type, expr)
 
     def union(self, s: "SetObject") -> "SetObject":
         if s.containedT != self.containedT:
@@ -1128,7 +1128,7 @@ class TupleObject(Generic[T, IntT], NewObject):
     @staticmethod
     def cls_str() -> str:
         return "Tuple"
-    
+
 ### END OF IR OBJECTS
 
 class Var(Expr):
