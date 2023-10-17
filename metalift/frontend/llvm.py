@@ -414,8 +414,6 @@ class State:
         self.primitive_vars[var_name] = value
 
     def store_var(self, var_name: str, value: NewObject) -> None:
-        # if var_name == "test_rv":
-        #     import pdb; pdb.set_trace()
         self.pointer_vars[var_name] = value
 
     def read_or_load_var(self, var_name: str) -> NewObject:
@@ -465,7 +463,6 @@ class Predicate:
         )
 
     def gen_Synth(self) -> Synth:
-        # print(f"gen args: {self.args}, writes: {self.writes}, reads: {self.reads}, scope: {self.in_scope}")
         v_exprs = [self.grammar(v, self.writes, self.reads) for v in self.writes]
         body = and_exprs(*v_exprs)
         return Synth(self.name, body, *self.args)
@@ -564,11 +561,6 @@ class VCVisitor:
         self.ps_grammar = ps_grammar
 
         self.loops = loops
-
-    # Computed properties
-    @property
-    def formals(self) -> List[LLVMVar]:
-        return [LLVMVar(arg.name(), arg.type) for arg in self.fn_args]
 
     # Helper functions
     # Helper functions for reading and writing variables

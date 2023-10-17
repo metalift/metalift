@@ -5,14 +5,10 @@ from metalift.ir import (
     Eq,
     Expr,
     FnDecl,
-    Gt,
-    Int,
-    IntLit,
+    IntObject,
     Ite,
-    Var,
+    NewObject,
 )
-
-from mypy.nodes import Statement
 
 
 def target_lang() -> List[FnDecl]:
@@ -20,18 +16,17 @@ def target_lang() -> List[FnDecl]:
 
 
 def ps_grammar(
-    ret_val: Var,
-    ast: Statement,
-    writes: List[Var],
-    reads: List[Var],
-    in_scope: List[Var],
+    ret_val: NewObject,
+    writes: List[NewObject],
+    reads: List[NewObject],
+    in_scope: List[NewObject],
 ) -> Expr:
     i = reads[0]
-    return Eq(ret_val, Ite(Gt(i, IntLit(10)), IntLit(1), IntLit(2)))
+    return Eq(ret_val, Ite(i > 10, IntObject(1), IntObject(2)))
 
 
 def inv_grammar(
-    v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]
+    v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
 ) -> Expr:
     raise Exception("no loop in the source")
 
@@ -42,7 +37,8 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    i = driver.variable("i", Int())
+    i = IntObject("i")
+    driver.add_var_object(i)
     test(i)
 
     driver.synthesize()
