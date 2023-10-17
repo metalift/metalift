@@ -312,7 +312,7 @@ class PredicateTracker:
             return self.predicates[o]
         else:
             non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args))
-            non_args_scope_vars.sort()
+            non_args_scope_vars.sort(key=lambda obj: obj.var_name())
             args = (
                 args + non_args_scope
             )  # add the vars that are in scope but not part of args, in sorted order
@@ -805,7 +805,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         if isinstance(base, MLTuple):
             return TupleGet(base, index)
         if is_list_type_expr(base):
-            return Call("list_get", IntObject, base, index)
+            return base[index]
         raise Exception("Can only index into tuples and lists!")
 
     def visit_list_expr(self, o: ListExpr) -> Object:
@@ -835,8 +835,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
                 raise Exception(".append only supported on lists!")
             assert len(o.args) == 1
             elem_to_append = o.args[0].accept(self)
+            var_name = callee_expr.var_name()
             list_after_append = callee_expr.append(elem_to_append)
-            self.state.write(callee_expr.name(), list_after_append)
+            self.state.write(var_name, list_after_append)
             return list_after_append
         elif is_method_call_with_name(o, "add") or is_method_call_with_name(
             o, "remove"
