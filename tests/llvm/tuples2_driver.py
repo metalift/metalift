@@ -2,7 +2,7 @@ from typing import List, Literal
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import (Add, Call, Choose, Expr,
-                         FnDeclRecursive, IntObject, Tuple, TupleObject, Var)
+                         FnDeclRecursive, IntObject, Tuple, TupleObject, NewObject)
 from tests.python.utils.utils import codegen
 
 def tuple_add(t):
@@ -18,10 +18,10 @@ def target_lang():
     )
     return [tuple_add]
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    raise Exception("no invariant")
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+    raise Exception("no inNewObjectiant")
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     (x, y) = reads
     x_tuple_src = Tuple(x, x)
     y_tuple_src = Tuple(y, y)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     x = IntObject("x")
     y = IntObject("y")
-    driver.add_var_objects([x, y])
+    driver.add_NewObject_objects([x, y])
 
     test(x, y)
 

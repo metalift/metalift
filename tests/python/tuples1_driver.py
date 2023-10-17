@@ -1,45 +1,54 @@
-from typing import List
+from typing import List, Literal
+
 from metalift.frontend.python import Driver
-
-from metalift.ir import Add, Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Mul, Sub, Tuple, TupleGet, TupleT, Var
-
-from mypy.nodes import Statement
-
+from metalift.ir import (Call, Choose, Expr, FnDeclRecursive,
+                         IntObject, Mul, Tuple, TupleObject, NewObject)
 from tests.python.utils.utils import codegen
 
-def target_lang() -> List[FnDecl]:
-    x = Var("x", TupleT(Int(), Int()))
-    tuple_mult = FnDecl(
-        "tuple_mult", 
-        Int(), 
-        Mul(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))),
+
+def tuple_mult(t):
+    return IntObject(Call("tuple_mult", IntObject, t))
+
+def target_lang():
+    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
+    tuple_mult = FnDeclRecursive(
+        "tuple_mult",
+        IntObject,
+        Mul(x[0], x[1]), # TODO(jie): maybe we can even rewrite this mul using *
         x
     )
     return [tuple_mult]
 
-def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    def tuple_mult(t: Expr):
-        return Call("tuple_mult", Int(), t)
-    x, y = reads[0], reads[1]
-    return Choose(
-        Eq(ret_val, Add(tuple_mult(Tuple(x, x)), tuple_mult(Tuple(y, y)))),
-        Eq(ret_val, Sub(tuple_mult(Tuple(x, x)), tuple_mult(Tuple(y, y)))),
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+    raise Exception("no invariant")
+
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+    x_tuple_src = Tuple(x, x)
+    y_tuple_src = Tuple(y, y)
+    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
+    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
+    summary = Choose(
+        ret_val == tuple_mult(x_tuple) + tuple_mult(y_tuple),
+        ret_val == tuple_mult(x_tuple) - tuple_mult(y_tuple)
+    )
+    return summary
+
+if __name__ == "__main__":
+    driver = Driver()
+    test = driver.analyze(
+        filepath="tests/python/tuples1.py",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
     )
 
-def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    raise Exception("no invariant")
-    
-if __name__ == "__main__":
-    filename = "tests/python/tuples1.py"
+    x = IntObject("x")
+    y = IntObject("y")
+    driver.add_var_objects([x, y])
 
-    driver = Driver()    
-    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
+    test(x, y)
 
-    v1 = driver.variable("x", Int())
-    v2 = driver.variable("y", Int())
-
-    test(v1, v2)
-    
     driver.synthesize()
 
     print("\n\ngenerated code:" + test.codegen(codegen))

@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ExprSet
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
@@ -29,6 +29,7 @@ from metalift.ir import (
     Synth,
     Tuple as MLTuple,
     TupleGet,
+    TupleObject,
     Type as MLType,
     Var,
     create_object,
@@ -84,7 +85,7 @@ from mypy.visitor import ExpressionVisitor, StatementVisitor
 
 import copy
 
-from metalift.ir_util import is_list_type_expr, is_set_type_expr
+from metalift.ir_util import is_list_type_expr, is_set_type_expr, is_tuple_type_expr
 
 from metalift.mypy_util import (
     get_fn_name,
@@ -747,7 +748,19 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
 
     def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
-        return MLTuple(*[expr.accept(self) for expr in o.items])
+        tuple_expr = MLTuple(*[expr.accept(self) for expr in o.items])
+        tuple_length = len(o.items)
+        if tuple_length == 1:
+            literal_type = Literal[1]
+        elif tuple_length == 2:
+            literal_type = Literal[2]
+        elif tuple_length == 3:
+            literal_type = Literal[3]
+        else:
+            raise Exception("Make tuple only supports length <= 3")
+
+        return_type = TupleObject[IntObject, literal_type]
+        return return_type(IntObject, literal_type, tuple_expr)
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
         # Currently only supports indexing into tuples and lists using integers
@@ -755,8 +768,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         base = o.base.accept(self)
         if index.type != IntObject:
             raise Exception("Index must be int!")
-        if isinstance(base, MLTuple):
-            return TupleGet(base, index)
+        if is_tuple_type_expr(base):
+            return base[index]
         if is_list_type_expr(base):
             return base[index]
         raise Exception("Can only index into tuples and lists!")

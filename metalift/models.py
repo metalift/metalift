@@ -235,7 +235,6 @@ def make_tuple(
         literal_type = Literal[2]
     elif tuple_length == 3:
         literal_type = Literal[3]
-
     else:
         raise Exception("Make tuple only supports length <= 3")
 
