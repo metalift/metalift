@@ -47,7 +47,6 @@ class VariableTracker(object):
 
     def variable(self, name: str, type: typing.Type["NewObject"]) -> Var:
         self.var_to_type[name] = type
-
         return Var(name, type)
 
     def all(self) -> List[Var]:

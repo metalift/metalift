@@ -22,14 +22,14 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: NewObject, ast: Statement, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     var = Choose(*reads, IntObject(0))
     added = var + var
     var_or_fma = Choose(*reads, Call("fma", IntObject, added, added, added))
 
     return Eq(ret_val, var_or_fma + var_or_fma)
 
-def inv_grammar(v: NewObject, ast: Statement, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     raise Exception("no loop in the source")
 
 

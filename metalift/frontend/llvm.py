@@ -23,6 +23,7 @@ from llvmlite.binding import TypeRef, ValueRef
 from metalift import models
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
+from metalift.frontend.utils import ExprDict
 from metalift.ir import (
     Add,
     And,
@@ -132,39 +133,6 @@ class LoopInfo:
             exits=[blocks[exit_name] for exit_name in raw_loop_info.exit_names],
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
-
-
-class ExprDict:
-    def __init__(self) -> None:
-        self.kv_pairs = []
-
-    def __getitem__(self, key: Expr) -> Any:
-        for k, v in self.kv_pairs:
-            if Expr.__eq__(k, key):
-                return v
-        raise Exception(f"{key} does not exist!")
-
-    def __setitem__(self, key: Expr, value: Any) -> None:
-        for i, (k, _) in enumerate(self.kv_pairs):
-            if Expr.__eq__(k, key):
-                self.kv_pairs[i] = (k, value)
-                return
-        self.kv_pairs.append((key, value))
-
-    def __contains__(self, key: Expr):
-        return any([Expr.__eq__(k, key) for (k, _) in self.kv_pairs])
-
-    def __len__(self):
-        return len(self.kv_pairs)
-
-    def keys(self) -> List[Expr]:
-        return [kv_pair[0] for kv_pair in self.kv_pairs]
-
-    def values(self) -> List[Any]:
-        return [kv_pair[1] for kv_pair in self.kv_pairs]
-
-    def items(self) -> List[Expr]:
-        return self.kv_pairs
 
 
 # Helper functions

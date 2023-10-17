@@ -1,6 +1,7 @@
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
 from metalift.analysis_new import VariableTracker
+from metalift.frontend.utils import ExprSet
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
@@ -249,7 +250,7 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Call:
-        return Call(self.name, BoolObject, *[state.read(v[0]) for v in self.args])
+        return Call(self.name, BoolObject, *[state.read(v.var_name()) for v in self.args])
 
     def gen_Synth(self) -> Synth:
         v_exprs = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
@@ -280,12 +281,11 @@ class PredicateTracker:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            non_args_scope_vars = list(set(in_scope) - set(args))
+            non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args))
             non_args_scope_vars.sort()
             args = (
                 args + non_args_scope_vars
             )  # add the vars that are in scope but not part of args, in sorted order
-
             inv = Predicate(
                 o, args, writes, reads, in_scope, f"{fn_name}_inv{self.num}", grammar
             )
@@ -314,6 +314,7 @@ class PredicateTracker:
 class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     # class VCVisitor(ExtendedTraverserVisitor):
 
+    driver: "Driver"
     fn_name: str
     fn_type: CallableType
     ast: FuncDef
@@ -335,11 +336,12 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
     def __init__(
         self,
+        driver: "Driver",
         fn_name: str,
         fn_type: CallableType,
         ast: FuncDef,
-        args: List[Expr],
-        ret_val: Optional[Expr],
+        args: List[NewObject],
+        ret_val: Optional[NewObject],
         state: State,
         invariants: Dict[WhileStmt, Predicate],
         var_tracker: VariableTracker,
@@ -349,6 +351,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         types: Dict[MypyExpr, MypyType],
         uninterp_fns: List[str],
     ) -> None:
+        self.driver = driver
         self.fn_name = fn_name
         self.fn_type = fn_type
         self.ast = ast
@@ -502,13 +505,18 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             for name, type
             in reads
         ]
+        in_scope_objects = [
+            create_object(to_object_type(type), name)
+            for name, type
+            in in_scope
+        ]
         inv = self.pred_tracker.invariant(
             fn_name=self.fn_name,
             o=o,
-            args=formals,
+            args=self.args,
             writes=write_objects,
             reads=read_objects,
-            in_scope=in_scope,
+            in_scope=in_scope_objects,
             grammar=self.inv_grammar
         )
         self.invariants[o] = inv
@@ -523,11 +531,12 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         # havoc the modified vars
         for var in v.writes:
-            new_value = self.var_tracker.variable(var[0], to_object_type(var[1]))
+            new_value = create_object(to_object_type(var[1]), var[0])
+            self.driver.add_var_object(new_value)
             self.state.write(var[0], new_value)
-            # print(f"havoc: {var[0]} -> {new_value}")
 
         body_visitor = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            self.driver,
             self.fn_name,
             self.fn_type,
             self.ast,
@@ -591,6 +600,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         c_state = copy.deepcopy(self.state)
         c_state.precond.append(cond)
         consequent = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            self.driver,
             self.fn_name,
             self.fn_type,
             self.ast,
@@ -608,6 +618,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         a_state = copy.deepcopy(self.state)
         a_state.precond.append(Not(cond))
         alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            self.driver,
             self.fn_name,
             self.fn_type,
             self.ast,
@@ -954,6 +965,7 @@ class MetaliftFunc:
         state.precond += self.driver.postconditions
 
         v = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
+            self.driver,
             self.name,
             cast(CallableType, self.ast.type),
             self.ast,
