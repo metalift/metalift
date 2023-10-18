@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
 from inspect import isclass
-from re import L
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
@@ -19,7 +18,6 @@ from typing import (
     Optional,
     Tuple,
     _GenericAlias,
-    ForwardRef,
     get_args,
     get_origin,
 )
@@ -626,8 +624,8 @@ def create_object(
 ) -> "NewObject":
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
-        contained_type = get_args(object_type)[0]
-        return object_cls(contained_type, value)
+        contained_types = get_args(object_type)
+        return object_cls(*contained_types, value)
     else:
         return object_type(value)
 
@@ -1102,7 +1100,6 @@ class TupleObject(Generic[T, IntT], NewObject):
             if issubclass(self.containedT, NewObject):
                 # TODO(jie) should return a containedT object
                 return self.containedT(Call("tupleGet", self.containedT, self, index))
-                # return self.containedT(Call("tupleGet", self.containedT, self, index))
             else:
                 raise Exception(
                     "Only primitive object types inside tuples are supported!"

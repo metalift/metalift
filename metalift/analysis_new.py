@@ -11,12 +11,12 @@ from metalift.ir import (
     Eq,
     Expr,
     Implies,
+    IntObject,
     Var,
     NewObject,
     parse_type_ref_to_obj,
 )
 from metalift import ir, models_new
-import typing
 
 
 def format_with_index(a: str, idx: int) -> str:
@@ -29,7 +29,7 @@ def format_with_index(a: str, idx: int) -> str:
 class VariableTracker(object):
     groups: Dict[str, int]
     existing: Dict[str, int]
-    var_to_type: Dict[str, typing.Type["NewObject"]]
+    var_to_type: Dict[str, Type["NewObject"]]
 
     def __init__(self) -> None:
         self.groups = {}
@@ -44,7 +44,7 @@ class VariableTracker(object):
             self.groups[name] = 0
         return VariableGroup(self, format_with_index(name, self.groups[name]))
 
-    def variable(self, name: str, type: typing.Type["NewObject"]) -> Var:
+    def variable(self, name: str, type: Type["NewObject"]) -> Var:
         self.var_to_type[name] = type
         return Var(name, type)
 
@@ -57,7 +57,7 @@ class VariableGroup(object):
         self.tracker = tracker
         self.name = name
 
-    def existing_variable(self, name: str, type: typing.Type["NewObject"]) -> Var:
+    def existing_variable(self, name: str, type: Type["NewObject"]) -> Var:
         my_name = f"{self.name}_{name}"
 
         if my_name not in self.tracker.existing:
@@ -74,7 +74,7 @@ class VariableGroup(object):
         )
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
-    def variable_or_existing(self, name: str, type: typing.Type["NewObject"]) -> Var:
+    def variable_or_existing(self, name: str, type: Type["NewObject"]) -> Var:
         my_name = f"{self.name}_{name}"
         if my_name not in self.tracker.existing:
             self.tracker.existing[my_name] = 0
@@ -93,7 +93,7 @@ class VariableGroup(object):
         )
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
-    def variable(self, name: str, type: typing.Type["NewObject"]) -> Var:
+    def variable(self, name: str, type: Type["NewObject"]) -> Var:
         my_name = f"{self.name}_{name}"
         if my_name in self.tracker.existing:
             self.tracker.existing[my_name] += 1
@@ -111,7 +111,7 @@ class RawBlock(object):
     name: str
     instructions: List[ValueRef]
     successors: Set[str]
-    return_type: Optional[typing.Type["NewObject"]] = None
+    return_type: Optional[Type["NewObject"]] = None
 
     def __init__(self, name: str, instructions: List[ValueRef]) -> None:
         self.name = name
@@ -428,8 +428,8 @@ class LoopBlock(RichBlock):
 
 class AnalysisResult(object):
     name: str
-    arguments: List[Var]
-    return_type: typing.Type["NewObject"]
+    arguments: List[NewObject]
+    return_type: Type["NewObject"]
     blocks: Dict[str, RawBlock]
     loop_info: Dict[str, LoopInfo]
 
@@ -527,6 +527,8 @@ def analyze(
 #         print(block)
 #         print()
 
-#     variable_tracker = VariableTracker()
-#     vc = test_analysis.call(Int("in"))(variable_tracker, lambda ret: ret == 0)
-#     print(vc)
+    variable_tracker = VariableTracker()
+    vc = test_analysis.call(IntObject("in"))(
+        variable_tracker, lambda ret: ret == 0
+    )
+    print(vc)
