@@ -5,6 +5,8 @@ from llvmlite.binding import ValueRef
 from metalift.ir import Call, Expr, NewObject, ListObject, IntObject, SetObject, TupleObject, parse_type_ref_to_obj
 from metalift.vc_util import parseOperand
 
+from enum import Enum
+
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
@@ -214,6 +216,7 @@ def new_tuple(
     return ReturnValue(Call("newTuple", TupleObject[IntObject, Literal[2]]), None)
 
 
+
 def make_tuple(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
@@ -229,14 +232,8 @@ def make_tuple(
 
     # TODO(jie): handle types other than IntObject
     tuple_length = len(args)
-    if tuple_length == 1:
-        literal_type = Literal[1]
-    elif tuple_length == 2:
-        literal_type = Literal[2]
-    elif tuple_length == 3:
-        literal_type = Literal[3]
-    else:
-        raise Exception("Make tuple only supports length <= 3")
+    
+    literal_type = Literal[tuple_length] # type: ignore
 
     return_type = TupleObject[IntObject, literal_type]
 

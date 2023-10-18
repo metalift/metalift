@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     x = IntObject("x")
     y = IntObject("y")
-    driver.add_NewObject_objects([x, y])
+    driver.add_var_objects([x, y])
 
     test(x, y)
 
