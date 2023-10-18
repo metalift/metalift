@@ -936,10 +936,6 @@ class TupleObject(Generic[T, IntT], NewObject):
         intT: type = Literal[1],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        # TODO(jie): this looks hacky, what do I do about it?
-        TupleObject.name = "Tuple"
-        TupleObject.args = [IntObject]
-
         full_type = TupleObject[containedT, intT]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
