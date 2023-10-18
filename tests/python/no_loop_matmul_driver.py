@@ -3,8 +3,7 @@ from typing import List, Literal
 
 from metalift.frontend.python import Driver
 from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursive,
-                        IntObject, Ite, Lt, Mul, Sub, Tuple, TupleGet, TupleObject,
-                         TupleT, Var)
+                        IntObject, Ite, Tuple, TupleObject, Var)
 from tests.python.utils.utils import codegen
 
 L1_NORM = "l1_norm"

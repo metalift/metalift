@@ -13,7 +13,6 @@ from typing import (
     Tuple,
     TypeVar,
     cast,
-    Union,
 )
 import typing
 
@@ -30,7 +29,6 @@ from metalift.ir import (
     BoolObject,
     Call,
     Eq,
-    Expr,
     FnDecl,
     FnDeclRecursive,
     FnT,
@@ -57,14 +55,11 @@ from metalift.ir import (
     parse_type_ref_to_obj,
     Var,
 )
+from metalift.ir_util import MLType, is_type_pointer
 
-from metalift.ir import Type
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
 from metalift.vc_util import and_exprs, or_exprs
-
-#TODO: change it to MLType = typing.Type["NewObject"] when all Type has removed
-MLType = Union[Type, typing.Type["NewObject"]]
 
 # Helper classes
 RawLoopInfo = NamedTuple(
@@ -107,14 +102,11 @@ class LoopInfo:
             for i in block.instructions:
                 opcode = i.opcode
                 ops = list(i.operands)
-                # TODO(jie): need a better way of distinguishing non-vector vs vector havocs?
-                # Or even maybe just storing them together
                 if opcode == "store" and ops[1] not in self.non_vector_havocs:
                     self.non_vector_havocs.append(ops[1])
                 elif opcode == "call":
                     args = ops[:-1]
                     fn_name = get_fn_name_from_call_instruction(i)
-                    # TODO(jie): should this be moved to models.py
                     if fn_name == "push_back":
                         self.vector_havocs.append(args[0])
 
@@ -133,13 +125,6 @@ class LoopInfo:
             exits=[blocks[exit_name] for exit_name in raw_loop_info.exit_names],
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
-
-
-# Helper functions
-def is_type_pointer(ty: MLType) -> bool:
-    return (
-        hasattr(ty, "__origin__") and ty.__origin__ in {ListObject, SetObject}
-    )  # ty.name == "MLList" or ty.name == "Set" or ty.name == "Tuple"
 
 
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
@@ -222,7 +207,7 @@ def is_sret_arg(arg: ValueRef) -> bool:
 
 def find_return_type_and_sret_arg(
     fn_ref: ValueRef, blocks: Iterable[ValueRef]
-) -> Tuple[MLType, ValueRef]:
+) -> Tuple[typing.Type[NewObject], ValueRef]:
     # First check if there are sret arguments. Currently, we only support at most one sret argument.
     sret_arg: Optional[ValueRef] = None
     for arg in fn_ref.arguments:
@@ -491,7 +476,7 @@ class VCVisitor:
     fn_name: str
     fn_type: MLType
     fn_args: List[NewObject]  # whose src are variables
-    fn_sret_arg: Optional[Var]
+    fn_sret_arg: Optional[NewObject]
     fn_blocks_states: Dict[str, State]
 
     var_tracker: VariableTracker
@@ -507,8 +492,8 @@ class VCVisitor:
         driver: "Driver",
         fn_name: str,
         fn_type: MLType,
-        fn_args: List[Var],
-        fn_sret_arg: Optional[Var],
+        fn_args: List[NewObject],
+        fn_sret_arg: Optional[NewObject],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
@@ -602,10 +587,7 @@ class VCVisitor:
         for var in loop_info.vector_havocs:
             parsed_type = parse_type_ref_to_obj(var.type)
             # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
-            if parsed_type.cls_str() in {"List", "Set", "Tuple"}:
-                res.append(parsed_type(IntObject, var.name))
-            else:
-                res.append(parsed_type(var.name))
+            res.append(create_object(parsed_type, var.name))
         return res
 
     def get_non_vector_havocs(self, loop_info: LoopInfo) -> List[NewObject]:
@@ -1169,24 +1151,24 @@ class MetaliftFunc:
             for raw_loop in raw_loops
         ]
 
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
+    def __call__(self, *args: NewObject, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
         num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
         if num_expected_args != num_actual_args:
             raise RuntimeError(
                 f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
             )
-        # for i in range(len(args)):
-        #     passed_in_arg_name, passed_in_arg_type = args[i].name(), args[i].type
-        #     fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
-        #     if passed_in_arg_name != fn_arg_name:
-        #         raise Exception(
-        #             f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
-        #         )
-        #     if passed_in_arg_type != fn_arg_type:
-        #         raise RuntimeError(
-        #             f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
-        #         )
+        for i in range(len(args)):
+            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
+            fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
+            if passed_in_arg_name != fn_arg_name:
+                raise Exception(
+                    f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
+                )
+            if passed_in_arg_type != fn_arg_type:
+                raise RuntimeError(
+                    f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
+                )
 
         if self.fn_sret_arg is not None:
             sret_var = self.driver.var_tracker.variable(

@@ -1,41 +1,15 @@
 import re
-from llvmlite import binding as llvm
+from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
+                    Set, Tuple, Type, Union, cast)
 
-from metalift.ir import (
-    Expr,
-    MLInst_Eq,
-    MLInst_Or,
-    MLInst_Return,
-    Synth,
-    MLInst,
-    BoolObject,
-    MLInst_Call,
-    NewObject,
-    MLInst_Load,
-    MLInst_Assert,
-    MLInst_Assume,
-    MLInst_Havoc,
-    MLInst_Not,
-    String,
-    Lit,
-    Var,
-)
-from metalift.vc import Block, VC
+from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
-import typing
+
+from metalift.ir import (BoolObject, Expr, Lit, MLInst, MLInst_Assert,
+                         MLInst_Assume, MLInst_Call, MLInst_Eq, MLInst_Havoc,
+                         MLInst_Load, MLInst_Not, MLInst_Or, MLInst_Return,
+                         NewObject, String, Synth, Var)
+from metalift.vc import VC, Block
 
 orig_value_ref_operands = ValueRef.operands
 
@@ -202,7 +176,7 @@ class CodeInfo:
     def __init__(
         self,
         name: str,
-        retT: typing.Type["NewObject"],
+        retT: Type["NewObject"],
         modifiedVars: List[Union[ValueRef, Expr]],
         readVars: List[Union[ValueRef, Expr]],
     ) -> None:
@@ -329,7 +303,7 @@ def processBranches(
             ps: Union[MLInst, Expr] = MLInst_Call(
                 fnName, BoolObject, returnArg, *filteredArgs
             )
-            # Jie TODO: not sure what wrapSummaryCheck is doing
+            # TODO(jie): not sure what wrapSummaryCheck is doing
             if wrapSummaryCheck:
                 ps, transformedArgs = wrapSummaryCheck(cast(MLInst, ps))
                 returnArg = transformedArgs[0]
