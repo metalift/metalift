@@ -2,9 +2,8 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, And, BoolObject, Call, Choose, Eq, Expr,
-                         FnDeclRecursive, Ge, Gt, IntObject, Ite, Le, Lt,
-                         NewObject, Or, Sub, call, choose, ite)
+from metalift.ir import (BoolObject, Expr, FnDeclRecursive, IntObject,
+                         NewObject, call, choose, ite)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
