@@ -21,7 +21,7 @@ from typing import (
     get_args,
     get_origin,
 )
-from metalift.types import (Type, FnT, String, PointerT, TupleT, MapT)
+from metalift.types import (Type, FnT, PointerT, TupleT)
 
 
 class PrintMode(Enum):
@@ -443,6 +443,8 @@ class Expr:
             if isinstance(a, ValueRef) and a.name != "":
                 retStr += "%s" % (a.name) + " "
             else:
+                if str(a) == "(Lit:Int 10)" and not isinstance(a, Expr):
+                    import pdb; pdb.set_trace()
                 strExp = a.toRosette() if isinstance(a, Expr) else str(a)
                 retStr += strExp + " "
         retStr += ")"
@@ -628,7 +630,10 @@ def create_object(
         return object_type(value)
 
 def get_object_sources(objects: List["NewObject"]) -> List[Expr]:
-    return [obj.src for obj in objects]
+    try:
+        return [obj.src for obj in objects]
+    except:
+        import pdb; pdb.set_trace()
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
@@ -638,9 +643,17 @@ def choose(*objects: "NewObject") -> "NewObject":
         raise Exception("Must have at least 1 object to choose from!")
     # Assume that all objects passed in will have the same type, even if not, the call to Choose
     # will handle exception throwing for us.
-    object_type = type(objects[0])
+    object_type = objects[0].type
     choose_expr = Choose(*get_object_sources(objects))
     return create_object(object_type, choose_expr)
+
+def ite(cond: "BoolObject", then_object: "NewObject", else_object: "NewObject") -> "NewObject":
+    ite_type = then_object.type
+    ite_expr = Ite(cond.src, then_object.src, else_object.src)
+    return create_object(ite_type, ite_expr)
+
+def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
+    return BoolObject(Implies(e1.src, e2.src))
 
 def call(fn_name: str, return_type: typing.Type["NewObject"], *object_args: "NewObject") -> "NewObject":
     call_expr = Call(fn_name, return_type, *get_object_sources(object_args))

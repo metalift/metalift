@@ -30,6 +30,7 @@ from metalift.ir import (
     BoolObject,
     Call,
     Eq,
+    Expr,
     FnDecl,
     FnDeclRecursive,
     FnT,
@@ -47,13 +48,14 @@ from metalift.ir import (
     Or,
     Pointer,
     SetObject,
-    String,
     Sub,
     Synth,
     TupleT,
     ListObject,
+    call,
     create_object,
     get_object_sources,
+    implies,
     parse_type_ref_to_obj,
     Var,
 )
@@ -62,334 +64,7 @@ from metalift.ir_util import MLType, is_object_pointer_type
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
 from metalift.vc import Block
-
-# Models
-ReturnValue = NamedTuple(
-    "ReturnValue",
-    [
-        ("val", Optional[Object]),
-        ("assigns", Optional[List[Tuple[str, Object, str]]]),
-    ],
-)
-
-PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
-PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >)"
-NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >)"
-
-
-def set_create(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    return ReturnValue(mlSet.empty(Int), None)
-
-
-def set_add(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    s = state.read_or_load_operand(args[0])
-    item = state.read_or_load_operand(args[1])
-    return ReturnValue(s.add(item), None)  # type: ignore
-
-
-def set_remove(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    s = state.read_or_load_operand(args[0])
-    item = state.read_or_load_operand(args[1])
-    return ReturnValue(s.remove(item), None)  # type: ignore
-
-
-def set_contains(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    s = state.read_or_load_operand(args[0])
-    item = state.read_or_load_operand(args[1])
-    return ReturnValue(item in s, None)  # type: ignore
-
-
-def new_list(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 0
-    return ReturnValue(mlList.empty(Int), None)
-
-
-def list_length(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 1
-    # TODO(jie) think of how to better handle list of lists
-    lst = state.read_or_load_operand(args[0])
-    return ReturnValue(
-        lst.len(),  # type: ignore
-        None,
-    )
-
-
-def list_get(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    lst = state.read_or_load_operand(args[0])
-    index = state.read_or_load_operand(args[1])
-    return ReturnValue(
-        lst[index],  # type: ignore
-        None,
-    )
-
-
-def list_append(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    lst = state.read_or_load_operand(args[0])
-    value = state.read_or_load_operand(args[1])
-    return ReturnValue(
-        lst.append(value),  # type: ignore
-        None,
-    )
-
-
-def list_concat(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    lst1 = state.read_or_load_operand(args[0])
-    lst2 = state.read_or_load_operand(args[1])
-    return ReturnValue(
-        lst1 + lst2,  # type: ignore
-        None,
-    )
-
-
-def new_vector(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-
-    assert len(args) == 1
-    primitive_match = re.match(
-        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
-    )
-    nested_match = re.match(
-        rf"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
-    )
-    if primitive_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
-    elif nested_match:
-        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
-    else:
-        raise Exception(
-            f"Could not determine vector type from demangled function name {full_demangled_name}"
-        )
-
-    var_name: str = args[0].name
-
-    contained_type = get_list_element_type(list_type)
-
-    if (
-        contained_type == mlList[Int]
-    ):  # special case when the vector is a matrix (2d array)
-        list_obj = Matrix.empty(get_list_element_type(contained_type))
-    else:
-        list_obj = mlList.empty(contained_type)
-
-    list_loc = state.get_var_location(var_name)
-    return ReturnValue(None, [(var_name, list_obj, list_loc)])
-
-
-def vector_append(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    assign_var_name: str = args[0].name
-
-    assign_val = call(
-        "list_append",
-        parse_type_ref_to_obj(args[0].type),
-        state.read_or_load_operand(args[0]),
-        state.read_or_load_operand(args[1]),
-    )
-    assign_loc = state.get_var_location(assign_var_name)
-    return ReturnValue(
-        None,
-        [(assign_var_name, assign_val, assign_loc)],
-    )
-
-
-def vector_length(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 1
-    primitive_match = re.match(
-        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
-    )
-    nested_match = re.match(
-        rf"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
-    )
-    if primitive_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
-    elif nested_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
-    else:
-        raise Exception(
-            f"Could not determine vector type from demangled function name {full_demangled_name}"
-        )
-    lst = state.read_or_load_operand(args[0])
-    if not isinstance(lst, mlList) and not isinstance(lst, Matrix):
-        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
-    lst.containedT = get_list_element_type(list_type)
-
-    var_name = args[0].name
-    var_loc = state.get_var_location(var_name)
-    return ReturnValue(
-        lst.len(),
-        [(var_name, lst, var_loc)],
-    )
-
-
-def vector_get(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    assert len(args) == 2
-    lst = state.read_or_load_operand(args[0])
-    index = state.read_or_load_operand(args[1])
-    var_name = args[0].name
-    var_loc = state.get_var_location(var_name)
-    return ReturnValue(
-        lst[index],  # type: ignore
-        [(var_name, lst, var_loc)],
-    )
-
-
-def new_tuple(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    # TODO(jie): handle types other than Int
-    return ReturnValue(call("newTuple", make_tuple_type(Int, Int)), None)
-
-
-def make_tuple(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    # TODO(jie): handle types other than Int
-    reg_vals = [state.read_or_load_operand(args[i]) for i in range(len(args))]
-    contained_type = [Int for _ in range(len(args))]
-    return_type = make_tuple_type(*contained_type)
-    return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
-
-
-def tuple_get(
-    state: "State",
-    global_vars: Dict[str, str],
-    full_demangled_name: str,
-    *args: ValueRef,
-) -> ReturnValue:
-    return ReturnValue(
-        call(
-            "tupleGet",
-            Int,
-            state.read_or_load_operand(args[0]),
-            state.read_or_load_operand(args[1]),
-        ),
-        None,
-    )
-
-
-def get_field(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
-    global_vars: Dict[str, str],
-    *args: ValueRef,
-) -> ReturnValue:
-    (fieldName, obj) = args
-    val = pointer_vars[obj.name].args[fieldName.args[0]]
-    # primitive_vars[i] = pointer_vars[obj].args[fieldName.args[0]
-    return ReturnValue(val, None)
-
-
-def set_field(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
-    global_vars: Dict[str, str],
-    *args: ValueRef,
-) -> ReturnValue:
-    (fieldName, obj, val) = args
-    pointer_vars[obj.name].args[fieldName.args[0]] = primitive_vars[val.name]
-    # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
-    return ReturnValue(None, None)
-
-
-fn_models: Dict[str, Callable[..., ReturnValue]] = {
-    # list methods
-    "newList": new_list,
-    "listLength": list_length,
-    "listAppend": list_append,
-    "listGet": list_get,
-    # vector methods
-    "vector": new_vector,
-    "size": vector_length,
-    "push_back": vector_append,
-    "operator[]": vector_get,
-    "getField": get_field,
-    "setField": set_field,
-    # names for set.h
-    "set_create": set_create,
-    "set_add": set_add,
-    "set_remove": set_remove,
-    "set_contains": set_contains,
-    # tuple methods
-    "MakeTuple": make_tuple,
-    "tupleGet": tuple_get,
-}
-
+from metalift.vc_util import and_exprs, and_objects, or_exprs, or_objects
 
 # Helper classes
 
@@ -633,19 +308,19 @@ LLVMVar = NamedTuple(
 
 
 class State:
-    precond: List[NewObject]
+    precond: List[BoolObject]
     primitive_vars: Dict[str, NewObject]
     pointer_vars: Dict[str, NewObject]
-    asserts: List[NewObject]
+    asserts: List[BoolObject]
     has_returned: bool
     processed: bool
 
     def __init__(
         self,
-        precond: Optional[List[NewObject]] = None,
+        precond: Optional[List[BoolObject]] = None,
         primitive_vars: Optional[Dict[str, NewObject]] = None,
         pointer_vars: Optional[Dict[str, NewObject]] = None,
-        asserts: Optional[List[NewObject]] = None,
+        asserts: Optional[List[BoolObject]] = None,
         has_returned: bool = False,
     ) -> None:
         self.precond = precond or []
@@ -660,11 +335,11 @@ class State:
             return self.read_var(op.name)
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, BoolObject)
+            return BoolObject(True)
         elif val == "false":
-            return Lit(False, BoolObject)
+            return BoolObject(False)
         else:  # assuming it's a number
-            return Lit(int(val), IntObject)
+            return IntObject(int(val))
 
     def load_operand(self, op: ValueRef) -> NewObject:
         if not op.name:
@@ -757,13 +432,13 @@ class Predicate:
         self.grammar = grammar
         self.synth = None
 
-    def call(self, state: State) -> Call:
-        return Call(
+    def call(self, state: State) -> BoolObject:
+        call_expr = Call(
             self.name,
             BoolObject,
             *[state.read_or_load_var(v.var_name()) for v in self.args],
         )
-        return cast(Bool, call_res)
+        return BoolObject(call_expr)
 
     def gen_Synth(self) -> Synth:
         v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
@@ -1025,78 +700,61 @@ class VCVisitor:
             blk_state.has_returned = False
             blk_state.processed = False
         else:
-            pred_preconds: List[NewObject] = []
+            pred_preconds: List[BoolObject] = []
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                if len(pred_state.precond) >= 1:
+                if len(pred_state.precond) > 1:
                     pred_preconds.append(and_objects(*pred_state.precond))
-            if len(pred_preconds) >= 1:
+                else:
+                    pred_preconds.append(pred_state.precond[0])
+            if len(pred_preconds) > 1:
                 blk_state.precond = [or_objects(*pred_preconds)]
+            else:
+                blk_state.precond = pred_preconds
 
             # TODO(jie): handle global vars and uninterpreted functions
 
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            primitive_var_state: Dict[str, ExprDict] = defaultdict(lambda: ExprDict())
-            pointer_var_state: Dict[str, ExprDict] = defaultdict(lambda: ExprDict())
+            primitive_var_state: Dict[str, Dict[Expr, List[List[BoolObject]]]] = defaultdict(lambda: defaultdict(list))
+            pointer_var_state: Dict[str, Dict[Expr, List[List[BoolObject]]]] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                for var_name, var_value in pred_state.primitive_vars.items():
+                for var_name, var_object in pred_state.primitive_vars.items():
                     var_value_dict = primitive_var_state[var_name]
-                    if var_value not in var_value_dict:
-                        primitive_var_state[var_name][var_value] = []
-                    primitive_var_state[var_name][var_value].append(pred_state.precond)
-                for var_name, var_value in pred_state.pointer_vars.items():
+                    var_expr = var_object.src
+                    if var_expr not in var_value_dict:
+                        primitive_var_state[var_name][var_expr] = []
+                    primitive_var_state[var_name][var_expr].append(pred_state.precond)
+                for var_name, var_object in pred_state.pointer_vars.items():
                     var_value_dict = pointer_var_state[var_name]
-                    if var_value not in var_value_dict:
-                        pointer_var_state[var_name][var_value] = []
-                    pointer_var_state[var_name][var_value].append(pred_state.precond)
+                    var_expr = var_object.src
+                    if var_expr not in var_value_dict:
+                        pointer_var_state[var_name][var_expr] = []
+                    pointer_var_state[var_name][var_expr].append(pred_state.precond)
 
             for field_name, var_state in [
                 ("primitive_vars", primitive_var_state),
                 ("pointer_vars", pointer_var_state),
             ]:
                 merged_vars: Dict[str, NewObject] = {}
-                for var_name, value_to_precond_mapping in var_state.items():
-                    if len(value_to_precond_mapping) == 1:
+                for var_name, expr_value_to_precond_mapping in var_state.items():
+                    if len(expr_value_to_precond_mapping) == 1:
                         # If there is just one possible value for this variable, we keep this value.
                         merged_expr = list(expr_value_to_precond_mapping.keys())[0]
                     else:
                         # Otherwise if there are multiple possible values for this variable, we create a mapping from possible values to their associated preconditions.
-                        value_to_aggregated_precond = ExprDict()
-                        for value, all_preconds in value_to_precond_mapping.items():
-                            all_aggregated_preconds: List[NewObject] = []
+                        expr_value_to_aggregated_precond: Dict[Expr, BoolObject] = {}
+                        for expr_value, all_preconds in expr_value_to_precond_mapping.items():
+                            all_aggregated_preconds: List[Expr] = []
                             for preconds in all_preconds:
-                                all_aggregated_preconds.append(and_exprs(*preconds))
-                            value_to_aggregated_precond[value] = or_exprs(
+                                all_aggregated_preconds.append(and_objects(*preconds))
+                            expr_value_to_aggregated_precond[expr_value] = or_objects(
                                 *all_aggregated_preconds
                             )
                         # Merge the different possible values with an Ite statement.
-                        merged_value: Optional[NewObject] = None
-                        for (
-                            expr_value,
-                            all_preconds,
-                        ) in expr_value_to_precond_mapping.items():
-                            all_aggregated_preconds: List[Object] = []
-                            for preconds in all_preconds:
-                                if len(preconds) >= 1:
-                                    all_aggregated_preconds.append(
-                                        and_objects(*preconds)
-                                    )
-                            if len(all_aggregated_preconds) >= 1:
-                                expr_value_to_aggregated_precond[
-                                    expr_value
-                                ] = or_objects(
-                                    *all_aggregated_preconds  # type: ignore
-                                )
-                            else:
-                                expr_value_to_aggregated_precond[expr_value] = Bool(
-                                    True
-                                )
-
-                        # Merge the different possible values with an Ite statement.
-                        merged_expr: Optional[Expr] = None  # type: ignore
+                        merged_expr: Optional[Expr] = None
                         for (
                             expr_value,
                             aggregated_precond,
@@ -1105,7 +763,9 @@ class VCVisitor:
                                 merged_expr = expr_value
                             else:
                                 merged_expr = Ite(
-                                    aggregated_precond.src, expr_value, merged_expr
+                                    aggregated_precond.src,
+                                    expr_value,
+                                    merged_expr
                                 )
                         if merged_expr is None:
                             # This in theory should never happen, but let's just be safe
@@ -1183,7 +843,10 @@ class VCVisitor:
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
-                    implies(and_objects(*blk_state.precond), inv.call(blk_state))
+                    implies(
+                        and_objects(*blk_state.precond),
+                        inv.call(blk_state)
+                    )
                 )
             else:
                 blk_state.asserts.append(inv.call(blk_state))
@@ -1313,21 +976,19 @@ class VCVisitor:
         cond = cond_match.group(1)
         op0 = self.read_operand_from_block(block_name, ops[0])
         op1 = self.read_operand_from_block(block_name, ops[1])
-        value: Optional[NewObject] = None
+        obj: Optional[BoolObject] = None
 
         obj: Bool
         if cond == "eq":
-            obj = op0 == op1  # type: ignore
+            obj = op0 == op1
         elif cond == "ne":
-            obj = (op0 == op1).Not()  # type: ignore
+            obj = (op0 == op1).Not()
         elif cond == "sgt":
-            obj = op0 > op1  # type: ignore
+            obj = op0 > op1
         elif cond == "sle":
-            obj = op0 <= op1  # type: ignore
+            obj = op0 <= op1
         elif cond == "slt" or cond == "ult":
-            obj = op0 < op1  # type: ignore
-        elif cond == "sge":
-            obj = op0 >= op1  # type: ignore
+            obj = op0 < op1
         else:
             raise Exception("NYI %s" % cond)
 
@@ -1370,7 +1031,7 @@ class VCVisitor:
         else:
             raise Exception("ret void not supported yet!")
         # TODO(jie) use the call method of the predicate
-        ps = Call(
+        ps = call(
             self.pred_tracker.predicates[self.fn_name].name,
             BoolObject,
             *self.fn_args,

@@ -1,7 +1,7 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import And, Expr, Lit, BoolObject, IntObject, Or
+from metalift.ir import And, Expr, Lit, BoolObject, IntObject, Or, get_object_sources
 from typing import Dict
 
 
@@ -36,22 +36,16 @@ def and_exprs(*exprs: Expr) -> Expr:
         result = And(result, expr)
     return result
 
+def and_objects(*objects: BoolObject) -> BoolObject:
+    return BoolObject(and_exprs(*get_object_sources(objects)))
+
 
 # TODO(jie): should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
-    if len(exprs) == 0:
-        raise Exception("Must provide at least one expression!")
-    result = exprs[0]
-    for expr in exprs[1:]:
-        result = Or(result, expr)
-    return result
+    if len(exprs) == 1:
+        return exprs[0]
+    else:
+        return Or(*exprs)
 
-
-def and_objects(*objects: Bool) -> Bool:
-    deduped_objects = ObjectSet(objects).objects()
-    return Bool(and_exprs(*get_object_exprs(*deduped_objects)))
-
-
-def or_objects(*objects: Bool) -> Bool:
-    deduped_objects = ObjectSet(objects).objects()
-    return Bool(or_exprs(*get_object_exprs(*deduped_objects)))
+def or_objects(*objects: BoolObject) -> BoolObject:
+    return BoolObject(or_exprs(*get_object_sources(objects)))
