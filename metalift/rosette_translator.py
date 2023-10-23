@@ -3,7 +3,7 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var, ListObject
+from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, Var, ListObject
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
@@ -30,7 +30,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif  type_name == "Bool": 
+    elif  type_name == "Bool":
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
@@ -141,7 +141,7 @@ def toRosette(
     vars: Set[Var],
     invAndPs: typing.Sequence[Union[FnDeclRecursive, ir.Synth]],
     preds: List[Expr],
-    vc: Expr,
+    vc: BoolObject,
     loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
     invGuess: List[Any],
     unboundedInts: bool,

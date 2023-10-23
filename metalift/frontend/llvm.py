@@ -29,6 +29,7 @@ from metalift.ir import (
     BoolObject,
     Call,
     Eq,
+    Expr,
     FnDecl,
     FnDeclRecursive,
     FnT,
@@ -46,13 +47,14 @@ from metalift.ir import (
     Or,
     Pointer,
     SetObject,
-    String,
     Sub,
     Synth,
     TupleT,
     ListObject,
+    call,
     create_object,
     get_object_sources,
+    implies,
     parse_type_ref_to_obj,
     Var,
 )
@@ -60,7 +62,7 @@ from metalift.ir_util import MLType, is_object_pointer_type
 
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
-from metalift.vc_util import and_exprs, or_exprs
+from metalift.vc_util import and_exprs, and_objects, or_exprs, or_objects
 
 # Helper classes
 RawLoopInfo = NamedTuple(
@@ -300,19 +302,19 @@ LLVMVar = NamedTuple(
 
 
 class State:
-    precond: List[NewObject]
+    precond: List[BoolObject]
     primitive_vars: Dict[str, NewObject]
     pointer_vars: Dict[str, NewObject]
-    asserts: List[NewObject]
+    asserts: List[BoolObject]
     has_returned: bool
     processed: bool
 
     def __init__(
         self,
-        precond: Optional[List[NewObject]] = None,
+        precond: Optional[List[BoolObject]] = None,
         primitive_vars: Optional[Dict[str, NewObject]] = None,
         pointer_vars: Optional[Dict[str, NewObject]] = None,
-        asserts: Optional[List[NewObject]] = None,
+        asserts: Optional[List[BoolObject]] = None,
         has_returned: bool = False,
     ) -> None:
         self.precond = precond or []
@@ -327,11 +329,11 @@ class State:
             return self.read_var(op.name)
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, BoolObject)
+            return BoolObject(True)
         elif val == "false":
-            return Lit(False, BoolObject)
+            return BoolObject(False)
         else:  # assuming it's a number
-            return Lit(int(val), IntObject)
+            return IntObject(int(val))
 
     def load_operand(self, op: ValueRef) -> NewObject:
         if not op.name:
@@ -409,12 +411,13 @@ class Predicate:
         self.grammar = grammar
         self.synth = None
 
-    def call(self, state: State) -> Call:
-        return Call(
+    def call(self, state: State) -> BoolObject:
+        call_expr = Call(
             self.name,
             BoolObject,
             *[state.read_or_load_var(v.var_name()) for v in self.args],
         )
+        return BoolObject(call_expr)
 
     def gen_Synth(self) -> Synth:
         v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
@@ -666,15 +669,15 @@ class VCVisitor:
             blk_state.has_returned = False
             blk_state.processed = False
         else:
-            pred_preconds: List[NewObject] = []
+            pred_preconds: List[BoolObject] = []
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 if len(pred_state.precond) > 1:
-                    pred_preconds.append(And(*pred_state.precond))
+                    pred_preconds.append(and_objects(*pred_state.precond))
                 else:
                     pred_preconds.append(pred_state.precond[0])
             if len(pred_preconds) > 1:
-                blk_state.precond = [Or(*pred_preconds)]
+                blk_state.precond = [or_objects(*pred_preconds)]
             else:
                 blk_state.precond = pred_preconds
 
@@ -683,56 +686,61 @@ class VCVisitor:
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            primitive_var_state: Dict[str, ExprDict] = defaultdict(lambda: ExprDict())
-            pointer_var_state: Dict[str, ExprDict] = defaultdict(lambda: ExprDict())
+            primitive_var_state: Dict[str, Dict[Expr, List[List[BoolObject]]]] = defaultdict(lambda: defaultdict(list))
+            pointer_var_state: Dict[str, Dict[Expr, List[List[BoolObject]]]] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                for var_name, var_value in pred_state.primitive_vars.items():
+                for var_name, var_object in pred_state.primitive_vars.items():
                     var_value_dict = primitive_var_state[var_name]
-                    if var_value not in var_value_dict:
-                        primitive_var_state[var_name][var_value] = []
-                    primitive_var_state[var_name][var_value].append(pred_state.precond)
-                for var_name, var_value in pred_state.pointer_vars.items():
+                    var_expr = var_object.src
+                    if var_expr not in var_value_dict:
+                        primitive_var_state[var_name][var_expr] = []
+                    primitive_var_state[var_name][var_expr].append(pred_state.precond)
+                for var_name, var_object in pred_state.pointer_vars.items():
                     var_value_dict = pointer_var_state[var_name]
-                    if var_value not in var_value_dict:
-                        pointer_var_state[var_name][var_value] = []
-                    pointer_var_state[var_name][var_value].append(pred_state.precond)
+                    var_expr = var_object.src
+                    if var_expr not in var_value_dict:
+                        pointer_var_state[var_name][var_expr] = []
+                    pointer_var_state[var_name][var_expr].append(pred_state.precond)
 
             for field_name, var_state in [
                 ("primitive_vars", primitive_var_state),
                 ("pointer_vars", pointer_var_state),
             ]:
                 merged_vars: Dict[str, NewObject] = {}
-                for var_name, value_to_precond_mapping in var_state.items():
-                    if len(value_to_precond_mapping) == 1:
+                for var_name, expr_value_to_precond_mapping in var_state.items():
+                    if len(expr_value_to_precond_mapping) == 1:
                         # If there is just one possible value for this variable, we keep this value.
-                        merged_vars[var_name] = list(value_to_precond_mapping.keys())[0]
+                        merged_expr = list(expr_value_to_precond_mapping.keys())[0]
                     else:
                         # Otherwise if there are multiple possible values for this variable, we create a mapping from possible values to their associated preconditions.
-                        value_to_aggregated_precond = ExprDict()
-                        for value, all_preconds in value_to_precond_mapping.items():
-                            all_aggregated_preconds: List[NewObject] = []
+                        expr_value_to_aggregated_precond: Dict[Expr, BoolObject] = {}
+                        for expr_value, all_preconds in expr_value_to_precond_mapping.items():
+                            all_aggregated_preconds: List[Expr] = []
                             for preconds in all_preconds:
-                                all_aggregated_preconds.append(and_exprs(*preconds))
-                            value_to_aggregated_precond[value] = or_exprs(
+                                all_aggregated_preconds.append(and_objects(*preconds))
+                            expr_value_to_aggregated_precond[expr_value] = or_objects(
                                 *all_aggregated_preconds
                             )
                         # Merge the different possible values with an Ite statement.
-                        merged_value: Optional[NewObject] = None
+                        merged_expr: Optional[Expr] = None
                         for (
-                            value,
+                            expr_value,
                             aggregated_precond,
-                        ) in value_to_aggregated_precond.items():
-                            if merged_value is None:
-                                merged_value = value
+                        ) in expr_value_to_aggregated_precond.items():
+                            if merged_expr is None:
+                                merged_expr = expr_value
                             else:
-                                merged_value = Ite(
-                                    aggregated_precond, value, merged_value
+                                merged_expr = Ite(
+                                    aggregated_precond.src,
+                                    expr_value,
+                                    merged_expr
                                 )
-                        if merged_value is None:
+                        if merged_expr is None:
                             # This in theory should never happen, but let's just be safe
                             raise Exception(f"Variable {var_name} has no merged value")
-                        merged_vars[var_name] = merged_value
+                    merged_object = create_object(merged_expr.type, merged_expr)
+                    merged_vars[var_name] = merged_object
                 setattr(blk_state, field_name, merged_vars)
 
     def visit_llvm_block(self, block: ValueRef) -> None:
@@ -788,7 +796,10 @@ class VCVisitor:
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
-                    Implies(and_exprs(*blk_state.precond), inv.call(blk_state))
+                    implies(
+                        and_objects(*blk_state.precond),
+                        inv.call(blk_state)
+                    )
                 )
             else:
                 blk_state.asserts.append(inv.call(blk_state))
@@ -906,22 +917,22 @@ class VCVisitor:
         cond = cond_match.group(1)
         op0 = self.read_operand_from_block(block_name, ops[0])
         op1 = self.read_operand_from_block(block_name, ops[1])
-        value: Optional[NewObject] = None
+        obj: Optional[BoolObject] = None
 
         if cond == "eq":
-            value = Eq(op0, op1)
+            obj = op0 == op1
         elif cond == "ne":
-            value = Not(Eq(op0, op1))
+            obj = (op0 == op1).Not()
         elif cond == "sgt":
-            value = Gt(op0, op1)
+            obj = op0 > op1
         elif cond == "sle":
-            value = Le(op0, op1)
+            obj = op0 <= op1
         elif cond == "slt" or cond == "ult":
-            value = Lt(op0, op1)
+            obj = op0 < op1
         else:
             raise Exception("NYI %s" % cond)
 
-        self.write_operand_to_block(block_name, o, value)
+        self.write_operand_to_block(block_name, o, obj)
 
     def visit_br_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -931,7 +942,7 @@ class VCVisitor:
             false_branch = ops[1].name
             cond = self.read_operand_from_block(block_name, ops[0])
             self.fn_blocks_states[true_branch].precond.append(cond)
-            self.fn_blocks_states[false_branch].precond.append(Not(cond))
+            self.fn_blocks_states[false_branch].precond.append(cond.Not())
 
     def visit_ret_instruction(self, block_name: str, o: ValueRef) -> None:
         # TODO: handle ret void
@@ -949,14 +960,14 @@ class VCVisitor:
         else:
             raise Exception("ret void not supported yet!")
         # TODO(jie) use the call method of the predicate
-        ps = Call(
+        ps = call(
             self.pred_tracker.predicates[self.fn_name].name,
             BoolObject,
             *self.fn_args,
             ret_val,
         )
         if blk_state.precond:
-            blk_state.asserts.append(Implies(and_exprs(*blk_state.precond), ps))
+            blk_state.asserts.append(implies(and_objects(*blk_state.precond), ps))
         else:
             blk_state.asserts.append(ps)
         print(f"ps: {blk_state.asserts[-1]}")
@@ -1056,7 +1067,7 @@ class Driver:
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
-        vc = and_exprs(*self.asserts)
+        vc = and_objects(*self.asserts).src
 
         target = []
         for fn in self.fns.values():

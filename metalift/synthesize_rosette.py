@@ -325,7 +325,7 @@ def synthesize(
     vars: typing.Set[Var],
     invAndPs: typing.List[Synth],
     preds: typing.List[Expr],
-    vc: Expr,
+    vc: BoolObject,
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str = "cvc5",
     uid: int = 0,
