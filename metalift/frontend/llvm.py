@@ -55,7 +55,7 @@ from metalift.ir import (
     parse_type_ref_to_obj,
     Var,
 )
-from metalift.ir_util import MLType, is_type_pointer
+from metalift.ir_util import MLType, is_object_pointer_type
 
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block
@@ -603,13 +603,13 @@ class VCVisitor:
         return_arg = create_object(self.fn_type.args[0], f"{self.fn_name}_rv")
         for arg in self.fn_args + [return_arg]:
             # TODO: make this check for all pointer types
-            if is_type_pointer(arg.type):
+            if is_object_pointer_type(arg):
                 self.store_var_to_block(block.name, arg.var_name(), arg)
             else:
                 self.write_var_to_block(block.name, arg.var_name(), arg)
 
         if self.fn_sret_arg is not None:
-            if is_type_pointer(self.fn_sret_arg.type):
+            if is_object_pointer_type(self.fn_sret_arg):
                 self.store_var_to_block(
                     block.name, self.fn_sret_arg.name(), self.fn_sret_arg
                 )
@@ -1159,7 +1159,7 @@ class MetaliftFunc:
                 f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
             )
         for i in range(len(args)):
-            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
+            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), type(args[i])
             fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
             if passed_in_arg_name != fn_arg_name:
                 raise Exception(
