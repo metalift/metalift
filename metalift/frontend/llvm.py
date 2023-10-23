@@ -873,27 +873,18 @@ class VCVisitor:
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        add_expr = Add(
-            self.read_operand_from_block(block_name, ops[0]),
-            self.read_operand_from_block(block_name, ops[1]),
-        )
-        self.write_operand_to_block(block_name, o, add_expr)
+        add_obj = self.read_operand_from_block(block_name, ops[0]) + self.read_operand_from_block(block_name, ops[1])
+        self.write_operand_to_block(block_name, o, add_obj)
 
     def visit_sub_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        sub_expr = Sub(
-            self.read_operand_from_block(block_name, ops[0]),
-            self.read_operand_from_block(block_name, ops[1]),
-        )
-        self.write_operand_to_block(block_name, o, sub_expr)
+        sub_obj = self.read_operand_from_block(block_name, ops[0]) - self.read_operand_from_block(block_name, ops[1])
+        self.write_operand_to_block(block_name, o, sub_obj)
 
     def visit_mul_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        mul_expr = Mul(
-            self.read_operand_from_block(block_name, ops[0]),
-            self.read_operand_from_block(block_name, ops[1]),
-        )
-        self.write_operand_to_block(block_name, o, mul_expr)
+        mul_obj = self.read_operand_from_block(block_name, ops[0]) * self.read_operand_from_block(block_name, ops[1])
+        self.write_operand_to_block(block_name, o, mul_obj)
 
     def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
