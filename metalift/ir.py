@@ -188,11 +188,8 @@ class Expr:
 
     @staticmethod
     def findCommonExprs(
-        e: Union["Expr", "NewObject"], cnts: List[Tuple["Expr", int]]
+        e: "Expr", cnts: List[Tuple["Expr", int]]
     ) -> List[Tuple["Expr", int]]:
-        if isinstance(e, NewObject):
-            e = e.src
-
         def expr_index_in_cnts(e: Expr):
             for i, (existing_expr, _) in enumerate(cnts):
                 if Expr.__eq__(e, existing_expr):
@@ -212,13 +209,11 @@ class Expr:
 
     @staticmethod
     def replaceExprs(
-        e: Union[bool, "Expr", ValueRef, int, str, "NewObject"],
+        e: Union[bool, "Expr", ValueRef, int, str],
         commonExprs: typing.List[Union["Expr", Any]],
         mode: PrintMode,
         skipTop: bool = False,
     ) -> Union["Expr", ValueRef]:
-        if isinstance(e, NewObject):
-            e = e.src
         # skipTop is used to ignore the top-level match when simplifying a common expr
         if all([not Expr.__eq__(e, expr) for expr in commonExprs]) or skipTop:
             if isinstance(e, Expr):
