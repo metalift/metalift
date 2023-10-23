@@ -443,8 +443,6 @@ class Expr:
             if isinstance(a, ValueRef) and a.name != "":
                 retStr += "%s" % (a.name) + " "
             else:
-                if str(a) == "(Lit:Int 10)" and not isinstance(a, Expr):
-                    import pdb; pdb.set_trace()
                 strExp = a.toRosette() if isinstance(a, Expr) else str(a)
                 retStr += strExp + " "
         retStr += ")"

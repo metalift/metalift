@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Eq, Expr, FnDecl, IntObject, Ite, NewObject
+from metalift.ir import Expr, FnDecl, IntObject, NewObject, ite
 
 
 def target_lang() -> List[FnDecl]:
@@ -11,7 +11,7 @@ def target_lang() -> List[FnDecl]:
 
 def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     i = reads[0]
-    return Eq(ret_val, Ite(i > 10, IntObject(2), IntObject(1)))
+    return ret_val == ite(i > 10, IntObject(2), IntObject(1))
 
 
 def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
