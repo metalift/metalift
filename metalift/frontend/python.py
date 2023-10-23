@@ -254,6 +254,7 @@ class Predicate:
         return Call(self.name, BoolObject, *[state.read(v.var_name()) for v in self.args])
 
     def gen_Synth(self) -> Synth:
+        # TODO(jie): change this to match llvm
         v_exprs = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
         body = and_exprs(*v_exprs)
         return Synth(self.name, body, *self.args)
