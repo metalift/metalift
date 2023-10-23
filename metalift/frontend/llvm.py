@@ -920,39 +920,18 @@ class VCVisitor:
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        left = self.read_operand_from_block(block_name, ops[0])
-        right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, Int) or not isinstance(right, Int):
-            raise Exception("+ only supported for int objects!")
-        add_obj = left + right
+        add_obj = self.read_operand_from_block(block_name, ops[0]) + self.read_operand_from_block(block_name, ops[1])
         self.write_operand_to_block(block_name, o, add_obj)
 
     def visit_sub_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        left = self.read_operand_from_block(block_name, ops[0])
-        right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, Int) or not isinstance(right, Int):
-            raise Exception("- only supported for int objects!")
-        sub_obj = left - right
+        sub_obj = self.read_operand_from_block(block_name, ops[0]) - self.read_operand_from_block(block_name, ops[1])
         self.write_operand_to_block(block_name, o, sub_obj)
 
     def visit_mul_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        left = self.read_operand_from_block(block_name, ops[0])
-        right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, Int) or not isinstance(right, Int):
-            raise Exception("* only supported for int objects!")
-        mul_obj = left * right
+        mul_obj = self.read_operand_from_block(block_name, ops[0]) * self.read_operand_from_block(block_name, ops[1])
         self.write_operand_to_block(block_name, o, mul_obj)
-
-    def visit_div_instruction(self, block_name: str, o: ValueRef) -> None:
-        ops = list(o.operands)
-        left = self.read_operand_from_block(block_name, ops[0])
-        right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, Int) or not isinstance(right, Int):
-            raise Exception("division only supported for int objects!")
-        div_obj = left // right
-        self.write_operand_to_block(block_name, o, div_obj)
 
     def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
