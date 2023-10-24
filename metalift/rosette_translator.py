@@ -3,9 +3,11 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, Var, ListObject
+from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, IntObject, Var, ListObject
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
+
+from metalift.ir_util import is_list_type_expr, is_set_type_expr
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -17,24 +19,23 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    # TODO(jie)
-    type_name = v.type.cls_str()
-    if (
-        # v.type.name == "Int"
-        # or v.type.name == "ClockInt"
-        # or v.type.name == "EnumInt"
-        # or v.type.name == "OpaqueInt"
-        # or v.type.name == "NodeIDInt"
-        type_name == "Int"
-    ):
+    if v.type == IntObject:
+    # if (
+    #     # v.type.name == "Int"
+    #     # or v.type.name == "ClockInt"
+    #     # or v.type.name == "EnumInt"
+    #     # or v.type.name == "OpaqueInt"
+    #     # or v.type.name == "NodeIDInt"
+    #     type_name == "Int"
+    # ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif  type_name == "Bool":
+    elif v.type == BoolObject:
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif type_name == "List" or type_name == "Set": #v.type.name == "MLList" or v.type.name == "Set":
+    elif is_list_type_expr(v) or is_set_type_expr(v): #v.type.name == "MLList" or v.type.name == "Set":
         tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
 
         for t in tmp:
@@ -63,7 +64,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     #TODO: change this once MapObject is ready
-    elif v.type.name == "Map":
+    elif hasattr(v.type, "name") and v.type.name == "Map":
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
