@@ -488,10 +488,7 @@ def create_object(
         return object_type(value)
 
 def get_object_sources(objects: List["NewObject"]) -> List[Expr]:
-    try:
-        return [obj.src for obj in objects]
-    except:
-        import pdb; pdb.set_trace()
+    return [obj.src for obj in objects]
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
@@ -814,8 +811,6 @@ class ListObject(Generic[T], NewObject):
         )
 
     def __eq__(self, other: "ListObject") -> BoolObject:
-        if other is None:
-            import pdb; pdb.set_trace()
         if other is None or self.type != other.type:
             return BoolObject(False)
         else:
@@ -867,20 +862,17 @@ class SetObject(Generic[T], NewObject):
             raise TypeError(
                 f"Trying to add element of type: {value.type} to set containing: {self.containedT}"
             )
-        expr = Call("set-insert", self.type, value.src, self.src)
-        return SetObject(self.containedT, expr)
+        return call("set-insert", self.type, value, self)
 
     def remove(self, item: NewObject) -> "SetObject":
         if type(item) != self.containedT:
             raise TypeError(f"Trying to remove element of type: {type(item)} from set containing: {self.containedT}")
         singleton_s = SetObject.singleton(item)
-        expr = Call("set-minus", self.type, self.src, singleton_s.src)
-        return SetObject(self.containedT, expr)
+        return call("set-minus", self.type, self, singleton_s)
 
     @staticmethod
     def singleton(item: NewObject) -> "SetObject":
-        expr = Call("set-singleton", SetObject[type(item)], item)
-        return SetObject(type(item), expr)
+        return call("set-singleton", SetObject[type(item)], item)
 
     def union(self, s: "SetObject") -> "SetObject":
         if self.type != s.type:
@@ -891,17 +883,15 @@ class SetObject(Generic[T], NewObject):
     def difference(self, s: "SetObject") -> "SetObject":
         if self.type != s.type:
             raise TypeError(f"Can't take the difference of two sets with type {self.type} and type {s.type}")
-        expr = Call("set-minus", self.type, self.src, s.src)
-        return SetObject(self.containedT, expr)
+        return call("set-minus", self.type, self, s)
 
     def __contains__(self, value: NewObject) -> BoolObject:
         if value.type != self.containedT:
             return BoolObject(False)
-        expr = Call("set-pointer_varsber", BoolObject, self.src, value.src)
-        return BoolObject(expr)
+        return call("set-pointer_varsber", BoolObject, self, value)
 
     def __eq__(self, s: "SetObject") -> BoolObject:
-        return BoolObject(Call("set-eq", BoolObject, self.src, s.src))
+        return call("set-eq", BoolObject, self, s)
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "SetObject":

@@ -44,7 +44,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         len_name = v.args[0] + "_BOUNDEDSET-len"
         genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
 
-        if type_name == "Set":
+        if is_set_type_expr(v):
             decls.append(
                 "(define %s (sort (remove-duplicates (take %s %s)) <))"
                 % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
