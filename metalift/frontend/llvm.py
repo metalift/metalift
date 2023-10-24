@@ -1162,7 +1162,7 @@ class MetaliftFunc:
                 f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
             )
         for i in range(len(args)):
-            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), type(args[i])
+            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
             fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
             if passed_in_arg_name != fn_arg_name:
                 raise Exception(

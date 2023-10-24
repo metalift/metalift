@@ -447,7 +447,7 @@ def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
     if isinstance(type, Type):
         return str(type)
     else:
-        return type.cls_str()
+        return type.cls_str(get_args(type))
 
 def toRosetteType(t: typing.Type["NewObject"]) -> str:
     if t == IntObject:
@@ -488,7 +488,10 @@ def create_object(
         return object_type(value)
 
 def get_object_sources(objects: List["NewObject"]) -> List[Expr]:
-    return [obj.src for obj in objects]
+    try:
+        return [obj.src for obj in objects]
+    except:
+        import pdb; pdb.set_trace()
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
@@ -811,25 +814,31 @@ class ListObject(Generic[T], NewObject):
         )
 
     def __eq__(self, other: "ListObject") -> BoolObject:
-        if other == None or self.type != other.type:
+        if other is None:
+            import pdb; pdb.set_trace()
+        if other is None or self.type != other.type:
             return BoolObject(False)
         else:
-            return BoolObject(Call("list_eq", BoolObject, self.src, other.src))
+            return call("list_eq", BoolObject, self, other)
 
     def __repr__(self):
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:
-        return f"({ListObject.cls_str(type_args)})"
-
-    @staticmethod
     def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
-            return f"MLList {get_origin(contained_type).toSMTType(get_args(contained_type))}"
+            return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"
         else:
-            return f"MLList {contained_type.toSMTType()}"
+            return f"List {contained_type.cls_str()}"
+
+    @staticmethod
+    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"
+        else:
+            return f"(MLList {contained_type.toSMTType()})"
 
 class SetObject(Generic[T], NewObject):
     def __init__(
