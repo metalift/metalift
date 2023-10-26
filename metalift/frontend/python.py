@@ -35,6 +35,8 @@ from metalift.ir import (
     call,
     create_object,
     get_object_sources,
+    implies,
+    ite,
 )
 from mypy import build
 from mypy.build import BuildResult
@@ -526,7 +528,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         # inv is true on loop entry
         self.state.asserts.append(
-            Implies(And(*self.state.precond), inv.call(self.state))
+            implies(and_objects(*self.state.precond), inv.call(self.state))
             if self.state.precond
             else inv.call(self.state)
         )
@@ -559,15 +561,15 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         # inv is preserved
         cond = o.expr.accept(self)
         c = (
-            And(*self.state.precond, cond, inv.call(self.state))
+            and_objects(*self.state.precond, cond, inv.call(self.state))
             if self.state.precond
-            else And(cond, inv.call(self.state))
+            else and_objects(cond, inv.call(self.state))
         )
-        self.state.asserts.append(Implies(c, inv.call(body_visitor.state)))
+        self.state.asserts.append(implies(c, inv.call(body_visitor.state)))
         print(f"inv is preserved: {self.state.asserts[-1]}")
 
         # the invariant is true from this point on
-        self.state.precond.append(And(Not(cond), inv.call(self.state)))
+        self.state.precond.append(and_objects(cond.Not(), inv.call(self.state)))
 
     def visit_return_stmt(self, o: ReturnStmt) -> None:
         assert o.expr is not None
@@ -580,11 +582,11 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         )
         if self.state.precond:
             cond = (
-                And(*self.state.precond)
+                and_objects(*self.state.precond)
                 if len(self.state.precond) > 1
                 else self.state.precond[0]
             )
-            self.state.asserts.append(Implies(cond, ps))
+            self.state.asserts.append(implies(cond, ps))
         else:
             self.state.asserts.append(ps)
 
@@ -619,7 +621,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             self.uninterp_fns,
         )
         a_state = copy.deepcopy(self.state)
-        a_state.precond.append(Not(cond))
+        a_state.precond.append(cond.Not())
         alternate = VCVisitor(  # type: ignore  # ignore the abstract expr visit methods that aren't implemented for now in VCVisitor
             self.driver,
             self.fn_name,
@@ -668,7 +670,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             for v, c_e in c_state.vars.items():
                 a_e = a_state.vars[v]
                 if c_e != a_e:
-                    self.state.vars[v] = Ite(cond, c_e, a_e)
+                    self.state.vars[v] = ite(cond, c_e, a_e)
                 else:
                     self.state.vars[v] = c_e
 
@@ -702,7 +704,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         return self.state.read(o.name)
 
     # a < b < c is equiv to a < b and b < c
-    def visit_comparison_expr(self, o: ComparisonExpr) -> Expr:
+    def visit_comparison_expr(self, o: ComparisonExpr) -> BoolObject:
         operands = [e.accept(self) for e in o.operands]
         e = self.process_comparison(o.operators[0], operands[0], operands[1])
         for i in range(1, len(o.operators)):
@@ -712,22 +714,22 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         return e
 
     # ">" | "<" | "==" | ">=" | "<=" | "!=" | "is" ["not"] | ["not"] "in"
-    def process_comparison(self, op: str, left: Expr, right: Expr) -> Expr:
+    def process_comparison(self, op: str, left: NewObject, right: NewObject) -> NewObject:
         if op == ">":
-            return Gt(left, right)
+            return left > right
         elif op == "<":
-            return Lt(left, right)
+            return left < right
         elif op == "==":
-            return Eq(left, right)
+            return left == right
         elif op == ">=":
-            return Ge(left, right)
+            return left >= right
         elif op == "<=":
-            return Le(left, right)
+            return left <= right
         else:
             raise RuntimeError(f"NYI: {op}")
 
     # binary expr
-    def visit_op_expr(self, o: OpExpr) -> Expr:
+    def visit_op_expr(self, o: OpExpr) -> NewObject:
         l = o.left.accept(self)
         r = o.right.accept(self)
         op = o.op
@@ -742,9 +744,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         elif op == "%":
             raise NotImplementedError(f"Modulo not supported in {o}")
         elif op == "and":
-            return And(l, r)
+            return l.And(r)
         elif op == "or":
-            return Or(l, r)
+            return l.Or(r)
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
 
