@@ -1,10 +1,7 @@
 from typing import List
+
 from metalift.frontend.python import Driver
-
-from metalift.ir import Call, Choose, Eq, Expr, FnDecl, NewObject, IntObject
-
-from mypy.nodes import Statement
-
+from metalift.ir import Expr, FnDecl, IntObject, NewObject, call, choose
 from tests.python.utils.utils import codegen
 
 
@@ -12,7 +9,7 @@ def target_lang() -> List[FnDecl]:
     x = IntObject("x")
     y = IntObject("y")
     z = IntObject("z")
-    fma = FnDecl("fma", IntObject, x + y * z, x, y, z)
+    fma = FnDecl("fma", IntObject, (x + y * z).src, x.src, y.src, z.src)
     return [fma]
 
 
@@ -22,14 +19,15 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
-    var = Choose(*reads, IntObject(0))
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+    var = choose(*reads, IntObject(0))
     added = var + var
-    var_or_fma = Choose(*reads, Call("fma", IntObject, added, added, added))
+    fma_call_object = call("fma", IntObject, added, added, added)
+    var_or_fma = choose(*reads, fma_call_object)
 
-    return Eq(ret_val, var_or_fma + var_or_fma)
+    return ret_val == var_or_fma + var_or_fma
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     raise Exception("no loop in the source")
 
 

@@ -1208,7 +1208,7 @@ class MetaliftFunc:
         self.driver.add_var_object(ret_val)
 
         # TODO(jie) instead of constructin this call manually can we replace it with a method call.
-        ps = Call(f"{self.fn_name}_ps", BoolObject, ret_val, *args)
+        ps = call(f"{self.fn_name}_ps", BoolObject, ret_val, *args)
 
         self.driver.postconditions.append(ps)
 

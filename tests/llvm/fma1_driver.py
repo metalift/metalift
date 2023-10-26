@@ -9,7 +9,7 @@ def target_lang() -> List[FnDecl]:
     x = IntObject("x")
     y = IntObject("y")
     z = IntObject("z")
-    fma = FnDecl("fma", IntObject, x + y * z, x, y, z)
+    fma = FnDecl("fma", IntObject, (x + y * z).src, x.src, y.src, z.src)
     return [fma]
 
 

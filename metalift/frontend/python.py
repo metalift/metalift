@@ -32,7 +32,9 @@ from metalift.ir import (
     TupleObject,
     Type as MLType,
     Var,
+    call,
     create_object,
+    get_object_sources,
 )
 from mypy import build
 from mypy.build import BuildResult
@@ -93,7 +95,7 @@ from metalift.mypy_util import (
     is_func_call_with_name,
     is_method_call_with_name,
 )
-from metalift.vc_util import and_exprs
+from metalift.vc_util import and_exprs, and_objects
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -250,13 +252,12 @@ class Predicate:
         self.ast = ast
         self.synth = None
 
-    def call(self, state: State) -> Call:
-        return Call(self.name, BoolObject, *[state.read(v.var_name()) for v in self.args])
+    def call(self, state: State) -> BoolObject:
+        return call(self.name, BoolObject, *[state.read(v.var_name()) for v in self.args])
 
     def gen_Synth(self) -> Synth:
-        # TODO(jie): change this to match llvm
-        v_exprs = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
-        body = and_exprs(*v_exprs)
+        v_objects = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
+        body = and_exprs(*get_object_sources(v_objects))
         return Synth(self.name, body, *self.args)
 
 
@@ -571,7 +572,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_return_stmt(self, o: ReturnStmt) -> None:
         assert o.expr is not None
         # precond -> ps(...)
-        ps = Call(
+        ps = call(
             self.pred_tracker.predicates[self.ast].name,
             BoolObject,
             *self.args,
@@ -821,7 +822,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             assert len(o.args) == 1
             elem = o.args[0].accept(self)
             singleton_set = SetObject[elem.type].singleton(elem)
-            set_after_modification = Call(
+            set_after_modification = call(
                 func_call_name, callee_expr.type, callee_expr, singleton_set
             )
             self.state.write(callee_expr.var_name(), set_after_modification)
@@ -831,7 +832,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             args = [a.accept(self) for a in o.args]
             expr_type = self.types.get(o)
             assert expr_type is not None
-            return Call(get_fn_name(o), to_object_type(expr_type), *args)
+            return call(get_fn_name(o), to_object_type(expr_type), *args)
         raise Exception("Unrecognized call expression!")
 
 
@@ -892,7 +893,7 @@ class Driver:
         synths = [i.gen_Synth() for i in self.inv_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
-        vc = And(*self.asserts)
+        vc = and_objects(*self.asserts).src
 
         target = []
         for fn in self.fns.values():
@@ -1003,7 +1004,7 @@ class MetaliftFunc:
         ret_val = create_object(object_type, f"{self.name}_rv")
         self.driver.add_var_object(ret_val)
 
-        ps = Call(f"{self.name}_ps", BoolObject, ret_val, *args)
+        ps = call(f"{self.name}_ps", BoolObject, ret_val, *args)
 
         self.driver.postconditions.append(ps)
 
