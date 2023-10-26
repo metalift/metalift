@@ -1,100 +1,60 @@
 from collections import defaultdict
 from typing import List, Union
 
-from mypy.nodes import Statement
-
 from metalift.frontend.llvm import Driver
-from metalift.ir import And, BoolObject, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, IntObject, ListObject, Ite, Le, Lt, Var
+from metalift.ir import And, BoolObject, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, IntObject, ListObject, Ite, Le, Lt, NewObject, Var, call, choose, ite
+from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     arg = IntObject("n")
-    select_pred = FnDecl("Select-pred", BoolObject, arg > 2, arg)
-    select_pred1 = FnDecl("Select-pred1", BoolObject, arg < 10, arg)
-    select_pred2 = FnDecl("Select-pred2", BoolObject, And(arg > 2, arg < 10), arg)
+    select_pred = FnDecl("Select-pred", BoolObject, (arg > 2).src, arg.src)
+    select_pred1 = FnDecl("Select-pred1", BoolObject, (arg < 10).src, arg.src)
+    select_pred2 = FnDecl("Select-pred2", BoolObject, (arg > 2).And(arg < 10), arg.src)
 
     data = ListObject(IntObject, "l")
     select_func = FnDeclRecursive(
         "Select",
         ListObject[IntObject],
-        Ite(
-            data.len() == IntObject(0),
+        ite(
+            data.len() == 0,
             ListObject.empty(IntObject),
-            Ite(
-                Call("Select-pred", BoolObject, data[0]),
-                Call(
-                    "list_append",
-                    ListObject[IntObject],
-                    Call(
-                        "Select",
-                        ListObject[IntObject],
-                        data[1:],
-                    ),
-                    data[0],
-                ),
-                Call(
-                    "Select",
-                    ListObject[IntObject],
-                    data[1:],
-                ),
+            ite(
+                call("Select-pred", BoolObject, data[0]),
+                call("Select", ListObject[IntObject], data[1:]).append(data[0]),
+                call("Select", ListObject[IntObject], data[1:]),
             ),
-        ),
-        data,
+        ).src,
+        data.src,
     )
     select_func1 = fn_decl_recursive(
         "Select1",
         ListObject[IntObject],
-        Ite(
-            data.len() == IntObject(0),
+        ite(
+            data.len() == 0,
             ListObject.empty(IntObject),
-            Ite(
-                Call("Select-pred1", BoolObject, data[0]),
-                Call(
-                    "list_append",
-                    ListObject[IntObject],
-                    Call(
-                        "Select1",
-                        ListObject[IntObject],
-                        data[1:],
-                    ),
-                    data[0],
-                ),
-                Call(
-                    "Select1",
-                    ListObject[IntObject],
-                    data[1:],
-                ),
+            ite(
+                call("Select-pred1", BoolObject, data[0]),
+                call("Select1", ListObject[IntObject], data[1:]).append(data[0]),
+                call("Select1", ListObject[IntObject], data[1:]),
             ),
-        ),
-        data,
+        ).src,
+        data.src,
     )
     select_func2 = fn_decl_recursive(
         "Select2",
         ListObject[IntObject],
-        Ite(
-            data.len() == IntObject(0),
+        ite(
+            data.len() == 0,
             ListObject.empty(IntObject),
-            Ite(
-                Call("Select-pred2", BoolObject, data[0]),
-                Call(
-                    "list_append",
-                    ListObject[IntObject],
-                    Call(
-                        "Select2",
-                        ListObject[IntObject],
-                        data[1:],
-                    ),
-                    data[0],
-                ),
-                Call(
-                    "Select2",
-                    ListObject[IntObject],
-                    data[1:],
-                ),
+            ite(
+                call("Select-pred2", BoolObject, data[0]),
+                call("Select2", ListObject[IntObject], data[1:]).append(data[0]),
+                call("Select2", ListObject[IntObject], data[1:]),
             ),
-        ),
-        data,
+        ).src,
+        data.src,
     )
 
     return [
@@ -106,69 +66,46 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         select_func2,
     ]
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     # reads = [in_lst]
-    return Choose(
-        Call("list_eq", BoolObject, ret_val, *reads),
-        Call("list_eq", BoolObject, ret_val, Call("Select", ListObject[IntObject], *reads)),
-        Call("list_eq", BoolObject, ret_val, Call("Select1", ListObject[IntObject], *reads)),
-        Call("list_eq", BoolObject, ret_val, Call("Select2", ListObject[IntObject], *reads))
+    in_lst = reads[0]
+    return choose(
+        ret_val == in_lst,
+        ret_val == call("Select", ListObject[IntObject], in_lst),
+        ret_val == call("Select1", ListObject[IntObject], in_lst),
+        ret_val == call("Select2", ListObject[IntObject], in_lst)
     )
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    # This grammar func could be called with v as `i` or `out_lst`, and we really only want to generate this grammar once.
-    if v.var_name() != "i":
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+    # TODO(jie): the output variable is actually named out, how can we detect that.
+    if v.var_name() != "agg.result":
         return BoolObject(True)
 
-    # writes = [out_lst, i]
+    # writes = [out, i]
     # reads = [in]
     out_lst, i = writes[0], writes[1]
     in_lst = reads[0]
-    lst = Choose(in_lst, out_lst, Call("Select", ListObject[IntObject], in_lst))
-    lst_inv_cond = Choose(
-        Call(
-            "list_eq",
-            BoolObject,
-            Call(
-                "list_append",
-                ListObject[IntObject],
-                lst,
-                Call(
-                    "Select",
-                    ListObject[IntObject],
-                    Call("list_tail", ListObject[IntObject], lst, i),
-                ),
-            ),
-            lst,
-        ),
-        Call(
-            "list_eq",
-            BoolObject,
-            Call(
-                "list_concat",
-                ListObject[IntObject],
-                out_lst,
-                Call("list_tail", ListObject[IntObject], lst, i),
-            ),
-            lst,
-        ),
+    lst = choose(in_lst, out_lst, call("Select", ListObject[IntObject], in_lst))
+    lst_inv_cond = choose(
+        lst + call("Select", ListObject[IntObject], lst[i:]) == lst,
+        out_lst + lst[i:] == lst
     )
 
     in_lst_length = in_lst.len()
-    i_bound_in_lst_length_cond = Choose(
+    i_bound_in_lst_length_cond = choose(
         i >= in_lst_length,
         i <= in_lst_length,
         i > in_lst_length,
         i < in_lst_length,
         i == in_lst_length,
     )
-    i_bound_int_lit = Choose(IntObject(0), IntObject(1))
-    i_bound_int_lit_cond = Choose(
-        Ge(i, i_bound_int_lit),
-        Le(i, i_bound_int_lit),
-        Gt(i, i_bound_int_lit),
-        Lt(i, i_bound_int_lit),
-        Eq(i, i_bound_int_lit),
+    i_bound_int_lit = choose(IntObject(0), IntObject(1))
+    i_bound_int_lit_cond = choose(
+        i >= i_bound_int_lit,
+        i <= i_bound_int_lit,
+        i > i_bound_int_lit,
+        i < i_bound_int_lit,
+        i == i_bound_int_lit,
     )
     return choose(and_objects(i_bound_int_lit_cond, i_bound_in_lst_length_cond, lst_inv_cond))
 
