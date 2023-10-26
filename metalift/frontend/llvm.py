@@ -10,6 +10,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     TypeVar,
     cast,
@@ -615,11 +616,11 @@ class VCVisitor:
         if self.fn_sret_arg is not None:
             if is_object_pointer_type(self.fn_sret_arg):
                 self.store_var_to_block(
-                    block.name, self.fn_sret_arg.name(), self.fn_sret_arg
+                    block.name, self.fn_sret_arg.var_name(), self.fn_sret_arg
                 )
             else:
                 self.write_var_to_block(
-                    block.name, self.fn_sret_arg.name(), self.fn_sret_arg
+                    block.name, self.fn_sret_arg.var_name(), self.fn_sret_arg
                 )
         self.pred_tracker.postcondition(
             self.fn_name,
@@ -698,7 +699,6 @@ class VCVisitor:
                     primitive_var_state[var_name][var_expr].append(pred_state.precond)
                 for var_name, var_object in pred_state.pointer_vars.items():
                     var_value_dict = pointer_var_state[var_name]
-                    var_expr = var_object.src
                     if var_expr not in var_value_dict:
                         pointer_var_state[var_name][var_expr] = []
                     pointer_var_state[var_name][var_expr].append(pred_state.precond)
@@ -815,11 +815,9 @@ class VCVisitor:
         )  # bug: ops[0] always return i32 1 regardless of type
         # TODO(jie) retire custom list.h interface
         val: Optional[NewObject] = None
-        if t == "i8*":
-            val = Pointer(Lit(False, BoolObject))
-        elif t == "i32":
+        if t == "i32":
             val = IntObject(0)
-        elif t == "i8":
+        elif t == "i8" or t == "i8*":
             val = BoolObject(False)
         elif t == "i1":
             val = BoolObject(False)
@@ -888,10 +886,10 @@ class VCVisitor:
 
     def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        try:
+        if not ops[0].type.is_pointer:
             val = self.read_operand_from_block(block_name, ops[0])
             self.write_operand_to_block(block_name, o, val)
-        except:
+        else:
             val = self.load_operand_from_block(block_name, ops[0])
             self.store_operand_to_block(block_name, o, val)
 
@@ -1174,18 +1172,17 @@ class MetaliftFunc:
                 )
 
         if self.fn_sret_arg is not None:
-            sret_var = self.driver.var_tracker.variable(
-                self.fn_sret_arg.name, parse_type_ref_to_obj(self.fn_sret_arg.type)
-            )
+            sret_obj_type = parse_type_ref_to_obj(self.fn_sret_arg.type)
+            sret_obj = create_object(sret_obj_type, self.fn_sret_arg.name)
         else:
-            sret_var = None
+            sret_obj = None
 
         v = VCVisitor(
             driver=self.driver,
             fn_name=self.fn_name,
             fn_type=self.fn_type,
             fn_args=list(args),
-            fn_sret_arg=sret_var,
+            fn_sret_arg=sret_obj,
             var_tracker=self.driver.var_tracker,
             pred_tracker=self.driver.pred_tracker,
             inv_grammar=self.inv_grammar,

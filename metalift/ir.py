@@ -2072,14 +2072,6 @@ class FnDeclRecursive(Expr):
                 else:
                     declarations.append((a.args[0], a.type))
 
-            print("\n")
-            for d in declarations:
-                print(d)
-                print(d[0])
-                print(d[1])
-                print("d1 type", type(d[1]), d[1])
-                print(d[1].toSMTType(get_args(d[1])))
-
             # TODO(jie): maybe instead of get_args(d[1]) we use containedT?
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
