@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Expr, FnDeclRecursive, IntObject, NewObject, call,
-                         choose, ite)
+from metalift.ir import (FnDeclRecursive, IntObject, NewObject, call, choose,
+                         ite)
 from tests.python.utils.utils import codegen
 
 
@@ -22,10 +22,10 @@ def target_lang() -> List[FnDeclRecursive]:
     return [sum_n]
 
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     return ret_val == call("sum_n", IntObject, choose(IntObject(1), IntObject(2)))
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     e = choose(*writes)
     f = choose(IntObject(1), IntObject(2), IntObject(3))
     c = e == call("sum_n", IntObject, e - f)
