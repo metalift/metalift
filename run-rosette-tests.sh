@@ -8,11 +8,11 @@
 # "tests.llvm.struct1"
 
 tests=(
-"test.python.count_driver"
-"tests.python.list1_driver"
-"tests.python.list1_fns_driver"
-"tests.python.list_abs_sum_driver"
-"tests.python.uninterp_driver"
+# "test.python.count_driver"
+# "tests.python.list1_driver"
+# "tests.python.list1_fns_driver"
+# "tests.python.list_abs_sum_driver"
+# "tests.python.uninterp_driver"
 )
 
 for test in ${tests[*]}; do

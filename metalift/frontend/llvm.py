@@ -699,6 +699,7 @@ class VCVisitor:
                     primitive_var_state[var_name][var_expr].append(pred_state.precond)
                 for var_name, var_object in pred_state.pointer_vars.items():
                     var_value_dict = pointer_var_state[var_name]
+                    var_expr = var_object.src
                     if var_expr not in var_value_dict:
                         pointer_var_state[var_name][var_expr] = []
                     pointer_var_state[var_name][var_expr].append(pred_state.precond)
