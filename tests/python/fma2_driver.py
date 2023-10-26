@@ -39,7 +39,7 @@ def inv_grammar(
     (arg1, arg2, i, p) = reads
 
     value = choose(arg1, arg2, arg1 * i, arg2 * i)
-    return choose(v < value, v == value)
+    return choose(v <= value, v == value)
 
 
 if __name__ == "__main__":

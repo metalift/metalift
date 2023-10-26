@@ -13,7 +13,7 @@ tests=(
 # "tests.llvm.no_loop_matmul_driver"
 "tests.llvm.vector1_driver"
 "tests.python.fma1_driver"
-# "tests.python.fma2_driver"
+"tests.python.fma2_driver"
 "tests.python.ite1_driver"
 "tests.python.ite2_driver"
 "tests.python.ite3_driver"

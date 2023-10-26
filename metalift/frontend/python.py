@@ -888,8 +888,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
 class Driver:
     var_tracker: VariableTracker
     inv_tracker: PredicateTracker
-    asserts: List[Bool]
-    postconditions: List[Bool]
+    asserts: List[BoolObject]
+    postconditions: List[BoolObject]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
     fns_synths: List[Synth]
@@ -972,7 +972,7 @@ class Driver:
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )
 
-    def add_precondition(self, e: Bool) -> None:
+    def add_precondition(self, e: BoolObject) -> None:
         # this gets propagated to the State when it is created
         self.postconditions.append(e)
 
