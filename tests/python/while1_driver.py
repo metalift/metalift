@@ -1,9 +1,9 @@
-from typing import List
-from metalift.frontend.python import Driver
-
-from metalift.ir import Eq, Expr, FnDecl, IntObject, Ite, Le, NewObject
-
 import sys
+from typing import List
+
+from metalift.frontend.python import Driver
+from metalift.ir import FnDecl, IntObject, NewObject, ite
+
 
 # ps: y = ite(y<=x, x, 0)
 def ps_grammar(
@@ -11,16 +11,16 @@ def ps_grammar(
     writes: List[NewObject],
     reads: List[NewObject],
     in_scope: List[NewObject],
-) -> Expr:
+) -> NewObject:
     x = reads[0]
-    return Eq(ret_val, Ite(0 <= x, x, IntObject(0)))
+    return ret_val == ite(0 <= x, x, IntObject(0))
 
 
 # inv: ite(y<=x, y<=x, y=0)
 def inv_grammar(
     v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
-) -> Expr:
-    return Ite(
+) -> NewObject:
+    return ite(
         v <= reads[0],
         0 <= reads[0],
         v == 0
