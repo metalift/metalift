@@ -1,9 +1,10 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Expr, IntObject, NewObject, SetObject,
-                         FnDeclRecursive, Ite, call, choose, ite)
+from metalift.ir import (FnDeclRecursive, IntObject, NewObject, SetObject,
+                         choose, ite)
 from tests.python.utils.utils import codegen
+
 
 def target_lang():
     x = IntObject("x")
@@ -15,7 +16,7 @@ def target_lang():
     )
     return [double]
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     raise Exception("no invariant")
 
 def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
