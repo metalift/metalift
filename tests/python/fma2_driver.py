@@ -1,20 +1,7 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-
-from metalift.ir import (
-    Call,
-    Choose,
-    Eq,
-    Expr,
-    FnDecl,
-    IntObject,
-    Le,
-    Var,
-)
-
-from mypy.nodes import Statement, WhileStmt
-
+from metalift.ir import FnDecl, IntObject, NewObject, call, choose
 from tests.python.utils.utils import codegen
 
 
@@ -22,7 +9,7 @@ def target_lang() -> List[FnDecl]:
     x = IntObject("x")
     y = IntObject("y")
     z = IntObject("z")
-    fma = FnDecl("fma", IntObject, x + y * z, x, y, z)
+    fma = FnDecl("fma", IntObject, (x + y * z).src, x.src, y.src, z.src)
     return [fma]
 
 
@@ -33,30 +20,26 @@ def target_lang() -> List[FnDecl]:
 # return value := var_or_fma + var_or_fma
 #
 def ps_grammar(
-    ret_val: Var,
-    writes: List[Var],
-    reads: List[Var],
-    in_scope: List[Var],
-) -> Expr:
-    var = Choose(*reads, IntObject(0))
+    ret_val: NewObject,
+    writes: List[NewObject],
+    reads: List[NewObject],
+    in_scope: List[NewObject],
+) -> NewObject:
+    var = choose(*reads, IntObject(0))
     added = var + var
-    var_or_fma = Choose(*reads, Call("fma", IntObject, added, added, added))
+    var_or_fma = choose(*reads, call("fma", IntObject, added, added, added))
 
     return ret_val == var_or_fma + var_or_fma
 
 
 # invariant: i <= arg2 and p = arg1 * i
 def inv_grammar(
-    v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]
-) -> Expr:
+    v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
+) -> NewObject:
     (arg1, arg2, i, p) = reads
 
     value = choose(arg1, arg2, arg1 * i, arg2 * i)
-    return and_objects(
-        choose(i <= value, i == value),
-        choose(p <= value, p == value)
-    )
-
+    return choose(v < value, v == value)
 
 
 if __name__ == "__main__":

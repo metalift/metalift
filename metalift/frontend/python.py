@@ -36,6 +36,8 @@ from metalift.ir import (
     call,
     create_object,
     get_object_sources,
+    implies,
+    ite,
 )
 
 from mypy import build
@@ -593,17 +595,15 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         #         "The condition of a while loop must evaluate to a boolean object!"
         #     )
         c = (
-            and_objects(*self.state.precond, cast(Bool, cond), inv.call(self.state))
+            and_objects(*self.state.precond, cond, inv.call(self.state))
             if self.state.precond
-            else and_objects(cast(Bool, cond), inv.call(self.state))
+            else and_objects(cond, inv.call(self.state))
         )
         self.state.asserts.append(implies(c, inv.call(body_visitor.state)))
         print(f"inv is preserved: {self.state.asserts[-1]}")
 
         # the invariant is true from this point on
-        self.state.precond.append(
-            and_objects(cast(Bool, cond).Not(), inv.call(self.state))
-        )
+        self.state.precond.append(and_objects(cond.Not(), inv.call(self.state)))
 
     def visit_return_stmt(self, o: ReturnStmt) -> None:
         assert o.expr is not None
@@ -743,7 +743,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         return self.state.read(o.name)
 
     # a < b < c is equiv to a < b and b < c
-    def visit_comparison_expr(self, o: ComparisonExpr) -> Bool:
+    def visit_comparison_expr(self, o: ComparisonExpr) -> BoolObject:
         operands = [e.accept(self) for e in o.operands]
         e = self.process_comparison(o.operators[0], operands[0], operands[1])
         for i in range(1, len(o.operators)):
@@ -753,9 +753,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         return e
 
     # ">" | "<" | "==" | ">=" | "<=" | "!=" | "is" ["not"] | ["not"] "in"
-    def process_comparison(self, op: str, left: Object, right: Object) -> Bool:
-        if not isinstance(left, Int) or not isinstance(right, Int):
-            raise Exception(f"{op} is only supported for int objects")
+    def process_comparison(self, op: str, left: NewObject, right: NewObject) -> NewObject:
         if op == ">":
             return left > right
         elif op == "<":
@@ -770,7 +768,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
             raise RuntimeError(f"NYI: {op}")
 
     # binary expr
-    def visit_op_expr(self, o: OpExpr) -> Object:
+    def visit_op_expr(self, o: OpExpr) -> NewObject:
         l = o.left.accept(self)
         r = o.right.accept(self)
         op = o.op
@@ -793,9 +791,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         elif op == "%":
             raise NotImplementedError(f"Modulo not supported in {o}")
         elif op == "and":
-            return and_objects(l, r)  # type: ignore
+            return l.And(r)
         elif op == "or":
-            return or_objects(l, r)  # type: ignore
+            return l.Or(r)
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
 

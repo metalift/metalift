@@ -628,7 +628,7 @@ def create_object(
         return object_type(value)
 
 def get_object_sources(objects: List["NewObject"]) -> List[Expr]:
-    eturn [obj.src for obj in objects]
+    return [obj.src for obj in objects]
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
