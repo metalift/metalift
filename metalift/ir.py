@@ -909,15 +909,16 @@ class SetObject(Generic[T], NewObject):
         else:
             return f"(Set {contained_type.toSMTType()})"
 
-IntT = TypeVar("IntT")
-class TupleObject(Generic[T, IntT], NewObject):
+class TupleObject(NewObject):
     def __init__(
         self,
-        containedT: Union[type, _GenericAlias] = IntObject,
-        intT: type = Literal[1],
+        # containedT: Union[type, _GenericAlias] = IntObject,
+        # intT: type = Literal[1],
+        containedT: List[Union[type, _GenericAlias]]=[IntObject],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = TupleObject[containedT, intT]
+        # full_type = TupleObject[containedT, intT]
+        full_type = TupleObject
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
         elif isinstance(value, Expr):
@@ -927,18 +928,20 @@ class TupleObject(Generic[T, IntT], NewObject):
         else:
             raise TypeError(f"Cannot create TupleObject from {value}")
         self.containedT = containedT
-        self.intT = intT
-        NewObject.__init__(self, src, full_type)
+        # self.intT = intT
+        NewObject.__init__(self, src)
 
     def __getitem__(
         self, index: Union[IntObject, int]
     ):  # -> IntObject:  # index can also be slice
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
+        
         if isinstance(index, IntObject):
-            if issubclass(self.containedT, NewObject):
+            item_type = self.containedT[index]
+            if issubclass(item_type, NewObject):
                 # TODO(jie) create a function to wrap objects around expession
-                return self.containedT(Call("tupleGet", self.containedT, self, index))
+                return item_type(Call("tupleGet", item_type, self, index))
             else:
                 raise Exception(
                     "Only primitive object types inside tuples are supported!"
@@ -948,19 +951,26 @@ class TupleObject(Generic[T, IntT], NewObject):
 
     @property
     def length(self) -> int:
-        return get_args(self.intT)[0]
+        # return get_args(self.intT)[0]
+        return len(self.containedT)
 
     @staticmethod
     def toSMTType(
-        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+        # type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+        type_args: List[Union[typing.Type["NewObject"], _GenericAlias]]
     ) -> str:
-        containedT, intT = type_args
-        tuple_length = get_args(intT)[0]
-        if isinstance(containedT, _GenericAlias):
-            containedT_str = get_origin(containedT).toSMTType(get_args(containedT))
-        else:
-            containedT_str = containedT.toSMTType()
-        return f"(Tuple{tuple_length} {' '.join([containedT_str] * tuple_length)})"  # this would call List.toSMTType(Int) for instance
+        # containedT, intT = type_args
+        containedT = type_args
+        # tuple_length = get_args(intT)[0]
+        tuple_length = len(containedT)
+        contained_str_list = []
+        for contain in containedT:
+            if isinstance(contain, _GenericAlias):
+                containedT_str = get_origin(contain).toSMTType(get_args(contain))
+            else:
+                containedT_str = contain.toSMTType()
+            contained_str_list.append(containedT_str)
+        return f"(Tuple{tuple_length} {' '.join(contained_str_list)})"  # this would call List.toSMTType(Int) for instance
 
     # TODO(jie): handle contained type
     @staticmethod
