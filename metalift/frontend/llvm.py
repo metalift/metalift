@@ -793,7 +793,9 @@ class Predicate:
         return BoolObject(call_expr)
 
     def gen_Synth(self) -> Synth:
-        body = self.grammar(self.writes, self.reads, self.in_scope).src
+        v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
+        [print(f"v: {v}\n") for v in v_objects]
+        body = and_exprs(*get_object_sources(v_objects))
         return Synth(self.name, body, *self.args)
 
 
