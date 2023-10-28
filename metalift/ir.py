@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 from inspect import isclass
+import re
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
@@ -606,9 +607,12 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         return IntObject
     elif ty_str == "i1":
         return BoolObject
-    elif ty_str in {"%struct.list*", "%struct.list**", '%"class.std::__1::vector"*'}:
+    elif ty_str in {"%struct.list*", "%struct.list**"}:
         # TODO colin: add generic type support
         # TODO jie: retire struct.list and use STL?
+        return ListObject[IntObject]
+    elif re.match('%"class.std::__1::vector(\.\d+)?"*', ty_str):
+        # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::vector"*, llvmlite will turn it into %"class.std::__1::vector.0"*
         return ListObject[IntObject]
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
