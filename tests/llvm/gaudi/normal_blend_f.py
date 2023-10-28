@@ -1,0 +1,92 @@
+from typing import List
+
+from metalift.frontend.llvm import Driver
+from metalift.ir import IntObject, ListObject, NewObject, choose
+from metalift.vc_util import and_objects
+from tests.llvm.gaudi.gaudi_common import (call_scalar_mul, call_vector_add,
+                                     target_lang)
+from tests.python.utils.utils import codegen
+
+
+def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+    base = reads[0]
+    active = reads[1]
+    opacity = reads[2]
+    ret_val = writes[0]
+    return ret_val == call_vector_add(
+        call_scalar_mul(opacity, active),
+        choose(
+            call_scalar_mul(1 - opacity, base),
+            call_scalar_mul(255 - opacity, base)
+        )
+    )
+
+def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+    base = reads[0]
+    active = reads[1]
+    opacity = reads[2]
+    agg_result = writes[0]
+    i = writes[2]
+
+    return and_objects(
+        i >= 0,
+        i <= active.len(),
+        agg_result == call_vector_add(
+            call_scalar_mul(opacity, active.take(i)),
+            choose(
+                call_scalar_mul(1 - opacity, base.take(i)),
+                call_scalar_mul(255 - opacity, base.take(i))
+            )
+        )
+    )
+
+if __name__ == "__main__":
+    driver = Driver()
+    normal_blend_f = driver.analyze(
+        "tests/llvm/gaudi/normal_blend_f.ll",
+        "tests/llvm/gaudi/normal_blend_f.loops",
+        "test",
+        target_lang,
+        inv_grammar,
+        ps_grammar
+    )
+
+    base_var = ListObject(IntObject, "base")
+    active_var = ListObject(IntObject, "active")
+    opacity_var = IntObject("opacity")
+    driver.add_var_objects([base_var, active_var, opacity_var])
+    driver.add_precondition(base_var.len() == active_var.len())
+    driver.add_precondition(base_var.len() > 0)
+
+    normal_blend_f(base_var, active_var, opacity_var)
+
+    driver.synthesize(noVerify=True)
+
+    print("\n\ngenerated code:" + normal_blend_f.codegen(codegen))
+
+    def print_line():
+        print("--------------------------------------------")
+        print("--------------------------------------------")
+        print("--------------------------------------------")
+    print_line()
+
+    driver = Driver()
+    normal_blend_8 = driver.analyze(
+        "tests/llvm/gaudi/normal_blend_8.ll",
+        "tests/llvm/gaudi/normal_blend_8.loops",
+        "normal_blend_8",
+        target_lang,
+        inv_grammar,
+        ps_grammar
+    )
+    base_var = ListObject(IntObject, "base")
+    active_var = ListObject(IntObject, "active")
+    opacity_var = IntObject("opacity")
+    driver.add_var_objects([base_var, active_var, opacity_var])
+    driver.add_precondition(base_var.len() == active_var.len())
+    driver.add_precondition(base_var.len() > 0)
+
+    normal_blend_8(base_var, active_var, opacity_var)
+    driver.synthesize(noVerify=True)
+
+    print("\n\ngenerated code:" + normal_blend_8.codegen(codegen))
