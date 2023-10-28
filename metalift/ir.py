@@ -909,16 +909,21 @@ class SetObject(Generic[T], NewObject):
         else:
             return f"(Set {contained_type.toSMTType()})"
 
-class TupleObject(NewObject):
+
+class TupleObject(Generic[T], NewObject):
     def __init__(
         self,
-        # containedT: Union[type, _GenericAlias] = IntObject,
-        # intT: type = Literal[1],
         containedT: List[Union[type, _GenericAlias]]=[IntObject],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        # full_type = TupleObject[containedT, intT]
-        full_type = TupleObject
+        # type = typing.Tuple[containedT]
+        contained_types = tuple(containedT)
+        print(contained_types)
+        # print(get_args(contained_types))
+        # full_type = TupleObject[contained_types]
+        # print(full_type.__args__)
+        assert False
+        full_type = TupleObject[tuple(containedT)]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
         elif isinstance(value, Expr):
