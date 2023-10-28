@@ -1,29 +1,26 @@
-from typing import List, Union
-
-from mypy.nodes import Statement
+from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import And, Bool, BoolLit, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Int, IntLit, Ite, Le, ListT, Lt, Var, Add, Mul, Sub, Implies
+from metalift.ir import Expr, NewObject, implies
+from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 from gaudi_common import *
 
-def ps_grammar(writes: List[Var], reads: List[Var]) -> Expr:
-    # reads = [in_lst]
-    #print("reads: ")
-    #print(*reads)
+def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
-    #print("ps writes:")
-    #print(*writes)
     ret_val = writes[0]
-    # give answer using reads[[#]]
-    #Call("list_eq", Bool(), ret_val, )
-    return Implies(And(Eq(ml_list_length(base), ml_list_length(active)), Gt(ml_list_length(base), IntLit(0))),
-        Call("list_eq", Bool(), ret_val, call_vector_add(call_scalar_mul(opacity, active), call_scalar_mul(Sub(IntLit(1), opacity), base))))
+    return implies(
+        and_objects(base.len() == active.len(), base.len() > 0),
+        ret_val == call_vector_add(
+            call_scalar_mul(opacity, active),
+            call_scalar_mul(1 - opacity, base)
+        )
+    )
 
-def inv_grammar(writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     print("writes: ")
     print(*writes)
     #return BoolLit(True)
@@ -34,14 +31,17 @@ def inv_grammar(writes: List[Var], reads: List[Var]) -> Expr:
     ref_tmp = writes[1]
     i = writes[2]
 
-    return Implies(And(Eq(ml_list_length(base), ml_list_length(active)),
-                           Gt(ml_list_length(base), IntLit(0))),
-                       And(Ge(i, IntLit(0)),
-                           Le(i, ml_list_length(active)),
-                           Eq(agg_result,
-                              call_vector_add(call_scalar_mul(opacity, ml_list_take(active, i)),
-                                    call_scalar_mul(Sub(IntLit(1), opacity), ml_list_take(base, i)))
-                              )))
+    return implies(
+        and_objects(base.len() == active.len(), base.len() > 0),
+        and_objects(
+            i >= 0,
+            i <= active.len(),
+            agg_result == call_vector_add(
+                call_scalar_mul(opacity, active.take(i)),
+                call_scalar_mul(1 - opacity, base.take(i))
+            )
+        )
+    )
 
 if __name__ == "__main__":
     driver = Driver()
@@ -54,9 +54,10 @@ if __name__ == "__main__":
         ps_grammar
     )
 
-    base_var = driver.variable("base", ListT(Int()))
-    active_var = driver.variable("active", ListT(Int()))
-    opacity_var = driver.variable("opacity", Int())
+    base_var = ListObject(IntObject, "base")
+    active_var = ListObject(IntObject, "active")
+    opacity_var = IntObject("opacity")
+    driver.add_var_objects([base_var, active_var, opacity_var])
 
     test(base_var, active_var, opacity_var)
 
@@ -79,9 +80,9 @@ if __name__ == "__main__":
         inv_grammar,
         ps_grammar
     )
-    base_var = driver.variable("base", ListT(Int()))
-    active_var = driver.variable("active", ListT(Int()))
-    opacity_var = driver.variable("opacity", Int())
+    base_var = ListObject(IntObject, "base")
+    active_var = ListObject(IntObject, "active")
+    opacity_var = IntObject("opacity")
 
     normal_blend_8(base_var, active_var, opacity_var)
     driver.synthesize(noVerify=True)

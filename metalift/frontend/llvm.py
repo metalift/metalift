@@ -421,8 +421,7 @@ class Predicate:
         return BoolObject(call_expr)
 
     def gen_Synth(self) -> Synth:
-        v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
-        body = and_exprs(*get_object_sources(v_objects))
+        body = self.grammar(self.writes, self.reads).src
         return Synth(self.name, body, *self.args)
 
 
@@ -1053,7 +1052,7 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
-    def synthesize(self) -> None:
+    def synthesize(self, **synthesize_kwargs) -> None:
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
@@ -1064,7 +1063,15 @@ class Driver:
             target += fn.target_lang_fn()
         # TODO(jie) investigate why set(self.var_tracker.all()) makes things wrong
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            "test", target, self.var_tracker.all(), synths, [], vc, synths, "cvc5"
+            basename="test",
+            targetLang=target,
+            vars=set(self.var_tracker.all()),
+            invAndPs=synths,
+            preds=[],
+            vc=vc,
+            loopAndPsInfo=synths,
+            cvcPath="cvc5",
+            **synthesize_kwargs
         )
 
         for f in synthesized:
