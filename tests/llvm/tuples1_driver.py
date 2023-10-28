@@ -25,8 +25,8 @@ def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -
 def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     x_tuple_src = Tuple(x, x)
     y_tuple_src = Tuple(y, y)
-    x_tuple = TupleObject([IntObject, IntObject], x_tuple_src)
-    y_tuple = TupleObject([IntObject, IntObject], y_tuple_src)
+    x_tuple = TupleObject([[IntObject, IntObject], x_tuple_src])
+    y_tuple = TupleObject([[IntObject, IntObject], y_tuple_src])
     summary = Choose(
         ret_val == tuple_mult(x_tuple) + tuple_mult(y_tuple),
         ret_val == tuple_mult(x_tuple) - tuple_mult(y_tuple)
