@@ -937,11 +937,21 @@ class ListObject(Generic[T], NewObject):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
 
-        self.src = Call("list_append", self.type, self.src, value.src)
+        self.src = call("list_append", self.type, self, value).src
+        return self
+
+    # in place prepend
+    def prepend(self, value: NewObject) -> "ListObject":
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+
+        self.src = call("list_prepend", self.type, self, value).src
         return self
 
     def take(self, index: NewObject) -> "ListObject":
-        return call("list_take", self.type, self.src, index.src)
+        return call("list_take", self.type, self, index)
 
     # list concat that returns a new list
     def __add__(self, other: "ListObject") -> "ListObject":

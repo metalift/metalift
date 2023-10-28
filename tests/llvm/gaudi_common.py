@@ -54,7 +54,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         left_rest = left[1:]
         right_rest = right[1:]
         recursed = call_vector_add(left_rest, right_rest)
-        general_answer = recursed + cur
+        general_answer = recursed.prepend(cur)
         return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
     vector_add = FnDeclRecursive(VECTORADD, ListObject[IntObject], vector_add_body(x, y).src, x.src, y.src)
 
@@ -63,7 +63,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         cur = scalar * arr[0]
         arr_rest = arr[1:]
         recursed = call_scalar_mul(scalar, arr_rest)
-        general_answer = recursed + cur
+        general_answer = recursed.prepend(cur)
         return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
     scalar_mul = FnDeclRecursive(SCALARMUL, ListObject[IntObject], scalar_mul_body(a, x).src, a.src, x.src)
 
@@ -72,7 +72,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         cur = scalar + arr[0]
         arr_rest = arr[1:]
         recursed = call_broadcast_add(scalar, arr_rest)
-        general_answer = recursed + cur
+        general_answer = recursed.prepend(cur)
         return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
     broadcast_add = FnDeclRecursive(BROADCASTADD, ListObject[IntObject], broadcast_add_body(a, x).src, a.src, x.src)
 
@@ -100,7 +100,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         left_rest = left[1:]
         right_rest = right[1:]
         recursed = call_elemwise_mul(left_rest, right_rest)
-        general_answer = recursed + cur
+        general_answer = recursed.prepend(cur)
         return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
     elemwise_mul = FnDeclRecursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mul_body(x, y).src, x.src, y.src)
 
