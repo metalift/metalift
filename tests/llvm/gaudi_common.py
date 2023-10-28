@@ -45,8 +45,7 @@ an_arr_to_int = lambda arr: choose(
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     x = ListObject(IntObject, "x")
     y = ListObject(IntObject, "y")
-    a = ListObject(IntObject, "a")
-    b = ListObject(IntObject, "b")
+    a = IntObject("a")
 
     def vector_add_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
         vec_size = left.len()
@@ -58,7 +57,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
     vector_add = FnDeclRecursive(VECTORADD, ListObject[IntObject], vector_add_body(x, y).src, x.src, y.src)
 
-    def scalar_mul_body(scalar: ListObject[IntObject], arr: ListObject[IntObject]) -> ListObject[IntObject]:
+    def scalar_mul_body(scalar: IntObject, arr: ListObject[IntObject]) -> ListObject[IntObject]:
         vec_size = arr.len()
         cur = scalar * arr[0]
         arr_rest = arr[1:]
@@ -67,7 +66,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
     scalar_mul = FnDeclRecursive(SCALARMUL, ListObject[IntObject], scalar_mul_body(a, x).src, a.src, x.src)
 
-    def broadcast_add_body(scalar: ListObject[IntObject], arr: ListObject[IntObject]) -> ListObject[IntObject]:
+    def broadcast_add_body(scalar: IntObject, arr: ListObject[IntObject]) -> ListObject[IntObject]:
         vec_size = arr.len()
         cur = scalar + arr[0]
         arr_rest = arr[1:]

@@ -807,6 +807,7 @@ class IntObject(NewObject):
         if isinstance(other, int):
             return IntObject(other) * self
         else:
+            import pdb; pdb.set_trace()
             return other * self
 
     # logical comparison operators
@@ -947,7 +948,7 @@ class ListObject(Generic[T], NewObject):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
 
-        self.src = call("list_prepend", self.type, self, value).src
+        self.src = call("list_prepend", self.type, value, self).src
         return self
 
     def take(self, index: NewObject) -> "ListObject":
