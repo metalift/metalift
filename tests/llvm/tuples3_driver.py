@@ -1,30 +1,29 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Call, Choose, Expr,
-                         FnDeclRecursive, IntObject, NewObject)
+from metalift.ir import FnDeclRecursive, IntObject, NewObject, call, choose
 from tests.python.utils.utils import codegen
 
 def double(t):
-    return IntObject(Call("double", IntObject, t))
+    return call("double", IntObject, t)
 
 def target_lang():
     x = IntObject("x")
     double = FnDeclRecursive(
         "double",
         IntObject,
-        x + x,
-        x
+        (x + x).src,
+        x.src
     )
     return [double]
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     raise Exception("no invariant")
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     r = writes[0]
     (x, y) = reads
-    summary = Choose(
+    summary = choose(
         ret_val == double(x) + double(y),
         ret_val == double(x) - double(y)
     )
