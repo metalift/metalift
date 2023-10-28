@@ -604,6 +604,10 @@ class VCVisitor:
     # Functions to step through the blocks
     def preprocess(self, block: ValueRef) -> None:
         """Preprocess the entry block of the entire function. This includes setting up the postcondition, as well as writing all the arguments to the state of the entry block."""
+        # Add preconditions
+        blk_state = self.fn_blocks_states[block.name]
+        blk_state.precond += self.driver.postconditions
+
         return_arg = create_object(self.fn_type.args[0], f"{self.fn_name}_rv")
         for arg in self.fn_args + [return_arg]:
             # TODO: make this check for all pointer types
@@ -1081,10 +1085,26 @@ class Driver:
                 if isinstance(f.body(), Eq):
                     self.fns[name].synthesized = cast(Eq, f.body()).e2()
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
+                elif isinstance(f.body(), Call) and f.body().name() == "list_eq":
+                    self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]
+                    print(f"{name} synthesized: {self.fns[name].synthesized}")
+                # if isinstance(f.body(), Implies):
+                #     rhs = cast(Implies, f.body()).args[1]
+                #     if isinstance(rhs, Eq):
+                #         self.fns[name].synthesized = cast(Eq, rhs).e2()
+                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
+                #     elif isinstance(rhs, Call):
+                #         self.fns[name].synthesized = cast(Call, rhs).args[2]
+                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
+                #     else:
+                #         raise Exception(
+                #             f"unhandled situation"
+                #         )
                 else:
                     raise Exception(
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )
+
 
     def add_precondition(self, e: NewObject) -> None:
         # this gets propagated to the State when it is created
