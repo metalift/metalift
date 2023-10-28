@@ -940,6 +940,9 @@ class ListObject(Generic[T], NewObject):
         self.src = Call("list_append", self.type, self.src, value.src)
         return self
 
+    def take(self, index: NewObject) -> "ListObject":
+        return call("list_take", self.type, self.src, index.src)
+
     # list concat that returns a new list
     def __add__(self, other: "ListObject") -> "ListObject":
         if self.type != other.type:
