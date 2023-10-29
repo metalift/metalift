@@ -42,8 +42,8 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         "sgemv",
         ListObject[IntObject],
         ite(sgemv_cond, sgemv_then, sgemv_else).src,
-        x.src,
-        y.src
+        a.src,
+        x.src
     )
 
     alpha = IntObject("alpha")
