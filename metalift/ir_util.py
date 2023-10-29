@@ -17,10 +17,7 @@ def is_set_type_expr(expr: Expr) -> bool:
         return issubclass(expr.type, SetObject)
 
 def is_tuple_type_expr(expr: Expr) -> bool:
-    if isinstance(expr.type, _GenericAlias):
-        return issubclass(get_origin(expr.type), TupleObject)
-    else:
-        return issubclass(expr.type, TupleObject)
+    return isinstance(expr, TupleObject)
 
 
 # Helper functions

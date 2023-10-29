@@ -2,19 +2,19 @@ from typing import List, Literal
 
 from metalift.frontend.python import Driver
 from metalift.ir import (Add, Call, Choose, Expr,
-                         FnDeclRecursive, IntObject, Tuple, TupleObject, NewObject)
+                         FnDeclRecursive, IntObject, Tuple, TupleObject, NewObject, call, choose)
 from tests.python.utils.utils import codegen
 
 def tuple_add(t):
-    return IntObject(Call("tuple_add", IntObject, t))
+    return call("tuple_add", IntObject, t)
 
 def target_lang():
-    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
+    x = TupleObject(IntObject, IntObject, "x")
     tuple_add = FnDeclRecursive(
         "tuple_add",
         IntObject,
-        x[0] + x[1],
-        x
+       (x[0] + x[1]).src,
+        x.src
     )
     return [tuple_add]
 
@@ -25,9 +25,9 @@ def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObjec
     (x, y) = reads
     x_tuple_src = Tuple(x, x)
     y_tuple_src = Tuple(y, y)
-    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
-    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
-    summary = Choose(
+    x_tuple = TupleObject(IntObject, IntObject, x_tuple_src)
+    y_tuple = TupleObject(IntObject, IntObject, y_tuple_src)
+    summary = choose(
         ret_val == tuple_add(x_tuple) +  tuple_add(y_tuple),
         ret_val == tuple_add(x_tuple) - tuple_add(y_tuple)
     )

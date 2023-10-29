@@ -10,7 +10,7 @@ def tuple_mult(t):
     return call("tuple_mult", IntObject, t)
 
 def target_lang():
-    x = TupleObject("x", IntObject, IntObject)
+    x = TupleObject(IntObject, IntObject, "x")
     tuple_mult = FnDeclRecursive(
         "tuple_mult",
         IntObject,
@@ -25,9 +25,8 @@ def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -
 def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     x_tuple_src = Tuple(x, x)
     y_tuple_src = Tuple(y, y)
-    # x_tuple = TupleObject([IntObject, IntObject], x_tuple_src)
-    x_tuple = TupleObject(x_tuple_src, IntObject, IntObject)
-    y_tuple = TupleObject(y_tuple_src, IntObject, IntObject)
+    x_tuple = TupleObject(IntObject, IntObject, x_tuple_src)
+    y_tuple = TupleObject(IntObject, IntObject, y_tuple_src)
     summary = choose(
         ret_val == tuple_mult(x_tuple) + tuple_mult(y_tuple),
         ret_val == tuple_mult(x_tuple) - tuple_mult(y_tuple)
