@@ -634,8 +634,6 @@ def create_object(
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
         contained_types = get_args(object_type)
-        if get_origin(object_type) == TupleObject:
-            return object_cls(value, *contained_types)
         return object_cls(*contained_types, value)
     else:
         return object_type(value)
@@ -669,7 +667,7 @@ def call(fn_name: str, return_type: typing.Type["NewObject"], *object_args: "New
 
 def make_tuple(*objects: "NewObject") -> "TupleObject":
     obj_types = [obj.type for obj in objects]
-    return TupleObject(Tuple(*get_object_sources(objects)), *obj_types)
+    return TupleObject(*obj_types, Tuple(*get_object_sources(objects)))
 
 def make_tuple_type(*containedT: Union[type, _GenericAlias],) -> typing.Type["TupleObject"]:
     return TupleObject[typing.Tuple[containedT]]
@@ -1076,9 +1074,11 @@ class SetObject(Generic[T], NewObject):
 class TupleObject(Generic[T], NewObject):
     def __init__(
         self,
-        value: Optional[Union[Expr, str]] = None,
-        *containedT: Union[type, _GenericAlias],
+        *containedT: Union[type, _GenericAlias], #This containedT will also take the value parameter. But it's currently for consistency with other object classes
+        value: Optional[Union[Expr, str]] = None
     ) -> None:
+        value = containedT[-1]
+        containedT = containedT[:-1]
         full_type = TupleObject[typing.Tuple[containedT]]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1112,12 +1112,11 @@ class TupleObject(Generic[T], NewObject):
 
     @property
     def length(self) -> int:
-        # return get_args(self.intT)[0]
         return len(self.containedT)
 
     @staticmethod
     def toSMTType(
-        type_args: Union[typing.Type["NewObject"], _GenericAlias]
+        type_args: ObjectContainedT
     ) -> str:
         containedT = get_args(type_args[0])
         tuple_length = len(containedT)
@@ -1764,7 +1763,16 @@ class Call(Expr):
             elif (str(a)) == "make-tuple":
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
-                if len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple":
+                print("here")
+                print(a)
+                print(self.args)
+                print(type(self.args[idx + 1]))
+                print(self.args[idx + 1].args[0])
+                print()
+
+                if isinstance(self.args[idx + 1], Tuple):
+                    retVal.append(self.args[idx+1].toSMT())
+                elif len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple":
                     retVal.append(
                         "tuple%d_get%d"
                         % (

@@ -2,11 +2,11 @@ from typing import List
 
 from metalift.frontend.python import Driver
 from metalift.ir import (Call, Choose, Expr,
-                         FnDeclRecursive, IntObject, NewObject)
+                         FnDeclRecursive, IntObject, NewObject, call)
 from tests.python.utils.utils import codegen
 
 def double(t):
-    return IntObject(Call("double", IntObject, t))
+    return IntObject(call("double", IntObject, t))
 
 def target_lang():
     x = IntObject("x")

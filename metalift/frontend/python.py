@@ -801,17 +801,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
     def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
         tuple_expr = MLTuple(*[expr.accept(self) for expr in o.items])
         tuple_length = len(o.items)
-        if tuple_length == 1:
-            literal_type = Literal[1]
-        elif tuple_length == 2:
-            literal_type = Literal[2]
-        elif tuple_length == 3:
-            literal_type = Literal[3]
-        else:
-            raise Exception("Make tuple only supports length <= 3")
-
-        return_type = TupleObject[IntObject, literal_type]
-        return return_type(IntObject, literal_type, tuple_expr)
+        contained_types = [IntObject for i in range(tuple_length)]
+        return TupleObject(*contained_types, tuple_expr)
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
         # Currently only supports indexing into tuples and lists using integers
