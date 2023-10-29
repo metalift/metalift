@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
@@ -6,7 +7,7 @@ from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 from tests.llvm.gaudi.gaudi_common import an_arr2_to_arr, an_int_and_arr_to_arr, an_arr_to_int, target_lang
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     input = reads[0]
     weight = reads[1]
     epsilon = reads[2]
@@ -22,7 +23,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> BoolObject:
     )
     return ret_val == an_arr_to_int(computed_arr)
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     input = reads[0]
     weight = reads[1]
     epsilon = reads[2]
@@ -32,7 +33,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> BoolObject:
 
     an_int = choose(epsilon, hidden_size, IntObject(-1), IntObject(0), IntObject(1), IntObject(2), IntObject(3), i, variance)
     an_arr = choose(input, weight)
-    an_arr = choose(an_arr, an_arr.take(an_int))
+    an_arr = choose(an_arr, an_arr[:an_int])
 
     computed_arr = choose(an_arr2_to_arr(an_arr, an_arr), an_int_and_arr_to_arr(an_int, an_arr))
 
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         "tests/llvm/gaudi/vllm_cuda.loops",
         "layernorm_kernels_1",
         target_lang,
-        inv_grammar,
+        defaultdict(lambda: inv_grammar),
         ps_grammar
     )
     input_var = ListObject(IntObject, "input")

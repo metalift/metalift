@@ -824,6 +824,7 @@ class PredicateTracker:
             args = (
                 args + non_args_scope_vars
             )
+            import pdb; pdb.set_trace()
             inv = Predicate(
                 driver=self.driver,
                 args=args,
@@ -1175,7 +1176,7 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
-
+            in_scope_objs = [obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}]
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
                 args=havocs + self.fn_args,
@@ -1201,6 +1202,8 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
+            # TODO(jie): remove. this is a hack
+            in_scope_objs = [obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}]
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
                 args=havocs + self.fn_args,

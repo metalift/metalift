@@ -1,6 +1,6 @@
 from typing import List, Union
 from metalift.frontend.llvm import Driver
-from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, ite
+from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, implies, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
@@ -57,8 +57,8 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         a[0].len() == x.len(),
         a.len() == y.len()
     )
-    cblas_sgemv_else = cblas_sgemv(alpha, a[1:], x, beta, y[1:]).prepend(alpha * sdot(a[0], x) + beta * y[0])
-    cblas_sgemv_then = ListObject.empty(IntObject)
+    cblas_sgemv_then = cblas_sgemv(alpha, a[1:], x, beta, y[1:]).prepend(alpha * sdot(a[0], x) + beta * y[0])
+    cblas_sgemv_else = ListObject.empty(IntObject)
     cblas_sgemv_decl = FnDeclRecursive(
         "cblas_sgemv",
         ListObject[IntObject],
@@ -75,12 +75,13 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     # Outer loop
     z, res, j, _, i = writes
     alpha, a, x, beta, y = reads
-
-    return and_objects(
+    cond = and_objects(x.len() == a[0].len(), y.len() == a.len(), a.len() > 1)
+    result = and_objects(
         i >= 0,
         i <= a.len(),
         z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
     )
+    return implies(cond, result)
 
 def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     # Inner loop
@@ -92,7 +93,8 @@ def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     }
     i = in_scope_mapping["i"]
     z = in_scope_mapping["agg.result"]
-    return and_objects(
+    cond = and_objects(x.len() == a[0].len(), y.len() == a.len(), a.len() > 1)
+    result = and_objects(
         j >= 0,
         j <= x.len(),
         i >= 0,
@@ -100,11 +102,13 @@ def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
         res == sdot(a[i][:j], x[:j]),
         z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
     )
+    return implies(cond, result)
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     ret_val = writes[0]
     alpha, a, x, beta, y = reads
-    return ret_val == cblas_sgemv(alpha, a, x, beta, y)
+    cond = and_objects(x.len() == a[0].len(), y.len() == a.len(), a.len() > 1)
+    return implies(cond, ret_val == cblas_sgemv(alpha, a, x, beta, y))
 
 if __name__ == "__main__":
     driver = Driver()
@@ -126,9 +130,9 @@ if __name__ == "__main__":
     beta = IntObject("beta")
     y = ListObject(IntObject, "y")
     driver.add_var_objects([alpha, a, x, beta, y])
-    driver.add_precondition(x.len() == a[0].len())
-    driver.add_precondition(y.len() == a.len())
-    driver.add_precondition(a.len() > 1)
+    # driver.add_precondition(x.len() == a[0].len())
+    # driver.add_precondition(y.len() == a.len())
+    # driver.add_precondition(a.len() > 1)
 
     test_cblas_sgemv(alpha, a, x, beta, y)
 
