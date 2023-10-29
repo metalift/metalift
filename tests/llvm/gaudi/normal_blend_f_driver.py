@@ -32,10 +32,10 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
         i >= 0,
         i <= active.len(),
         agg_result == call_vector_add(
-            call_scalar_mul(opacity, active.take(i)),
+            call_scalar_mul(opacity, active[:i]),
             choose(
-                call_scalar_mul(1 - opacity, base.take(i)),
-                call_scalar_mul(255 - opacity, base.take(i))
+                call_scalar_mul(1 - opacity, base[:i]),
+                call_scalar_mul(255 - opacity, base[:i])
             )
         )
     )

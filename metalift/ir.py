@@ -480,6 +480,13 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     else:
         raise Exception(f"no type defined for {ty_str}")
 
+def parse_c_or_cpp_type_to_obj(ty_str: str) -> typing.Type["NewObject"]:
+    if ty_str == "int":
+        return IntObject
+    if ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
+        return ListObject[IntObject]
+    raise Exception(f"no type defined for {ty_str}")
+
 
 def create_object(
     object_type: typing.Type["NewObject"], value: Optional[Union[bool, str, Expr]]
@@ -671,7 +678,6 @@ class IntObject(NewObject):
         if isinstance(other, int):
             return IntObject(other) * self
         else:
-            import pdb; pdb.set_trace()
             return other * self
 
     # logical comparison operators
@@ -759,22 +765,16 @@ class ListObject(Generic[T], NewObject):
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = IntObject(start)
-                return ListObject(
-                    self.containedT,
-                    Call("list_tail", ListObject[self.containedT], self.src, start.src)
-                )
+                return call("list_tail", ListObject[self.containedT], self, start)
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = IntObject(stop)
-                return ListObject(
-                    self.containedT,
-                    Call("list_head", ListObject[self.containedT], self.src, stop.src)
-                )
+                return call("list_take", ListObject[self.containedT], self, stop)
             else:
                 raise NotImplementedError(f"Slices with both start and stop indices specified are not implemented: {index}")
 
         if is_new_object_type(self.containedT):  # non generic type
-            return self.containedT(Call("list_get", self.containedT, self.src, index.src))
+            return call("list_get", self.containedT, self, index)
         elif isinstance(self.containedT, _GenericAlias):  # generic type
             subcontainedT = typing.get_args(self.containedT)[0]
             return self.containedT(
@@ -814,9 +814,6 @@ class ListObject(Generic[T], NewObject):
 
         self.src = call("list_prepend", self.type, value, self).src
         return self
-
-    def take(self, index: NewObject) -> "ListObject":
-        return call("list_take", self.type, self, index)
 
     # list concat that returns a new list
     def __add__(self, other: "ListObject") -> "ListObject":
