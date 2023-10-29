@@ -56,6 +56,7 @@ from metalift.ir import (
     create_object,
     get_object_sources,
     implies,
+    parse_c_or_cpp_type_to_obj,
     parse_type_ref_to_obj,
     Var,
 )
@@ -65,6 +66,359 @@ from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
 from metalift.vc import Block
 from metalift.vc_util import and_exprs, and_objects, or_exprs, or_objects
+
+# Models
+ReturnValue = NamedTuple(
+    "ReturnValue",
+    [
+        ("val", Optional[NewObject]),
+        ("assigns", Optional[List[Tuple[str, NewObject, str]]]),
+    ],
+)
+
+PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
+PRIMITIVE_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >"
+NESTED_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >"
+VECTOR_TYPE_REGEX = fr"({PRIMITIVE_VECTOR_TYPE_REGEX})|({NESTED_VECTOR_TYPE_REGEX})"
+
+def set_create(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    return ReturnValue(SetObject.empty(IntObject), None)
+
+def set_add(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.add(item), None)
+
+def set_remove(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.remove(item), None)
+
+def set_contains(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(item in s, None)
+
+def new_list(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 0
+    return ReturnValue(ListObject.empty(IntObject), None)
+
+
+def list_length(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    # TODO(jie) think of how to better handle list of lists
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    return ReturnValue(
+        lst.len(),
+        None,
+    )
+
+
+def list_get(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    index = primitive_vars[args[1].name]
+    return ReturnValue(
+        lst[index],
+        None,
+    )
+
+
+def list_append(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    value = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
+    return ReturnValue(
+        lst.append(value),
+        None,
+    )
+
+
+def list_concat(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    lst1 = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    lst2 = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
+    return ReturnValue(
+        lst1 + lst2,
+        None,
+    )
+
+
+def new_vector(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name)
+    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name)
+    if primitive_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+    elif nested_match:
+        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+    else:
+        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+
+    var_name: str = args[0].name
+    assigns: List[Tuple[str, Expr]] = [
+        (var_name, ListObject.empty(contained_type), "primitive")
+    ]
+    return ReturnValue(None, assigns)
+
+
+def vector_append(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    assign_var_name: str = args[0].name
+
+    assign_val = Call(
+        "list_append",
+        parse_type_ref_to_obj(args[0].type),
+        state.read_or_load_operand(args[0]),
+        state.read_or_load_operand(args[1])
+    )
+    return ReturnValue(
+        None,
+        [(assign_var_name, assign_val, "primitive")],
+    )
+
+def vector_length(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name)
+    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name)
+    if primitive_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+    elif nested_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+    else:
+        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+
+    # TODO(jie) think of how to better handle list of lists
+    lst = state.read_or_load_operand(args[0])
+    # TODO(jie): is this enough? Do we need to make another list object?
+    lst.containedT = contained_type
+    return ReturnValue(
+        lst.len(),
+        None,
+    )
+
+def vector_get(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name)
+    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name)
+    if primitive_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+    elif nested_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+    else:
+        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+    lst = state.read_or_load_operand(args[0])
+    index = state.read_or_load_operand(args[1])
+    return ReturnValue(
+        lst[index],
+        None,
+    )
+
+
+def new_tuple(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    return ReturnValue(Call("newTuple", TupleObject[IntObject, Literal[2]]), None)
+
+
+
+def make_tuple(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    reg_vals = [
+        primitive_vars[args[i].name]
+        if not args[i].type.is_pointer
+        else pointer_vars[args[i].name]
+        for i in range(len(args))
+    ]
+
+    # TODO(jie): handle types other than IntObject
+    tuple_length = len(args)
+
+    literal_type = Literal[tuple_length] # type: ignore
+
+    return_type = TupleObject[IntObject, literal_type]
+
+    call_expr = Call("make-tuple", return_type, *reg_vals)
+    return ReturnValue(return_type(IntObject, literal_type, call_expr), None)
+
+def tuple_get(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    return ReturnValue(
+        Call(
+            "tupleGet",
+            IntObject,
+            primitive_vars[args[0].name]
+            if not args[0].type.is_pointer
+            else pointer_vars[args[0].name],
+            parseOperand(args[1], primitive_vars),
+        ),
+        None,
+    )
+
+
+def get_field(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    (fieldName, obj) = args
+    val = pointer_vars[obj.name].args[fieldName.args[0]]
+    # primitive_vars[i] = pointer_vars[obj].args[fieldName.args[0]
+    return ReturnValue(val, None)
+
+
+def set_field(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    (fieldName, obj, val) = args
+    pointer_vars[obj.name].args[fieldName.args[0]] = primitive_vars[val.name]
+    # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
+    return ReturnValue(None, None)
+
+
+fn_models: Dict[str, Callable[..., ReturnValue]] = {
+    # list methods
+    "newList": new_list,
+    "listLength": list_length,
+    "listAppend": list_append,
+    "listGet": list_get,
+    # vector methods
+    "vector": new_vector,
+    "size": vector_length,
+    "push_back": vector_append,
+    "operator[]": vector_get,
+    "getField": get_field,
+    "setField": set_field,
+    # names for set.h
+    "set_create": set_create,
+    "set_add": set_add,
+    "set_remove": set_remove,
+    "set_contains": set_contains,
+    # tuple methods
+    "MakeTuple": make_tuple,
+    "tupleGet": tuple_get,
+}
+
 
 # Helper classes
 
@@ -127,6 +481,10 @@ class LoopInfo:
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
 
+def get_raw_fn_name_from_call_instruction(o: ValueRef) -> str:
+    ops = list(o.operands)
+    raw_fn_name: str = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
+    return raw_fn_name
 
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
     raw_fn_name = get_raw_fn_name_from_call_instruction(o)
@@ -272,7 +630,6 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                         )
                         # print("inst: %s" % i)
 
-
 def get_full_demangled_name(maybe_mangled_name: str) -> str:
     result = subprocess.run(
         ["c++filt", "-n", maybe_mangled_name], stdout=subprocess.PIPE, check=True
@@ -280,13 +637,11 @@ def get_full_demangled_name(maybe_mangled_name: str) -> str:
     stdout = result.stdout.decode("utf-8").strip()
     return stdout
 
-
 def get_demangled_fn_name(maybe_mangled_name: str) -> Optional[str]:
     # Note: this function does not raise exception, it's up to the caller to raise exceptions if the name cannot be demangled
     full_demangled_name = get_full_demangled_name(maybe_mangled_name)
     match = re.match(
-        f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$",
-        full_demangled_name,
+        f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$", full_demangled_name
     )
     if match is not None:
         return match.group(3)
@@ -387,20 +742,11 @@ class State:
             f"{var_name} not found in primitive vars {self.primitive_vars} and pointer vars {self.pointer_vars}"
         )
 
-    def read_or_load_operand(self, op: ValueRef) -> Object:
+    def read_or_load_operand(self, op: ValueRef) -> NewObject:
         if op.type.is_pointer:
             return self.load_operand(op)
         else:
             return self.read_operand(op)
-
-    def get_var_location(self, var_name: str) -> str:
-        if var_name in self.primitive_vars.keys():
-            return "primitive"
-        elif var_name in self.pointer_vars.keys():
-            return "pointer"
-        else:
-            raise Exception(f"{var_name} not found in state!")
-
 
 class Predicate:
     driver: "Driver"
@@ -1026,17 +1372,22 @@ class VCVisitor:
         blk_state.has_returned = True
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
-        
+        print("visiting call instruction", o)
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         fn_name = get_fn_name_from_call_instruction(o)
 
-        if fn_name in models.fn_models:
+        if fn_name in fn_models:
             # TODO(colin): handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # process the mangled name -> name, type
-            rv = models.fn_models[fn_name](
-                blk_state.primitive_vars, blk_state.pointer_vars, {}, *ops[:-1]
+            raw_fn_name = get_raw_fn_name_from_call_instruction(o)
+            full_demangled_name = get_full_demangled_name(raw_fn_name)
+            rv = fn_models[fn_name](
+                blk_state,
+                {},
+                full_demangled_name,
+                *ops[:-1]
             )
 
             if rv.val is not None and o.name != "":
@@ -1059,7 +1410,8 @@ class VCVisitor:
                         self.store_var_to_block(
                             block_name=block_name, var_name=name, val=value  # pointer
                         )
-
+        else:
+            import pdb; pdb.set_trace()
 
 class Driver:
     var_tracker: VariableTracker
@@ -1248,22 +1600,23 @@ class MetaliftFunc:
 
     def __call__(self, *args: NewObject, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
-        num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
-        if num_expected_args != num_actual_args:
-            raise RuntimeError(
-                f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
-            )
-        for i in range(len(args)):
-            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
-            fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
-            if passed_in_arg_name != fn_arg_name:
-                raise Exception(
-                    f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
-                )
-            if passed_in_arg_type != fn_arg_type:
-                raise RuntimeError(
-                    f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
-                )
+        # TODO(jie): add type-checking back
+        # num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
+        # if num_expected_args != num_actual_args:
+        #     raise RuntimeError(
+        #         f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
+        #     )
+        # for i in range(len(args)):
+        #     passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
+        #     fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_type.args[1:][i]
+        #     if passed_in_arg_name != fn_arg_name:
+        #         raise Exception(
+        #             f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
+        #         )
+        #     if passed_in_arg_type != fn_arg_type:
+        #         raise RuntimeError(
+        #             f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
+        #         )
 
         if self.fn_sret_arg is not None:
             sret_obj_type = parse_type_ref_to_obj(self.fn_sret_arg.type)

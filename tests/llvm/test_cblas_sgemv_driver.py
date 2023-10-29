@@ -1,68 +1,52 @@
 from typing import List, Union
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import FnDecl, FnDeclRecursive, Int, List as mlList, Object, call, choose, ite
+from metalift.frontend.llvm import Driver
+from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
-import time
-
-def cblas_sgemv(
-    alpha: Int,
-    a: mlList[mlList[Int]],
-    x: Int,
-    beta: Int,
-    y: Int
-) -> mlList[Int]:
-    return call("cblas_sgemv", mlList[Int], alpha, a, x, beta, y)
-
-def sdot(x: mlList[Int], y: mlList[Int]) -> Int:
-    return call("sdot", Int, x, y)
-
-def sgemv(a: mlList[mlList[Int]], x: mlList[Int]) -> mlList[Int]:
-    return call("sgemv", mlList[Int], a, x)
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    x = mlList(Int, "x")
-    y = mlList(Int, "y")
+    x = ListObject(IntObject, "x")
+    y = ListObject(IntObject, "y")
     sdot_cond = and_objects(x.len() > 0, y.len() > 0, x.len() == y.len())
-    sdot_then = x[0] * y[0] + sdot(x[1:], y[1:])
-    sdot_else = Int(0)
-    sdot_decl = FnDeclRecursive(
+    sdot_then = x[0] * y[0] + call("sdot", x[1:], y[1:])
+    sdot_else = IntObject(0)
+    sdot = FnDeclRecursive(
         "sdot",
-        Int,
+        IntObject,
         ite(sdot_cond, sdot_then, sdot_else).src,
         x.src,
         y.src
     )
 
-    a = mlList(mlList[Int], "a")
-    x = mlList(Int, "x")
+    a = ListObject(ListObject[IntObject], "a")
+    x = ListObject(IntObject, "x")
     sgemv_cond = x.len() == a[0].len()
-    sgemv_then = sgemv(a[1:], x).prepend(sdot(a[0], x))
-    sgemv_else = mlList.empty(Int)
-    sgemv_decl = FnDeclRecursive(
+    sgemv_then = call("sgemv", a[1:], x).prepend(call("sdot", a[0], x))
+    sgemv_else = ListObject.empty(IntObject)
+    sgemv = FnDeclRecursive(
         "sgemv",
-        mlList[Int],
+        ListObject[IntObject],
         ite(sgemv_cond, sgemv_then, sgemv_else).src,
-        a.src,
-        x.src
+        x.src,
+        y.src
     )
 
-    alpha = Int("alpha")
-    a = mlList(mlList[Int], "a")
-    x = mlList(Int, "x")
-    beta = Int("beta")
-    y = mlList(Int, "y")
+    alpha = IntObject("alpha")
+    a = ListObject(ListObject[IntObject], "a")
+    x = ListObject(IntObject, "x")
+    beta = IntObject("beta")
+    y = ListObject(IntObject, "y")
     cblas_sgemv_cond = and_objects(
         a.len() > 0,
         a[0].len() > 0,
         a[0].len() == x.len(),
         a.len() == y.len()
     )
-    cblas_sgemv_then = cblas_sgemv(alpha, a[1:], x, beta, y[1:]).prepend(alpha * sdot(a[0], x) + beta * y[0])
-    cblas_sgemv_else = mlList.empty(Int)
-    cblas_sgemv_decl = FnDeclRecursive(
+    cblas_sgemv_else = call("cblas_sgemv", alpha, a[1:], x, beta, y[1:]).prepend(alpha * call("sdot", a[0], x) + beta * y[0])
+    cblas_sgemv_then = ListObject.empty(IntObject)
+    cblas_sgemv = FnDeclRecursive(
         "cblas_sgemv",
-        mlList[Int],
+        ListObject[IntObject],
         ite(cblas_sgemv_cond, cblas_sgemv_then, cblas_sgemv_else).src,
         alpha.src,
         a.src,
@@ -70,74 +54,34 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         beta.src,
         y.src,
     )
-    return [sdot_decl, sgemv_decl, cblas_sgemv_decl]
+    return [cblas_sgemv]
 
-def inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
-    z, i, j, _, res = writes
+def inv0_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+    res, j, z, i = writes
     alpha, a, x, beta, y = reads
-    lower_bound = choose(Int(0), Int(1))
-    i_lower_cond = choose(
-        i >= lower_bound,
-        i <= lower_bound,
-    )
-    i_upper_cond = choose(
+
+    and_objects(
+        i >= 0,
         i <= a.len(),
-        i >= a.len(),
+        z == call("cblas_sgemv", alpha, a[:i], x, beta, y[:i])
     )
-    index = choose(i, j)
-    result = and_objects(
-        i_lower_cond,
-        i_upper_cond,
-        z == cblas_sgemv(alpha, a[:index], x, beta, y[:index])
-    )
-    return result
 
-# TODO(jie): only keep i and agg.result from in_scope
-def inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
-    # Inner loop
-    j, res = writes
+def inv1_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+    res, j, z, i = writes
     alpha, a, x, beta, y = reads
-    in_scope_mapping = {
-        obj.var_name(): obj
-        for obj in in_scope
-    }
-    i = in_scope_mapping["i"]
-    z = in_scope_mapping["agg.result"]
-    lower_bound = choose(Int(0), Int(1))
-    j_lower_cond = choose(
-        j >= lower_bound,
-        j <= lower_bound,
-    )
-    j_upper_cond = choose(
+    return and_objects(
+        j >= 0,
         j <= x.len(),
-        j >= x.len(),
-    )
-    i_lower_cond = choose(
-        i >= lower_bound,
-        i <= lower_bound,
-    )
-    i_upper_cond = choose(
-        i <= a.len(),
+        i >= 0,
         i < a.len(),
+        res == call("sdot", a[i][:j], x[:j]),
+        z == call("cblas_sgemv", alpha, a[:i], x, beta, y[:i])
     )
 
-    sdot_list_take_index = choose(i, j)
-    result = and_objects(
-        j_lower_cond,
-        j_upper_cond,
-        i_lower_cond,
-        i_upper_cond,
-        # res == sdot(a[i][:j], x[:j]),
-        res == sdot(a[sdot_list_take_index][:sdot_list_take_index], x[:sdot_list_take_index]),
-        z == cblas_sgemv(alpha, a[:sdot_list_take_index], x, beta, y[:sdot_list_take_index])
-    )
-    return result
-
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     ret_val = writes[0]
     alpha, a, x, beta, y = reads
-    vec = choose(x, y)
-    return ret_val == cblas_sgemv(alpha, a, x, beta, y)
+    return ret_val == call("cblas_sgemv", alpha, a, x, beta, y)
 
 if __name__ == "__main__":
     driver = Driver()
@@ -146,18 +90,15 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/test_cblas_sgemv.loops",
         fn_name="test_cblas_sgemv",
         target_lang_fn=target_lang,
-        inv_grammars={
-            "test_cblas_sgemv_inv0": InvGrammar(inv0_grammar, []),
-            "test_cblas_sgemv_inv1": InvGrammar(inv1_grammar, ["i", "agg.result"])
-        },
+        inv_grammar=inv1_grammar,
         ps_grammar=ps_grammar
     )
 
-    alpha = Int("alpha")
-    a = mlList(mlList[Int], "a")
-    x = mlList(Int, "x")
-    beta = Int("beta")
-    y = mlList(Int, "y")
+    alpha = IntObject("alpha")
+    a = ListObject(ListObject[IntObject], "a")
+    x = ListObject(IntObject, "x")
+    beta = IntObject("beta")
+    y = ListObject(IntObject, "y")
     driver.add_var_objects([alpha, a, x, beta, y])
     driver.add_precondition(x.len() == a[0].len())
     driver.add_precondition(y.len() == a.len())
@@ -165,9 +106,6 @@ if __name__ == "__main__":
 
     test_cblas_sgemv(alpha, a, x, beta, y)
 
-    start_time = time.time()
-    driver.synthesize(noVerify=True)
-    end_time = time.time()
+    driver.synthesize()
 
     print("\n\ngenerated code:" + test_cblas_sgemv.codegen(codegen))
-    print(f"Synthesis took {end_time - start_time} seconds")
