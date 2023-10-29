@@ -405,8 +405,8 @@ class VC:
                 if fnName == "":
                     # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
                     fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
-                if fnName in models.fn_models:
-                    rv = models.fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
+                if fnName in fn_models:
+                    rv = fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
                     if rv.val:
                         s.regs[i] = rv.val
                         assigns.add(i)

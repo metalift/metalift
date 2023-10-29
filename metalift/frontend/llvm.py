@@ -10,7 +10,6 @@ from typing import (
     List,
     NamedTuple,
     Optional,
-    Set,
     Tuple,
     TypeVar,
     cast,
@@ -22,10 +21,8 @@ from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
-from metalift.frontend.utils import ExprDict
+from metalift.frontend.utils import ExprSet
 from metalift.ir import (
-    Add,
-    And,
     BoolObject,
     Call,
     Eq,
@@ -33,27 +30,17 @@ from metalift.ir import (
     FnDecl,
     FnDeclRecursive,
     FnT,
-    Gt,
-    Implies,
     IntObject,
     Ite,
-    Le,
     Lit,
-    Lt,
-    Mul,
     NewObject,
-    Not,
     ObjectExpr,
-    Or,
-    Pointer,
     SetObject,
-    Sub,
     Synth,
     TupleT,
     ListObject,
     call,
     create_object,
-    get_object_sources,
     implies,
     parse_c_or_cpp_type_to_obj,
     parse_type_ref_to_obj,
@@ -62,8 +49,7 @@ from metalift.ir import (
 from metalift.ir_util import MLType, is_object_pointer_type
 
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
-from metalift.vc import Block
-from metalift.vc_util import and_exprs, and_objects, or_exprs, or_objects
+from metalift.vc_util import and_objects, or_objects
 
 # Models
 ReturnValue = NamedTuple(
@@ -419,6 +405,26 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 
 
 # Helper classes
+class Block:
+    regs: Dict[ValueRef, Expr]
+    preds: typing.List[Any]
+    succs: typing.List[Any]
+
+    def __init__(self, name: str, instructions: typing.List[ValueRef]) -> None:
+        self.name = name
+        self.instructions = instructions
+        self.preds = []
+        self.succs = []
+        self.state = State()
+
+    def __repr__(self) -> str:
+        return "name: %s, pred: %s, succ: %s" % (
+            self.name,
+            ",".join([p.name for p in self.preds]),
+            ",".join([s.name for s in self.succs]),
+        )
+
+
 RawLoopInfo = NamedTuple(
     "RawLoopInfo",
     [
@@ -753,6 +759,7 @@ class Predicate:
     args: List[NewObject]
     writes: List[NewObject]
     reads: List[NewObject]
+    in_scope: List[NewObject]
     name: str
     grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synth: Optional[Synth]
@@ -766,6 +773,7 @@ class Predicate:
         args: List[NewObject],
         writes: List[NewObject],
         reads: List[NewObject],
+        in_scope: List[NewObject],
         name: str,
         grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
@@ -773,6 +781,7 @@ class Predicate:
         self.args = args
         self.writes = writes
         self.reads = reads
+        self.in_scope = in_scope
         self.name = name
         self.grammar = grammar
         self.synth = None
@@ -786,7 +795,7 @@ class Predicate:
         return BoolObject(call_expr)
 
     def gen_Synth(self) -> Synth:
-        body = self.grammar(self.writes, self.reads).src
+        body = self.grammar(self.writes, self.reads, self.in_scope).src
         return Synth(self.name, body, *self.args)
 
 
@@ -806,16 +815,23 @@ class PredicateTracker:
         args: List[NewObject],
         writes: List[NewObject],
         reads: List[NewObject],
+        in_scope: List[NewObject],
         grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> Predicate:
         if inv_name in self.predicates.keys():
             return self.predicates[inv_name]
         else:
+            non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args))
+            non_args_scope_vars.sort(key=lambda obj: obj.var_name())
+            args = (
+                args + non_args_scope_vars
+            )
             inv = Predicate(
                 driver=self.driver,
                 args=args,
                 writes=writes,
                 reads=reads,
+                in_scope=in_scope,
                 name=inv_name,
                 grammar=grammar,
             )
@@ -832,7 +848,15 @@ class PredicateTracker:
         if fn_name in self.predicates:
             return self.predicates[fn_name]
         else:
-            ps = Predicate(self.driver, ins + outs, outs, ins, f"{fn_name}_ps", grammar)
+            ps = Predicate(
+                self.driver,
+                args=ins + outs,
+                writes=outs,
+                reads=ins,
+                in_scope=[],
+                name=f"{fn_name}_ps",
+                grammar=grammar
+            )
             self.predicates[fn_name] = ps
             return ps
 
@@ -851,7 +875,7 @@ class VCVisitor:
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    inv_grammars: Dict[str, Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]]
     ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
 
     loops: List[LoopInfo]
@@ -865,7 +889,7 @@ class VCVisitor:
         fn_sret_arg: Optional[NewObject],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        inv_grammars: Dict[str, Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
         loops: List[LoopInfo],
     ) -> None:
@@ -879,7 +903,7 @@ class VCVisitor:
         self.var_tracker = var_tracker
         self.pred_tracker = pred_tracker
 
-        self.inv_grammar = inv_grammar
+        self.inv_grammars = inv_grammars
         self.ps_grammar = ps_grammar
 
         self.loops = loops
@@ -1022,6 +1046,8 @@ class VCVisitor:
             self.visit_ret_instruction(block_name, o)
         elif o.opcode == "call":
             self.visit_call_instruction(block_name, o)
+        elif o.opcode == "trunc":
+            self.visit_trunc_instruction(block_name, o)
         else:
             raise Exception(f"Unsupported instruction opcode {o.opcode}")
 
@@ -1138,12 +1164,22 @@ class VCVisitor:
                 )
 
             havocs = vector_havocs + non_vector_havocs
+            inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
+
+            # TODO(jie): extract this logic to be better
+            in_scope_objs: List[NewObject] = []
+            for var_name, var_obj in blk_state.primitive_vars.items():
+                in_scope_objs.append(create_object(var_obj.type, var_name))
+            for var_name, var_obj in blk_state.pointer_vars.items():
+                in_scope_objs.append(create_object(var_obj.type, var_name))
+
             inv = self.pred_tracker.invariant(
-                inv_name=f"{self.fn_name}_inv{self.loops.index(loop)}",
+                inv_name=inv_name,
                 args=havocs + self.fn_args,
                 writes=havocs,
                 reads=self.fn_args,
-                grammar=self.inv_grammar,
+                in_scope=in_scope_objs,
+                grammar=self.inv_grammars[inv_name],
             )
             blk_state.precond.append(inv.call(blk_state))
 
@@ -1156,12 +1192,19 @@ class VCVisitor:
         latch_loops = self.find_latch_loops(block.name)
         for loop in header_pred_loops + latch_loops:
             havocs = self.get_vector_havocs(loop) + self.get_non_vector_havocs(loop)
+            inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
+            in_scope_objs: List[NewObject] = []
+            for var_name, var_obj in blk_state.primitive_vars.items():
+                in_scope_objs.append(create_object(var_obj.type, var_name))
+            for var_name, var_obj in blk_state.pointer_vars.items():
+                in_scope_objs.append(create_object(var_obj.type, var_name))
             inv = self.pred_tracker.invariant(
-                inv_name=f"{self.fn_name}_inv{self.loops.index(loop)}",
+                inv_name=inv_name,
                 args=havocs + self.fn_args,
                 writes=havocs,
                 reads=self.fn_args,
-                grammar=self.inv_grammar,
+                in_scope=in_scope_objs,
+                grammar=self.inv_grammars[inv_name],
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
@@ -1332,7 +1375,6 @@ class VCVisitor:
         blk_state.has_returned = True
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
-        print("visiting call instruction", o)
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         fn_name = get_fn_name_from_call_instruction(o)
@@ -1370,8 +1412,11 @@ class VCVisitor:
                         self.store_var_to_block(
                             block_name=block_name, var_name=name, val=value  # pointer
                         )
-        else:
-            import pdb; pdb.set_trace()
+
+    def visit_trunc_instruction(self, block_name: str, o: ValueRef) -> None:
+        ops = list(o.operands)
+        val = self.read_operand_from_block(block_name, ops[0])
+        self.write_operand_to_block(block_name, o, val)
 
 class Driver:
     var_tracker: VariableTracker
@@ -1412,7 +1457,7 @@ class Driver:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        inv_grammars: Dict[str, Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -1421,7 +1466,7 @@ class Driver:
             loops_filepath=loops_filepath,
             fn_name=fn_name,
             target_lang_fn=target_lang_fn,
-            inv_grammar=inv_grammar,
+            inv_grammars=inv_grammars,
             ps_grammar=ps_grammar,
         )
         self.fns[fn_name] = f
@@ -1491,7 +1536,7 @@ class MetaliftFunc:
     fn_blocks: Dict[str, Block]
 
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    inv_grammars: Dict[str, Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]]
     ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
     synthesized: Optional[NewObject]
 
@@ -1504,7 +1549,7 @@ class MetaliftFunc:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        inv_grammars: Dict[str, Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
     ) -> None:
         self.driver = driver
@@ -1540,7 +1585,7 @@ class MetaliftFunc:
         parse_object_func(self.fn_blocks)
 
         self.target_lang_fn = target_lang_fn
-        self.inv_grammar = inv_grammar
+        self.inv_grammars = inv_grammars
         self.ps_grammar = ps_grammar
         self.synthesized = None
 
@@ -1585,7 +1630,7 @@ class MetaliftFunc:
             fn_sret_arg=sret_obj,
             var_tracker=self.driver.var_tracker,
             pred_tracker=self.driver.pred_tracker,
-            inv_grammar=self.inv_grammar,
+            inv_grammars=self.inv_grammars,
             ps_grammar=self.ps_grammar,
             loops=self.loops,
         )
