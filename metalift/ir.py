@@ -780,7 +780,7 @@ class IntObject(NewObject):
         elif isinstance(value, str):
             src = Var(value, IntObject)
         else:
-            raise TypeError(f"Cannot create Int from {value}")
+            raise TypeError(f"Cannot create IntObject from {value}")
 
         NewObject.__init__(self, src)
 
@@ -1096,7 +1096,7 @@ class TupleObject(Generic[T], NewObject):
     ):  # -> IntObject:  # index can also be slice
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
-        
+
         if isinstance(index, IntObject):
             index_lit = index.src.val()
             item_type = self.containedT[index_lit]
@@ -1763,16 +1763,16 @@ class Call(Expr):
             elif (str(a)) == "make-tuple":
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
-                print("here")
-                print(a)
-                print(self.args)
-                print(type(self.args[idx + 1]))
-                print(self.args[idx + 1].args[0])
-                print()
-
+                index = self.args[idx + 2].args[0]
                 if isinstance(self.args[idx + 1], Tuple):
-                    retVal.append(self.args[idx+1].toSMT())
-                elif len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple":
+                    retVal.append(
+                        "tuple%d_get%d"
+                        % (
+                            len(self.args[idx + 1].args),
+                            index,
+                        )
+                    )
+                elif (len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple"):
                     retVal.append(
                         "tuple%d_get%d"
                         % (
@@ -1781,20 +1781,8 @@ class Call(Expr):
                         )
                     )
                 elif isinstance(self.args[idx + 1], TupleObject):
-                    index_expr = self.args[idx + 2]
-                    # TODO(jie): this is not very clean, how to make it better?
-                    if isinstance(index_expr, IntObject):
-                        index = index_expr.src.args[0]
-                    else:
-                        index = index_expr.args[0]
                     retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
                 elif isinstance(self.args[idx + 1], Var) and get_origin(self.args[idx + 1].type) == TupleObject:
-                    index_expr = self.args[idx + 2]
-                    # TODO(jie): this is not very clean, how to make it better?
-                    if isinstance(index_expr, IntObject):
-                        index = index_expr.src.args[0]
-                    else:
-                        index = index_expr.args[0]
                     length = len(get_args(get_args(self.args[idx + 1].type)[0]))
                     retVal.append(f"tuple{length}_get{index}")
                 else:
@@ -1802,7 +1790,9 @@ class Call(Expr):
                     freq: typing.Counter[str] = Counter(
                         self.args[idx + 1].args[0].split("_")[1]
                     )
-                    retVal.append("tuple%d_get%d" % (freq["i"], index))
+                    retVal.append(
+                        "tuple%d_get%d" % (freq["i"], index)
+                    )
             elif (str(a)).startswith("set-"):
                 retVal.append("set.%s" % (str(a)[4:]))
             elif (str(a)).startswith("map-"):

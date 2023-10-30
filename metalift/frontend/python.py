@@ -38,6 +38,7 @@ from metalift.ir import (
     get_object_sources,
     implies,
     ite,
+    make_tuple,
 )
 
 from mypy import build
@@ -799,10 +800,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
 
 
     def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
-        tuple_expr = MLTuple(*[expr.accept(self) for expr in o.items])
-        tuple_length = len(o.items)
-        contained_types = [IntObject for i in range(tuple_length)]
-        return TupleObject(*contained_types, tuple_expr)
+        tuple_exprs = [expr.accept(self) for expr in o.items]
+        return make_tuple(*tuple_exprs)
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
         # Currently only supports indexing into tuples and lists using integers
