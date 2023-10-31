@@ -7,7 +7,7 @@ from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, IntObject, Va
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
 
-from metalift.ir_util import is_list_type_expr, is_set_type_expr
+from metalift.ir_util import get_nested_list_element_type, is_list_type_expr, is_nested_list_type_expr, is_set_type_expr
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -35,26 +35,38 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif is_list_type_expr(v) or is_set_type_expr(v): #v.type.name == "MLList" or v.type.name == "Set":
-        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
-
-        for t in tmp:
-            genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
-
+    elif is_list_type_expr(v) or is_set_type_expr(v):
         len_name = v.args[0] + "_BOUNDEDSET-len"
         genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
 
-        if is_set_type_expr(v):
-            decls.append(
-                "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-            )
+        is_nested_list = is_nested_list_type_expr(v)
+        if is_nested_list:
+            tmp = [
+                v.args[0] + "_BOUNDEDSET-" + str(i)
+                for i in range(listBound * listBound)
+            ]
+            nested_element_type = get_nested_list_element_type(v)
+            for t in tmp:
+                genVar(Var(t, nested_element_type), decls, vars_all, listBound)
+            nested_lsts: List[str] = [f"(list {' '.join(tmp[i : i + listBound])})" for i in range(0, len(tmp) - 1, listBound)]
+            decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
             decls.append(decl)
         else:
-            decls.append(
-                "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-            )
+            tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
+
+            for t in tmp:
+                genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
+
+            if is_set_type_expr(v):
+                decls.append(
+                    "(define %s (sort (remove-duplicates (take %s %s)) <))"
+                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+                )
+            else:
+                decls.append(
+                    "(define %s (take %s %s))"
+                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+                )
     elif type_name == "Tuple":
         elem_names = []
         for i, t in enumerate(typing.get_args(v.type)):

@@ -824,7 +824,6 @@ class PredicateTracker:
             args = (
                 args + non_args_scope_vars
             )
-            import pdb; pdb.set_trace()
             inv = Predicate(
                 driver=self.driver,
                 args=args,
