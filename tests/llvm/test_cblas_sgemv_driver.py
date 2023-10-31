@@ -1,6 +1,6 @@
 from typing import List, Union
 from metalift.frontend.llvm import Driver
-from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, implies, ite
+from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, implies, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
@@ -76,11 +76,24 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     z, res, j, _, i = writes
     alpha, a, x, beta, y = reads
     cond = and_objects(x.len() == a[0].len(), y.len() == a.len(), a.len() > 1)
-    result = and_objects(
+    i_lower_cond = choose(
         i >= 0,
+        i > 0
+    )
+    i_upper_cond = choose(
         i <= a.len(),
+        i < a.len()
+    )
+    result = and_objects(
+        i_lower_cond,
+        i_upper_cond,
         z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
     )
+    # result = and_objects(
+    #     i >= 0,
+    #     i <= a.len(),
+    #     z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
+    # )
     return implies(cond, result)
 
 def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
@@ -94,11 +107,36 @@ def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     i = in_scope_mapping["i"]
     z = in_scope_mapping["agg.result"]
     cond = and_objects(x.len() == a[0].len(), y.len() == a.len(), a.len() > 1)
-    result = and_objects(
+    j_lower_cond = choose(
         j >= 0,
+        j > 0
+    )
+    j_upper_cond = choose(
         j <= x.len(),
+        j < x.len()
+    )
+    i_lower_cond = choose(
         i >= 0,
-        i < a.len(),
+        i > 0
+    )
+    i_upper_cond = choose(
+        i <= a.len(),
+        i < a.len()
+    )
+
+    # result = and_objects(
+    #     j >= 0,
+    #     j <= x.len(),
+    #     i >= 0,
+    #     i <= a.len(),
+    #     res == sdot(a[i][:j], x[:j]),
+    #     z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
+    # )
+    result = and_objects(
+        j_lower_cond,
+        j_upper_cond,
+        i_lower_cond,
+        i_upper_cond,
         res == sdot(a[i][:j], x[:j]),
         z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
     )
