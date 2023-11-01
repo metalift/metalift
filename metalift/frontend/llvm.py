@@ -1,20 +1,10 @@
 import copy
 import re
 import subprocess
-from collections import defaultdict
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    Tuple,
-    TypeVar,
-    cast,
-)
 import typing
+from collections import defaultdict
+from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
+                    Tuple, TypeVar, cast)
 
 from llvmlite import binding as llvm
 from llvmlite.binding import TypeRef, ValueRef
@@ -22,34 +12,14 @@ from llvmlite.binding import TypeRef, ValueRef
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ExprSet
-from metalift.ir import (
-    BoolObject,
-    Call,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    FnT,
-    IntObject,
-    Ite,
-    Lit,
-    NewObject,
-    ObjectExpr,
-    SetObject,
-    Synth,
-    TupleT,
-    ListObject,
-    call,
-    create_object,
-    get_object_exprs,
-    implies,
-    parse_c_or_cpp_type_to_obj,
-    parse_type_ref_to_obj,
-    Var,
-)
-from metalift.ir_util import MLType, is_object_pointer_type
-
-from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
+from metalift.ir import (BoolObject, Call, Eq, Expr, FnDecl, FnDeclRecursive,
+                         FnT, IntObject, Ite, ListObject, Lit, MLType,
+                         NewObject, ObjectExpr, SetObject, Synth, TupleT, Var,
+                         call, create_object, get_object_exprs, implies,
+                         is_object_pointer_type, parse_c_or_cpp_type_to_obj,
+                         parse_type_ref_to_obj)
+from metalift.synthesize_auto import \
+    synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
 
 # Models

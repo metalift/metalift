@@ -1,103 +1,46 @@
+import copy
 import re
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union, cast
-from metalift.analysis_new import VariableTracker
-from metalift.frontend.utils import ExprSet
-from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
+from typing import (Any, Callable, Dict, List, Literal, Optional, Set, Tuple,
+                    Type, TypeVar, Union, cast)
 
-from metalift.ir import (
-    And,
-    BoolObject,
-    Call,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    Ge,
-    Gt,
-    Implies,
-    IntLit,
-    IntObject,
-    Ite,
-    Le,
-    ListObject,
-    Lt,
-    NewObject,
-    Not,
-    Or,
-    SetObject,
-    Sub,
-    Synth,
-    Tuple as MLTuple,
-    TupleGet,
-    TupleObject,
-    Type as MLType,
-    Var,
-    call,
-    create_object,
-    get_object_exprs,
-    implies,
-    ite,
-    make_tuple,
-)
 from mypy import build
 from mypy.build import BuildResult
-from mypy.options import Options
 from mypy.defaults import PYTHON3_VERSION
 from mypy.modulefinder import BuildSource
+from mypy.nodes import (AssertStmt, AssignmentStmt, Block, BreakStmt, CallExpr,
+                        ClassDef, ComparisonExpr, ContinueStmt, Decorator,
+                        DelStmt)
+from mypy.nodes import Expression as MypyExpr
+from mypy.nodes import (ExpressionStmt, ForStmt, FuncDef, GlobalDecl, IfStmt,
+                        Import, ImportAll, ImportFrom, IndexExpr, IntExpr,
+                        ListExpr, MatchStmt, MypyFile, NameExpr, NonlocalDecl,
+                        OperatorAssignmentStmt, OpExpr, OverloadedFuncDef,
+                        PassStmt, RaiseStmt, ReturnStmt, Statement, TryStmt,
+                        TupleExpr, UnaryExpr, WhileStmt, WithStmt)
+from mypy.options import Options
 from mypy.traverser import TraverserVisitor
-from mypy.nodes import (
-    AssertStmt,
-    AssignmentStmt,
-    Block,
-    BreakStmt,
-    CallExpr,
-    ClassDef,
-    ComparisonExpr,
-    ContinueStmt,
-    Decorator,
-    DelStmt,
-    Expression as MypyExpr,
-    ExpressionStmt,
-    ForStmt,
-    FuncDef,
-    GlobalDecl,
-    IfStmt,
-    Import,
-    ImportAll,
-    ImportFrom,
-    IndexExpr,
-    IntExpr,
-    ListExpr,
-    MatchStmt,
-    MypyFile,
-    NameExpr,
-    NonlocalDecl,
-    OperatorAssignmentStmt,
-    OpExpr,
-    OverloadedFuncDef,
-    PassStmt,
-    RaiseStmt,
-    ReturnStmt,
-    Statement,
-    TryStmt,
-    TupleExpr,
-    UnaryExpr,
-    WhileStmt,
-    WithStmt,
-)
-from mypy.types import CallableType, Instance, Type as MypyType, UnboundType
+from mypy.types import CallableType, Instance
+from mypy.types import Type as MypyType
+from mypy.types import UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
 
-import copy
-
-from metalift.ir_util import is_list_type_expr, is_set_type_expr, is_tuple_type_expr
-
-from metalift.mypy_util import (
-    get_fn_name,
-    is_func_call,
-    is_func_call_with_name,
-    is_method_call_with_name,
-)
+from metalift.analysis_new import VariableTracker
+from metalift.frontend.utils import ExprSet
+from metalift.ir import (And, BoolObject, Call, Eq, Expr, FnDecl,
+                         FnDeclRecursive, Ge, Gt, Implies, IntLit, IntObject,
+                         Ite, Le, ListObject, Lt, NewObject, Not, Or,
+                         SetObject, Sub, Synth, is_list_type, is_set_type, is_tuple_type)
+from metalift.ir import Tuple as MLTuple
+from metalift.ir import TupleGet, TupleObject
+from metalift.ir import Type as MLType
+from metalift.ir import (Var, call, create_object, get_object_exprs, implies,
+                         is_list_type_expr, is_set_type_expr,
+                         is_tuple_type_expr, ite, make_tuple)
+from metalift.mypy_util import (get_fn_name, is_func_call,
+                                is_func_call_with_name,
+                                is_method_call_with_name)
+from metalift.synthesize_auto import \
+    synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_exprs, and_objects
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
@@ -762,9 +705,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         base = o.base.accept(self)
         if index.type != IntObject:
             raise Exception("Index must be int!")
-        if is_tuple_type_expr(base):
+        if is_tuple_type(base.type):
             return base[index]
-        if is_list_type_expr(base):
+        if is_list_type(base.type):
             return base[index]
         raise Exception("Can only index into tuples and lists!")
 
@@ -785,13 +728,13 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         if is_func_call_with_name(o, "len"):
             assert len(o.args) == 1
             arg = o.args[0].accept(self)
-            if not is_list_type_expr(arg):
+            if not is_list_type(arg.type):
                 raise Exception("len only supported on lists!")
             return arg.len()
         elif is_method_call_with_name(o, "append"):
             # list append
             callee_expr = o.callee.expr.accept(self)  # type: ignore
-            if not is_list_type_expr(callee_expr):
+            if not is_list_type(callee_expr.type):
                 raise Exception(".append only supported on lists!")
             assert len(o.args) == 1
             elem_to_append = o.args[0].accept(self)
@@ -809,7 +752,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
                 method_name, func_call_name = ".remove", "set-minus"
 
             callee_expr = o.callee.expr.accept(self)  # type: ignore
-            if not is_set_type_expr(callee_expr):
+            if not is_set_type(callee_expr.type):
                 raise Exception(f"{method_name} only supported on sets!")
             assert len(o.args) == 1
             elem = o.args[0].accept(self)

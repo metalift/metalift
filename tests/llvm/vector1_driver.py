@@ -68,7 +68,6 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     # reads = [in_lst]
-    import pdb; pdb.set_trace()
     ret_val = writes[0]
     in_lst = reads[0]
     return choose(
