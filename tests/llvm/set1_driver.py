@@ -2,14 +2,14 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (FnDeclRecursive, IntObject, NewObject, SetObject,
-                         choose, ite)
+from metalift.ir import (IntObject, NewObject, SetObject,
+                         choose, ite, fnDeclRecursive)
 from tests.python.utils.utils import codegen
 
 
 def target_lang():
     x = IntObject("x")
-    double = FnDeclRecursive(
+    double = fnDeclRecursive(
         "double",
         IntObject,
         (x + x).src,

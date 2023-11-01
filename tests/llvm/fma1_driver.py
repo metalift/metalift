@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Expr, FnDecl, IntObject, NewObject, call, choose
+from metalift.ir import Expr, FnDecl, IntObject, NewObject, call, choose, fnDecl
 from tests.python.utils.utils import codegen
 
 
@@ -10,7 +10,7 @@ def target_lang() -> List[FnDecl]:
     x = IntObject("x")
     y = IntObject("y")
     z = IntObject("z")
-    fma = FnDecl("fma", IntObject, (x + y * z).src, x.src, y.src, z.src)
+    fma = fnDecl("fma", IntObject, (x + y * z), x, y, z)
     return [fma]
 
 

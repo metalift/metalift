@@ -647,7 +647,7 @@ def get_object_expr(object: Union[typing.Type["NewObject"], Expr]) -> Expr:
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
 
-def choose(*objects: Union[typing.Type["NewObject"], Expr]) -> "NewObject":
+def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
     if len(objects) == 0:
         raise Exception("Must have at least 1 object to choose from!")
     # Assume that all objects passed in will have the same type, even if not, the call to Choose
@@ -656,19 +656,27 @@ def choose(*objects: Union[typing.Type["NewObject"], Expr]) -> "NewObject":
     choose_expr = Choose(*get_object_exprs(objects))
     return create_object(object_type, choose_expr)
 
-def ite(cond: Union[typing.Type["BoolObject"], Expr], then_object: Union[typing.Type["NewObject"], Expr], else_object: Union[typing.Type["NewObject"], Expr]) -> "NewObject":
+def ite(cond: Union["BoolObject", Expr], then_object: Union["NewObject", Expr], else_object: Union["NewObject", Expr]) -> "NewObject":
     ite_type = then_object.type
     ite_expr = Ite(get_object_expr(cond), get_object_expr(then_object), get_object_expr(else_object))
     return create_object(ite_type, ite_expr)
 
-def implies(e1: Union[typing.Type["BoolObject"], Expr], e2: Union[typing.Type["BoolObject"], Expr]) -> "BoolObject":
+def implies(e1: Union["BoolObject", Expr], e2: Union["BoolObject", Expr]) -> "BoolObject":
     return BoolObject(Implies(get_object_expr(e1), get_object_expr(e2)))
 
-def call(fn_name: str, return_type: typing.Type["NewObject"], *object_args: Union[typing.Type["NewObject"], Expr]) -> "NewObject":
+def call(fn_name: str, return_type: "NewObject", *object_args: Union["NewObject", Expr]) -> "NewObject":
     call_expr = Call(fn_name, return_type, *get_object_exprs(object_args))
     return create_object(return_type, call_expr)
 
-def make_tuple(*objects: Union[typing.Type["NewObject"], Expr]) -> "TupleObject":
+def fnDecl(fn_name: str, return_type: "NewObject", body: Union["NewObject", Expr], *object_args: Union["NewObject", Expr]) -> "FnDecl":
+    fnDecl_expr = FnDecl(fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args))
+    return fnDecl_expr
+
+def fnDeclRecursive(fn_name: str, return_type: "NewObject", body: Union["NewObject", Expr], *object_args: Union["NewObject", Expr]) -> "FnDeclRecursive":
+    fnDeclRecursive_expr = FnDeclRecursive(fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args))
+    return fnDeclRecursive_expr
+
+def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     obj_types = [obj.type for obj in objects]
     return TupleObject(*obj_types, Tuple(*get_object_exprs(objects)))
 

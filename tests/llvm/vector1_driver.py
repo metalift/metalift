@@ -2,19 +2,19 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import And, BoolObject, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, IntObject, ListObject, Ite, Le, Lt, NewObject, Var, call, choose, ite
+from metalift.ir import BoolObject, Expr, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite, fnDecl, fnDeclRecursive
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     arg = IntObject("n")
-    select_pred = FnDecl("Select-pred", BoolObject, (arg > 2).src, arg.src)
-    select_pred1 = FnDecl("Select-pred1", BoolObject, (arg < 10).src, arg.src)
-    select_pred2 = FnDecl("Select-pred2", BoolObject, (arg > 2).And(arg < 10), arg.src)
+    select_pred = fnDecl("Select-pred", BoolObject, (arg > 2), arg)
+    select_pred1 = fnDecl("Select-pred1", BoolObject, (arg < 10), arg)
+    select_pred2 = fnDecl("Select-pred2", BoolObject, (arg > 2) and (arg < 10), arg)
 
     data = ListObject(IntObject, "l")
-    select_func = FnDeclRecursive(
+    select_func = fnDeclRecursive(
         "Select",
         ListObject[IntObject],
         ite(
@@ -25,10 +25,10 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
                 call("Select", ListObject[IntObject], data[1:]).append(data[0]),
                 call("Select", ListObject[IntObject], data[1:]),
             ),
-        ).src,
-        data.src,
+        ),
+        data,
     )
-    select_func1 = fn_decl_recursive(
+    select_func1 = fnDeclRecursive(
         "Select1",
         ListObject[IntObject],
         ite(
@@ -39,10 +39,10 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
                 call("Select1", ListObject[IntObject], data[1:]).append(data[0]),
                 call("Select1", ListObject[IntObject], data[1:]),
             ),
-        ).src,
-        data.src,
+        ),
+        data,
     )
-    select_func2 = fn_decl_recursive(
+    select_func2 = fnDeclRecursive(
         "Select2",
         ListObject[IntObject],
         ite(
@@ -53,8 +53,8 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
                 call("Select2", ListObject[IntObject], data[1:]).append(data[0]),
                 call("Select2", ListObject[IntObject], data[1:]),
             ),
-        ).src,
-        data.src,
+        ),
+        data,
     )
 
     return [

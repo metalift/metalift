@@ -1,8 +1,8 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (FnDecl, IntObject, NewObject, TupleObject, call,
-                         choose, make_tuple)
+from metalift.ir import (IntObject, NewObject, TupleObject, call,
+                         choose, make_tuple, fnDecl)
 from tests.python.utils.utils import codegen
 
 
@@ -11,11 +11,11 @@ def tuple_add(t):
 
 def target_lang():
     x = TupleObject(IntObject, IntObject, "x")
-    tuple_add = FnDecl(
+    tuple_add = fnDecl(
         "tuple_add",
         IntObject,
-       (x[0] + x[1]).src,
-        x.src
+       (x[0] + x[1]),
+        x
     )
     return [tuple_add]
 
