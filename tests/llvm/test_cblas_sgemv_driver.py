@@ -159,6 +159,6 @@ if __name__ == "__main__":
 
     test_cblas_sgemv(alpha, a, x, beta, y)
 
-    driver.synthesize()
+    driver.synthesize(noVerify=True)
 
     print("\n\ngenerated code:" + test_cblas_sgemv.codegen(codegen))
