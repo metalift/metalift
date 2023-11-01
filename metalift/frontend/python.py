@@ -739,7 +739,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
             expr = o.expr.accept(self)
             if expr.type != IntObject:
                 raise Exception("Unary operator '-' only supported on integers!")
-            return 0 - cast(Int, expr)
+            return 0 - expr
         raise Exception(f"Unsupported unary operator '{o.op}'")
 
     def visit_call_expr(self, o: CallExpr) -> Object:
