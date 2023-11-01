@@ -1,22 +1,19 @@
 from collections import defaultdict
 from typing import List
 
-from mypy.nodes import Statement
-
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, FnDeclRecursive,
-                         Int, IntLit, IntObject, Ite, Lt, Mul, Sub, Tuple, TupleGet,
-                         TupleT, Var)
+from metalift.ir import (Expr, FnDecl, FnDeclRecursive, IntObject, TupleObject,
+                         Var, call, choose, ite, make_tuple, make_tuple_type)
 from tests.python.utils.utils import codegen
 
 L1_NORM = "l1_norm"
 MAT_MUL = "mat_mul"
-TWO_INT_TUPLE_TYPE = make_tuple_type(Int, Int)
+TWO_INT_TUPLE_TYPE = make_tuple_type(IntObject, IntObject)
 
 def target_lang() -> List[FnDeclRecursive]:
-    a = mlTuple((Int, Int), "a")
-    b = mlTuple((Int, Int), "b")
-    x = mlTuple((Int, Int), "x")
+    a = TupleObject(IntObject, IntObject, "a")
+    b = TupleObject(IntObject, IntObject, "b")
+    x = TupleObject(IntObject, IntObject, "x")
     p0l = a[0] * x[0]
     p0r = b[0] * x[1]
     p1l = a[1] * x[0]
@@ -24,13 +21,13 @@ def target_lang() -> List[FnDeclRecursive]:
     mat_mul_body = make_tuple(p0l + p0r, p1l + p1r)
     mat_mul = FnDecl(MAT_MUL, TWO_INT_TUPLE_TYPE, mat_mul_body.src, a.src, b.src, x.src)
 
-    p = mlTuple((Int, Int), "p")
+    p = TupleObject(IntObject, IntObject, "p")
     p0 = p[0]
     p1 = p[1]
     p0_abs = ite(p0 < 0, 0 - p0, p0)
     p1_abs = ite(p1 < 0, 0 - p1, p1)
     l1_norm_body = p0_abs + p1_abs
-    l1_norm = FnDecl(L1_NORM, Int, l1_norm_body.src, p.src)
+    l1_norm = FnDecl(L1_NORM, IntObject, l1_norm_body.src, p.src)
 
     return [mat_mul, l1_norm]
 
@@ -47,11 +44,11 @@ def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]
     wrong_p2 = call(MAT_MUL, TWO_INT_TUPLE_TYPE, a, x,  b)
 
     # this is the correct answer
-    l1_norm_p = call(L1_NORM, Int, p)
+    l1_norm_p = call(L1_NORM, IntObject, p)
     # this is a wrong answer
-    l1_norm_wrong_p = call(L1_NORM, Int, wrong_p)
+    l1_norm_wrong_p = call(L1_NORM, IntObject, wrong_p)
     # this is a wrong answer
-    l1_norm_wrong_p2 = call(L1_NORM, Int, wrong_p2)
+    l1_norm_wrong_p2 = call(L1_NORM, IntObject, wrong_p2)
 
     return ret_val == choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2)
 
