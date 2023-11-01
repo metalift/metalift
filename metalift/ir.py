@@ -1515,6 +1515,7 @@ class Call(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
+                import pdb; pdb.set_trace()
                 callStr = (
                     "("
                     + "%s"

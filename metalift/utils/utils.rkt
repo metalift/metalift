@@ -105,44 +105,107 @@
 (define (map-eq s1 s2)
   (equal? s1 s2))
 
-(define (map-union as bs value-merge)
-  (match* (as bs)
-    [((list) bs)  bs]
-    [(as (list))  as]
-    [((list a as ...) (list b bs ...))
-     (if (equal? (car a) (car b))
-      (cons (cons (car a) (value-merge (cdr a) (cdr b))) (map-union as bs value-merge))
-      (if (< (car a) (car b))
-         (cons a (map-union as (cons b bs) value-merge))
-         (cons b (map-union (cons a as) bs value-merge)))
-     )]))
+(define (getIdx m k)
+    (if (equal? (length m) 0) 0 (if (equal? (tupleGet (list-list-ref-noerr m 0) 0) k) 0
+        (+ 1 (getIdx (list-tail-noerr m 1) k)))))
 
-(define (map-get m k default)
-  (match* (m)
-    [((list)) default]
-    [((list a as ...))
-     (if (equal? (car a) k)
-      (cdr a)
-      (map-get as k default)
-     )]))
+(define (map-contains m k)
+    (if (equal? (length m) 0) 0
+        (if (equal? (tupleGet (list-list-ref-noerr m 0) 0) k) 1
+            (map-contains (list-tail-noerr m 1) k))))
 
-(define (map-singleton k v)
-  (list (cons k v)))
+(define (map-insert m k v)
+  (if (equal? (map-contains m k) 0)
+    (append m (list (make-tuple k v)))
+    (list-set m (getIdx m k) (make-tuple k v))))
 
-(define (map-insert m k v value-merge)
-  (map-union (map-singleton k v) m value-merge))
+(define (map-get m k)
+    (if (equal? (length m) 0) 0 (if (equal? (tupleGet (list-list-ref-noerr m 0) 0) k) (tupleGet (list-list-ref-noerr m 0) 1)
+        (map-get (list-tail-noerr m 1) k))))
 
-(define (map-minus m keys)
-  (match* (m keys)
-    [((list) bs)  (list)]
-    [(as (list))  as]
-    [((list a as ...) (list b bs ...))
-     (if (equal? (car a) b)
-      (map-minus as bs)
-      (if (< (car a) b)
-         (cons a (map-minus as (cons b bs)))
-         (map-minus (cons a as) bs))
-     )]))
+; (define (map-union as bs value-merge)
+;   (match* (as bs)
+;     [((list) bs)  bs]
+;     [(as (list))  as]
+;     [((list a as ...) (list b bs ...))
+;      (if (equal? (car a) (car b))
+;       (cons (cons (car a) (value-merge (cdr a) (cdr b))) (map-union as bs value-merge))
+;       (if (< (car a) (car b))
+;          (cons a (map-union as (cons b bs) value-merge))
+;          (cons b (map-union (cons a as) bs value-merge)))
+;      )]))
 
-(define (map-values m)
-  (map (lambda (a) (cdr a)) m))
+; (define (map-get m k default)
+;   (match* (m)
+;     [((list)) default]
+;     [((list a as ...))
+;      (if (equal? (car a) k)
+;       (cdr a)
+;       (map-get as k default)
+;      )]))
+
+; (define (map-singleton k v)
+;   (list (cons k v)))
+
+;  (define (map-insert m k v value-merge)
+;    (map-union (map-singleton k v) m value-merge))
+
+; (define (mapInsert m k v)
+;   (if (equal? (mapContains m k) 0)
+;     (append m (list (make-tuple k v)))
+;     (list-set m (getIdx m k) (make-tuple k v))))
+
+; (define (map-minus m keys)
+;   (match* (m keys)
+;     [((list) bs)  (list)]
+;     [(as (list))  as]
+;     [((list a as ...) (list b bs ...))
+;      (if (equal? (car a) b)
+;       (map-minus as bs)
+;       (if (< (car a) b)
+;          (cons a (map-minus as (cons b bs)))
+;          (map-minus (cons a as) bs))
+;      )]))
+
+; (define (map-values m)
+;   (map (lambda (a) (cdr a)) m))
+
+(define (list-list-ref-noerr l i)
+  (if (&&  (>= i 0) (< i (length l))) (list-ref l i)
+      (list)))
+
+(define (list-list-tail-noerr l i)
+  (if (&& (>= i 0) (<= i (length l))) (list-tail l i)
+      (list)))
+
+(define (list-list-prepend i l)
+  (if (list? i)
+    (if (> (length i ) 0)
+    (append (list i) l) (append l i)) (append (list i) l) ))
+
+(define (list-list-take-noerr l i)
+  (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
+
+(define (list-list-length l) (length l))
+
+(define (list-list-append l i)
+(append l (list i)))
+
+(define (list-list-empty)
+  (list))
+
+(define (list-tuple-ref-noerr l i)
+  (if (&&  (>= i 0) (< i (length l))) (list-ref l i)
+      (list)))
+(define (list-tuple-tail-noerr l i)
+  (if (&& (>= i 0) (<= i (length l))) (list-tail l i)
+      (list)))
+(define (list-tuple-empty)
+(list))
+(define (list-tuple-prepend i l)
+  (append (list i) l))
+(define (list-tuple-take-noerr l i)
+  (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
+(define (list-tuple-append l i)
+(append l (list i)))
+(define (list-tuple-length l) (length l))

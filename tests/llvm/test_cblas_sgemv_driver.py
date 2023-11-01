@@ -94,7 +94,8 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     #     i <= a.len(),
     #     z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
     # )
-    return implies(cond, result)
+    return result
+    # return implies(cond, result)
 
 def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     # Inner loop
@@ -140,7 +141,8 @@ def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
         res == sdot(a[i][:j], x[:j]),
         z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
     )
-    return implies(cond, result)
+    return result
+    # return implies(cond, result)
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     ret_val = writes[0]
@@ -168,9 +170,9 @@ if __name__ == "__main__":
     beta = IntObject("beta")
     y = ListObject(IntObject, "y")
     driver.add_var_objects([alpha, a, x, beta, y])
-    # driver.add_precondition(x.len() == a[0].len())
-    # driver.add_precondition(y.len() == a.len())
-    # driver.add_precondition(a.len() > 1)
+    driver.add_precondition(x.len() == a[0].len())
+    driver.add_precondition(y.len() == a.len())
+    driver.add_precondition(a.len() > 1)
 
     test_cblas_sgemv(alpha, a, x, beta, y)
 
