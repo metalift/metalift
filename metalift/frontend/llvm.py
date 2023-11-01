@@ -54,7 +54,7 @@ from metalift.ir import (
     ListObject,
     call,
     create_object,
-    get_object_sources,
+    get_object_exprs,
     implies,
     parse_type_ref_to_obj,
     Var,
@@ -423,7 +423,7 @@ class Predicate:
     def gen_Synth(self) -> Synth:
         v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
         [print(f"v: {v}\n") for v in v_objects]
-        body = and_exprs(*get_object_sources(v_objects))
+        body = and_exprs(*get_object_exprs(v_objects))
         return Synth(self.name, body, *self.args)
 
 

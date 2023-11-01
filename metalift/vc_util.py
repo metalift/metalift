@@ -1,7 +1,7 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import And, Expr, Lit, BoolObject, IntObject, Or, get_object_sources
+from metalift.ir import And, Expr, Lit, BoolObject, IntObject, Or, get_object_exprs
 from typing import Dict
 
 
@@ -35,7 +35,7 @@ def and_exprs(*exprs: Expr) -> Expr:
         return And(*exprs)
 
 def and_objects(*objects: BoolObject) -> BoolObject:
-    return BoolObject(and_exprs(*get_object_sources(objects)))
+    return BoolObject(and_exprs(*get_object_exprs(objects)))
 
 
 # TODO: should this belong to the same function as and_exprs or different?
@@ -46,4 +46,4 @@ def or_exprs(*exprs: Expr) -> Expr:
         return Or(*exprs)
 
 def or_objects(*objects: BoolObject) -> BoolObject:
-    return BoolObject(or_exprs(*get_object_sources(objects)))
+    return BoolObject(or_exprs(*get_object_exprs(objects)))
