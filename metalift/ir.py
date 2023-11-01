@@ -1662,7 +1662,12 @@ class Call(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                callStr = f"({Expr.get_list_fn(self.args[0], self.type) or self.args[0]} "
+                callStr = (
+                    "("
+                    + "%s"
+                    % Expr.get_list_fn(self.args[0], self.type) or self.args[0]
+                    + " "
+                )
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
@@ -1787,7 +1792,12 @@ class CallValue(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                callStr = f"({Expr.get_list_fn(self.args[0], self.type) or self.args[0]} "
+                callStr = (
+                    "("
+                    + "%s"
+                    % Expr.get_list_fn(self.args[0], self.type) or self.args[0]
+                    + " "
+                )
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
