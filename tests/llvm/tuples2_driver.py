@@ -1,34 +1,33 @@
-from typing import List, Literal
+from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Expr,
-                         FnDeclRecursive, IntObject, Tuple, TupleObject, NewObject)
+from metalift.ir import (IntObject, NewObject, TupleObject,
+                         call, choose, make_tuple, fnDeclRecursive)
 from tests.python.utils.utils import codegen
 
+
 def tuple_add(t):
-    return IntObject(Call("tuple_add", IntObject, t))
+    return call("tuple_add", IntObject, t)
 
 def target_lang():
-    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
-    tuple_add = FnDeclRecursive(
+    x = TupleObject(IntObject, IntObject, "x")
+    tuple_add = fnDeclRecursive(
         "tuple_add",
         IntObject,
-        x[0] + x[1],
+        (x[0] + x[1]),
         x
     )
     return [tuple_add]
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
-    raise Exception("no inNewObjectiant")
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+    raise Exception("no invariants")
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
     (x, y) = reads
-    x_tuple_src = Tuple(x, x)
-    y_tuple_src = Tuple(y, y)
-    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
-    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
-    summary = Choose(
-        ret_val == tuple_add(x_tuple) +  tuple_add(y_tuple),
+    x_tuple = make_tuple(x, x)
+    y_tuple = make_tuple(y, y)
+    summary = choose(
+        ret_val == tuple_add(x_tuple) + tuple_add(y_tuple),
         ret_val == tuple_add(x_tuple) - tuple_add(y_tuple)
     )
     return summary

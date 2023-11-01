@@ -41,6 +41,7 @@ from metalift.ir import (
     ListObject,
     call,
     create_object,
+    get_object_exprs,
     implies,
     parse_c_or_cpp_type_to_obj,
     parse_type_ref_to_obj,

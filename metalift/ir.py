@@ -498,32 +498,50 @@ def create_object(
     else:
         return object_type(value)
 
-def get_object_sources(objects: List["NewObject"]) -> List[Expr]:
-    return [obj.src for obj in objects]
+def get_object_exprs(objects: List[Union[typing.Type["NewObject"], Expr]]) -> List[Expr]:
+    return [get_object_expr(obj) for obj in objects]
+
+def get_object_expr(object: Union[typing.Type["NewObject"], Expr]) -> Expr:
+    return object.src if isinstance(object, NewObject) else object
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
 
-def choose(*objects: "NewObject") -> "NewObject":
+def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
     if len(objects) == 0:
         raise Exception("Must have at least 1 object to choose from!")
     # Assume that all objects passed in will have the same type, even if not, the call to Choose
     # will handle exception throwing for us.
     object_type = objects[0].type
-    choose_expr = Choose(*get_object_sources(objects))
+    choose_expr = Choose(*get_object_exprs(objects))
     return create_object(object_type, choose_expr)
 
-def ite(cond: "BoolObject", then_object: "NewObject", else_object: "NewObject") -> "NewObject":
+def ite(cond: Union["BoolObject", Expr], then_object: Union["NewObject", Expr], else_object: Union["NewObject", Expr]) -> "NewObject":
     ite_type = then_object.type
-    ite_expr = Ite(cond.src, then_object.src, else_object.src)
+    ite_expr = Ite(get_object_expr(cond), get_object_expr(then_object), get_object_expr(else_object))
     return create_object(ite_type, ite_expr)
 
-def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
-    return BoolObject(Implies(e1.src, e2.src))
+def implies(e1: Union["BoolObject", Expr], e2: Union["BoolObject", Expr]) -> "BoolObject":
+    return BoolObject(Implies(get_object_expr(e1), get_object_expr(e2)))
 
-def call(fn_name: str, return_type: typing.Type["NewObject"], *object_args: "NewObject") -> "NewObject":
-    call_expr = Call(fn_name, return_type, *get_object_sources(object_args))
+def call(fn_name: str, return_type: "NewObject", *object_args: Union["NewObject", Expr]) -> "NewObject":
+    call_expr = Call(fn_name, return_type, *get_object_exprs(object_args))
     return create_object(return_type, call_expr)
+
+def fnDecl(fn_name: str, return_type: "NewObject", body: Union["NewObject", Expr], *object_args: Union["NewObject", Expr]) -> "FnDecl":
+    fnDecl_expr = FnDecl(fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args))
+    return fnDecl_expr
+
+def fnDeclRecursive(fn_name: str, return_type: "NewObject", body: Union["NewObject", Expr], *object_args: Union["NewObject", Expr]) -> "FnDeclRecursive":
+    fnDeclRecursive_expr = FnDeclRecursive(fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args))
+    return fnDeclRecursive_expr
+
+def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
+    obj_types = [obj.type for obj in objects]
+    return TupleObject(*obj_types, Tuple(*get_object_exprs(objects)))
+
+def make_tuple_type(*containedT: Union[type, _GenericAlias],) -> typing.Type["TupleObject"]:
+    return TupleObject[typing.Tuple[containedT]]
 
 class NewObject:
     src: Expr
@@ -585,15 +603,15 @@ class BoolObject(NewObject):
         return BoolObject
 
     # python doesn't have hooks for and, or, not
-    def And(self, *args: "BoolObject") -> "BoolObject":
+    def And(self, *args: Union["BoolObject", bool]) -> "BoolObject":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(And(*get_object_sources([self, *args])))
+        return BoolObject(And(*get_object_exprs([self, *args])))
 
-    def Or(self, *args: "BoolObject") -> "BoolObject":
+    def Or(self, *args: Union["BoolObject", bool]) -> "BoolObject":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(Or(*get_object_sources([self, *args])))
+        return BoolObject(Or(*get_object_exprs([self, *args])))
 
     def Not(self) -> "BoolObject":
         return BoolObject(Not(self.src))
@@ -633,7 +651,7 @@ class IntObject(NewObject):
         elif isinstance(value, str):
             src = Var(value, IntObject)
         else:
-            raise TypeError(f"Cannot create Int from {value}")
+            raise TypeError(f"Cannot create IntObject from {value}")
 
         NewObject.__init__(self, src)
 
@@ -924,15 +942,15 @@ class SetObject(Generic[T], NewObject):
         else:
             return f"(Set {contained_type.toSMTType()})"
 
-IntT = TypeVar("IntT")
-class TupleObject(Generic[T, IntT], NewObject):
+class TupleObject(Generic[T], NewObject):
     def __init__(
         self,
-        containedT: Union[type, _GenericAlias] = IntObject,
-        intT: type = Literal[1],
-        value: Optional[Union[Expr, str]] = None,
+        *containedT: Union[type, _GenericAlias], #This containedT will also take the value parameter. But it's currently for consistency with other object classes
+        value: Optional[Union[Expr, str]] = None
     ) -> None:
-        full_type = TupleObject[containedT, intT]
+        value = containedT[-1]
+        containedT = containedT[:-1]
+        full_type = TupleObject[typing.Tuple[containedT]]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
         elif isinstance(value, Expr):
@@ -942,18 +960,20 @@ class TupleObject(Generic[T, IntT], NewObject):
         else:
             raise TypeError(f"Cannot create TupleObject from {value}")
         self.containedT = containedT
-        self.intT = intT
-        NewObject.__init__(self, src, full_type)
+        NewObject.__init__(self, src)
 
     def __getitem__(
         self, index: Union[IntObject, int]
     ):  # -> IntObject:  # index can also be slice
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
+
         if isinstance(index, IntObject):
-            if issubclass(self.containedT, NewObject):
+            index_lit = index.src.val()
+            item_type = self.containedT[index_lit]
+            if issubclass(item_type, NewObject):
                 # TODO(jie) create a function to wrap objects around expession
-                return self.containedT(Call("tupleGet", self.containedT, self, index))
+                return call("tupleGet", item_type, self, index)
             else:
                 raise Exception(
                     "Only primitive object types inside tuples are supported!"
@@ -963,24 +983,34 @@ class TupleObject(Generic[T, IntT], NewObject):
 
     @property
     def length(self) -> int:
-        return get_args(self.intT)[0]
+        return len(self.containedT)
 
     @staticmethod
     def toSMTType(
-        type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
+        type_args: ObjectContainedT
     ) -> str:
-        containedT, intT = type_args
-        tuple_length = get_args(intT)[0]
-        if isinstance(containedT, _GenericAlias):
-            containedT_str = get_origin(containedT).toSMTType(get_args(containedT))
-        else:
-            containedT_str = containedT.toSMTType()
-        return f"(Tuple{tuple_length} {' '.join([containedT_str] * tuple_length)})"  # this would call List.toSMTType(Int) for instance
+        containedT = get_args(type_args[0])
+        tuple_length = len(containedT)
+        contained_str_list = []
+        for contain in containedT:
+            if isinstance(contain, _GenericAlias):
+                containedT_str = get_origin(contain).toSMTType(get_args(contain))
+            else:
+                containedT_str = contain.toSMTType()
+            contained_str_list.append(containedT_str)
+        return f"(Tuple{tuple_length} {' '.join(contained_str_list)})"  # this would call List.toSMTType(Int) for instance
 
     # TODO(jie): handle contained type
     @staticmethod
-    def cls_str() -> str:
-        return "Tuple"
+    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
+        contained_type_strs: List[str] = []
+        for contained_type in get_args(type_args[0]):
+            if isinstance(contained_type, _GenericAlias):
+                contained_type_str = get_origin(contained_type).toSMTType(get_args(contained_type))
+            else:
+                contained_type_str = contained_type.toSMTType()
+            contained_type_strs.append(contained_type_str)
+        return f"Tuple {' '.join(contained_type_strs)}"
 
 ### END OF IR OBJECTS
 
@@ -1578,29 +1608,35 @@ class Call(Expr):
             elif (str(a)) == "make-tuple":
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
-                if len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple":
+                index = self.args[idx + 2].args[0]
+                if isinstance(self.args[idx + 1], Tuple):
+                    retVal.append(
+                        "tuple%d_get%d"
+                        % (
+                            len(self.args[idx + 1].args),
+                            index,
+                        )
+                    )
+                elif (len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple"):
                     retVal.append(
                         "tuple%d_get%d"
                         % (
                             len(self.args[idx + 1].args) - 1,
-                            self.args[idx + 2].args[0],
+                            index,
                         )
                     )
                 elif isinstance(self.args[idx + 1], TupleObject):
-                    index_expr = self.args[idx + 2]
-                    # TODO(jie): this is not very clean, how to make it better?
-                    if isinstance(index_expr, IntObject):
-                        index = index_expr.src.args[0]
-                    else:
-                        index = index_expr.args[0]
                     retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
+                elif isinstance(self.args[idx + 1], Var) and get_origin(self.args[idx + 1].type) == TupleObject:
+                    length = len(get_args(get_args(self.args[idx + 1].type)[0]))
+                    retVal.append(f"tuple{length}_get{index}")
                 else:
                     # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
                     freq: typing.Counter[str] = Counter(
                         self.args[idx + 1].args[0].split("_")[1]
                     )
                     retVal.append(
-                        "tuple%d_get%d" % (freq["i"], self.args[idx + 2].args[0])
+                        "tuple%d_get%d" % (freq["i"], index)
                     )
             elif (str(a)).startswith("set-"):
                 retVal.append("set.%s" % (str(a)[4:]))

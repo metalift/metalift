@@ -1,20 +1,19 @@
 from typing import List, Literal
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDeclRecursive,
-                         IntObject, Mul, Sub, Tuple, TupleObject, NewObject)
+from metalift.ir import (Expr, IntObject, Tuple, TupleObject, NewObject, call, choose, fnDeclRecursive)
 from tests.python.utils.utils import codegen
 
 
 def tuple_mult(t):
-    return IntObject(Call("tuple_mult", IntObject, t))
+    return call("tuple_mult", IntObject, t)
 
 def target_lang():
-    x = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], "x")
-    tuple_mult = FnDeclRecursive(
+    x = TupleObject(IntObject, IntObject, "x")
+    tuple_mult = fnDeclRecursive(
         "tuple_mult",
         IntObject,
-        Mul(x[0], x[1]), # TODO(jie): maybe we can even rewrite this mul using *
+        (x[0] * x[1]),
         x
     )
     return [tuple_mult]
@@ -25,9 +24,9 @@ def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -
 def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> Expr:
     x_tuple_src = Tuple(x, x)
     y_tuple_src = Tuple(y, y)
-    x_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], x_tuple_src)
-    y_tuple = TupleObject[IntObject, Literal[2]](IntObject, Literal[2], y_tuple_src)
-    summary = Choose(
+    x_tuple = TupleObject(IntObject, IntObject, x_tuple_src)
+    y_tuple = TupleObject(IntObject, IntObject, y_tuple_src)
+    summary = choose(
         ret_val == tuple_mult(x_tuple) + tuple_mult(y_tuple),
         ret_val == tuple_mult(x_tuple) - tuple_mult(y_tuple)
     )

@@ -3,7 +3,7 @@ from typing import List
 from mypy.nodes import Statement
 
 from metalift.frontend.python import Driver
-from metalift.ir import Call, Eq, Expr, FnDeclRecursive, IntObject, Var
+from metalift.ir import Call, Eq, Expr, FnDeclRecursive, IntObject, Var, fnDeclRecursive
 from tests.python.utils.utils import codegen
 
 UNINTERP_FN_NAME = "uninterp"
@@ -14,7 +14,7 @@ def uninterp(x: Var, y: Var):
 def target_lang() -> List[FnDeclRecursive]:
     x = IntObject("x")
     y = IntObject("y")
-    uninterp = FnDeclRecursive(UNINTERP_FN_NAME, IntObject, None, x, y)
+    uninterp = fnDeclRecursive(UNINTERP_FN_NAME, IntObject, None, x, y)
     return [uninterp]
 
 

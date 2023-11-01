@@ -34,9 +34,10 @@ from metalift.ir import (
     Var,
     call,
     create_object,
-    get_object_sources,
+    get_object_exprs,
     implies,
     ite,
+    make_tuple,
 )
 from mypy import build
 from mypy.build import BuildResult
@@ -259,7 +260,7 @@ class Predicate:
 
     def gen_Synth(self) -> Synth:
         v_objects = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
-        body = and_exprs(*get_object_sources(v_objects))
+        body = and_exprs(*get_object_exprs(v_objects))
         return Synth(self.name, body, *self.args)
 
 
@@ -752,19 +753,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
 
     def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
-        tuple_expr = MLTuple(*[expr.accept(self) for expr in o.items])
-        tuple_length = len(o.items)
-        if tuple_length == 1:
-            literal_type = Literal[1]
-        elif tuple_length == 2:
-            literal_type = Literal[2]
-        elif tuple_length == 3:
-            literal_type = Literal[3]
-        else:
-            raise Exception("Make tuple only supports length <= 3")
-
-        return_type = TupleObject[IntObject, literal_type]
-        return return_type(IntObject, literal_type, tuple_expr)
+        tuple_exprs = [expr.accept(self) for expr in o.items]
+        return make_tuple(*tuple_exprs)
 
     def visit_index_expr(self, o: IndexExpr) -> Expr:
         # Currently only supports indexing into tuples and lists using integers

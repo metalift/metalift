@@ -2,10 +2,8 @@ from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Call, Expr, NewObject, ListObject, IntObject, SetObject, TupleObject, parse_type_ref_to_obj
+from metalift.ir import Expr, NewObject, ListObject, IntObject, SetObject, TupleObject, parse_type_ref_to_obj, call, make_tuple_type
 from metalift.vc_util import parseOperand
-
-from enum import Enum
 
 ReturnValue = NamedTuple(
     "ReturnValue",
@@ -185,17 +183,7 @@ def vector_append(
     assert len(args) == 2
     assign_var_name: str = args[0].name
 
-    # lst = (
-    #     primitive_vars[args[0].name]
-    #     if not args[0].type.is_pointer
-    #     else pointer_vars[args[0].name]
-    # )
-    # value = (
-    #     primitive_vars[args[1].name]
-    #     if not args[1].type.is_pointer
-    #     else pointer_vars[args[1].name]
-    # )
-    assign_val = Call(
+    assign_val = call(
         "list_append",
         parse_type_ref_to_obj(args[0].type),
         primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
@@ -206,14 +194,13 @@ def vector_append(
         [(assign_var_name, assign_val, "primitive")],
     )
 
-
 def new_tuple(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("newTuple", TupleObject[IntObject, Literal[2]]), None)
+    return ReturnValue(call("newTuple", TupleObject[IntObject, Literal[2]]), None)
 
 
 
@@ -231,14 +218,9 @@ def make_tuple(
     ]
 
     # TODO(jie): handle types other than IntObject
-    tuple_length = len(args)
-    
-    literal_type = Literal[tuple_length] # type: ignore
-
-    return_type = TupleObject[IntObject, literal_type]
-
-    call_expr = Call("make-tuple", return_type, *reg_vals)
-    return ReturnValue(return_type(IntObject, literal_type, call_expr), None)
+    contained_type = [IntObject for i in range(len(args))]
+    return_type = make_tuple_type(*contained_type)
+    return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
 
 def tuple_get(
     primitive_vars: Dict[str, Expr],
@@ -247,7 +229,7 @@ def tuple_get(
     *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
-        Call(
+        call(
             "tupleGet",
             IntObject,
             primitive_vars[args[0].name]
@@ -257,7 +239,6 @@ def tuple_get(
         ),
         None,
     )
-
 
 def get_field(
     primitive_vars: Dict[str, Expr],
