@@ -3,11 +3,9 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, IntObject, Var, ListObject
+from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, IntObject, Var, ListObject, get_nested_list_element_type, is_list_type, is_nested_list_type, is_set_type
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
-
-from metalift.ir_util import get_nested_list_element_type, is_list_type_expr, is_nested_list_type_expr, is_set_type_expr
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -35,11 +33,11 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif is_list_type_expr(v) or is_set_type_expr(v):
+    elif is_list_type(v.type) or is_set_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
         genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
 
-        is_nested_list = is_nested_list_type_expr(v)
+        is_nested_list = is_nested_list_type(v.type)
         if is_nested_list:
             tmp = [
                 v.args[0] + "_BOUNDEDSET-" + str(i)
@@ -57,7 +55,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             for t in tmp:
                 genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
 
-            if is_set_type_expr(v):
+            if is_set_type(v.type):
                 decls.append(
                     "(define %s (sort (remove-duplicates (take %s %s)) <))"
                     % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
