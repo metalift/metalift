@@ -2,7 +2,7 @@ from typing import List, Union
 
 from metalift.frontend.python import Driver
 from metalift.ir import (And, Call, Choose, Eq, Expr, FnDecl,FnDeclRecursive, Ge, Gt, Ite, Le, Lt, NewObject,
-    ListObject, IntObject, BoolObject)
+    ListObject, IntObject, BoolObject, ite)
 from tests.python.utils.utils import codegen
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -20,7 +20,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     select_func = FnDeclRecursive(
         "Select",
         ListObject[IntObject],
-        Ite(
+        ite(
             data.len() == 0,
             ListObject.empty(IntObject),
             Ite(
@@ -47,7 +47,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     select_func1 = fn_decl_recursive(
         "Select1",
         ListObject[IntObject],
-        Ite(
+        ite(
             data.len() == IntObject(0),
             ListObject.empty(IntObject),
             Ite(
@@ -74,7 +74,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     select_func2 = fn_decl_recursive(
         "Select2",
         ListObject[IntObject],
-        Ite(
+        ite(
             data.len() == IntObject(0),
             ListObject.empty(IntObject),
             Ite(
