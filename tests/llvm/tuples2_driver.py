@@ -1,8 +1,8 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (FnDeclRecursive, IntObject, NewObject, TupleObject,
-                         call, choose, make_tuple)
+from metalift.ir import (IntObject, NewObject, TupleObject,
+                         call, choose, make_tuple, fnDeclRecursive)
 from tests.python.utils.utils import codegen
 
 
@@ -11,11 +11,11 @@ def tuple_add(t):
 
 def target_lang():
     x = TupleObject(IntObject, IntObject, "x")
-    tuple_add = FnDeclRecursive(
+    tuple_add = fnDeclRecursive(
         "tuple_add",
         IntObject,
-        (x[0] + x[1]).src,
-        x.src
+        (x[0] + x[1]),
+        x
     )
     return [tuple_add]
 
