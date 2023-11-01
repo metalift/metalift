@@ -1,14 +1,40 @@
 import re
-from typing import (Any, Callable, Dict, Iterable, List, NamedTuple, Optional,
-                    Set, Tuple, Type, Union, cast)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
 
-from metalift.ir import (BoolObject, Expr, Lit, MLInst, MLInst_Assert,
-                         MLInst_Assume, MLInst_Call, MLInst_Eq, MLInst_Havoc,
-                         MLInst_Load, MLInst_Not, MLInst_Or, MLInst_Return,
-                         NewObject, Synth, Var)
+from metalift.ir import (
+    BoolObject,
+    Expr,
+    Lit,
+    MLInst,
+    MLInst_Assert,
+    MLInst_Assume,
+    MLInst_Call,
+    MLInst_Eq,
+    MLInst_Havoc,
+    MLInst_Load,
+    MLInst_Not,
+    MLInst_Or,
+    MLInst_Return,
+    NewObject,
+    Synth,
+    Var,
+)
 from metalift.vc import VC, Block
 
 orig_value_ref_operands = ValueRef.operands

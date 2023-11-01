@@ -286,7 +286,8 @@ class RichBlock(object):
             value = gen_value(operands[0], fn_group)
             stack_target = operands[1].name
             stack_var = fn_group.variable(
-                f"stack_{self.name}_{stack_target}", parse_type_ref_to_obj(operands[1].type)
+                f"stack_{self.name}_{stack_target}",
+                parse_type_ref_to_obj(operands[1].type),
             )
 
             updated_stack = dict(env)
@@ -364,7 +365,9 @@ class RichBlock(object):
                     stack_merges[key_expr_pair] = []
 
                 stack_merges[key_expr_pair].append(
-                    fn_group.variable_or_existing(f"{self.name}_from_{pred}", BoolObject)
+                    fn_group.variable_or_existing(
+                        f"{self.name}_from_{pred}", BoolObject
+                    )
                 )
 
         assigns: List[Expr] = []
@@ -441,7 +444,9 @@ class AnalysisResult(object):
         loop_info: Dict[str, LoopInfo],
     ) -> None:
         self.name = name
-        self.arguments = [Var(arg.name, parse_type_ref_to_obj(arg.type)) for arg in arguments]
+        self.arguments = [
+            Var(arg.name, parse_type_ref_to_obj(arg.type)) for arg in arguments
+        ]
         self.blocks = blocks
 
         found_return = None
@@ -468,7 +473,9 @@ class AnalysisResult(object):
                 arg.name(): group.variable(arg.name(), arg.type)
                 for arg in self.arguments
             }
-            bb_variables = {b: group.variable(b, BoolObject) for b in rich_blocks.keys()}
+            bb_variables = {
+                b: group.variable(b, BoolObject) for b in rich_blocks.keys()
+            }
             return Implies(
                 And(
                     *[
@@ -528,7 +535,5 @@ if __name__ == "__main__":
         print()
 
     variable_tracker = VariableTracker()
-    vc = test_analysis.call(IntObject("in"))(
-        variable_tracker, lambda ret: ret == 0
-    )
+    vc = test_analysis.call(IntObject("in"))(variable_tracker, lambda ret: ret == 0)
     print(vc)

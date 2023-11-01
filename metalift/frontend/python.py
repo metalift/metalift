@@ -1,5 +1,18 @@
 import re
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ExprSet
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
@@ -256,10 +269,14 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> BoolObject:
-        return call(self.name, BoolObject, *[state.read(v.var_name()) for v in self.args])
+        return call(
+            self.name, BoolObject, *[state.read(v.var_name()) for v in self.args]
+        )
 
     def gen_Synth(self) -> Synth:
-        v_objects = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
+        v_objects = [
+            self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes
+        ]
         body = and_exprs(*get_object_exprs(v_objects))
         return Synth(self.name, body, *self.args)
 
@@ -502,19 +519,13 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         )
 
         write_objects = [
-            create_object(to_object_type(type), name)
-            for name, type
-            in writes
+            create_object(to_object_type(type), name) for name, type in writes
         ]
         read_objects = [
-            create_object(to_object_type(type), name)
-            for name, type
-            in reads
+            create_object(to_object_type(type), name) for name, type in reads
         ]
         in_scope_objects = [
-            create_object(to_object_type(type), name)
-            for name, type
-            in in_scope
+            create_object(to_object_type(type), name) for name, type in in_scope
         ]
         inv = self.pred_tracker.invariant(
             fn_name=self.fn_name,
@@ -523,7 +534,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             writes=write_objects,
             reads=read_objects,
             in_scope=in_scope_objects,
-            grammar=self.inv_grammar
+            grammar=self.inv_grammar,
         )
         self.invariants[o] = inv
 
@@ -715,7 +726,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         return e
 
     # ">" | "<" | "==" | ">=" | "<=" | "!=" | "is" ["not"] | ["not"] "in"
-    def process_comparison(self, op: str, left: NewObject, right: NewObject) -> NewObject:
+    def process_comparison(
+        self, op: str, left: NewObject, right: NewObject
+    ) -> NewObject:
         if op == ">":
             return left > right
         elif op == "<":
@@ -750,7 +763,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             return l.Or(r)
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
-
 
     def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
         tuple_exprs = [expr.accept(self) for expr in o.items]
