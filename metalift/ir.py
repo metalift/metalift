@@ -32,6 +32,42 @@ class PrintMode(Enum):
 
 T = TypeVar("T")
 
+# Helper functions
+MLType = Union[Type, typing.Type]
+
+def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), ListObject)
+    else:
+        return issubclass(ty, ListObject)
+
+def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
+    contained_type = get_args(ty)[0]
+    return is_list_type(ty) and isinstance(contained_type, _GenericAlias) and issubclass(get_origin(contained_type), ListObject)
+
+def get_nested_list_element_type(expr: "Expr") -> typing.Type["NewObject"]:
+    if not is_nested_list_type(expr.type):
+        raise Exception("expr is not a nested list!")
+    contained_type = get_args(expr.type)[0]
+    return get_args(contained_type)[0]
+
+def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), SetObject)
+    else:
+        return issubclass(ty, SetObject)
+
+def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), TupleObject)
+    else:
+        return issubclass(ty, TupleObject)
+
+def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
+    return ty == IntObject or ty == BoolObject
+
+def is_object_pointer_type(obj: "NewObject") -> bool:
+    return isinstance(obj, ListObject) or isinstance(obj, SetObject)
 
 class Expr:
     def __init__(
@@ -275,17 +311,71 @@ class Expr:
             + ")"
         )
 
-    listFns = {
-        "list_get": "list-ref-noerr",
-        "list_append": "list-append",
-        "list_empty": "list-empty",
-        "list_tail": "list-tail-noerr",
-        "list_length": "length",
-        "list_take": "list-take-noerr",
-        "list_prepend": "list-prepend",
-        "list_eq": "equal?",
-        "list_concat": "list-concat",
-    }
+    @staticmethod
+    def get_list_fn(fn_name: str, ret_type: Union[type, _GenericAlias]) -> Optional[str]:
+        if fn_name == "list_get":
+            if is_list_type(ret_type):
+                return "list-list-ref-noerr"
+            elif is_primitive_type(ret_type):
+                return "list-ref-noerr"
+            else:
+                raise Exception(f"list_get not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_append":
+            if is_list_type(ret_type):
+                return "list-list-append"
+            elif is_primitive_type(ret_type):
+                return "list-append"
+            else:
+                raise Exception(f"list_append not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_empty":
+            if is_list_type(ret_type):
+                return "list-list-empty"
+            elif is_primitive_type(ret_type):
+                return "list-empty"
+            else:
+                raise Exception(f"list_empty not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_tail":
+            if is_list_type(ret_type):
+                return "list-list-tail-noerr"
+            elif is_primitive_type(ret_type):
+                return "list-tail-no-err"
+            else:
+                raise Exception(f"list_tail not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_length":
+            if is_list_type(ret_type):
+                return "list-list-length"
+            elif is_primitive_type(ret_type):
+                return "length"
+            else:
+                raise Exception(f"list_length not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_length":
+            if is_list_type(ret_type):
+                return "list-list-length"
+            elif is_primitive_type(ret_type):
+                return "length"
+            else:
+                raise Exception(f"list_length not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_take":
+            if is_list_type(ret_type):
+                return "list-list-take-noerr"
+            elif is_primitive_type(ret_type):
+                return "list-take-noerr"
+            else:
+                raise Exception(f"list_take not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_prepend":
+            if is_list_type(ret_type):
+                return "list-list-prepend"
+            elif is_primitive_type(ret_type):
+                return "list-prepend"
+            else:
+                raise Exception(f"list_prepend not supported on {ListObject[ret_type]} lists yet!")
+        elif fn_name == "list_eq":
+            return "equal?"
+        elif fn_name == "list_concat":
+            if is_primitive_type(ret_type):
+                return "list-concat"
+            raise Exception(f"list_prepend not supported on {ListObject[ret_type]} lists yet!")
+        return None
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -300,12 +390,7 @@ class Expr:
                 retStr += "%s" % (a.name) + " "
             else:
                 strExp = a.toRosette() if isinstance(a, Expr) else str(a)
-                if (strExp) in Expr.listFns.keys() and "list_empty" in (strExp):
-                    retStr += "(" + Expr.listFns[strExp] + ")" + " "
-                elif (strExp) in Expr.listFns.keys():
-                    retStr += Expr.listFns[strExp]
-                else:
-                    retStr += strExp + " "
+                retStr += strExp + " "
         retStr += ")"
         return retStr
 
@@ -1545,15 +1630,10 @@ class Call(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                import pdb; pdb.set_trace()
                 callStr = (
                     "("
                     + "%s"
-                    % (
-                        Expr.listFns[self.args[0]]
-                        if self.args[0] in Expr.listFns.keys()
-                        else self.args[0]
-                    )
+                    % Expr.get_list_fn(self.args[0], self.type) or self.args[0]
                     + " "
                 )
                 for a in self.args[1:]:
@@ -1681,11 +1761,7 @@ class CallValue(Expr):
                 callStr = (
                     "("
                     + "%s"
-                    % (
-                        Expr.listFns[self.args[0]]
-                        if self.args[0] in Expr.listFns.keys()
-                        else self.args[0]
-                    )
+                    % Expr.get_list_fn(self.args[0], self.type) or self.args[0]
                     + " "
                 )
                 for a in self.args[1:]:
