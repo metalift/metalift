@@ -1681,7 +1681,17 @@ class Call(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
+                import pdb; pdb.set_trace()
+                callStr = (
+                    "("
+                    + "%s"
+                    % (
+                        Expr.listFns[self.args[0]]
+                        if self.args[0] in Expr.listFns.keys()
+                        else self.args[0]
+                    )
+                    + " "
+                )
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
