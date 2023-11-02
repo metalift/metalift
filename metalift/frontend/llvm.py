@@ -592,7 +592,8 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                             i,
                             "my_operands",
                             [
-                                Lit(fieldName, String()),
+                                #TODO: remove String() once String object exist
+                                Lit(fieldName, String()), # type: ignore
                                 ops[0],
                                 ops[1],
                                 "setField",
@@ -603,7 +604,8 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                         setattr(
                             i,
                             "my_operands",
-                            [Lit(fieldName, String()), ops[0], "getField"],
+                            #TODO: remove String() once String object exist
+                            [Lit(fieldName, String()), ops[0], "getField"], # type: ignore
                         )
                         # print("inst: %s" % i)
 
@@ -755,12 +757,12 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> BoolObject:
-        call_expr = Call(
+        call_res = call(
             self.name,
             BoolObject,
             *[state.read_or_load_var(v.var_name()) for v in self.args],
         )
-        return BoolObject(call_expr)
+        return cast(BoolObject, call_res)
 
     def gen_Synth(self) -> Synth:
         body = self.grammar(self.writes, self.reads, self.in_scope).src
@@ -818,7 +820,7 @@ class PredicateTracker:
             self.predicates[fn_name] = ps
             return ps
 
-    def VCall(self, name: str, s: State) -> Call:
+    def VCall(self, name: str, s: State) -> BoolObject:
         return self.predicates[name].call(s)
 
 
@@ -1077,14 +1079,14 @@ class VCVisitor:
                             expr_value,
                             all_preconds,
                         ) in expr_value_to_precond_mapping.items():
-                            all_aggregated_preconds: List[Expr] = []
+                            all_aggregated_preconds: List[NewObject] = []
                             for preconds in all_preconds:
                                 all_aggregated_preconds.append(and_objects(*preconds))
                             expr_value_to_aggregated_precond[expr_value] = or_objects(
-                                *all_aggregated_preconds
+                                *all_aggregated_preconds #type: ignore
                             )
                         # Merge the different possible values with an Ite statement.
-                        merged_expr: Optional[Expr] = None
+                        merged_expr: Optional[Expr] = None #type: ignore
                         for (
                             expr_value,
                             aggregated_precond,
@@ -1197,6 +1199,22 @@ class VCVisitor:
             val = BoolObject(False)
         elif t == "%struct.list*":
             val = ListObject(IntObject)
+        elif t == "%struct.set*":
+            val = SetObject(IntObject)
+        elif t == "%struct.tup*":
+            val = TupleObject(IntObject, IntObject, None) #TODO: maybe a better way to handle tuple without value parameter
+        elif t.startswith("%struct.tup."):
+            ret_type = [IntObject for _ in range(int(t[-2]) + 1)]
+            val = TupleObject(*ret_type, None)
+        #TODO: when user defined struct is supported
+        # elif t.startswith(
+        #     "%struct."
+        # ):  # not a tuple or set, assume to be user defined type
+        #     o = re.search("%struct.(.+)", t)
+        #     if o:
+        #         tname = o.group(1)
+        #     else:
+        #         raise Exception("failed to match struct %s: " % t)
         else:
             raise Exception("NYI: %s" % o)
 
@@ -1459,7 +1477,7 @@ class Driver:
             if m:
                 name = m.groups()[0]
                 if isinstance(f.body(), Eq):
-                    self.fns[name].synthesized = cast(Eq, f.body()).e2()
+                    self.fns[name].synthesized = cast(Eq, f.body()).e2() #type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 elif isinstance(f.body(), Call) and f.body().name() == "list_eq":
                     self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]
@@ -1484,7 +1502,7 @@ class Driver:
 
     def add_precondition(self, e: NewObject) -> None:
         # this gets propagated to the State when it is created
-        self.postconditions.append(e)
+        self.postconditions.append(cast(BoolObject, e))
 
 
 class MetaliftFunc:

@@ -18,14 +18,6 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if v.type == IntObject:
-        # if (
-        #     # v.type.name == "Int"
-        #     # or v.type.name == "ClockInt"
-        #     # or v.type.name == "EnumInt"
-        #     # or v.type.name == "OpaqueInt"
-        #     # or v.type.name == "NodeIDInt"
-        #     type_name == "Int"
-        # ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
@@ -78,12 +70,14 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
+            #TODO: v.type no longer has args, find proper solution
+            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound) #type: ignore
         for t in tmp_v:
-            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)
+            #TODO: v.type no longer has args, find proper solution
+            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound) #type: ignore
 
         len_name = v.args[0] + "-len"
-        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+        genVar(Var(len_name, IntObject), decls, vars_all, listBound)
 
         all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
 

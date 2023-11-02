@@ -49,9 +49,9 @@ def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
 def toExpr(
     ast: typing.List[Any],
     fnsType: Dict[Any, Any],
-    varType: Dict[str, Type],
+    varType: Dict[str, NewObjectT],
     choices: Dict[str, Expr],
-    typeHint: typing.Optional[Type] = None,
+    typeHint: typing.Optional[NewObjectT] = None,
 ) -> Expr:
     expr_bi: Dict[str, Callable[..., Expr]] = {
         "equal?": Eq,
@@ -108,7 +108,7 @@ def toExpr(
             elem = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
-                ListObject[elem.type],
+                ListObject[elem.type], #type: ignore
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
@@ -116,7 +116,7 @@ def toExpr(
             elem = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_prepend",
-                ListObject[elem.type],
+                ListObject[elem.type], #type: ignore
                 elem,
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -124,7 +124,7 @@ def toExpr(
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_get",
-                list_expr.type.args[0],
+                get_args(list_expr.type)[0],
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
             )
