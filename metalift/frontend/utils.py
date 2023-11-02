@@ -1,4 +1,5 @@
-import typing
+import typing 
+from typing import Dict, Generator, Any
 
 from metalift.ir import Expr
 
@@ -15,7 +16,7 @@ def qual_name(t: type) -> str:
 
 class ExprDict:
     def __init__(self) -> None:
-        self.kv_pairs = []
+        self.kv_pairs = [] #type: ignore
 
     def __getitem__(self, key: Expr) -> typing.Any:
         for k, v in self.kv_pairs:
@@ -30,10 +31,10 @@ class ExprDict:
                 return
         self.kv_pairs.append((key, value))
 
-    def __contains__(self, key: Expr):
+    def __contains__(self, key: Expr) -> bool:
         return any([Expr.__eq__(k, key) for (k, _) in self.kv_pairs])
 
-    def __len__(self):
+    def __len__(self)->int:
         return len(self.kv_pairs)
 
     def keys(self) -> typing.List[Expr]:
@@ -63,6 +64,6 @@ class ExprSet:
                 new_exprs.append(expr)
         return ExprSet(new_exprs)
 
-    def __iter__(self):
+    def __iter__(self)->Generator[Expr, Any, None]:
         for expr in self.exprs:
             yield expr

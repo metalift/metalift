@@ -1,27 +1,22 @@
-from typing import Union, Type as typingType, _GenericAlias, get_origin
+from typing import _GenericAlias, get_origin #type: ignore
 from metalift.ir import (
     Expr,
     ListObject,
     NewObject,
     SetObject,
     TupleObject,
-    Type as irType,
 )
-
-# TODO(jie): get rid of this once old types are all removed
-MLType = Union[irType, typingType]
-
 
 def is_list_type_expr(expr: Expr) -> bool:
     if isinstance(expr.type, _GenericAlias):
-        return issubclass(get_origin(expr.type), ListObject)
+        return issubclass(get_origin(expr.type), ListObject) #type: ignore
     else:
         return issubclass(expr.type, ListObject)
 
 
 def is_set_type_expr(expr: Expr) -> bool:
     if isinstance(expr.type, _GenericAlias):
-        return issubclass(get_origin(expr.type), SetObject)
+        return issubclass(get_origin(expr.type), SetObject) #type: ignore
     else:
         return issubclass(expr.type, SetObject)
 
