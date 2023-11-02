@@ -609,7 +609,7 @@ def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
     # Assume that all objects passed in will have the same type, even if not, the call to Choose
     # will handle exception throwing for us.
     object_type = objects[0].type
-    choose_expr = Choose(*get_object_exprs(objects))
+    choose_expr = Choose(*get_object_exprs(*objects))
     return create_object(object_type, choose_expr)
 
 
@@ -634,7 +634,7 @@ def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
 def call(
     fn_name: str, return_type: NewObjectT, *object_args: Union["NewObject", Expr]
 ) -> "NewObject":
-    call_expr = Call(fn_name, return_type, *get_object_exprs(object_args))
+    call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
 
 
@@ -645,7 +645,7 @@ def fnDecl(
     *object_args: Union["NewObject", Expr],
 ) -> "FnDecl":
     fnDecl_expr = FnDecl(
-        fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args)
+        fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
     return fnDecl_expr
 
@@ -657,14 +657,14 @@ def fnDeclRecursive(
     *object_args: Union["NewObject", Expr],
 ) -> "FnDeclRecursive":
     fnDeclRecursive_expr = FnDeclRecursive(
-        fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args)
+        fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
     return fnDeclRecursive_expr
 
 
 def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     obj_types = [obj.type for obj in objects]
-    return TupleObject(*obj_types, Tuple(*get_object_exprs(objects)))
+    return TupleObject(*obj_types, Tuple(*get_object_exprs(*objects)))
 
 
 def make_tuple_type(
@@ -740,12 +740,12 @@ class BoolObject(NewObject):
     def And(self, *args: Union["BoolObject", bool]) -> "BoolObject":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(And(*get_object_exprs([self, *args])))
+        return BoolObject(And(*get_object_exprs(self, *args)))
 
     def Or(self, *args: Union["BoolObject", bool]) -> "BoolObject":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(Or(*get_object_exprs([self, *args])))
+        return BoolObject(Or(*get_object_exprs(self, *args)))
 
     def Not(self) -> "BoolObject":
         return BoolObject(Not(self.src))

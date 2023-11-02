@@ -38,7 +38,7 @@ def and_exprs(*exprs: Expr) -> Expr:
 
 
 def and_objects(*objects: BoolObject) -> BoolObject:
-    return BoolObject(and_exprs(*get_object_exprs(objects)))
+    return BoolObject(and_exprs(*get_object_exprs(*objects)))
 
 
 # TODO(jie): should this belong to the same function as and_exprs or different?
@@ -50,4 +50,4 @@ def or_exprs(*exprs: Expr) -> Expr:
 
 
 def or_objects(*objects: BoolObject) -> BoolObject:
-    return BoolObject(or_exprs(*get_object_exprs(objects)))
+    return BoolObject(or_exprs(*get_object_exprs(*objects)))
