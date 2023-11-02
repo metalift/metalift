@@ -14,7 +14,7 @@ from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ExprSet
 from metalift.ir import (BoolObject, Call, Eq, Expr, FnDecl, FnDeclRecursive,
                          FnT, IntObject, Ite, ListObject, Lit, MLType,
-                         NewObject, ObjectExpr, SetObject, Synth, TupleT, Var,
+                         NewObject, NewObjectT, ObjectExpr, SetObject, Synth, TupleT, Var,
                          call, create_object, get_object_exprs, implies,
                          is_object_pointer_type, parse_c_or_cpp_type_to_obj,
                          parse_type_ref_to_obj)
@@ -808,12 +808,13 @@ class PredicateTracker:
         fn_name: str,
         outs: List[NewObject],
         ins: List[NewObject],
+        in_scope: List[NewObject],
         grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> Predicate:
         if fn_name in self.predicates:
             return self.predicates[fn_name]
         else:
-            ps = Predicate(ins + outs, outs, ins, f"{fn_name}_ps", grammar)
+            ps = Predicate(ins + outs, outs, ins, in_scope, f"{fn_name}_ps", grammar)
             self.predicates[fn_name] = ps
             return ps
 
@@ -975,6 +976,7 @@ class VCVisitor:
             self.fn_name,
             [return_arg],  # TODO: I feel like this flow could be better
             self.fn_args,
+            [],
             self.ps_grammar,
         )
 
@@ -1556,22 +1558,22 @@ class MetaliftFunc:
 
     def __call__(self, *args: NewObject, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
-        num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
-        if num_expected_args != num_actual_args:
-            raise RuntimeError(
-                f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
-            )
-        for i in range(len(args)):
-            passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
-            fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_args_types[i]
-            if passed_in_arg_name != fn_arg_name:
-                raise Exception(
-                    f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
-                )
-            if passed_in_arg_type != fn_arg_type:
-                raise RuntimeError(
-                    f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
-                )
+        # num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
+        # if num_expected_args != num_actual_args:
+        #     raise RuntimeError(
+        #         f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
+        #     )
+        # for i in range(len(args)):
+        #     passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
+        #     fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_args_types[i]
+        #     if passed_in_arg_name != fn_arg_name:
+        #         raise Exception(
+        #             f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
+        #         )
+        #     if passed_in_arg_type != fn_arg_type:
+        #         raise RuntimeError(
+        #             f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
+        #         )
 
         if self.fn_sret_arg is not None:
             sret_obj_type = parse_type_ref_to_obj(self.fn_sret_arg.type)

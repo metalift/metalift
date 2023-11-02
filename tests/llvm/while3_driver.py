@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
@@ -89,7 +90,7 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/while3.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammar=inv_grammar,
+        inv_grammars=defaultdict(lambda: inv_grammar),
         ps_grammar=ps_grammar
     )
 
