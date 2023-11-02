@@ -417,7 +417,9 @@ class VC:
 
                 elif fnName in s.uninterpFuncs:
                     s.regs[i] = Call(
-                        fnName, parse_type_ref_to_obj(i.type), *[s.regs[op] for op in ops[:-1]]
+                        fnName,
+                        parse_type_ref_to_obj(i.type),
+                        *[s.regs[op] for op in ops[:-1]],
                     )
                     assigns.add(i)
 

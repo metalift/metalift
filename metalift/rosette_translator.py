@@ -18,14 +18,14 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if v.type == IntObject:
-    # if (
-    #     # v.type.name == "Int"
-    #     # or v.type.name == "ClockInt"
-    #     # or v.type.name == "EnumInt"
-    #     # or v.type.name == "OpaqueInt"
-    #     # or v.type.name == "NodeIDInt"
-    #     type_name == "Int"
-    # ):
+        # if (
+        #     # v.type.name == "Int"
+        #     # or v.type.name == "ClockInt"
+        #     # or v.type.name == "EnumInt"
+        #     # or v.type.name == "OpaqueInt"
+        #     # or v.type.name == "NodeIDInt"
+        #     type_name == "Int"
+        # ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
@@ -73,7 +73,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
-    #TODO: change this once MapObject is ready
+    # TODO: change this once MapObject is ready
     elif hasattr(v.type, "name") and v.type.name == "Map":
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]

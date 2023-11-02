@@ -12,17 +12,16 @@ from typing import (
     Dict,
     Generic,
     List,
-    Literal,
     Set,
     TypeVar,
     Union,
     Optional,
     Tuple,
-    _GenericAlias,
+    _GenericAlias,  # type: ignore
     get_args,
     get_origin,
 )
-from metalift.types import (Type, FnT, PointerT, TupleT)
+from metalift.types import Type, FnT, PointerT, TupleT
 
 
 class PrintMode(Enum):
@@ -31,6 +30,7 @@ class PrintMode(Enum):
 
 
 T = TypeVar("T")
+NewObjectT = typing.Type["NewObject"]
 
 # Helper functions
 MLType = Union[Type, typing.Type]
@@ -71,10 +71,7 @@ def is_object_pointer_type(obj: "NewObject") -> bool:
 
 class Expr:
     def __init__(
-        self,
-        type: typing.Type["NewObject"],
-        args: Any,
-        metadata: Dict[str, Any] = {}
+        self, type: NewObjectT, args: Any, metadata: Dict[str, Any] = {}
     ) -> None:
         self.args = args
         self.type = type
@@ -84,6 +81,7 @@ class Expr:
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         if isinstance(self, NewObject):
             from copy import deepcopy
+
             new_object = deepcopy(self)
             new_object.src = self.src.mapArgs(f)
             return new_object
@@ -529,11 +527,13 @@ class Expr:
 ### START OF IR OBJECTS
 ObjectContainedT = Union[typing.Type["NewObject"], _GenericAlias]
 
+
 def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
     if isinstance(type, Type):
         return str(type)
     else:
         return type.cls_str(get_args(type))
+
 
 def toRosetteType(t: typing.Type["NewObject"]) -> str:
     if t == IntObject:
@@ -542,6 +542,7 @@ def toRosetteType(t: typing.Type["NewObject"]) -> str:
         return "boolean?"
     else:
         raise Exception("NYI: %s" % t)
+
 
 # TODO(jie): fix the type in the function signature
 def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
@@ -583,14 +584,18 @@ def create_object(
     else:
         return object_type(value)
 
-def get_object_exprs(objects: List[Union[typing.Type["NewObject"], Expr]]) -> List[Expr]:
+
+def get_object_exprs(*objects: "NewObject") -> List[Expr]:
     return [get_object_expr(obj) for obj in objects]
+
 
 def get_object_expr(object: Union[typing.Type["NewObject"], Expr]) -> Expr:
     return object.src if isinstance(object, NewObject) else object
 
+
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     return isclass(ty) and issubclass(ty, NewObject)
+
 
 def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
     if len(objects) == 0:
@@ -598,35 +603,69 @@ def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
     # Assume that all objects passed in will have the same type, even if not, the call to Choose
     # will handle exception throwing for us.
     object_type = objects[0].type
-    choose_expr = Choose(*get_object_exprs(objects))
+    choose_expr = Choose(*get_object_exprs(*objects))
     return create_object(object_type, choose_expr)
 
-def ite(cond: Union["BoolObject", Expr], then_object: Union["NewObject", Expr], else_object: Union["NewObject", Expr]) -> "NewObject":
+
+def ite(
+    cond: "BoolObject",
+    then_object: "NewObject",
+    else_object: "NewObject",
+) -> "NewObject":
     ite_type = then_object.type
-    ite_expr = Ite(get_object_expr(cond), get_object_expr(then_object), get_object_expr(else_object))
+    ite_expr = Ite(
+        get_object_expr(cond),
+        get_object_expr(then_object),
+        get_object_expr(else_object),
+    )
     return create_object(ite_type, ite_expr)
 
-def implies(e1: Union["BoolObject", Expr], e2: Union["BoolObject", Expr]) -> "BoolObject":
+
+def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
     return BoolObject(Implies(get_object_expr(e1), get_object_expr(e2)))
 
-def call(fn_name: str, return_type: "NewObject", *object_args: Union["NewObject", Expr]) -> "NewObject":
-    call_expr = Call(fn_name, return_type, *get_object_exprs(object_args))
+
+def call(
+    fn_name: str, return_type: NewObjectT, *object_args: Union["NewObject", Expr]
+) -> "NewObject":
+    call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
 
-def fnDecl(fn_name: str, return_type: "NewObject", body: Union["NewObject", Expr], *object_args: Union["NewObject", Expr]) -> "FnDecl":
-    fnDecl_expr = FnDecl(fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args))
+
+def fnDecl(
+    fn_name: str,
+    return_type: "NewObject",
+    body: Union["NewObject", Expr],
+    *object_args: Union["NewObject", Expr],
+) -> "FnDecl":
+    fnDecl_expr = FnDecl(
+        fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
+    )
     return fnDecl_expr
 
-def fnDeclRecursive(fn_name: str, return_type: "NewObject", body: Union["NewObject", Expr], *object_args: Union["NewObject", Expr]) -> "FnDeclRecursive":
-    fnDeclRecursive_expr = FnDeclRecursive(fn_name, return_type, get_object_expr(body), *get_object_exprs(object_args))
+
+def fnDeclRecursive(
+    fn_name: str,
+    return_type: "NewObject",
+    body: Union["NewObject", Expr],
+    *object_args: Union["NewObject", Expr],
+) -> "FnDeclRecursive":
+    fnDeclRecursive_expr = FnDeclRecursive(
+        fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
+    )
     return fnDeclRecursive_expr
+
 
 def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     obj_types = [obj.type for obj in objects]
-    return TupleObject(*obj_types, Tuple(*get_object_exprs(objects)))
+    return TupleObject(*obj_types, Tuple(*get_object_exprs(*objects)))
 
-def make_tuple_type(*containedT: Union[type, _GenericAlias],) -> typing.Type["TupleObject"]:
+
+def make_tuple_type(
+    *containedT: Union[type, _GenericAlias],
+) -> typing.Type["TupleObject"]:
     return TupleObject[typing.Tuple[containedT]]
+
 
 class NewObject:
     src: Expr
@@ -656,6 +695,10 @@ class NewObject:
 
     def __hash__(self) -> int:
         return hash(self.src)
+
+    @property
+    def type(self) -> typing.Type["NewObject"]:
+        raise NotImplementedError()
 
     @staticmethod
     def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:
@@ -691,12 +734,12 @@ class BoolObject(NewObject):
     def And(self, *args: Union["BoolObject", bool]) -> "BoolObject":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(And(*get_object_exprs([self, *args])))
+        return BoolObject(And(*get_object_exprs(self, *args)))
 
     def Or(self, *args: Union["BoolObject", bool]) -> "BoolObject":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(Or(*get_object_exprs([self, *args])))
+        return BoolObject(Or(*get_object_exprs(self, *args)))
 
     def Not(self) -> "BoolObject":
         return BoolObject(Not(self.src))
@@ -814,7 +857,6 @@ class IntObject(NewObject):
             other = IntObject(other)
         return BoolObject(Le(self.src, other.src))
 
-
     @staticmethod
     def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:
         return "Int"
@@ -825,6 +867,7 @@ class IntObject(NewObject):
 
 
 T = TypeVar("T", bound=NewObject)
+
 
 class ListObject(Generic[T], NewObject):
     def __init__(
@@ -858,9 +901,7 @@ class ListObject(Generic[T], NewObject):
     def len(self) -> IntObject:
         return IntObject(Call("list_length", IntObject, self.src))
 
-    def __getitem__(
-        self, index: Union[IntObject, int, slice]
-    ) -> Union[IntObject, "ListObject[IntObject]"]:
+    def __getitem__(self, index: Union[IntObject, int, slice]) -> NewObject:
         if isinstance(index, int):
             index = IntObject(index)
         if isinstance(index, slice):
@@ -874,7 +915,9 @@ class ListObject(Generic[T], NewObject):
                     stop = IntObject(stop)
                 return call("list_take", ListObject[self.containedT], self, stop)
             else:
-                raise NotImplementedError(f"Slices with both start and stop indices specified are not implemented: {index}")
+                raise NotImplementedError(
+                    f"Slices with both start and stop indices specified are not implemented: {index}"
+                )
 
         if is_new_object_type(self.containedT):  # non generic type
             return call("list_get", self.containedT, self, index)
@@ -941,7 +984,9 @@ class ListObject(Generic[T], NewObject):
     def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
-            return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"
+            return (
+                f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"
+            )
         else:
             return f"List {contained_type.cls_str()}"
 
@@ -952,6 +997,7 @@ class ListObject(Generic[T], NewObject):
             return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"
         else:
             return f"(MLList {contained_type.toSMTType()})"
+
 
 class SetObject(Generic[T], NewObject):
     def __init__(
@@ -984,7 +1030,9 @@ class SetObject(Generic[T], NewObject):
 
     def remove(self, item: NewObject) -> "SetObject":
         if type(item) != self.containedT:
-            raise TypeError(f"Trying to remove element of type: {type(item)} from set containing: {self.containedT}")
+            raise TypeError(
+                f"Trying to remove element of type: {type(item)} from set containing: {self.containedT}"
+            )
         singleton_s = SetObject.singleton(item)
         return call("set-minus", self.type, self, singleton_s)
 
@@ -994,13 +1042,17 @@ class SetObject(Generic[T], NewObject):
 
     def union(self, s: "SetObject") -> "SetObject":
         if self.type != s.type:
-            raise TypeError(f"Can't union two sets with type {self.type} and type {s.type}")
+            raise TypeError(
+                f"Can't union two sets with type {self.type} and type {s.type}"
+            )
         expr = Call("set-union", self.type, self.src, s.src)
         return SetObject(self.containedT, expr)
 
     def difference(self, s: "SetObject") -> "SetObject":
         if self.type != s.type:
-            raise TypeError(f"Can't take the difference of two sets with type {self.type} and type {s.type}")
+            raise TypeError(
+                f"Can't take the difference of two sets with type {self.type} and type {s.type}"
+            )
         return call("set-minus", self.type, self, s)
 
     def __contains__(self, value: NewObject) -> BoolObject:
@@ -1027,11 +1079,14 @@ class SetObject(Generic[T], NewObject):
         else:
             return f"(Set {contained_type.toSMTType()})"
 
+
 class TupleObject(Generic[T], NewObject):
     def __init__(
         self,
-        *containedT: Union[type, _GenericAlias], #This containedT will also take the value parameter. But it's currently for consistency with other object classes
-        value: Optional[Union[Expr, str]] = None
+        *containedT: Union[
+            type, _GenericAlias
+        ],  # This containedT will also take the value parameter. But it's currently for consistency with other object classes
+        value: Optional[Union[Expr, str]] = None,
     ) -> None:
         value = containedT[-1]
         containedT = containedT[:-1]
@@ -1047,9 +1102,7 @@ class TupleObject(Generic[T], NewObject):
         self.containedT = containedT
         NewObject.__init__(self, src)
 
-    def __getitem__(
-        self, index: Union[IntObject, int]
-    ):  # -> IntObject:  # index can also be slice
+    def __getitem__(self, index: Union[IntObject, int]) -> NewObject:
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
 
@@ -1071,9 +1124,7 @@ class TupleObject(Generic[T], NewObject):
         return len(self.containedT)
 
     @staticmethod
-    def toSMTType(
-        type_args: ObjectContainedT
-    ) -> str:
+    def toSMTType(type_args: ObjectContainedT) -> str:
         containedT = get_args(type_args[0])
         tuple_length = len(containedT)
         contained_str_list = []
@@ -1091,16 +1142,20 @@ class TupleObject(Generic[T], NewObject):
         contained_type_strs: List[str] = []
         for contained_type in get_args(type_args[0]):
             if isinstance(contained_type, _GenericAlias):
-                contained_type_str = get_origin(contained_type).toSMTType(get_args(contained_type))
+                contained_type_str = get_origin(contained_type).toSMTType(
+                    get_args(contained_type)
+                )
             else:
                 contained_type_str = contained_type.toSMTType()
             contained_type_strs.append(contained_type_str)
         return f"Tuple {' '.join(contained_type_strs)}"
 
+
 ### END OF IR OBJECTS
 
+
 class Var(Expr):
-    def __init__(self, name: str, ty: typing.Type[NewObject]) -> None:
+    def __init__(self, name: str, ty: NewObjectT) -> None:
         Expr.__init__(self, ty, [name])
 
     def name(self) -> str:
@@ -1149,7 +1204,7 @@ class Pointer(Expr):
 
 
 class Lit(Expr):
-    def __init__(self, val: Union[bool, int, str], ty: Type) -> None:
+    def __init__(self, val: Union[bool, int, str], ty: NewObjectT) -> None:
         Expr.__init__(self, ty, [val])
 
     def val(self) -> Union[bool, int, str]:
@@ -1195,7 +1250,7 @@ def IntLit(val: int) -> Expr:
 
 def EnumIntLit(val: int) -> Expr:
     return Lit(val, IntObject)
-    #TODO: bring EnumBack
+    # TODO: bring EnumBack
     # return Lit(val, EnumInt())
 
 
@@ -1594,9 +1649,7 @@ class Let(Expr):
 
 
 class Call(Expr):
-    def __init__(
-        self, name: str, returnT: typing.Type[NewObject], *arguments: Expr
-    ) -> None:
+    def __init__(self, name: str, returnT: NewObjectT, *arguments: Expr) -> None:
         Expr.__init__(self, returnT, [name, *arguments])
 
     def name(self) -> str:
@@ -1692,7 +1745,10 @@ class Call(Expr):
                             index,
                         )
                     )
-                elif (len(self.args[idx + 1].args) > 0 and self.args[idx + 1].args[0] == "make-tuple"):
+                elif (
+                    len(self.args[idx + 1].args) > 0
+                    and self.args[idx + 1].args[0] == "make-tuple"
+                ):
                     retVal.append(
                         "tuple%d_get%d"
                         % (
@@ -1702,7 +1758,10 @@ class Call(Expr):
                     )
                 elif isinstance(self.args[idx + 1], TupleObject):
                     retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
-                elif isinstance(self.args[idx + 1], Var) and get_origin(self.args[idx + 1].type) == TupleObject:
+                elif (
+                    isinstance(self.args[idx + 1], Var)
+                    and get_origin(self.args[idx + 1].type) == TupleObject
+                ):
                     length = len(get_args(get_args(self.args[idx + 1].type)[0]))
                     retVal.append(f"tuple{length}_get{index}")
                 else:
@@ -1710,9 +1769,7 @@ class Call(Expr):
                     freq: typing.Counter[str] = Counter(
                         self.args[idx + 1].args[0].split("_")[1]
                     )
-                    retVal.append(
-                        "tuple%d_get%d" % (freq["i"], index)
-                    )
+                    retVal.append("tuple%d_get%d" % (freq["i"], index))
             elif (str(a)).startswith("set-"):
                 retVal.append("set.%s" % (str(a)[4:]))
             elif (str(a)).startswith("map-"):
@@ -2124,7 +2181,7 @@ class FnDeclRecursive(Expr):
     def __init__(
         self,
         name: str,
-        returnT: typing.Type[NewObject],
+        returnT: NewObjectT,
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
@@ -2133,7 +2190,7 @@ class FnDeclRecursive(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> typing.Type[NewObject]:
+    def returnT(self) -> NewObjectT:
         return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
@@ -2173,7 +2230,10 @@ class FnDeclRecursive(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parse_type_ref_to_obj(a.type).toSMTType(get_args(a.type)) for a in self.args[2:])
+            args_type = " ".join(
+                parse_type_ref_to_obj(a.type).toSMTType(get_args(a.type))
+                for a in self.args[2:]
+            )
             ret_type = self.returnT()
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
@@ -2230,7 +2290,9 @@ class FnDefine(Expr):
         return ""  # only for verification
 
     def toSMT(self) -> str:
-        args_type = " ".join(parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:])
+        args_type = " ".join(
+            parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:]
+        )
         return "(declare-fun %s (%s) %s)" % (
             self.args[0],
             args_type,
@@ -2280,7 +2342,7 @@ class FnDecl(Expr):
     def __init__(
         self,
         name: str,
-        returnT: typing.Type[NewObject],
+        returnT: NewObjectT,
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
@@ -2289,7 +2351,7 @@ class FnDecl(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> typing.Type[NewObject]:
+    def returnT(self) -> NewObjectT:
         return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
@@ -2328,7 +2390,9 @@ class FnDecl(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
-            args_type = " ".join(parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:])
+            args_type = " ".join(
+                parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:]
+            )
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
