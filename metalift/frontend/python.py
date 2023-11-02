@@ -35,6 +35,7 @@ from metalift.ir import (
     ListObject,
     Lt,
     NewObject,
+    NewObjectT,
     Not,
     Or,
     SetObject,
@@ -111,7 +112,7 @@ from metalift.mypy_util import (
     is_func_call_with_name,
     is_method_call_with_name,
 )
-from metalift.vc_util import and_exprs, and_objects
+from metalift.vc_util import and_exprs, and_objects, or_objects
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -134,16 +135,16 @@ MypyVar = Tuple[str, MypyType]
 
 
 class State:
-    precond: List[NewObject]
+    precond: List[BoolObject]
     vars: Dict[str, NewObject]
-    asserts: List[Expr]
+    asserts: List[BoolObject]
     has_returned: bool
 
     def __init__(
         self,
-        precond: List[NewObject] = list(),
+        precond: List[BoolObject] = list(),
         vars: Dict[str, NewObject] = dict(),
-        asserts: List[NewObject] = list(),
+        asserts: List[BoolObject] = list(),
         has_returned: bool = False,
     ) -> None:
         self.precond = precond
@@ -160,7 +161,7 @@ class State:
         self.vars[var] = val
 
 
-def to_object_type(t: MypyType) -> Type[NewObject]:
+def to_object_type(t: MypyType) -> NewObjectT:
     # user annotated types
     if isinstance(t, UnboundType) and t.name == "int":
         return IntObject
@@ -242,7 +243,7 @@ class Predicate:
     reads: List[NewObject]
     in_scope: List[NewObject]
     name: str
-    grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
     ast: Union[WhileStmt, FuncDef]
     synth: Optional[Synth]
 
@@ -257,7 +258,7 @@ class Predicate:
         reads: List[NewObject],
         in_scope: List[NewObject],
         name: str,
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -269,16 +270,17 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> BoolObject:
-        return call(
+        call_ret = call(
             self.name, BoolObject, *[state.read(v.var_name()) for v in self.args]
         )
+        return cast(BoolObject, call_ret)
 
     def gen_Synth(self) -> Synth:
         v_objects = [
             self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes
         ]
-        body = and_exprs(*get_object_exprs(v_objects))
-        return Synth(self.name, body, *self.args)
+        body = and_exprs(*get_object_exprs(*v_objects))
+        return Synth(self.name, body, *get_object_exprs(self.args))
 
 
 class PredicateTracker:
@@ -299,12 +301,12 @@ class PredicateTracker:
         writes: List[NewObject],
         reads: List[NewObject],
         in_scope: List[NewObject],
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args))
+            non_args_scope_vars = list(set(in_scope) - set(args))
             non_args_scope_vars.sort(key=lambda obj: obj.var_name())
             args = (
                 args + non_args_scope_vars
@@ -319,9 +321,9 @@ class PredicateTracker:
     def postcondition(
         self,
         o: FuncDef,
-        outs: List[MypyVar],
-        ins: List[MypyVar],
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        outs: List[NewObject],
+        ins: List[NewObject],
+        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -330,11 +332,11 @@ class PredicateTracker:
             self.predicates[o] = ps
             return ps
 
-    def call(self, o: WhileStmt, s: State) -> Call:
+    def call(self, o: WhileStmt, s: State) -> BoolObject:
         return self.predicates[o].call(s)
 
 
-class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
+class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
     # class VCVisitor(ExtendedTraverserVisitor):
 
     driver: "Driver"
@@ -350,8 +352,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
-    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
 
     types: Dict[MypyExpr, MypyType]
 
@@ -369,8 +371,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         invariants: Dict[WhileStmt, Predicate],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        inv_grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject]], BoolObject
+        ],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         types: Dict[MypyExpr, MypyType],
         uninterp_fns: List[str],
     ) -> None:
@@ -413,9 +417,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             fn_type = cast(CallableType, o.type)
             # print(f"analyze fn {o.name} type: {o.type}")
             self.fn_type = fn_type
-            self.ret_val = self.var_tracker.variable(
-                self.fn_name, to_object_type(fn_type.ret_type)
-            )
+            self.ret_val = create_object(to_object_type(fn_type.ret_type), self.fn_name)
+            self.driver.add_var_object(self.ret_val)
             self.ast = o
 
             arg_names = cast(List[str], fn_type.arg_names)
@@ -436,9 +439,6 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             if fn_type.ret_type is None:
                 raise RuntimeError(f"fn must return a value: {fn_type}")
 
-            # self.pred_tracker.postcondition(
-            #     o, [(self.fn_name, fn_type.ret_type)], formals, self.ps_grammar
-            # )
             object_type = to_object_type(self.fn_type.ret_type)
             return_arg = create_object(object_type, f"{self.fn_name}_rv")
             self.pred_tracker.postcondition(
@@ -572,6 +572,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
 
         # inv is preserved
         cond = o.expr.accept(self)
+        if not isinstance(cond, BoolObject):
+            raise Exception(
+                "The condition of a while loop must evaluate to a boolean object!"
+            )
         c = (
             and_objects(*self.state.precond, cond, inv.call(self.state))
             if self.state.precond
@@ -592,6 +596,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             *self.args,
             o.expr.accept(self),
         )
+        ps = cast(BoolObject, ps)
         if self.state.precond:
             cond = (
                 and_objects(*self.state.precond)
@@ -611,6 +616,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_if_stmt(self, o: IfStmt) -> None:
         assert len(o.expr) == 1  # not sure why it is a list
         cond = o.expr[0].accept(self)
+        if not isinstance(cond, BoolObject):
+            raise Exception(
+                "The condition of an if loop must evaluate to a bool object!"
+            )
         print(f"if stmt with cond {cond}")
 
         # clone the current state
@@ -712,7 +721,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     def visit_int_expr(self, o: IntExpr) -> IntObject:
         return IntObject(o.value)
 
-    def visit_name_expr(self, o: NameExpr) -> IntObject:
+    def visit_name_expr(self, o: NameExpr) -> NewObject:
         return self.state.read(o.name)
 
     # a < b < c is equiv to a < b and b < c
@@ -728,7 +737,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
     # ">" | "<" | "==" | ">=" | "<=" | "!=" | "is" ["not"] | ["not"] "in"
     def process_comparison(
         self, op: str, left: NewObject, right: NewObject
-    ) -> NewObject:
+    ) -> BoolObject:
+        if not isinstance(left, IntObject) or not isinstance(right, IntObject):
+            raise Exception(f"{op} is only supported for int objects")
         if op == ">":
             return left > right
         elif op == "<":
@@ -747,63 +758,70 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
         l = o.left.accept(self)
         r = o.right.accept(self)
         op = o.op
+        if op in {"+", "-", "*"}:
+            if not isinstance(l, IntObject) or not isinstance(r, IntObject):
+                raise Exception(f"{op} is only supported for int objects!")
+        if op in {"and", "or"}:
+            if not isinstance(l, BoolObject) or not isinstance(r, BoolObject):
+                raise Exception(f"{op} is only supported for bool objects!")
         if op == "+":
-            return l + r
+            return l + r  # type: ignore
         elif op == "-":
-            return l - r
+            return l - r  # type: ignore
         elif op == "*":
-            return l * r
+            return l * r  # type: ignore
         elif op == "/":
             raise NotImplementedError(f"Division not supported in {o}")
         elif op == "%":
             raise NotImplementedError(f"Modulo not supported in {o}")
         elif op == "and":
-            return l.And(r)
+            return and_objects(l, r)  # type: ignore
         elif op == "or":
-            return l.Or(r)
+            return or_objects(l, r)  # type: ignore
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
 
-    def visit_tuple_expr(self, o: TupleExpr) -> MLTuple:
+    def visit_tuple_expr(self, o: TupleExpr) -> TupleObject[NewObjectT]:
         tuple_exprs = [expr.accept(self) for expr in o.items]
         return make_tuple(*tuple_exprs)
 
-    def visit_index_expr(self, o: IndexExpr) -> Expr:
+    def visit_index_expr(self, o: IndexExpr) -> NewObject:
         # Currently only supports indexing into tuples and lists using integers
         index = o.index.accept(self)
         base = o.base.accept(self)
         if index.type != IntObject:
             raise Exception("Index must be int!")
-        if is_tuple_type_expr(base):
+        index = cast(IntObject, index)
+        if isinstance(base, TupleObject):
             return base[index]
-        if is_list_type_expr(base):
+        if isinstance(base, ListObject):
             return base[index]
         raise Exception("Can only index into tuples and lists!")
 
-    def visit_list_expr(self, o: ListExpr) -> Expr:
+    def visit_list_expr(self, o: ListExpr) -> NewObject:
         if len(o.items) > 0:
             raise Exception("Initialization of non-empty lists is not supported!")
         return ListObject[IntObject].empty(IntObject)
 
-    def visit_unary_expr(self, o: UnaryExpr) -> Expr:
+    def visit_unary_expr(self, o: UnaryExpr) -> NewObject:
         if o.op == "-":
             expr = o.expr.accept(self)
             if expr.type != IntObject:
                 raise Exception("Unary operator '-' only supported on integers!")
-            return 0 - expr
+            return 0 - cast(IntObject, expr)
         raise Exception(f"Unsupported unary operator '{o.op}'")
 
-    def visit_call_expr(self, o: CallExpr) -> Expr:
+    def visit_call_expr(self, o: CallExpr) -> NewObject:
         if is_func_call_with_name(o, "len"):
             assert len(o.args) == 1
             arg = o.args[0].accept(self)
-            if not is_list_type_expr(arg):
+            if not isinstance(arg, ListObject):
                 raise Exception("len only supported on lists!")
             return arg.len()
         elif is_method_call_with_name(o, "append"):
             # list append
             callee_expr = o.callee.expr.accept(self)  # type: ignore
-            if not is_list_type_expr(callee_expr):
+            if not isinstance(callee_expr, ListObject):
                 raise Exception(".append only supported on lists!")
             assert len(o.args) == 1
             elem_to_append = o.args[0].accept(self)
@@ -824,7 +842,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Expr]):
             if not is_set_type_expr(callee_expr):
                 raise Exception(f"{method_name} only supported on sets!")
             assert len(o.args) == 1
-            elem = o.args[0].accept(self)
+            elem: NewObject = o.args[0].accept(self)
             singleton_set = SetObject[elem.type].singleton(elem)
             set_after_modification = call(
                 func_call_name, callee_expr.type, callee_expr, singleton_set
@@ -859,7 +877,7 @@ class Driver:
         self.fns_synths = []
         self.uninterp_fns = []
 
-    def variable(self, name: str, type: MLType) -> Var:
+    def variable(self, name: str, type: NewObjectT) -> Var:
         return self.var_tracker.variable(name, type)
 
     def add_var_object(self, var_object: NewObject) -> None:
@@ -877,8 +895,10 @@ class Driver:
         filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        inv_grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject]], BoolObject
+        ],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -938,8 +958,8 @@ class MetaliftFunc:
     types: Dict[MypyExpr, MypyType]
     name: str
     target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
-    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject]
+    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
     synthesized: Optional[Expr]
     uninterp_fns: List[str]
 
@@ -949,8 +969,10 @@ class MetaliftFunc:
         filepath: str,
         name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-        inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], NewObject],
+        inv_grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject]], BoolObject
+        ],
+        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
@@ -1010,7 +1032,7 @@ class MetaliftFunc:
 
         ps = call(f"{self.name}_ps", BoolObject, ret_val, *args)
 
-        self.driver.postconditions.append(ps)
+        self.driver.postconditions.append(cast(BoolObject, ps))
 
         return ret_val
 

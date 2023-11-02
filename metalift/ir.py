@@ -11,13 +11,12 @@ from typing import (
     Dict,
     Generic,
     List,
-    Literal,
     Set,
     TypeVar,
     Union,
     Optional,
     Tuple,
-    _GenericAlias,
+    _GenericAlias,  # type: ignore
     get_args,
     get_origin,
 )
@@ -30,11 +29,12 @@ class PrintMode(Enum):
 
 
 T = TypeVar("T")
+NewObjectT = typing.Type["NewObject"]
 
 
 class Expr:
     def __init__(
-        self, type: typing.Type["NewObject"], args: Any, metadata: Dict[str, Any] = {}
+        self, type: NewObjectT, args: Any, metadata: Dict[str, Any] = {}
     ) -> None:
         self.args = args
         self.type = type
@@ -489,9 +489,7 @@ def create_object(
         return object_type(value)
 
 
-def get_object_exprs(
-    objects: List[Union[typing.Type["NewObject"], Expr]]
-) -> List[Expr]:
+def get_object_exprs(*objects: "NewObject") -> List[Expr]:
     return [get_object_expr(obj) for obj in objects]
 
 
@@ -514,9 +512,9 @@ def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
 
 
 def ite(
-    cond: Union["BoolObject", Expr],
-    then_object: Union["NewObject", Expr],
-    else_object: Union["NewObject", Expr],
+    cond: "BoolObject",
+    then_object: "NewObject",
+    else_object: "NewObject",
 ) -> "NewObject":
     ite_type = then_object.type
     ite_expr = Ite(
@@ -527,14 +525,12 @@ def ite(
     return create_object(ite_type, ite_expr)
 
 
-def implies(
-    e1: Union["BoolObject", Expr], e2: Union["BoolObject", Expr]
-) -> "BoolObject":
+def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
     return BoolObject(Implies(get_object_expr(e1), get_object_expr(e2)))
 
 
 def call(
-    fn_name: str, return_type: "NewObject", *object_args: Union["NewObject", Expr]
+    fn_name: str, return_type: NewObjectT, *object_args: Union["NewObject", Expr]
 ) -> "NewObject":
     call_expr = Call(fn_name, return_type, *get_object_exprs(object_args))
     return create_object(return_type, call_expr)
@@ -603,6 +599,10 @@ class NewObject:
 
     def __hash__(self) -> int:
         return hash(self.src)
+
+    @property
+    def type(self) -> typing.Type["NewObject"]:
+        raise NotImplementedError()
 
     @staticmethod
     def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:
@@ -805,9 +805,7 @@ class ListObject(Generic[T], NewObject):
     def len(self) -> IntObject:
         return IntObject(Call("list_length", IntObject, self.src))
 
-    def __getitem__(
-        self, index: Union[IntObject, int, slice]
-    ) -> Union[IntObject, "ListObject[IntObject]"]:
+    def __getitem__(self, index: Union[IntObject, int, slice]) -> NewObject:
         if isinstance(index, int):
             index = IntObject(index)
         if isinstance(index, slice):
@@ -1006,9 +1004,7 @@ class TupleObject(Generic[T], NewObject):
         self.containedT = containedT
         NewObject.__init__(self, src)
 
-    def __getitem__(
-        self, index: Union[IntObject, int]
-    ):  # -> IntObject:  # index can also be slice
+    def __getitem__(self, index: Union[IntObject, int]) -> NewObject:
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
 
@@ -1061,7 +1057,7 @@ class TupleObject(Generic[T], NewObject):
 
 
 class Var(Expr):
-    def __init__(self, name: str, ty: typing.Type[NewObject]) -> None:
+    def __init__(self, name: str, ty: NewObjectT) -> None:
         Expr.__init__(self, ty, [name])
 
     def name(self) -> str:
@@ -1110,7 +1106,7 @@ class Pointer(Expr):
 
 
 class Lit(Expr):
-    def __init__(self, val: Union[bool, int, str], ty: Type) -> None:
+    def __init__(self, val: Union[bool, int, str], ty: NewObjectT) -> None:
         Expr.__init__(self, ty, [val])
 
     def val(self) -> Union[bool, int, str]:
@@ -1555,9 +1551,7 @@ class Let(Expr):
 
 
 class Call(Expr):
-    def __init__(
-        self, name: str, returnT: typing.Type[NewObject], *arguments: Expr
-    ) -> None:
+    def __init__(self, name: str, returnT: NewObjectT, *arguments: Expr) -> None:
         Expr.__init__(self, returnT, [name, *arguments])
 
     def name(self) -> str:
@@ -2107,7 +2101,7 @@ class FnDeclRecursive(Expr):
     def __init__(
         self,
         name: str,
-        returnT: typing.Type[NewObject],
+        returnT: NewObjectT,
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
@@ -2116,7 +2110,7 @@ class FnDeclRecursive(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> typing.Type[NewObject]:
+    def returnT(self) -> NewObjectT:
         return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
@@ -2268,7 +2262,7 @@ class FnDecl(Expr):
     def __init__(
         self,
         name: str,
-        returnT: typing.Type[NewObject],
+        returnT: NewObjectT,
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
@@ -2277,7 +2271,7 @@ class FnDecl(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> typing.Type[NewObject]:
+    def returnT(self) -> NewObjectT:
         return self.type.args[0]
 
     def body(self) -> Union[Expr, str]:
