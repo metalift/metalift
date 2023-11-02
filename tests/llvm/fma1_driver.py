@@ -39,7 +39,7 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/fma_dsl.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
+        inv_grammars=defaultdict(lambda: inv_grammar),
         ps_grammar=ps_grammar
     )
 
