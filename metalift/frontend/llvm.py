@@ -385,7 +385,6 @@ class State:
 
 
 class Predicate:
-    driver: "Driver"
     args: List[NewObject]
     writes: List[NewObject]
     reads: List[NewObject]
@@ -398,14 +397,12 @@ class Predicate:
     # and not one of the original arguments in sorted order
     def __init__(
         self,
-        driver: "Driver",
         args: List[NewObject],
         writes: List[NewObject],
         reads: List[NewObject],
         name: str,
         grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> None:
-        self.driver = driver
         self.args = args
         self.writes = writes
         self.reads = reads
@@ -424,17 +421,15 @@ class Predicate:
     def gen_Synth(self) -> Synth:
         v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
         [print(f"v: {v}\n") for v in v_objects]
-        body = and_exprs(*get_object_exprs(v_objects))
-        return Synth(self.name, body, *get_object_exprs(self.args))
+        body = and_exprs(*get_object_exprs(*v_objects))
+        return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
 class PredicateTracker:
-    driver: "Driver"
     types: Dict[ValueRef, TypeRef]
     predicates: Dict[str, Predicate]
 
-    def __init__(self, driver: "Driver") -> None:
-        self.driver = driver
+    def __init__(self) -> None:
         self.types = dict()
         self.predicates = dict()
 
@@ -450,7 +445,6 @@ class PredicateTracker:
             return self.predicates[inv_name]
         else:
             inv = Predicate(
-                driver=self.driver,
                 args=args,
                 writes=writes,
                 reads=reads,
@@ -470,7 +464,7 @@ class PredicateTracker:
         if fn_name in self.predicates:
             return self.predicates[fn_name]
         else:
-            ps = Predicate(self.driver, ins + outs, outs, ins, f"{fn_name}_ps", grammar)
+            ps = Predicate(ins + outs, outs, ins, f"{fn_name}_ps", grammar)
             self.predicates[fn_name] = ps
             return ps
 
@@ -1014,13 +1008,13 @@ class Driver:
         self.asserts = []
         self.postconditions = []
         self.fns = dict()
-        self.var_tracker = VariableTracker(self)
-        self.pred_tracker = PredicateTracker(self)
+        self.var_tracker = VariableTracker()
+        self.pred_tracker = PredicateTracker()
 
     def __post_init__(self) -> None:
         print("post init")
-        self.var_tracker = VariableTracker(self)
-        self.pred_tracker = PredicateTracker(self)
+        self.var_tracker = VariableTracker()
+        self.pred_tracker = PredicateTracker()
 
     def variable(self, name: str, type: NewObjectT) -> Var:
         return self.var_tracker.variable(name, type)

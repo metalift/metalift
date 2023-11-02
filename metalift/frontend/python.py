@@ -280,7 +280,7 @@ class Predicate:
             self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes
         ]
         body = and_exprs(*get_object_exprs(*v_objects))
-        return Synth(self.name, body, *get_object_exprs(self.args))
+        return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
 class PredicateTracker:
