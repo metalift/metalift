@@ -46,7 +46,7 @@ from metalift.ir import (
     parse_type_ref_to_obj,
     Var,
 )
-from metalift.ir_util import MLType, is_object_pointer_type
+from metalift.ir_util import is_object_pointer_type
 
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc import Block

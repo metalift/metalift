@@ -73,7 +73,7 @@ def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
 
 def extractFuns(
     targetLang: typing.Sequence[Expr],
-) -> typing.Tuple[typing.List[str], typing.List[ObjectT]]:
+) -> typing.Tuple[typing.List[str], typing.List[NewObjectT]]:
     funName, returnType = (
         [],
         [],
@@ -88,7 +88,7 @@ def generateCandidates(
     invAndPs: typing.List[Synth],
     line: str,
     funName: typing.List[str],
-    returnType: typing.List[ObjectT],
+    returnType: typing.List[NewObjectT],
 ) -> typing.Tuple[typing.List[FnDeclRecursive], Dict[str, Expr]]:
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
@@ -118,8 +118,8 @@ def generateCandidates(
 def toExpr(
     ast: typing.List[Any],
     funName: typing.List[str],
-    returnType: typing.List[ObjectT],
-    varType: Dict[str, ObjectT],
+    returnType: typing.List[NewObjectT],
+    varType: Dict[str, NewObjectT],
     letVars: Dict[str, Expr],
 ) -> Expr:
     expr_bi: Dict[str, Callable[..., Expr]] = {
@@ -158,7 +158,7 @@ def toExpr(
             index = funName.index(ast[0])
             return Call(
                 ast[0],
-                get_fn_return_type(returnType[index]),
+                get_args(returnType[index])[0],
                 *[
                     toExpr(arg, funName, returnType, varType, letVars)
                     for arg in ast[1:]
@@ -205,10 +205,10 @@ def toExpr(
         elif ast[0] == "set.insert":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s1 = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-insert", SetObject[v.type], v, s1)
+            return Call("set-insert", SetObject[v.type], v, s1) #type: ignore
         elif ast[0] == "set.singleton":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
-            return Call("set-singleton", SetObject[v.type], v)
+            return Call("set-singleton", SetObject[v.type], v)#type: ignore
         elif ast[0] == "set.eq":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)

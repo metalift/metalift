@@ -265,9 +265,9 @@ class PredicateTracker:
             return self.predicates[o]
         else:
             non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args)) #type: ignore
-            non_args_scope_vars.sort(key=lambda obj: obj.var_name())
+            non_args_scope_vars.sort(key=lambda obj: obj.var_name()) #type: ignore
             args = (
-                args + non_args_scope
+                args + non_args_scope_vars  #type: ignore
             )  # add the vars that are in scope but not part of args, in sorted order
             inv = Predicate(
                 o, args, writes, reads, in_scope, f"{fn_name}_inv{self.num}", grammar

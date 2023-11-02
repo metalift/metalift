@@ -2599,7 +2599,7 @@ def MLInst_Assume(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assume, val)
 
 
-def MLInst_Call(name: str, retType: ObjectT, *args: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Call(name: str, retType: NewObjectT, *args: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Call, name, retType, *args)
 
 

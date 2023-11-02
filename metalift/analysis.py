@@ -36,6 +36,7 @@ from metalift.ir import (
     Var,
 )
 from metalift.vc import VC, Block
+from metalift.types import String
 
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
@@ -405,7 +406,7 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                             i,
                             "my_operands",
                             [
-                                Lit(fieldName, String()),  # type: ignore
+                                Lit(fieldName, String()), #type: ignore
                                 ops[0],
                                 ops[1],
                                 "setField",
@@ -416,7 +417,7 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                         setattr(
                             i,
                             "my_operands",
-                            [Lit(fieldName, String()), ops[0], "getField"],  # type: ignore
+                            [Lit(fieldName, String()), ops[0], "getField"], #type: ignore
                         )
                         # print("inst: %s" % i)
 

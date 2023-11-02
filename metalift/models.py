@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple, cast
 
 from llvmlite.binding import ValueRef
 
@@ -29,7 +29,7 @@ def set_create(
     pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
-):
+)->ReturnValue:
     return ReturnValue(SetObject.empty(IntObject), None)
 
 
@@ -38,7 +38,7 @@ def set_add(
     pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
-):
+)->ReturnValue:
     assert len(args) == 2
     s = (
         primitive_vars[args[0].name]
@@ -46,7 +46,7 @@ def set_add(
         else pointer_vars[args[0].name]
     )
     item = primitive_vars[args[1].name]
-    return ReturnValue(s.add(item), None)
+    return ReturnValue(s.add(item), None) #type: ignore
 
 
 def set_remove(
@@ -54,7 +54,7 @@ def set_remove(
     pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
-):
+)->ReturnValue:
     assert len(args) == 2
     s = (
         primitive_vars[args[0].name]
@@ -62,7 +62,7 @@ def set_remove(
         else pointer_vars[args[0].name]
     )
     item = primitive_vars[args[1].name]
-    return ReturnValue(s.remove(item), None)
+    return ReturnValue(s.remove(item), None) #type: ignore
 
 
 def set_contains(
@@ -70,7 +70,7 @@ def set_contains(
     pointer_vars: Dict[str, NewObject],
     global_vars: Dict[str, str],
     *args: ValueRef,
-):
+)->ReturnValue:
     assert len(args) == 2
     s = (
         primitive_vars[args[0].name]
@@ -78,7 +78,7 @@ def set_contains(
         else pointer_vars[args[0].name]
     )
     item = primitive_vars[args[1].name]
-    return ReturnValue(item in s, None)
+    return ReturnValue(item in s, None) #type: ignore
 
 
 def new_list(
@@ -105,7 +105,7 @@ def list_length(
         else pointer_vars[args[0].name]
     )
     return ReturnValue(
-        lst.len(),
+        lst.len(), #type: ignore
         None,
     )
 
@@ -124,7 +124,7 @@ def list_get(
     )
     index = primitive_vars[args[1].name]
     return ReturnValue(
-        lst[index],
+        lst[index], #type: ignore
         None,
     )
 
@@ -147,7 +147,7 @@ def list_append(
         else pointer_vars[args[1].name]
     )
     return ReturnValue(
-        lst.append(value),
+        lst.append(value),  #type: ignore
         None,
     )
 
@@ -170,7 +170,7 @@ def list_concat(
         else pointer_vars[args[1].name]
     )
     return ReturnValue(
-        lst1 + lst2,
+        lst1 + lst2, #type: ignore
         None,
     )
 
@@ -184,9 +184,9 @@ def new_vector(
     assert len(args) == 1
     var_name: str = args[0].name
     assigns: List[Tuple[str, Expr]] = [
-        (var_name, ListObject.empty(IntObject), "primitive")
+        (var_name, ListObject.empty(IntObject), "primitive") #type: ignore
     ]
-    return ReturnValue(None, assigns)  # type: ignore
+    return ReturnValue(None, assigns) #type: ignore
 
 
 def vector_append(
@@ -220,7 +220,7 @@ def new_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(call("newTuple", TupleObject[IntObject, Literal[2]]), None)
+    return ReturnValue(call("newTuple", make_tuple_type(IntObject, IntObject)), None)
 
 
 def make_tuple(
