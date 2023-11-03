@@ -22,10 +22,10 @@ def target_lang() -> List[FnDeclRecursive]:
     return [sum_n]
 
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     return ret_val == call("sum_n", IntObject, choose(IntObject(1), IntObject(2)))
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     e = choose(*writes)
     f = choose(IntObject(1), IntObject(2), IntObject(3))
     c = e == call("sum_n", IntObject, e - f)

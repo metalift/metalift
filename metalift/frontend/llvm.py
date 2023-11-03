@@ -14,9 +14,9 @@ from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ExprSet
 from metalift.ir import (BoolObject, Call, Eq, Expr, FnDecl, FnDeclRecursive,
                          FnT, IntObject, Ite, ListObject, Lit, MLType,
-                         NewObject, NewObjectT, ObjectExpr, SetObject, Synth, TupleT, Var,
+                         NewObject, NewObjectT, ObjectExpr, SetObject, Synth, TupleObject, TupleT, Var,
                          call, create_object, get_object_exprs, implies,
-                         is_object_pointer_type, parse_c_or_cpp_type_to_obj,
+                         is_object_pointer_type, make_tuple_type, parse_c_or_cpp_type_to_obj,
                          parse_type_ref_to_obj)
 from metalift.synthesize_auto import \
     synthesize as run_synthesis  # type: ignore
@@ -276,52 +276,41 @@ def vector_get(
 
 
 def new_tuple(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("newTuple", TupleObject[IntObject, Literal[2]]), None)
-
-
+    # TODO(jie): handle types other than IntObject
+    return ReturnValue(call("newTuple", make_tuple_type(IntObject, IntObject)), None)
 
 def make_tuple(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
+    # TODO(jie): handle types other than IntObject
     reg_vals = [
-        primitive_vars[args[i].name]
-        if not args[i].type.is_pointer
-        else pointer_vars[args[i].name]
+        state.read_or_load_operand(args[i])
         for i in range(len(args))
     ]
-
-    # TODO(jie): handle types other than IntObject
-    tuple_length = len(args)
-
-    literal_type = Literal[tuple_length] # type: ignore
-
-    return_type = TupleObject[IntObject, literal_type]
-
-    call_expr = Call("make-tuple", return_type, *reg_vals)
-    return ReturnValue(return_type(IntObject, literal_type, call_expr), None)
+    contained_type = [IntObject for _ in range(len(args))]
+    return_type = make_tuple_type(*contained_type)
+    return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
 
 def tuple_get(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
-        Call(
+        call(
             "tupleGet",
             IntObject,
-            primitive_vars[args[0].name]
-            if not args[0].type.is_pointer
-            else pointer_vars[args[0].name],
-            parseOperand(args[1], primitive_vars),
+            state.read_or_load_operand(args[0]),
+            state.read_or_load_operand(args[1])
         ),
         None,
     )

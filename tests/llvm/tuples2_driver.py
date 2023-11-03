@@ -20,10 +20,11 @@ def target_lang():
     )
     return [tuple_add]
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     raise Exception("no invariants")
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+    ret_val = writes[0]
     (x, y) = reads
     x_tuple = make_tuple(x, x)
     y_tuple = make_tuple(y, y)
