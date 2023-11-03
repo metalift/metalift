@@ -604,6 +604,8 @@ def parse_c_or_cpp_type_to_obj(ty_str: str) -> typing.Type["NewObject"]:
         return IntObject
     if ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
         return ListObject[IntObject]
+    if ty_str == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >":
+        return ListObject[ListObject[IntObject]]
     raise Exception(f"no type defined for {ty_str}")
 
 
@@ -974,17 +976,21 @@ class ListObject(Generic[T], NewObject):
                     f"Slices with both start and stop indices specified are not implemented: {index}"
                 )
 
-        if is_new_object_type(self.containedT):  # non generic type
-            return call("list_get", self.containedT, self, index)
-        elif isinstance(self.containedT, _GenericAlias):  # generic type
-            subcontainedT = typing.get_args(self.containedT)[0]
-            return self.containedT(
-                subcontainedT, Call("list_get", self.containedT, self.src, index.src)
-            )
-        else:
-            raise NotImplementedError(
-                f"Cannot get item from list containing type {self.containedT}"
-            )
+        return call("list_get", self.containedT, self, index)
+
+        # if is_new_object_type(self.containedT):  # non generic type
+        #     print("haha", self.containedT, call("list_get", self.containedT, self, index))
+        #     return call("list_get", self.containedT, self, index)
+        # elif isinstance(self.containedT, _GenericAlias):  # generic type
+        #     subcontainedT = typing.get_args(self.containedT)[0]
+        #     print("hoho", self.containedT, Call("list_get", self.containedT, self.src, index.src))
+        #     return self.containedT(
+        #         subcontainedT, Call("list_get", self.containedT, self.src, index.src)
+        #     )
+        # else:
+        #     raise NotImplementedError(
+        #         f"Cannot get item from list containing type {self.containedT}"
+        #     )
 
     def __setitem__(self, index: Union[IntObject, int], value: NewObject) -> None:
         if isinstance(index, int):

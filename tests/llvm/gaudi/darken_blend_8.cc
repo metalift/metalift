@@ -13,7 +13,7 @@ vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>>
 			if (base[row][col] > active[row][col])
 				row_vec.push_back(active[row][col]);
 			else
-				row_vec.push_back(base[col][row]);
+				row_vec.push_back(base[row][col]);
 		}
 	}
 	return out;
