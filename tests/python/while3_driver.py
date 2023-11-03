@@ -22,7 +22,7 @@ def target_lang() -> List[FnDeclRecursive]:
     return [sum_n]
 
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     input_arg = reads[0]
     int_lit = choose(IntObject(0), IntObject(1), IntObject(2))
     input_arg_bound = choose(

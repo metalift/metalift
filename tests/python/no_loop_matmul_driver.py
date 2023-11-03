@@ -30,7 +30,7 @@ def target_lang() -> List[FnDeclRecursive]:
     return [mat_mul, l1_norm]
 
 
-def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     a0, a1, b0, b1, x0, x1 = reads
     # Calculate the matrix-vector product
     a = make_tuple(a0, a1)

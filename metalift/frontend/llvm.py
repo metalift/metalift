@@ -22,35 +22,358 @@ from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
-from metalift.frontend.utils import ExprDict
-from metalift.ir import (
-    BoolObject,
-    Call,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    IntObject,
-    Ite,
-    Lit,
-    NewObject,
-    NewObjectT,
-    Synth,
-    ListObject,
-    SetObject,
-    TupleObject,
-    call,
-    create_object,
-    get_object_exprs,
-    implies,
-    parse_type_ref_to_obj,
-    Var,
+from metalift.frontend.utils import ExprSet
+from metalift.ir import (BoolObject, Call, Eq, Expr, FnDecl, FnDeclRecursive,
+                         FnT, IntObject, Ite, ListObject, Lit, MLType,
+                         NewObject, NewObjectT, ObjectExpr, SetObject, Synth, TupleObject, TupleT, Var,
+                         call, create_object, get_object_exprs, implies,
+                         is_object_pointer_type, make_tuple_type, parse_c_or_cpp_type_to_obj,
+                         parse_type_ref_to_obj)
+from metalift.synthesize_auto import \
+    synthesize as run_synthesis  # type: ignore
+from metalift.vc_util import and_objects, or_objects
+
+# Models
+ReturnValue = NamedTuple(
+    "ReturnValue",
+    [
+        ("val", Optional[NewObject]),
+        ("assigns", Optional[List[Tuple[str, NewObject, str]]]),
+    ],
 )
 from metalift.ir_util import is_object_pointer_type
 
-from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
-from metalift.vc import Block
-from metalift.vc_util import and_exprs, and_objects, or_objects
+PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
+PRIMITIVE_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >"
+NESTED_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >"
+VECTOR_TYPE_REGEX = fr"({PRIMITIVE_VECTOR_TYPE_REGEX})|({NESTED_VECTOR_TYPE_REGEX})"
+
+def set_create(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    return ReturnValue(SetObject.empty(IntObject), None)
+
+def set_add(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.add(item), None)
+
+def set_remove(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.remove(item), None)
+
+def set_contains(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+):
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(item in s, None)
+
+def new_list(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 0
+    return ReturnValue(ListObject.empty(IntObject), None)
+
+
+def list_length(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    # TODO(jie) think of how to better handle list of lists
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    return ReturnValue(
+        lst.len(),
+        None,
+    )
+
+
+def list_get(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    index = primitive_vars[args[1].name]
+    return ReturnValue(
+        lst[index],
+        None,
+    )
+
+
+def list_append(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    value = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
+    return ReturnValue(
+        lst.append(value),
+        None,
+    )
+
+
+def list_concat(
+    primitive_vars: Dict[str, NewObject],
+    pointer_vars: Dict[str, NewObject],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    lst1 = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    lst2 = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
+    return ReturnValue(
+        lst1 + lst2,
+        None,
+    )
+
+
+def new_vector(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name)
+    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name)
+    if primitive_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+    elif nested_match:
+        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+    else:
+        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+
+    var_name: str = args[0].name
+    assigns: List[Tuple[str, Expr]] = [
+        (var_name, ListObject.empty(contained_type), "primitive")
+    ]
+    return ReturnValue(None, assigns)
+
+
+def vector_append(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    assign_var_name: str = args[0].name
+
+    assign_val = Call(
+        "list_append",
+        parse_type_ref_to_obj(args[0].type),
+        state.read_or_load_operand(args[0]),
+        state.read_or_load_operand(args[1])
+    )
+    return ReturnValue(
+        None,
+        [(assign_var_name, assign_val, "primitive")],
+    )
+
+def vector_length(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name)
+    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name)
+    if primitive_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+    elif nested_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+    else:
+        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+
+    # TODO(jie) think of how to better handle list of lists
+    lst = state.read_or_load_operand(args[0])
+    # TODO(jie): is this enough? Do we need to make another list object?
+    lst.containedT = contained_type
+    return ReturnValue(
+        lst.len(),
+        None,
+    )
+
+def vector_get(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name)
+    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name)
+    if primitive_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+    elif nested_match is not None:
+        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+    else:
+        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+    lst = state.read_or_load_operand(args[0])
+    index = state.read_or_load_operand(args[1])
+    return ReturnValue(
+        lst[index],
+        None,
+    )
+
+
+def new_tuple(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    # TODO(jie): handle types other than IntObject
+    return ReturnValue(call("newTuple", make_tuple_type(IntObject, IntObject)), None)
+
+def make_tuple(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    # TODO(jie): handle types other than IntObject
+    reg_vals = [
+        state.read_or_load_operand(args[i])
+        for i in range(len(args))
+    ]
+    contained_type = [IntObject for _ in range(len(args))]
+    return_type = make_tuple_type(*contained_type)
+    return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
+
+def tuple_get(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    return ReturnValue(
+        call(
+            "tupleGet",
+            IntObject,
+            state.read_or_load_operand(args[0]),
+            state.read_or_load_operand(args[1])
+        ),
+        None,
+    )
+
+
+def get_field(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    (fieldName, obj) = args
+    val = pointer_vars[obj.name].args[fieldName.args[0]]
+    # primitive_vars[i] = pointer_vars[obj].args[fieldName.args[0]
+    return ReturnValue(val, None)
+
+
+def set_field(
+    primitive_vars: Dict[str, Expr],
+    pointer_vars: Dict[str, Expr],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    (fieldName, obj, val) = args
+    pointer_vars[obj.name].args[fieldName.args[0]] = primitive_vars[val.name]
+    # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
+    return ReturnValue(None, None)
+
+
+fn_models: Dict[str, Callable[..., ReturnValue]] = {
+    # list methods
+    "newList": new_list,
+    "listLength": list_length,
+    "listAppend": list_append,
+    "listGet": list_get,
+    # vector methods
+    "vector": new_vector,
+    "size": vector_length,
+    "push_back": vector_append,
+    "operator[]": vector_get,
+    "getField": get_field,
+    "setField": set_field,
+    # names for set.h
+    "set_create": set_create,
+    "set_add": set_add,
+    "set_remove": set_remove,
+    "set_contains": set_contains,
+    # tuple methods
+    "MakeTuple": make_tuple,
+    "tupleGet": tuple_get,
+}
 
 from metalift.types import String
 
