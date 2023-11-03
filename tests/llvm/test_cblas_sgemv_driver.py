@@ -75,7 +75,6 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     # Outer loop
     z, res, j, _, i = writes
     alpha, a, x, beta, y = reads
-    cond = and_objects(x.len() == a[0].len(), y.len() == a.len(), a.len() > 1)
     i_lower_cond = choose(
         i >= 0,
         # i > 0
@@ -91,6 +90,7 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     )
     return result
 
+# TODO(jie): only keep i and agg.result from in_scope
 def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     # Inner loop
     res, j = writes
