@@ -45,11 +45,14 @@ def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     contained_type = get_args(ty)[0]
     return is_list_type(ty) and isinstance(contained_type, _GenericAlias) and issubclass(get_origin(contained_type), ListObject)
 
-def get_nested_list_element_type(expr: "Expr") -> typing.Type["NewObject"]:
-    if not is_nested_list_type(expr.type):
+def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> typing.Type["NewObject"]:
+    if not is_nested_list_type(ty):
         raise Exception("expr is not a nested list!")
-    contained_type = get_args(expr.type)[0]
+    contained_type = get_args(ty)[0]
     return get_args(contained_type)[0]
+
+def get_list_element_type(ty: _GenericAlias) -> typing.Type["NewObject"]:
+    return get_args(ty)[0]
 
 def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
@@ -316,69 +319,70 @@ class Expr:
         )
 
     @staticmethod
-    def get_list_fn(fn_name: str, ret_type: Union[type, _GenericAlias]) -> Optional[str]:
+    def get_list_fn(expr: Union["Call", "CallValue"]) -> Optional[str]:
+        if isinstance(expr, Call):
+            fn_name = expr.name()
+        else:
+            fn_name = expr.value()
         if fn_name == "list_get":
-            if is_list_type(ret_type):
+            if is_list_type(expr.type):
                 return "list-list-ref-noerr"
-            elif is_primitive_type(ret_type):
+            elif is_primitive_type(expr.type):
                 return "list-ref-noerr"
             else:
-                raise Exception(f"list_get not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_get not supported on {ListObject[expr.type]} lists yet!")
         elif fn_name == "list_append":
-            if is_list_type(ret_type):
+            if is_list_type(expr.type):
                 return "list-list-append"
-            elif is_primitive_type(ret_type):
+            elif is_primitive_type(expr.type):
                 return "list-append"
             else:
-                raise Exception(f"list_append not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_append not supported on {ListObject[expr.type]} lists yet!")
         elif fn_name == "list_empty":
-            if is_list_type(ret_type):
+            if is_nested_list_type(expr.type):
                 return "list-list-empty"
-            elif is_primitive_type(ret_type):
+            elif is_primitive_type(get_list_element_type(expr.type)):
                 return "list-empty"
             else:
-                raise Exception(f"list_empty not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_empty not supported on {list_type} lists yet!")
         elif fn_name == "list_tail":
-            if is_list_type(ret_type):
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type):
                 return "list-list-tail-noerr"
-            elif is_primitive_type(ret_type):
-                return "list-tail-no-err"
+            elif is_primitive_type(get_list_element_type(list_type)):
+                return "list-tail-noerr"
             else:
-                raise Exception(f"list_tail not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_tail not supported on {list_type} lists yet!")
         elif fn_name == "list_length":
-            if is_list_type(ret_type):
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type):
                 return "list-list-length"
-            elif is_primitive_type(ret_type):
+            elif is_primitive_type(get_list_element_type(list_type)):
                 return "length"
             else:
-                raise Exception(f"list_length not supported on {ListObject[ret_type]} lists yet!")
-        elif fn_name == "list_length":
-            if is_list_type(ret_type):
-                return "list-list-length"
-            elif is_primitive_type(ret_type):
-                return "length"
-            else:
-                raise Exception(f"list_length not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_length not supported on {list_type} lists yet!")
         elif fn_name == "list_take":
-            if is_list_type(ret_type):
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type):
                 return "list-list-take-noerr"
-            elif is_primitive_type(ret_type):
+            elif is_primitive_type(get_list_element_type(list_type)):
                 return "list-take-noerr"
             else:
-                raise Exception(f"list_take not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_take not supported on {list_type} lists yet!")
         elif fn_name == "list_prepend":
-            if is_list_type(ret_type):
+            if is_list_type(expr.type):
                 return "list-list-prepend"
-            elif is_primitive_type(ret_type):
+            elif is_primitive_type(expr.type):
                 return "list-prepend"
             else:
-                raise Exception(f"list_prepend not supported on {ListObject[ret_type]} lists yet!")
+                raise Exception(f"list_prepend not supported on {ListObject[expr.type]} lists yet!")
         elif fn_name == "list_eq":
             return "equal?"
         elif fn_name == "list_concat":
-            if is_primitive_type(ret_type):
+            list_type = expr.arguments()[0].type
+            if is_primitive_type(get_list_element_type(list_type)):
                 return "list-concat"
-            raise Exception(f"list_prepend not supported on {ListObject[ret_type]} lists yet!")
+            raise Exception(f"list_concat not supported on {list_type} lists yet!")
         return None
 
     def toRosette(
@@ -1723,12 +1727,7 @@ class Call(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                callStr = (
-                    "("
-                    + "%s"
-                    % Expr.get_list_fn(self.args[0], self.type) or self.args[0]
-                    + " "
-                )
+                callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
@@ -1857,12 +1856,7 @@ class CallValue(Expr):
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
-                callStr = (
-                    "("
-                    + "%s"
-                    % Expr.get_list_fn(self.args[0], self.type) or self.args[0]
-                    + " "
-                )
+                callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)

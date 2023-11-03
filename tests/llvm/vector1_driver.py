@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import BoolObject, Expr, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite, fnDecl, fnDeclRecursive
+from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite, fnDecl, fnDeclRecursive
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
@@ -66,7 +66,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         select_func2,
     ]
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     # reads = [in_lst]
     ret_val = writes[0]
     in_lst = reads[0]
@@ -77,7 +77,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
         ret_val == call("Select2", ListObject[IntObject], in_lst)
     )
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     # writes = [out, i]
     # reads = [in]
     out_lst, i = writes[0], writes[1]

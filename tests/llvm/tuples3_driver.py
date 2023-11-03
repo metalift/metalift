@@ -22,7 +22,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
     raise Exception("no invariant")
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
-    r = writes[0]
+    ret_val = writes[0]
     (x, y) = reads
     summary = choose(
         ret_val == double(x) + double(y),
