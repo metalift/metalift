@@ -1,14 +1,15 @@
+from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import IntObject, ListObject, NewObject, choose
+from metalift.ir import BoolObject, IntObject, ListObject, NewObject, choose
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (call_scalar_mul, call_vector_add,
                                      target_lang)
 from tests.python.utils.utils import codegen
 
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
@@ -21,7 +22,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
         )
     )
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> NewObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
@@ -47,7 +48,7 @@ if __name__ == "__main__":
         "tests/llvm/gaudi/normal_blend_f.loops",
         "test",
         target_lang,
-        inv_grammar,
+        defaultdict(lambda: inv_grammar),
         ps_grammar
     )
 
@@ -76,7 +77,7 @@ if __name__ == "__main__":
         "tests/llvm/gaudi/normal_blend_8.loops",
         "normal_blend_8",
         target_lang,
-        inv_grammar,
+        defaultdict(lambda: inv_grammar),
         ps_grammar
     )
     base_var = ListObject(IntObject, "base")
