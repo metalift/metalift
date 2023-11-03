@@ -61,8 +61,11 @@ from metalift.analysis_new import VariableTracker
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 import copy
+from metalift.ir import BoolObject, Eq, Expr, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, NewObjectT, SetObject, Synth, TupleObject, Var, call, create_object, get_object_exprs, implies, ite, make_tuple
 
-from metalift.ir_util import is_list_type_expr, is_set_type_expr, is_tuple_type_expr
+from metalift.frontend.utils import NewObjectSet
+
+
 
 from metalift.mypy_util import (
     get_fn_name,
@@ -70,7 +73,7 @@ from metalift.mypy_util import (
     is_func_call_with_name,
     is_method_call_with_name,
 )
-from metalift.vc_util import and_exprs, and_objects, or_objects
+from metalift.vc_util import and_objects, or_objects
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -234,10 +237,7 @@ class Predicate:
         return cast(BoolObject, call_ret)
 
     def gen_Synth(self) -> Synth:
-        v_objects = [
-            self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes
-        ]
-        body = and_exprs(*get_object_exprs(*v_objects))
+        body = self.grammar(self.writes, self.reads, self.in_scope).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
@@ -264,10 +264,10 @@ class PredicateTracker:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args)) #type: ignore
-            non_args_scope_vars.sort(key=lambda obj: obj.var_name()) #type: ignore
+            non_args_scope = list(NewObjectSet(in_scope) - NewObjectSet(args)) #type: ignore
+            non_args_scope.sort(key=lambda obj: obj.var_name()) #type: ignore
             args = (
-                args + non_args_scope_vars  #type: ignore
+                args + non_args_scope  #type: ignore
             )  # add the vars that are in scope but not part of args, in sorted order
             inv = Predicate(
                 o, args, writes, reads, in_scope, f"{fn_name}_inv{self.num}", grammar

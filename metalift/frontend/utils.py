@@ -1,7 +1,7 @@
-import typing 
+import typing
 from typing import Dict, Generator, Any
 
-from metalift.ir import Expr
+from metalift.ir import Expr, NewObject
 
 # print the short name of a type: a.b.c.D -> D
 def qual_name(t: type) -> str:
@@ -47,23 +47,23 @@ class ExprDict:
         return self.kv_pairs
 
 
-class ExprSet:
-    def __init__(self, exprs: typing.List[Expr]) -> None:
-        self.exprs: typing.List[Expr] = []
-        for expr in exprs:
-            if not any([Expr.__eq__(expr, e) for e in self.exprs]):
-                self.exprs.append(expr)
+class NewObjectSet:
+    def __init__(self, objs: typing.List[NewObject]) -> None:
+        self.objs: typing.List[NewObject] = []
+        for obj in objs:
+            if not any([NewObject.__eq__(obj, o) for o in self.objs]):
+                self.objs.append(obj)
 
-    def __contains__(self, key: Expr) -> bool:
-        return any([Expr.__eq__(expr, key) for expr in self.exprs])
+    def __contains__(self, key: NewObject) -> bool:
+        return any([NewObject.__eq__(obj, key) for obj in self.objs])
 
-    def __sub__(self, other_set: "ExprSet") -> "ExprSet":
-        new_exprs: typing.List[Expr] = []
-        for expr in self.exprs:
-            if not expr in other_set:
-                new_exprs.append(expr)
-        return ExprSet(new_exprs)
+    def __sub__(self, other_set: "NewObjectSet") -> "NewObjectSet":
+        new_objs: typing.List[NewObject] = []
+        for obj in self.objs:
+            if not obj in other_set:
+                new_objs.append(obj)
+        return NewObjectSet(new_objs)
 
-    def __iter__(self)->Generator[Expr, Any, None]:
-        for expr in self.exprs:
-            yield expr
+    def __iter__(self)->Generator[NewObject, Any, None]:
+        for new_objs in self.objs:
+            yield new_objs

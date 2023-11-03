@@ -1,7 +1,8 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import FnDecl, IntObject, NewObject, call, choose, fnDecl
+from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, call, choose, fnDecl
+from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
@@ -19,12 +20,8 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(
-    ret_val: NewObject,
-    writes: List[NewObject],
-    reads: List[NewObject],
-    in_scope: List[NewObject],
-) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject],) -> BoolObject:
+    ret_val = writes[0]
     var = choose(*reads, IntObject(0))
     added = var + var
     var_or_fma = choose(*reads, call("fma", IntObject, added, added, added))
@@ -33,13 +30,15 @@ def ps_grammar(
 
 
 # invariant: i <= arg2 and p = arg1 * i
-def inv_grammar(
-    v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
-) -> NewObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     (arg1, arg2, i, p) = reads
 
     value = choose(arg1, arg2, arg1 * i, arg2 * i)
-    return choose(v <= value, v == value)
+    return and_objects(
+        choose(i <= value, i == value),
+        choose(p <= value, p == value)
+    )
+
 
 
 if __name__ == "__main__":

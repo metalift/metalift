@@ -22,7 +22,7 @@ from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
-from metalift.frontend.utils import ExprSet
+from metalift.frontend.utils import NewObjectSet
 from metalift.ir import (BoolObject, Call, Eq, Expr, FnDecl, FnDeclRecursive,
                          FnT, IntObject, Ite, ListObject, Lit, MLType,
                          NewObject, NewObjectT, ObjectExpr, SetObject, Synth, TupleObject, TupleT, Var,
@@ -49,62 +49,50 @@ NESTED_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), 
 VECTOR_TYPE_REGEX = fr"({PRIMITIVE_VECTOR_TYPE_REGEX})|({NESTED_VECTOR_TYPE_REGEX})"
 
 def set_create(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ):
     return ReturnValue(SetObject.empty(IntObject), None)
 
 def set_add(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ):
     assert len(args) == 2
-    s = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    item = primitive_vars[args[1].name]
+    s = state.read_or_load_operand(args[0])
+    item = state.read_or_load_operand(args[1])
     return ReturnValue(s.add(item), None)
 
 def set_remove(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ):
     assert len(args) == 2
-    s = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    item = primitive_vars[args[1].name]
+    s = state.read_or_load_operand(args[0])
+    item = state.read_or_load_operand(args[1])
     return ReturnValue(s.remove(item), None)
 
 def set_contains(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ):
     assert len(args) == 2
-    s = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    item = primitive_vars[args[1].name]
+    s = state.read_or_load_operand(args[0])
+    item = state.read_or_load_operand(args[1])
     return ReturnValue(item in s, None)
 
 def new_list(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 0
@@ -112,18 +100,14 @@ def new_list(
 
 
 def list_length(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
     # TODO(jie) think of how to better handle list of lists
-    lst = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
+    lst = state.read_or_load_operand(args[0])
     return ReturnValue(
         lst.len(),
         None,
@@ -131,19 +115,14 @@ def list_length(
 
 
 def list_get(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    lst = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    index = primitive_vars[args[1].name]
+    lst = state.read_or_load_operand(args[0])
+    index = state.read_or_load_operand(args[1])
     return ReturnValue(
         lst[index],
         None,
@@ -151,22 +130,14 @@ def list_get(
 
 
 def list_append(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    lst = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    value = (
-        primitive_vars[args[1].name]
-        if not args[1].type.is_pointer
-        else pointer_vars[args[1].name]
-    )
+    lst = state.read_or_load_operand(args[0])
+    value = state.read_or_load_operand(args[1])
     return ReturnValue(
         lst.append(value),
         None,
@@ -174,22 +145,14 @@ def list_append(
 
 
 def list_concat(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    state: "State",
     global_vars: Dict[str, str],
+    full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    lst1 = (
-        primitive_vars[args[0].name]
-        if not args[0].type.is_pointer
-        else pointer_vars[args[0].name]
-    )
-    lst2 = (
-        primitive_vars[args[1].name]
-        if not args[1].type.is_pointer
-        else pointer_vars[args[1].name]
-    )
+    lst1 = state.read_or_load_operand(args[0])
+    lst2 = state.read_or_load_operand(args[1])
     return ReturnValue(
         lst1 + lst2,
         None,
@@ -762,9 +725,7 @@ class Predicate:
         return cast(BoolObject, call_res)
 
     def gen_Synth(self) -> Synth:
-        v_objects = [self.grammar(v, self.writes, self.reads) for v in self.writes]
-        [print(f"v: {v}\n") for v in v_objects]
-        body = and_exprs(*get_object_exprs(*v_objects))
+        body = self.grammar(self.writes, self.reads, self.in_scope).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 

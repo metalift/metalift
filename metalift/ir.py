@@ -706,6 +706,11 @@ class NewObject:
     def __hash__(self) -> int:
         return hash(self.src)
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, NewObject):
+            return False
+        return self.src == other.src
+
     @property
     def type(self) -> typing.Type["NewObject"]:
         raise NotImplementedError()
