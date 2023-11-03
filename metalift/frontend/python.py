@@ -763,7 +763,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
                 method_name, func_call_name = ".remove", "set-minus"
 
             callee_expr = o.callee.expr.accept(self)  # type: ignore
-            if not isinstance(callee_expr, TupleObject):
+            if not isinstance(callee_expr, SetObject):
                 raise Exception(f"{method_name} only supported on sets!")
             assert len(o.args) == 1
             elem: NewObject = o.args[0].accept(self)

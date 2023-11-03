@@ -1,19 +1,15 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import FnDecl, IntObject, NewObject, ite
+from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, ite
 
 
 def target_lang() -> List[FnDecl]:
     return []
 
 
-def ps_grammar(
-    ret_val: NewObject,
-    writes: List[NewObject],
-    reads: List[NewObject],
-    in_scope: List[NewObject],
-) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
     i = reads[0]
     default = IntObject(40)
     case3 = ite(i == 3, IntObject(30), default)
@@ -22,9 +18,7 @@ def ps_grammar(
     return ret_val == case1
 
 
-def inv_grammar(
-    v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]
-) -> NewObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no loop in the source")
 
 
