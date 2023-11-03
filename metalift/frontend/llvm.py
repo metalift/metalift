@@ -15,22 +15,43 @@ from typing import (
     cast,
 )
 
-from metalift.types import String
-
 from llvmlite import binding as llvm
 from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import NewObjectSet
-from metalift.ir import (BoolObject, Call, Eq, Expr, FnDecl, FnDeclRecursive,
-                         FnT, IntObject, Ite, ListObject, Lit, MLType,
-                         NewObject, NewObjectT, ObjectExpr, SetObject, Synth, TupleObject, TupleT, Var,
-                         call, create_object, get_object_exprs, implies,
-                         is_object_pointer_type, make_tuple_type, parse_c_or_cpp_type_to_obj,
-                         parse_type_ref_to_obj)
-from metalift.synthesize_auto import \
-    synthesize as run_synthesis  # type: ignore
+from metalift.ir import (
+    BoolObject,
+    Call,
+    Eq,
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    FnT,
+    IntObject,
+    Ite,
+    ListObject,
+    Lit,
+    MLType,
+    NewObject,
+    NewObjectT,
+    ObjectExpr,
+    SetObject,
+    Synth,
+    TupleObject,
+    TupleT,
+    Var,
+    call,
+    create_object,
+    get_object_exprs,
+    implies,
+    is_object_pointer_type,
+    make_tuple_type,
+    parse_c_or_cpp_type_to_obj,
+    parse_type_ref_to_obj,
+)
+from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
 
 # Models
@@ -44,9 +65,10 @@ ReturnValue = NamedTuple(
 from metalift.ir_util import is_object_pointer_type
 
 PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
-PRIMITIVE_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >"
-NESTED_VECTOR_TYPE_REGEX = fr"std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >"
-VECTOR_TYPE_REGEX = fr"({PRIMITIVE_VECTOR_TYPE_REGEX})|({NESTED_VECTOR_TYPE_REGEX})"
+PRIMITIVE_VECTOR_TYPE_REGEX = rf"std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >"
+NESTED_VECTOR_TYPE_REGEX = rf"std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >"
+VECTOR_TYPE_REGEX = rf"({PRIMITIVE_VECTOR_TYPE_REGEX})|({NESTED_VECTOR_TYPE_REGEX})"
+
 
 def set_create(
     state: "State",
@@ -55,6 +77,7 @@ def set_create(
     *args: ValueRef,
 ):
     return ReturnValue(SetObject.empty(IntObject), None)
+
 
 def set_add(
     state: "State",
@@ -67,6 +90,7 @@ def set_add(
     item = state.read_or_load_operand(args[1])
     return ReturnValue(s.add(item), None)
 
+
 def set_remove(
     state: "State",
     global_vars: Dict[str, str],
@@ -78,6 +102,7 @@ def set_remove(
     item = state.read_or_load_operand(args[1])
     return ReturnValue(s.remove(item), None)
 
+
 def set_contains(
     state: "State",
     global_vars: Dict[str, str],
@@ -88,6 +113,7 @@ def set_contains(
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
     return ReturnValue(item in s, None)
+
 
 def new_list(
     state: "State",
@@ -166,14 +192,20 @@ def new_vector(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name)
-    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name)
+    primitive_match = re.match(
+        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
+    )
+    nested_match = re.match(
+        rf"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
+    )
     if primitive_match is not None:
         contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
     elif nested_match:
         contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
     else:
-        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+        raise Exception(
+            f"Could not determine vector type from demangled function name {full_demangled_name}"
+        )
 
     var_name: str = args[0].name
     assigns: List[Tuple[str, Expr]] = [
@@ -195,12 +227,13 @@ def vector_append(
         "list_append",
         parse_type_ref_to_obj(args[0].type),
         state.read_or_load_operand(args[0]),
-        state.read_or_load_operand(args[1])
+        state.read_or_load_operand(args[1]),
     )
     return ReturnValue(
         None,
         [(assign_var_name, assign_val, "primitive")],
     )
+
 
 def vector_length(
     state: "State",
@@ -209,14 +242,20 @@ def vector_length(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name)
-    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name)
+    primitive_match = re.match(
+        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
+    )
+    nested_match = re.match(
+        rf"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
+    )
     if primitive_match is not None:
         contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
     elif nested_match is not None:
         contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
     else:
-        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+        raise Exception(
+            f"Could not determine vector type from demangled function name {full_demangled_name}"
+        )
 
     # TODO(jie) think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
@@ -227,6 +266,7 @@ def vector_length(
         None,
     )
 
+
 def vector_get(
     state: "State",
     global_vars: Dict[str, str],
@@ -234,14 +274,20 @@ def vector_get(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    primitive_match = re.match(fr"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name)
-    nested_match = re.match(fr"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name)
+    primitive_match = re.match(
+        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
+    )
+    nested_match = re.match(
+        rf"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
+    )
     if primitive_match is not None:
         contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
     elif nested_match is not None:
         contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
     else:
-        raise Exception(f"Could not determine vector type from demangled function name {full_demangled_name}")
+        raise Exception(
+            f"Could not determine vector type from demangled function name {full_demangled_name}"
+        )
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
     return ReturnValue(
@@ -259,6 +305,7 @@ def new_tuple(
     # TODO(jie): handle types other than IntObject
     return ReturnValue(call("newTuple", make_tuple_type(IntObject, IntObject)), None)
 
+
 def make_tuple(
     state: "State",
     global_vars: Dict[str, str],
@@ -266,13 +313,11 @@ def make_tuple(
     *args: ValueRef,
 ) -> ReturnValue:
     # TODO(jie): handle types other than IntObject
-    reg_vals = [
-        state.read_or_load_operand(args[i])
-        for i in range(len(args))
-    ]
+    reg_vals = [state.read_or_load_operand(args[i]) for i in range(len(args))]
     contained_type = [IntObject for _ in range(len(args))]
     return_type = make_tuple_type(*contained_type)
     return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
+
 
 def tuple_get(
     state: "State",
@@ -285,7 +330,7 @@ def tuple_get(
             "tupleGet",
             IntObject,
             state.read_or_load_operand(args[0]),
-            state.read_or_load_operand(args[1])
+            state.read_or_load_operand(args[1]),
         ),
         None,
     )
@@ -420,10 +465,12 @@ class LoopInfo:
             latches=[blocks[latch_name] for latch_name in raw_loop_info.latch_names],
         )
 
+
 def get_raw_fn_name_from_call_instruction(o: ValueRef) -> str:
     ops = list(o.operands)
     raw_fn_name: str = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
     return raw_fn_name
+
 
 def get_fn_name_from_call_instruction(o: ValueRef) -> str:
     raw_fn_name = get_raw_fn_name_from_call_instruction(o)
@@ -552,8 +599,8 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                             i,
                             "my_operands",
                             [
-                                #TODO: remove String() once String object exist
-                                Lit(fieldName, String()), # type: ignore
+                                # TODO: remove String() once String object exist
+                                Lit(fieldName, String()),  # type: ignore
                                 ops[0],
                                 ops[1],
                                 "setField",
@@ -564,10 +611,11 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                         setattr(
                             i,
                             "my_operands",
-                            #TODO: remove String() once String object exist
-                            [Lit(fieldName, String()), ops[0], "getField"], # type: ignore
+                            # TODO: remove String() once String object exist
+                            [Lit(fieldName, String()), ops[0], "getField"],  # type: ignore
                         )
                         # print("inst: %s" % i)
+
 
 def get_full_demangled_name(maybe_mangled_name: str) -> str:
     result = subprocess.run(
@@ -576,11 +624,13 @@ def get_full_demangled_name(maybe_mangled_name: str) -> str:
     stdout = result.stdout.decode("utf-8").strip()
     return stdout
 
+
 def get_demangled_fn_name(maybe_mangled_name: str) -> Optional[str]:
     # Note: this function does not raise exception, it's up to the caller to raise exceptions if the name cannot be demangled
     full_demangled_name = get_full_demangled_name(maybe_mangled_name)
     match = re.match(
-        f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$", full_demangled_name
+        f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$",
+        full_demangled_name,
     )
     if match is not None:
         return match.group(3)
@@ -687,6 +737,7 @@ class State:
         else:
             return self.read_operand(op)
 
+
 class Predicate:
     args: List[NewObject]
     writes: List[NewObject]
@@ -750,9 +801,7 @@ class PredicateTracker:
         else:
             non_args_scope_vars = list(ExprSet(in_scope) - ExprSet(args))
             non_args_scope_vars.sort(key=lambda obj: obj.var_name())
-            args = (
-                args + non_args_scope_vars
-            )
+            args = args + non_args_scope_vars
             inv = Predicate(
                 args=args,
                 writes=writes,
@@ -794,7 +843,9 @@ class VCVisitor:
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    inv_grammars: Dict[
+        str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    ]
     ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
 
     loops: List[LoopInfo]
@@ -810,8 +861,8 @@ class VCVisitor:
         fn_sret_arg: Optional[NewObject],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject]], BoolObject
+        inv_grammars: Dict[
+            str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
         ],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         loops: List[LoopInfo],
@@ -1045,10 +1096,10 @@ class VCVisitor:
                             for preconds in all_preconds:
                                 all_aggregated_preconds.append(and_objects(*preconds))
                             expr_value_to_aggregated_precond[expr_value] = or_objects(
-                                *all_aggregated_preconds #type: ignore
+                                *all_aggregated_preconds  # type: ignore
                             )
                         # Merge the different possible values with an Ite statement.
-                        merged_expr: Optional[Expr] = None #type: ignore
+                        merged_expr: Optional[Expr] = None  # type: ignore
                         for (
                             expr_value,
                             aggregated_precond,
@@ -1100,7 +1151,9 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
-            in_scope_objs = [obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}]
+            in_scope_objs = [
+                obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
+            ]
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
                 args=havocs + self.fn_args,
@@ -1127,7 +1180,9 @@ class VCVisitor:
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             # TODO(jie): remove. this is a hack
-            in_scope_objs = [obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}]
+            in_scope_objs = [
+                obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
+            ]
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
                 args=havocs + self.fn_args,
@@ -1164,11 +1219,13 @@ class VCVisitor:
         elif t == "%struct.set*":
             val = SetObject(IntObject)
         elif t == "%struct.tup*":
-            val = TupleObject(IntObject, IntObject, None) #TODO: maybe a better way to handle tuple without value parameter
+            val = TupleObject(
+                IntObject, IntObject, None
+            )  # TODO: maybe a better way to handle tuple without value parameter
         elif t.startswith("%struct.tup."):
             ret_type = [IntObject for _ in range(int(t[-2]) + 1)]
             val = TupleObject(*ret_type, None)
-        #TODO: when user defined struct is supported
+        # TODO: when user defined struct is supported
         # elif t.startswith(
         #     "%struct."
         # ):  # not a tuple or set, assume to be user defined type
@@ -1332,12 +1389,7 @@ class VCVisitor:
             # process the mangled name -> name, type
             raw_fn_name = get_raw_fn_name_from_call_instruction(o)
             full_demangled_name = get_full_demangled_name(raw_fn_name)
-            rv = fn_models[fn_name](
-                blk_state,
-                {},
-                full_demangled_name,
-                *ops[:-1]
-            )
+            rv = fn_models[fn_name](blk_state, {}, full_demangled_name, *ops[:-1])
 
             if rv.val is not None and o.name != "":
                 if not o.type.is_pointer:
@@ -1364,6 +1416,7 @@ class VCVisitor:
         ops = list(o.operands)
         val = self.read_operand_from_block(block_name, ops[0])
         self.write_operand_to_block(block_name, o, val)
+
 
 class Driver:
     var_tracker: VariableTracker
@@ -1405,8 +1458,8 @@ class Driver:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject]], BoolObject
+        inv_grammars: Dict[
+            str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
         ],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> "MetaliftFunc":
@@ -1433,7 +1486,15 @@ class Driver:
             target += fn.target_lang_fn()
         # TODO(jie) investigate why set(self.var_tracker.all()) makes things wrong
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            "test", target, set(self.var_tracker.all()), synths, [], vc, synths, "cvc5"
+            basename="test",
+            targetLang=target,
+            vars=set(self.var_tracker.all()),
+            invAndPs=synths,
+            preds=[],
+            vc=vc,
+            loopAndPsInfo=synths,
+            cvcPath="cvc5",
+            **synthesize_kwargs,
         )
 
         for f in synthesized:
@@ -1441,7 +1502,7 @@ class Driver:
             if m:
                 name = m.groups()[0]
                 if isinstance(f.body(), Eq):
-                    self.fns[name].synthesized = cast(Eq, f.body()).e2() #type: ignore
+                    self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 elif isinstance(f.body(), Call) and f.body().name() == "list_eq":
                     self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]
@@ -1463,7 +1524,6 @@ class Driver:
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )
 
-
     def add_precondition(self, e: NewObject) -> None:
         # this gets propagated to the State when it is created
         self.postconditions.append(cast(BoolObject, e))
@@ -1479,7 +1539,9 @@ class MetaliftFunc:
     fn_blocks: Dict[str, Block]
 
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    inv_grammars: Dict[
+        str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    ]
     ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
     synthesized: Optional[NewObject]
 
@@ -1492,8 +1554,8 @@ class MetaliftFunc:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject]], BoolObject
+        inv_grammars: Dict[
+            str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
         ],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> None:

@@ -18,7 +18,9 @@ class VerificationFailed(Exception):
     pass
 
 
-def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, NewObjectT]:
+def generateTypes(
+    lang: typing.Sequence[Union[Expr, ValueRef]]
+) -> Dict[str, NewObjectT]:
     fnsType = {}
 
     for l in lang:
@@ -83,8 +85,11 @@ def parseCandidates(
                         lambda_name = f"lambda_{len(extractedLambdas)}"
                         extractedLambdas.append(
                             FnDecl(
-                                #TODO: ar.type no longer has args, find proper substitution
-                                lambda_name, ar.type.args[0], ar.args[0], *ar.args[1:] #type: ignore
+                                # TODO: ar.type no longer has args, find proper substitution
+                                lambda_name,
+                                ar.type.args[0],
+                                ar.args[0],
+                                *ar.args[1:],  # type: ignore
                             )
                         )
                         fnCalls.append(lambda_name)
@@ -126,7 +131,7 @@ def verify_synth_result(
             vars,
             candidatesSMT,
             preds,  # type: ignore
-            vc, # type: ignore
+            vc,  # type: ignore
             [],
             [],
             True,

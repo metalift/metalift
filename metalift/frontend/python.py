@@ -5,16 +5,15 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
 )
-from metalift.analysis_new import VariableTracker
-from metalift.frontend.utils import ExprSet
-from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 from metalift.ir import (
     BoolObject,
@@ -41,16 +40,48 @@ from mypy import build
 from mypy.build import BuildResult
 from mypy.defaults import PYTHON3_VERSION
 from mypy.modulefinder import BuildSource
-from mypy.nodes import (AssertStmt, AssignmentStmt, Block, BreakStmt, CallExpr,
-                        ClassDef, ComparisonExpr, ContinueStmt, Decorator,
-                        DelStmt)
+from mypy.nodes import (
+    AssertStmt,
+    AssignmentStmt,
+    Block,
+    BreakStmt,
+    CallExpr,
+    ClassDef,
+    ComparisonExpr,
+    ContinueStmt,
+    Decorator,
+    DelStmt,
+)
 from mypy.nodes import Expression as MypyExpr
-from mypy.nodes import (ExpressionStmt, ForStmt, FuncDef, GlobalDecl, IfStmt,
-                        Import, ImportAll, ImportFrom, IndexExpr, IntExpr,
-                        ListExpr, MatchStmt, MypyFile, NameExpr, NonlocalDecl,
-                        OperatorAssignmentStmt, OpExpr, OverloadedFuncDef,
-                        PassStmt, RaiseStmt, ReturnStmt, Statement, TryStmt,
-                        TupleExpr, UnaryExpr, WhileStmt, WithStmt)
+from mypy.nodes import (
+    ExpressionStmt,
+    ForStmt,
+    FuncDef,
+    GlobalDecl,
+    IfStmt,
+    Import,
+    ImportAll,
+    ImportFrom,
+    IndexExpr,
+    IntExpr,
+    ListExpr,
+    MatchStmt,
+    MypyFile,
+    NameExpr,
+    NonlocalDecl,
+    OperatorAssignmentStmt,
+    OpExpr,
+    OverloadedFuncDef,
+    PassStmt,
+    RaiseStmt,
+    ReturnStmt,
+    Statement,
+    TryStmt,
+    TupleExpr,
+    UnaryExpr,
+    WhileStmt,
+    WithStmt,
+)
 from mypy.options import Options
 from mypy.traverser import TraverserVisitor
 from mypy.types import CallableType, Instance
@@ -61,10 +92,29 @@ from metalift.analysis_new import VariableTracker
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
 import copy
-from metalift.ir import BoolObject, Eq, Expr, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, NewObjectT, SetObject, Synth, TupleObject, Var, call, create_object, get_object_exprs, implies, ite, make_tuple
+from metalift.ir import (
+    BoolObject,
+    Eq,
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    IntObject,
+    ListObject,
+    NewObject,
+    NewObjectT,
+    SetObject,
+    Synth,
+    TupleObject,
+    Var,
+    call,
+    create_object,
+    get_object_exprs,
+    implies,
+    ite,
+    make_tuple,
+)
 
 from metalift.frontend.utils import NewObjectSet
-
 
 
 from metalift.mypy_util import (
@@ -204,7 +254,9 @@ class Predicate:
     reads: List[NewObject]
     in_scope: List[NewObject]
     name: str
-    grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject]
+    grammar: Callable[
+        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
     ast: Union[WhileStmt, FuncDef]
     synth: Optional[Synth]
 
@@ -219,7 +271,9 @@ class Predicate:
         reads: List[NewObject],
         in_scope: List[NewObject],
         name: str,
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -259,15 +313,17 @@ class PredicateTracker:
         writes: List[NewObject],
         reads: List[NewObject],
         in_scope: List[NewObject],
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            non_args_scope = list(NewObjectSet(in_scope) - NewObjectSet(args)) #type: ignore
-            non_args_scope.sort(key=lambda obj: obj.var_name()) #type: ignore
+            non_args_scope = list(NewObjectSet(in_scope) - NewObjectSet(args))  # type: ignore
+            non_args_scope.sort(key=lambda obj: obj.var_name())  # type: ignore
             args = (
-                args + non_args_scope  #type: ignore
+                args + non_args_scope  # type: ignore
             )  # add the vars that are in scope but not part of args, in sorted order
             inv = Predicate(
                 o, args, writes, reads, in_scope, f"{fn_name}_inv{self.num}", grammar
@@ -281,7 +337,9 @@ class PredicateTracker:
         o: FuncDef,
         outs: List[NewObject],
         ins: List[NewObject],
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -309,8 +367,12 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject]
-    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject]
+    inv_grammar: Callable[
+        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
+    ps_grammar: Callable[
+        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
 
     types: Dict[MypyExpr, MypyType]
 
@@ -331,7 +393,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         inv_grammar: Callable[
             [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        ps_grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
         types: Dict[MypyExpr, MypyType],
         uninterp_fns: List[str],
     ) -> None:
@@ -534,7 +598,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         #         "The condition of a while loop must evaluate to a boolean object!"
         #     )
         c = (
-            and_objects(*self.state.precond, cast(BoolObject, cond), inv.call(self.state))
+            and_objects(
+                *self.state.precond, cast(BoolObject, cond), inv.call(self.state)
+            )
             if self.state.precond
             else and_objects(cast(BoolObject, cond), inv.call(self.state))
         )
@@ -542,7 +608,9 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         print(f"inv is preserved: {self.state.asserts[-1]}")
 
         # the invariant is true from this point on
-        self.state.precond.append(and_objects(cast(BoolObject, cond).Not(), inv.call(self.state)))
+        self.state.precond.append(
+            and_objects(cast(BoolObject, cond).Not(), inv.call(self.state))
+        )
 
     def visit_return_stmt(self, o: ReturnStmt) -> None:
         assert o.expr is not None
@@ -800,7 +868,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
                 raise Exception(f"{method_name} only supported on sets!")
             assert len(o.args) == 1
             elem: NewObject = o.args[0].accept(self)
-            singleton_set = SetObject[elem.src.type].singleton(elem) #type: ignore
+            singleton_set = SetObject[elem.src.type].singleton(elem)  # type: ignore
             set_after_modification = call(
                 func_call_name, callee_expr.type, callee_expr, singleton_set
             )
@@ -855,7 +923,9 @@ class Driver:
         inv_grammar: Callable[
             [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        ps_grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
         uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -915,8 +985,12 @@ class MetaliftFunc:
     types: Dict[MypyExpr, MypyType]
     name: str
     target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
-    inv_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject]
-    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject]
+    inv_grammar: Callable[
+        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
+    ps_grammar: Callable[
+        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
     synthesized: Optional[Expr]
     uninterp_fns: List[str]
 
@@ -929,7 +1003,9 @@ class MetaliftFunc:
         inv_grammar: Callable[
             [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        ps_grammar: Callable[
+            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
         uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
