@@ -86,6 +86,8 @@ def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
 def is_object_pointer_type(obj: "NewObject") -> bool:
     return isinstance(obj, ListObject) or isinstance(obj, SetObject)
 
+def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
+    return not is_primitive_type(ty)
 
 class Expr:
     def __init__(
@@ -594,8 +596,11 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
         return SetObject[IntObject]
-    elif ty_str in {"%struct.tup*"} or ty_str.startswith("%struct.tup."):
-        return TupleObject[IntObject]
+    elif ty_str in {"%struct.tup*"}:
+        return TupleObject[typing.Tuple[IntObject, IntObject]]
+    elif ty_str.startswith("%struct.tup."):
+        contained_types = [IntObject for i in range(int(t[-2]) + 1)]
+        return TupleObject[typing.Tuple[contained_types]]
     else:
         raise Exception(f"no type defined for {ty_str}")
 
