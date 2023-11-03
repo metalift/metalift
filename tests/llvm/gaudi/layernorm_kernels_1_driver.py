@@ -1,11 +1,20 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Union
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import BoolObject, IntObject, ListObject, NewObject, choose, implies
+from metalift.ir import (BoolObject, FnDecl, FnDeclRecursive, IntObject,
+                         ListObject, NewObject, choose)
 from metalift.vc_util import and_objects
+from tests.llvm.gaudi.gaudi_common import (an_arr2_to_arr, an_arr_to_int,
+                                           an_int_and_arr_to_arr,
+                                           broadcast_add, elemwise_mul,
+                                           reduce_mul, reduce_sum, scalar_mul,
+                                           vector_add)
 from tests.python.utils.utils import codegen
-from tests.llvm.gaudi.gaudi_common import an_arr2_to_arr, an_int_and_arr_to_arr, an_arr_to_int, target_lang
+
+
+def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    return [vector_add, elemwise_mul, scalar_mul, broadcast_add, reduce_sum, reduce_mul]
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     input = reads[0]

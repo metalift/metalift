@@ -11,6 +11,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     TypeVar,
     cast,
@@ -423,11 +424,6 @@ class LoopInfo:
     exits: List[Block]
     latches: List[Block]
     havocs: List[ValueRef]
-    # We use a lists instead of a set here to make sure they are always sorted
-    # havocs that are vectors, need to be written to `primitive_vars`
-    vector_havocs: List[ValueRef]
-    # Other havocs, need to be written to `pointer_vars`
-    non_vector_havocs: List[ValueRef]
 
     def __init__(
         self,
@@ -441,22 +437,18 @@ class LoopInfo:
         self.exits = exits
         self.latches = latches
 
-        self.havocs: List[ValueRef] = []
-        self.vector_havocs: List[ValueRef] = []
-        self.non_vector_havocs: List[ValueRef] = []
+        self.havocs: Set[ValueRef] = set()
         for block in [self.header, *self.body, *self.exits, *self.latches]:
             for i in block.instructions:
                 opcode = i.opcode
                 ops = list(i.operands)
-                if opcode == "store" and ops[1] not in self.non_vector_havocs:
-                    self.havocs.append(ops[1])
-                    self.non_vector_havocs.append(ops[1])
+                if opcode == "store":
+                    self.havocs.add(ops[1])
                 elif opcode == "call":
                     args = ops[:-1]
                     fn_name = get_fn_name_from_call_instruction(i)
                     if fn_name == "push_back":
-                        self.havocs.append(args[0])
-                        self.vector_havocs.append(args[0])
+                        self.havocs.add(args[0])
 
         # Remove back edges
         for latch in self.latches:
@@ -712,10 +704,10 @@ class State:
         self.pointer_vars[op.name] = value
 
     def write_or_store_operand(self, op: ValueRef, value: NewObject) -> None:
-        if is_primitive_type(value.type):
-            self.write_operand(op, value)
-        else:
+        if op.type.is_pointer:
             self.store_operand(op, value)
+        else:
+            self.write_operand(op, value)
 
     def read_var(self, var_name: str) -> NewObject:
         if var_name in self.primitive_vars.keys():
@@ -822,7 +814,7 @@ class PredicateTracker:
         if inv_name in self.predicates.keys():
             return self.predicates[inv_name]
         else:
-            non_args_scope_vars = list(set(in_scope) - set(args))
+            non_args_scope_vars = list(NewObjectSet(in_scope) - NewObjectSet(args))
             non_args_scope_vars.sort(key=lambda obj: obj.var_name())
             args = args + non_args_scope_vars
             inv = Predicate(
@@ -993,6 +985,8 @@ class VCVisitor:
                 pointer_havocs.append(obj)
             else:
                 primitive_havocs.append(obj)
+        primitive_havocs.sort(key=lambda obj: obj.var_name())
+        pointer_havocs.sort(key=lambda obj: obj.var_name())
         return primitive_havocs, pointer_havocs
 
     def get_vector_havocs(self, loop_info: LoopInfo) -> List[NewObject]:
@@ -1206,11 +1200,13 @@ class VCVisitor:
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             in_scope_objs = [
-                obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
+                obj for obj in in_scope_objs if obj.var_name() in {"row", "row_vec"}
             ]
+            args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
+            args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
-                args=havocs + self.fn_args,
+                args=args,
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,
@@ -1221,10 +1217,10 @@ class VCVisitor:
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
-        if "i" in blk_state.primitive_vars.keys():
-            print(f"primitive i in {block.name}")
-        if "i" in blk_state.pointer_vars.keys():
-            print(f"pointer i in {block.name}")
+        if "row_vec" in blk_state.pointer_vars.keys():
+            print("pointer row vec", block.name)
+        if "row_vec" in blk_state.primitive_vars.keys():
+            print("primitive row vec", block.name)
 
         # If this block is the predecessor of the header of a loop, or the latch of a loop, assert inv
         header_pred_loops = self.find_header_pred_loops(block.name)
@@ -1241,11 +1237,13 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             # TODO(jie): remove. this is a hack
             in_scope_objs = [
-                obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
+                obj for obj in in_scope_objs if obj.var_name() in {"row_vec", "row"}
             ]
+            args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
+            args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
-                args=havocs + self.fn_args,
+                args=args,
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,
@@ -1268,10 +1266,11 @@ class VCVisitor:
             1
         )  # bug: ops[0] always return i32 1 regardless of type
         obj_type = parse_type_ref_to_obj(t)
-        val = create_object(obj_type)
+        # TODO(jie): handle custom contained types
+        default_val = obj_type.default_value()
 
         # o.name is the register name
-        self.store_var_to_block(block_name, o.name, val)
+        self.store_var_to_block(block_name, o.name, default_val)
 
     def visit_load_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)

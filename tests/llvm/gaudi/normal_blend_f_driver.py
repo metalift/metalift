@@ -28,7 +28,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
-    agg_result = writes[0]
+    agg_result = writes[1]
     i = writes[2]
 
     return and_objects(

@@ -1,5 +1,5 @@
 import typing
-from typing import Dict, Generator, Any
+from typing import Generator, Any
 
 from metalift.ir import Expr, NewObject
 
@@ -48,11 +48,19 @@ class ExprDict:
 
 
 class NewObjectSet:
-    def __init__(self, objs: typing.List[NewObject]) -> None:
+    def __init__(self, objs: typing.List[NewObject] = []) -> None:
         self.objs: typing.List[NewObject] = []
         for obj in objs:
             if not any([NewObject.__eq__(obj, o) for o in self.objs]):
                 self.objs.append(obj)
+
+    def add(self, key: NewObject) -> None:
+        existed = False
+        for obj in self.objs:
+            if NewObject.__eq__(obj, key):
+                existed = True
+        if not existed:
+            self.objs.append(key)
 
     def __contains__(self, key: NewObject) -> bool:
         return any([NewObject.__eq__(obj, key) for obj in self.objs])
@@ -62,6 +70,16 @@ class NewObjectSet:
         for obj in self.objs:
             if not obj in other_set:
                 new_objs.append(obj)
+        return NewObjectSet(new_objs)
+
+    def __add__(self, other_set: "NewObjectSet") -> "NewObjectSet":
+        new_objs = NewObjectSet()
+        for obj in self.objs:
+            if not obj in new_objs:
+                new_objs.add(obj)
+        for obj in other_set.objs:
+            if not obj in new_objs:
+                new_objs.add(obj)
         return NewObjectSet(new_objs)
 
     def __iter__(self) -> Generator[NewObject, Any, None]:
