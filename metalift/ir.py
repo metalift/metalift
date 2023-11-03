@@ -35,24 +35,35 @@ NewObjectT = typing.Type["NewObject"]
 # Helper functions
 MLType = Union[Type, typing.Type]
 
+
 def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
         return issubclass(get_origin(ty), ListObject)
     else:
         return issubclass(ty, ListObject)
 
+
 def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     contained_type = get_args(ty)[0]
-    return is_list_type(ty) and isinstance(contained_type, _GenericAlias) and issubclass(get_origin(contained_type), ListObject)
+    return (
+        is_list_type(ty)
+        and isinstance(contained_type, _GenericAlias)
+        and issubclass(get_origin(contained_type), ListObject)
+    )
 
-def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> typing.Type["NewObject"]:
+
+def get_nested_list_element_type(
+    ty: Union[type, _GenericAlias]
+) -> typing.Type["NewObject"]:
     if not is_nested_list_type(ty):
         raise Exception("expr is not a nested list!")
     contained_type = get_args(ty)[0]
     return get_args(contained_type)[0]
 
+
 def get_list_element_type(ty: _GenericAlias) -> typing.Type["NewObject"]:
     return get_args(ty)[0]
+
 
 def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
@@ -60,17 +71,21 @@ def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, SetObject)
 
+
 def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
         return issubclass(get_origin(ty), TupleObject)
     else:
         return issubclass(ty, TupleObject)
 
+
 def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
     return ty == IntObject or ty == BoolObject
 
+
 def is_object_pointer_type(obj: "NewObject") -> bool:
     return isinstance(obj, ListObject) or isinstance(obj, SetObject)
+
 
 class Expr:
     def __init__(
@@ -324,14 +339,18 @@ class Expr:
             elif is_primitive_type(expr.type):
                 return "list-ref-noerr"
             else:
-                raise Exception(f"list_get not supported on {ListObject[expr.type]} lists yet!")
+                raise Exception(
+                    f"list_get not supported on {ListObject[expr.type]} lists yet!"
+                )
         elif fn_name == "list_append":
             if is_list_type(expr.type):
                 return "list-list-append"
             elif is_primitive_type(expr.type):
                 return "list-append"
             else:
-                raise Exception(f"list_append not supported on {ListObject[expr.type]} lists yet!")
+                raise Exception(
+                    f"list_append not supported on {ListObject[expr.type]} lists yet!"
+                )
         elif fn_name == "list_empty":
             if is_nested_list_type(expr.type):
                 return "list-list-empty"
@@ -369,7 +388,9 @@ class Expr:
             elif is_primitive_type(expr.type):
                 return "list-prepend"
             else:
-                raise Exception(f"list_prepend not supported on {ListObject[expr.type]} lists yet!")
+                raise Exception(
+                    f"list_prepend not supported on {ListObject[expr.type]} lists yet!"
+                )
         elif fn_name == "list_eq":
             return "equal?"
         elif fn_name == "list_concat":
@@ -569,6 +590,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         return SetObject[IntObject]
     else:
         raise Exception(f"no type defined for {ty_str}")
+
 
 def parse_c_or_cpp_type_to_obj(ty_str: str) -> typing.Type["NewObject"]:
     if ty_str == "int":
@@ -2534,7 +2556,9 @@ def MLInst_Assume(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assume, val)
 
 
-def MLInst_Call(name: str, retType: NewObjectT, *args: Union[MLInst, ValueRef]) -> MLInst:
+def MLInst_Call(
+    name: str, retType: NewObjectT, *args: Union[MLInst, ValueRef]
+) -> MLInst:
     return MLInst(MLInst.Kind.Call, name, retType, *args)
 
 

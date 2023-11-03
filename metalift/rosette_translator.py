@@ -3,7 +3,19 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, IntObject, Var, ListObject, get_nested_list_element_type, is_list_type, is_nested_list_type, is_set_type
+from metalift.ir import (
+    BoolObject,
+    Expr,
+    FnDeclRecursive,
+    FnDecl,
+    IntObject,
+    Var,
+    ListObject,
+    get_nested_list_element_type,
+    is_list_type,
+    is_nested_list_type,
+    is_set_type,
+)
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
 
@@ -38,8 +50,13 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             nested_element_type = get_nested_list_element_type(v.type)
             for t in tmp:
                 genVar(Var(t, nested_element_type), decls, vars_all, listBound)
-            nested_lsts: List[str] = [f"(list {' '.join(tmp[i : i + listBound])})" for i in range(0, len(tmp) - 1, listBound)]
-            decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+            nested_lsts: List[str] = [
+                f"(list {' '.join(tmp[i : i + listBound])})"
+                for i in range(0, len(tmp) - 1, listBound)
+            ]
+            decl = (
+                f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+            )
             decls.append(decl)
         else:
             tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
@@ -70,11 +87,11 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
-            #TODO: v.type no longer has args, find proper solution
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound) #type: ignore
+            # TODO: v.type no longer has args, find proper solution
+            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)  # type: ignore
         for t in tmp_v:
-            #TODO: v.type no longer has args, find proper solution
-            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound) #type: ignore
+            # TODO: v.type no longer has args, find proper solution
+            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
 
         len_name = v.args[0] + "-len"
         genVar(Var(len_name, IntObject), decls, vars_all, listBound)

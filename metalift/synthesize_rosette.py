@@ -108,7 +108,7 @@ def toExpr(
             elem = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
-                ListObject[elem.type], #type: ignore
+                ListObject[elem.type],  # type: ignore
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
@@ -116,7 +116,7 @@ def toExpr(
             elem = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_prepend",
-                ListObject[elem.type], #type: ignore
+                ListObject[elem.type],  # type: ignore
                 elem,
                 toExpr(ast[2], fnsType, varType, choices),
             )

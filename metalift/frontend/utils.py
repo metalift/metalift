@@ -16,7 +16,7 @@ def qual_name(t: type) -> str:
 
 class ExprDict:
     def __init__(self) -> None:
-        self.kv_pairs = [] #type: ignore
+        self.kv_pairs = []  # type: ignore
 
     def __getitem__(self, key: Expr) -> typing.Any:
         for k, v in self.kv_pairs:
@@ -34,7 +34,7 @@ class ExprDict:
     def __contains__(self, key: Expr) -> bool:
         return any([Expr.__eq__(k, key) for (k, _) in self.kv_pairs])
 
-    def __len__(self)->int:
+    def __len__(self) -> int:
         return len(self.kv_pairs)
 
     def keys(self) -> typing.List[Expr]:
@@ -64,6 +64,6 @@ class NewObjectSet:
                 new_objs.append(obj)
         return NewObjectSet(new_objs)
 
-    def __iter__(self)->Generator[NewObject, Any, None]:
+    def __iter__(self) -> Generator[NewObject, Any, None]:
         for new_objs in self.objs:
             yield new_objs

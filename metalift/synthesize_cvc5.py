@@ -171,10 +171,10 @@ def toExpr(
         elif ast[0] == "set.insert":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s1 = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-insert", SetObject[v.type], v, s1) #type: ignore
+            return Call("set-insert", SetObject[v.type], v, s1)  # type: ignore
         elif ast[0] == "set.singleton":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
-            return Call("set-singleton", SetObject[v.type], v)#type: ignore
+            return Call("set-singleton", SetObject[v.type], v)  # type: ignore
         elif ast[0] == "set.eq":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)

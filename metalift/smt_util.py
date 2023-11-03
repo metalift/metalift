@@ -9,8 +9,8 @@ from typing import Any, Union, get_args
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
-        #TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
-        if a.type.name != "Function": #type: ignore
+        # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
+        if a.type.name != "Function":  # type: ignore
             newArgs.append(a)
     return newArgs
 
@@ -25,8 +25,8 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
     elif isinstance(funDef, Call) and funDef.args[0] == funCall:
         newArgs = []
         for i in range(1, len(funDef.args)):
-            #TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
-            if funDef.args[i].name != "Function": 
+            # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
+            if funDef.args[i].name != "Function":
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
         return Call(funCall + "_" + inCall, funDef.type, *newArgs)
     elif isinstance(funDef, CallValue):
@@ -80,8 +80,8 @@ def toSMT(
                         fnDecls.append(
                             FnDeclRecursive(
                                 t.args[0] + "_" + i[1],
-                                #TODO: t.type no longer has args, find proper substitution
-                                t.type.args[0], #type: ignore 
+                                # TODO: t.type no longer has args, find proper substitution
+                                t.type.args[0],  # type: ignore
                                 newBody,
                                 *newArgs,
                             )
@@ -89,8 +89,8 @@ def toSMT(
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
                                 t.args[0] + "_" + i[1],
-                                #TODO: t.type no longer has args, find proper substitution
-                                t.type.args[0], #type: ignore 
+                                # TODO: t.type no longer has args, find proper substitution
+                                t.type.args[0],  # type: ignore
                                 newBody,
                                 *newArgs,
                             )
@@ -117,11 +117,14 @@ def toSMT(
                 )
             else:
                 decl = FnDeclRecursive(
-                    #TODO: cand.type no longer has args, find proper substitution
-                    cand.args[0], cand.type.args[0], newBody, *cand.args[2:]  #type: ignore
+                    # TODO: cand.type no longer has args, find proper substitution
+                    cand.args[0],
+                    cand.type.args[0],
+                    newBody,
+                    *cand.args[2:],  # type: ignore
                 )
 
-            if cand.args[0] in early_candidates_names: 
+            if cand.args[0] in early_candidates_names:
                 early_candidates.append(decl)
             else:
                 candidates.append(decl)
@@ -151,7 +154,7 @@ def toSMT(
             % "\n".join(
                 [
                     "(%s %s %s)"
-                    % (var_decl_command, v[0], v[1].toSMTType(get_args(v[1])))  #type: ignore
+                    % (var_decl_command, v[0], v[1].toSMTType(get_args(v[1])))  # type: ignore
                     for v in declarations
                 ]
             )
