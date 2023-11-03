@@ -125,10 +125,10 @@ invoke.cont20:                                    ; preds = %if.then
   br label %if.end
 
 if.else:                                          ; preds = %for.body6
-  %i13 = load i32, i32* %col, align 4
+  %i13 = load i32, i32* %row, align 4
   %conv21 = sext i32 %i13 to i64
   %call22 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv21) #11
-  %i14 = load i32, i32* %row, align 4
+  %i14 = load i32, i32* %col, align 4
   %conv23 = sext i32 %i14 to i64
   %call24 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call22, i64 %conv23) #11
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector.0"* %row_vec, i32* nonnull align 4 dereferenceable(4) %call24)

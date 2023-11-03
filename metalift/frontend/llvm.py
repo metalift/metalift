@@ -45,6 +45,7 @@ from metalift.ir import (
     Var,
     call,
     create_object,
+    get_list_element_type,
     get_object_exprs,
     implies,
     is_object_pointer_type,
@@ -67,9 +68,8 @@ ReturnValue = NamedTuple(
 from metalift.ir_util import is_object_pointer_type
 
 PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
-PRIMITIVE_VECTOR_TYPE_REGEX = rf"std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >"
-NESTED_VECTOR_TYPE_REGEX = rf"std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >"
-VECTOR_TYPE_REGEX = rf"({PRIMITIVE_VECTOR_TYPE_REGEX})|({NESTED_VECTOR_TYPE_REGEX})"
+PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >)"
+NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >)"
 
 
 def set_create(
@@ -193,6 +193,7 @@ def new_vector(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
+
     assert len(args) == 1
     primitive_match = re.match(
         rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
@@ -201,9 +202,9 @@ def new_vector(
         rf"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
     )
     if primitive_match is not None:
-        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
     elif nested_match:
-        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
     else:
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
@@ -211,7 +212,7 @@ def new_vector(
 
     var_name: str = args[0].name
     assigns: List[Tuple[str, Expr]] = [
-        (var_name, ListObject.empty(contained_type))
+        (var_name, ListObject.empty(get_list_element_type(list_type)))
     ]
     return ReturnValue(None, assigns)
 
@@ -251,9 +252,9 @@ def vector_length(
         rf"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
     )
     if primitive_match is not None:
-        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
+        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
     elif nested_match is not None:
-        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
+        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
     else:
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
@@ -262,7 +263,7 @@ def vector_length(
     # TODO(jie) think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
     # TODO(jie): is this enough? Do we need to make another list object?
-    lst.containedT = contained_type
+    lst.containedT = get_list_element_type(list_type)
     return ReturnValue(
         lst.len(),
         None,
@@ -276,20 +277,20 @@ def vector_get(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    primitive_match = re.match(
-        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
-    )
-    nested_match = re.match(
-        rf"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
-    )
-    if primitive_match is not None:
-        contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(2))
-    elif nested_match is not None:
-        contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(4))
-    else:
-        raise Exception(
-            f"Could not determine vector type from demangled function name {full_demangled_name}"
-        )
+    # primitive_match = re.match(
+    #     rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
+    # )
+    # nested_match = re.match(
+    #     rf"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
+    # )
+    # if primitive_match is not None:
+    #     contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
+    # elif nested_match is not None:
+    #     contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
+    # else:
+    #     raise Exception(
+    #         f"Could not determine vector type from demangled function name {full_demangled_name}"
+    #     )
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
     return ReturnValue(
@@ -992,21 +993,6 @@ class VCVisitor:
         pointer_havocs.sort(key=lambda obj: obj.var_name())
         return primitive_havocs, pointer_havocs
 
-    def get_vector_havocs(self, loop_info: LoopInfo) -> List[NewObject]:
-        res = []
-        for var in loop_info.vector_havocs:
-            parsed_type = parse_type_ref_to_obj(var.type)
-            # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
-            res.append(create_object(parsed_type, var.name))
-        return res
-
-    def get_non_vector_havocs(self, loop_info: LoopInfo) -> List[NewObject]:
-        res = []
-        for var in loop_info.non_vector_havocs:
-            parsed_type = parse_type_ref_to_obj(var.type)
-            res.append(create_object(parsed_type, var.name))
-        return res
-
     # Functions to step through the blocks
     def preprocess(self, block: ValueRef) -> None:
         """Preprocess the entry block of the entire function. This includes setting up the postcondition, as well as writing all the arguments to the state of the entry block."""
@@ -1175,21 +1161,6 @@ class VCVisitor:
                 self.write_var_to_block(block.name, havoc.var_name(), havoc)
             for havoc in pointer_havocs:
                 self.store_var_to_block(block.name, havoc.var_name(), havoc)
-            # vector_havocs = self.get_vector_havocs(loop)
-            # self.driver.add_var_objects(vector_havocs)
-            # for vector_havoc in vector_havocs:
-            #     self.write_var_to_block(
-            #         block.name, vector_havoc.var_name(), vector_havoc
-            #     )
-
-            # non_vector_havocs = self.get_non_vector_havocs(loop)
-            # self.driver.add_var_objects(non_vector_havocs)
-            # for non_vector_havoc in non_vector_havocs:
-            #     self.store_var_to_block(
-            #         block.name, non_vector_havoc.var_name(), non_vector_havoc
-            #     )
-
-            # havocs = vector_havocs + non_vector_havocs
             havocs = primitive_havocs + pointer_havocs
             self.driver.add_var_objects(havocs)
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
@@ -1227,7 +1198,6 @@ class VCVisitor:
         header_pred_loops = self.find_header_pred_loops(block.name)
         latch_loops = self.find_latch_loops(block.name)
         for loop in header_pred_loops + latch_loops:
-            # havocs = self.get_vector_havocs(loop) + self.get_non_vector_havocs(loop)
             primitive_havocs, pointer_havocs = self.get_havocs(loop)
             havocs = primitive_havocs + pointer_havocs
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
