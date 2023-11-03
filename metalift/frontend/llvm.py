@@ -223,7 +223,7 @@ def vector_append(
     assert len(args) == 2
     assign_var_name: str = args[0].name
 
-    assign_val = Call(
+    assign_val = call(
         "list_append",
         parse_type_ref_to_obj(args[0].type),
         state.read_or_load_operand(args[0]),
@@ -1167,6 +1167,10 @@ class VCVisitor:
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
+        if "row_vec" in blk_state.primitive_vars.keys():
+            print(f"primitive row vec in {block.name}")
+        if "row_vec" in blk_state.pointer_vars.keys():
+            print(f"pointer row vec in {block.name}")
 
         # If this block is the predecessor of the header of a loop, or the latch of a loop, assert inv
         header_pred_loops = self.find_header_pred_loops(block.name)
@@ -1180,6 +1184,7 @@ class VCVisitor:
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             # TODO(jie): remove. this is a hack
+            import pdb; pdb.set_trace()
             in_scope_objs = [
                 obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
             ]
@@ -1207,35 +1212,8 @@ class VCVisitor:
         t = re.search("alloca ([^$|,]+)", str(o)).group(  # type: ignore
             1
         )  # bug: ops[0] always return i32 1 regardless of type
-        val: Optional[NewObject] = None
-        if t == "i32":
-            val = IntObject(0)
-        elif t == "i8" or t == "i8*":
-            val = BoolObject(False)
-        elif t == "i1":
-            val = BoolObject(False)
-        elif t == "%struct.list*":
-            val = ListObject(IntObject)
-        elif t == "%struct.set*":
-            val = SetObject(IntObject)
-        elif t == "%struct.tup*":
-            val = TupleObject(
-                IntObject, IntObject, None
-            )  # TODO: maybe a better way to handle tuple without value parameter
-        elif t.startswith("%struct.tup."):
-            ret_type = [IntObject for _ in range(int(t[-2]) + 1)]
-            val = TupleObject(*ret_type, None)
-        # TODO: when user defined struct is supported
-        # elif t.startswith(
-        #     "%struct."
-        # ):  # not a tuple or set, assume to be user defined type
-        #     o = re.search("%struct.(.+)", t)
-        #     if o:
-        #         tname = o.group(1)
-        #     else:
-        #         raise Exception("failed to match struct %s: " % t)
-        else:
-            raise Exception("NYI: %s" % o)
+        obj_type = parse_type_ref_to_obj(t)
+        val = create_object(obj_type)
 
         # o.name is the register name
         if not o.type.is_pointer:

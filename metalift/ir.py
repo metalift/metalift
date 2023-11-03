@@ -582,11 +582,11 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     ty_str = str(t)
     if ty_str in {"i32", "i32*"}:
         return IntObject
-    elif ty_str == "i1":
+    elif ty_str in {"i1", "i8", "i8*"}:
         return BoolObject
     elif ty_str in {"%struct.list*", "%struct.list**"}:
-        # TODO colin: add generic type support
-        # TODO jie: retire struct.list and use STL?
+        # TODO(colin): add generic type support
+        # TODO(jie): retire struct.list and use STL?
         return ListObject[IntObject]
     elif re.match('%"class.std::__1::vector(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::vector"*, llvmlite will turn it into %"class.std::__1::vector.0"*
@@ -594,6 +594,8 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
         return SetObject[IntObject]
+    elif ty_str in {"%struct.tup*"} or ty_str.startswith("%struct.tup."):
+        return TupleObject[IntObject]
     else:
         raise Exception(f"no type defined for {ty_str}")
 
@@ -607,7 +609,8 @@ def parse_c_or_cpp_type_to_obj(ty_str: str) -> typing.Type["NewObject"]:
 
 
 def create_object(
-    object_type: typing.Type["NewObject"], value: Optional[Union[bool, str, Expr]]
+    object_type: typing.Type["NewObject"],
+    value: Optional[Union[bool, str, Expr]] = None
 ) -> "NewObject":
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
@@ -733,6 +736,10 @@ class NewObject:
             return False
         return self.src == other.src
 
+    @staticmethod
+    def default_value() -> "NewObject":
+        raise NotImplementedError()
+
     @property
     def type(self) -> typing.Type["NewObject"]:
         raise NotImplementedError()
@@ -766,6 +773,10 @@ class BoolObject(NewObject):
     @property
     def type(self) -> typing.Type["BoolObject"]:
         return BoolObject
+
+    @staticmethod
+    def default_value() -> "BoolObject":
+        return BoolObject(False)
 
     # python doesn't have hooks for and, or, not
     def And(self, *args: Union["BoolObject", bool]) -> "BoolObject":
@@ -823,6 +834,10 @@ class IntObject(NewObject):
     @property
     def type(self) -> typing.Type["IntObject"]:
         return IntObject
+
+    @staticmethod
+    def default_value() -> "IntObject":
+        return IntObject(0)
 
     def binary_op(
         self, other: Union["IntObject", int], op: Callable[[Expr, Expr], Expr]
@@ -931,6 +946,10 @@ class ListObject(Generic[T], NewObject):
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "ListObject":
         return ListObject(containedT, Call("list_empty", ListObject[containedT]))
+
+    @staticmethod
+    def default_value() -> "ListObject[IntObject]":
+        return ListObject.empty(IntObject)
 
     def __len__(self) -> int:
         raise NotImplementedError("len must return an int, call len() instead")
@@ -1167,6 +1186,10 @@ class TupleObject(Generic[T], NewObject):
     @property
     def length(self) -> int:
         return len(self.containedT)
+
+    @staticmethod
+    def default_value() -> "TupleObject[IntObject, IntObject]":
+        return TupleObject(IntObject, IntObject)
 
     @staticmethod
     def toSMTType(type_args: ObjectContainedT) -> str:
@@ -2650,50 +2673,6 @@ def MLInst_Or(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
 
 def MLInst_Return(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Return, val)
-
-
-# def parse_type_ref(t: Union[Type, TypeRef]) -> Type:
-#     # ty.name returns empty string. possibly bug
-#     if isinstance(t, Type):
-#         return t
-
-#     tyStr = str(t)
-
-#     if tyStr == "i64":
-#         return Int()
-#     elif tyStr == "i32" or tyStr == "i32*" or tyStr == "Int":
-#         return Int()
-#     elif tyStr == "i8*":
-#         # TODO: this shouldn't be bool
-#         return PointerT(Bool())
-#     elif tyStr == "i1" or tyStr == "Bool":
-#         return Bool()
-#     elif tyStr.__contains__("IntObject"):  # TODO: better way to handle this
-#         return Int()
-#     elif (
-#         tyStr.startswith("%struct.list*")
-#         or tyStr == "%struct.list**"
-#         or tyStr == "(MLList Int)"
-#         or tyStr.__contains__("ListObject")  # TODO: better way to handle this
-#     ):
-#         return Type("MLList", Int())
-#     elif tyStr.startswith("%struct.set"):
-#         return SetT(Int())
-#     elif tyStr == "(Function Bool)":
-#         return Type("Function", Bool())
-#     elif tyStr == "(Function Int)":
-#         return Type("Function", Int())
-#     elif tyStr.startswith("%struct.tup."):
-#         retType = [Int() for i in range(int(tyStr[-2]) + 1)]
-#         return TupleT(*retType)
-#     elif tyStr.startswith("%struct.tup"):
-#         # TODO: FIX return type for multiple values
-#         return TupleT(Int(), Int())
-#     elif tyStr == '%"class.std::__1::vector"*':
-#         # we only support int vectors now
-#         return ListT(Int())
-#     else:
-#         raise Exception("NYI %s" % t)
 
 
 class Visitor(Generic[T]):
