@@ -1,6 +1,6 @@
 from typing import List
 
-from metalift.ir import (IntObject, ListObject, call, choose, fnDeclRecursive,
+from metalift.ir import (Choose, FnDecl, IntObject, ListObject, call, choose, choose_fn_decl_and_call, fn_decl, fn_decl_recursive,
                          ite)
 
 VECTORADD = "vector_add"
@@ -11,6 +11,7 @@ REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
 ELEMWISEMIN = "elemwise_min"
 NESTEDELEMWISEMIN = "nested_elemwise_min"
+SELECTMIN = "select_min"
 
 
 def call_vector_add(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
@@ -59,6 +60,8 @@ x = ListObject(IntObject, "x")
 y = ListObject(IntObject, "y")
 nested_x = ListObject(ListObject[IntObject], "nested_x")
 nested_y = ListObject(ListObject[IntObject], "nested_y")
+int_x = IntObject("x")
+int_y = IntObject("y")
 
 def vector_add_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = left.len()
@@ -68,7 +71,7 @@ def vector_add_body(left: ListObject[IntObject], right: ListObject[IntObject]) -
     recursed = call_vector_add(left_rest, right_rest)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
-vector_add = fnDeclRecursive(VECTORADD, ListObject[IntObject], vector_add_body(x, y), x, y)
+vector_add = fn_decl_recursive(VECTORADD, ListObject[IntObject], vector_add_body(x, y), x, y)
 
 def scalar_mul_body(scalar: IntObject, arr: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = arr.len()
@@ -77,7 +80,7 @@ def scalar_mul_body(scalar: IntObject, arr: ListObject[IntObject]) -> ListObject
     recursed = call_scalar_mul(scalar, arr_rest)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
-scalar_mul = fnDeclRecursive(SCALARMUL, ListObject[IntObject], scalar_mul_body(a, x), a, x)
+scalar_mul = fn_decl_recursive(SCALARMUL, ListObject[IntObject], scalar_mul_body(a, x), a, x)
 
 def broadcast_add_body(scalar: IntObject, arr: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = arr.len()
@@ -86,7 +89,7 @@ def broadcast_add_body(scalar: IntObject, arr: ListObject[IntObject]) -> ListObj
     recursed = call_broadcast_add(scalar, arr_rest)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
-broadcast_add = fnDeclRecursive(BROADCASTADD, ListObject[IntObject], broadcast_add_body(a, x), a, x)
+broadcast_add = fn_decl_recursive(BROADCASTADD, ListObject[IntObject], broadcast_add_body(a, x), a, x)
 
 def reduce_sum_body(lst: List[IntObject]) -> IntObject:
     vec_size = lst.len()
@@ -95,7 +98,7 @@ def reduce_sum_body(lst: List[IntObject]) -> IntObject:
     recursed = call_reduce_sum(lst_rest)
     general_answer = cur + recursed
     return ite(vec_size < 1, IntObject(0), general_answer)
-reduce_sum = fnDeclRecursive(REDUCESUM, IntObject, reduce_sum_body(x), x)
+reduce_sum = fn_decl_recursive(REDUCESUM, IntObject, reduce_sum_body(x), x)
 
 def reduce_mul_body(lst: ListObject[IntObject]) -> IntObject:
     vec_size = lst.len()
@@ -104,7 +107,7 @@ def reduce_mul_body(lst: ListObject[IntObject]) -> IntObject:
     recursed = call_reduce_mul(lst_rest)
     general_answer = cur * recursed
     return ite(vec_size < 1, IntObject(1), general_answer)
-reduce_mul = fnDeclRecursive(REDUCEMUL, IntObject, reduce_mul_body(x), x)
+reduce_mul = fn_decl_recursive(REDUCEMUL, IntObject, reduce_mul_body(x), x)
 
 def elemwise_mul_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = left.len()
@@ -114,18 +117,17 @@ def elemwise_mul_body(left: ListObject[IntObject], right: ListObject[IntObject])
     recursed = call_elemwise_mul(left_rest, right_rest)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
-elemwise_mul = fnDeclRecursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mul_body(x, y), x, y)
+elemwise_mul = fn_decl_recursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mul_body(x, y), x, y)
 
 def elemwise_min_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = left.len()
-    # TODO(jie): we need to remove this function to min
     cur = ite(left[0] < right[0], left[0], right[0])
     left_rest = left[1:]
     right_rest = right[1:]
     recursed = call_elemwise_min(left_rest, right_rest)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
-elemwise_min = fnDeclRecursive(ELEMWISEMIN, ListObject[IntObject], elemwise_min_body(x, y), x, y)
+elemwise_min = fn_decl_recursive(ELEMWISEMIN, ListObject[IntObject], elemwise_min_body(x, y), x, y)
 
 def nested_elemwise_min_body(
     left: ListObject[ListObject[IntObject]],
@@ -136,7 +138,7 @@ def nested_elemwise_min_body(
     recursed = call_nested_elemwise_min(left[1:], right[1:])
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(ListObject[IntObject]), general_answer)
-nested_elemwise_min = fnDeclRecursive(
+nested_elemwise_min = fn_decl_recursive(
     NESTEDELEMWISEMIN,
     ListObject[ListObject[IntObject]],
     nested_elemwise_min_body(nested_x, nested_y),
@@ -144,3 +146,35 @@ nested_elemwise_min = fnDeclRecursive(
     nested_y
 )
 
+# # Selection criteria
+# select_max = fn_decl(
+#     SELECTMIN,
+#     IntObject,
+#     ite(int_x < int_y, x, y),
+#     x,
+#     y
+# )
+# selection = Choose(select_max)
+# def selection_body(
+#     left: ListObject[IntObject],
+#     right: ListObject[IntObject],
+#     select_fns: List[FnDecl]
+# ) -> ListObject[IntObject]:
+#     vec_size = left.len()
+#     cur = choose_fn_decl_and_call(select_fns, left[0], right[0])
+#     left_rest = left[1:]
+#     right_rest = right[1:]
+#     recursed = selection_body(left_rest, right_rest)
+#     general_answer = recursed.prepend(cur)
+#     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
+
+# def nested_selection_body(
+#     left: ListObject[ListObject[IntObject]],
+#     right: ListObject[ListObject[IntObject]],
+#     select_op: Choose
+# ) -> ListObject[ListObject[IntObject]]:
+#     vec_size = left.len()
+#     cur = call_elemwise_min(left[0], right[0])
+#     recursed = call_nested_elemwise_min(left[1:], right[1:])
+#     general_answer = recursed.prepend(cur)
+#     return ite(vec_size < 1, ListObject.empty(ListObject[IntObject]), general_answer)

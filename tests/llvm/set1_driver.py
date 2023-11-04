@@ -3,13 +3,13 @@ from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import (BoolObject, IntObject, NewObject, SetObject,
-                         choose, ite, fnDeclRecursive)
+                         choose, ite, fn_decl_recursive)
 from tests.python.utils.utils import codegen
 
 
 def target_lang():
     x = IntObject("x")
-    double = fnDeclRecursive(
+    double = fn_decl_recursive(
         "double",
         IntObject,
         (x + x).src,

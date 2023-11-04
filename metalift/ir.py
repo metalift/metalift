@@ -17,7 +17,8 @@ from typing import (
     Union,
     Optional,
     Tuple,
-    _GenericAlias,  # type: ignore
+    _GenericAlias,
+    cast,  # type: ignore
     get_args,
     get_origin,
 )
@@ -54,14 +55,14 @@ def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def get_nested_list_element_type(
     ty: Union[type, _GenericAlias]
-) -> typing.Type["NewObject"]:
+) -> NewObjectT:
     if not is_nested_list_type(ty):
         raise Exception("expr is not a nested list!")
     contained_type = get_args(ty)[0]
     return get_args(contained_type)[0]
 
 
-def get_list_element_type(ty: _GenericAlias) -> typing.Type["NewObject"]:
+def get_list_element_type(ty: _GenericAlias) -> NewObjectT:
     return get_args(ty)[0]
 
 
@@ -78,7 +79,6 @@ def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, TupleObject)
 
-
 def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
     return ty == IntObject or ty == BoolObject
 
@@ -88,6 +88,16 @@ def is_object_pointer_type(obj: "NewObject") -> bool:
 
 def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
     return not is_primitive_type(ty)
+
+def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), FnDeclObject)
+    else:
+        return issubclass(ty, FnDeclObject)
+
+def get_fn_decl_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
+    tuple_types = get_args(ty)[0]
+    return get_args(tuple_types)[0]
 
 class Expr:
     def __init__(
@@ -558,17 +568,16 @@ class Expr:
 
 
 ### START OF IR OBJECTS
-ObjectContainedT = Union[typing.Type["NewObject"], _GenericAlias]
+ObjectContainedT = Union[NewObjectT, _GenericAlias]
 
 
-def get_type_str(type: Union[Type, typing.Type["NewObject"]]):
+def get_type_str(type: Union[Type, NewObjectT]):
     if isinstance(type, Type):
         return str(type)
     else:
         return type.cls_str(get_args(type))
 
-
-def toRosetteType(t: typing.Type["NewObject"]) -> str:
+def toRosetteType(t: NewObjectT) -> str:
     if t == IntObject:
         return "integer?"
     elif t == BoolObject:
@@ -578,7 +587,7 @@ def toRosetteType(t: typing.Type["NewObject"]) -> str:
 
 
 # TODO(jie): fix the type in the function signature
-def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
+def parse_type_ref_to_obj(t: TypeRef) -> NewObjectT:
     if is_new_object_type(t):
         return t
     ty_str = str(t)
@@ -605,7 +614,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> typing.Type["NewObject"]:
         raise Exception(f"no type defined for {ty_str}")
 
 
-def parse_c_or_cpp_type_to_obj(ty_str: str) -> typing.Type["NewObject"]:
+def parse_c_or_cpp_type_to_obj(ty_str: str) -> NewObjectT:
     if ty_str == "int":
         return IntObject
     if ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
@@ -616,7 +625,7 @@ def parse_c_or_cpp_type_to_obj(ty_str: str) -> typing.Type["NewObject"]:
 
 
 def create_object(
-    object_type: typing.Type["NewObject"],
+    object_type: NewObjectT,
     value: Optional[Union[bool, str, Expr]] = None
 ) -> "NewObject":
     if isinstance(object_type, _GenericAlias):
@@ -631,7 +640,7 @@ def get_object_exprs(*objects: "NewObject") -> List[Expr]:
     return [get_object_expr(obj) for obj in objects]
 
 
-def get_object_expr(object: Union[typing.Type["NewObject"], Expr]) -> Expr:
+def get_object_expr(object: Union[NewObjectT, Expr]) -> Expr:
     return object.src if isinstance(object, NewObject) else object
 
 
@@ -673,6 +682,11 @@ def call(
     call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
 
+def call_value(fn_decl: "FnDeclObject", *object_args: "NewObject") -> "NewObject":
+    call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
+    ret_type = fn_decl.return_type
+    print(call_value_expr)
+    return create_object(ret_type, call_value_expr)
 
 def fn_decl(
     fn_name: str,
@@ -680,22 +694,22 @@ def fn_decl(
     body: Union["NewObject", Expr],
     *object_args: Union["NewObject", Expr],
 ) -> "FnDecl":
-    fnDecl_expr = FnDecl(
+    fn_decl_expr = FnDecl(
         fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
-    return fnDecl_expr
+    return fn_decl_expr
 
 
-def fnDeclRecursive(
+def fn_decl_recursive(
     fn_name: str,
     return_type: "NewObject",
     body: Union["NewObject", Expr],
     *object_args: Union["NewObject", Expr],
 ) -> "FnDeclRecursive":
-    fnDeclRecursive_expr = FnDeclRecursive(
+    fn_decl_recursive_expr = FnDeclRecursive(
         fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
-    return fnDeclRecursive_expr
+    return fn_decl_recursive_expr
 
 def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     obj_types = tuple([obj.type for obj in objects])
@@ -706,6 +720,14 @@ def make_tuple_type(
     *containedT: Union[type, _GenericAlias],
 ) -> typing.Type["TupleObject"]:
     return TupleObject[typing.Tuple[containedT]]
+
+# def choose_fn_decl_and_call(fn_decls: List["FnDecl"], *args: "NewObject") -> "NewObject":
+#     # This function assumes that all the fn decls in the choose expression have the same arguments and return types.
+#     possible_calls: List[NewObject] = []
+#     for fn_decl in fn_decls:
+#         fn_name = cast(FnDecl, fn_decl).name()
+#         possible_calls.append(call(fn_name, *args))
+#     return choose(possible_calls)
 
 
 class NewObject:
@@ -744,7 +766,7 @@ class NewObject:
         raise NotImplementedError()
 
     @property
-    def type(self) -> typing.Type["NewObject"]:
+    def type(self) -> NewObjectT:
         raise NotImplementedError()
 
     @staticmethod
@@ -1153,7 +1175,8 @@ class SetObject(Generic[T], NewObject):
             return f"(Set {contained_type.toSMTType()})"
 
 
-class TupleObject(Generic[T], NewObject):
+TupleContainedT = TypeVar("TupleContainedT")
+class TupleObject(Generic[TupleContainedT], NewObject):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
@@ -1223,6 +1246,26 @@ class TupleObject(Generic[T], NewObject):
             contained_type_strs.append(contained_type_str)
         return f"Tuple {' '.join(contained_type_strs)}"
 
+
+FnDeclContainedT = TypeVar("FnDeclContainedT")
+class FnDeclObject(Generic[FnDeclContainedT], NewObject):
+    def __init__(
+        self,
+        containedT: typing.Tuple[Union[type, _GenericAlias]],
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
+        full_type = FnDeclObject[typing.Tuple[containedT]]
+        self.return_type = containedT[0]
+        self.argument_types = containedT[1:]
+        if value is None:  # a symbolic variable
+            src = Var("v", full_type)
+        elif isinstance(value, FnDecl):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, full_type)
+        else:
+            raise TypeError(f"Cannot create TupleObject from {value}")
+        NewObject.__init__(self, src)
 
 ### END OF IR OBJECTS
 
@@ -1890,7 +1933,7 @@ class CallValue(Expr):
     def __init__(self, value: Expr, *arguments: Expr) -> None:
         if not is_fn_decl_type(value.type):
             raise Exception(f"value must be fn decl type for call value")
-        Expr.__init__(self, get_fn_return_type(value.type), [value, *arguments])
+        Expr.__init__(self, get_fn_decl_return_type(value.type), [value, *arguments])
 
     def value(self) -> Expr:
         return self.args[0]  # type: ignore

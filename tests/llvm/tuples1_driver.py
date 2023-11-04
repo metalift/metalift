@@ -3,7 +3,7 @@ from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import (BoolObject, IntObject, NewObject, TupleObject, call,
-                         choose, fnDeclRecursive, make_tuple)
+                         choose, fn_decl_recursive, make_tuple)
 from tests.python.utils.utils import codegen
 
 
@@ -12,7 +12,7 @@ def tuple_mult(t):
 
 def target_lang():
     x = TupleObject((IntObject, IntObject), "x")
-    tuple_mult = fnDeclRecursive(
+    tuple_mult = fn_decl_recursive(
         "tuple_mult",
         IntObject,
         (x[0] * x[1]),
