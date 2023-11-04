@@ -10,7 +10,7 @@ def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
         # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
-        if a.type.name != "Function":  # type: ignore
+        if not is_fn_decl_type(a.type):  # type: ignore
             newArgs.append(a)
     return newArgs
 
@@ -26,8 +26,11 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
         newArgs = []
         for i in range(1, len(funDef.args)):
             # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
-            if funDef.args[i].name != "Function":
-                newArgs.append(filterBody(funDef.args[i], funCall, inCall))
+            try:
+                if not is_fn_decl_type(funDef.args[i].type):
+                    newArgs.append(filterBody(funDef.args[i], funCall, inCall))
+            except:
+                import pdb; pdb.set_trace()
         return Call(funCall + "_" + inCall, funDef.type, *newArgs)
     elif isinstance(funDef, CallValue):
         newArgs = []
@@ -70,6 +73,7 @@ def toSMT(
                 found_inline = False
                 for i in inCalls:
                     if i[0] == t.args[0]:
+                        print("func", t.args[0])
                         found_inline = True
                         early_candidates_names.add(i[1])
                         # parse body
@@ -81,7 +85,7 @@ def toSMT(
                             FnDeclRecursive(
                                 t.args[0] + "_" + i[1],
                                 # TODO: t.type no longer has args, find proper substitution
-                                t.type.args[0],  # type: ignore
+                                t.returnT(),  # type: ignore
                                 newBody,
                                 *newArgs,
                             )

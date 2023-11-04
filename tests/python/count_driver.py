@@ -173,8 +173,8 @@ if __name__ == "__main__":
         inv_grammar,
         ps_grammar
     )
-
     in_lst = ListObject(IntObject, "in_lst")
+    driver.add_var_object(in_lst)
 
     test(in_lst)
 

@@ -59,6 +59,8 @@ from metalift.types import FnT, MapT
 from metalift.types import CVC5UnsupportedException
 from tests.python.utils.utils import codegen
 
+from metalift.types import CVC5UnsupportedException
+
 
 # utils for converting rosette output to IR
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -282,6 +284,7 @@ def toExpr(
                 toExpr(ast[2], fnsType, tmp_var_type, choices),
             )
         elif ast[0] == "reduce_int":
+            import pdb; pdb.set_trace()
             data = toExpr(ast[1], fnsType, varType, choices)
             fn = toExpr(
                 ast[2],
@@ -481,7 +484,8 @@ def synthesize(
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
                     fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
-                    fnsType[ceName] = Fn[typing.Tuple[fn_types]]  # type: ignore
+                    # TODO(jie): should this be FnDeclObject or FnDeclRecursiveObject
+                    fnsType[ceName] = FnDeclObject[typing.Tuple[fn_types]]
                 for n in synthNames:
                     for r in output:
                         if "define (" + n + " " in r:
