@@ -1,13 +1,14 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import Call, Eq, Expr, FnDeclRecursive, IntObject, Var, fnDeclRecursive
+from metalift.ir import (BoolObject, FnDeclRecursive, IntObject, NewObject,
+                         call, fnDeclRecursive)
 from tests.python.utils.utils import codegen
 
 UNINTERP_FN_NAME = "uninterp"
 
-def uninterp(x: Var, y: Var):
-    return Call(UNINTERP_FN_NAME, IntObject, x, y)
+def uninterp(x: NewObject, y: NewObject) -> NewObject:
+    return call(UNINTERP_FN_NAME, IntObject, x, y)
 
 def target_lang() -> List[FnDeclRecursive]:
     x = IntObject("x")
@@ -16,11 +17,12 @@ def target_lang() -> List[FnDeclRecursive]:
     return [uninterp]
 
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
     x, y = reads
-    return Eq(ret_val, uninterp(x, x) + uninterp(y, y))
+    return ret_val == uninterp(x, x) + uninterp(y, y)
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no loop in the source")
 
 if __name__ == "__main__":

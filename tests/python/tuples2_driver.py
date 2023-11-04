@@ -2,7 +2,7 @@ from typing import List
 
 from metalift.frontend.python import Driver
 from metalift.ir import (BoolObject, IntObject, NewObject, TupleObject, call,
-                         choose, make_tuple, fnDecl)
+                         choose, make_tuple, fn_decl)
 from tests.python.utils.utils import codegen
 
 
@@ -11,7 +11,7 @@ def tuple_add(t):
 
 def target_lang():
     x = TupleObject((IntObject, IntObject), "x")
-    tuple_add = fnDecl(
+    tuple_add = fn_decl(
         "tuple_add",
         IntObject,
        (x[0] + x[1]),

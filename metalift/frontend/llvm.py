@@ -753,11 +753,10 @@ class State:
         )
 
     def read_or_load_operand(self, op: ValueRef) -> NewObject:
-        # TODO(jie): this is so hacky, change it
-        try:
-            return self.read_operand(op)
-        except:
+        if op.type.is_pointer:
             return self.load_operand(op)
+        else:
+            return self.read_operand(op)
 
     def get_var_location(self, var_name: str) -> bool:
         if var_name in self.primitive_vars.keys():
@@ -891,7 +890,7 @@ class VCVisitor:
         inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         loops: List[LoopInfo],
-        uninterp_fns: List[str],
+        uninterp_fns: List[str]
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name
@@ -908,6 +907,8 @@ class VCVisitor:
 
         self.loops = loops
 
+        self.uninterp_fns = uninterp_fns
+
     # Helper functions
     # Helper functions for reading and writing variables
     def read_operand_from_block(
@@ -921,6 +922,12 @@ class VCVisitor:
     ) -> NewObject:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_operand(op)
+
+    def read_or_load_operand_from_block(
+        self, block_name: str, op: ValueRef
+    ) -> NewObject:  # Pointer
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.read_or_load_operand(op)
 
     def write_operand_to_block(
         self, block_name: str, op: ValueRef, val: NewObject
@@ -1419,6 +1426,16 @@ class VCVisitor:
                             var_name=name,
                             val=value
                         )
+        elif fn_name in self.uninterp_fns:
+            # The last operand is the function name
+            ops = list(o.operands)[:-1]
+            ops_objs = [self.read_or_load_operand_from_block(block_name, op) for op in ops]
+            ret_type = parse_type_ref_to_obj(o.type)
+            ret_val = call(fn_name, ret_type, *ops_objs)
+            self.write_or_store_operand_to_block(block_name, o, ret_val)
+        else:
+            raise Exception(f"Unsupported function {fn_name}")
+
 
     def visit_trunc_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -1640,7 +1657,7 @@ class MetaliftFunc:
             inv_grammars=self.inv_grammars,
             ps_grammar=self.ps_grammar,
             loops=self.loops,
-            uninterp_fns=kwds.get("uninterp_fns", []),
+            uninterp_fns=kwds.get("uninterp_fns", [])
         )
 
         # Visit blocks in a DAG order
