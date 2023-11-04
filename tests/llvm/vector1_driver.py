@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite, fn_decl, fnDeclRecursive
+from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite, fn_decl, fn_decl_recursive
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
@@ -14,7 +14,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     select_pred2 = fn_decl("Select-pred2", BoolObject, (arg > 2) and (arg < 10), arg)
 
     data = ListObject(IntObject, "l")
-    select_func = fnDeclRecursive(
+    select_func = fn_decl_recursive(
         "Select",
         ListObject[IntObject],
         ite(
@@ -28,7 +28,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         ),
         data,
     )
-    select_func1 = fnDeclRecursive(
+    select_func1 = fn_decl_recursive(
         "Select1",
         ListObject[IntObject],
         ite(
@@ -42,7 +42,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         ),
         data,
     )
-    select_func2 = fnDeclRecursive(
+    select_func2 = fn_decl_recursive(
         "Select2",
         ListObject[IntObject],
         ite(

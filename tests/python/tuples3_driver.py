@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import BoolObject, IntObject, NewObject, call, choose, fnDeclRecursive
+from metalift.ir import BoolObject, IntObject, NewObject, call, choose, fn_decl_recursive
 from tests.python.utils.utils import codegen
 
 
@@ -10,7 +10,7 @@ def double(t):
 
 def target_lang():
     x = IntObject("x")
-    double = fnDeclRecursive(
+    double = fn_decl_recursive(
         "double",
         IntObject,
         (x + x),

@@ -2,14 +2,14 @@ from typing import List
 
 from metalift.frontend.python import Driver
 from metalift.ir import (BoolObject, FnDeclRecursive, IntObject, NewObject,
-                         call, choose, ite, fnDeclRecursive)
+                         call, choose, ite, fn_decl_recursive)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
     x = IntObject("x")
-    sum_n = fnDeclRecursive(
+    sum_n = fn_decl_recursive(
         "sum_n",
         IntObject,
         ite(
