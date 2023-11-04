@@ -11,6 +11,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     ret_val = writes[0]
     base, active = reads
+    import pdb; pdb.set_trace()
     return ret_val == call_nested_elemwise_max(base, active)
 
 def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
@@ -21,7 +22,7 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     base, active = reads
     return and_objects(
         row >= 0,
-        row < base.len(),
+        row <= base.len(),
         out == call_nested_elemwise_max(base[:row], active[:row])
     )
 

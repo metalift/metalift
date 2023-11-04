@@ -62,7 +62,7 @@ ReturnValue = NamedTuple(
     "ReturnValue",
     [
         ("val", Optional[NewObject]),
-        ("assigns", Optional[List[Tuple[str, NewObject]]]),
+        ("assigns", Optional[List[Tuple[str, NewObject, str]]]),
     ],
 )
 from metalift.ir_util import is_object_pointer_type
@@ -211,10 +211,9 @@ def new_vector(
         )
 
     var_name: str = args[0].name
-    assigns: List[Tuple[str, Expr]] = [
-        (var_name, ListObject.empty(get_list_element_type(list_type)))
-    ]
-    return ReturnValue(None, assigns)
+    list_obj = ListObject.empty(get_list_element_type(list_type))
+    list_loc = state.get_var_location(var_name)
+    return ReturnValue(None, [(var_name, list_obj, list_loc)])
 
 
 def vector_append(
@@ -232,9 +231,10 @@ def vector_append(
         state.read_or_load_operand(args[0]),
         state.read_or_load_operand(args[1]),
     )
+    assign_loc = state.get_var_location(assign_var_name)
     return ReturnValue(
         None,
-        [(assign_var_name, assign_val)],
+        [(assign_var_name, assign_val, assign_loc)],
     )
 
 
@@ -264,9 +264,12 @@ def vector_length(
     lst = state.read_or_load_operand(args[0])
     # TODO(jie): is this enough? Do we need to make another list object?
     lst.containedT = get_list_element_type(list_type)
+
+    var_name = args[0].name
+    var_loc = state.get_var_location(var_name)
     return ReturnValue(
         lst.len(),
-        None,
+        [(var_name, lst, var_loc)],
     )
 
 
@@ -293,9 +296,11 @@ def vector_get(
     #     )
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
+    var_name = args[0].name
+    var_loc = state.get_var_location(var_name)
     return ReturnValue(
         lst[index],
-        None,
+        [(var_name, lst, var_loc)],
     )
 
 
@@ -731,12 +736,6 @@ class State:
     def store_var(self, var_name: str, value: NewObject) -> None:
         self.pointer_vars[var_name] = value
 
-    def write_or_store_var(self, var_name: str, value: NewObject) -> None:
-        if is_primitive_type(value.type):
-            self.write_var(var_name, value)
-        else:
-            self.store_var(var_name, value)
-
     def read_or_load_var(self, var_name: str) -> NewObject:
         if var_name in self.primitive_vars.keys():
             return self.primitive_vars[var_name]
@@ -753,6 +752,13 @@ class State:
         except:
             return self.load_operand(op)
 
+    def get_var_location(self, var_name: str) -> bool:
+        if var_name in self.primitive_vars.keys():
+            return "primitive"
+        elif var_name in self.pointer_vars.keys():
+            return "pointer"
+        else:
+            raise Exception(f"{var_name} not found in state!")
 
 class Predicate:
     args: List[NewObject]
@@ -931,11 +937,17 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_or_store_operand(op, val)
 
-    def double_store_operand_to_block(
-        self, block_name: str, op: ValueRef, val: NewObject
+    def read_var_from_block(
+        self, block_name: str, var_name: str
     ) -> None:
         blk_state = self.fn_blocks_states[block_name]
-        return blk_state.write_or_store_operand(op, val)
+        return blk_state.read_var(var_name)
+
+    def load_var_from_block(
+        self, block_name: str, var_name: str
+    ) -> None:
+        blk_state = self.fn_blocks_states[block_name]
+        return blk_state.load_var(var_name)
 
     def write_var_to_block(
         self, block_name: str, var_name: str, val: NewObject
@@ -949,11 +961,6 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
 
-    def write_or_store_var_to_block(
-        self, block_name: str, var_name: str, val: NewObject
-    ) -> None:
-        blk_state = self.fn_blocks_states[block_name]
-        return blk_state.write_or_store_var(var_name, val)
 
     # Helper functions for loops
     def find_header_loops(self, block_name: str) -> List[LoopInfo]:
@@ -978,13 +985,14 @@ class VCVisitor:
                 relevant_loops.append(loop)
         return relevant_loops
 
-    def get_havocs(self, loop_info: LoopInfo) -> Tuple[List[NewObject], List[NewObject]]:
+    def get_havocs(self, block_name: str, loop_info: LoopInfo) -> Tuple[List[NewObject], List[NewObject]]:
         primitive_havocs: List[NewObject] = []
         pointer_havocs: List[NewObject] = []
+        blk_state = self.fn_blocks_states[block_name]
         for var in loop_info.havocs:
-            parsed_type = parse_type_ref_to_obj(var.type)
+            var_type = blk_state.read_or_load_var(var.name).type
             # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
-            obj = create_object(parsed_type, var.name)
+            obj = create_object(var_type, var.name)
             if var.type.is_pointer:
                 pointer_havocs.append(obj)
             else:
@@ -1005,21 +1013,11 @@ class VCVisitor:
                 self.write_var_to_block(block.name, arg.name(), arg)
 
         if self.fn_sret_arg is not None:
-            if is_object_pointer_type(self.fn_sret_arg):
-                self.store_var_to_block(
-                    block.name, self.fn_sret_arg.var_name(), self.fn_sret_arg
-                )
-            else:
-                self.write_var_to_block(
-                    block.name, self.fn_sret_arg.var_name(), self.fn_sret_arg
-                )
-        self.pred_tracker.postcondition(
-            self.fn_name,
-            [return_arg],  # TODO: I feel like this flow could be better
-            self.fn_args,
-            [],
-            self.ps_grammar,
-        )
+            self.store_var_to_block(
+                block.name,
+                self.fn_sret_arg.var_name(),
+                self.fn_sret_arg
+            )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
         if o.opcode == "alloca":
@@ -1156,7 +1154,7 @@ class VCVisitor:
         # If this block is the header of a loop, havoc the modified vars and assume inv
         header_loops = self.find_header_loops(block.name)
         for loop in header_loops:
-            primitive_havocs, pointer_havocs = self.get_havocs(loop)
+            primitive_havocs, pointer_havocs = self.get_havocs(block.name, loop)
             for havoc in primitive_havocs:
                 self.write_var_to_block(block.name, havoc.var_name(), havoc)
             for havoc in pointer_havocs:
@@ -1198,7 +1196,7 @@ class VCVisitor:
         header_pred_loops = self.find_header_pred_loops(block.name)
         latch_loops = self.find_latch_loops(block.name)
         for loop in header_pred_loops + latch_loops:
-            primitive_havocs, pointer_havocs = self.get_havocs(loop)
+            primitive_havocs, pointer_havocs = self.get_havocs(block.name, loop)
             havocs = primitive_havocs + pointer_havocs
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
             in_scope_objs: List[NewObject] = []
@@ -1348,14 +1346,7 @@ class VCVisitor:
         ret_void = len(ops) == 0
         ret_val: Optional[NewObject] = None
         if ret_void and self.fn_sret_arg is not None:
-            # We have to fetch the current type because the return type might have changed from the
-            # beginning.
-            # This is because for list type, at first we assume it's an int list. We only infer the
-            # corret type later on after we parse the functions.
-            ret_val_type = self.load_var_from_block(
-                block_name, self.fn_sret_arg.var_name()
-            ).type
-            ret_val = create_object(ret_val_type, self.fn_sret_arg.var_name())
+            ret_val = self.load_var_from_block(block_name, self.fn_sret_arg.var_name())
         elif not ret_void:
             if not ops[0].type.is_pointer:
                 ret_val = self.read_operand_from_block(block_name, ops[0])
@@ -1363,6 +1354,18 @@ class VCVisitor:
                 ret_val = self.load_operand_from_block(block_name, ops[0])
         else:
             raise Exception("ret void not supported yet!")
+
+        # Add postcondition
+        return_arg = create_object(ret_val.type, f"{self.fn_name}_rv")
+        self.pred_tracker.postcondition(
+            self.fn_name,
+            [return_arg],  # TODO: I feel like this flow could be better
+            self.fn_args,
+            [],
+            self.ps_grammar,
+        )
+
+        # Call postcondition
         # TODO(jie) use the call method of the predicate
         ps = call(
             self.pred_tracker.predicates[self.fn_name].name,
@@ -1377,6 +1380,8 @@ class VCVisitor:
             blk_state.asserts.append(ps)
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
+
+
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
         blk_state = self.fn_blocks_states[block_name]
@@ -1396,12 +1401,19 @@ class VCVisitor:
                     block_name=block_name, op=o, val=rv.val
                 )
             if rv.assigns:
-                for name, value in rv.assigns:
-                    self.write_or_store_var_to_block(
-                        block_name=block_name,
-                        var_name=name,
-                        val=value
-                    )
+                for name, value, loc in rv.assigns:
+                    if loc == "primitive":
+                        self.write_var_to_block(
+                            block_name=block_name,
+                            var_name=name,
+                            val=value
+                        )
+                    else:
+                        self.store_var_to_block(
+                            block_name=block_name,
+                            var_name=name,
+                            val=value
+                        )
 
     def visit_trunc_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
