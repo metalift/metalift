@@ -1433,8 +1433,6 @@ class VCVisitor:
             ret_type = parse_type_ref_to_obj(o.type)
             ret_val = call(fn_name, ret_type, *ops_objs)
             self.write_or_store_operand_to_block(block_name, o, ret_val)
-        else:
-            raise Exception(f"Unsupported function {fn_name}")
 
 
     def visit_trunc_instruction(self, block_name: str, o: ValueRef) -> None:
