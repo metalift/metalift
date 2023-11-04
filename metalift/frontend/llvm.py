@@ -1190,6 +1190,12 @@ class VCVisitor:
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
+        if "agg.result" in blk_state.pointer_vars.keys():
+            print("pointer agg.result")
+            print()
+        if "agg.result" in blk_state.primitive_vars.keys():
+            print("primitive agg.result")
+            print()
 
         # If this block is the predecessor of the header of a loop, or the latch of a loop, assert inv
         header_pred_loops = self.find_header_pred_loops(block.name)

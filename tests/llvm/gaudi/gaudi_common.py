@@ -118,7 +118,8 @@ elemwise_mul = fnDeclRecursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mul_
 
 def elemwise_max_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = left.len()
-    cur = ite(left[0] > right[0], left[0], right[0])
+    # TODO(jie): we need to remove this function to min
+    cur = ite(left[0] < right[0], left[0], right[0])
     left_rest = left[1:]
     right_rest = right[1:]
     recursed = call_elemwise_max(left_rest, right_rest)
