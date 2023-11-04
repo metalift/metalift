@@ -668,7 +668,7 @@ def call(
     return create_object(return_type, call_expr)
 
 
-def fnDecl(
+def fn_decl(
     fn_name: str,
     return_type: "NewObject",
     body: Union["NewObject", Expr],
@@ -690,7 +690,6 @@ def fnDeclRecursive(
         fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
     return fnDeclRecursive_expr
-
 
 def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     obj_types = tuple([obj.type for obj in objects])
@@ -722,9 +721,6 @@ class NewObject:
 
     def __repr__(self) -> str:
         return repr(self.src)
-
-    def toSMT(self) -> str:
-        return self.src.toSMT()
 
     def codegen(self) -> str:
         return self.src.codegen()
@@ -2455,13 +2451,16 @@ class FnDecl(Expr):
 
     def toSMT(self) -> str:
         if self.args[1] is None:  # uninterpreted function
+            args_obj_types = [parse_type_ref_to_obj(a.type) for a in self.args[2:]]
             args_type = " ".join(
-                parse_type_ref_to_obj(a.type).toSMT() for a in self.args[2:]
+                obj_type.toSMTType(get_args(obj_type))
+                for obj_type in args_obj_types
             )
+            ret_type = parse_type_ref_to_obj(self.returnT())
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                parse_type_ref_to_obj(self.returnT()),
+                ret_type.toSMTType(get_args(ret_type)),
             )
         else:
             declarations = []

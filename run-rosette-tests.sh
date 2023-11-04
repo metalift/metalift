@@ -4,7 +4,6 @@
 # "tests.llvm.count"
 # "tests.llvm.list1"
 # "tests.llvm.list1_fns"
-# "tests.llvm.uninterp"
 # "tests.llvm.struct1"
 
 tests=(
@@ -12,7 +11,8 @@ tests=(
 # "tests.python.list1_driver"
 # "tests.python.list1_fns_driver"
 # "tests.python.list_abs_sum_driver"
-# "tests.python.uninterp_driver"
+  "tests.llvm.uninterp_driver"
+  "tests.python.uninterp_driver"
 )
 
 for test in ${tests[*]}; do
