@@ -21,6 +21,9 @@ tests=(
 "tests.python.while1_driver"
 "tests.python.while3_driver"
 "tests.python.while4_driver"
+"tests.python.tuples1_driver"
+"tests.python.tuples2_driver"
+"tests.python.tuples3_driver"
 "tests.python.no_loop_matmul_driver"
 )
 

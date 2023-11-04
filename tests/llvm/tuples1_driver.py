@@ -11,7 +11,7 @@ def tuple_mult(t):
     return call("tuple_mult", IntObject, t)
 
 def target_lang():
-    x = TupleObject(IntObject, IntObject, "x")
+    x = TupleObject((IntObject, IntObject), "x")
     tuple_mult = fnDeclRecursive(
         "tuple_mult",
         IntObject,

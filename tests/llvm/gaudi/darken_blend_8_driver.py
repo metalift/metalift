@@ -3,15 +3,15 @@ from metalift.frontend.llvm import Driver
 from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
-from tests.llvm.gaudi.gaudi_common import elemwise_max, nested_elemwise_max, call_elemwise_max, call_nested_elemwise_max
+from tests.llvm.gaudi.gaudi_common import elemwise_min, nested_elemwise_min, call_elemwise_min, call_nested_elemwise_min
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [elemwise_max, nested_elemwise_max]
+    return [elemwise_min, nested_elemwise_min]
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     ret_val = writes[0]
     base, active = reads
-    return ret_val == call_nested_elemwise_max(base, active)
+    return ret_val == call_nested_elemwise_min(base, active)
 
 def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     # outer loop grammar
@@ -20,7 +20,7 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     return and_objects(
         row >= 0,
         row <= base.len(),
-        out == call_nested_elemwise_max(base[:row], active[:row])
+        out == call_nested_elemwise_min(base[:row], active[:row])
     )
 
 def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
@@ -33,7 +33,7 @@ def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
         row < base.len(),
         col >= 0,
         col <= base[0].len(),
-        row_vec == call_elemwise_max(base[row][:col], active[row][:col]),
+        row_vec == call_elemwise_min(base[row][:col], active[row][:col]),
     )
 
 if __name__ == "__main__":

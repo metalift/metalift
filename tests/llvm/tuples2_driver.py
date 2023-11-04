@@ -11,7 +11,7 @@ def tuple_add(t):
     return call("tuple_add", IntObject, t)
 
 def target_lang():
-    x = TupleObject(IntObject, IntObject, "x")
+    x = TupleObject((IntObject, IntObject), "x")
     tuple_add = fnDeclRecursive(
         "tuple_add",
         IntObject,
