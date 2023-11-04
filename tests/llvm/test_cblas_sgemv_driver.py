@@ -72,8 +72,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [sdot_decl, sgemv_decl, cblas_sgemv_decl]
 
 def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
-    # Outer loop
-    z, res, j, _, i = writes
+    z, i, j, _, res = writes
     alpha, a, x, beta, y = reads
     i_lower_cond = choose(
         i >= 0,
@@ -93,7 +92,7 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
 # TODO(jie): only keep i and agg.result from in_scope
 def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     # Inner loop
-    res, j = writes
+    j, res = writes
     alpha, a, x, beta, y = reads
     in_scope_mapping = {
         obj.var_name(): obj

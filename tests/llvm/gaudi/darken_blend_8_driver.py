@@ -11,13 +11,10 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     ret_val = writes[0]
     base, active = reads
-    import pdb; pdb.set_trace()
     return ret_val == call_nested_elemwise_max(base, active)
 
 def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     # outer loop grammar
-    # TODO: figure out which one is row
-    # TODO: investigate why row_vec appeared twice
     out, col, row, row_vec = writes
     base, active = reads
     return and_objects(

@@ -1172,6 +1172,9 @@ class VCVisitor:
             in_scope_objs = [
                 obj for obj in in_scope_objs if obj.var_name() in {"row", "row_vec"}
             ]
+            # in_scope_objs = [
+            #     obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
+            # ]
             args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
@@ -1187,10 +1190,6 @@ class VCVisitor:
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
-        if "row_vec" in blk_state.pointer_vars.keys():
-            print("pointer row vec", block.name)
-        if "row_vec" in blk_state.primitive_vars.keys():
-            print("primitive row vec", block.name)
 
         # If this block is the predecessor of the header of a loop, or the latch of a loop, assert inv
         header_pred_loops = self.find_header_pred_loops(block.name)
@@ -1208,6 +1207,9 @@ class VCVisitor:
             in_scope_objs = [
                 obj for obj in in_scope_objs if obj.var_name() in {"row_vec", "row"}
             ]
+            # in_scope_objs = [
+            #     obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
+            # ]
             args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
@@ -1346,7 +1348,12 @@ class VCVisitor:
         ret_void = len(ops) == 0
         ret_val: Optional[NewObject] = None
         if ret_void and self.fn_sret_arg is not None:
-            ret_val = self.load_var_from_block(block_name, self.fn_sret_arg.var_name())
+            # We have to fetch the current type because the return type might have changed from the
+            # beginning.
+            # This is because for list type, at first we assume it's an int list. We only infer the
+            # corret type later on after we parse the functions.
+            ret_val_type = self.load_var_from_block(block_name, self.fn_sret_arg.var_name()).type
+            ret_val = create_object(ret_val_type, self.fn_sret_arg.var_name())
         elif not ret_void:
             if not ops[0].type.is_pointer:
                 ret_val = self.read_operand_from_block(block_name, ops[0])
