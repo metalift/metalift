@@ -1,5 +1,5 @@
 from typing import List, Union
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
@@ -140,8 +140,8 @@ if __name__ == "__main__":
         fn_name="test_cblas_sgemv",
         target_lang_fn=target_lang,
         inv_grammars={
-            "test_cblas_sgemv_inv0": inv0_grammar,
-            "test_cblas_sgemv_inv1": inv1_grammar
+            "test_cblas_sgemv_inv0": InvGrammar(inv0_grammar, []),
+            "test_cblas_sgemv_inv1": InvGrammar(inv1_grammar, ["i", "agg.result"])
         },
         ps_grammar=ps_grammar
     )

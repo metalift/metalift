@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List, Union
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import (BoolObject, FnDecl, FnDeclRecursive, IntObject,
                          ListObject, NewObject, choose)
 from metalift.vc_util import and_objects
@@ -37,8 +37,8 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
     weight = reads[1]
     epsilon = reads[2]
     hidden_size = reads[3]
-    variance = writes[0]
-    i = writes[1]
+    i = writes[0]
+    variance = writes[1]
 
     an_int = choose(epsilon, hidden_size, IntObject(-1), IntObject(0), IntObject(1), IntObject(2), IntObject(3), i, variance)
     an_arr = choose(input, weight)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         "tests/llvm/gaudi/vllm_cuda.loops",
         "layernorm_kernels_1",
         target_lang,
-        defaultdict(lambda: inv_grammar),
+        defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar
     )
     input_var = ListObject(IntObject, "input")

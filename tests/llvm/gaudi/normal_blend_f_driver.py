@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List, Union
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, choose
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (call_scalar_mul, call_vector_add)
@@ -28,8 +28,8 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
-    agg_result = writes[1]
-    i = writes[2]
+    agg_result = writes[0]
+    i = writes[1]
 
     return and_objects(
         i >= 0,
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         "tests/llvm/gaudi/normal_blend_f.loops",
         "test",
         target_lang,
-        defaultdict(lambda: inv_grammar),
+        defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar
     )
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         "tests/llvm/gaudi/normal_blend_8.loops",
         "normal_blend_8",
         target_lang,
-        defaultdict(lambda: inv_grammar),
+        defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar
     )
     base_var = ListObject(IntObject, "base")

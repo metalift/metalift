@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import (IntObject, NewObject, TupleObject,
                          call, choose, make_tuple, fnDeclRecursive)
 from tests.python.utils.utils import codegen
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/tuples2.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammars=defaultdict(lambda: inv_grammar),
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 
