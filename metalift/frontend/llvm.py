@@ -658,6 +658,13 @@ LLVMVar = NamedTuple(
     ],
 )
 
+InvGrammar = NamedTuple(
+    "InvGrammar",
+    [
+        ("func", Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]),
+        ("in_scope_var_names", List[str])
+    ]
+)
 
 class State:
     precond: List[BoolObject]
@@ -865,9 +872,7 @@ class VCVisitor:
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammars: Dict[
-        str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
-    ]
+    inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
 
     loops: List[LoopInfo]
@@ -883,9 +888,7 @@ class VCVisitor:
         fn_sret_arg: Optional[NewObject],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammars: Dict[
-            str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
-        ],
+        inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
@@ -1169,12 +1172,10 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
+            inv_grammar = self.inv_grammars[inv_name]
             in_scope_objs = [
-                obj for obj in in_scope_objs if obj.var_name() in {"row", "row_vec"}
+                obj for obj in in_scope_objs if obj.var_name() in inv_grammar.in_scope_var_names
             ]
-            # in_scope_objs = [
-            #     obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
-            # ]
             args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
@@ -1183,19 +1184,13 @@ class VCVisitor:
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,
-                grammar=self.inv_grammars[inv_name],
+                grammar=inv_grammar.func,
             )
             blk_state.precond.append(inv.call(blk_state))
 
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
         blk_state.processed = True
-        if "agg.result" in blk_state.pointer_vars.keys():
-            print("pointer agg.result")
-            print()
-        if "agg.result" in blk_state.primitive_vars.keys():
-            print("primitive agg.result")
-            print()
 
         # If this block is the predecessor of the header of a loop, or the latch of a loop, assert inv
         header_pred_loops = self.find_header_pred_loops(block.name)
@@ -1209,13 +1204,10 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
-            # TODO(jie): remove. this is a hack
+            inv_grammar = self.inv_grammars[inv_name]
             in_scope_objs = [
-                obj for obj in in_scope_objs if obj.var_name() in {"row_vec", "row"}
+                obj for obj in in_scope_objs if obj.var_name() in inv_grammar.in_scope_var_names
             ]
-            # in_scope_objs = [
-            #     obj for obj in in_scope_objs if obj.var_name() in {"i", "agg.result"}
-            # ]
             args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
@@ -1224,7 +1216,7 @@ class VCVisitor:
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,
-                grammar=self.inv_grammars[inv_name],
+                grammar=self.inv_grammars[inv_name].func,
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
@@ -1474,9 +1466,7 @@ class Driver:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammars: Dict[
-            str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
-        ],
+        inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -1555,9 +1545,7 @@ class MetaliftFunc:
     fn_blocks: Dict[str, Block]
 
     target_lang_fn: Callable[[], List[FnDecl]]
-    inv_grammars: Dict[
-        str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
-    ]
+    inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
     synthesized: Optional[NewObject]
 
@@ -1570,9 +1558,7 @@ class MetaliftFunc:
         loops_filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
-        inv_grammars: Dict[
-            str, Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
-        ],
+        inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
     ) -> None:
         self.driver = driver

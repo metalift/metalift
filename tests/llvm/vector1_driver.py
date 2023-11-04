@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List, Union
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite, fnDecl, fnDeclRecursive
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         "tests/llvm/vector1.loops",
         "test",
         target_lang,
-        defaultdict(lambda: inv_grammar),
+        defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar
     )
 
