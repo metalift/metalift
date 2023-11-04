@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (IntObject, NewObject, TupleObject, call,
+from metalift.ir import (BoolObject, IntObject, NewObject, TupleObject, call,
                          choose, make_tuple, fnDecl)
 from tests.python.utils.utils import codegen
 
@@ -10,7 +10,7 @@ def tuple_add(t):
     return call("tuple_add", IntObject, t)
 
 def target_lang():
-    x = TupleObject(IntObject, IntObject, "x")
+    x = TupleObject((IntObject, IntObject), "x")
     tuple_add = fnDecl(
         "tuple_add",
         IntObject,
@@ -19,10 +19,11 @@ def target_lang():
     )
     return [tuple_add]
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no invariant")
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
     (x, y) = reads
     x_tuple = make_tuple(x, x)
     y_tuple = make_tuple(y, y)

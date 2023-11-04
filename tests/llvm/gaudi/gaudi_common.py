@@ -9,8 +9,8 @@ SCALARMUL = "scalar_mul"
 BROADCASTADD = "broadcast_add"
 REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
-ELEMWISEMAX = "elemwise_max"
-NESTEDELEMWISEMAX = "nested_elemwise_max"
+ELEMWISEMIN = "elemwise_min"
+NESTEDELEMWISEMIN = "nested_elemwise_min"
 
 
 def call_vector_add(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
@@ -31,14 +31,14 @@ def call_reduce_mul(lst) -> IntObject:
 def call_elemwise_mul(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     return call(ELEMWISEMUL, ListObject[IntObject], left, right)
 
-def call_elemwise_max(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
-    return call(ELEMWISEMAX, ListObject[IntObject], left, right)
+def call_elemwise_min(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
+    return call(ELEMWISEMIN, ListObject[IntObject], left, right)
 
-def call_nested_elemwise_max(
+def call_nested_elemwise_min(
     left: ListObject[ListObject[IntObject]],
     right: ListObject[ListObject[IntObject]]
 ) -> ListObject[ListObject[IntObject]]:
-    return call(NESTEDELEMWISEMAX, ListObject[ListObject[IntObject]], left, right)
+    return call(NESTEDELEMWISEMIN, ListObject[ListObject[IntObject]], left, right)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_elemwise_mul(left, right),
@@ -116,30 +116,30 @@ def elemwise_mul_body(left: ListObject[IntObject], right: ListObject[IntObject])
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
 elemwise_mul = fnDeclRecursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mul_body(x, y), x, y)
 
-def elemwise_max_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
+def elemwise_min_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = left.len()
     # TODO(jie): we need to remove this function to min
     cur = ite(left[0] < right[0], left[0], right[0])
     left_rest = left[1:]
     right_rest = right[1:]
-    recursed = call_elemwise_max(left_rest, right_rest)
+    recursed = call_elemwise_min(left_rest, right_rest)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
-elemwise_max = fnDeclRecursive(ELEMWISEMAX, ListObject[IntObject], elemwise_max_body(x, y), x, y)
+elemwise_min = fnDeclRecursive(ELEMWISEMIN, ListObject[IntObject], elemwise_min_body(x, y), x, y)
 
-def nested_elemwise_max_body(
+def nested_elemwise_min_body(
     left: ListObject[ListObject[IntObject]],
     right: ListObject[ListObject[IntObject]]
 ) -> ListObject[ListObject[IntObject]]:
     vec_size = left.len()
-    cur = call_elemwise_max(left[0], right[0])
-    recursed = call_nested_elemwise_max(left[1:], right[1:])
+    cur = call_elemwise_min(left[0], right[0])
+    recursed = call_nested_elemwise_min(left[1:], right[1:])
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(ListObject[IntObject]), general_answer)
-nested_elemwise_max = fnDeclRecursive(
-    NESTEDELEMWISEMAX,
+nested_elemwise_min = fnDeclRecursive(
+    NESTEDELEMWISEMIN,
     ListObject[ListObject[IntObject]],
-    nested_elemwise_max_body(nested_x, nested_y),
+    nested_elemwise_min_body(nested_x, nested_y),
     nested_x,
     nested_y
 )

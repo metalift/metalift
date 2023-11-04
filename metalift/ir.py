@@ -693,8 +693,8 @@ def fnDeclRecursive(
 
 
 def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
-    obj_types = [obj.type for obj in objects]
-    return TupleObject(*obj_types, Tuple(*get_object_exprs(*objects)))
+    obj_types = tuple([obj.type for obj in objects])
+    return TupleObject(obj_types, Tuple(*get_object_exprs(*objects)))
 
 
 def make_tuple_type(
@@ -1082,6 +1082,10 @@ class SetObject(Generic[T], NewObject):
     def type(self) -> typing.Type["SetObject"]:
         return SetObject[self.containedT]
 
+    @staticmethod
+    def default_value() -> "SetObject":
+        return SetObject(IntObject)
+
     def add(self, value: NewObject) -> "SetObject":
         if value.type != self.containedT:
             raise TypeError(
@@ -1144,13 +1148,9 @@ class SetObject(Generic[T], NewObject):
 class TupleObject(Generic[T], NewObject):
     def __init__(
         self,
-        *containedT: Union[
-            type, _GenericAlias
-        ],  # This containedT will also take the value parameter. But it's currently for consistency with other object classes
+        containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        value = containedT[-1]
-        containedT = containedT[:-1]
         full_type = TupleObject[typing.Tuple[containedT]]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1186,7 +1186,7 @@ class TupleObject(Generic[T], NewObject):
 
     @staticmethod
     def default_value() -> "TupleObject[IntObject, IntObject]":
-        return TupleObject(IntObject, IntObject)
+        return TupleObject((IntObject, IntObject), None)
 
     @staticmethod
     def toSMTType(type_args: ObjectContainedT) -> str:
