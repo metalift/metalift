@@ -17,6 +17,8 @@ from metalift import process_tracker
 import typing
 from typing import Any, Callable, Dict, List, Union, IO
 
+from metalift.types import CVC5UnsupportedException
+
 
 # utils for converting rosette output to IR
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -238,6 +240,7 @@ def toExpr(
                 toExpr(ast[2], fnsType, tmp_var_type, choices),
             )
         elif ast[0] == "reduce_int":
+            import pdb; pdb.set_trace()
             data = toExpr(ast[1], fnsType, varType, choices)
             fn = toExpr(
                 ast[2],
@@ -261,6 +264,7 @@ def toExpr(
             return Call("reduce_bool", BoolObject, data, fn, initial)
         elif ast[0] in fnsType.keys():
             arg_eval = []
+            ret_type = get_fn_return_type(fnsType[ast[0]])
             for alen in range(1, len(ast)):
                 arg_eval.append(
                     toExpr(
@@ -268,16 +272,15 @@ def toExpr(
                         fnsType,
                         varType,
                         choices,
-                        typeHint=fnsType[ast[0]].args[alen],
+                        typeHint=ret_type,
                     )
                 )
-            retT = fnsType[ast[0]].args[0]
             if (
                 ast[0] in Target.definedFns
             ):  # re-create a Target obj to call the user provided codegen
                 return Target.definedFns[ast[0]].call(*arg_eval)
             else:
-                return Call(ast[0], retT, *arg_eval)
+                return Call(ast[0], ret_type, *arg_eval)
         elif ast[0] in choices:
             picked: Expr = choices[ast[0]].args[0]
             while (
@@ -435,10 +438,9 @@ def synthesize(
                 for synthFun in invAndPs:
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
-                    fnsType[ceName] = FnT(
-                        synthFun.args[1].type,
-                        *[v.type for v in allVars],
-                    )
+                    fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
+                    # TODO(jie): should this be FnDeclObject or FnDeclRecursiveObject
+                    fnsType[ceName] = FnDeclObject[typing.Tuple[fn_types]]
                 for n in synthNames:
                     for r in output:
                         if "define (" + n in r:

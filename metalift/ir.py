@@ -95,7 +95,7 @@ def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, FnDeclObject)
 
-def get_fn_decl_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
+def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     tuple_types = get_args(ty)[0]
     return get_args(tuple_types)[0]
 
@@ -109,12 +109,6 @@ class Expr:
 
     # TODO: move into per-type implementations
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
-        if isinstance(self, NewObject):
-            from copy import deepcopy
-
-            new_object = deepcopy(self)
-            new_object.src = self.src.mapArgs(f)
-            return new_object
         if isinstance(self, Var):
             # TODO(jie)
             return Var(typing.cast(str, f(self.args[0])), self.type)
@@ -395,9 +389,10 @@ class Expr:
             else:
                 raise Exception(f"list_take not supported on {list_type} lists yet!")
         elif fn_name == "list_prepend":
-            if is_list_type(expr.type):
+            list_type = expr.type
+            if is_nested_list_type(list_type):
                 return "list-list-prepend"
-            elif is_primitive_type(expr.type):
+            elif is_primitive_type(get_list_element_type(list_type)):
                 return "list-prepend"
             else:
                 raise Exception(
@@ -696,10 +691,11 @@ def fn_decl(
 
 def fn_decl_recursive(
     fn_name: str,
-    return_type: "NewObject",
+    return_type: NewObjectT,
     body: Union["NewObject", Expr],
     *object_args: Union["NewObject", Expr],
 ) -> "FnDeclRecursive":
+
     fn_decl_recursive_expr = FnDeclRecursive(
         fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
@@ -1248,6 +1244,26 @@ class FnDeclObject(Generic[FnDeclContainedT], NewObject):
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
         elif isinstance(value, FnDecl):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, full_type)
+        else:
+            raise TypeError(f"Cannot create TupleObject from {value}")
+        NewObject.__init__(self, src)
+
+FnDeclRecursiveContainedT = TypeVar("FnDeclRecursiveContainedT")
+class FnDeclRecursiveObject(Generic[FnDeclRecursiveContainedT], NewObject):
+    def __init__(
+        self,
+        containedT: typing.Tuple[Union[type, _GenericAlias]],
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
+        full_type = FnDeclRecursiveObject[typing.Tuple[containedT]]
+        self.return_type = containedT[0]
+        self.argument_types = containedT[1:]
+        if value is None:  # a symbolic variable
+            src = Var("v", full_type)
+        elif isinstance(value, FnDeclRecursive):
             src = value
         elif isinstance(value, str):
             src = Var(value, full_type)
@@ -1895,7 +1911,7 @@ class CallValue(Expr):
     def __init__(self, value: Expr, *arguments: Expr) -> None:
         if not is_fn_decl_type(value.type):
             raise Exception(f"value must be fn decl type for call value")
-        Expr.__init__(self, get_fn_decl_return_type(value.type), [value, *arguments])
+        Expr.__init__(self, get_fn_return_type(value.type), [value, *arguments])
 
     def value(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -2291,13 +2307,16 @@ class FnDeclRecursive(Expr):
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
+        self.return_type = returnT
+        arg_types = tuple([arg.type for arg in args])
+        fn_type = FnDeclObject[typing.Tuple[(returnT, *arg_types)]]
+        Expr.__init__(self, fn_type, [name, body, *args])
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
     def returnT(self) -> NewObjectT:
-        return self.type.args[0]
+        return self.return_type
 
     def body(self) -> Union[Expr, str]:
         return self.args[1]  # type: ignore
@@ -2452,13 +2471,16 @@ class FnDecl(Expr):
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])
+        self.return_type = returnT
+        arg_types = tuple([arg.type for arg in args])
+        fn_type = FnDeclObject[typing.Tuple[(returnT, *arg_types)]]
+        Expr.__init__(self, fn_type, [name, body, *args])
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
     def returnT(self) -> NewObjectT:
-        return self.type.args[0]
+        return self.return_type
 
     def body(self) -> Union[Expr, str]:
         return self.args[1]  # type: ignore
