@@ -662,9 +662,10 @@ InvGrammar = NamedTuple(
     "InvGrammar",
     [
         ("func", Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]),
-        ("in_scope_var_names", List[str])
-    ]
+        ("in_scope_var_names", List[str]),
+    ],
 )
+
 
 class State:
     precond: List[BoolObject]
@@ -765,6 +766,7 @@ class State:
             return "pointer"
         else:
             raise Exception(f"{var_name} not found in state!")
+
 
 class Predicate:
     args: List[NewObject]
@@ -890,7 +892,7 @@ class VCVisitor:
         inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
         loops: List[LoopInfo],
-        uninterp_fns: List[str]
+        uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name
@@ -947,15 +949,11 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_or_store_operand(op, val)
 
-    def read_var_from_block(
-        self, block_name: str, var_name: str
-    ) -> None:
+    def read_var_from_block(self, block_name: str, var_name: str) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_var(var_name)
 
-    def load_var_from_block(
-        self, block_name: str, var_name: str
-    ) -> None:
+    def load_var_from_block(self, block_name: str, var_name: str) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_var(var_name)
 
@@ -970,7 +968,6 @@ class VCVisitor:
     ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
-
 
     # Helper functions for loops
     def find_header_loops(self, block_name: str) -> List[LoopInfo]:
@@ -995,7 +992,9 @@ class VCVisitor:
                 relevant_loops.append(loop)
         return relevant_loops
 
-    def get_havocs(self, block_name: str, loop_info: LoopInfo) -> Tuple[List[NewObject], List[NewObject]]:
+    def get_havocs(
+        self, block_name: str, loop_info: LoopInfo
+    ) -> Tuple[List[NewObject], List[NewObject]]:
         primitive_havocs: List[NewObject] = []
         pointer_havocs: List[NewObject] = []
         blk_state = self.fn_blocks_states[block_name]
@@ -1024,9 +1023,7 @@ class VCVisitor:
 
         if self.fn_sret_arg is not None:
             self.store_var_to_block(
-                block.name,
-                self.fn_sret_arg.var_name(),
-                self.fn_sret_arg
+                block.name, self.fn_sret_arg.var_name(), self.fn_sret_arg
             )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
@@ -1181,7 +1178,9 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             inv_grammar = self.inv_grammars[inv_name]
             in_scope_objs = [
-                obj for obj in in_scope_objs if obj.var_name() in inv_grammar.in_scope_var_names
+                obj
+                for obj in in_scope_objs
+                if obj.var_name() in inv_grammar.in_scope_var_names
             ]
             args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
@@ -1213,7 +1212,9 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             inv_grammar = self.inv_grammars[inv_name]
             in_scope_objs = [
-                obj for obj in in_scope_objs if obj.var_name() in inv_grammar.in_scope_var_names
+                obj
+                for obj in in_scope_objs
+                if obj.var_name() in inv_grammar.in_scope_var_names
             ]
             args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
@@ -1357,7 +1358,9 @@ class VCVisitor:
             # beginning.
             # This is because for list type, at first we assume it's an int list. We only infer the
             # corret type later on after we parse the functions.
-            ret_val_type = self.load_var_from_block(block_name, self.fn_sret_arg.var_name()).type
+            ret_val_type = self.load_var_from_block(
+                block_name, self.fn_sret_arg.var_name()
+            ).type
             ret_val = create_object(ret_val_type, self.fn_sret_arg.var_name())
         elif not ret_void:
             if not ops[0].type.is_pointer:
@@ -1393,8 +1396,6 @@ class VCVisitor:
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
-
-
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
@@ -1416,24 +1417,21 @@ class VCVisitor:
                 for name, value, loc in rv.assigns:
                     if loc == "primitive":
                         self.write_var_to_block(
-                            block_name=block_name,
-                            var_name=name,
-                            val=value
+                            block_name=block_name, var_name=name, val=value
                         )
                     else:
                         self.store_var_to_block(
-                            block_name=block_name,
-                            var_name=name,
-                            val=value
+                            block_name=block_name, var_name=name, val=value
                         )
         elif fn_name in self.uninterp_fns:
             # The last operand is the function name
             ops = list(o.operands)[:-1]
-            ops_objs = [self.read_or_load_operand_from_block(block_name, op) for op in ops]
+            ops_objs = [
+                self.read_or_load_operand_from_block(block_name, op) for op in ops
+            ]
             ret_type = parse_type_ref_to_obj(o.type)
             ret_val = call(fn_name, ret_type, *ops_objs)
             self.write_or_store_operand_to_block(block_name, o, ret_val)
-
 
     def visit_trunc_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
@@ -1656,7 +1654,7 @@ class MetaliftFunc:
             inv_grammars=self.inv_grammars,
             ps_grammar=self.ps_grammar,
             loops=self.loops,
-            uninterp_fns=kwds.get("uninterp_fns", [])
+            uninterp_fns=kwds.get("uninterp_fns", []),
         )
 
         # Visit blocks in a DAG order
