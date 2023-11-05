@@ -1,6 +1,7 @@
 from typing import List
+import typing
 
-from metalift.ir import (IntObject, ListObject, call, choose,
+from metalift.ir import (FnObject, IntObject, ListObject, NewObject, Synth, call, call_value, choose, fn_decl,
                          fn_decl_recursive, ite)
 
 VECTORADD = "vector_add"
@@ -11,7 +12,10 @@ REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
 ELEMWISEMIN = "elemwise_min"
 NESTEDELEMWISEMIN = "nested_elemwise_min"
+SELECT = "select"
 SELECTMIN = "select_min"
+SELECTION = "selection"
+NESTEDSELECTION = "nested_selection"
 
 
 def call_vector_add(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
@@ -40,6 +44,20 @@ def call_nested_elemwise_min(
     right: ListObject[ListObject[IntObject]]
 ) -> ListObject[ListObject[IntObject]]:
     return call(NESTEDELEMWISEMIN, ListObject[ListObject[IntObject]], left, right)
+
+def call_selection(
+    left: ListObject[IntObject],
+    right: ListObject[IntObject],
+    select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
+) -> ListObject[IntObject]:
+    return call(SELECTION, ListObject[IntObject], left, right, select_fn)
+
+def call_nested_selection(
+    left: ListObject[ListObject[IntObject]],
+    right: ListObject[ListObject[IntObject]],
+    select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
+) -> ListObject[ListObject[IntObject]]:
+    return call(NESTEDSELECTION, ListObject[ListObject[IntObject]], left, right, select_fn)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_elemwise_mul(left, right),
@@ -146,35 +164,56 @@ nested_elemwise_min = fn_decl_recursive(
     nested_y
 )
 
-# # Selection criteria
-# select_max = fn_decl(
-#     SELECTMIN,
-#     IntObject,
-#     ite(int_x < int_y, x, y),
-#     x,
-#     y
-# )
-# selection = Choose(select_max)
-# def selection_body(
-#     left: ListObject[IntObject],
-#     right: ListObject[IntObject],
-#     select_fns: List[FnDecl]
-# ) -> ListObject[IntObject]:
-#     vec_size = left.len()
-#     cur = choose_fn_decl_and_call(select_fns, left[0], right[0])
-#     left_rest = left[1:]
-#     right_rest = right[1:]
-#     recursed = selection_body(left_rest, right_rest)
-#     general_answer = recursed.prepend(cur)
-#     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
+# Selection criteria
+select_min_body = ite(int_x < int_y, int_x, int_y)
+select_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT)
+select_fn_decl = fn_decl(SELECT, IntObject, None, int_x, int_y)
 
-# def nested_selection_body(
-#     left: ListObject[ListObject[IntObject]],
-#     right: ListObject[ListObject[IntObject]],
-#     select_op: Choose
-# ) -> ListObject[ListObject[IntObject]]:
-#     vec_size = left.len()
-#     cur = call_elemwise_min(left[0], right[0])
-#     recursed = call_nested_elemwise_min(left[1:], right[1:])
-#     general_answer = recursed.prepend(cur)
-#     return ite(vec_size < 1, ListObject.empty(ListObject[IntObject]), general_answer)
+def get_select_synth(*select_bodies: NewObject) -> Synth:
+    return Synth(
+        SELECT,
+        choose(*select_bodies).src,
+        int_x.src,
+        int_y.src
+    )
+
+def selection_body(
+    left: ListObject[IntObject],
+    right: ListObject[IntObject],
+    select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
+) -> ListObject[IntObject]:
+    vec_size = left.len()
+    cur = call_value(select_fn, left[0], right[0])
+    left_rest = left[1:]
+    right_rest = right[1:]
+    recursed = call_selection(left_rest, right_rest, select_fn)
+    general_answer = recursed.prepend(cur)
+    return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
+
+selection = fn_decl_recursive(
+    SELECTION,
+    ListObject[IntObject],
+    selection_body(x, y, select_fn_obj),
+    x,
+    y,
+    select_fn_obj
+)
+
+def nested_selection_body(
+    left: ListObject[ListObject[IntObject]],
+    right: ListObject[ListObject[IntObject]],
+    select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
+) -> ListObject[ListObject[IntObject]]:
+    vec_size = left.len()
+    cur = call_selection(left[0], right[0], select_fn)
+    recursed = call_nested_selection(left[1:], right[1:], select_fn)
+    general_answer = recursed.prepend(cur)
+    return ite(vec_size < 1, ListObject.empty(ListObject[IntObject]), general_answer)
+nested_selection = fn_decl_recursive(
+    NESTEDSELECTION,
+    ListObject[ListObject[IntObject]],
+    nested_selection_body(nested_x, nested_y, select_fn_obj),
+    nested_x,
+    nested_y,
+    select_fn_obj
+)

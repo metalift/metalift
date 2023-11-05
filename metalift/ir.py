@@ -1243,6 +1243,14 @@ class FnObject(Generic[FnContainedT], NewObject):
             raise TypeError(f"Cannot create FnObject from {value}")
         NewObject.__init__(self, src)
 
+    @property
+    def name(self) -> str:
+        if isinstance(self.src, FnDecl) or isinstance(self.src, FnDeclRecursive):
+            return self.src.name()
+        elif isinstance(self.src, Var):
+            return self.src.name()
+        raise Exception("Unsupported source type for function objects!")
+
     @staticmethod
     def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
         contained_type_strs: List[str] = []
