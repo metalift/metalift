@@ -792,7 +792,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
 
-    def visit_tuple_expr(self, o: TupleExpr) -> TupleObject[NewObjectT]:
+    def visit_tuple_expr(self, o: TupleExpr) -> TupleObject[NewObjectT]: #type: ignore
         tuple_exprs = [expr.accept(self) for expr in o.items]
         return make_tuple(*tuple_exprs)
 
