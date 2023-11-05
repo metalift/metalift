@@ -105,10 +105,10 @@ class VC:
         self.fnName = fnName
         self.log = log
 
-    def makeVar(self, name: str, ty: Union[TypeRef, ObjectT]) -> Expr:
+    def makeVar(self, name: str, ty: Union[TypeRef, NewObjectT]) -> Expr:
         if isinstance(ty, TypeRef):
             ty = parse_type_ref_to_obj(ty)
-        elif isinstance(ty, Type):
+        elif isinstance(ty, NewObject):
             pass
         else:
             raise Exception("NYI %s with type %s" % (name, ty))
@@ -120,7 +120,7 @@ class VC:
 
         return e
 
-    def callPred(self, name: str, returnT: ObjectT, *args: Expr) -> Expr:
+    def callPred(self, name: str, returnT: NewObjectT, *args: Expr) -> Expr:
         newArgs = [Var("v%s" % i, a.type) for (i, a) in zip(range(len(args)), args)]
         self.preds[name] = Call(name, returnT, *newArgs)
         return Call(name, returnT, *args)
@@ -364,22 +364,23 @@ class VC:
                 elif t == "%struct.list*":
                     s.mem[i] = Lit(0, ListObject[IntObject])
                 elif t.startswith("%struct.set"):
-                    s.mem[i] = Lit(0, SetObject(IntObject))
+                    s.mem[i] = Lit(0, SetObject[IntObject])
                 elif t.startswith("%struct.tup."):
                     retType = [IntObject for i in range(int(t[-2]) + 1)]
-                    s.mem[i] = Lit(0, TupleT(*retType))
+                    s.mem[i] = Lit(0, make_tuple_type(*retType))
                 elif t.startswith("%struct.tup"):
-                    s.mem[i] = Lit(0, TupleT(IntObject, IntObject))
-                elif t.startswith(
-                    "%struct."
-                ):  # not a tuple or set, assume to be user defined type
-                    o = re.search("%struct.(.+)", t)
-                    if o:
-                        tname = o.group(1)
-                    else:
-                        raise Exception("failed to match struct %s: " % t)
+                    s.mem[i] = Lit(0, make_tuple_type(IntObject, IntObject))
+                # TODO: see how to handle user defined structs
+                # elif t.startswith(
+                #     "%struct."
+                # ):  # not a tuple or set, assume to be user defined type
+                #     o = re.search("%struct.(.+)", t)
+                #     if o:
+                #         tname = o.group(1)
+                #     else:
+                #         raise Exception("failed to match struct %s: " % t)
 
-                    s.mem[i] = ObjectExpr(Type(tname))
+                #     s.mem[i] = ObjectExpr(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 
@@ -438,8 +439,8 @@ class VC:
                 if fnName == "":
                     # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
                     fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
-                if fnName in fn_models:
-                    rv = fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
+                if fnName in models.fn_models:
+                    rv = models.fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
                     if rv.val:
                         s.regs[i] = rv.val.src
                         assigns.add(i)

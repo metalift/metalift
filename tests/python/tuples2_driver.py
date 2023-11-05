@@ -22,8 +22,7 @@ def target_lang():
 def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no invariant")
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
-    ret_val = writes[0]
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     (x, y) = reads
     x_tuple = make_tuple(x, x)
     y_tuple = make_tuple(y, y)

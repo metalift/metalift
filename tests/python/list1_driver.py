@@ -64,7 +64,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         select_func2,
     ]
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def ps_grammar(ret_val:NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     # reads = [in_lst]
     in_lst = reads[0]
     return choose(

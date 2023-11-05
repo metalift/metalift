@@ -123,7 +123,7 @@ from metalift.mypy_util import (
     is_func_call_with_name,
     is_method_call_with_name,
 )
-from metalift.vc_util import and_objects, or_objects
+from metalift.vc_util import and_objects, or_objects, and_exprs
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -291,7 +291,14 @@ class Predicate:
         return cast(BoolObject, call_ret)
 
     def gen_Synth(self) -> Synth:
-        body = self.grammar(self.writes, self.reads, self.in_scope).src
+        # v_objects = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
+        # # body = and_exprs(*get_object_sources(v_objects))
+        # body = self.grammar(self.writes, self.reads, self.in_scope).src
+        # return Synth(self.name, body, *get_object_exprs(*self.args))
+        v_objects = [
+            self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes
+        ]
+        body = and_exprs(*get_object_exprs(*v_objects))
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 

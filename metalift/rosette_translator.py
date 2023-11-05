@@ -15,6 +15,7 @@ from metalift.ir import (
     is_list_type,
     is_nested_list_type,
     is_set_type,
+    is_tuple_type,
 )
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
@@ -66,11 +67,22 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             )
             decls.append(decl)
         else:
-            decls.append(
-                "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-            )
-    elif is_tuple_type_expr(v):
+            tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
+
+            for t in tmp:
+                genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
+
+            if is_set_type(v.type):
+                decls.append(
+                    "(define %s (sort (remove-duplicates (take %s %s)) <))"
+                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+                )
+            else:
+                decls.append(
+                    "(define %s (take %s %s))"
+                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+                )
+    elif is_tuple_type(v):
         elem_names = []
         for i, t in enumerate(typing.get_args(v.type)):
             elem_name = v.args[0] + "_TUPLE-" + str(i)
