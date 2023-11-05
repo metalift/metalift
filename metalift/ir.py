@@ -91,9 +91,9 @@ def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), FnDeclObject)
+        return issubclass(get_origin(ty), FnObject)
     else:
-        return issubclass(ty, FnDeclObject)
+        return issubclass(ty, FnObject)
 
 def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     tuple_types = get_args(ty)[0]
@@ -671,7 +671,7 @@ def call(
     call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
 
-def call_value(fn_decl: "FnDeclObject", *object_args: "NewObject") -> "NewObject":
+def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
     ret_type = fn_decl.return_type
     print(call_value_expr)
@@ -992,20 +992,6 @@ class ListObject(Generic[T], NewObject):
 
         return call("list_get", self.containedT, self, index)
 
-        # if is_new_object_type(self.containedT):  # non generic type
-        #     print("haha", self.containedT, call("list_get", self.containedT, self, index))
-        #     return call("list_get", self.containedT, self, index)
-        # elif isinstance(self.containedT, _GenericAlias):  # generic type
-        #     subcontainedT = typing.get_args(self.containedT)[0]
-        #     print("hoho", self.containedT, Call("list_get", self.containedT, self.src, index.src))
-        #     return self.containedT(
-        #         subcontainedT, Call("list_get", self.containedT, self.src, index.src)
-        #     )
-        # else:
-        #     raise NotImplementedError(
-        #         f"Cannot get item from list containing type {self.containedT}"
-        #     )
-
     def __setitem__(self, index: Union[IntObject, int], value: NewObject) -> None:
         if isinstance(index, int):
             index = IntObject(index)
@@ -1013,7 +999,6 @@ class ListObject(Generic[T], NewObject):
             raise TypeError(
                 f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
             )
-        # TODO(jie): is this working
         self.src = Call("list_set", self.type, self.src, index.src, value.src)
 
     # in place append
@@ -1204,7 +1189,7 @@ class TupleObject(Generic[TupleContainedT], NewObject):
         return TupleObject((IntObject, IntObject), None)
 
     @staticmethod
-    def toSMTType(type_args: ObjectContainedT) -> str:
+    def toSMTType(type_args: Tuple[ObjectContainedT]) -> str:
         containedT = get_args(type_args[0])
         tuple_length = len(containedT)
         contained_str_list = []
@@ -1230,46 +1215,40 @@ class TupleObject(Generic[TupleContainedT], NewObject):
             contained_type_strs.append(contained_type_str)
         return f"Tuple {' '.join(contained_type_strs)}"
 
-
-FnDeclContainedT = TypeVar("FnDeclContainedT")
-class FnDeclObject(Generic[FnDeclContainedT], NewObject):
+FnContainedT = TypeVar("FnContainedT")
+class FnObject(Generic[FnContainedT], NewObject):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = FnDeclObject[typing.Tuple[containedT]]
+        full_type = FnObject[typing.Tuple[containedT]]
         self.return_type = containedT[0]
         self.argument_types = containedT[1:]
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
-        elif isinstance(value, FnDecl):
+        elif isinstance(value, FnDecl) or isinstance(value, FnDeclRecursive):
             src = value
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create TupleObject from {value}")
+            raise TypeError(f"Cannot create FnObject from {value}")
         NewObject.__init__(self, src)
 
-FnDeclRecursiveContainedT = TypeVar("FnDeclRecursiveContainedT")
-class FnDeclRecursiveObject(Generic[FnDeclRecursiveContainedT], NewObject):
-    def __init__(
-        self,
-        containedT: typing.Tuple[Union[type, _GenericAlias]],
-        value: Optional[Union[Expr, str]] = None,
-    ) -> None:
-        full_type = FnDeclRecursiveObject[typing.Tuple[containedT]]
-        self.return_type = containedT[0]
-        self.argument_types = containedT[1:]
-        if value is None:  # a symbolic variable
-            src = Var("v", full_type)
-        elif isinstance(value, FnDeclRecursive):
-            src = value
-        elif isinstance(value, str):
-            src = Var(value, full_type)
-        else:
-            raise TypeError(f"Cannot create TupleObject from {value}")
-        NewObject.__init__(self, src)
+
+    @staticmethod
+    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
+        contained_type_strs: List[str] = []
+        for contained_type in get_args(type_args[0]):
+            if isinstance(contained_type, _GenericAlias):
+                contained_type_str = get_origin(contained_type).toSMTType(
+                    get_args(contained_type)
+                )
+            else:
+                contained_type_str = contained_type.toSMTType()
+            contained_type_strs.append(contained_type_str)
+        return f"Function {' '.join(contained_type_strs)}"
+
 
 ### END OF IR OBJECTS
 
@@ -1370,7 +1349,7 @@ def IntLit(val: int) -> Expr:
 
 def EnumIntLit(val: int) -> Expr:
     return Lit(val, IntObject)
-    # TODO: bring EnumBack
+    # TODO(colin): bring EnumBack
     # return Lit(val, EnumInt())
 
 
@@ -1384,13 +1363,8 @@ class Add(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        # TODO: add this back
         for arg in args:
             if arg.type != args[0].type:
-                # raise Exception(
-                #     f"Args types not equal: {arg.type.erase()} and {args[0].type.erase()}"
-                # )
-                # TODO(jie) add back `erase` once we retire types
                 raise Exception(f"Args types not equal: {arg.type} and {args[0].type}")
         Expr.__init__(self, IntObject, args)
 
@@ -2130,7 +2104,7 @@ class Axiom(Expr):
         return ""  # axioms are only for verification
 
     def toSMT(self) -> str:
-        vs = ["(%s %s)" % (a.args[0], a.type) for a in self.args[1:]]
+        vs = ["(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type))) for a in self.vars()]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
     def accept(self, v: "Visitor[T]") -> T:
@@ -2309,7 +2283,7 @@ class FnDeclRecursive(Expr):
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
-        fn_type = FnDeclObject[typing.Tuple[(returnT, *arg_types)]]
+        fn_type = FnObject[typing.Tuple[(returnT, *arg_types)]]
         Expr.__init__(self, fn_type, [name, body, *args])
 
     def name(self) -> str:
@@ -2354,10 +2328,10 @@ class FnDeclRecursive(Expr):
             )
 
     def toSMT(self) -> str:
-        if self.args[1] is None:  # uninterpreted function
+        if self.body() is None:  # uninterpreted function
             args_type = " ".join(
                 parse_type_ref_to_obj(a.type).toSMTType(get_args(a.type))
-                for a in self.args[2:]
+                for a in self.arguments()
             )
             ret_type = self.returnT()
             return "(declare-fun %s (%s) %s)" % (
@@ -2367,24 +2341,20 @@ class FnDeclRecursive(Expr):
             )
         else:
             declarations = []
-            for a in self.args[2:]:
-                if isinstance(a, ValueRef):
-                    declarations.append((a.name, parse_type_ref_to_obj(a.type)))
-                elif isinstance(a, NewObject):
-                    declarations.append((a.src.args[0], a.type))
-                else:
-                    declarations.append((a.args[0], a.type))
+            for a in self.arguments():
+                declarations.append((a.args[0], a.type))
+                # if isinstance(a, ValueRef):
+                #     declarations.append((a.name, parse_type_ref_to_obj(a.type)))
+                # elif isinstance(a, NewObject):
+                #     declarations.append((a.src.args[0], a.type))
+                # else:
+                    # declarations.append((a.args[0], a.type))
 
-            # TODO(jie): maybe instead of get_args(d[1]) we use containedT?
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
             )
 
-            if self.type.name != "Function":
-                return_type = self.type.toSMT()
-            else:
-                return_object_type = self.returnT()
-                return_type = return_object_type.toSMTType(get_args(return_object_type))
+            return_type = self.returnT().toSMTType(get_args(self.returnT()))
             return "(define-fun-rec %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
@@ -2473,7 +2443,7 @@ class FnDecl(Expr):
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
-        fn_type = FnDeclObject[typing.Tuple[(returnT, *arg_types)]]
+        fn_type = FnObject[typing.Tuple[(returnT, *arg_types)]]
         Expr.__init__(self, fn_type, [name, body, *args])
 
     def name(self) -> str:
@@ -2531,20 +2501,21 @@ class FnDecl(Expr):
             )
         else:
             declarations = []
-            for a in self.args[2:]:
-                if isinstance(a, ValueRef):
-                    declarations.append((a.name, parse_type_ref_to_obj(a.type)))
-                else:
-                    declarations.append((a.args[0], a.type))
+            for a in self.arguments():
+                declarations.append((a.args[0], a.type))
+                # if isinstance(a, ValueRef):
+                #     declarations.append((a.name, parse_type_ref_to_obj(a.type)))
+                # else:
+                #     declarations.append((a.args[0], a.type))
 
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)
-
+            args = " ".join(
+                "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
+            )
+            return_type = self.returnT().toSMTType(get_args(self.returnT()))
             return "(define-fun %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
-                (
-                    self.type if self.type.name != "Function" else self.type.args[0]
-                ).toSMT(),
+                return_type,
                 self.args[1] if isinstance(self.args[1], str) else self.args[1].toSMT(),
             )
 

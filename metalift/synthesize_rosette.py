@@ -439,8 +439,8 @@ def synthesize(
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
                     fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
-                    # TODO(jie): should this be FnDeclObject or FnDeclRecursiveObject
-                    fnsType[ceName] = FnDeclObject[typing.Tuple[fn_types]]
+                    # TODO(jie): should this be FnObject or FnDeclRecursiveObject
+                    fnsType[ceName] = FnObject[typing.Tuple[fn_types]]
                 for n in synthNames:
                     for r in output:
                         if "define (" + n in r:

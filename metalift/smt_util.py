@@ -26,11 +26,8 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
         newArgs = []
         for i in range(1, len(funDef.args)):
             # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
-            try:
-                if not is_fn_decl_type(funDef.args[i].type):
-                    newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-            except:
-                import pdb; pdb.set_trace()
+            if not is_fn_decl_type(funDef.args[i].type):
+                newArgs.append(filterBody(funDef.args[i], funCall, inCall))
         return Call(funCall + "_" + inCall, funDef.type, *newArgs)
     elif isinstance(funDef, CallValue):
         newArgs = []
@@ -123,7 +120,7 @@ def toSMT(
                 decl = FnDeclRecursive(
                     # TODO: cand.type no longer has args, find proper substitution
                     cand.args[0],
-                    cand.type.args[0],
+                    get_fn_return_type(cand.type),
                     newBody,
                     *cand.args[2:],  # type: ignore
                 )
