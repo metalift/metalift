@@ -1,7 +1,7 @@
 from typing import List
 
-from metalift.ir import (Choose, FnDecl, IntObject, ListObject, call, choose, choose_fn_decl_and_call, fn_decl, fn_decl_recursive,
-                         ite)
+from metalift.ir import (IntObject, ListObject, call, choose,
+                         fn_decl_recursive, ite)
 
 VECTORADD = "vector_add"
 ELEMWISEMUL = "elemwise_mul"
