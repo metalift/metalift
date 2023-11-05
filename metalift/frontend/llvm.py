@@ -29,19 +29,16 @@ from metalift.ir import (
     Expr,
     FnDecl,
     FnDeclRecursive,
-    FnT,
     IntObject,
     Ite,
     ListObject,
     Lit,
-    MLType,
     NewObject,
     NewObjectT,
     ObjectExpr,
     SetObject,
     Synth,
     TupleObject,
-    TupleT,
     Var,
     call,
     create_object,
@@ -56,6 +53,7 @@ from metalift.ir import (
 )
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
+from metalift.vc import Block
 
 # Models
 ReturnValue = NamedTuple(
@@ -77,7 +75,7 @@ def set_create(
     global_vars: Dict[str, str],
     full_demangled_name: str,
     *args: ValueRef,
-):
+) -> ReturnValue:
     return ReturnValue(SetObject.empty(IntObject), None)
 
 
@@ -86,11 +84,11 @@ def set_add(
     global_vars: Dict[str, str],
     full_demangled_name: str,
     *args: ValueRef,
-):
+) -> ReturnValue:
     assert len(args) == 2
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
-    return ReturnValue(s.add(item), None)
+    return ReturnValue(s.add(item), None) #type: ignore
 
 
 def set_remove(
@@ -98,11 +96,11 @@ def set_remove(
     global_vars: Dict[str, str],
     full_demangled_name: str,
     *args: ValueRef,
-):
+) -> ReturnValue:
     assert len(args) == 2
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
-    return ReturnValue(s.remove(item), None)
+    return ReturnValue(s.remove(item), None)  #type: ignore
 
 
 def set_contains(
@@ -110,11 +108,11 @@ def set_contains(
     global_vars: Dict[str, str],
     full_demangled_name: str,
     *args: ValueRef,
-):
+) -> ReturnValue:
     assert len(args) == 2
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
-    return ReturnValue(item in s, None)
+    return ReturnValue(item in s, None)  #type: ignore
 
 
 def new_list(
@@ -137,7 +135,7 @@ def list_length(
     # TODO(jie) think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
     return ReturnValue(
-        lst.len(),
+        lst.len(),  #type: ignore
         None,
     )
 
@@ -152,7 +150,7 @@ def list_get(
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
     return ReturnValue(
-        lst[index],
+        lst[index],  #type: ignore
         None,
     )
 
@@ -167,7 +165,7 @@ def list_append(
     lst = state.read_or_load_operand(args[0])
     value = state.read_or_load_operand(args[1])
     return ReturnValue(
-        lst.append(value),
+        lst.append(value),  #type: ignore
         None,
     )
 
@@ -182,7 +180,7 @@ def list_concat(
     lst1 = state.read_or_load_operand(args[0])
     lst2 = state.read_or_load_operand(args[1])
     return ReturnValue(
-        lst1 + lst2,
+        lst1 + lst2,  #type: ignore
         None,
     )
 
@@ -211,9 +209,8 @@ def new_vector(
         )
 
     var_name: str = args[0].name
-    list_obj = ListObject.empty(get_list_element_type(list_type))
-    list_loc = state.get_var_location(var_name)
-    return ReturnValue(None, [(var_name, list_obj, list_loc)])
+    assigns: List[Tuple[str, Expr, str]] = [ (var_name, ListObject.empty(contained_type), "primitive") ]  #type: ignore
+    return ReturnValue(None, assigns)  #type: ignore
 
 
 def vector_append(
@@ -228,7 +225,7 @@ def vector_append(
     assign_val = call(
         "list_append",
         parse_type_ref_to_obj(args[0].type),
-        state.read_or_load_operand(args[0]),
+        state.read_or_load_operand(args[0]), 
         state.read_or_load_operand(args[1]),
     )
     assign_loc = state.get_var_location(assign_var_name)
@@ -263,13 +260,10 @@ def vector_length(
     # TODO(jie) think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
     # TODO(jie): is this enough? Do we need to make another list object?
-    lst.containedT = get_list_element_type(list_type)
-
-    var_name = args[0].name
-    var_loc = state.get_var_location(var_name)
+    lst.containedT = contained_type  #type: ignore
     return ReturnValue(
-        lst.len(),
-        [(var_name, lst, var_loc)],
+        lst.len(),  #type: ignore
+        None,
     )
 
 
@@ -299,8 +293,8 @@ def vector_get(
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)
     return ReturnValue(
-        lst[index],
-        [(var_name, lst, var_loc)],
+        lst[index],  #type: ignore
+        None,
     )
 
 
@@ -394,25 +388,6 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
 from metalift.types import String
 
 # Helper classes
-class Block:
-    regs: Dict[ValueRef, Expr]
-    preds: typing.List[Any]
-    succs: typing.List[Any]
-
-    def __init__(self, name: str, instructions: typing.List[ValueRef]) -> None:
-        self.name = name
-        self.instructions = instructions
-        self.preds = []
-        self.succs = []
-        self.state = State()
-
-    def __repr__(self) -> str:
-        return "name: %s, pred: %s, succ: %s" % (
-            self.name,
-            ",".join([p.name for p in self.preds]),
-            ",".join([s.name for s in self.succs]),
-        )
-
 
 RawLoopInfo = NamedTuple(
     "RawLoopInfo",
@@ -1205,7 +1180,8 @@ class VCVisitor:
             primitive_havocs, pointer_havocs = self.get_havocs(block.name, loop)
             havocs = primitive_havocs + pointer_havocs
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
-            in_scope_objs: List[NewObject] = []
+
+            in_scope_objs = []
             for var_name, var_obj in blk_state.primitive_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
@@ -1495,7 +1471,7 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
-    def synthesize(self, **synthesize_kwargs) -> None:
+    def synthesize(self, **synthesize_kwargs) -> None: #type: ignore
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
@@ -1524,8 +1500,8 @@ class Driver:
                 if isinstance(f.body(), Eq):
                     self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                elif isinstance(f.body(), Call) and f.body().name() == "list_eq":
-                    self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]
+                elif isinstance(f.body(), Call) and cast(Call, f.body()).name() == "list_eq": 
+                    self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 # if isinstance(f.body(), Implies):
                 #     rhs = cast(Implies, f.body()).args[1]
