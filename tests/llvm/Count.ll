@@ -1,7 +1,7 @@
 ; ModuleID = 'Count.ll'
 source_filename = "Count.cc"
-target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
-target triple = "arm64-apple-macosx11.0.0"
+target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-apple-macosx12.0.0"
 
 %struct.list = type { %"class.std::__1::vector" }
 %"class.std::__1::vector" = type { %"class.std::__1::__vector_base" }
@@ -9,7 +9,7 @@ target triple = "arm64-apple-macosx11.0.0"
 %"class.std::__1::__compressed_pair" = type { %"struct.std::__1::__compressed_pair_elem" }
 %"struct.std::__1::__compressed_pair_elem" = type { i32* }
 
-; Function Attrs: noinline optnone sspstrong uwtable
+; Function Attrs: noinline optnone ssp uwtable
 define i32 @test(%struct.list* %data) #0 {
 entry:
   %data.addr = alloca %struct.list*, align 8
@@ -29,13 +29,13 @@ for.cond:                                         ; preds = %for.inc, %entry
 
 for.body:                                         ; preds = %for.cond
   %i3 = load i32, i32* %count, align 4
-  %inc = add i32 %i3, 1
+  %inc = add nsw i32 %i3, 1
   store i32 %inc, i32* %count, align 4
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body
   %i4 = load i32, i32* %i, align 4
-  %inc1 = add i32 %i4, 1
+  %inc1 = add nsw i32 %i4, 1
   store i32 %inc1, i32* %i, align 4
   br label %for.cond
 
@@ -44,7 +44,7 @@ for.end:                                          ; preds = %for.cond
   ret i32 %i5
 }
 
-; Function Attrs: noinline nounwind optnone sspstrong uwtable
+; Function Attrs: noinline nounwind optnone ssp uwtable
 define linkonce_odr i32 @_Z10listLengthIiEiP4listIT_E(%struct.list* %l) #1 {
 entry:
   %l.addr = alloca %struct.list*, align 8
@@ -56,7 +56,7 @@ entry:
   ret i32 %conv
 }
 
-; Function Attrs: noinline nounwind optnone sspstrong uwtable
+; Function Attrs: noinline nounwind optnone ssp uwtable
 define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this) #1 align 2 {
 entry:
   %this.addr = alloca %"class.std::__1::vector"*, align 8
@@ -75,8 +75,8 @@ entry:
   ret i64 %sub.ptr.div
 }
 
-attributes #0 = { noinline optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noinline nounwind optnone sspstrong uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="non-leaf" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="4" "target-cpu"="apple-a13" "target-features"="+aes,+crc,+crypto,+fullfp16,+lse,+neon,+ras,+rcpc,+rdm,+sha2,+v8.3a,+zcm,+zcz" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { noinline optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { noinline nounwind optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0, !1}
@@ -84,4 +84,4 @@ attributes #2 = { nounwind }
 
 !0 = !{i32 1, !"wchar_size", i32 4}
 !1 = !{i32 7, !"PIC Level", i32 2}
-!2 = !{!"clang version 11.1.0"}
+!2 = !{!"Homebrew clang version 11.1.0"}

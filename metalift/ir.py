@@ -712,19 +712,11 @@ def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     return TupleObject(obj_types, Tuple(*get_object_exprs(*objects)))
 
 
-def make_tuple_type(
-    *containedT: Union[type, _GenericAlias],
-) -> typing.Type["TupleObject"]:
+def make_tuple_type(*containedT: NewObjectT) -> typing.Type["TupleObject"]:
     return TupleObject[typing.Tuple[containedT]]
 
-# def choose_fn_decl_and_call(fn_decls: List["FnDecl"], *args: "NewObject") -> "NewObject":
-#     # This function assumes that all the fn decls in the choose expression have the same arguments and return types.
-#     possible_calls: List[NewObject] = []
-#     for fn_decl in fn_decls:
-#         fn_name = cast(FnDecl, fn_decl).name()
-#         possible_calls.append(call(fn_name, *args))
-#     return choose(possible_calls)
-
+def make_fn_type(*containedT: NewObjectT) -> typing.Type["FnObject"]:
+    return FnObject[typing.Tuple[containedT]]
 
 class NewObject:
     src: Expr
@@ -2332,7 +2324,7 @@ class FnDeclRecursive(Expr):
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
-        fn_type = FnObject[typing.Tuple[(returnT, *arg_types)]]
+        fn_type = make_fn_type(returnT, *arg_types)
         Expr.__init__(self, fn_type, [name, body, *args])
 
     def name(self) -> str:
@@ -2392,12 +2384,6 @@ class FnDeclRecursive(Expr):
             declarations = []
             for a in self.arguments():
                 declarations.append((a.args[0], a.type))
-                # if isinstance(a, ValueRef):
-                #     declarations.append((a.name, parse_type_ref_to_obj(a.type)))
-                # elif isinstance(a, NewObject):
-                #     declarations.append((a.src.args[0], a.type))
-                # else:
-                    # declarations.append((a.args[0], a.type))
 
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
@@ -2492,7 +2478,7 @@ class FnDecl(Expr):
     ) -> None:
         self.return_type = returnT
         arg_types = tuple([arg.type for arg in args])
-        fn_type = FnObject[typing.Tuple[(returnT, *arg_types)]]
+        fn_type = make_fn_type(returnT, *arg_types)
         Expr.__init__(self, fn_type, [name, body, *args])
 
     def name(self) -> str:
@@ -2552,10 +2538,6 @@ class FnDecl(Expr):
             declarations = []
             for a in self.arguments():
                 declarations.append((a.args[0], a.type))
-                # if isinstance(a, ValueRef):
-                #     declarations.append((a.name, parse_type_ref_to_obj(a.type)))
-                # else:
-                #     declarations.append((a.args[0], a.type))
 
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations

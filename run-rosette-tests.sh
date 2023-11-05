@@ -6,11 +6,12 @@
 # "tests.llvm.struct1"
 
 tests=(
-# "test.python.count_driver"
 # "tests.python.list1_driver"
 # "tests.python.list1_fns_driver"
 # "tests.python.list_abs_sum_driver"
+  "tests.llvm.count_driver"
   "tests.llvm.uninterp_driver"
+  "test.python.count_driver"
   "tests.python.uninterp_driver"
 )
 
