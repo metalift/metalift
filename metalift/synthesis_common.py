@@ -71,10 +71,7 @@ def parseCandidates(
             for ar in candidate.args:
                 if not isinstance(ar, str):
                     # TODO: fix when decided if function will be IR Objects
-                    if (
-                        is_fn_decl_type(ar.type)
-                        and ar.args[0] in fnsType.keys()
-                    ):
+                    if is_fn_decl_type(ar.type) and ar.args[0] in fnsType.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))

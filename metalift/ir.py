@@ -53,9 +53,7 @@ def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     )
 
 
-def get_nested_list_element_type(
-    ty: Union[type, _GenericAlias]
-) -> NewObjectT:
+def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     if not is_nested_list_type(ty):
         raise Exception("expr is not a nested list!")
     contained_type = get_args(ty)[0]
@@ -79,6 +77,7 @@ def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, TupleObject)
 
+
 def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
     return ty == IntObject or ty == BoolObject
 
@@ -86,8 +85,10 @@ def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
 def is_object_pointer_type(obj: "NewObject") -> bool:
     return isinstance(obj, ListObject) or isinstance(obj, SetObject)
 
+
 def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
     return not is_primitive_type(ty)
+
 
 def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
@@ -95,9 +96,11 @@ def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, FnObject)
 
+
 def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     tuple_types = get_args(ty)[0]
     return get_args(tuple_types)[0]
+
 
 class Expr:
     def __init__(
@@ -566,6 +569,7 @@ def get_type_str(type: Union[Type, NewObjectT]):
     else:
         return type.cls_str(get_args(type))
 
+
 def toRosetteType(t: NewObjectT) -> str:
     if t == IntObject:
         return "integer?"
@@ -608,14 +612,16 @@ def parse_c_or_cpp_type_to_obj(ty_str: str) -> NewObjectT:
         return IntObject
     if ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
         return ListObject[IntObject]
-    if ty_str == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >":
+    if (
+        ty_str
+        == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
+    ):
         return ListObject[ListObject[IntObject]]
     raise Exception(f"no type defined for {ty_str}")
 
 
 def create_object(
-    object_type: NewObjectT,
-    value: Optional[Union[bool, str, Expr]] = None
+    object_type: NewObjectT, value: Optional[Union[bool, str, Expr]] = None
 ) -> "NewObject":
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
@@ -671,11 +677,13 @@ def call(
     call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
 
+
 def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
     ret_type = fn_decl.return_type
     print(call_value_expr)
     return create_object(ret_type, call_value_expr)
+
 
 def fn_decl(
     fn_name: str,
@@ -701,6 +709,7 @@ def fn_decl_recursive(
     )
     return fn_decl_recursive_expr
 
+
 def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
     obj_types = tuple([obj.type for obj in objects])
     return TupleObject(obj_types, Tuple(*get_object_exprs(*objects)))
@@ -709,8 +718,10 @@ def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":
 def make_tuple_type(*containedT: NewObjectT) -> typing.Type["TupleObject"]:
     return TupleObject[typing.Tuple[containedT]]
 
+
 def make_fn_type(*containedT: NewObjectT) -> typing.Type["FnObject"]:
     return FnObject[typing.Tuple[containedT]]
+
 
 class NewObject:
     src: Expr
@@ -1137,6 +1148,8 @@ class SetObject(Generic[T], NewObject):
 
 
 TupleContainedT = TypeVar("TupleContainedT")
+
+
 class TupleObject(Generic[TupleContainedT], NewObject):
     def __init__(
         self,
@@ -1207,7 +1220,10 @@ class TupleObject(Generic[TupleContainedT], NewObject):
             contained_type_strs.append(contained_type_str)
         return f"Tuple {' '.join(contained_type_strs)}"
 
+
 FnContainedT = TypeVar("FnContainedT")
+
+
 class FnObject(Generic[FnContainedT], NewObject):
     def __init__(
         self,
@@ -1226,7 +1242,6 @@ class FnObject(Generic[FnContainedT], NewObject):
         else:
             raise TypeError(f"Cannot create FnObject from {value}")
         NewObject.__init__(self, src)
-
 
     @staticmethod
     def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
@@ -2097,7 +2112,10 @@ class Axiom(Expr):
         return ""  # axioms are only for verification
 
     def toSMT(self) -> str:
-        vs = ["(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type))) for a in self.vars()]
+        vs = [
+            "(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type)))
+            for a in self.vars()
+        ]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
     def accept(self, v: "Visitor[T]") -> T:
@@ -2477,8 +2495,7 @@ class FnDecl(Expr):
         if self.args[1] is None:  # uninterpreted function
             args_obj_types = [parse_type_ref_to_obj(a.type) for a in self.args[2:]]
             args_type = " ".join(
-                obj_type.toSMTType(get_args(obj_type))
-                for obj_type in args_obj_types
+                obj_type.toSMTType(get_args(obj_type)) for obj_type in args_obj_types
             )
             ret_type = parse_type_ref_to_obj(self.returnT())
             return "(declare-fun %s (%s) %s)" % (
