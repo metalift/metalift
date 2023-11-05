@@ -1,0 +1,4 @@
+Printing analysis 'Natural Loop Information' for function 'test':
+Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.inc<latch>
+Printing analysis 'Natural Loop Information' for function '_Z10listLengthIiEiP4listIT_E':
+Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv':

@@ -1450,6 +1450,7 @@ class Driver:
     postconditions: List[BoolObject]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
+    fns_synths: List[Synth]
 
     def __init__(self) -> None:
         self.asserts = []
@@ -1457,6 +1458,7 @@ class Driver:
         self.fns = dict()
         self.var_tracker = VariableTracker()
         self.pred_tracker = PredicateTracker()
+        self.fns_synths = []
 
     def __post_init__(self) -> None:
         print("post init")
@@ -1511,7 +1513,7 @@ class Driver:
             basename="test",
             targetLang=target,
             vars=set(self.var_tracker.all()),
-            invAndPs=synths,
+            invAndPs=synths + self.fns_synths,
             preds=[],
             vc=vc,
             loopAndPsInfo=synths,
