@@ -284,9 +284,6 @@ def toExpr(
                 toExpr(ast[2], fnsType, tmp_var_type, choices),
             )
         elif ast[0] == "reduce_int":
-            import pdb
-
-            pdb.set_trace()
             data = toExpr(ast[1], fnsType, varType, choices)
             fn = toExpr(
                 ast[2],
