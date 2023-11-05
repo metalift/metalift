@@ -30,8 +30,7 @@ def target_lang() -> List[FnDeclRecursive]:
     return [mat_mul, l1_norm]
 
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
-    ret_val = writes[0]
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     a0, a1, b0, b1, x0, x1 = reads
     # Calculate the matrix-vector product
     a = make_tuple(a0, a1)
@@ -50,7 +49,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
 
     return ret_val == choose(l1_norm_p, l1_norm_wrong_p, l1_norm_wrong_p2)
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no loop in the source")
 
 if __name__ == "__main__":
