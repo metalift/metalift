@@ -127,7 +127,7 @@ def verify_synth_result(
             vars,
             candidatesSMT,
             preds,  # type: ignore
-            vc,  # type: ignore
+            vc,
             [],
             [],
             True,

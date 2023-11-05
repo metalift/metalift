@@ -172,7 +172,7 @@ def toRosette(
     vars: Set[Var],
     invAndPs: typing.Sequence[Union[FnDeclRecursive, ir.Synth]],
     preds: List[Expr],
-    vc: BoolObject,
+    vc: Expr,
     loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
     invGuess: List[Any],
     unboundedInts: bool,

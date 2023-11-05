@@ -432,7 +432,7 @@ class LoopBlock(RichBlock):
 
 class AnalysisResult(object):
     name: str
-    arguments: List[NewObject]
+    arguments: List[Var]
     return_type: NewObjectT
     blocks: Dict[str, RawBlock]
     loop_info: Dict[str, LoopInfo]
@@ -535,6 +535,6 @@ def analyze(
 #         print(block)
 #         print()
 
-    variable_tracker = VariableTracker()
-    vc = test_analysis.call(IntObject("in"))(variable_tracker, lambda ret: ret == 0)
-    print(vc)
+#     variable_tracker = VariableTracker()
+#     vc = test_analysis.call(IntObject("in"))(variable_tracker, lambda ret: ret == 0)
+#     print(vc)
