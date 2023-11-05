@@ -3,7 +3,7 @@ from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
-from tests.llvm.gaudi.gaudi_common import elemwise_min, get_select_synth, nested_elemwise_min, call_elemwise_min, call_nested_elemwise_min, nested_selection, select_min_body, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl
+from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, select_min_body, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     # return [elemwise_min, nested_elemwise_min]
