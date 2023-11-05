@@ -72,8 +72,7 @@ def parseCandidates(
                 if not isinstance(ar, str):
                     # TODO: fix when decided if function will be IR Objects
                     if (
-                        hasattr(ar.type, "name")
-                        and ar.type.name == "Function"
+                        is_fn_decl_type(ar.type)
                         and ar.args[0] in fnsType.keys()
                     ):
                         # TODO(shadaj): this logic doesn't correctly handle

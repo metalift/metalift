@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Axiom, BoolObject, FnDecl, FnDeclObject,
+from metalift.ir import (Axiom, BoolObject, FnDecl, FnObject,
                          FnDeclRecursive, IntObject, ListObject, NewObject,
                          Synth, call, call_value, choose, fn_decl,
                          fn_decl_recursive, implies, ite)
@@ -31,8 +31,8 @@ def fns_synths() -> List[Synth]:
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     in_lst = ListObject(IntObject, "in_lst")
-    lm_fn = FnDeclObject((IntObject, IntObject), "f")
-    lr_fn = FnDeclObject((IntObject, IntObject, IntObject), "f")
+    lm_fn = FnObject((IntObject, IntObject), "f")
+    lr_fn = FnObject((IntObject, IntObject, IntObject), "f")
 
     mapper = fn_decl(LM_NAME, IntObject, None, val)
     reducer = fn_decl(LR_NAME, IntObject, None, val, val2)
@@ -63,8 +63,8 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
     mr_axiom_in_lst = ListObject(IntObject, "in_lst")
     mr_axiom_index = IntObject("index")
-    lm_fn_object = FnDeclObject((IntObject, IntObject), LM_NAME)
-    lr_fn_object = FnDeclObject((IntObject, IntObject), LR_NAME)
+    lm_fn_object = FnObject((IntObject, IntObject), LM_NAME)
+    lr_fn_object = FnObject((IntObject, IntObject), LR_NAME)
     implies_expr = implies(
         and_objects(mr_axiom_index >= 0, mr_axiom_index < mr_axiom_in_lst.len()),
         call(
@@ -73,7 +73,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
             call(
                 "map",
                 ListObject[IntObject],
-                mr_axiom_in_lst[mr_axiom_index + 1],
+                mr_axiom_in_lst[:mr_axiom_index + 1],
                 lm_fn_object
             ),
             lr_fn_object
@@ -106,8 +106,8 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
     # reads = [in_lst]
     ret_val = writes[0]
     in_lst = reads[0]
-    lm_fn_object = FnDeclObject((IntObject, IntObject), LM_NAME)
-    lr_fn_object = FnDeclObject((IntObject, IntObject), LR_NAME)
+    lm_fn_object = FnObject((IntObject, IntObject), LM_NAME)
+    lr_fn_object = FnObject((IntObject, IntObject), LR_NAME)
     call_obj = call(
         "reduce",
         IntObject,
@@ -123,8 +123,8 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
 def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     # writes = [count, i]
     # reads = [count, i, in_lst]
-    lm_fn_object = FnDeclObject((IntObject, IntObject), LM_NAME)
-    lr_fn_object = FnDeclObject((IntObject, IntObject), LR_NAME)
+    lm_fn_object = FnObject((IntObject, IntObject), LM_NAME)
+    lr_fn_object = FnObject((IntObject, IntObject), LR_NAME)
     count, i = writes
     in_lst = reads[2]
     call_expr = call(
