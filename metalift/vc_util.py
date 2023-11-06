@@ -43,6 +43,7 @@ def and_objects(*objects: BoolObject) -> BoolObject:
         result = result.And(obj)
     return result
 
+
 # TODO: should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
     if len(exprs) == 1:
