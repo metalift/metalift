@@ -478,7 +478,7 @@ def synthesize(
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
                     fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
-                    fnsType[ceName] = FnObject[typing.Tuple[fn_types]] # type: ignore
+                    fnsType[ceName] = FnObject[typing.Tuple[fn_types]]  # type: ignore
                 for n in synthNames:
                     for r in output:
                         if "define (" + n + " " in r:
@@ -539,7 +539,7 @@ def synthesize(
                         uid,
                         useRosette=False,
                     )
-                except CVC5UnsupportedException:  # type: ignore
+                except CVC5UnsupportedException:
                     print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
                     resultVerify, verifyLogs = verify_synth_result(
                         basename,

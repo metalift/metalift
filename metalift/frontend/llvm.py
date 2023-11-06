@@ -257,10 +257,13 @@ def vector_length(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
 
-    # TODO(jie) think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
-    # TODO(jie): is this enough? Do we need to make another list object?
-    lst.containedT = contained_type  #type: ignore
+    if not isinstance(lst, ListObject):
+        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
+    lst.containedT = get_list_element_type(list_type)
+
+    var_name = args[0].name
+    var_loc = state.get_var_location(var_name)
     return ReturnValue(
         lst.len(),  #type: ignore
         None,
@@ -279,7 +282,7 @@ def vector_get(
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)
     return ReturnValue(
-        lst[index], # type: ignore
+        lst[index],  # type: ignore
         [(var_name, lst, var_loc)],
     )
 
@@ -622,7 +625,10 @@ LLVMVar = NamedTuple(
 InvGrammar = NamedTuple(
     "InvGrammar",
     [
-        ("func", Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]),
+        (
+            "func",
+            Callable[[List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+        ),
         ("in_scope_var_names", List[str]),
     ],
 )
@@ -735,7 +741,7 @@ class Predicate:
     reads: List[NewObject]
     in_scope: List[NewObject]
     name: str
-    grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    grammar: Callable[[List[NewObject], List[NewObject], List[NewObject]], BoolObject]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -748,7 +754,9 @@ class Predicate:
         reads: List[NewObject],
         in_scope: List[NewObject],
         name: str,
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
+        grammar: Callable[
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -785,7 +793,10 @@ class PredicateTracker:
         args: List[NewObject],
         writes: List[NewObject],
         reads: List[NewObject],
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
+        in_scope: List[NewObject],
+        grammar: Callable[
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> Predicate:
         if inv_name in self.predicates.keys():
             return self.predicates[inv_name]
@@ -810,7 +821,9 @@ class PredicateTracker:
         outs: List[NewObject],
         ins: List[NewObject],
         in_scope: List[NewObject],
-        grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
+        grammar: Callable[
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> Predicate:
         if fn_name in self.predicates:
             return self.predicates[fn_name]
@@ -835,7 +848,9 @@ class VCVisitor:
     pred_tracker: PredicateTracker
 
     inv_grammars: Dict[str, InvGrammar]
-    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    ps_grammar: Callable[
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
 
     loops: List[LoopInfo]
 
@@ -851,7 +866,9 @@ class VCVisitor:
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
+        ps_grammar: Callable[
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
     ) -> None:
@@ -1443,7 +1460,9 @@ class Driver:
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
+        ps_grammar: Callable[
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -1525,7 +1544,9 @@ class MetaliftFunc:
 
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
-    ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject]
+    ps_grammar: Callable[
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+    ]
     synthesized: Optional[NewObject]
 
     loops: List[LoopInfo]
@@ -1538,7 +1559,9 @@ class MetaliftFunc:
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[[NewObject, List[NewObject], List[NewObject]], BoolObject],
+        ps_grammar: Callable[
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        ],
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name

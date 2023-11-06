@@ -61,7 +61,7 @@ def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
 
 
 def get_list_element_type(ty: _GenericAlias) -> NewObjectT:
-    return get_args(ty)[0] # type: ignore
+    return get_args(ty)[0]  # type: ignore
 
 
 def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -92,14 +92,14 @@ def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), FnObject) # type: ignore
+        return issubclass(get_origin(ty), FnObject)  # type: ignore
     else:
         return issubclass(ty, FnObject)
 
 
 def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     tuple_types = get_args(ty)[0]
-    return get_args(tuple_types)[0] # type: ignore
+    return get_args(tuple_types)[0]  # type: ignore
 
 
 class Expr:
@@ -606,7 +606,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> NewObjectT:
         return TupleObject[typing.Tuple[IntObject, IntObject]]
     elif ty_str.startswith("%struct.tup."):
         contained_types = [IntObject for i in range(int(t[-2]) + 1)]
-        return TupleObject[typing.Tuple[contained_types]] # type: ignore
+        return TupleObject[typing.Tuple[contained_types]]  # type: ignore
     else:
         raise Exception(f"no type defined for {ty_str}")
 
@@ -682,7 +682,7 @@ def call(
     return create_object(return_type, call_expr)
 
 
-def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":
+def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":  # type: ignore
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
     ret_type = fn_decl.return_type
     print(call_value_expr)
@@ -723,8 +723,8 @@ def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tup
     return TupleObject[typing.Tuple[containedT]]  # type: ignore
 
 
-def make_fn_type(*containedT: NewObjectT) -> typing.Type["FnObject"]:
-    return FnObject[typing.Tuple[containedT]] # type: ignore
+def make_fn_type(*containedT: NewObjectT) -> typing.Type["FnObject"]:  # type: ignore
+    return FnObject[typing.Tuple[containedT]]  # type: ignore
 
 
 class NewObject:
@@ -1171,7 +1171,7 @@ class TupleObject(Generic[TupleContainedT], NewObject):
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = TupleObject[typing.Tuple[containedT]] # type: ignore
+        full_type = TupleObject[typing.Tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1207,7 +1207,7 @@ class TupleObject(Generic[TupleContainedT], NewObject):
 
     @staticmethod
     def default_value() -> "TupleObject[typing.Tuple[IntObject, IntObject]]":
-        return TupleObject((IntObject, IntObject), None) # type: ignore
+        return TupleObject((IntObject, IntObject), None)  # type: ignore
 
     @staticmethod
     def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1244,11 +1244,12 @@ class FnObject(Generic[FnContainedT], NewObject):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
-        value: Optional[Union[FnDeclRecursive, FnDecl, str]] = None,
+        value: Optional[Union["FnDeclRecursive", "FnDecl", str]] = None,
     ) -> None:
-        full_type = FnObject[typing.Tuple[containedT]] # type: ignore
+        full_type = FnObject[typing.Tuple[containedT]]  # type: ignore
         self.return_type = containedT[0]
         self.argument_types = containedT[1:]
+        src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
         elif isinstance(value, FnDecl) or isinstance(value, FnDeclRecursive):
@@ -1268,11 +1269,11 @@ class FnObject(Generic[FnContainedT], NewObject):
         raise Exception("Unsupported source type for function objects!")
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
+    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type_strs: List[str] = []
         for contained_type in get_args(type_args[0]):
             if isinstance(contained_type, _GenericAlias):
-                contained_type_str = get_origin(contained_type).toSMTType(
+                contained_type_str = get_origin(contained_type).toSMTType(  # type: ignore
                     get_args(contained_type)
                 )
             else:
@@ -2164,7 +2165,7 @@ class Axiom(Expr):
 
     def toSMT(self) -> str:
         vs = [
-            "(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type))) # type: ignore
+            "(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type)))  # type: ignore
             for a in self.vars()
         ]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
@@ -2555,7 +2556,7 @@ class FnDecl(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                ret_type.toSMTType(get_args(ret_type)), # type: ignore
+                ret_type.toSMTType(get_args(ret_type)),  # type: ignore
             )
         else:
             declarations = []
@@ -2570,7 +2571,7 @@ class FnDecl(Expr):
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
             )
-            return_type = self.returnT().toSMTType(get_args(self.returnT())) # type: ignore
+            return_type = self.returnT().toSMTType(get_args(self.returnT()))  # type: ignore
             return "(define-fun %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,

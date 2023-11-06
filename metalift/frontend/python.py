@@ -254,9 +254,7 @@ class Predicate:
     reads: List[NewObject]
     in_scope: List[NewObject]
     name: str
-    grammar: Callable[
-        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
-    ]
+    grammar: Callable[[List[NewObject], List[NewObject], List[NewObject]], BoolObject]
     ast: Union[WhileStmt, FuncDef]
     synth: Optional[Synth]
 
