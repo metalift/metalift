@@ -38,8 +38,12 @@ def and_exprs(*exprs: Expr) -> Expr:
 
 
 def and_objects(*objects: BoolObject) -> BoolObject:
-    return BoolObject(and_exprs(*get_object_exprs(*objects)))
-
+    if len(objects) == 0:
+        return BoolObject(True)
+    result = objects[0]
+    for obj in objects[1:]:
+        result = result.And(obj)
+    return result
 
 # TODO(jie): should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
