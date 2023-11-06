@@ -32,6 +32,7 @@ from metalift.ir import (
     MLInst_Or,
     MLInst_Return,
     NewObject,
+    NewObjectT,
     Synth,
     Var,
 )
@@ -228,7 +229,7 @@ class CodeInfo:
     def __init__(
         self,
         name: str,
-        retT: Type["NewObject"],
+        retT: NewObjectT,
         modifiedVars: List[Union[ValueRef, Expr]],
         readVars: List[Union[ValueRef, Expr]],
     ) -> None:

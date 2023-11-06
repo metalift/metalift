@@ -255,7 +255,7 @@ class Predicate:
     in_scope: List[NewObject]
     name: str
     grammar: Callable[
-        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
     ]
     ast: Union[WhileStmt, FuncDef]
     synth: Optional[Synth]
@@ -272,7 +272,7 @@ class Predicate:
         in_scope: List[NewObject],
         name: str,
         grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
     ) -> None:
         self.args = args
@@ -314,7 +314,7 @@ class PredicateTracker:
         reads: List[NewObject],
         in_scope: List[NewObject],
         grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
     ) -> Predicate:
         if o in self.predicates:
@@ -338,7 +338,7 @@ class PredicateTracker:
         outs: List[NewObject],
         ins: List[NewObject],
         grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
     ) -> Predicate:
         if o in self.predicates:
@@ -368,10 +368,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
     pred_tracker: PredicateTracker
 
     inv_grammar: Callable[
-        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
     ]
     ps_grammar: Callable[
-        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
     ]
 
     types: Dict[MypyExpr, MypyType]
@@ -391,10 +391,10 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
         ps_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
         types: Dict[MypyExpr, MypyType],
         uninterp_fns: List[str],
@@ -921,10 +921,10 @@ class Driver:
         fn_name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
         ps_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
         uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
@@ -986,10 +986,10 @@ class MetaliftFunc:
     name: str
     target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
     inv_grammar: Callable[
-        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
     ]
     ps_grammar: Callable[
-        [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
     ]
     synthesized: Optional[Expr]
     uninterp_fns: List[str]
@@ -1001,10 +1001,10 @@ class MetaliftFunc:
         name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
         inv_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
         ps_grammar: Callable[
-            [NewObject, List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
         ],
         uninterp_fns: List[str],
     ) -> None:

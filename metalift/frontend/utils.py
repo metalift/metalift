@@ -80,7 +80,7 @@ class NewObjectSet:
         for obj in other_set.objs:
             if not obj in new_objs:
                 new_objs.add(obj)
-        return NewObjectSet(new_objs)
+        return new_objs
 
     def __iter__(self) -> Generator[NewObject, Any, None]:
         for new_objs in self.objs:
