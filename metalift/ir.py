@@ -605,7 +605,6 @@ def parse_type_ref_to_obj(t: TypeRef) -> NewObjectT:
         contained_types = [IntObject for i in range(int(t[-2]) + 1)]
         return TupleObject[typing.Tuple[contained_types]]  # type: ignore
     else:
-        import pdb; pdb.set_trace()
         raise Exception(f"no type defined for {ty_str}")
 
 

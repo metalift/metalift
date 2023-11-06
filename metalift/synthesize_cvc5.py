@@ -121,7 +121,7 @@ def toExpr(
             index = funName.index(ast[0])
             return Call(
                 ast[0],
-                returnType[index],
+                get_fn_return_type(returnType[index]),
                 *[
                     toExpr(arg, funName, returnType, varType, letVars)
                     for arg in ast[1:]
@@ -173,7 +173,6 @@ def toExpr(
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             return Call("set-singleton", SetObject[v.type], v)  # type: ignore
         elif ast[0] == "set.eq":
-            import pdb; pdb.set_trace()
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
             return Eq(s1, s2)

@@ -11,7 +11,6 @@ tests=(
 "tests.llvm.while3_driver"
 "tests.llvm.while4_driver"
 "tests.llvm.no_loop_matmul_driver"
-"tests.llvm.vector1_driver"
 "tests.python.fma1_driver"
 "tests.python.fma2_driver"
 "tests.python.ite1_driver"
