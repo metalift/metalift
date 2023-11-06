@@ -59,23 +59,20 @@ def generateCandidates(
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
     for ce in invAndPs:
-        name = ce.args[0]
+        name = ce.name()
         for a in ast[0]:
             if name in a:
                 args = {}
-                for v in ce.args[2:]:
-                    if isinstance(v, Expr):
-                        args[v.args[0]] = v.type
-                    else:
-                        args[v.name] = parse_type_ref_to_obj(v.type)
+                for v in ce.arguments():
+                    args[v.args[0]] = v.type
 
                 candidatesExpr[a[0]] = toExpr(a[1], funName, returnType, args, {})
                 candidates.append(
                     FnDeclRecursive(
-                        ce.args[0],
+                        ce.name(),
                         ce.type,
                         candidatesExpr[a[0]],
-                        *ce.args[2:],
+                        *ce.arguments(),
                     )
                 )
     return candidates, candidatesExpr
@@ -124,7 +121,7 @@ def toExpr(
             index = funName.index(ast[0])
             return Call(
                 ast[0],
-                get_args(returnType[index])[0],
+                returnType[index],
                 *[
                     toExpr(arg, funName, returnType, varType, letVars)
                     for arg in ast[1:]
@@ -176,6 +173,7 @@ def toExpr(
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             return Call("set-singleton", SetObject[v.type], v)  # type: ignore
         elif ast[0] == "set.eq":
+            import pdb; pdb.set_trace()
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
             return Eq(s1, s2)

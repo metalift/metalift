@@ -12,7 +12,6 @@ BROADCASTADD = "broadcast_add"
 REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
 SELECT = "select"
-SELECTMIN = "select_min"
 SELECTION = "selection"
 NESTEDSELECTION = "nested_selection"
 
@@ -129,6 +128,8 @@ elemwise_mul = fn_decl_recursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mu
 
 # Selection criteria
 select_min_body = ite(int_x < int_y, int_x, int_y)
+select_linear_burn_body = int_x + int_y - 255
+
 select_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT)
 select_fn_decl = fn_decl(SELECT, IntObject, None, int_x, int_y)
 
