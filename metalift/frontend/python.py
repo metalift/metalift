@@ -291,14 +291,7 @@ class Predicate:
         return cast(BoolObject, call_ret)
 
     def gen_Synth(self) -> Synth:
-        # v_objects = [self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes]
-        # # body = and_exprs(*get_object_sources(v_objects))
-        # body = self.grammar(self.writes, self.reads, self.in_scope).src
-        # return Synth(self.name, body, *get_object_exprs(*self.args))
-        v_objects = [
-            self.grammar(v, self.writes, self.reads, self.in_scope) for v in self.writes
-        ]
-        body = and_exprs(*get_object_exprs(*v_objects))
+        body = self.grammar(self.writes, self.reads, self.in_scope).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
@@ -327,8 +320,8 @@ class PredicateTracker:
         if o in self.predicates:
             return self.predicates[o]
         else:
-            non_args_scope = list(NewObjectSet(in_scope) - NewObjectSet(args)) 
-            non_args_scope.sort(key=lambda obj: obj.var_name()) 
+            non_args_scope = list(NewObjectSet(in_scope) - NewObjectSet(args))
+            non_args_scope.sort(key=lambda obj: obj.var_name())
             args = (
                 args + non_args_scope
             )  # add the vars that are in scope but not part of args, in sorted order
@@ -813,7 +806,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
 
-    def visit_tuple_expr(self, o: TupleExpr) -> TupleObject[NewObjectT]: #type: ignore
+    def visit_tuple_expr(self, o: TupleExpr) -> TupleObject[NewObjectT]:  # type: ignore
         tuple_exprs = [expr.accept(self) for expr in o.items]
         return make_tuple(*tuple_exprs)
 
