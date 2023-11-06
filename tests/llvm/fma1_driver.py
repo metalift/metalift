@@ -29,7 +29,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
 
     return ret_val == var_or_fma + var_or_fma
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no loop in the source")
 
 

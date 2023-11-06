@@ -27,7 +27,7 @@ The first step in using Metalift to build this transpiler is to define the seman
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.ir import fnDecl, fnDeclRecursive, choose, Synth
+from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
 from metalift.ir import call, Lit, IntLit, ite
 from metalift.ir import IntObject, BoolObject, ListObject
 
@@ -41,7 +41,7 @@ def targetLang():
         y_rest = y[1:]
         recursed = call("dotprod", IntObject, x_rest, y_rest)
         return ite(kernel_size < 2, cur_prod, cur_prod + recursed)
-    dotprod = fnDeclRecursive("dotprod", IntObject, dotprod_body(x, y), x, y)
+    dotprod = fn_decl_recursive("dotprod", IntObject, dotprod_body(x, y), x, y)
 
     def conv1d1x2_body(vec, kernel):
         vec_size = len(x)
@@ -51,7 +51,7 @@ def targetLang():
         recursed = call("conv1d", ListObject[IntObject],vec_rest, kernel)
         general_answer = cur_prod.append(recursed)
         return ite(vec_size < kernel_size, ListObject.empty(IntObject), general_answer)
-    conv1d1x2 = fnDeclRecursive("conv1d", ListObject[IntObject], conv1d1x2_body(x, y), x, y)
+    conv1d1x2 = fn_decl_recursive("conv1d", ListObject[IntObject], conv1d1x2_body(x, y), x, y)
     return [dotprod, conv1d1x2]
 ```
 

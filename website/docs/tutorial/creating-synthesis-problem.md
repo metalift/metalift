@@ -94,8 +94,8 @@ If we run this code, Metalift will use the [Rosette](https://emina.github.io/ros
 ```
 ====== verification
 Verification Output: unsat
-Verified PS and INV Candidates  (FnDeclRecursive:(Function <class 'metalift.ir.IntObject'> <class 'metalift.ir.IntObject'>) f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)
-[(FnDeclRecursive:(Function <class 'metalift.ir.IntObject'> <class 'metalift.ir.IntObject'>) f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)]
+Verified PS and INV Candidates  (FnDeclRecursive:Function Int Int f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)
+[(FnDeclRecursive:Function Int Int f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)]
 ```
 
 In this case, we get $f(x) = (x * x) + (x - x) = x * x$ which indeed satisfies the verification conditions!
