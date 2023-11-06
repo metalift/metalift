@@ -646,7 +646,7 @@ def get_object_expr(object: Union["NewObject", Expr]) -> Expr:
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), NewObject)
+        return issubclass(get_origin(ty), NewObject)  # type: ignore
     return isclass(ty) and issubclass(ty, NewObject)
 
 
@@ -2238,19 +2238,19 @@ class Synth(Expr):
                 [expr_cnt_tup[0] for expr_cnt_tup in cnts],
             )
         )
-        rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)  # type: ignore
+        rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)
 
         # rewrite common exprs to use each other
         commonExprs = [
-            Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True)  # type: ignore
+            Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True)
             for e in commonExprs
         ]
 
-        return_type = self.type.toSMTType(get_args(self.type)) # type: ignore
+        return_type = self.type.toSMTType(get_args(self.type))  # type: ignore
         common_exprs_types: List[str] = []
         for expr in commonExprs:
             expr_type = parse_type_ref_to_obj(expr.type)
-            expr_smt_type = expr_type.toSMTType(get_args(expr_type)) # type: ignore
+            expr_smt_type = expr_type.toSMTType(get_args(expr_type))  # type: ignore
             common_exprs_types.append(expr_smt_type)
 
         decls = "((rv %s) %s)" % (
@@ -2271,7 +2271,7 @@ class Synth(Expr):
             % (
                 "v%d" % i,
                 common_exprs_types[i],
-                e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",  # type: ignore
+                e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",
             )
             for i, e in enumerate(commonExprs)
         )
@@ -2285,7 +2285,9 @@ class Synth(Expr):
             else:
                 declarations.append((a.args[0], a.type))
 
-        args = " ".join("(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations) # type: ignore
+        args = " ".join(
+            "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
+        )
         return "(synth-fun %s (%s) %s\n%s)" % (
             self.args[0],
             args,
