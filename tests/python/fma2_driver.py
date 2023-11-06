@@ -20,8 +20,7 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject],) -> BoolObject:
-    ret_val = writes[0]
+def ps_grammar(ret_val: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject],) -> BoolObject:
     var = choose(*reads, IntObject(0))
     added = var + var
     var_or_fma = choose(*reads, call("fma", IntObject, added, added, added))
@@ -30,7 +29,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
 
 
 # invariant: i <= arg2 and p = arg1 * i
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     (arg1, arg2, i, p) = reads
 
     value = choose(arg1, arg2, arg1 * i, arg2 * i)

@@ -1,7 +1,7 @@
-from typing import List, Literal
+from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Expr, IntObject, Tuple, TupleObject, NewObject, call, choose, fn_decl_recursive, make_tuple)
+from metalift.ir import (BoolObject, IntObject, TupleObject, NewObject, call, choose, fn_decl_recursive, make_tuple)
 from tests.python.utils.utils import codegen
 
 
@@ -18,10 +18,10 @@ def target_lang():
     )
     return [tuple_mult]
 
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no invariant")
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     ret_val = writes[0]
     x_tuple = make_tuple(x, x)
     y_tuple = make_tuple(y, y)

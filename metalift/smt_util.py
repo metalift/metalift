@@ -122,7 +122,7 @@ def toSMT(
                     cand.args[0],
                     get_fn_return_type(cand.type),
                     newBody,
-                    *cand.args[2:],  # type: ignore
+                    *cand.args[2:],
                 )
 
             if cand.args[0] in early_candidates_names:

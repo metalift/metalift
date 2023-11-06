@@ -83,9 +83,9 @@ def parseCandidates(
                             FnDecl(
                                 # TODO: ar.type no longer has args, find proper substitution
                                 lambda_name,
-                                ar.type.args[0],
+                                ar.type.args[0], # type: ignore
                                 ar.args[0],
-                                *ar.args[1:],  # type: ignore
+                                *ar.args[1:],  
                             )
                         )
                         fnCalls.append(lambda_name)
@@ -127,7 +127,7 @@ def verify_synth_result(
             vars,
             candidatesSMT,
             preds,  # type: ignore
-            vc,  # type: ignore
+            vc,
             [],
             [],
             True,

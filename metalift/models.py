@@ -183,7 +183,7 @@ def new_vector(
 ) -> ReturnValue:
     assert len(args) == 1
     var_name: str = args[0].name
-    assigns: List[Tuple[str, Expr]] = [
+    assigns: List[Tuple[str, Expr, str]] = [
         (var_name, ListObject.empty(IntObject), "primitive")  # type: ignore
     ]
     return ReturnValue(None, assigns)  # type: ignore

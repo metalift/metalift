@@ -212,17 +212,17 @@ def gen_expr(expr: ValueRef, fn_group: VariableGroup, env: StackEnv) -> Expr:
             return ir.Lt(op1, op2)
         else:
             raise Exception("Unknown comparison operator %s" % cond)
-    elif opcode == "call":
-        fnName = operands[-1] if isinstance(operands[-1], str) else operands[-1].name
-        if fnName == "":
-            # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
-            fnName = str(operands[-1]).split("@")[-1].split(" ")[0]
-        if fnName in models_new.fn_models:
-            return models_new.fn_models[fnName](
-                [gen_value(arg, fn_group) for arg in operands[:-1]]
-            )
-        else:
-            raise Exception("Unknown function %s" % fnName)
+    # elif opcode == "call":
+    #     fnName = operands[-1] if isinstance(operands[-1], str) else operands[-1].name
+    #     if fnName == "":
+    #         # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+    #         fnName = str(operands[-1]).split("@")[-1].split(" ")[0]
+    #     if fnName in models_new.fn_models:
+    #         return models_new.fn_models[fnName](
+    #             [gen_value(arg, fn_group) for arg in operands[:-1]]
+    #         )
+    #     else:
+    #         raise Exception("Unknown function %s" % fnName)
     else:
         raise Exception("Unknown opcode: %s" % opcode)
 
@@ -432,7 +432,7 @@ class LoopBlock(RichBlock):
 
 class AnalysisResult(object):
     name: str
-    arguments: List[NewObject]
+    arguments: List[Var]
     return_type: NewObjectT
     blocks: Dict[str, RawBlock]
     loop_info: Dict[str, LoopInfo]
@@ -529,12 +529,12 @@ def analyze(
     return AnalysisResult(fn.name, list(fn.arguments), blocks, loop_info_dict)
 
 
-if __name__ == "__main__":
-    test_analysis = analyze("tests/ite1.ll", "test", "tests/ite1.loops")
-    for block in test_analysis.blocks.values():
-        print(block)
-        print()
+# if __name__ == "__main__":
+#     test_analysis = analyze("tests/ite1.ll", "test", "tests/ite1.loops")
+#     for block in test_analysis.blocks.values():
+#         print(block)
+#         print()
 
-    variable_tracker = VariableTracker()
-    vc = test_analysis.call(IntObject("in"))(variable_tracker, lambda ret: ret == 0)
-    print(vc)
+#     variable_tracker = VariableTracker()
+#     vc = test_analysis.call(IntObject("in"))(variable_tracker, lambda ret: ret == 0)
+#     print(vc)
