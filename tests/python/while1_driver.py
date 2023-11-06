@@ -7,17 +7,17 @@ from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, ite
 
 # ps: y = ite(y<=x, x, 0)
 def ps_grammar(
-    ret_val: NewObject, 
     writes: List[NewObject],
     reads: List[NewObject],
     in_scope: List[NewObject],
 ) -> BoolObject:
+    ret_val = writes[0]
     x = reads[0]
     return ret_val == ite(0 <= x, x, IntObject(0))
 
 
 # inv: ite(y<=x, 0<=x, y=0)
-def inv_grammar(v: NewObject, writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     x, y = reads
     return ite(
         y <= x,
