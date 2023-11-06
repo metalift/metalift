@@ -1,6 +1,7 @@
 from typing import List, Union
+from collections import defaultdict
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import (Expr, FnDecl,FnDeclRecursive, NewObject, ListObject, IntObject, BoolObject, call, choose, ite, fn_decl,fn_decl_recursive)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
@@ -79,8 +80,9 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
 def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
     # writes = [out, i]
     # reads = [in]
-    out_lst, i = writes[0], writes[1]
+    out_lst, i = writes[1], writes[0]
     in_lst = reads[0]
+
     lst = choose(in_lst, out_lst, call("Select", ListObject[IntObject], in_lst))
     lst_inv_cond = choose(
         lst + call("Select", ListObject[IntObject], lst[i:]) == lst,
@@ -112,9 +114,7 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/list1.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammars={
-            "test_inv0": inv_grammar
-        },
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 

@@ -22,7 +22,7 @@ Our first step is to define the semantics of the target language. Using Metalift
 <!--phmdoctest-share-names-->
 ```python
 from typing import List
-from metalift.ir import fnDecl, fnDeclRecursive, choose, Synth
+from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
 from metalift.ir import call, Lit, IntLit, Add, Call, Eq, Expr, Ite, Lit, Sub, Tuple
 from metalift.ir import IntObject, BoolObject, NewObject
 
@@ -30,7 +30,7 @@ def targetLang():
   x = IntObject("x") # variables to be used in semantic function definition
   y = IntObject("y")
   z = IntObject("z")
-  fma = fnDecl("fma",             # function name
+  fma = fn_decl("fma",             # function name
                IntObject,             # return type
                x + y * z, # body of the function
                x, y, z)           # function inputs
