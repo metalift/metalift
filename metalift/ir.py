@@ -2,6 +2,7 @@ from abc import abstractmethod
 from enum import Enum
 from inspect import isclass
 import re
+import traceback
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
@@ -608,6 +609,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> NewObjectT:
         contained_types = [IntObject for i in range(int(t[-2]) + 1)]
         return TupleObject[typing.Tuple[contained_types]]  # type: ignore
     else:
+        import pdb; pdb.set_trace()
         raise Exception(f"no type defined for {ty_str}")
 
 
@@ -644,6 +646,8 @@ def get_object_expr(object: Union["NewObject", Expr]) -> Expr:
 
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), NewObject)
     return isclass(ty) and issubclass(ty, NewObject)
 
 
@@ -1143,7 +1147,8 @@ class SetObject(Generic[T], NewObject):
         return cast(BoolObject, call("set-pointer_varsber", BoolObject, self, value))
 
     def __eq__(self, s: "SetObject") -> BoolObject:  # type: ignore
-        return cast(BoolObject, call("set-eq", BoolObject, self, s))
+        return BoolObject(Eq(self.src, s.src))
+        # return cast(BoolObject, call("set-eq", BoolObject, self, s))
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "SetObject":  # type: ignore
@@ -1508,9 +1513,7 @@ class Eq(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        cmp_type = self.args[0].type
-        # TODO(jie)
-        if issubclass(cmp_type, NewObject) and cmp_type.cls_str() == "Set":
+        if is_set_type(self.e1().type):
             name = "set-eq"
         else:
             name = self.RosetteName
@@ -1875,7 +1878,7 @@ class Call(Expr):
         retVal = []
 
         if self.args[0] == "set-create":
-            return f"(as set.empty {self.type.toSMT()})"  # type: ignore
+            return f"(as set.empty {self.type.toSMTType(get_args(self.type))})"  # type: ignore
 
         if self.args[0] == "tupleGet":
             argvals = self.args[:-1]
@@ -2232,8 +2235,8 @@ class Synth(Expr):
         cnts = Expr.findCommonExprs(self.args[1], [])
         commonExprs = list(
             filter(
-                lambda k: isinstance(k, Choose),  # type: ignore
-                cnts.keys(),  # type: ignore
+                lambda k: isinstance(k, Choose),
+                [expr_cnt_tup[0] for expr_cnt_tup in cnts],
             )
         )
         rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)  # type: ignore
@@ -2244,22 +2247,22 @@ class Synth(Expr):
             for e in commonExprs
         ]
 
-        return_type = self.type.toSMTType(get_args(self.type))  # type: ignore
-        common_exprs_types: pyList[str] = []
+        return_type = self.type.toSMTType(get_args(self.type)) # type: ignore
+        common_exprs_types: List[str] = []
         for expr in commonExprs:
             expr_type = parse_type_ref_to_obj(expr.type)
-            expr_smt_type = expr_type.toSMTType(get_args(expr_type))  # type: ignore
+            expr_smt_type = expr_type.toSMTType(get_args(expr_type)) # type: ignore
             common_exprs_types.append(expr_smt_type)
 
         decls = "((rv %s) %s)" % (
-            self.type.toSMT(),  # type: ignore
+            return_type,
             " ".join(
-                "(%s %s)" % ("v%d" % i, parse_type_ref_to_obj(e.type).toSMT())  # type: ignore
-                for i, e in enumerate(commonExprs)
+                "(%s %s)" % ("v%d" % i, smt_type)
+                for i, smt_type in enumerate(common_exprs_types)
             ),
         )
         defs = "(rv %s %s)\n" % (
-            self.type.toSMT(),  # type: ignore
+            return_type,
             rewritten.toSMT()
             if isinstance(rewritten, Choose)
             else "(%s)" % rewritten.toSMT(),
@@ -2268,7 +2271,7 @@ class Synth(Expr):
             "(%s %s %s)"
             % (
                 "v%d" % i,
-                parse_type_ref_to_obj(e.type).toSMT(),  # type: ignore
+                common_exprs_types[i],
                 e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",  # type: ignore
             )
             for i, e in enumerate(commonExprs)
@@ -2283,13 +2286,11 @@ class Synth(Expr):
             else:
                 declarations.append((a.args[0], a.type))
 
-        args = " ".join(
-            "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations
-        )
+        args = " ".join("(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations) # type: ignore
         return "(synth-fun %s (%s) %s\n%s)" % (
             self.args[0],
             args,
-            self.type.toSMT(),  # type: ignore
+            return_type,
             body,
         )
 
