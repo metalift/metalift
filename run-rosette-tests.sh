@@ -11,7 +11,7 @@ tests=(
 # "tests.python.list_abs_sum_driver"
   "tests.llvm.count_driver"
   "tests.llvm.uninterp_driver"
-  "test.python.count_driver"
+  "tests.python.count_driver"
   "tests.python.uninterp_driver"
 )
 
