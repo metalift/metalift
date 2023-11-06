@@ -442,7 +442,7 @@ def synthesize(
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
                     fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
-                    fnsType[ceName] = FnObject[typing.Tuple[fn_types]]
+                    fnsType[ceName] = FnObject[typing.Tuple[fn_types]] # type: ignore
                 for n in synthNames:
                     for r in output:
                         if "define (" + n in r:

@@ -10,7 +10,7 @@ def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
         # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
-        if not is_fn_decl_type(a.type):  # type: ignore
+        if not is_fn_decl_type(a.type):
             newArgs.append(a)
     return newArgs
 
@@ -81,8 +81,7 @@ def toSMT(
                         fnDecls.append(
                             FnDeclRecursive(
                                 t.args[0] + "_" + i[1],
-                                # TODO: t.type no longer has args, find proper substitution
-                                t.returnT(),  # type: ignore
+                                t.returnT(),
                                 newBody,
                                 *newArgs,
                             )
@@ -90,8 +89,7 @@ def toSMT(
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
                                 t.args[0] + "_" + i[1],
-                                # TODO: t.type no longer has args, find proper substitution
-                                t.type.args[0],  # type: ignore
+                                t.returnT(),
                                 newBody,
                                 *newArgs,
                             )

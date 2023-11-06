@@ -278,26 +278,12 @@ def vector_get(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
-    # primitive_match = re.match(
-    #     rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
-    # )
-    # nested_match = re.match(
-    #     rf"{NESTED_VECTOR_TYPE_REGEX}::operator\[\]", full_demangled_name
-    # )
-    # if primitive_match is not None:
-    #     contained_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
-    # elif nested_match is not None:
-    #     contained_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
-    # else:
-    #     raise Exception(
-    #         f"Could not determine vector type from demangled function name {full_demangled_name}"
-    #     )
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)
     return ReturnValue(
-        lst[index],
+        lst[index], # type: ignore
         [(var_name, lst, var_loc)],
     )
 
@@ -408,7 +394,7 @@ class LoopInfo:
     body: List[Block]
     exits: List[Block]
     latches: List[Block]
-    havocs: List[ValueRef]
+    havocs: Set[ValueRef]
 
     def __init__(
         self,
@@ -737,7 +723,7 @@ class State:
         else:
             return self.read_operand(op)
 
-    def get_var_location(self, var_name: str) -> bool:
+    def get_var_location(self, var_name: str) -> str:
         if var_name in self.primitive_vars.keys():
             return "primitive"
         elif var_name in self.pointer_vars.keys():
@@ -928,11 +914,11 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_or_store_operand(op, val)
 
-    def read_var_from_block(self, block_name: str, var_name: str) -> None:
+    def read_var_from_block(self, block_name: str, var_name: str) -> NewObject:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_var(var_name)
 
-    def load_var_from_block(self, block_name: str, var_name: str) -> None:
+    def load_var_from_block(self, block_name: str, var_name: str) -> NewObject:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_var(var_name)
 

@@ -18,7 +18,7 @@ from typing import (  # type: ignore
     Optional,
     Tuple,
     _GenericAlias,
-    cast,  # type: ignore
+    cast,
     get_args,
     get_origin,
     cast,
@@ -61,7 +61,7 @@ def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
 
 
 def get_list_element_type(ty: _GenericAlias) -> NewObjectT:
-    return get_args(ty)[0]
+    return get_args(ty)[0] # type: ignore
 
 
 def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -92,14 +92,14 @@ def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), FnObject)
+        return issubclass(get_origin(ty), FnObject) # type: ignore
     else:
         return issubclass(ty, FnObject)
 
 
 def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     tuple_types = get_args(ty)[0]
-    return get_args(tuple_types)[0]
+    return get_args(tuple_types)[0] # type: ignore
 
 
 class Expr:
@@ -602,7 +602,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> NewObjectT:
         return TupleObject[typing.Tuple[IntObject, IntObject]]
     elif ty_str.startswith("%struct.tup."):
         contained_types = [IntObject for i in range(int(t[-2]) + 1)]
-        return TupleObject[typing.Tuple[contained_types]]
+        return TupleObject[typing.Tuple[contained_types]] # type: ignore
     else:
         raise Exception(f"no type defined for {ty_str}")
 
@@ -720,7 +720,7 @@ def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tup
 
 
 def make_fn_type(*containedT: NewObjectT) -> typing.Type["FnObject"]:
-    return FnObject[typing.Tuple[containedT]]
+    return FnObject[typing.Tuple[containedT]] # type: ignore
 
 
 class NewObject:
@@ -1086,7 +1086,7 @@ class SetObject(Generic[T], NewObject):
         return SetObject[self.containedT]  # type: ignore
 
     @staticmethod
-    def default_value() -> "SetObject":
+    def default_value() -> "SetObject[IntObject]":
         return SetObject(IntObject)
 
     def add(self, value: NewObject) -> "SetObject":  # type: ignore
@@ -1157,7 +1157,7 @@ class TupleObject(Generic[TupleContainedT], NewObject):
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = TupleObject[typing.Tuple[containedT]]
+        full_type = TupleObject[typing.Tuple[containedT]] # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1192,8 +1192,8 @@ class TupleObject(Generic[TupleContainedT], NewObject):
         return len(self.containedT)
 
     @staticmethod
-    def default_value() -> "TupleObject[IntObject, IntObject]":
-        return TupleObject((IntObject, IntObject), None)
+    def default_value() -> "TupleObject[typing.Tuple[IntObject, IntObject]]":
+        return TupleObject((IntObject, IntObject), None) # type: ignore
 
     @staticmethod
     def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1230,9 +1230,9 @@ class FnObject(Generic[FnContainedT], NewObject):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
-        value: Optional[Union[Expr, str]] = None,
+        value: Optional[Union[FnDeclRecursive, FnDecl, str]] = None,
     ) -> None:
-        full_type = FnObject[typing.Tuple[containedT]]
+        full_type = FnObject[typing.Tuple[containedT]] # type: ignore
         self.return_type = containedT[0]
         self.argument_types = containedT[1:]
         if value is None:  # a symbolic variable
@@ -2125,7 +2125,7 @@ class Axiom(Expr):
 
     def toSMT(self) -> str:
         vs = [
-            "(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type)))
+            "(%s %s)" % (a.args[0], a.type.toSMTType(get_args(a.type))) # type: ignore
             for a in self.vars()
         ]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
@@ -2513,7 +2513,7 @@ class FnDecl(Expr):
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
-                ret_type.toSMTType(get_args(ret_type)),
+                ret_type.toSMTType(get_args(ret_type)), # type: ignore
             )
         else:
             declarations = []
@@ -2523,7 +2523,7 @@ class FnDecl(Expr):
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
             )
-            return_type = self.returnT().toSMTType(get_args(self.returnT()))
+            return_type = self.returnT().toSMTType(get_args(self.returnT())) # type: ignore
             return "(define-fun %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
