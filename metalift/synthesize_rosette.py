@@ -17,7 +17,7 @@ from metalift import process_tracker
 import typing
 from typing import Any, Callable, Dict, List, Union, IO, get_args
 
-#TODO: remove after proper replacement
+# TODO: remove after proper replacement
 from metalift.types import FnT, MapT
 
 from metalift.types import CVC5UnsupportedException
@@ -159,7 +159,7 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
-            return Tuple(*arg_eval) #type: ignore
+            return Tuple(*arg_eval)  # type: ignore
         elif ast[0] == "tupleGet":
             return TupleGet(
                 toExpr(ast[1], fnsType, varType, choices),
@@ -170,10 +170,10 @@ def toExpr(
         elif ast[0] == "set-insert":
             v = toExpr(ast[1], fnsType, varType, choices)
             s1 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], SetObject[v.type], v, s1)  #type: ignore
+            return Call(ast[0], SetObject[v.type], v, s1)  # type: ignore
         elif ast[0] == "set-singleton":
             v = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], SetObject[v.type], v)  #type: ignore
+            return Call(ast[0], SetObject[v.type], v)  # type: ignore
         elif ast[0] == "set-eq":
             s1 = toExpr(ast[1], fnsType, varType, choices)
             s2 = toExpr(ast[2], fnsType, varType, choices)
@@ -204,27 +204,27 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(m1.type.args[1], m1.type.args[1], m1.type.args[1]), # type: ignore
+                typeHint=FnT(m1.type.args[1], m1.type.args[1], m1.type.args[1]),  # type: ignore
             )
 
             return Call(ast[0], m1.type, m1, m2, uf)
         elif ast[0] == "map-values":
             m = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], ListObject[m.type.args[1]], m) # type: ignore
+            return Call(ast[0], ListObject[m.type.args[1]], m)  # type: ignore
         elif ast[0] == "map-singleton":
             k = toExpr(ast[1], fnsType, varType, choices)
             v = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], MapT(k.type, v.type), k, v) # type: ignore
+            return Call(ast[0], MapT(k.type, v.type), k, v)  # type: ignore
         elif ast[0] == "map-create":
-            return Call(ast[0], MapT(None, None)) # type: ignore
+            return Call(ast[0], MapT(None, None))  # type: ignore
         elif ast[0] == "map-get":
             m = toExpr(ast[1], fnsType, varType, choices)
             k = toExpr(ast[2], fnsType, varType, choices)
             default = toExpr(ast[3], fnsType, varType, choices)
-            return Call(ast[0], m.type.args[1], m, k, default) # type: ignore
+            return Call(ast[0], m.type.args[1], m, k, default)  # type: ignore
         elif ast[0] == "lambda":
             arg_list = [
-                Var(n, t) for (t, n) in zip(typeHint.args[1:], ast[1]) # type: ignore
+                Var(n, t) for (t, n) in zip(typeHint.args[1:], ast[1])  # type: ignore
             ]
 
             varTypeUpdated = dict(varType)
@@ -232,7 +232,7 @@ def toExpr(
                 varTypeUpdated[a.args[0]] = a.type
 
             body = toExpr(ast[2], fnsType, varTypeUpdated, choices)
-            return Lambda(body.type, body, *arg_list) # type: ignore
+            return Lambda(body.type, body, *arg_list)  # type: ignore
         elif ast[0] == "let":
             var_value = toExpr(ast[1][0][1], fnsType, varType, choices)
             tmp_var_type = dict(varType)
@@ -249,7 +249,7 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(IntObject, data.type.args[0], IntObject), # type: ignore
+                typeHint=FnT(IntObject, data.type.args[0], IntObject),  # type: ignore
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
             return Call("reduce_int", IntObject, data, fn, initial)
@@ -260,7 +260,7 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(BoolObject, data.type.args[0], BoolObject), # type: ignore
+                typeHint=FnT(BoolObject, data.type.args[0], BoolObject),  # type: ignore
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
             return Call("reduce_bool", BoolObject, data, fn, initial)
@@ -361,7 +361,7 @@ def synthesize(
             while True:
                 expr_count: Dict[str, int] = {}
 
-                vc.src.countVariableUses(expr_count) # type: ignore
+                vc.src.countVariableUses(expr_count)  # type: ignore
 
                 vc = vc.src.optimizeUselessEquality(expr_count, new_vars)  # type: ignore
 
@@ -503,7 +503,7 @@ def synthesize(
                         uid,
                         useRosette=False,
                     )
-                except CVC5UnsupportedException:  #type: ignore
+                except CVC5UnsupportedException:  # type: ignore
                     print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
                     resultVerify, verifyLogs = verify_synth_result(
                         basename,

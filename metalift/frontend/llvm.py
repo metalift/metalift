@@ -88,7 +88,7 @@ def set_add(
     assert len(args) == 2
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
-    return ReturnValue(s.add(item), None) #type: ignore
+    return ReturnValue(s.add(item), None)  # type: ignore
 
 
 def set_remove(
@@ -100,7 +100,7 @@ def set_remove(
     assert len(args) == 2
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
-    return ReturnValue(s.remove(item), None)  #type: ignore
+    return ReturnValue(s.remove(item), None)  # type: ignore
 
 
 def set_contains(
@@ -112,7 +112,7 @@ def set_contains(
     assert len(args) == 2
     s = state.read_or_load_operand(args[0])
     item = state.read_or_load_operand(args[1])
-    return ReturnValue(item in s, None)  #type: ignore
+    return ReturnValue(item in s, None)  # type: ignore
 
 
 def new_list(
@@ -135,7 +135,7 @@ def list_length(
     # TODO(jie) think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
     return ReturnValue(
-        lst.len(),  #type: ignore
+        lst.len(),  # type: ignore
         None,
     )
 
@@ -150,7 +150,7 @@ def list_get(
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
     return ReturnValue(
-        lst[index],  #type: ignore
+        lst[index],  # type: ignore
         None,
     )
 
@@ -165,7 +165,7 @@ def list_append(
     lst = state.read_or_load_operand(args[0])
     value = state.read_or_load_operand(args[1])
     return ReturnValue(
-        lst.append(value),  #type: ignore
+        lst.append(value),  # type: ignore
         None,
     )
 
@@ -180,7 +180,7 @@ def list_concat(
     lst1 = state.read_or_load_operand(args[0])
     lst2 = state.read_or_load_operand(args[1])
     return ReturnValue(
-        lst1 + lst2,  #type: ignore
+        lst1 + lst2,  # type: ignore
         None,
     )
 
@@ -1477,7 +1477,7 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
-    def synthesize(self, **synthesize_kwargs) -> None: #type: ignore
+    def synthesize(self, **synthesize_kwargs) -> None:  # type: ignore
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)
@@ -1506,7 +1506,10 @@ class Driver:
                 if isinstance(f.body(), Eq):
                     self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                elif isinstance(f.body(), Call) and cast(Call, f.body()).name() == "list_eq":
+                elif (
+                    isinstance(f.body(), Call)
+                    and cast(Call, f.body()).name() == "list_eq"
+                ):
                     self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
                 # if isinstance(f.body(), Implies):
