@@ -885,7 +885,8 @@ class IntObject(NewObject):
     def __mul__(self, other: Union["IntObject", int]) -> "IntObject":
         return self.binary_op(other, Mul)
 
-    # div not supported yet
+    def __floordiv__(self, other: Union["IntObject", int]) -> "IntObject":
+        return self.binary_op(other, Div)
 
     def __radd__(self, other: Union["IntObject", int]) -> "IntObject":
         if isinstance(other, int):
@@ -904,6 +905,12 @@ class IntObject(NewObject):
             return IntObject(other) * self
         else:
             return other * self
+
+    def __rfloordiv__(self, other: Union["IntObject", int]) -> "IntObject":
+        if isinstance(other, int):
+            return IntObject(other) // self
+        else:
+            return other // self
 
     # logical comparison operators
     def __eq__(self, other: Union["IntObject", int]) -> BoolObject:  # type: ignore
@@ -1464,6 +1471,31 @@ class Mul(Expr):
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mul(self)
+
+class Div(Expr):
+    RosetteName = "quotient"
+    SMTName = "div"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) != 2:
+            raise Exception(f"Must exactly have two arguments: {args}")
+        for arg in args:
+            if get_type_str(arg.type) != get_type_str(args[0].type):
+                raise Exception(
+                    f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
+                )
+        Expr.__init__(self, IntObject, args)
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self, self.RosetteName)
+
+    def toSMT(self) -> str:
+        return Expr.toSMTSimple(self, self.SMTName)
+
+    def accept(self, v: "Visitor[T]") -> T:
+        return v.visit_Div(self)
 
 
 class Div(Expr):

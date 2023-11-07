@@ -1,5 +1,5 @@
 import typing
-from typing import Generator, Any
+from typing import Generator, Any, List
 
 from metalift.ir import Expr, NewObject
 
@@ -85,3 +85,6 @@ class NewObjectSet:
     def __iter__(self) -> Generator[NewObject, Any, None]:
         for new_objs in self.objs:
             yield new_objs
+
+    def objects(self) -> List[NewObject]:
+        return self.objs
