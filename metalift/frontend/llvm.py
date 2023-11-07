@@ -1017,7 +1017,7 @@ class VCVisitor:
             self.visit_sub_instruction(block_name, o)
         elif o.opcode == "mul":
             self.visit_mul_instruction(block_name, o)
-        elif o.opcode in {"sdiv"}:
+        elif o.opcode in {"sdiv", "udiv"}:
             self.visit_div_instruction(block_name, o)
         elif o.opcode == "bitcast":
             self.visit_bitcast_instruction(block_name, o)
@@ -1273,6 +1273,15 @@ class VCVisitor:
             raise Exception("* only supported for int objects!")
         mul_obj = left * right
         self.write_operand_to_block(block_name, o, mul_obj)
+
+    def visit_div_instruction(self, block_name: str, o: ValueRef) -> None:
+        ops = list(o.operands)
+        left = self.read_operand_from_block(block_name, ops[0])
+        right = self.read_operand_from_block(block_name, ops[1])
+        if not isinstance(left, IntObject) or not isinstance(right, IntObject):
+            raise Exception("division only supported for int objects!")
+        div_obj = left // right
+        self.write_operand_to_block(block_name, o, div_obj)
 
     def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
