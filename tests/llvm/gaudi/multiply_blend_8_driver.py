@@ -3,7 +3,7 @@ from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
-from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl, select_mul8x8_div255_body
+from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl, select_mul8x8_div255_body, select_min_body
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     # return [elemwise_min, nested_elemwise_min]
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() > 1)
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
-    driver.fns_synths = [get_select_synth(select_mul8x8_div255_body)]
+    driver.fns_synths = [get_select_synth(select_mul8x8_div255_body, select_min_body)]
     multiply_blend_8(base, active)
 
     driver.synthesize(noVerify=True)
