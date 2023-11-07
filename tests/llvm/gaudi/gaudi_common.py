@@ -129,6 +129,9 @@ elemwise_mul = fn_decl_recursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mu
 # Selection criteria
 select_min_body = ite(int_x < int_y, int_x, int_y)
 select_linear_burn_body = int_x + int_y - 255
+select_mul8x8_div255_body = (int_x * int_y) // 255
+select_screen8x8_body = int_x + int_y - select_mul8x8_div255_body
+
 
 select_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT)
 select_fn_decl = fn_decl(SELECT, IntObject, None, int_x, int_y)
