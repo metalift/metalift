@@ -31,18 +31,18 @@ def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Ex
 
 def and_exprs(*exprs: Expr) -> Expr:
     if len(exprs) == 0:
-        return BoolLit(True)
+        raise Exception("Must provide at least one expression!")
     result = exprs[0]
-    for expr in exprs:
+    for expr in exprs[1:]:
         result = And(result, expr)
     return result
 
 # TODO(jie): should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
     if len(exprs) == 0:
-        return BoolLit(True)
+        raise Exception("Must provide at least one expression!")
     result = exprs[0]
-    for expr in exprs:
+    for expr in exprs[1:]:
         result = Or(result, expr)
     return result
 
