@@ -1054,14 +1054,10 @@ class VCVisitor:
             pred_preconds: List[BoolObject] = []
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                if len(pred_state.precond) > 1:
+                if len(pred_preconds) >= 1:
                     pred_preconds.append(and_objects(*pred_state.precond))
-                else:
-                    pred_preconds.append(pred_state.precond[0])
-            if len(pred_preconds) > 1:
+            if len(pred_preconds) >= 1:
                 blk_state.precond = [or_objects(*pred_preconds)]
-            else:
-                blk_state.precond = pred_preconds
 
             # TODO(jie): handle global vars and uninterpreted functions
 
@@ -1107,10 +1103,15 @@ class VCVisitor:
                         ) in expr_value_to_precond_mapping.items():
                             all_aggregated_preconds: List[NewObject] = []
                             for preconds in all_preconds:
-                                all_aggregated_preconds.append(and_objects(*preconds))
-                            expr_value_to_aggregated_precond[expr_value] = or_objects(
-                                *all_aggregated_preconds  # type: ignore
-                            )
+                                if len(preconds) >= 1:
+                                    all_aggregated_preconds.append(and_objects(*preconds))
+                            if len(all_aggregated_preconds) >= 1:
+                                expr_value_to_aggregated_precond[expr_value] = or_objects(
+                                    *all_aggregated_preconds  # type: ignore
+                                )
+                            else:
+                                expr_value_to_aggregated_precond[expr_value] = BoolObject(True)
+
                         # Merge the different possible values with an Ite statement.
                         merged_expr: Optional[Expr] = None  # type: ignore
                         for (

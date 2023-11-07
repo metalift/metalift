@@ -70,7 +70,6 @@ def toSMT(
                 found_inline = False
                 for i in inCalls:
                     if i[0] == t.args[0]:
-                        print("func", t.args[0])
                         found_inline = True
                         early_candidates_names.add(i[1])
                         # parse body
