@@ -12,15 +12,21 @@ entry:
   store i32 1, i32* %a, align 4
   %i1 = load i32, i32* %i.addr, align 4
   %cmp = icmp sgt i32 %i1, 10
-  br i1 %cmp, label %if.then, label %if.end
+  br i1 %cmp, label %bb, label %bb3
 
-if.then:                                          ; preds = %entry
+if.then:                                          ; preds = %bb
   store i32 2, i32* %a, align 4
   br label %if.end
 
-if.end:                                           ; preds = %if.then, %entry
+if.end:                                           ; preds = %bb3, %if.then
   %i2 = load i32, i32* %a, align 4
   ret i32 %i2
+
+bb:                                               ; preds = %entry
+  br label %if.then
+
+bb3:                                              ; preds = %entry
+  br label %if.end
 }
 
 attributes #0 = { noinline nounwind optnone ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
