@@ -1056,7 +1056,7 @@ class VCVisitor:
             pred_preconds: List[BoolObject] = []
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
-                if len(pred_preconds) >= 1:
+                if len(pred_state.precond) >= 1:
                     pred_preconds.append(and_objects(*pred_state.precond))
             if len(pred_preconds) >= 1:
                 blk_state.precond = [or_objects(*pred_preconds)]
