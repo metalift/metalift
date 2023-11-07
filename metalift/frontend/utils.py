@@ -1,5 +1,5 @@
 import typing
-from typing import Generator, Any, List
+from typing import Generator, Any, Iterable, List
 
 from metalift.ir import Expr, NewObject
 
@@ -48,7 +48,7 @@ class ExprDict:
 
 
 class NewObjectSet:
-    def __init__(self, objs: typing.List[NewObject] = []) -> None:
+    def __init__(self, objs: Iterable[NewObject] = []) -> None:
         self.objs: typing.List[NewObject] = []
         for obj in objs:
             if not any([NewObject.__eq__(obj, o) for o in self.objs]):

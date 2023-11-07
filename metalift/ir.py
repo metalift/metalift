@@ -1462,6 +1462,7 @@ class Mul(Expr):
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mul(self)
 
+
 class Div(Expr):
     RosetteName = "quotient"
     SMTName = "div"
