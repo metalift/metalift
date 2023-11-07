@@ -63,6 +63,7 @@ def toExpr(
         "+": Add,
         "-": Sub,
         "*": Mul,
+        "quotient": Div,
         "<": Lt,
         "<=": Le,
         ">": Gt,
