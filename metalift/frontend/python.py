@@ -794,7 +794,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[NewObject]):
         elif op == "*":
             return l * r  # type: ignore
         elif op == "//":
-            return l // r # type: ignore
+            return l // r  # type: ignore
         elif op == "/":
             raise NotImplementedError(f"Division not supported in {o}")
         elif op == "%":

@@ -2,7 +2,16 @@ import re
 
 from llvmlite.binding import ValueRef
 from metalift.frontend.utils import NewObjectSet
-from metalift.ir import And, BoolLit, Expr, Lit, BoolObject, IntObject, Or, get_object_exprs
+from metalift.ir import (
+    And,
+    BoolLit,
+    Expr,
+    Lit,
+    BoolObject,
+    IntObject,
+    Or,
+    get_object_exprs,
+)
 from typing import Dict
 
 
@@ -37,6 +46,7 @@ def and_exprs(*exprs: Expr) -> Expr:
         result = And(result, expr)
     return result
 
+
 # TODO(jie): should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
     if len(exprs) == 0:
@@ -46,9 +56,11 @@ def or_exprs(*exprs: Expr) -> Expr:
         result = Or(result, expr)
     return result
 
+
 def and_objects(*objects: BoolObject) -> BoolObject:
     deduped_objects = NewObjectSet(objects).objects()
     return BoolObject(and_exprs(*get_object_exprs(*deduped_objects)))
+
 
 def or_objects(*objects: BoolObject) -> BoolObject:
     deduped_objects = NewObjectSet(objects).objects()

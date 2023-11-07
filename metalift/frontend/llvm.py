@@ -1102,13 +1102,19 @@ class VCVisitor:
                             all_aggregated_preconds: List[NewObject] = []
                             for preconds in all_preconds:
                                 if len(preconds) >= 1:
-                                    all_aggregated_preconds.append(and_objects(*preconds))
+                                    all_aggregated_preconds.append(
+                                        and_objects(*preconds)
+                                    )
                             if len(all_aggregated_preconds) >= 1:
-                                expr_value_to_aggregated_precond[expr_value] = or_objects(
+                                expr_value_to_aggregated_precond[
+                                    expr_value
+                                ] = or_objects(
                                     *all_aggregated_preconds  # type: ignore
                                 )
                             else:
-                                expr_value_to_aggregated_precond[expr_value] = BoolObject(True)
+                                expr_value_to_aggregated_precond[
+                                    expr_value
+                                ] = BoolObject(True)
 
                         # Merge the different possible values with an Ite statement.
                         merged_expr: Optional[Expr] = None  # type: ignore
