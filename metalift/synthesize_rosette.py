@@ -15,7 +15,12 @@ from metalift.synthesis_common import (
 from metalift import process_tracker
 
 import typing
-from typing import Any, Callable, Dict, List, Union, IO
+from typing import Any, Callable, Dict, List, Union, IO, get_args
+
+# TODO: remove after proper replacement
+from metalift.types import FnT, MapT
+
+from metalift.types import CVC5UnsupportedException
 
 
 # utils for converting rosette output to IR
@@ -49,9 +54,9 @@ def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
 def toExpr(
     ast: typing.List[Any],
     fnsType: Dict[Any, Any],
-    varType: Dict[str, Type],
+    varType: Dict[str, NewObjectT],
     choices: Dict[str, Expr],
-    typeHint: typing.Optional[Type] = None,
+    typeHint: typing.Optional[NewObjectT] = None,
 ) -> Expr:
     expr_bi: Dict[str, Callable[..., Expr]] = {
         "equal?": Eq,
@@ -94,19 +99,21 @@ def toExpr(
                 v2,
             )
         elif ast[0] == "length":
-            return Call("list_length", Int(), toExpr(ast[1], fnsType, varType, choices))
+            return Call(
+                "list_length", IntObject, toExpr(ast[1], fnsType, varType, choices)
+            )
         elif ast[0] == "=":
             return Eq(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-empty":
-            return Call("list_empty", ListT(Int()))
+            return Call("list_empty", ListObject[IntObject])
         elif ast[0] == "list-append" or ast[0] == "append":
             elem = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
-                ListT(elem.type),
+                ListObject[elem.type],  # type: ignore
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
@@ -114,7 +121,7 @@ def toExpr(
             elem = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_prepend",
-                ListT(elem.type),
+                ListObject[elem.type],  # type: ignore
                 elem,
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -122,7 +129,7 @@ def toExpr(
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_get",
-                list_expr.type.args[0],
+                get_args(list_expr.type)[0],
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -137,14 +144,14 @@ def toExpr(
         elif ast[0] == "list-concat":
             return Call(
                 "list_concat",
-                ListT(Int()),
+                ListObject[IntObject],
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-take-noerr":
             return Call(
                 "list_take",
-                ListT(Int()),
+                ListObject[IntObject],
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -152,21 +159,21 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
-            return Tuple(*arg_eval)
+            return Tuple(*arg_eval)  # type: ignore
         elif ast[0] == "tupleGet":
             return TupleGet(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "set-create":
-            return Call(ast[0], SetT(Int()))
+            return Call(ast[0], SetObject[IntObject])
         elif ast[0] == "set-insert":
             v = toExpr(ast[1], fnsType, varType, choices)
             s1 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], SetT(v.type), v, s1)
+            return Call(ast[0], SetObject[v.type], v, s1)  # type: ignore
         elif ast[0] == "set-singleton":
             v = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], SetT(v.type), v)
+            return Call(ast[0], SetObject[v.type], v)  # type: ignore
         elif ast[0] == "set-eq":
             s1 = toExpr(ast[1], fnsType, varType, choices)
             s2 = toExpr(ast[2], fnsType, varType, choices)
@@ -178,11 +185,11 @@ def toExpr(
         elif ast[0] == "set-subset":
             s1 = toExpr(ast[1], fnsType, varType, choices)
             s2 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], Bool(), s1, s2)
+            return Call(ast[0], BoolObject, s1, s2)
         elif ast[0] == "set-member":
             v = toExpr(ast[1], fnsType, varType, choices)
             s = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], Bool(), v, s)
+            return Call(ast[0], BoolObject, v, s)
         elif ast[0] == "map-union":
             m1 = toExpr(ast[1], fnsType, varType, choices)
             m2 = toExpr(ast[2], fnsType, varType, choices)
@@ -197,24 +204,24 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(m1.type.args[1], m1.type.args[1], m1.type.args[1]),
+                typeHint=FnT(m1.type.args[1], m1.type.args[1], m1.type.args[1]),  # type: ignore
             )
 
             return Call(ast[0], m1.type, m1, m2, uf)
         elif ast[0] == "map-values":
             m = toExpr(ast[1], fnsType, varType, choices)
-            return Call(ast[0], ListT(m.type.args[1]), m)
+            return Call(ast[0], ListObject[m.type.args[1]], m)  # type: ignore
         elif ast[0] == "map-singleton":
             k = toExpr(ast[1], fnsType, varType, choices)
             v = toExpr(ast[2], fnsType, varType, choices)
-            return Call(ast[0], MapT(k.type, v.type), k, v)
+            return Call(ast[0], MapT(k.type, v.type), k, v)  # type: ignore
         elif ast[0] == "map-create":
             return Call(ast[0], MapT(None, None))  # type: ignore
         elif ast[0] == "map-get":
             m = toExpr(ast[1], fnsType, varType, choices)
             k = toExpr(ast[2], fnsType, varType, choices)
             default = toExpr(ast[3], fnsType, varType, choices)
-            return Call(ast[0], m.type.args[1], m, k, default)
+            return Call(ast[0], m.type.args[1], m, k, default)  # type: ignore
         elif ast[0] == "lambda":
             arg_list = [
                 Var(n, t) for (t, n) in zip(typeHint.args[1:], ast[1])  # type: ignore
@@ -225,7 +232,7 @@ def toExpr(
                 varTypeUpdated[a.args[0]] = a.type
 
             body = toExpr(ast[2], fnsType, varTypeUpdated, choices)
-            return Lambda(body.type, body, *arg_list)
+            return Lambda(body.type, body, *arg_list)  # type: ignore
         elif ast[0] == "let":
             var_value = toExpr(ast[1][0][1], fnsType, varType, choices)
             tmp_var_type = dict(varType)
@@ -242,10 +249,10 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(Int(), data.type.args[0], Int()),
+                typeHint=FnT(IntObject, data.type.args[0], IntObject),  # type: ignore
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
-            return Call("reduce_int", Int(), data, fn, initial)
+            return Call("reduce_int", IntObject, data, fn, initial)
         elif ast[0] == "reduce_bool":
             data = toExpr(ast[1], fnsType, varType, choices)
             fn = toExpr(
@@ -253,12 +260,13 @@ def toExpr(
                 fnsType,
                 varType,
                 choices,
-                typeHint=FnT(Bool(), data.type.args[0], Bool()),
+                typeHint=FnT(BoolObject, data.type.args[0], BoolObject),  # type: ignore
             )
             initial = toExpr(ast[3], fnsType, varType, choices)
-            return Call("reduce_bool", Bool(), data, fn, initial)
+            return Call("reduce_bool", BoolObject, data, fn, initial)
         elif ast[0] in fnsType.keys():
             arg_eval = []
+            ret_type = get_fn_return_type(fnsType[ast[0]])
             for alen in range(1, len(ast)):
                 arg_eval.append(
                     toExpr(
@@ -266,16 +274,15 @@ def toExpr(
                         fnsType,
                         varType,
                         choices,
-                        typeHint=fnsType[ast[0]].args[alen],
+                        typeHint=ret_type,
                     )
                 )
-            retT = fnsType[ast[0]].args[0]
             if (
                 ast[0] in Target.definedFns
             ):  # re-create a Target obj to call the user provided codegen
                 return Target.definedFns[ast[0]].call(*arg_eval)
             else:
-                return Call(ast[0], retT, *arg_eval)
+                return Call(ast[0], ret_type, *arg_eval)
         elif ast[0] in choices:
             picked: Expr = choices[ast[0]].args[0]
             while (
@@ -314,7 +321,7 @@ def toSynthesize(
         else:
             synthNames.append(i.args[0])
     for l in lang:
-        if l.args[1] == None:
+        if l.args[1] is None:
             synthNames.append(l.args[0])
     return synthNames
 
@@ -340,7 +347,6 @@ def synthesize(
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
-
     while True:
         synthFile = synthDir + basename + f"_{uid}" + ".rkt"
 
@@ -354,9 +360,10 @@ def synthesize(
             new_vars: typing.Set[Var] = set()
             while True:
                 expr_count: Dict[str, int] = {}
-                vc.countVariableUses(expr_count)
 
-                vc = vc.optimizeUselessEquality(expr_count, new_vars)
+                vc.src.countVariableUses(expr_count)  # type: ignore
+
+                vc = vc.src.optimizeUselessEquality(expr_count, new_vars)  # type: ignore
 
                 if vc.toSMT() == prev_vc:
                     break  # run to fixpoint
@@ -434,10 +441,8 @@ def synthesize(
                 for synthFun in invAndPs:
                     allVars = synthFun.args[2:]
                     ceName = synthFun.args[0]
-                    fnsType[ceName] = FnT(
-                        synthFun.args[1].type,
-                        *[v.type for v in allVars],
-                    )
+                    fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
+                    fnsType[ceName] = FnObject[typing.Tuple[fn_types]]  # type: ignore
                 for n in synthNames:
                     for r in output:
                         if "define (" + n in r:

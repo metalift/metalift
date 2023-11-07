@@ -1,44 +1,47 @@
 from typing import List
 
-from mypy.nodes import Statement
-
 from metalift.frontend.python import Driver
-from metalift.ir import (Add, And, Call, Choose, Eq, Expr, FnDeclRecursive, Ge,
-                         Int, IntLit, Ite, Le, Sub, Var)
+from metalift.ir import (BoolObject, FnDeclRecursive, IntObject, NewObject,
+                         call, choose, fn_decl_recursive, ite)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
-    x = Var("x", Int())
-    sum_n = FnDeclRecursive(
+    x = IntObject("x")
+    sum_n = fn_decl_recursive(
         "sum_n",
-        Int(),
-        Ite(
-            Ge(x, IntLit(1)),
-            Add(x, Call("sum_n", Int(), Sub(x, IntLit(1)))),
-            IntLit(0),
+        IntObject,
+        ite(
+            x >= 1,
+            x + call("sum_n", IntObject, x - 1),
+            IntObject(0),
         ),
-        x,
+        x
     )
     return [sum_n]
 
 
-def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    return Eq(ret_val, Call("sum_n", Int(), Choose(IntLit(1), IntLit(2))))
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
+    return ret_val == call("sum_n", IntObject, choose(IntObject(1), IntObject(2)))
 
-def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    e = Choose(*writes)
-    f = Choose(IntLit(1), IntLit(2), IntLit(3))
-    c = Eq(e, Call("sum_n", Int(), Sub(e, f)))
-    d = And(Ge(e, f), Le(e, f))
-    b = And(c, d)
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    e = choose(*writes)
+    f = choose(IntObject(1), IntObject(2), IntObject(3))
+    c = e == call("sum_n", IntObject, e - f)
+    d = (e >= f).And(e <= f)
+    b = c.And(d)
     return b
 
 if __name__ == "__main__":
-    filename = "tests/python/while4.py"
-
     driver = Driver()
-    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
+    test = driver.analyze(
+        filepath="tests/python/while4.py",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
+    )
 
     test()
 

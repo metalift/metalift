@@ -23,56 +23,35 @@ vector<int> program(vector<int> data){
 Readers familiar with primitives for tensor accelerators may recognize this as a convolution, but this is not explicit in the code. With current programming model support, developers would need to manually convert this code to one of the supported front-end of Gemmini. In this tutorial, we demonstrate how to build a transpiler using Metalift that can convert this code to the C/C++ APIs of Gemmini.
 
 ## Define the Target Language
-The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation.
+The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation using the ListObject IR provided.
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.ir import Var, FnDecl, FnDeclRecursive, Choose, Synth
-from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit, Ite
-from metalift.ir import Int, Bool, ListT, And, Or, Not, Ge, Gt, Le, Lt, Sub
-
-def ml_list_get(lst, i):
-    return Call("list_get", Int(), lst, i) #returns lst[i]
-
-def ml_list_tail(lst, i):
-    return Call("list_tail", ListT(Int()), lst, i) #returns list[1:]
-
-def ml_list_prepend(e, lst):
-    return Call("list_prepend", ListT(Int()), e, lst) #returns e + lst
-
-def ml_list_length(lst):
-    return Call("list_length", Int(), lst) #returns len(lst)
-
-def ml_list_empty():
-    return Call("list_empty", ListT(Int())) #returns []
-
-def ml_list_take(lst, i):
-    return Call("list_take", ListT(Int()), lst, i) #returns lst[:i]
-
-def ml_list_head(lst):
-    return ml_list_get(lst, IntLit(0)) #return lst[0]
+from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
+from metalift.ir import call, Lit, IntLit, ite
+from metalift.ir import IntObject, BoolObject, ListObject
 
 def targetLang():
-    x = Var("x", ListT(Int()))
-    y = Var("y", ListT(Int()))
+    x = ListObject(IntObject, "x")
+    y = ListObject(IntObject, "y")
     def dotprod_body(x, y):
-        kernel_size = ml_list_length(y)
-        cur_prod = Mul(ml_list_get(x, IntLit(0)), ml_list_head(y, IntLit(0)))
-        x_rest = ml_list_tail(x, IntLit(1))
-        y_rest = ml_list_tail(y, IntLit(1))
-        recursed = Call("dotprod", Int(),x_rest, y_rest)
-        return Ite(Lt(kernel_size, IntLit(2)), cur_prod, Add(cur_prod, recursed))
-    dotprod = FnDeclRecursive("dotprod", Int(), dotprod_body(x, y), x, y)
+        kernel_size = len(y)
+        cur_prod = x[0] * y[0]
+        x_rest = x[1:]
+        y_rest = y[1:]
+        recursed = call("dotprod", IntObject, x_rest, y_rest)
+        return ite(kernel_size < 2, cur_prod, cur_prod + recursed)
+    dotprod = fn_decl_recursive("dotprod", IntObject, dotprod_body(x, y), x, y)
 
     def conv1d1x2_body(vec, kernel):
-        vec_size = ml_list_length(x)
+        vec_size = len(x)
         kernel_size = IntLit(2)
-        cur_prod = Call("dotprod", Int(), vec, kernel)
-        vec_rest = ml_list_tail(vec, IntLit(1))
-        recursed = Call("conv1d", ListT(Int()),vec_rest, kernel)
-        general_answer = ml_list_prepend(cur_prod, recursed)
-        return Ite(Lt(vec_size, kernel_size), ml_list_empty(), general_answer)
-    conv1d1x2 = FnDeclRecursive("conv1d", ListT(Int()), conv1d1x2_body(x, y), x, y)
+        cur_prod = call("dotprod", IntObject, vec, kernel)
+        vec_rest = vec[1:]
+        recursed = call("conv1d", ListObject[IntObject],vec_rest, kernel)
+        general_answer = cur_prod.append(recursed)
+        return ite(vec_size < kernel_size, ListObject.empty(IntObject), general_answer)
+    conv1d1x2 = fn_decl_recursive("conv1d", ListObject[IntObject], conv1d1x2_body(x, y), x, y)
     return [dotprod, conv1d1x2]
 ```
 
@@ -100,32 +79,32 @@ Metalift IR provides ```Choose``` construct to define the search space. For our 
 <!--phmdoctest-mark.skip-->
 ```python
 # defining the possible values for the kernel 
-unknown_const = Choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
-kernel = reduce(lambda acc, _cur: ml_list_prepend(unknown_const, acc), range(2), ml_list_empty()) 
+unknown_const = choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
+kernel = reduce(lambda acc, _cur: unknown_const.append(acc), range(2), ListObject.empty(IntObject)) 
 
 # invariant grammar
-def inv_grammar(ci: CodeInfo):
-    an_input = Choose(*ci.readVars)
-    an_output_i32 = ci.modifiedVars[1] #loop counter `i` of source code
-    an_output_list = ci.modifiedVars[0] #output variable `result` of the source 
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]):
+    an_input = reads[0]
+    an_output_i32 = writes[1] #loop counter `i` of source code
+    an_output_list = writes[0] #output variable `result` of the source 
                                         #code
 
-    valid = Gt(ml_list_length(an_input), IntLit(1)) 
+    valid = len(an_input) > 1 
     # This enforces the pre-loop invariant condition, that the looping index
     # is always at least 0.
-    preloop = Ge(an_output_i32, IntLit(0))
+    preloop = an_output_i32 >= 0
     
     # This enforces the post-loop invariant condition, that the looping
     # index is at most the last index of the list.
-    postloop = Le(an_output_i32, Sub(ml_list_length(an_input), IntLit(1)))
+    postloop = an_output_i32 <= len(an_input) - 1
             
     # This enforces the inductive property, that if the output so far is
     # the convolution of the input and kernel so far, then it will continue
     # being the convolution of the input and kernel.
-    induction = Eq(an_output_list,Call("conv1d", ListT(Int()),ml_list_take(an_input, Add(an_output_i32, IntLit(1)))),kernel)
-    summary = Implies(valid, And(preloop, And(postloop, induction)))
+    induction = an_output_list == call("conv1d", ListObject[IntObject], an_input[:an_output_i32+1],kernel)
+    summary = implies(valid, preloop and postloop and induction)
 
-    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+    return summary
     '''
         BNF representation of the above code
         summary := And(i >= 0, i <= len(input) - 1, induction)
@@ -133,17 +112,18 @@ def inv_grammar(ci: CodeInfo):
         kernel := [val,val]
         val := -3 | -2 | -1 | 0 | 1 | 2 | 3
     '''
-def post_condition_grammar(ci: CodeInfo):
+def post_condition_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]):
     # We require that, when the input and kernel lists are the same size,
     # that the output list is  1D convolution of the kernel over the input .
-    an_input = ci.readVars[0]
-    an_output = Choose(*ci.modifiedVars)
-    x = ci.readVars[0]
-    valid = Gt(ml_list_length(x), IntLit(1))
-    ans = Call("conv2d", ListT(Int()), an_input, kernel)
-    check_ans = Eq(ans, an_output)
-    summary = Implies(valid, check_ans)
-    return Synth(name, summary, *ci.modifiedVars, *ci.readVars)
+    an_output = writes[0]
+    an_input = reads[0]
+    x = reads[0]
+
+    valid = len(x) > 1
+    ans = call("conv2d", ListObject[IntObject], an_input, kernel)
+    check_ans = ans == an_output
+    summary = implies(valid, check_ans)
+    return summary
 
     '''
         BNF representation of the above code
@@ -168,9 +148,15 @@ fnName = "test"
 loopsFile = "tests/llvm/conv1d.loops"
 cvcPath = "cvc5"
 
-(vars, invAndPs, preds, vc, loopAndPsInfo) = analyze(filename, fnName, loopsFile, log=False)
-
-invAndPs = [grammar(ci) for ci in loopAndPsInfo]
+driver = Driver()
+test = driver.analyze(
+    llvm_filepath=filename,
+    loops_filepath=loopsFile,
+    fn_name=fnName,
+    target_lang_fn=targetLang,
+    inv_grammars=defaultdict(lambda: inv_grammar),
+    ps_grammar=post_condition_grammar
+)
 ```
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains information about the code to be transpiled. The ```codeInfo``` is then used to generate our grammar as described above.
@@ -179,8 +165,11 @@ After we defined our target language and search space grammar, we call Metalift'
 <!--phmdoctest-mark.skip-->
 ```python
 from metalift.synthesize_auto import synthesize
-lang = targetLang()
-candidates = synthesize("conv1d", lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath, listBound=3, noVerify=True)
+data_var = ListObject(IntObject, "data")
+driver.add_var_object(data_var)
+test(data_var)
+
+driver.synthesize()
 print(f"Synthesis took {end_time - start_time} seconds")
 ```
 

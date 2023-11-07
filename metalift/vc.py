@@ -10,7 +10,7 @@ from metalift import vc_util, models
 from llvmlite.binding import TypeRef, ValueRef
 
 import typing
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 
 
 class State:
@@ -72,10 +72,10 @@ class VC:
         self.fnName = fnName
         self.log = log
 
-    def makeVar(self, name: str, ty: Union[TypeRef, Type]) -> Expr:
+    def makeVar(self, name: str, ty: Union[TypeRef, NewObjectT]) -> Expr:
         if isinstance(ty, TypeRef):
-            ty = parse_type_ref(ty)
-        elif isinstance(ty, Type):
+            ty = parse_type_ref_to_obj(ty)
+        elif isinstance(ty, NewObject):
             pass
         else:
             raise Exception("NYI %s with type %s" % (name, ty))
@@ -87,7 +87,7 @@ class VC:
 
         return e
 
-    def callPred(self, name: str, returnT: Type, *args: Expr) -> Expr:
+    def callPred(self, name: str, returnT: NewObjectT, *args: Expr) -> Expr:
         newArgs = [Var("v%s" % i, a.type) for (i, a) in zip(range(len(args)), args)]
         self.preds[name] = Call(name, returnT, *newArgs)
         return Call(name, returnT, *args)
@@ -129,10 +129,10 @@ class VC:
         sorted_values.sort(key=lambda b: b.name)
         blockVCs: ListT[Expr] = [b.state.vc for b in sorted_values]  # type: ignore
 
-        body = Implies(And(*blockVCs), self.makeVar(firstBlockName, Bool()))
+        body = Implies(And(*blockVCs), self.makeVar(firstBlockName, BoolObject))
 
         invAndPs = [
-            Synth(p.args[0], Lit(True, Bool()), *p.args[1:])
+            Synth(p.args[0], Lit(True, BoolObject), *p.args[1:])
             for p in filter(
                 lambda p: p.args[0] == "ps" or p.args[0].startswith("inv"),
                 self.preds.values(),
@@ -252,7 +252,7 @@ class VC:
             assignE = Eq(self.makeVar(a.name, a.type), regs[a])
         else:  # r1 = v1 and r2 = v2 ...
             sorted_assigns = list(assigns)
-            sorted_assigns.sort(key=lambda a: a.name)  # type: ignore
+            sorted_assigns.sort(key=lambda a: a.name)
             assignE = And(
                 *[Eq(self.makeVar(r.name, r.type), regs[r]) for r in sorted_assigns]
             )
@@ -276,9 +276,9 @@ class VC:
         if not succs:
             succE = None
         elif len(succs) == 1:
-            succE = self.makeVar(succs[0].name, Bool())
+            succE = self.makeVar(succs[0].name, BoolObject)
         else:
-            succE = And(*[self.makeVar(s.name, Bool()) for s in succs])
+            succE = And(*[self.makeVar(s.name, BoolObject) for s in succs])
 
         if not asserts:
             assertE = None
@@ -297,7 +297,7 @@ class VC:
             rhs = And(succE, assertE)  # type: ignore
 
         vc = Eq(
-            self.makeVar(blockName, Bool()),
+            self.makeVar(blockName, BoolObject),
             rhs if not lhs else Implies(lhs, rhs),  # type: ignore
         )
 
@@ -323,30 +323,31 @@ class VC:
                     1
                 )  # bug: ops[0] always return i32 1 regardless of type
                 if t == "i32":
-                    s.mem[i] = Lit(0, Int())
+                    s.mem[i] = Lit(0, IntObject)
                 elif t == "i8":
-                    s.mem[i] = Lit(False, Bool())
+                    s.mem[i] = Lit(False, BoolObject)
                 elif t == "i1":
-                    s.mem[i] = Lit(False, Bool())
+                    s.mem[i] = Lit(False, BoolObject)
                 elif t == "%struct.list*":
-                    s.mem[i] = Lit(0, ListT(Int()))
+                    s.mem[i] = Lit(0, ListObject[IntObject])
                 elif t.startswith("%struct.set"):
-                    s.mem[i] = Lit(0, SetT(Int()))
+                    s.mem[i] = Lit(0, SetObject[IntObject])
                 elif t.startswith("%struct.tup."):
-                    retType = [Int() for i in range(int(t[-2]) + 1)]
-                    s.mem[i] = Lit(0, TupleT(*retType))
+                    retType = [IntObject for i in range(int(t[-2]) + 1)]
+                    s.mem[i] = Lit(0, make_tuple_type(*retType))
                 elif t.startswith("%struct.tup"):
-                    s.mem[i] = Lit(0, TupleT(Int(), Int()))
-                elif t.startswith(
-                    "%struct."
-                ):  # not a tuple or set, assume to be user defined type
-                    o = re.search("%struct.(.+)", t)
-                    if o:
-                        tname = o.group(1)
-                    else:
-                        raise Exception("failed to match struct %s: " % t)
+                    s.mem[i] = Lit(0, make_tuple_type(IntObject, IntObject))
+                # TODO: see how to handle user defined structs
+                # elif t.startswith(
+                #     "%struct."
+                # ):  # not a tuple or set, assume to be user defined type
+                #     o = re.search("%struct.(.+)", t)
+                #     if o:
+                #         tname = o.group(1)
+                #     else:
+                #         raise Exception("failed to match struct %s: " % t)
 
-                    s.mem[i] = Object(Type(tname))
+                #     s.mem[i] = ObjectExpr(Type(tname))
                 else:
                     raise Exception("NYI: %s" % i)
 
@@ -408,16 +409,18 @@ class VC:
                 if fnName in models.fn_models:
                     rv = models.fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
                     if rv.val:
-                        s.regs[i] = rv.val
+                        s.regs[i] = rv.val.src
                         assigns.add(i)
                     if rv.assigns:
-                        for k, v in rv.assigns:
-                            s.regs[k] = v
+                        for k, v, _ in rv.assigns:
+                            s.regs[k] = v.src
                             assigns.add(k)
 
                 elif fnName in s.uninterpFuncs:
                     s.regs[i] = Call(
-                        fnName, parse_type_ref(i.type), *[s.regs[op] for op in ops[:-1]]
+                        fnName,
+                        parse_type_ref_to_obj(i.type),
+                        *[s.regs[op] for op in ops[:-1]],
                     )
                     assigns.add(i)
 

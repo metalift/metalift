@@ -1,29 +1,32 @@
+from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int,
-                         FnDeclRecursive, IntLit, Mul, Sub, Tuple, TupleGet, TupleT, Var)
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import IntObject, NewObject, call, choose, fn_decl_recursive
 from tests.python.utils.utils import codegen
 
 def double(t):
-    return Call("double", Int(), t)
+    return call("double", IntObject, t)
 
 def target_lang():
-    x = Var("x", Int())
-    double = FnDeclRecursive(
-        "double", Int(), Add(x, x), x
+    x = IntObject("x")
+    double = fn_decl_recursive(
+        "double",
+        IntObject,
+        (x + x),
+        x
     )
     return [double]
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     raise Exception("no invariant")
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    r = writes[0]
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
+    ret_val = writes[0]
     (x, y) = reads
-    summary = Choose(
-        Eq(ret_val, Add(double(x), double(y))),
-        Eq(ret_val, Sub(double(x), double(y))),
+    summary = choose(
+        ret_val == double(x) + double(y),
+        ret_val == double(x) - double(y)
     )
     return summary
 
@@ -34,12 +37,13 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/tuples3.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammar=inv_grammar,
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 
-    x = driver.variable("x", Int())
-    y = driver.variable("y", Int())
+    x = IntObject("x")
+    y = IntObject("y")
+    driver.add_var_objects([x, y])
 
     test(x, y)
 

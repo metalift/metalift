@@ -1,4 +1,4 @@
-from metalift.ir import Add, Call, Eq, Expr, Ite, Lit, Tuple
+from metalift.ir import Add, Call, Eq, Expr, Ite, Lit, Sub, Tuple
 
 
 def codegen(expr: Expr) -> str:
@@ -7,6 +7,8 @@ def codegen(expr: Expr) -> str:
             return f"{expr.e1()} == {eval(expr.e2())}"
         if isinstance(expr, Add):
             return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
+        if isinstance(expr, Sub):
+            return f"{eval(expr.args[0])} - {eval(expr.args[1])}"
         if isinstance(expr, Call):
             eval_args = []
             for a in expr.arguments():

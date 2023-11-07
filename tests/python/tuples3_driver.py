@@ -1,45 +1,51 @@
 from typing import List
+
 from metalift.frontend.python import Driver
-
-from metalift.ir import Add, Call, Choose, Eq, Expr, FnDecl, Int, Sub, Var
-
-from mypy.nodes import Statement
-
+from metalift.ir import BoolObject, IntObject, NewObject, call, choose, fn_decl_recursive
 from tests.python.utils.utils import codegen
 
-def target_lang() -> List[FnDecl]:
-    x = Var("x", Int())
-    tuple_add = FnDecl(
-        "double", 
-        Int(), 
-        Add(x, x),
+
+def double(t):
+    return call("double", IntObject, t)
+
+def target_lang():
+    x = IntObject("x")
+    double = fn_decl_recursive(
+        "double",
+        IntObject,
+        (x + x),
         x
     )
-    return [tuple_add]
+    return [double]
 
-def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    def double(t: Expr):
-        return Call("double", Int(), t)
-    x, y = reads[0], reads[1]
-    return Choose(
-        Eq(ret_val, Add(double(x), double(y))),
-        Eq(ret_val, Sub(double(x), double(y))),
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    raise Exception("no invariant")
+
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
+    (x, y) = reads
+    summary = choose(
+        ret_val == double(x) + double(y),
+        ret_val == double(x) - double(y)
+    )
+    return summary
+
+if __name__ == "__main__":
+    driver = Driver()
+    test = driver.analyze(
+        filepath="tests/python/tuples3.py",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
     )
 
-def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    raise Exception("no invariant")
-    
-if __name__ == "__main__":
-    filename = "tests/python/tuples3.py"
+    x = IntObject("x")
+    y = IntObject("y")
+    driver.add_var_objects([x, y])
 
-    driver = Driver()    
-    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
+    test(x, y)
 
-    v1 = driver.variable("x", Int())
-    v2 = driver.variable("y", Int())
-
-    test(v1, v2)
-    
     driver.synthesize()
 
     print("\n\ngenerated code:" + test.codegen(codegen))

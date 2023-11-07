@@ -18,20 +18,26 @@ class VerificationFailed(Exception):
     pass
 
 
-def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Type]:
+def generateTypes(
+    lang: typing.Sequence[Union[Expr, ValueRef]]
+) -> Dict[str, NewObjectT]:
     fnsType = {}
 
     for l in lang:
-        if l.type.name == "Function":
+        # TODO: fix when decided if function will be IR Objects
+        if hasattr(l.type, "name") and l.type.name == "Function":
             if not isinstance(l, ValueRef):
                 fnsType[l.args[0]] = l.type
             else:
-                fnsType[l.name] = parse_type_ref(l.type)
+                fnsType[l.name] = parse_type_ref_to_obj(l.type)
         else:
             if not isinstance(l, ValueRef):
-                fnsType[l.args[0]] = l.type
+                if isinstance(l, NewObject):
+                    fnsType[l.src.args[0]] = l.type
+                else:
+                    fnsType[l.args[0]] = l.type
             else:
-                fnsType[l.name] = parse_type_ref(l.type)
+                fnsType[l.name] = parse_type_ref_to_obj(l.type)
     return fnsType
 
 
@@ -53,7 +59,6 @@ def parseCandidates(
                 a, inCalls, fnsType, fnCalls, extractedLambdas, inFunctionName
             )[0]
         )
-
         # if candidate.kind == Expr.Kind.Call:
         if isinstance(candidate, Call):
             if (
@@ -65,7 +70,8 @@ def parseCandidates(
             new_args = []
             for ar in candidate.args:
                 if not isinstance(ar, str):
-                    if ar.type.name == "Function" and ar.args[0] in fnsType.keys():
+                    # TODO: fix when decided if function will be IR Objects
+                    if is_fn_decl_type(ar.type) and ar.args[0] in fnsType.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
                         inCalls.append((candidate.args[0], ar.args[0]))
@@ -75,7 +81,11 @@ def parseCandidates(
                         lambda_name = f"lambda_{len(extractedLambdas)}"
                         extractedLambdas.append(
                             FnDecl(
-                                lambda_name, ar.type.args[0], ar.args[0], *ar.args[1:]
+                                # TODO: ar.type no longer has args, find proper substitution
+                                lambda_name,
+                                ar.type.args[0],  # type: ignore
+                                ar.args[0],
+                                *ar.args[1:],
                             )
                         )
                         fnCalls.append(lambda_name)
@@ -101,7 +111,7 @@ def verify_synth_result(
     synthDir: str,
     candidatesSMT: typing.List[FnDeclRecursive],
     candidateDict: Dict[str, Expr],
-    fnsType: Dict[str, Type],
+    fnsType: Dict[str, NewObjectT],
     uid: int,
     useRosette: bool = False,
 ) -> typing.Tuple[str, typing.List[str]]:
@@ -144,7 +154,8 @@ def verify_synth_result(
 
         transformedLang: typing.List[Union[FnDeclRecursive, FnDecl, Axiom]] = []
         for langFn in targetLang:
-            if langFn.args[1] != None:
+            if langFn.args[1] is not None:
+                # Things are good here
                 updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
                     langFn.args[1],
                     inCalls,
@@ -153,6 +164,7 @@ def verify_synth_result(
                     extractedLambdas,
                     langFn.args[0],
                 )
+                # Things are good here
                 if isinstance(langFn, FnDeclRecursive) or isinstance(langFn, FnDecl):
                     decl: Union[FnDeclRecursive, FnDecl, Axiom] = FnDeclRecursive(
                         langFn.args[0], langFn.returnT(), updated, *langFn.args[2:]

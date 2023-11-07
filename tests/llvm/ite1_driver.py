@@ -1,19 +1,21 @@
+from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver
-from metalift.ir import Eq, Expr, FnDecl, Gt, Int, IntLit, Ite, Var
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, ite
 
 
 def target_lang() -> List[FnDecl]:
     return []
 
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
     i = reads[0]
-    return Eq(ret_val, Ite(Gt(i, IntLit(10)), IntLit(1), IntLit(2)))
+    return ret_val == ite(i > 10, IntObject(1), IntObject(2))
 
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
     raise Exception("no loop in the source")
 
 
@@ -24,11 +26,12 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/ite1.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammar=inv_grammar,
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 
-    i = driver.variable("i", Int())
+    i = IntObject("i")
+    driver.add_var_object(i)
     test(i)
 
     driver.synthesize()
