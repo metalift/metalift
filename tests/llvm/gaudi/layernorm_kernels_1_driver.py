@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (BoolObject, FnDecl, FnDeclRecursive, IntObject,
-                         ListObject, NewObject, choose)
+from metalift.ir import (Bool, FnDecl, FnDeclRecursive, Int,
+                         List as mlList, Object, choose)
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (an_arr2_to_arr, an_arr_to_int,
                                            an_int_and_arr_to_arr,
@@ -16,7 +16,7 @@ from tests.python.utils.utils import codegen
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vector_add, elemwise_mul, scalar_mul, broadcast_add, reduce_sum, reduce_mul]
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     input = reads[0]
     weight = reads[1]
     epsilon = reads[2]
@@ -24,7 +24,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
     ret_val = writes[0]
 
     an_arr = choose(input, weight)
-    an_int = choose(epsilon, hidden_size, IntObject(-1), IntObject(0), IntObject(1), IntObject(2), IntObject(3))
+    an_int = choose(epsilon, hidden_size, Int(-1), Int(0), Int(1), Int(2), Int(3))
 
     computed_arr = choose(
         an_arr2_to_arr(an_arr, an_arr),
@@ -32,7 +32,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
     )
     return ret_val == an_arr_to_int(computed_arr)
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     input = reads[0]
     weight = reads[1]
     epsilon = reads[2]
@@ -40,7 +40,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
     i = writes[0]
     variance = writes[1]
 
-    an_int = choose(epsilon, hidden_size, IntObject(-1), IntObject(0), IntObject(1), IntObject(2), IntObject(3), i, variance)
+    an_int = choose(epsilon, hidden_size, Int(-1), Int(0), Int(1), Int(2), Int(3), i, variance)
     an_arr = choose(input, weight)
     an_arr = choose(an_arr, an_arr[:an_int])
 
@@ -62,10 +62,10 @@ if __name__ == "__main__":
         defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar
     )
-    input_var = ListObject(IntObject, "input")
-    weight_var = ListObject(IntObject, "weight")
-    epsilon_var = IntObject("epsilon")
-    hidden_size_var = IntObject("hidden_size")
+    input_var = mlList(Int, "input")
+    weight_var = mlList(Int, "weight")
+    epsilon_var = Int("epsilon")
+    hidden_size_var = Int("hidden_size")
     driver.add_var_objects([input_var, weight_var, epsilon_var, hidden_size_var])
     driver.add_precondition(input_var.len() == weight_var.len())
     driver.add_precondition(input_var.len() > 0)

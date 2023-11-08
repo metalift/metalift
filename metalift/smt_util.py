@@ -142,7 +142,7 @@ def toSMT(
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
-        declarations: typing.List[typing.Tuple[str, NewObjectT]] = []
+        declarations: typing.List[typing.Tuple[str, ObjectT]] = []
         for v in vars:
             declarations.append((v.args[0], v.type))
 
