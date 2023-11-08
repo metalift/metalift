@@ -56,6 +56,9 @@ from typing import Any, Callable, Dict, List, Union, IO, get_args
 # TODO: remove after proper replacement
 from metalift.types import FnT, MapT
 
+from metalift.types import CVC5UnsupportedException
+from tests.python.utils.utils import codegen
+
 
 # utils for converting rosette output to IR
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -574,14 +577,8 @@ def synthesize(
                     else:
                         print("Synthesized PS and INV Candidates\n")
                         for candidate in candidatesSMT:
-                            print(
-                                f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})"
-                            )
-                            body = candidate.body()
-                            if isinstance(body, str):
-                                print(body)
-                            else:
-                                print(codegen(body))
+                            print(f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})")
+                            print(codegen(candidate.body()))
                             print("\n\n")
                 return candidatesSMT
             else:
