@@ -146,8 +146,8 @@ class Expr:
             return Lt(*[f(a) for a in self.args])
         elif isinstance(self, Ite):
             return Ite(*[f(a) for a in self.args])
-        elif isinstance(self, TupleExpr):  # type: ignore
-            return TupleExpr(*[f(a) for a in self.args])  # type: ignore
+        elif isinstance(self, TupleExpr):
+            return TupleExpr(*[f(a) for a in self.args])
         elif isinstance(self, Let):
             return Let(*[f(a) for a in self.args])
         elif isinstance(self, Lambda):
@@ -242,8 +242,8 @@ class Expr:
                     return Call(typing.cast(str, newArgs[0]), e.type, *newArgs[1:])
                 elif isinstance(e, Choose):
                     return Choose(*newArgs)
-                elif isinstance(e, TupleExpr):  # type: ignore
-                    return TupleExpr(*newArgs)  # type: ignore
+                elif isinstance(e, TupleExpr):
+                    return TupleExpr(*newArgs)
                 elif isinstance(e, TupleGet):
                     return TupleGet(*newArgs)
                 elif isinstance(e, Let):
@@ -1888,7 +1888,7 @@ class Call(Expr):
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
                 index = self.args[idx + 2].args[0]
-                if isinstance(self.args[idx + 1], TupleExpr):  # type: ignore
+                if isinstance(self.args[idx + 1], TupleExpr):
                     retVal.append(
                         "tuple%d_get%d"
                         % (
@@ -2092,7 +2092,7 @@ class Constraint(Expr):
 
 
 ## tuple functions
-class TupleExpr(Expr):  # type: ignore
+class TupleExpr(Expr):
     def __init__(self, *args: Expr) -> None:
         tuple_type = make_tuple_type(*[a.type for a in args])
         Expr.__init__(self, tuple_type, args)
@@ -2114,7 +2114,7 @@ class TupleExpr(Expr):  # type: ignore
         return "(tuple%d %s)" % (len(self.args), args)
 
     def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TupleExpr(self)  # type: ignore
+        return v.visit_TupleExpr(self)
 
 
 class TupleGet(Expr):
@@ -2813,7 +2813,7 @@ class Visitor(Generic[T]):
         pass
 
     @abstractmethod
-    def visit_TupleExpr(self, o: TupleExpr) -> T:  # type: ignore
+    def visit_TupleExpr(self, o: TupleExpr) -> T:
         pass
 
     @abstractmethod
@@ -2929,8 +2929,8 @@ class ExtendedVisitor(Visitor[None]):
     def visit_Constraint(self, o: Constraint) -> None:
         self.generic_visit(o)
 
-    def visit_TupleExpr(self, o: TupleExpr) -> None:  # type: ignore
-        self.generic_visit(o)  # type: ignore
+    def visit_TupleExpr(self, o: TupleExpr) -> None:
+        self.generic_visit(o)
 
     def visit_TupleGet(self, o: TupleGet) -> None:
         self.generic_visit(o)

@@ -168,7 +168,7 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
-            return TupleExpr(*arg_eval)  # type: ignore
+            return TupleExpr(*arg_eval)
         elif ast[0] == "tupleGet":
             return TupleGet(
                 toExpr(ast[1], fnsType, varType, choices),
