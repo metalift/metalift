@@ -22,22 +22,22 @@ from llvmlite.binding import TypeRef, ValueRef
 
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
-from metalift.frontend.utils import NewObjectSet
+from metalift.frontend.utils import ObjectSet
 from metalift.ir import (
-    BoolObject,
+    Bool,
     Call,
     Eq,
     Expr,
     FnDecl,
     FnDeclRecursive,
-    IntObject,
+    Int,
     Ite,
-    ListObject,
+    List as mlList,
     Lit,
-    NewObject,
-    NewObjectT,
+    Object,
+    ObjectT,
     ObjectExpr,
-    SetObject,
+    Set as mlSet,
     Synth,
     TupleObject,
     Var,
@@ -60,8 +60,8 @@ from metalift.vc import Block
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
-        ("val", Optional[NewObject]),
-        ("assigns", Optional[List[Tuple[str, NewObject, str]]]),
+        ("val", Optional[Object]),
+        ("assigns", Optional[List[Tuple[str, Object, str]]]),
     ],
 )
 
@@ -76,7 +76,7 @@ def set_create(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(SetObject.empty(IntObject), None)
+    return ReturnValue(mlSet.empty(Int), None)
 
 
 def set_add(
@@ -122,7 +122,7 @@ def new_list(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 0
-    return ReturnValue(ListObject.empty(IntObject), None)
+    return ReturnValue(mlList.empty(Int), None)
 
 
 def list_length(
@@ -209,7 +209,7 @@ def new_vector(
         )
 
     var_name: str = args[0].name
-    list_obj = ListObject.empty(get_list_element_type(list_type))
+    list_obj = mlList.empty(get_list_element_type(list_type))
     list_loc = state.get_var_location(var_name)
     return ReturnValue(None, [(var_name, list_obj, list_loc)])
 
@@ -259,7 +259,7 @@ def vector_length(
         )
 
     lst = state.read_or_load_operand(args[0])
-    if not isinstance(lst, ListObject):
+    if not isinstance(lst, mlList):
         raise Exception(f"{args[0]} is not a list! Cannot extract its length")
     lst.containedT = get_list_element_type(list_type)
 
@@ -294,8 +294,8 @@ def new_tuple(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    # TODO(jie): handle types other than IntObject
-    return ReturnValue(call("newTuple", make_tuple_type(IntObject, IntObject)), None)
+    # TODO(jie): handle types other than Int
+    return ReturnValue(call("newTuple", make_tuple_type(Int, Int)), None)
 
 
 def make_tuple(
@@ -304,9 +304,9 @@ def make_tuple(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    # TODO(jie): handle types other than IntObject
+    # TODO(jie): handle types other than Int
     reg_vals = [state.read_or_load_operand(args[i]) for i in range(len(args))]
-    contained_type = [IntObject for _ in range(len(args))]
+    contained_type = [Int for _ in range(len(args))]
     return_type = make_tuple_type(*contained_type)
     return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
 
@@ -320,7 +320,7 @@ def tuple_get(
     return ReturnValue(
         call(
             "tupleGet",
-            IntObject,
+            Int,
             state.read_or_load_operand(args[0]),
             state.read_or_load_operand(args[1]),
         ),
@@ -524,7 +524,7 @@ def is_sret_arg(arg: ValueRef) -> bool:
 
 def find_return_type_and_sret_arg(
     fn_ref: ValueRef, blocks: Iterable[ValueRef]
-) -> Tuple[NewObjectT, ValueRef]:
+) -> Tuple[ObjectT, ValueRef]:
     # First check if there are sret arguments. Currently, we only support at most one sret argument.
     sret_arg: Optional[ValueRef] = None
     for arg in fn_ref.arguments:
@@ -618,7 +618,7 @@ LLVMVar = NamedTuple(
     "LLVMVar",
     [
         ("var_name", str),
-        ("var_type", NewObjectT),
+        ("var_type", ObjectT),
     ],
 )
 
@@ -627,7 +627,7 @@ InvGrammar = NamedTuple(
     [
         (
             "func",
-            Callable[[List[NewObject], List[NewObject], List[NewObject]], BoolObject],
+            Callable[[List[Object], List[Object], List[Object]], Bool],
         ),
         ("in_scope_var_names", List[str]),
     ],
@@ -635,19 +635,19 @@ InvGrammar = NamedTuple(
 
 
 class State:
-    precond: List[BoolObject]
-    primitive_vars: Dict[str, NewObject]
-    pointer_vars: Dict[str, NewObject]
-    asserts: List[BoolObject]
+    precond: List[Bool]
+    primitive_vars: Dict[str, Object]
+    pointer_vars: Dict[str, Object]
+    asserts: List[Bool]
     has_returned: bool
     processed: bool
 
     def __init__(
         self,
-        precond: Optional[List[BoolObject]] = None,
-        primitive_vars: Optional[Dict[str, NewObject]] = None,
-        pointer_vars: Optional[Dict[str, NewObject]] = None,
-        asserts: Optional[List[BoolObject]] = None,
+        precond: Optional[List[Bool]] = None,
+        primitive_vars: Optional[Dict[str, Object]] = None,
+        pointer_vars: Optional[Dict[str, Object]] = None,
+        asserts: Optional[List[Bool]] = None,
         has_returned: bool = False,
     ) -> None:
         self.precond = precond or []
@@ -657,61 +657,61 @@ class State:
         self.has_returned = has_returned if not has_returned else has_returned
         self.processed = False
 
-    def read_operand(self, op: ValueRef) -> NewObject:
+    def read_operand(self, op: ValueRef) -> Object:
         if op.name:
             return self.read_var(op.name)
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return BoolObject(True)
+            return Bool(True)
         elif val == "false":
-            return BoolObject(False)
+            return Bool(False)
         else:  # assuming it's a number
-            return IntObject(int(val))
+            return Int(int(val))
 
-    def load_operand(self, op: ValueRef) -> NewObject:
+    def load_operand(self, op: ValueRef) -> Object:
         if not op.name:
             raise Exception(f"Cannot load value from an operand without name")
         if op.name in self.pointer_vars.keys():
             return self.pointer_vars[op.name]
         raise RuntimeError(f"{op.name} not found in pointer vars {self.pointer_vars}")
 
-    def write_operand(self, op: ValueRef, value: NewObject) -> None:
+    def write_operand(self, op: ValueRef, value: Object) -> None:
         if not op.name:
             raise Exception("Cannot write value for an operand without name")
         self.primitive_vars[op.name] = value
 
-    def store_operand(self, op: ValueRef, value: NewObject) -> None:
+    def store_operand(self, op: ValueRef, value: Object) -> None:
         if not op.name:
             raise Exception("Cannot store value into an operand without name")
         self.pointer_vars[op.name] = value
 
-    def write_or_store_operand(self, op: ValueRef, value: NewObject) -> None:
+    def write_or_store_operand(self, op: ValueRef, value: Object) -> None:
         if op.type.is_pointer:
             self.store_operand(op, value)
         else:
             self.write_operand(op, value)
 
-    def read_var(self, var_name: str) -> NewObject:
+    def read_var(self, var_name: str) -> Object:
         if var_name in self.primitive_vars.keys():
             return self.primitive_vars[var_name]
         raise RuntimeError(
             f"{var_name} not found in primitive vars {self.primitive_vars}"
         )
 
-    def load_var(self, var_name: str) -> NewObject:
+    def load_var(self, var_name: str) -> Object:
         if var_name in self.pointer_vars.keys():
             return self.pointer_vars[var_name]
         raise RuntimeError(
             f"{var_name} not found in primitive vars {self.pointer_vars}"
         )
 
-    def write_var(self, var_name: str, value: NewObject) -> None:
+    def write_var(self, var_name: str, value: Object) -> None:
         self.primitive_vars[var_name] = value
 
-    def store_var(self, var_name: str, value: NewObject) -> None:
+    def store_var(self, var_name: str, value: Object) -> None:
         self.pointer_vars[var_name] = value
 
-    def read_or_load_var(self, var_name: str) -> NewObject:
+    def read_or_load_var(self, var_name: str) -> Object:
         if var_name in self.primitive_vars.keys():
             return self.primitive_vars[var_name]
         if var_name in self.pointer_vars.keys():
@@ -720,7 +720,7 @@ class State:
             f"{var_name} not found in primitive vars {self.primitive_vars} and pointer vars {self.pointer_vars}"
         )
 
-    def read_or_load_operand(self, op: ValueRef) -> NewObject:
+    def read_or_load_operand(self, op: ValueRef) -> Object:
         if op.type.is_pointer:
             return self.load_operand(op)
         else:
@@ -736,12 +736,12 @@ class State:
 
 
 class Predicate:
-    args: List[NewObject]
-    writes: List[NewObject]
-    reads: List[NewObject]
-    in_scope: List[NewObject]
+    args: List[Object]
+    writes: List[Object]
+    reads: List[Object]
+    in_scope: List[Object]
     name: str
-    grammar: Callable[[List[NewObject], List[NewObject], List[NewObject]], BoolObject]
+    grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -749,13 +749,13 @@ class Predicate:
     # and not one of the original arguments in sorted order
     def __init__(
         self,
-        args: List[NewObject],
-        writes: List[NewObject],
-        reads: List[NewObject],
-        in_scope: List[NewObject],
+        args: List[Object],
+        writes: List[Object],
+        reads: List[Object],
+        in_scope: List[Object],
         name: str,
         grammar: Callable[
-            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[Object], List[Object], List[Object]], Bool
         ],
     ) -> None:
         self.args = args
@@ -766,13 +766,13 @@ class Predicate:
         self.grammar = grammar
         self.synth = None
 
-    def call(self, state: State) -> BoolObject:
+    def call(self, state: State) -> Bool:
         call_res = call(
             self.name,
-            BoolObject,
+            Bool,
             *[state.read_or_load_var(v.var_name()) for v in self.args],
         )
-        return cast(BoolObject, call_res)
+        return cast(Bool, call_res)
 
     def gen_Synth(self) -> Synth:
         body = self.grammar(self.writes, self.reads, self.in_scope).src
@@ -790,18 +790,18 @@ class PredicateTracker:
     def invariant(
         self,
         inv_name: str,
-        args: List[NewObject],
-        writes: List[NewObject],
-        reads: List[NewObject],
-        in_scope: List[NewObject],
+        args: List[Object],
+        writes: List[Object],
+        reads: List[Object],
+        in_scope: List[Object],
         grammar: Callable[
-            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[Object], List[Object], List[Object]], Bool
         ],
     ) -> Predicate:
         if inv_name in self.predicates.keys():
             return self.predicates[inv_name]
         else:
-            non_args_scope_vars = list(NewObjectSet(in_scope) - NewObjectSet(args))
+            non_args_scope_vars = list(ObjectSet(in_scope) - ObjectSet(args))
             non_args_scope_vars.sort(key=lambda obj: obj.var_name())
             args = args + non_args_scope_vars
             inv = Predicate(
@@ -818,11 +818,11 @@ class PredicateTracker:
     def postcondition(
         self,
         fn_name: str,
-        outs: List[NewObject],
-        ins: List[NewObject],
-        in_scope: List[NewObject],
+        outs: List[Object],
+        ins: List[Object],
+        in_scope: List[Object],
         grammar: Callable[
-            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[Object], List[Object], List[Object]], Bool
         ],
     ) -> Predicate:
         if fn_name in self.predicates:
@@ -832,16 +832,16 @@ class PredicateTracker:
             self.predicates[fn_name] = ps
             return ps
 
-    def VCall(self, name: str, s: State) -> BoolObject:
+    def VCall(self, name: str, s: State) -> Bool:
         return self.predicates[name].call(s)
 
 
 class VCVisitor:
     driver: "Driver"
     fn_name: str
-    fn_ret_type: NewObjectT
-    fn_args: List[NewObject]  # whose src are variables
-    fn_sret_arg: Optional[NewObject]
+    fn_ret_type: ObjectT
+    fn_args: List[Object]  # whose src are variables
+    fn_sret_arg: Optional[Object]
     fn_blocks_states: Dict[str, State]
 
     var_tracker: VariableTracker
@@ -849,7 +849,7 @@ class VCVisitor:
 
     inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[
-        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[Object], List[Object], List[Object]], Bool
     ]
 
     loops: List[LoopInfo]
@@ -860,14 +860,14 @@ class VCVisitor:
         self,
         driver: "Driver",
         fn_name: str,
-        fn_ret_type: NewObjectT,
-        fn_args: List[NewObject],
-        fn_sret_arg: Optional[NewObject],
+        fn_ret_type: ObjectT,
+        fn_args: List[Object],
+        fn_sret_arg: Optional[Object],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[
-            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[Object], List[Object], List[Object]], Bool
         ],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
@@ -893,56 +893,56 @@ class VCVisitor:
     # Helper functions for reading and writing variables
     def read_operand_from_block(
         self, block_name: str, op: ValueRef
-    ) -> NewObject:  # Primitive
+    ) -> Object:  # Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_operand(op)
 
     def load_operand_from_block(
         self, block_name: str, op: ValueRef
-    ) -> NewObject:  # Pointer
+    ) -> Object:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_operand(op)
 
     def read_or_load_operand_from_block(
         self, block_name: str, op: ValueRef
-    ) -> NewObject:  # Pointer
+    ) -> Object:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_or_load_operand(op)
 
     def write_operand_to_block(
-        self, block_name: str, op: ValueRef, val: NewObject
+        self, block_name: str, op: ValueRef, val: Object
     ) -> None:  # Primitive
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_operand(op, val)
 
     def store_operand_to_block(
-        self, block_name: str, op: ValueRef, val: NewObject
+        self, block_name: str, op: ValueRef, val: Object
     ) -> None:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_operand(op, val)
 
     def write_or_store_operand_to_block(
-        self, block_name: str, op: ValueRef, val: NewObject
+        self, block_name: str, op: ValueRef, val: Object
     ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_or_store_operand(op, val)
 
-    def read_var_from_block(self, block_name: str, var_name: str) -> NewObject:
+    def read_var_from_block(self, block_name: str, var_name: str) -> Object:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.read_var(var_name)
 
-    def load_var_from_block(self, block_name: str, var_name: str) -> NewObject:
+    def load_var_from_block(self, block_name: str, var_name: str) -> Object:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_var(var_name)
 
     def write_var_to_block(
-        self, block_name: str, var_name: str, val: NewObject
+        self, block_name: str, var_name: str, val: Object
     ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_var(var_name, val)
 
     def store_var_to_block(
-        self, block_name: str, var_name: str, val: NewObject
+        self, block_name: str, var_name: str, val: Object
     ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
@@ -972,9 +972,9 @@ class VCVisitor:
 
     def get_havocs(
         self, block_name: str, loop_info: LoopInfo
-    ) -> Tuple[List[NewObject], List[NewObject]]:
-        primitive_havocs: List[NewObject] = []
-        pointer_havocs: List[NewObject] = []
+    ) -> Tuple[List[Object], List[Object]]:
+        primitive_havocs: List[Object] = []
+        pointer_havocs: List[Object] = []
         blk_state = self.fn_blocks_states[block_name]
         for var in loop_info.havocs:
             var_type = blk_state.read_or_load_var(var.name).type
@@ -1053,7 +1053,7 @@ class VCVisitor:
             blk_state.has_returned = False
             blk_state.processed = False
         else:
-            pred_preconds: List[BoolObject] = []
+            pred_preconds: List[Bool] = []
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 if len(pred_state.precond) >= 1:
@@ -1067,10 +1067,10 @@ class VCVisitor:
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
             primitive_var_state: Dict[
-                str, Dict[Expr, List[List[BoolObject]]]
+                str, Dict[Expr, List[List[Bool]]]
             ] = defaultdict(lambda: defaultdict(list))
             pointer_var_state: Dict[
-                str, Dict[Expr, List[List[BoolObject]]]
+                str, Dict[Expr, List[List[Bool]]]
             ] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
@@ -1091,19 +1091,19 @@ class VCVisitor:
                 ("primitive_vars", primitive_var_state),
                 ("pointer_vars", pointer_var_state),
             ]:
-                merged_vars: Dict[str, NewObject] = {}
+                merged_vars: Dict[str, Object] = {}
                 for var_name, expr_value_to_precond_mapping in var_state.items():
                     if len(expr_value_to_precond_mapping) == 1:
                         # If there is just one possible value for this variable, we keep this value.
                         merged_expr = list(expr_value_to_precond_mapping.keys())[0]
                     else:
                         # Otherwise if there are multiple possible values for this variable, we create a mapping from possible values to their associated preconditions.
-                        expr_value_to_aggregated_precond: Dict[Expr, BoolObject] = {}
+                        expr_value_to_aggregated_precond: Dict[Expr, Bool] = {}
                         for (
                             expr_value,
                             all_preconds,
                         ) in expr_value_to_precond_mapping.items():
-                            all_aggregated_preconds: List[NewObject] = []
+                            all_aggregated_preconds: List[Object] = []
                             for preconds in all_preconds:
                                 if len(preconds) >= 1:
                                     all_aggregated_preconds.append(
@@ -1118,7 +1118,7 @@ class VCVisitor:
                             else:
                                 expr_value_to_aggregated_precond[
                                     expr_value
-                                ] = BoolObject(True)
+                                ] = Bool(True)
 
                         # Merge the different possible values with an Ite statement.
                         merged_expr: Optional[Expr] = None  # type: ignore
@@ -1160,7 +1160,7 @@ class VCVisitor:
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
 
             # TODO(jie): extract this logic to be better
-            in_scope_objs: List[NewObject] = []
+            in_scope_objs: List[Object] = []
             for var_name, var_obj in blk_state.primitive_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
@@ -1171,7 +1171,7 @@ class VCVisitor:
                 for obj in in_scope_objs
                 if obj.var_name() in inv_grammar.in_scope_var_names
             ]
-            args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
+            args = list(ObjectSet(havocs) + ObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
@@ -1206,7 +1206,7 @@ class VCVisitor:
                 for obj in in_scope_objs
                 if obj.var_name() in inv_grammar.in_scope_var_names
             ]
-            args = list(NewObjectSet(havocs) + NewObjectSet(self.fn_args))
+            args = list(ObjectSet(havocs) + ObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
@@ -1261,7 +1261,7 @@ class VCVisitor:
         ops = list(o.operands)
         left = self.read_operand_from_block(block_name, ops[0])
         right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, IntObject) or not isinstance(right, IntObject):
+        if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("+ only supported for int objects!")
         add_obj = left + right
         self.write_operand_to_block(block_name, o, add_obj)
@@ -1270,7 +1270,7 @@ class VCVisitor:
         ops = list(o.operands)
         left = self.read_operand_from_block(block_name, ops[0])
         right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, IntObject) or not isinstance(right, IntObject):
+        if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("- only supported for int objects!")
         sub_obj = left - right
         self.write_operand_to_block(block_name, o, sub_obj)
@@ -1279,7 +1279,7 @@ class VCVisitor:
         ops = list(o.operands)
         left = self.read_operand_from_block(block_name, ops[0])
         right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, IntObject) or not isinstance(right, IntObject):
+        if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("* only supported for int objects!")
         mul_obj = left * right
         self.write_operand_to_block(block_name, o, mul_obj)
@@ -1288,7 +1288,7 @@ class VCVisitor:
         ops = list(o.operands)
         left = self.read_operand_from_block(block_name, ops[0])
         right = self.read_operand_from_block(block_name, ops[1])
-        if not isinstance(left, IntObject) or not isinstance(right, IntObject):
+        if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("division only supported for int objects!")
         div_obj = left // right
         self.write_operand_to_block(block_name, o, div_obj)
@@ -1316,7 +1316,7 @@ class VCVisitor:
         op0 = self.read_operand_from_block(block_name, ops[0])
         op1 = self.read_operand_from_block(block_name, ops[1])
 
-        obj: BoolObject
+        obj: Bool
         if cond == "eq":
             obj = op0 == op1  # type: ignore
         elif cond == "ne":
@@ -1339,7 +1339,7 @@ class VCVisitor:
             true_branch = ops[2].name
             false_branch = ops[1].name
             cond = self.read_operand_from_block(block_name, ops[0])
-            if not isinstance(cond, BoolObject):
+            if not isinstance(cond, Bool):
                 raise Exception(
                     "The condition of a branch instruction must evaluate to a boolean!"
                 )
@@ -1351,7 +1351,7 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         ops = list(o.operands)
         ret_void = len(ops) == 0
-        ret_val: Optional[NewObject] = None
+        ret_val: Optional[Object] = None
         if ret_void and self.fn_sret_arg is not None:
             # We have to fetch the current type because the return type might have changed from the
             # beginning.
@@ -1383,11 +1383,11 @@ class VCVisitor:
         # TODO(jie) use the call method of the predicate
         ps = call(
             self.pred_tracker.predicates[self.fn_name].name,
-            BoolObject,
+            Bool,
             *self.fn_args,
             ret_val,
         )
-        ps = cast(BoolObject, ps)
+        ps = cast(Bool, ps)
         if blk_state.precond:
             blk_state.asserts.append(implies(and_objects(*blk_state.precond), ps))
         else:
@@ -1441,8 +1441,8 @@ class VCVisitor:
 class Driver:
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
-    asserts: List[BoolObject]
-    postconditions: List[BoolObject]
+    asserts: List[Bool]
+    postconditions: List[Bool]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
     fns_synths: List[Synth]
@@ -1460,16 +1460,16 @@ class Driver:
         self.var_tracker = VariableTracker()
         self.pred_tracker = PredicateTracker()
 
-    def variable(self, name: str, type: NewObjectT) -> Var:
+    def variable(self, name: str, type: ObjectT) -> Var:
         return self.var_tracker.variable(name, type)
 
-    def add_var_object(self, var_object: NewObject) -> None:
+    def add_var_object(self, var_object: Object) -> None:
         # TODO(jie): extract this check to a more generic function
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
         self.var_tracker.variable(var_object.var_name(), var_object.src.type)
 
-    def add_var_objects(self, var_objects: List[NewObject]) -> None:
+    def add_var_objects(self, var_objects: List[Object]) -> None:
         for var_object in var_objects:
             self.add_var_object(var_object)
 
@@ -1481,7 +1481,7 @@ class Driver:
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[
-            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[Object], List[Object], List[Object]], Bool
         ],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -1548,16 +1548,16 @@ class Driver:
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )
 
-    def add_precondition(self, e: NewObject) -> None:
+    def add_precondition(self, e: Object) -> None:
         # this gets propagated to the State when it is created
-        self.postconditions.append(cast(BoolObject, e))
+        self.postconditions.append(cast(Bool, e))
 
 
 class MetaliftFunc:
     driver: Driver
     fn_name: str
-    fn_ret_type: NewObjectT
-    fn_args_types: List[NewObjectT]
+    fn_ret_type: ObjectT
+    fn_args_types: List[ObjectT]
     fn_args: List[ValueRef]
     fn_sret_arg: ValueRef
     fn_blocks: Dict[str, Block]
@@ -1565,9 +1565,9 @@ class MetaliftFunc:
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[
-        [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+        [List[Object], List[Object], List[Object]], Bool
     ]
-    synthesized: Optional[NewObject]
+    synthesized: Optional[Object]
 
     loops: List[LoopInfo]
 
@@ -1580,7 +1580,7 @@ class MetaliftFunc:
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
         ps_grammar: Callable[
-            [List[NewObject], List[NewObject], List[NewObject]], BoolObject
+            [List[Object], List[Object], List[Object]], Bool
         ],
     ) -> None:
         self.driver = driver
@@ -1626,7 +1626,7 @@ class MetaliftFunc:
             for raw_loop in raw_loops
         ]
 
-    def __call__(self, *args: NewObject, **kwds: Any) -> Any:
+    def __call__(self, *args: Object, **kwds: Any) -> Any:
         # Check that the arguments passed in have the same names and types as the function definition.
         # num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
         # if num_expected_args != num_actual_args:
@@ -1681,9 +1681,9 @@ class MetaliftFunc:
         self.driver.add_var_object(ret_val)
 
         # TODO(jie) instead of constructin this call manually can we replace it with a method call.
-        ps = call(f"{self.fn_name}_ps", BoolObject, ret_val, *args)
+        ps = call(f"{self.fn_name}_ps", Bool, ret_val, *args)
 
-        self.driver.postconditions.append(cast(BoolObject, ps))
+        self.driver.postconditions.append(cast(Bool, ps))
 
         for block in self.fn_blocks.values():
             self.driver.asserts.extend(v.fn_blocks_states[block.name].asserts)
@@ -1692,7 +1692,7 @@ class MetaliftFunc:
 
     T = TypeVar("T")
 
-    def codegen(self, codegen_fn: Callable[[NewObject], T]) -> T:
+    def codegen(self, codegen_fn: Callable[[Object], T]) -> T:
         if self.synthesized is None:
             raise Exception(f"{self.fn_name} is not synthesized yet")
         else:

@@ -21,14 +21,14 @@ Then, we define the verification conditions:
 
 <!--phmdoctest-share-names-->
 ```python
-x = ir.IntObject("x")
+x = ir.Int("x")
 
 # f(x) >= 0 && f(x) >= x
 correct = (ir.call(
     'f', # function name
-    ir.IntObject, # return type
+    ir.Int, # return type
     x # arguments
-  ) >= 0).And(ir.call('f', ir.IntObject, x) >= x)
+  ) >= 0).And(ir.call('f', ir.Int, x) >= x)
 
 ```
 

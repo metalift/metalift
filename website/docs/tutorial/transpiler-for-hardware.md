@@ -23,35 +23,35 @@ vector<int> program(vector<int> data){
 Readers familiar with primitives for tensor accelerators may recognize this as a convolution, but this is not explicit in the code. With current programming model support, developers would need to manually convert this code to one of the supported front-end of Gemmini. In this tutorial, we demonstrate how to build a transpiler using Metalift that can convert this code to the C/C++ APIs of Gemmini.
 
 ## Define the Target Language
-The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation using the ListObject IR provided.
+The first step in using Metalift to build this transpiler is to define the semantics of the opertors in Gemmini's ISA (convolution, matrix multiplication, max-pool) using Metalift's IR. For this tutorial, we will just need the following definition of 1D convolution operation using the mlList IR provided.
 
 <!--phmdoctest-share-names-->
 ```python
 from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
 from metalift.ir import call, Lit, IntLit, ite
-from metalift.ir import IntObject, BoolObject, ListObject
+from metalift.ir import Int, Bool, List as mlList
 
 def targetLang():
-    x = ListObject(IntObject, "x")
-    y = ListObject(IntObject, "y")
+    x = mlList(Int, "x")
+    y = mlList(Int, "y")
     def dotprod_body(x, y):
         kernel_size = len(y)
         cur_prod = x[0] * y[0]
         x_rest = x[1:]
         y_rest = y[1:]
-        recursed = call("dotprod", IntObject, x_rest, y_rest)
+        recursed = call("dotprod", Int, x_rest, y_rest)
         return ite(kernel_size < 2, cur_prod, cur_prod + recursed)
-    dotprod = fn_decl_recursive("dotprod", IntObject, dotprod_body(x, y), x, y)
+    dotprod = fn_decl_recursive("dotprod", Int, dotprod_body(x, y), x, y)
 
     def conv1d1x2_body(vec, kernel):
         vec_size = len(x)
         kernel_size = IntLit(2)
-        cur_prod = call("dotprod", IntObject, vec, kernel)
+        cur_prod = call("dotprod", Int, vec, kernel)
         vec_rest = vec[1:]
-        recursed = call("conv1d", ListObject[IntObject],vec_rest, kernel)
+        recursed = call("conv1d", mlList[Int],vec_rest, kernel)
         general_answer = cur_prod.append(recursed)
-        return ite(vec_size < kernel_size, ListObject.empty(IntObject), general_answer)
-    conv1d1x2 = fn_decl_recursive("conv1d", ListObject[IntObject], conv1d1x2_body(x, y), x, y)
+        return ite(vec_size < kernel_size, mlList.empty(Int), general_answer)
+    conv1d1x2 = fn_decl_recursive("conv1d", mlList[Int], conv1d1x2_body(x, y), x, y)
     return [dotprod, conv1d1x2]
 ```
 
@@ -80,10 +80,10 @@ Metalift IR provides ```Choose``` construct to define the search space. For our 
 ```python
 # defining the possible values for the kernel 
 unknown_const = choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
-kernel = reduce(lambda acc, _cur: unknown_const.append(acc), range(2), ListObject.empty(IntObject)) 
+kernel = reduce(lambda acc, _cur: unknown_const.append(acc), range(2), mlList.empty(Int)) 
 
 # invariant grammar
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]):
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]):
     an_input = reads[0]
     an_output_i32 = writes[1] #loop counter `i` of source code
     an_output_list = writes[0] #output variable `result` of the source 
@@ -101,7 +101,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
     # This enforces the inductive property, that if the output so far is
     # the convolution of the input and kernel so far, then it will continue
     # being the convolution of the input and kernel.
-    induction = an_output_list == call("conv1d", ListObject[IntObject], an_input[:an_output_i32+1],kernel)
+    induction = an_output_list == call("conv1d", mlList[Int], an_input[:an_output_i32+1],kernel)
     summary = implies(valid, preloop and postloop and induction)
 
     return summary
@@ -112,7 +112,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
         kernel := [val,val]
         val := -3 | -2 | -1 | 0 | 1 | 2 | 3
     '''
-def post_condition_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]):
+def post_condition_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]):
     # We require that, when the input and kernel lists are the same size,
     # that the output list is  1D convolution of the kernel over the input .
     an_output = writes[0]
@@ -120,7 +120,7 @@ def post_condition_grammar(writes: List[NewObject], reads: List[NewObject], in_s
     x = reads[0]
 
     valid = len(x) > 1
-    ans = call("conv2d", ListObject[IntObject], an_input, kernel)
+    ans = call("conv2d", mlList[Int], an_input, kernel)
     check_ans = ans == an_output
     summary = implies(valid, check_ans)
     return summary
@@ -165,7 +165,7 @@ After we defined our target language and search space grammar, we call Metalift'
 <!--phmdoctest-mark.skip-->
 ```python
 from metalift.synthesize_auto import synthesize
-data_var = ListObject(IntObject, "data")
+data_var = mlList(Int, "data")
 driver.add_var_object(data_var)
 test(data_var)
 

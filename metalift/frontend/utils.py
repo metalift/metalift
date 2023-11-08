@@ -1,7 +1,7 @@
 import typing
 from typing import Generator, Any, Iterable, List
 
-from metalift.ir import Expr, NewObject
+from metalift.ir import Expr, Object
 
 # print the short name of a type: a.b.c.D -> D
 def qual_name(t: type) -> str:
@@ -47,33 +47,33 @@ class ExprDict:
         return self.kv_pairs
 
 
-class NewObjectSet:
-    def __init__(self, objs: Iterable[NewObject] = []) -> None:
-        self.objs: typing.List[NewObject] = []
+class ObjectSet:
+    def __init__(self, objs: Iterable[Object] = []) -> None:
+        self.objs: typing.List[Object] = []
         for obj in objs:
-            if not any([NewObject.__eq__(obj, o) for o in self.objs]):
+            if not any([Object.__eq__(obj, o) for o in self.objs]):
                 self.objs.append(obj)
 
-    def add(self, key: NewObject) -> None:
+    def add(self, key: Object) -> None:
         existed = False
         for obj in self.objs:
-            if NewObject.__eq__(obj, key):
+            if Object.__eq__(obj, key):
                 existed = True
         if not existed:
             self.objs.append(key)
 
-    def __contains__(self, key: NewObject) -> bool:
-        return any([NewObject.__eq__(obj, key) for obj in self.objs])
+    def __contains__(self, key: Object) -> bool:
+        return any([Object.__eq__(obj, key) for obj in self.objs])
 
-    def __sub__(self, other_set: "NewObjectSet") -> "NewObjectSet":
-        new_objs: typing.List[NewObject] = []
+    def __sub__(self, other_set: "ObjectSet") -> "ObjectSet":
+        new_objs: typing.List[Object] = []
         for obj in self.objs:
             if not obj in other_set:
                 new_objs.append(obj)
-        return NewObjectSet(new_objs)
+        return ObjectSet(new_objs)
 
-    def __add__(self, other_set: "NewObjectSet") -> "NewObjectSet":
-        new_objs = NewObjectSet()
+    def __add__(self, other_set: "ObjectSet") -> "ObjectSet":
+        new_objs = ObjectSet()
         for obj in self.objs:
             if not obj in new_objs:
                 new_objs.add(obj)
@@ -82,9 +82,9 @@ class NewObjectSet:
                 new_objs.add(obj)
         return new_objs
 
-    def __iter__(self) -> Generator[NewObject, Any, None]:
+    def __iter__(self) -> Generator[Object, Any, None]:
         for new_objs in self.objs:
             yield new_objs
 
-    def objects(self) -> List[NewObject]:
+    def objects(self) -> List[Object]:
         return self.objs

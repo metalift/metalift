@@ -4,7 +4,15 @@ import pyparsing as pp
 import os
 from metalift import process_tracker
 
-from metalift.ir import *
+from metalift.ir import (
+    List as mlList, Int, Bool, Call,
+      ObjectT, Expr, Eq, Add, 
+      Sub, Mul, Div, Lt, Gt, Le, 
+      Ge, And, Or, Implies, Not, 
+      TupleGet, Tuple, Ite, 
+      Set as mlSet, Var, Let, Target, 
+      IntLit, BoolLit, FnDeclRecursive, Fn, 
+      Axiom, Synth, FnDecl, get_fn_return_type)
 from metalift.smt_util import toSMT
 
 import typing
@@ -39,7 +47,7 @@ def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
 
 def extractFuns(
     targetLang: typing.Sequence[Expr],
-) -> typing.Tuple[typing.List[str], typing.List[NewObjectT]]:
+) -> typing.Tuple[typing.List[str], typing.List[ObjectT]]:
     funName, returnType = (
         [],
         [],
@@ -54,7 +62,7 @@ def generateCandidates(
     invAndPs: typing.List[Synth],
     line: str,
     funName: typing.List[str],
-    returnType: typing.List[NewObjectT],
+    returnType: typing.List[ObjectT],
 ) -> typing.Tuple[typing.List[FnDeclRecursive], Dict[str, Expr]]:
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
@@ -81,8 +89,8 @@ def generateCandidates(
 def toExpr(
     ast: typing.List[Any],
     funName: typing.List[str],
-    returnType: typing.List[NewObjectT],
-    varType: Dict[str, NewObjectT],
+    returnType: typing.List[ObjectT],
+    varType: Dict[str, ObjectT],
     letVars: Dict[str, Expr],
 ) -> Expr:
     expr_bi: Dict[str, Callable[..., Expr]] = {
@@ -163,15 +171,15 @@ def toExpr(
                 )
         elif ast[0] == "as" and ast[1] == "set.empty":
             return Call(
-                "set-create", SetObject[IntObject]
+                "set-create", mlSet[Int]
             )  # TODO(shadaj): parse the type
         elif ast[0] == "set.insert":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s1 = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-insert", SetObject[v.type], v, s1)  # type: ignore
+            return Call("set-insert", mlSet[v.type], v, s1)  # type: ignore
         elif ast[0] == "set.singleton":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
-            return Call("set-singleton", SetObject[v.type], v)  # type: ignore
+            return Call("set-singleton", mlSet[v.type], v)  # type: ignore
         elif ast[0] == "set.eq":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
@@ -186,11 +194,11 @@ def toExpr(
         elif ast[0] == "set.subset":
             s1 = toExpr(ast[1], funName, returnType, varType, letVars)
             s2 = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-subset", BoolObject, s1, s2)
+            return Call("set-subset", Bool, s1, s2)
         elif ast[0] == "set.member":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s = toExpr(ast[2], funName, returnType, varType, letVars)
-            return Call("set-member", BoolObject, v, s)
+            return Call("set-member", Bool, v, s)
         else:
             raise Exception("Unknown expression: " + repr(ast))
     else:
