@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Union, IO, get_args
 from metalift.types import FnT, MapT
 
 from metalift.types import CVC5UnsupportedException
+from tests.python.utils.utils import codegen
 
 
 # utils for converting rosette output to IR
@@ -464,7 +465,7 @@ def synthesize(
             #####candidateDict --> definitions of all functions to be synthesized#####
 
             ##### generating function definitions of all the functions to be synthesized#####
-            candidatesSMT = []
+            candidatesSMT: List[FnDeclRecursive] = []
             for synthFun in invAndPs:
                 allVars = synthFun.args[2:]
                 ceName = synthFun.args[0]
@@ -538,10 +539,11 @@ def synthesize(
                             "\n\n".join([str(c) for c in candidatesSMT]),
                         )
                     else:
-                        print(
-                            "Synthesized PS and INV Candidates ",
-                            "\n\n".join([str(c) for c in candidatesSMT]),
-                        )
+                        print("Synthesized PS and INV Candidates\n")
+                        for candidate in candidatesSMT:
+                            print(f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})")
+                            print(codegen(candidate.body()))
+                            print("\n\n")
                 return candidatesSMT
             else:
                 if log:
