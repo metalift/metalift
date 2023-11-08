@@ -752,9 +752,7 @@ class Predicate:
         reads: List[Object],
         in_scope: List[Object],
         name: str,
-        grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -792,9 +790,7 @@ class PredicateTracker:
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> Predicate:
         if inv_name in self.predicates.keys():
             return self.predicates[inv_name]
@@ -819,9 +815,7 @@ class PredicateTracker:
         outs: List[Object],
         ins: List[Object],
         in_scope: List[Object],
-        grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> Predicate:
         if fn_name in self.predicates:
             return self.predicates[fn_name]
@@ -846,9 +840,7 @@ class VCVisitor:
     pred_tracker: PredicateTracker
 
     inv_grammars: Dict[str, InvGrammar]
-    ps_grammar: Callable[
-        [List[Object], List[Object], List[Object]], Bool
-    ]
+    ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
 
     loops: List[LoopInfo]
 
@@ -864,9 +856,7 @@ class VCVisitor:
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
     ) -> None:
@@ -933,15 +923,11 @@ class VCVisitor:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.load_var(var_name)
 
-    def write_var_to_block(
-        self, block_name: str, var_name: str, val: Object
-    ) -> None:
+    def write_var_to_block(self, block_name: str, var_name: str, val: Object) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_var(var_name, val)
 
-    def store_var_to_block(
-        self, block_name: str, var_name: str, val: Object
-    ) -> None:
+    def store_var_to_block(self, block_name: str, var_name: str, val: Object) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.store_var(var_name, val)
 
@@ -1064,12 +1050,12 @@ class VCVisitor:
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            primitive_var_state: Dict[
-                str, Dict[Expr, List[List[Bool]]]
-            ] = defaultdict(lambda: defaultdict(list))
-            pointer_var_state: Dict[
-                str, Dict[Expr, List[List[Bool]]]
-            ] = defaultdict(lambda: defaultdict(list))
+            primitive_var_state: Dict[str, Dict[Expr, List[List[Bool]]]] = defaultdict(
+                lambda: defaultdict(list)
+            )
+            pointer_var_state: Dict[str, Dict[Expr, List[List[Bool]]]] = defaultdict(
+                lambda: defaultdict(list)
+            )
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 for var_name, var_object in pred_state.primitive_vars.items():
@@ -1114,9 +1100,9 @@ class VCVisitor:
                                     *all_aggregated_preconds  # type: ignore
                                 )
                             else:
-                                expr_value_to_aggregated_precond[
-                                    expr_value
-                                ] = Bool(True)
+                                expr_value_to_aggregated_precond[expr_value] = Bool(
+                                    True
+                                )
 
                         # Merge the different possible values with an Ite statement.
                         merged_expr: Optional[Expr] = None  # type: ignore
@@ -1478,9 +1464,7 @@ class Driver:
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -1562,9 +1546,7 @@ class MetaliftFunc:
 
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
-    ps_grammar: Callable[
-        [List[Object], List[Object], List[Object]], Bool
-    ]
+    ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
     synthesized: Optional[Object]
 
     loops: List[LoopInfo]
@@ -1577,9 +1559,7 @@ class MetaliftFunc:
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name

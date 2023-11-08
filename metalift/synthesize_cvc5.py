@@ -5,14 +5,40 @@ import os
 from metalift import process_tracker
 
 from metalift.ir import (
-    List as mlList, Int, Bool, Call,
-      ObjectT, Expr, Eq, Add, 
-      Sub, Mul, Div, Lt, Gt, Le, 
-      Ge, And, Or, Implies, Not, 
-      TupleGet, Ite, 
-      Set as mlSet, Var, Let, Target, 
-      IntLit, BoolLit, FnDeclRecursive, make_tuple_type, 
-      Axiom, Synth, FnDecl, get_fn_return_type)
+    List as mlList,
+    Int,
+    Bool,
+    Call,
+    ObjectT,
+    Expr,
+    Eq,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    And,
+    Or,
+    Implies,
+    Not,
+    TupleGet,
+    Ite,
+    Set as mlSet,
+    Var,
+    Let,
+    Target,
+    IntLit,
+    BoolLit,
+    FnDeclRecursive,
+    make_tuple_type,
+    Axiom,
+    Synth,
+    FnDecl,
+    get_fn_return_type,
+)
 from metalift.smt_util import toSMT
 
 import typing
@@ -170,9 +196,7 @@ def toExpr(
                     *arg_eval,
                 )
         elif ast[0] == "as" and ast[1] == "set.empty":
-            return Call(
-                "set-create", mlSet[Int]
-            )  # TODO(shadaj): parse the type
+            return Call("set-create", mlSet[Int])  # TODO(shadaj): parse the type
         elif ast[0] == "set.insert":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s1 = toExpr(ast[2], funName, returnType, varType, letVars)

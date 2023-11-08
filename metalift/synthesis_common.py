@@ -18,9 +18,7 @@ class VerificationFailed(Exception):
     pass
 
 
-def generateTypes(
-    lang: typing.Sequence[Union[Expr, ValueRef]]
-) -> Dict[str, ObjectT]:
+def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, ObjectT]:
     fnsType = {}
 
     for l in lang:

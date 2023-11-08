@@ -248,9 +248,7 @@ class Predicate:
         reads: List[Object],
         in_scope: List[Object],
         name: str,
-        grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -262,9 +260,7 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Bool:
-        call_ret = call(
-            self.name, Bool, *[state.read(v.var_name()) for v in self.args]
-        )
+        call_ret = call(self.name, Bool, *[state.read(v.var_name()) for v in self.args])
         return cast(Bool, call_ret)
 
     def gen_Synth(self) -> Synth:
@@ -290,9 +286,7 @@ class PredicateTracker:
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -314,9 +308,7 @@ class PredicateTracker:
         o: FuncDef,
         outs: List[Object],
         ins: List[Object],
-        grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
     ) -> Predicate:
         if o in self.predicates:
             return self.predicates[o]
@@ -344,12 +336,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
     var_tracker: VariableTracker
     pred_tracker: PredicateTracker
 
-    inv_grammar: Callable[
-        [List[Object], List[Object], List[Object]], Bool
-    ]
-    ps_grammar: Callable[
-        [List[Object], List[Object], List[Object]], Bool
-    ]
+    inv_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
+    ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
 
     types: Dict[MypyExpr, MypyType]
 
@@ -367,12 +355,8 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         invariants: Dict[WhileStmt, Predicate],
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
-        inv_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
-        ps_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        inv_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
         types: Dict[MypyExpr, MypyType],
         uninterp_fns: List[str],
     ) -> None:
@@ -575,9 +559,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         #         "The condition of a while loop must evaluate to a boolean object!"
         #     )
         c = (
-            and_objects(
-                *self.state.precond, cast(Bool, cond), inv.call(self.state)
-            )
+            and_objects(*self.state.precond, cast(Bool, cond), inv.call(self.state))
             if self.state.precond
             else and_objects(cast(Bool, cond), inv.call(self.state))
         )
@@ -737,9 +719,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         return e
 
     # ">" | "<" | "==" | ">=" | "<=" | "!=" | "is" ["not"] | ["not"] "in"
-    def process_comparison(
-        self, op: str, left: Object, right: Object
-    ) -> Bool:
+    def process_comparison(self, op: str, left: Object, right: Object) -> Bool:
         if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception(f"{op} is only supported for int objects")
         if op == ">":
@@ -899,12 +879,8 @@ class Driver:
         filepath: str,
         fn_name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-        inv_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
-        ps_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        inv_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
         uninterp_fns: List[str] = [],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
@@ -964,12 +940,8 @@ class MetaliftFunc:
     types: Dict[MypyExpr, MypyType]
     name: str
     target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]]
-    inv_grammar: Callable[
-        [List[Object], List[Object], List[Object]], Bool
-    ]
-    ps_grammar: Callable[
-        [List[Object], List[Object], List[Object]], Bool
-    ]
+    inv_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
+    ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
     synthesized: Optional[Expr]
     uninterp_fns: List[str]
 
@@ -979,12 +951,8 @@ class MetaliftFunc:
         filepath: str,
         name: str,
         target_lang_fn: Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-        inv_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
-        ps_grammar: Callable[
-            [List[Object], List[Object], List[Object]], Bool
-        ],
+        inv_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
         uninterp_fns: List[str],
     ) -> None:
         self.driver = driver
