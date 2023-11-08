@@ -5,14 +5,41 @@ import os
 from metalift import utils
 from metalift.analysis import CodeInfo
 from metalift.ir import (
-    List as mlList, Int, Bool, Call,
-      ObjectT, Expr, Eq, Add, 
-      Sub, Mul, Div, Lt, Gt, Le, 
-      Ge, And, Or, Implies, Not, 
-      TupleGet, TupleExpr, Ite, 
-      Set as mlSet, Var, Let, Target, 
-      IntLit, BoolLit, FnDeclRecursive, Fn, 
-      Axiom, Synth, FnDecl, get_fn_return_type)
+    List as mlList,
+    Int,
+    Bool,
+    Call,
+    ObjectT,
+    Expr,
+    Eq,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    And,
+    Or,
+    Implies,
+    Not,
+    TupleGet,
+    TupleExpr,
+    Ite,
+    Set as mlSet,
+    Var,
+    Let,
+    Target,
+    IntLit,
+    BoolLit,
+    FnDeclRecursive,
+    Fn,
+    Axiom,
+    Synth,
+    FnDecl,
+    get_fn_return_type,
+)
 from metalift.rosette_translator import toRosette
 from metalift.synthesis_common import (
     SynthesisFailed,
@@ -108,10 +135,8 @@ def toExpr(
                 v1,
                 v2,
             )
-        elif ast[0] in {"length", "list-list-length"}:
-            return Call(
-                "list_length", Int, toExpr(ast[1], fnsType, varType, choices)
-            )
+        elif ast[0] == "length":
+            return Call("list_length", Int, toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "=":
             return Eq(
                 toExpr(ast[1], fnsType, varType, choices),

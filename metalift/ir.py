@@ -107,9 +107,7 @@ def get_fn_args_types(ty: Union[type, _GenericAlias]) -> List[NewObjectT]:
     return list(get_args(tuple_types)[1:]) # type: ignore
 
 class Expr:
-    def __init__(
-        self, type: ObjectT, args: Any, metadata: Dict[str, Any] = {}
-    ) -> None:
+    def __init__(self, type: ObjectT, args: Any, metadata: Dict[str, Any] = {}) -> None:
         self.args = args
         self.type = type
         self.metadata = metadata
@@ -2727,9 +2725,7 @@ def MLInst_Assume(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assume, val)
 
 
-def MLInst_Call(
-    name: str, retType: ObjectT, *args: Union[MLInst, ValueRef]
-) -> MLInst:
+def MLInst_Call(name: str, retType: ObjectT, *args: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Call, name, retType, *args)
 
 

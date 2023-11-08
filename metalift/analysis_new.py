@@ -366,9 +366,7 @@ class RichBlock(object):
                     stack_merges[key_expr_pair] = []
 
                 stack_merges[key_expr_pair].append(
-                    fn_group.variable_or_existing(
-                        f"{self.name}_from_{pred}", Bool
-                    )
+                    fn_group.variable_or_existing(f"{self.name}_from_{pred}", Bool)
                 )
 
         assigns: List[Expr] = []
@@ -474,9 +472,7 @@ class AnalysisResult(object):
                 arg.name(): group.variable(arg.name(), arg.type)
                 for arg in self.arguments
             }
-            bb_variables = {
-                b: group.variable(b, Bool) for b in rich_blocks.keys()
-            }
+            bb_variables = {b: group.variable(b, Bool) for b in rich_blocks.keys()}
             return Implies(
                 And(
                     *[
