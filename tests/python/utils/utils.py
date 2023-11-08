@@ -1,4 +1,4 @@
-from metalift.ir import Add, And, Call, Eq, Expr, Ge, Gt, Ite, Le, Lit, Lt, Sub, Tuple
+from metalift.ir import Add, Call, Eq, Expr, Ite, Lit, Sub, TupleExpr
 
 
 def codegen(expr: Expr) -> str:

@@ -8,8 +8,7 @@ from metalift.ir import (
     List as mlList, Int, Bool, Call,
       ObjectT, Expr, Eq, Add, 
       Sub, Mul, Div, Lt, Gt, Le, 
-      Ge, And, Or, Implies, Not, 
-      TupleGet, TupleObject, Ite, 
+      Ge, And, Or, Implies, Not, Ite, 
       Set as mlSet, Var, Let, Target, 
       IntLit, BoolLit, FnDeclRecursive, MLInst,
       Axiom, Synth, FnDecl, get_fn_return_type)

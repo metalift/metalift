@@ -9,7 +9,7 @@ from metalift.ir import (
       ObjectT, Expr, Eq, Add, 
       Sub, Mul, Div, Lt, Gt, Le, 
       Ge, And, Or, Implies, Not, 
-      TupleGet, Tuple, Ite, 
+      TupleGet, TupleExpr, Ite, 
       Set as mlSet, Var, Let, Target, 
       IntLit, BoolLit, FnDeclRecursive, Fn, 
       Axiom, Synth, FnDecl, get_fn_return_type)
@@ -173,7 +173,7 @@ def toExpr(
             arg_eval = []
             for alen in range(1, len(ast)):
                 arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
-            return Tuple(*arg_eval)  # type: ignore
+            return TupleExpr(*arg_eval)  # type: ignore
         elif ast[0] == "tupleGet":
             return TupleGet(
                 toExpr(ast[1], fnsType, varType, choices),

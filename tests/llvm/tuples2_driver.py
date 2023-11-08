@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Int, Object, TupleObject,
+from metalift.ir import (Int, Object, Tuple as mlTuple,
                          call, choose, make_tuple, fn_decl_recursive)
 from tests.python.utils.utils import codegen
 
@@ -11,7 +11,7 @@ def tuple_add(t):
     return call("tuple_add", Int, t)
 
 def target_lang():
-    x = TupleObject((Int, Int), "x")
+    x = mlTuple((Int, Int), "x")
     tuple_add = fn_decl_recursive(
         "tuple_add",
         Int,

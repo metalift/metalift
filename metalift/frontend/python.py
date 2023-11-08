@@ -77,7 +77,7 @@ from mypy.nodes import (
     ReturnStmt,
     Statement,
     TryStmt,
-    TupleExpr,
+    TupleExpr as mypyTupleExpr,
     UnaryExpr,
     WhileStmt,
     WithStmt,
@@ -104,7 +104,7 @@ from metalift.ir import (
     ObjectT,
     Set as mlSet,
     Synth,
-    TupleObject,
+    Tuple as mlTuple,
     Var,
     call,
     create_object,
@@ -806,7 +806,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         else:
             raise RuntimeError(f"unknown binary op: {op} in {o}")
 
-    def visit_tuple_expr(self, o: TupleExpr) -> TupleObject[ObjectT]:  # type: ignore
+    def visit_tuple_expr(self, o: mypyTupleExpr) -> mlTuple[ObjectT]:  # type: ignore
         tuple_exprs = [expr.accept(self) for expr in o.items]
         return make_tuple(*tuple_exprs)
 
@@ -817,7 +817,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         if index.type != Int:
             raise Exception("Index must be int!")
         index = cast(Int, index)
-        if isinstance(base, TupleObject):
+        if isinstance(base, mlTuple):
             return base[index]
         if isinstance(base, mlList):
             return base[index]
