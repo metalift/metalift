@@ -430,7 +430,7 @@ def synthesize(
 
             #####parsing output of rosette synthesis#####
             varTypes = {}
-            for i in loopAndPsInfo:
+            for i in loopAndPsInfo + invAndPs:
                 if isinstance(i, CodeInfo):
                     varTypes[i.name] = generateTypes(
                         i.modifiedVars + i.readVars + list(vars)
@@ -451,7 +451,7 @@ def synthesize(
                     fnsType[ceName] = FnObject[typing.Tuple[fn_types]]  # type: ignore
                 for n in synthNames:
                     for r in output:
-                        if "define (" + n in r:
+                        if "define (" + n + " " in r:
                             startIndex = r.find("(")
                             candidateDict[n] = toExpr(
                                 generateAST(r[startIndex:])[0],
@@ -476,7 +476,7 @@ def synthesize(
                 candidatesSMT.append(
                     FnDeclRecursive(
                         ceName,
-                        synthFun.args[1].type,
+                        synthFun.body().type,
                         candidateDict[ceName],
                         *allVars,
                     )
