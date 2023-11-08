@@ -2,7 +2,7 @@ import typing
 from typing import List
 
 from metalift.ir import (FnObject, IntObject, ListObject, NewObject, Synth,
-                         call, call_value, choose, fn_decl, fn_decl_recursive,
+                         call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
                          ite)
 
 VECTORADD = "vector_add"
@@ -126,22 +126,61 @@ def elemwise_mul_body(left: ListObject[IntObject], right: ListObject[IntObject])
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
 elemwise_mul = fn_decl_recursive(ELEMWISEMUL, ListObject[IntObject], elemwise_mul_body(x, y), x, y)
 
-# Selection criteria
-select_min_body = ite(int_x < int_y, int_x, int_y)
-select_linear_burn_body = int_x + int_y - 255
-select_mul8x8_div255_body = (int_x * int_y) // 255
-select_screen8x8_body = int_x + int_y - select_mul8x8_div255_body
+# Helper functions for selections
+def mul8x8_div255_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return (int_x * int_y) // 255
 
+def screen8x8_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return int_x + int_y - mul8x8_div255_body(int_x, int_y)
+
+# Selection criteria
+def select_darken_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return ite(int_x < int_y, int_x, int_y)
+
+def select_multiply_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return mul8x8_div255_body(int_x, int_y)
+
+def select_linear_burn_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return int_x + int_y - 255
+
+def select_color_burn_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return ite(
+        int_x == 0,
+        IntObject(255),
+        255 - (255 - int_x // int_y)
+    )
+
+def select_lighten_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return ite(int_x < int_y, int_y, int_x)
+
+def select_screen_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return screen8x8_body(int_x, int_y)
+
+def select_linear_dodge_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return int_x + int_y
+
+def select_color_dodge_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return ite(
+        int_y == 255,
+        IntObject(255),
+        int_x // (255 - int_y)
+    )
+
+def select_overlay_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
+    return ite(
+        int_x >= 128,
+        screen8x8_body(2 * int_x, int_x) - 255,
+        mul8x8_div255_body(2 * int_x, int_x)
+    )
 
 select_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT)
 select_fn_decl = fn_decl(SELECT, IntObject, None, int_x, int_y)
 
-def get_select_synth(*select_bodies: NewObject) -> Synth:
+def get_select_synth(select_bodies: List[NewObject], args: List[NewObject]) -> Synth:
     return Synth(
         SELECT,
         choose(*select_bodies).src,
-        int_x.src,
-        int_y.src
+        *get_object_exprs(*args)
     )
 
 def selection_body(
@@ -151,9 +190,7 @@ def selection_body(
 ) -> ListObject[IntObject]:
     vec_size = left.len()
     cur = call_value(select_fn, left[0], right[0])
-    left_rest = left[1:]
-    right_rest = right[1:]
-    recursed = call_selection(left_rest, right_rest, select_fn)
+    recursed = call_selection(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
 
