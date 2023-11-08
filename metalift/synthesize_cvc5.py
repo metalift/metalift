@@ -11,7 +11,7 @@ from metalift.ir import (
       Ge, And, Or, Implies, Not, 
       TupleGet, Ite, 
       Set as mlSet, Var, Let, Target, 
-      IntLit, BoolLit, FnDeclRecursive, Fn, 
+      IntLit, BoolLit, FnDeclRecursive, make_tuple_type, 
       Axiom, Synth, FnDecl, get_fn_return_type)
 from metalift.smt_util import toSMT
 

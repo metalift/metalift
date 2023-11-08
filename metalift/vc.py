@@ -10,8 +10,8 @@ from metalift.ir import (
       Sub, Mul, Div, Lt, Gt, Le, 
       Ge, And, Or, Implies, Not, Ite, 
       Set as mlSet, Var, Let, Target, 
-      IntLit, BoolLit, FnDeclRecursive, MLInst,
-      Axiom, Synth, FnDecl, get_fn_return_type)
+      IntLit, BoolLit, Object, MLInst,
+      make_tuple_type, Synth, Lit, parse_type_ref_to_obj)
 from metalift import vc_util, models
 
 from llvmlite.binding import TypeRef, ValueRef
