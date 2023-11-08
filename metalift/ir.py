@@ -688,7 +688,6 @@ def call(
 def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":  # type: ignore
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
     ret_type = fn_decl.return_type
-    print(call_value_expr)
     return create_object(ret_type, call_value_expr)
 
 

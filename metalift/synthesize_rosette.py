@@ -133,7 +133,7 @@ def toExpr(
                 v1,
                 v2,
             )
-        elif ast[0] == "length":
+        elif ast[0] in {"length", "list-list-length"}:
             return Call(
                 "list_length", IntObject, toExpr(ast[1], fnsType, varType, choices)
             )
@@ -142,14 +142,15 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
-        elif ast[0] == "list-empty":
+        elif ast[0] in {"list-empty", "list-list-empty"}:
             return Call("list_empty", ListObject[IntObject])
-        elif ast[0] == "list-append" or ast[0] == "append":
+        elif ast[0] in {"list-append", "list-list-append"}:
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
             elem = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
-                ListObject[elem.type],  # type: ignore
-                toExpr(ast[1], fnsType, varType, choices),
+                list_expr.type,
+                list_expr,
                 elem,
             )
         elif ast[0] in {"list-prepend", "list-list-prepend"}:
@@ -157,7 +158,7 @@ def toExpr(
             lst = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_prepend",
-                ListObject[elem.type],  # type: ignore
+                lst.type,
                 elem,
                 lst,
             )
@@ -165,7 +166,7 @@ def toExpr(
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_get",
-                get_args(list_expr.type)[0],
+                get_list_element_type(list_expr.type),
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
             )
@@ -178,17 +179,20 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-concat":
+            lst1 = toExpr(ast[1], fnsType, varType, choices)
+            lst2 = toExpr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_concat",
-                ListObject[IntObject],
-                toExpr(ast[1], fnsType, varType, choices),
-                toExpr(ast[2], fnsType, varType, choices),
+                lst1.type,
+                lst1,
+                lst2
             )
-        elif ast[0] == "list-take-noerr":
+        elif ast[0] in {"list-take-noerr", "list-list-take-noerr"}:
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_take",
-                ListObject[IntObject],
-                toExpr(ast[1], fnsType, varType, choices),
+                list_expr.type,
+                list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "make-tuple":

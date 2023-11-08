@@ -1017,7 +1017,7 @@ class VCVisitor:
             self.visit_sub_instruction(block_name, o)
         elif o.opcode == "mul":
             self.visit_mul_instruction(block_name, o)
-        elif o.opcode in {"sdiv", "udiv"}:
+        elif o.opcode in {"sdiv"}:
             self.visit_div_instruction(block_name, o)
         elif o.opcode == "bitcast":
             self.visit_bitcast_instruction(block_name, o)
