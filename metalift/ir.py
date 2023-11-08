@@ -102,6 +102,9 @@ def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
     tuple_types = get_args(ty)[0]
     return get_args(tuple_types)[0]  # type: ignore
 
+def get_fn_args_types(ty: Union[type, _GenericAlias]) -> List[NewObjectT]:
+    tuple_types = get_args(ty)[0]
+    return list(get_args(tuple_types)[1:]) # type: ignore
 
 class Expr:
     def __init__(
@@ -250,6 +253,8 @@ class Expr:
                     return Let(*newArgs)
                 elif isinstance(e, Lambda):
                     return Lambda(e.type.args[0], *newArgs)  # type: ignore
+                elif isinstance(e, CallValue):
+                    return CallValue(*newArgs)
                 else:
                     raise Exception("NYI: %s" % e)
             else:
@@ -1281,7 +1286,8 @@ class FnObject(Generic[FnContainedT], NewObject):
     @staticmethod
     def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type_strs: List[str] = []
-        for contained_type in get_args(type_args[0]):
+        contained_types = get_args(get_args(type_args[0]))
+        for contained_type in contained_types:
             if isinstance(contained_type, _GenericAlias):
                 contained_type_str = get_origin(contained_type).toSMTType(  # type: ignore
                     get_args(contained_type)

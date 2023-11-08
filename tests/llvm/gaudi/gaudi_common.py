@@ -67,8 +67,8 @@ x = ListObject(IntObject, "x")
 y = ListObject(IntObject, "y")
 nested_x = ListObject(ListObject[IntObject], "nested_x")
 nested_y = ListObject(ListObject[IntObject], "nested_y")
-int_x = IntObject("x")
-int_y = IntObject("y")
+int_x = IntObject("int_x")
+int_y = IntObject("int_y")
 
 def vector_add_body(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     vec_size = left.len()
@@ -175,6 +175,7 @@ def select_overlay_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
 
 select_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT)
 select_fn_decl = fn_decl(SELECT, IntObject, None, int_x, int_y)
+selection_fn_decl = fn_decl(SELECTION, ListObject[IntObject], None, x, y, select_fn_obj)
 
 def get_select_synth(select_bodies: List[NewObject], args: List[NewObject]) -> Synth:
     return Synth(
@@ -189,19 +190,25 @@ def selection_body(
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[IntObject]:
     vec_size = left.len()
-    cur = call_value(select_fn, left[0], right[0])
-    recursed = call_selection(left[1:], right[1:], select_fn)
+    value = choose(left[0], right[0])
+    cur = call_value(select_fn, value, value)
+    arg_to_recurse = choose(left[1:], right[1:])
+    recursed = call_selection(arg_to_recurse, arg_to_recurse, select_fn)
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
 
-selection = fn_decl_recursive(
-    SELECTION,
-    ListObject[IntObject],
-    selection_body(x, y, select_fn_obj),
-    x,
-    y,
-    select_fn_obj
-)
+def get_selection_synth(
+    left: ListObject[IntObject],
+    right: ListObject[IntObject],
+    select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
+) -> Synth:
+    return Synth(
+        SELECTION,
+        selection_body(left, right, select_fn).src,
+        left.src,
+        right.src,
+        select_fn.src
+    )
 
 def nested_selection_body(
     left: ListObject[ListObject[IntObject]],

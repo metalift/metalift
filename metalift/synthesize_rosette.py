@@ -464,7 +464,7 @@ def synthesize(
 
             #####parsing output of rosette synthesis#####
             varTypes = {}
-            for i in [*loopAndPsInfo, *invAndPs]:
+            for i in loopAndPsInfo + invAndPs:
                 if isinstance(i, CodeInfo):
                     varTypes[i.name] = generateTypes(
                         i.modifiedVars + i.readVars + list(vars)
