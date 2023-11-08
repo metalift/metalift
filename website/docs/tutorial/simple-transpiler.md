@@ -23,7 +23,7 @@ Our first step is to define the semantics of the target language. Using Metalift
 ```python
 from typing import List
 from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
-from metalift.ir import call, Lit, IntLit, Add, Call, Eq, Expr, Ite, Lit, Sub, Tuple
+from metalift.ir import call, Lit, IntLit, Add, Call, Eq, Expr, Ite, Lit, Sub, TupleExpr
 from metalift.ir import Int, Bool, Object
 
 def targetLang():
@@ -162,7 +162,7 @@ def codeGen(expr: Expr) -> str:
             return f"{expr.name()}({', '.join(a for a in eval_args)})"
         if isinstance(expr, Lit):
             return f"{expr.val()}"
-        if isinstance(expr, Tuple):
+        if isinstance(expr, TupleExpr):
             return f"({', '.join(eval(a) for a in expr.args)})"
         if isinstance(expr, Ite):
             return f"{eval(expr.e1())} if {eval(expr.c())} else {eval(expr.e2())}"

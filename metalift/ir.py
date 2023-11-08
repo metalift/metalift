@@ -74,9 +74,9 @@ def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), TupleObject)  # type: ignore
+        return issubclass(get_origin(ty), Tuple)  # type: ignore
     else:
-        return issubclass(ty, TupleObject)
+        return issubclass(ty, Tuple)
 
 
 def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -146,8 +146,8 @@ class Expr:
             return Lt(*[f(a) for a in self.args])
         elif isinstance(self, Ite):
             return Ite(*[f(a) for a in self.args])
-        elif isinstance(self, Tuple):  # type: ignore
-            return Tuple(*[f(a) for a in self.args])  # type: ignore
+        elif isinstance(self, TupleExpr):  # type: ignore
+            return TupleExpr(*[f(a) for a in self.args])  # type: ignore
         elif isinstance(self, Let):
             return Let(*[f(a) for a in self.args])
         elif isinstance(self, Lambda):
@@ -242,8 +242,8 @@ class Expr:
                     return Call(typing.cast(str, newArgs[0]), e.type, *newArgs[1:])
                 elif isinstance(e, Choose):
                     return Choose(*newArgs)
-                elif isinstance(e, Tuple):  # type: ignore
-                    return Tuple(*newArgs)  # type: ignore
+                elif isinstance(e, TupleExpr):  # type: ignore
+                    return TupleExpr(*newArgs)  # type: ignore
                 elif isinstance(e, TupleGet):
                     return TupleGet(*newArgs)
                 elif isinstance(e, Let):
@@ -604,10 +604,10 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
         # TODO jie: how to support different contained types
         return Set[Int]
     elif ty_str in {"%struct.tup*"}:
-        return TupleObject[typing.Tuple[Int, Int]]
+        return Tuple[typing.Tuple[Int, Int]]
     elif ty_str.startswith("%struct.tup."):
         contained_types = [Int for i in range(int(t[-2]) + 1)]
-        return TupleObject[typing.Tuple[contained_types]]  # type: ignore
+        return Tuple[typing.Tuple[contained_types]]  # type: ignore
     else:
         raise Exception(f"no type defined for {ty_str}")
 
@@ -717,13 +717,13 @@ def fn_decl_recursive(
     return fn_decl_recursive_expr
 
 
-def make_tuple(*objects: Union["Object", Expr]) -> "TupleObject":  # type: ignore
+def make_tuple(*objects: Union["Object", Expr]) -> "Tuple":  # type: ignore
     obj_types = tuple([obj.type for obj in objects])
-    return TupleObject(obj_types, Tuple(*get_object_exprs(*objects)))  # type: ignore
+    return Tuple(obj_types, TupleExpr(*get_object_exprs(*objects)))  # type: ignore
 
 
-def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["TupleObject"]:  # type: ignore
-    return TupleObject[typing.Tuple[containedT]]  # type: ignore
+def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tuple"]:  # type: ignore
+    return Tuple[typing.Tuple[containedT]]  # type: ignore
 
 
 def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
@@ -1166,13 +1166,13 @@ class Set(Generic[T], Object):
 TupleContainedT = TypeVar("TupleContainedT")
 
 
-class TupleObject(Generic[TupleContainedT], Object):
+class Tuple(Generic[TupleContainedT], Object):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = TupleObject[typing.Tuple[containedT]]  # type: ignore
+        full_type = Tuple[typing.Tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1181,7 +1181,7 @@ class TupleObject(Generic[TupleContainedT], Object):
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create TupleObject from {value}")
+            raise TypeError(f"Cannot create Tuple from {value}")
         self.containedT = containedT
         Object.__init__(self, src)
 
@@ -1207,8 +1207,8 @@ class TupleObject(Generic[TupleContainedT], Object):
         return len(self.containedT)
 
     @staticmethod
-    def default_value() -> "TupleObject[typing.Tuple[Int, Int]]":
-        return TupleObject((Int, Int), None)  # type: ignore
+    def default_value() -> "Tuple[typing.Tuple[Int, Int]]":
+        return Tuple((Int, Int), None)  # type: ignore
 
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1888,7 +1888,7 @@ class Call(Expr):
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
                 index = self.args[idx + 2].args[0]
-                if isinstance(self.args[idx + 1], Tuple):  # type: ignore
+                if isinstance(self.args[idx + 1], TupleExpr):  # type: ignore
                     retVal.append(
                         "tuple%d_get%d"
                         % (
@@ -1907,11 +1907,11 @@ class Call(Expr):
                             index,
                         )
                     )
-                elif isinstance(self.args[idx + 1], TupleObject):
+                elif isinstance(self.args[idx + 1], Tuple):
                     retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
                 elif (
                     isinstance(self.args[idx + 1], Var)
-                    and get_origin(self.args[idx + 1].type) == TupleObject
+                    and get_origin(self.args[idx + 1].type) == Tuple
                 ):
                     length = len(get_args(get_args(self.args[idx + 1].type)[0]))
                     retVal.append(f"tuple{length}_get{index}")
@@ -2092,8 +2092,7 @@ class Constraint(Expr):
 
 
 ## tuple functions
-# TODO: decide if this Tuple still needed
-class Tuple(Expr):  # type: ignore
+class TupleExpr(Expr):  # type: ignore
     def __init__(self, *args: Expr) -> None:
         tuple_type = make_tuple_type(*[a.type for a in args])
         Expr.__init__(self, tuple_type, args)
@@ -2115,7 +2114,7 @@ class Tuple(Expr):  # type: ignore
         return "(tuple%d %s)" % (len(self.args), args)
 
     def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Tuple(self)  # type: ignore
+        return v.visit_TupleExpr(self)  # type: ignore
 
 
 class TupleGet(Expr):
@@ -2814,7 +2813,7 @@ class Visitor(Generic[T]):
         pass
 
     @abstractmethod
-    def visit_Tuple(self, o: Tuple) -> T:  # type: ignore
+    def visit_TupleExpr(self, o: TupleExpr) -> T:  # type: ignore
         pass
 
     @abstractmethod
@@ -2930,7 +2929,7 @@ class ExtendedVisitor(Visitor[None]):
     def visit_Constraint(self, o: Constraint) -> None:
         self.generic_visit(o)
 
-    def visit_Tuple(self, o: Tuple) -> None:  # type: ignore
+    def visit_TupleExpr(self, o: TupleExpr) -> None:  # type: ignore
         self.generic_visit(o)  # type: ignore
 
     def visit_TupleGet(self, o: TupleGet) -> None:

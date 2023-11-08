@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Bool, Int, Object, TupleObject, call,
+from metalift.ir import (Bool, Int, Object, Tuple as mlTuple, call,
                          choose, make_tuple, fn_decl)
 from tests.python.utils.utils import codegen
 
@@ -10,7 +10,7 @@ def tuple_add(t):
     return call("tuple_add", Int, t)
 
 def target_lang():
-    x = TupleObject((Int, Int), "x")
+    x = mlTuple((Int, Int), "x")
     tuple_add = fn_decl(
         "tuple_add",
         Int,

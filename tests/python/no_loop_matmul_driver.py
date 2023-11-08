@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Bool, FnDecl, FnDeclRecursive, Int, Object, TupleObject, call, choose, ite, make_tuple, make_tuple_type)
+from metalift.ir import (Bool, FnDecl, FnDeclRecursive, Int, Object, Tuple as mlTuple, call, choose, ite, make_tuple, make_tuple_type)
 from tests.python.utils.utils import codegen
 
 L1_NORM = "l1_norm"
@@ -9,9 +9,9 @@ MAT_MUL = "mat_mul"
 TWO_INT_TUPLE_TYPE = make_tuple_type(Int, Int)
 
 def target_lang() -> List[FnDeclRecursive]:
-    a = TupleObject((Int, Int), "a")
-    b = TupleObject((Int, Int), "b")
-    x = TupleObject((Int, Int), "x")
+    a = mlTuple((Int, Int), "a")
+    b = mlTuple((Int, Int), "b")
+    x = mlTuple((Int, Int), "x")
     p0l = a[0] * x[0]
     p0r = b[0] * x[1]
     p1l = a[1] * x[0]
@@ -19,7 +19,7 @@ def target_lang() -> List[FnDeclRecursive]:
     mat_mul_body = make_tuple(p0l + p0r, p1l + p1r)
     mat_mul = FnDecl(MAT_MUL, TWO_INT_TUPLE_TYPE, mat_mul_body.src, a.src, b.src, x.src)
 
-    p = TupleObject((Int, Int), "p")
+    p = mlTuple((Int, Int), "p")
     p0 = p[0]
     p1 = p[1]
     p0_abs = ite(p0 < 0, 0 - p0, p0)

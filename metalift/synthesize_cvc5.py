@@ -9,7 +9,7 @@ from metalift.ir import (
       ObjectT, Expr, Eq, Add, 
       Sub, Mul, Div, Lt, Gt, Le, 
       Ge, And, Or, Implies, Not, 
-      TupleGet, Tuple, Ite, 
+      TupleGet, Ite, 
       Set as mlSet, Var, Let, Target, 
       IntLit, BoolLit, FnDeclRecursive, Fn, 
       Axiom, Synth, FnDecl, get_fn_return_type)
