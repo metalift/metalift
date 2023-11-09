@@ -1,10 +1,11 @@
 import typing
-from typing import List
+from typing import List, Union
+from metalift.frontend.llvm import InvGrammar
 
-from metalift.ir import (FnObject, IntObject, ListObject, NewObject, Synth,
+from metalift.ir import (BoolObject, FnDecl, FnDeclRecursive, FnObject, IntObject, ListObject, NewObject, Synth,
                          call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
                          ite)
-from metalift.vc_util import or_objects
+from metalift.vc_util import and_objects, or_objects
 
 VECTORADD = "vector_add"
 ELEMWISEMUL = "elemwise_mul"
@@ -12,9 +13,9 @@ SCALARMUL = "scalar_mul"
 BROADCASTADD = "broadcast_add"
 REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
-SELECT = "select"
-SELECTION = "selection"
-NESTEDSELECTION = "nested_selection"
+SELECT_TWO_ARGS = "select_two_args"
+SELECTION_TWO_ARGS = "selection_two_args"
+NESTED_SELECTION_TWO_ARGS = "nested_selection_two_args"
 
 
 def call_vector_add(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
@@ -35,19 +36,19 @@ def call_reduce_mul(lst) -> IntObject:
 def call_elemwise_mul(left: ListObject[IntObject], right: ListObject[IntObject]) -> ListObject[IntObject]:
     return call(ELEMWISEMUL, ListObject[IntObject], left, right)
 
-def call_selection(
+def call_selection_two_args(
     left: ListObject[IntObject],
     right: ListObject[IntObject],
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[IntObject]:
-    return call(SELECTION, ListObject[IntObject], left, right, select_fn)
+    return call(SELECTION_TWO_ARGS, ListObject[IntObject], left, right, select_fn)
 
-def call_nested_selection(
+def call_nested_selection_two_args(
     left: ListObject[ListObject[IntObject]],
     right: ListObject[ListObject[IntObject]],
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[ListObject[IntObject]]:
-    return call(NESTEDSELECTION, ListObject[ListObject[IntObject]], left, right, select_fn)
+    return call(NESTED_SELECTION_TWO_ARGS, ListObject[ListObject[IntObject]], left, right, select_fn)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_elemwise_mul(left, right),
@@ -174,25 +175,24 @@ def select_overlay_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
         mul8x8_div255_body(2 * int_x, int_x)
     )
 
-select_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT)
-select_fn_decl = fn_decl(SELECT, IntObject, None, int_x, int_y)
-selection_fn_decl = fn_decl(SELECTION, ListObject[IntObject], None, x, y, select_fn_obj)
+select_two_args_fn_obj = FnObject((IntObject, IntObject, IntObject), SELECT_TWO_ARGS)
+select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, IntObject, None, int_x, int_y)
+selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, ListObject[IntObject], None, x, y, select_two_args_fn_obj)
 
-def get_select_synth(select_bodies: List[NewObject], args: List[NewObject]) -> Synth:
+def get_select_two_args_synth(select_bodies: List[NewObject], args: List[NewObject]) -> Synth:
     return Synth(
-        SELECT,
+        SELECT_TWO_ARGS,
         choose(*select_bodies).src,
         *get_object_exprs(*args)
     )
 
-def selection_body(
+def selection_two_args_body(
     left: ListObject[IntObject],
     right: ListObject[IntObject],
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[IntObject]:
-    vec_size = left.len()
     cur = call_value(select_fn, left[0], right[0])
-    recursed = call_selection(left[1:], right[1:], select_fn)
+    recursed = call_selection_two_args(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
     return ite(
         or_objects(left.len() < 1, left.len() != right.len()),
@@ -200,37 +200,160 @@ def selection_body(
         general_answer
     )
 
-def get_selection_synth(
+def get_selection_two_args_synth(
     left: ListObject[IntObject],
     right: ListObject[IntObject],
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> Synth:
     return Synth(
-        SELECTION,
-        selection_body(left, right, select_fn).src,
+        SELECTION_TWO_ARGS,
+        selection_two_args_body(left, right, select_fn).src,
         left.src,
         right.src,
         select_fn.src
     )
 
-def nested_selection_body(
+def nested_selection_two_args_body(
     left: ListObject[ListObject[IntObject]],
     right: ListObject[ListObject[IntObject]],
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[ListObject[IntObject]]:
-    cur = call_selection(left[0], right[0], select_fn)
-    recursed = call_nested_selection(left[1:], right[1:], select_fn)
+    cur = call_selection_two_args(left[0], right[0], select_fn)
+    recursed = call_nested_selection_two_args(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
     return ite(
         or_objects(left.len() < 1, left.len() != right.len()),
         ListObject.empty(ListObject[IntObject]),
         general_answer
     )
-nested_selection = fn_decl_recursive(
-    NESTEDSELECTION,
+nested_selection_two_args_fn_decl = fn_decl_recursive(
+    NESTED_SELECTION_TWO_ARGS,
     ListObject[ListObject[IntObject]],
-    nested_selection_body(nested_x, nested_y, select_fn_obj),
+    nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj),
     nested_x,
     nested_y,
-    select_fn_obj
+    select_two_args_fn_obj
 )
+
+all_possible_select_two_args_bodies = [
+    select_multiply_blend_body(int_x, int_y),
+    select_linear_burn_body(int_x, int_y),
+    select_color_burn_body(int_x, int_y),
+    select_lighten_blend_body(int_x, int_y),
+    select_screen_blend_body(int_x, int_y),
+    select_linear_dodge_body(int_x, int_y),
+    select_color_dodge_body(int_x, int_y),
+    select_overlay_blend_body(int_x, int_y),
+    select_darken_blend_body(int_x, int_y)
+]
+all_possible_selects_two_args_synth = get_select_two_args_synth(all_possible_select_two_args_bodies, [int_x, int_y])
+selection_two_args_synth = get_selection_two_args_synth(x, y, select_two_args_fn_obj)
+
+def selection_two_args_ps_grammar_fn(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    ret_val = writes[0]
+    base, active = reads
+    base_or_active = choose(base, active)
+    return ret_val == call_nested_selection_two_args(base_or_active, base_or_active, select_two_args_fn_obj)
+
+def selection_two_args_inv0_grammar_fn(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    # outer loop grammar
+    out, col, pixel, row, row_vec = writes
+    base, active = reads
+    index_lower_bound = choose(1 - IntObject(0), IntObject(0), IntObject(1))
+    index_upper_bound = choose(base.len(), base[0].len())
+    index_lower_cond = choose(
+        row >= index_lower_bound,
+        row > index_lower_bound,
+        row == index_lower_bound,
+        row < index_lower_bound,
+        row <= index_lower_bound
+    )
+    index_upper_cond = choose(
+        row >= index_upper_bound,
+        row > index_upper_bound,
+        row == index_upper_bound,
+        row < index_upper_bound,
+        row <= index_upper_bound
+    )
+    nested_list = choose(
+        base,
+        base[:row],
+        base[:col],
+        active,
+        active[:row],
+        active[:col],
+    )
+    return and_objects(
+        index_lower_cond,
+        index_upper_cond,
+        out == call_nested_selection_two_args(nested_list, nested_list, select_two_args_fn_obj)
+    )
+
+def selection_two_args_inv1_grammar_fn(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+    # inner loop grammar
+    col, pixel, row_vec = writes
+    out, row = in_scope
+    base, active = reads
+    index_lower_bound = choose(1 - IntObject(0), IntObject(0), IntObject(1))
+    index_upper_bound = choose(base.len(), base[0].len())
+    outer_index_lower_cond = choose(
+        row >= index_lower_bound,
+        row > index_lower_bound,
+        row == index_lower_bound,
+        row < index_lower_bound,
+        row <= index_lower_bound
+    )
+    outer_index_upper_cond = choose(
+        row >= index_upper_bound,
+        row > index_upper_bound,
+        row == index_upper_bound,
+        row < index_upper_bound,
+        row <= index_upper_bound
+    )
+    inner_index_lower_cond = choose(
+        col >= index_lower_bound,
+        col > index_lower_bound,
+        col == index_lower_bound,
+        col < index_lower_bound,
+        col <= index_lower_bound
+    )
+    inner_index_upper_cond = choose(
+        col >= index_upper_bound,
+        col > index_upper_bound,
+        col == index_upper_bound,
+        col < index_upper_bound,
+        col <= index_upper_bound
+    )
+    vec = choose(
+        base[0][:col],
+        base[row][:col],
+        base[col][:row],
+        base[0][:row],
+        active[0][:col],
+        active[row][:col],
+        active[col][:row],
+        active[0][:row],
+        row_vec
+    )
+    nested_list = choose(
+        base,
+        base[:row],
+        base[:col],
+        active,
+        active[:row],
+        active[:col]
+    )
+    return and_objects(
+        outer_index_lower_cond,
+        outer_index_upper_cond,
+        inner_index_lower_cond,
+        inner_index_upper_cond,
+        row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
+        out == call_nested_selection_two_args(nested_list, nested_list, select_two_args_fn_obj)
+    )
+
+def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    return [select_two_args_fn_decl, selection_two_args_fn_decl, nested_selection_two_args_fn_decl]
+
+selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn, [])
+selection_two_args_inv1_grammar = InvGrammar(selection_two_args_inv1_grammar_fn, ["row", "agg.result"])
