@@ -135,7 +135,7 @@ def toExpr(
                 v1,
                 v2,
             )
-        elif ast[0] == "length":
+        elif ast[0] in {"length", "list-list-length"}:
             return Call("list_length", Int, toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "=":
             return Eq(
@@ -180,12 +180,7 @@ def toExpr(
         elif ast[0] == "list-concat":
             lst1 = toExpr(ast[1], fnsType, varType, choices)
             lst2 = toExpr(ast[2], fnsType, varType, choices)
-            return Call(
-                "list_concat",
-                mlList[Int],
-                toExpr(ast[1], fnsType, varType, choices),
-                toExpr(ast[2], fnsType, varType, choices),
-            )
+            return Call("list_concat", lst1.type, lst1, lst2)
         elif ast[0] in {"list-take-noerr", "list-list-take-noerr"}:
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
