@@ -9,10 +9,12 @@ vector<vector<int>> lighten_blend_8(vector<vector<int>> base, vector<vector<int>
 	for (int row = 0; row < m; row++) {
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
+			int pixel;
 			if (base[row][col] < active[row][col])
-				row_vec.push_back(active[row][col]);
+				int pixel = active[row][col];
 			else
-				row_vec.push_back(base[row][col]);
+				int pixel = base[row][col];
+			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);
 	}

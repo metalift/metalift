@@ -1,5 +1,5 @@
-; ModuleID = 'gaudi/darken_blend_8.ll'
-source_filename = "gaudi/darken_blend_8.cc"
+; ModuleID = 'gaudi/overlay_blend_8.ll'
+source_filename = "gaudi/overlay_blend_8.cc"
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx12.0.0"
 
@@ -47,7 +47,7 @@ target triple = "x86_64-apple-macosx12.0.0"
 @_ZTVSt12length_error = external unnamed_addr constant { [5 x i8*] }, align 8
 
 ; Function Attrs: noinline optnone ssp uwtable
-define void @_Z14darken_blend_8NSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES5_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, %"class.std::__1::vector"* %base, %"class.std::__1::vector"* %active) #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+define void @_Z15overlay_blend_8NSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES5_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, %"class.std::__1::vector"* %base, %"class.std::__1::vector"* %active) #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
 entry:
   %result.ptr = alloca i8*, align 8
   %nrvo = alloca i1, align 1
@@ -73,11 +73,11 @@ entry:
   store i32 0, i32* %row, align 4
   br label %for.cond
 
-for.cond:                                         ; preds = %for.inc25, %entry
+for.cond:                                         ; preds = %for.inc43, %entry
   %i1 = load i32, i32* %row, align 4
   %i2 = load i32, i32* %m, align 4
   %cmp = icmp slt i32 %i1, %i2
-  br i1 %cmp, label %for.body, label %for.end27
+  br i1 %cmp, label %for.body, label %for.end45
 
 for.body:                                         ; preds = %for.cond
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector.0"* %row_vec) #11
@@ -98,28 +98,26 @@ for.body6:                                        ; preds = %for.cond4
   %conv9 = sext i32 %i6 to i64
   %call10 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call8, i64 %conv9) #11
   %i7 = load i32, i32* %call10, align 4
-  %i8 = load i32, i32* %row, align 4
-  %conv11 = sext i32 %i8 to i64
-  %call12 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %active, i64 %conv11) #11
-  %i9 = load i32, i32* %col, align 4
-  %conv13 = sext i32 %i9 to i64
-  %call14 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call12, i64 %conv13) #11
-  %i10 = load i32, i32* %call14, align 4
-  %cmp15 = icmp sgt i32 %i7, %i10
-  br i1 %cmp15, label %if.then, label %if.else
+  %cmp11 = icmp sge i32 %i7, 128
+  br i1 %cmp11, label %if.then, label %if.else
 
 if.then:                                          ; preds = %for.body6
+  %i8 = load i32, i32* %row, align 4
+  %conv12 = sext i32 %i8 to i64
+  %call13 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv12) #11
+  %i9 = load i32, i32* %col, align 4
+  %conv14 = sext i32 %i9 to i64
+  %call15 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call13, i64 %conv14) #11
+  %i10 = load i32, i32* %call15, align 4
+  %mul = mul nsw i32 2, %i10
   %i11 = load i32, i32* %row, align 4
   %conv16 = sext i32 %i11 to i64
-  %call17 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %active, i64 %conv16) #11
+  %call17 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv16) #11
   %i12 = load i32, i32* %col, align 4
   %conv18 = sext i32 %i12 to i64
   %call19 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call17, i64 %conv18) #11
   %i13 = load i32, i32* %call19, align 4
-  store i32 %i13, i32* %pixel, align 4
-  br label %if.end
-
-if.else:                                          ; preds = %for.body6
+  %add = add nsw i32 %mul, %i13
   %i14 = load i32, i32* %row, align 4
   %conv20 = sext i32 %i14 to i64
   %call21 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv20) #11
@@ -127,7 +125,40 @@ if.else:                                          ; preds = %for.body6
   %conv22 = sext i32 %i15 to i64
   %call23 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call21, i64 %conv22) #11
   %i16 = load i32, i32* %call23, align 4
-  store i32 %i16, i32* %pixel, align 4
+  %mul24 = mul nsw i32 2, %i16
+  %i17 = load i32, i32* %row, align 4
+  %conv25 = sext i32 %i17 to i64
+  %call26 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv25) #11
+  %i18 = load i32, i32* %col, align 4
+  %conv27 = sext i32 %i18 to i64
+  %call28 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call26, i64 %conv27) #11
+  %i19 = load i32, i32* %call28, align 4
+  %mul29 = mul nsw i32 %mul24, %i19
+  %div = sdiv i32 %mul29, 255
+  %sub = sub nsw i32 %add, %div
+  %sub30 = sub nsw i32 %sub, 255
+  store i32 %sub30, i32* %pixel, align 4
+  br label %if.end
+
+if.else:                                          ; preds = %for.body6
+  %i20 = load i32, i32* %row, align 4
+  %conv31 = sext i32 %i20 to i64
+  %call32 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv31) #11
+  %i21 = load i32, i32* %col, align 4
+  %conv33 = sext i32 %i21 to i64
+  %call34 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call32, i64 %conv33) #11
+  %i22 = load i32, i32* %call34, align 4
+  %mul35 = mul nsw i32 2, %i22
+  %i23 = load i32, i32* %row, align 4
+  %conv36 = sext i32 %i23 to i64
+  %call37 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv36) #11
+  %i24 = load i32, i32* %col, align 4
+  %conv38 = sext i32 %i24 to i64
+  %call39 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call37, i64 %conv38) #11
+  %i25 = load i32, i32* %call39, align 4
+  %mul40 = mul nsw i32 %mul35, %i25
+  %div41 = sdiv i32 %mul40, 255
+  store i32 %div41, i32* %pixel, align 4
   br label %if.end
 
 if.end:                                           ; preds = %if.else, %if.then
@@ -138,35 +169,35 @@ invoke.cont:                                      ; preds = %if.end
   br label %for.inc
 
 for.inc:                                          ; preds = %invoke.cont
-  %i17 = load i32, i32* %col, align 4
-  %inc = add nsw i32 %i17, 1
+  %i26 = load i32, i32* %col, align 4
+  %inc = add nsw i32 %i26, 1
   store i32 %inc, i32* %col, align 4
   br label %for.cond4
 
 for.end:                                          ; preds = %for.cond4
   call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE9push_backERKS3_(%"class.std::__1::vector"* %agg.result, %"class.std::__1::vector.0"* nonnull align 8 dereferenceable(24) %row_vec)
-  br label %invoke.cont24
+  br label %invoke.cont42
 
-invoke.cont24:                                    ; preds = %for.end
+invoke.cont42:                                    ; preds = %for.end
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector.0"* %row_vec) #11
-  br label %for.inc25
+  br label %for.inc43
 
-for.inc25:                                        ; preds = %invoke.cont24
-  %i18 = load i32, i32* %row, align 4
-  %inc26 = add nsw i32 %i18, 1
-  store i32 %inc26, i32* %row, align 4
+for.inc43:                                        ; preds = %invoke.cont42
+  %i27 = load i32, i32* %row, align 4
+  %inc44 = add nsw i32 %i27, 1
+  store i32 %inc44, i32* %row, align 4
   br label %for.cond
 
-for.end27:                                        ; preds = %for.cond
+for.end45:                                        ; preds = %for.cond
   store i1 true, i1* %nrvo, align 1
   %nrvo.val = load i1, i1* %nrvo, align 1
   br i1 %nrvo.val, label %nrvo.skipdtor, label %nrvo.unused
 
-nrvo.unused:                                      ; preds = %for.end27
+nrvo.unused:                                      ; preds = %for.end45
   call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEED1Ev(%"class.std::__1::vector"* %agg.result) #11
   br label %nrvo.skipdtor
 
-nrvo.skipdtor:                                    ; preds = %nrvo.unused, %for.end27
+nrvo.skipdtor:                                    ; preds = %nrvo.unused, %for.end45
   ret void
 }
 

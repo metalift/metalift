@@ -1,6 +1,6 @@
-Printing analysis 'Natural Loop Information' for function '_Z14darken_blend_8NSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES5_':
-Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.cond4,%for.end,%invoke.cont24,%for.inc25<latch>,%for.body6,%if.else,%if.then,%if.end,%invoke.cont,%for.inc
-    Loop at depth 2 containing: %for.cond4<header><exiting>,%for.body6,%if.else,%if.then,%if.end,%invoke.cont,%for.inc<latch>
+Printing analysis 'Natural Loop Information' for function '_Z14screen_blend_8NSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES5_':
+Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.cond4,%for.end,%invoke.cont23,%for.inc24<latch>,%for.body6,%invoke.cont,%for.inc
+    Loop at depth 2 containing: %for.cond4<header><exiting>,%for.body6,%invoke.cont,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEC1Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE4sizeEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm':
