@@ -460,7 +460,7 @@ def synthesize(
 
             #####parsing output of rosette synthesis#####
             varTypes = {}
-            for i in loopAndPsInfo + invAndPs:
+            for i in [*loopAndPsInfo, *invAndPs]:
                 if isinstance(i, CodeInfo):
                     varTypes[i.name] = generateTypes(
                         i.modifiedVars + i.readVars + list(vars)
@@ -570,8 +570,14 @@ def synthesize(
                     else:
                         print("Synthesized PS and INV Candidates\n")
                         for candidate in candidatesSMT:
-                            print(f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})")
-                            print(codegen(candidate.body()))
+                            print(
+                                f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})"
+                            )
+                            body = candidate.body()
+                            if isinstance(body, str):
+                                print(body)
+                            else:
+                                print(codegen(body))
                             print("\n\n")
                 return candidatesSMT
             else:
