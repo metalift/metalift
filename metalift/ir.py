@@ -102,9 +102,11 @@ def get_fn_return_type(ty: Union[type, _GenericAlias]) -> ObjectT:
     tuple_types = get_args(ty)[0]
     return get_args(tuple_types)[0]  # type: ignore
 
-def get_fn_args_types(ty: Union[type, _GenericAlias]) -> List[NewObjectT]:
+
+def get_fn_args_types(ty: Union[type, _GenericAlias]) -> pyList[ObjectT]:
     tuple_types = get_args(ty)[0]
-    return list(get_args(tuple_types)[1:]) # type: ignore
+    return list(get_args(tuple_types)[1:])
+
 
 class Expr:
     def __init__(self, type: ObjectT, args: Any, metadata: Dict[str, Any] = {}) -> None:
