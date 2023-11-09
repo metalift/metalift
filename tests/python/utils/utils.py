@@ -1,4 +1,4 @@
-from metalift.ir import Add, And, Call, Eq, Expr, Ge, Gt, Ite, Le, Lit, Lt, Sub, Tuple
+from metalift.ir import Add, And, Call, Eq, Expr, Ge, Gt, Ite, Le, Lit, Lt, Sub, Tuple, TupleExpr
 
 
 def codegen(expr: Expr) -> str:
@@ -16,7 +16,7 @@ def codegen(expr: Expr) -> str:
             return f"{expr.name()}({', '.join(a for a in eval_args)})"
         if isinstance(expr, Lit):
             return f"{expr.val()}"
-        if isinstance(expr, Tuple):
+        if isinstance(expr, TupleExpr):
             return f"({', '.join(eval(a) for a in expr.args)})"
         if isinstance(expr, Ite):
             return f"{eval(expr.e1())} if {eval(expr.c())} else {eval(expr.e2())}"

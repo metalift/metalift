@@ -1,14 +1,14 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.frontend.utils import NewObjectSet
+from metalift.frontend.utils import ObjectSet
 from metalift.ir import (
     And,
     BoolLit,
     Expr,
     Lit,
-    BoolObject,
-    IntObject,
+    Bool,
+    Int,
     Or,
     get_object_exprs,
 )
@@ -29,13 +29,13 @@ def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Ex
     elif hasType:  # i32 0
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, BoolObject)
+            return Lit(True, Bool)
         elif val == "false":
-            return Lit(False, BoolObject)
+            return Lit(False, Bool)
         else:  # assuming it's a number
-            return Lit(int(val), IntObject)
+            return Lit(int(val), Int)
     else:  # 0
-        return Lit(int(op), IntObject)
+        return Lit(int(op), Int)
 
 
 def and_exprs(*exprs: Expr) -> Expr:
@@ -57,11 +57,11 @@ def or_exprs(*exprs: Expr) -> Expr:
     return result
 
 
-def and_objects(*objects: BoolObject) -> BoolObject:
-    deduped_objects = NewObjectSet(objects).objects()
-    return BoolObject(and_exprs(*get_object_exprs(*deduped_objects)))
+def and_objects(*objects: Bool) -> Bool:
+    deduped_objects = ObjectSet(objects).objects()
+    return Bool(and_exprs(*get_object_exprs(*deduped_objects)))
 
 
-def or_objects(*objects: BoolObject) -> BoolObject:
-    deduped_objects = NewObjectSet(objects).objects()
-    return BoolObject(or_exprs(*get_object_exprs(*deduped_objects)))
+def or_objects(*objects: Bool) -> Bool:
+    deduped_objects = ObjectSet(objects).objects()
+    return Bool(or_exprs(*get_object_exprs(*deduped_objects)))

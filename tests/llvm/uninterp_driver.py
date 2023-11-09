@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, call, fn_decl
+from metalift.ir import Bool, FnDecl, Int, Object, call, fn_decl
 from tests.python.utils.utils import codegen
 
 # define an uninterpreted function in the target language that doesn't have a body
@@ -10,25 +10,25 @@ from tests.python.utils.utils import codegen
 uninterp_fn_name = "uninterp"
 
 
-def uninterp(x: NewObject, y: NewObject) -> IntObject:
-    return call(uninterp_fn_name, IntObject, x, y)
+def uninterp(x: Object, y: Object) -> Int:
+    return call(uninterp_fn_name, Int, x, y)
 
 
 def target_lang() -> List[FnDecl]:
-    x = IntObject("x")
-    y = IntObject("y")
-    uninterp = fn_decl(uninterp_fn_name, IntObject, None, x, y)
+    x = Int("x")
+    y = Int("y")
+    uninterp = fn_decl(uninterp_fn_name, Int, None, x, y)
     return [uninterp]
 
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     x, y = reads
     return ret_val == uninterp(x, x) + uninterp(y, y)
 
 
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     raise Exception("no loop in the source")
 
 
@@ -43,8 +43,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar,
     )
 
-    i = IntObject("i")
-    j = IntObject("j")
+    i = Int("i")
+    j = Int("j")
     driver.add_var_objects([i, j])
 
     test(i, j, uninterp_fns=[uninterp_fn_name])
