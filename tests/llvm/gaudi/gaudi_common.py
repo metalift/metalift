@@ -4,6 +4,7 @@ from typing import List
 from metalift.ir import (FnObject, IntObject, ListObject, NewObject, Synth,
                          call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
                          ite)
+from metalift.vc_util import or_objects
 
 VECTORADD = "vector_add"
 ELEMWISEMUL = "elemwise_mul"
@@ -135,7 +136,7 @@ def screen8x8_body(int_x: IntObject, int_y: IntObject) -> IntObject:
 
 # Selection criteria
 def select_darken_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
-    return ite(int_x < int_y, int_x, int_y)
+    return ite(int_x > int_y, int_y, int_x)
 
 def select_multiply_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
     return mul8x8_div255_body(int_x, int_y)
@@ -190,12 +191,14 @@ def selection_body(
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[IntObject]:
     vec_size = left.len()
-    value = choose(left[0], right[0])
-    cur = call_value(select_fn, value, value)
-    arg_to_recurse = choose(left[1:], right[1:])
-    recursed = call_selection(arg_to_recurse, arg_to_recurse, select_fn)
+    cur = call_value(select_fn, left[0], right[0])
+    recursed = call_selection(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, ListObject.empty(IntObject), general_answer)
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        ListObject.empty(IntObject),
+        general_answer
+    )
 
 def get_selection_synth(
     left: ListObject[IntObject],
@@ -215,11 +218,14 @@ def nested_selection_body(
     right: ListObject[ListObject[IntObject]],
     select_fn: FnObject[typing.Tuple[IntObject, IntObject, IntObject]]
 ) -> ListObject[ListObject[IntObject]]:
-    vec_size = left.len()
     cur = call_selection(left[0], right[0], select_fn)
     recursed = call_nested_selection(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, ListObject.empty(ListObject[IntObject]), general_answer)
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        ListObject.empty(ListObject[IntObject]),
+        general_answer
+    )
 nested_selection = fn_decl_recursive(
     NESTEDSELECTION,
     ListObject[ListObject[IntObject]],

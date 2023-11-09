@@ -3,6 +3,7 @@ from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, call, choose, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
+import time
 
 def cblas_sgemv(
     alpha: IntObject,
@@ -74,18 +75,20 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     z, i, j, _, res = writes
     alpha, a, x, beta, y = reads
+    lower_bound = choose(IntObject(0), IntObject(1))
     i_lower_cond = choose(
-        i >= 0,
-        # i > 0
+        i >= lower_bound,
+        i <= lower_bound,
     )
     i_upper_cond = choose(
         i <= a.len(),
-        # i < a.len()
+        i >= a.len(),
     )
+    index = choose(i, j)
     result = and_objects(
         i_lower_cond,
         i_upper_cond,
-        z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
+        z == cblas_sgemv(alpha, a[:index], x, beta, y[:index])
     )
     return result
 
@@ -100,36 +103,40 @@ def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
     }
     i = in_scope_mapping["i"]
     z = in_scope_mapping["agg.result"]
+    lower_bound = choose(IntObject(0), IntObject(1))
     j_lower_cond = choose(
-        j >= 0,
-        # j > 0
+        j >= lower_bound,
+        j <= lower_bound,
     )
     j_upper_cond = choose(
         j <= x.len(),
-        # j < x.len()
+        j >= x.len(),
     )
     i_lower_cond = choose(
-        i >= 0,
-        # i > 0
+        i >= lower_bound,
+        i <= lower_bound,
     )
     i_upper_cond = choose(
-        # i <= a.len(),
-        i < a.len()
+        i <= a.len(),
+        i < a.len(),
     )
 
+    sdot_list_take_index = choose(i, j)
     result = and_objects(
         j_lower_cond,
         j_upper_cond,
         i_lower_cond,
         i_upper_cond,
-        res == sdot(a[i][:j], x[:j]),
-        z == cblas_sgemv(alpha, a[:i], x, beta, y[:i])
+        # res == sdot(a[i][:j], x[:j]),
+        res == sdot(a[sdot_list_take_index][:sdot_list_take_index], x[:sdot_list_take_index]),
+        z == cblas_sgemv(alpha, a[:sdot_list_take_index], x, beta, y[:sdot_list_take_index])
     )
     return result
 
 def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> NewObject:
     ret_val = writes[0]
     alpha, a, x, beta, y = reads
+    vec = choose(x, y)
     return ret_val == cblas_sgemv(alpha, a, x, beta, y)
 
 if __name__ == "__main__":
@@ -158,6 +165,9 @@ if __name__ == "__main__":
 
     test_cblas_sgemv(alpha, a, x, beta, y)
 
+    start_time = time.time()
     driver.synthesize(noVerify=True)
+    end_time = time.time()
 
     print("\n\ngenerated code:" + test_cblas_sgemv.codegen(codegen))
+    print(f"Synthesis took {end_time - start_time} seconds")
