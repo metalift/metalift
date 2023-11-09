@@ -1,31 +1,31 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (BoolObject, FnDeclRecursive, IntObject, NewObject,
+from metalift.ir import (Bool, FnDeclRecursive, Int, Object,
                          call, choose, ite, fn_decl_recursive)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
-    x = IntObject("x")
+    x = Int("x")
     sum_n = fn_decl_recursive(
         "sum_n",
-        IntObject,
+        Int,
         ite(
             x >= 1,
-            x + call("sum_n", IntObject, x - 1),
-            IntObject(0)
+            x + call("sum_n", Int, x - 1),
+            Int(0)
         ),
         x,
     )
     return [sum_n]
 
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     input_arg = reads[0]
-    int_lit = choose(IntObject(0), IntObject(1), IntObject(2))
+    int_lit = choose(Int(0), Int(1), Int(2))
     input_arg_bound = choose(
         input_arg >= int_lit,
         input_arg <= int_lit,
@@ -35,15 +35,15 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
     )
     ite_stmt = ite(
         input_arg_bound,
-        IntObject(0),
-        call("sum_n", IntObject, reads[0] - int_lit)
+        Int(0),
+        call("sum_n", Int, reads[0] - int_lit)
     )
     return ret_val == ite_stmt
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     x, y = writes
     input_arg = reads[0]
-    int_lit = choose(IntObject(0), IntObject(1), IntObject(2))
+    int_lit = choose(Int(0), Int(1), Int(2))
     x_or_y = choose(x, y)
     x_or_y_int_lit_bound = choose(
         x_or_y >= int_lit,
@@ -71,7 +71,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
         input_arg_bound,
         x_or_y_int_lit_bound,
         x_or_y_input_arg_bound,
-        x == call("sum_n", IntObject, y - int_lit)
+        x == call("sum_n", Int, y - int_lit)
     )
 
     not_in_loop_cond = and_objects(
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    input_arg = IntObject("input_arg")
+    input_arg = Int("input_arg")
     driver.add_var_object(input_arg)
     test(input_arg)
 

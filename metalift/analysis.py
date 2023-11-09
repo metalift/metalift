@@ -18,7 +18,7 @@ from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
 
 from metalift.ir import (
-    BoolObject,
+    Bool,
     Expr,
     Lit,
     MLInst,
@@ -31,8 +31,8 @@ from metalift.ir import (
     MLInst_Not,
     MLInst_Or,
     MLInst_Return,
-    NewObject,
-    NewObjectT,
+    Object,
+    ObjectT,
     Synth,
     Var,
 )
@@ -204,7 +204,7 @@ class CodeInfo:
     def __init__(
         self,
         name: str,
-        retT: NewObjectT,
+        retT: ObjectT,
         modifiedVars: List[Union[ValueRef, Expr]],
         readVars: List[Union[ValueRef, Expr]],
     ) -> None:
@@ -247,7 +247,7 @@ def processLoops(
 
     global invNum
     inv = MLInst_Call(
-        "inv%s" % invNum, BoolObject, *[MLInst_Load(h) for h in havocs], *fnArgs
+        "inv%s" % invNum, Bool, *[MLInst_Load(h) for h in havocs], *fnArgs
     )
     invNum = invNum + 1
 
@@ -329,7 +329,7 @@ def processBranches(
                 filter(lambda a: b"sret" not in a.attributes, fnArgs)
             )  # remove the sret args
             ps: Union[MLInst, Expr] = MLInst_Call(
-                fnName, BoolObject, returnArg, *filteredArgs
+                fnName, Bool, returnArg, *filteredArgs
             )
             # TODO(jie): not sure what wrapSummaryCheck is doing
             if wrapSummaryCheck:
@@ -337,7 +337,7 @@ def processBranches(
                 returnArg = transformedArgs[0]
                 filteredArgs = transformedArgs[1:]
             b.instructions.insert(-1, MLInst_Assert(ps))
-            retCodeInfo.append(CodeInfo(fnName, BoolObject, [returnArg], filteredArgs))
+            retCodeInfo.append(CodeInfo(fnName, Bool, [returnArg], filteredArgs))
 
     return retCodeInfo
 

@@ -1,26 +1,42 @@
-from typing import List, Union
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, choose
-from metalift.vc_util import and_objects
-from tests.python.utils.utils import codegen
-from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl, select_darken_blend_body,select_multiply_blend_body,select_linear_burn_body,select_color_burn_body,select_lighten_blend_body,select_screen_blend_body,select_linear_dodge_body,select_color_dodge_body,select_overlay_blend_body
 import time
+from typing import List, Union
+
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object, choose
+from metalift.vc_util import and_objects
+from tests.llvm.gaudi.gaudi_common import (call_nested_selection,
+                                           call_selection, get_select_synth,
+                                           nested_selection,
+                                           select_color_burn_body,
+                                           select_color_dodge_body,
+                                           select_darken_blend_body,
+                                           select_fn_decl, select_fn_obj,
+                                           select_lighten_blend_body,
+                                           select_linear_burn_body,
+                                           select_linear_dodge_body,
+                                           select_multiply_blend_body,
+                                           select_overlay_blend_body,
+                                           select_screen_blend_body, selection)
+from tests.python.utils.utils import codegen
+
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     # return [elemwise_min, nested_elemwise_min]
     return [select_fn_decl, selection, nested_selection]
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     base, active = reads
     nested_list = choose(base, active)
     return ret_val == call_nested_selection(nested_list, nested_list, select_fn_obj)
 
-def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # outer loop grammar
     out, col, row, row_vec = writes
     base, active = reads
-    index_lower_bound = choose(1 - IntObject(0), IntObject(0), IntObject(1))
+    index_lower_bound = choose(1 - Int(0), Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len(), row_vec.len())
     index = choose(row, col)
     index_lower_cond = choose(
@@ -52,12 +68,12 @@ def inv0_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List
         nested_list == call_nested_selection(nested_list, nested_list, select_fn_obj)
     )
 
-def inv1_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # inner loop grammar
     col, row_vec = writes
     row = in_scope[0]
     base, active = reads
-    index_lower_bound = choose(1 - IntObject(0), IntObject(0), IntObject(1))
+    index_lower_bound = choose(1 - Int(0), Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len(), row_vec.len())
     outer_index_lower_cond = choose(
         row >= index_lower_bound,
@@ -120,15 +136,15 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    base = ListObject(ListObject[IntObject], "base")
-    active = ListObject(ListObject[IntObject], "active")
+    base = mlList(mlList[Int], "base")
+    active = mlList(mlList[Int], "active")
     driver.add_var_objects([base, active])
     # Add preconditions
     driver.add_precondition(base.len() > 1)
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    int_x, int_y = IntObject("int_x"), IntObject("int_y")
+    int_x, int_y = Int("int_x"), Int("int_y")
     possible_bodies = [
         select_multiply_blend_body(int_x, int_y),
         select_linear_burn_body(int_x, int_y),

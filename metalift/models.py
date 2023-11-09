@@ -4,11 +4,10 @@ from llvmlite.binding import ValueRef
 
 from metalift.ir import (
     Expr,
-    NewObject,
-    ListObject,
-    IntObject,
-    SetObject,
-    TupleObject,
+    Object,
+    List as mlList,
+    Int,
+    Set as mlSet,
     parse_type_ref_to_obj,
     call,
     make_tuple_type,
@@ -18,24 +17,24 @@ from metalift.vc_util import parseOperand
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
-        ("val", Optional[NewObject]),
-        ("assigns", Optional[List[Tuple[str, NewObject, str]]]),
+        ("val", Optional[Object]),
+        ("assigns", Optional[List[Tuple[str, Object, str]]]),
     ],
 )
 
 
 def set_create(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(SetObject.empty(IntObject), None)
+    return ReturnValue(mlSet.empty(Int), None)
 
 
 def set_add(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -50,8 +49,8 @@ def set_add(
 
 
 def set_remove(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -66,8 +65,8 @@ def set_remove(
 
 
 def set_contains(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -82,18 +81,18 @@ def set_contains(
 
 
 def new_list(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 0
-    return ReturnValue(ListObject.empty(IntObject), None)
+    return ReturnValue(mlList.empty(Int), None)
 
 
 def list_length(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -111,8 +110,8 @@ def list_length(
 
 
 def list_get(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -130,8 +129,8 @@ def list_get(
 
 
 def list_append(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -153,8 +152,8 @@ def list_append(
 
 
 def list_concat(
-    primitive_vars: Dict[str, NewObject],
-    pointer_vars: Dict[str, NewObject],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
@@ -184,7 +183,7 @@ def new_vector(
     assert len(args) == 1
     var_name: str = args[0].name
     assigns: List[Tuple[str, Expr, str]] = [
-        (var_name, ListObject.empty(IntObject), "primitive")  # type: ignore
+        (var_name, mlList.empty(Int), "primitive")  # type: ignore
     ]
     return ReturnValue(None, assigns)  # type: ignore
 
@@ -220,7 +219,7 @@ def new_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(call("newTuple", make_tuple_type(IntObject, IntObject)), None)
+    return ReturnValue(call("newTuple", make_tuple_type(Int, Int)), None)
 
 
 def make_tuple(
@@ -236,8 +235,8 @@ def make_tuple(
         for i in range(len(args))
     ]
 
-    # TODO(jie): handle types other than IntObject
-    contained_type = [IntObject for i in range(len(args))]
+    # TODO(jie): handle types other than Int
+    contained_type = [Int for i in range(len(args))]
     return_type = make_tuple_type(*contained_type)
     return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
 
@@ -251,7 +250,7 @@ def tuple_get(
     return ReturnValue(
         call(
             "tupleGet",
-            IntObject,
+            Int,
             primitive_vars[args[0].name]
             if not args[0].type.is_pointer
             else pointer_vars[args[0].name],

@@ -2,22 +2,22 @@ import sys
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, ite
+from metalift.ir import Bool, FnDecl, Int, Object, ite
 
 
 # ps: y = ite(y<=x, x, 0)
 def ps_grammar(
-    writes: List[NewObject],
-    reads: List[NewObject],
-    in_scope: List[NewObject],
-) -> BoolObject:
+    writes: List[Object],
+    reads: List[Object],
+    in_scope: List[Object],
+) -> Bool:
     ret_val = writes[0]
     x = reads[0]
-    return ret_val == ite(0 <= x, x, IntObject(0))
+    return ret_val == ite(0 <= x, x, Int(0))
 
 
 # inv: ite(y<=x, 0<=x, y=0)
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     x, y = reads
     return ite(
         y <= x,
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target, inv_grammar, ps_grammar)
 
-    x = IntObject("x")
+    x = Int("x")
     driver.add_var_object(x)
     r = test(x)
 

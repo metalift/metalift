@@ -12,19 +12,19 @@ from typing import (  # type: ignore
     Callable,
     Dict,
     Generic,
-    List,
-    Set,
+    List as pyList,
+    Set as pySet,
     TypeVar,
     Union,
     Optional,
-    Tuple,
+    Tuple as pyTuple,
     _GenericAlias,
     cast,
     get_args,
     get_origin,
     cast,
 )
-from metalift.types import Type, FnT, PointerT, TupleT
+from metalift.types import Type, FnT, PointerT
 
 
 class PrintMode(Enum):
@@ -32,7 +32,7 @@ class PrintMode(Enum):
     Rosette = 1
 
 
-NewObjectT = typing.Type["NewObject"]
+ObjectT = typing.Type["Object"]
 T = TypeVar("T")
 
 # Helper functions
@@ -40,9 +40,9 @@ T = TypeVar("T")
 
 def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), ListObject)  # type: ignore
+        return issubclass(get_origin(ty), List)  # type: ignore
     else:
-        return issubclass(ty, ListObject)
+        return issubclass(ty, List)
 
 
 def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -50,41 +50,41 @@ def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     return (
         is_list_type(ty)
         and isinstance(contained_type, _GenericAlias)
-        and issubclass(get_origin(contained_type), ListObject)  # type: ignore
+        and issubclass(get_origin(contained_type), List)  # type: ignore
     )
 
 
-def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
+def get_nested_list_element_type(ty: Union[type, _GenericAlias]) -> ObjectT:
     if not is_nested_list_type(ty):
         raise Exception("expr is not a nested list!")
     contained_type = get_args(ty)[0]
     return get_args(contained_type)[0]  # type: ignore
 
 
-def get_list_element_type(ty: _GenericAlias) -> NewObjectT:
+def get_list_element_type(ty: _GenericAlias) -> ObjectT:
     return get_args(ty)[0]  # type: ignore
 
 
 def is_set_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), SetObject)  # type: ignore
+        return issubclass(get_origin(ty), Set)  # type: ignore
     else:
-        return issubclass(ty, SetObject)
+        return issubclass(ty, Set)
 
 
 def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), TupleObject)  # type: ignore
+        return issubclass(get_origin(ty), Tuple)  # type: ignore
     else:
-        return issubclass(ty, TupleObject)
+        return issubclass(ty, Tuple)
 
 
 def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
-    return ty == IntObject or ty == BoolObject
+    return ty == Int or ty == Bool
 
 
-def is_object_pointer_type(obj: "NewObject") -> bool:
-    return isinstance(obj, ListObject) or isinstance(obj, SetObject)
+def is_object_pointer_type(obj: "Object") -> bool:
+    return isinstance(obj, List) or isinstance(obj, Set)
 
 
 def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -93,20 +93,18 @@ def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def is_fn_decl_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), FnObject)  # type: ignore
+        return issubclass(get_origin(ty), Fn)  # type: ignore
     else:
-        return issubclass(ty, FnObject)
+        return issubclass(ty, Fn)
 
 
-def get_fn_return_type(ty: Union[type, _GenericAlias]) -> NewObjectT:
+def get_fn_return_type(ty: Union[type, _GenericAlias]) -> ObjectT:
     tuple_types = get_args(ty)[0]
     return get_args(tuple_types)[0]  # type: ignore
 
 
 class Expr:
-    def __init__(
-        self, type: NewObjectT, args: Any, metadata: Dict[str, Any] = {}
-    ) -> None:
+    def __init__(self, type: ObjectT, args: Any, metadata: Dict[str, Any] = {}) -> None:
         self.args = args
         self.type = type
         self.metadata = metadata
@@ -146,8 +144,8 @@ class Expr:
             return Lt(*[f(a) for a in self.args])
         elif isinstance(self, Ite):
             return Ite(*[f(a) for a in self.args])
-        elif isinstance(self, Tuple):  # type: ignore
-            return Tuple(*[f(a) for a in self.args])  # type: ignore
+        elif isinstance(self, TupleExpr):
+            return TupleExpr(*[f(a) for a in self.args])
         elif isinstance(self, Let):
             return Let(*[f(a) for a in self.args])
         elif isinstance(self, Lambda):
@@ -174,8 +172,8 @@ class Expr:
 
     @staticmethod
     def findCommonExprs(
-        e: "Expr", cnts: List[Tuple["Expr", int]]
-    ) -> List[Tuple["Expr", int]]:
+        e: "Expr", cnts: pyList[pyTuple["Expr", int]]
+    ) -> pyList[pyTuple["Expr", int]]:
         def expr_index_in_cnts(e: Expr) -> int:
             for i, (existing_expr, _) in enumerate(cnts):
                 if Expr.__eq__(e, existing_expr):
@@ -204,7 +202,7 @@ class Expr:
         if all([not Expr.__eq__(e, expr) for expr in commonExprs]) or skipTop:  # type: ignore
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
-                if isinstance(e, NewObject):
+                if isinstance(e, Object):
                     return Expr.replaceExprs(e.src, commonExprs, mode)
                 if isinstance(e, Var):
                     return Var(typing.cast(str, newArgs[0]), e.type)
@@ -242,8 +240,8 @@ class Expr:
                     return Call(typing.cast(str, newArgs[0]), e.type, *newArgs[1:])
                 elif isinstance(e, Choose):
                     return Choose(*newArgs)
-                elif isinstance(e, Tuple):  # type: ignore
-                    return Tuple(*newArgs)  # type: ignore
+                elif isinstance(e, TupleExpr):
+                    return TupleExpr(*newArgs)
                 elif isinstance(e, TupleGet):
                     return TupleGet(*newArgs)
                 elif isinstance(e, Let):
@@ -281,7 +279,7 @@ class Expr:
         )
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(self, NewObject) and isinstance(other, NewObject):
+        if isinstance(self, Object) and isinstance(other, Object):
             return Expr.__eq__(self.src, other.src)
         elif isinstance(other, Expr):
             if (
@@ -354,7 +352,7 @@ class Expr:
                 return "list-ref-noerr"
             else:
                 raise Exception(
-                    f"list_get not supported on {ListObject[expr.type]} lists yet!"  # type: ignore
+                    f"list_get not supported on {List[expr.type]} lists yet!"  # type: ignore
                 )
         elif fn_name == "list_append":
             if is_list_type(expr.type):
@@ -363,7 +361,7 @@ class Expr:
                 return "list-append"
             else:
                 raise Exception(
-                    f"list_append not supported on {ListObject[expr.type]} lists yet!"  # type: ignore
+                    f"list_append not supported on {List[expr.type]} lists yet!"  # type: ignore
                 )
         elif fn_name == "list_empty":
             if is_nested_list_type(expr.type):
@@ -404,7 +402,7 @@ class Expr:
                 return "list-prepend"
             else:
                 raise Exception(
-                    f"list_prepend not supported on {ListObject[expr.type]} lists yet!"  # type: ignore
+                    f"list_prepend not supported on {List[expr.type]} lists yet!"  # type: ignore
                 )
         elif fn_name == "list_eq":
             return "equal?"
@@ -507,7 +505,7 @@ class Expr:
         self, counts: Dict[str, int], new_vars: typing.Set["Var"]
     ) -> "Expr":
         if isinstance(self, Eq):
-            replacement_var = Var("useless_equality_%d" % len(new_vars), BoolObject)
+            replacement_var = Var("useless_equality_%d" % len(new_vars), Bool)
             if isinstance(self.args[0], Var) and counts[self.args[0].args[0]] == 1:
                 new_vars.add(replacement_var)
                 return replacement_var
@@ -565,69 +563,69 @@ class Expr:
 
 
 ### START OF IR OBJECTS
-ObjectContainedT = Union[NewObjectT, _GenericAlias]
+ObjectContainedT = Union[ObjectT, _GenericAlias]
 
 
-def get_type_str(type: Union[Type, NewObjectT]) -> str:
+def get_type_str(type: Union[Type, ObjectT]) -> str:
     if isinstance(type, Type):
         return str(type)
     else:
         return type.cls_str(get_args(type))  # type: ignore
 
 
-def toRosetteType(t: NewObjectT) -> str:
-    if t == IntObject:
+def toRosetteType(t: ObjectT) -> str:
+    if t == Int:
         return "integer?"
-    elif t == BoolObject:
+    elif t == Bool:
         return "boolean?"
     else:
         raise Exception("NYI: %s" % t)
 
 
 # TODO(jie): fix the type in the function signature
-def parse_type_ref_to_obj(t: TypeRef) -> NewObjectT:
+def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     if is_new_object_type(t):
         return t  # type: ignore
     ty_str = str(t)
     if ty_str in {"i32", "i32*"}:
-        return IntObject
+        return Int
     elif ty_str in {"i1", "i8", "i8*"}:
-        return BoolObject
+        return Bool
     elif ty_str in {"%struct.list*", "%struct.list**"}:
         # TODO(colin): add generic type support
         # TODO(jie): retire struct.list and use STL?
-        return ListObject[IntObject]
+        return List[Int]
     elif re.match('%"class.std::__1::vector(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::vector"*, llvmlite will turn it into %"class.std::__1::vector.0"*
-        return ListObject[IntObject]
+        return List[Int]
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
-        return SetObject[IntObject]
+        return Set[Int]
     elif ty_str in {"%struct.tup*"}:
-        return TupleObject[typing.Tuple[IntObject, IntObject]]
+        return Tuple[typing.Tuple[Int, Int]]
     elif ty_str.startswith("%struct.tup."):
-        contained_types = [IntObject for i in range(int(t[-2]) + 1)]
-        return TupleObject[typing.Tuple[contained_types]]  # type: ignore
+        contained_types = [Int for i in range(int(t[-2]) + 1)]
+        return Tuple[typing.Tuple[contained_types]]  # type: ignore
     else:
         raise Exception(f"no type defined for {ty_str}")
 
 
-def parse_c_or_cpp_type_to_obj(ty_str: str) -> NewObjectT:
+def parse_c_or_cpp_type_to_obj(ty_str: str) -> ObjectT:
     if ty_str == "int":
-        return IntObject
+        return Int
     if ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
-        return ListObject[IntObject]
+        return List[Int]
     if (
         ty_str
         == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
     ):
-        return ListObject[ListObject[IntObject]]
+        return List[List[Int]]
     raise Exception(f"no type defined for {ty_str}")
 
 
 def create_object(
-    object_type: NewObjectT, value: Optional[Union[bool, str, Expr]] = None
-) -> "NewObject":
+    object_type: ObjectT, value: Optional[Union[bool, str, Expr]] = None
+) -> "Object":
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
         contained_types = get_args(object_type)
@@ -636,21 +634,21 @@ def create_object(
         return object_type(cast(Expr, value))
 
 
-def get_object_exprs(*objects: Union["NewObject", Expr]) -> List[Expr]:
+def get_object_exprs(*objects: Union["Object", Expr]) -> pyList[Expr]:
     return [get_object_expr(obj) for obj in objects]
 
 
-def get_object_expr(object: Union["NewObject", Expr]) -> Expr:
-    return object.src if isinstance(object, NewObject) else object
+def get_object_expr(object: Union["Object", Expr]) -> Expr:
+    return object.src if isinstance(object, Object) else object
 
 
 def is_new_object_type(ty: ObjectContainedT) -> bool:
     if isinstance(ty, _GenericAlias):
-        return issubclass(get_origin(ty), NewObject)  # type: ignore
-    return isclass(ty) and issubclass(ty, NewObject)
+        return issubclass(get_origin(ty), Object)  # type: ignore
+    return isclass(ty) and issubclass(ty, Object)
 
 
-def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
+def choose(*objects: Union["Object", Expr]) -> "Object":
     if len(objects) == 0:
         raise Exception("Must have at least 1 object to choose from!")
     # Assume that all objects passed in will have the same type, even if not, the call to Choose
@@ -661,10 +659,10 @@ def choose(*objects: Union["NewObject", Expr]) -> "NewObject":
 
 
 def ite(
-    cond: "BoolObject",
-    then_object: "NewObject",
-    else_object: "NewObject",
-) -> "NewObject":
+    cond: "Bool",
+    then_object: "Object",
+    else_object: "Object",
+) -> "Object":
     ite_type = then_object.type
     ite_expr = Ite(
         get_object_expr(cond),
@@ -674,18 +672,18 @@ def ite(
     return create_object(ite_type, ite_expr)
 
 
-def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
-    return BoolObject(Implies(get_object_expr(e1), get_object_expr(e2)))
+def implies(e1: "Bool", e2: "Bool") -> "Bool":
+    return Bool(Implies(get_object_expr(e1), get_object_expr(e2)))
 
 
 def call(
-    fn_name: str, return_type: NewObjectT, *object_args: Union["NewObject", Expr]
-) -> "NewObject":
+    fn_name: str, return_type: ObjectT, *object_args: Union["Object", Expr]
+) -> "Object":
     call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
 
 
-def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":  # type: ignore
+def call_value(fn_decl: "Fn", *object_args: "Object") -> "Object":  # type: ignore
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
     ret_type = fn_decl.return_type
     return create_object(ret_type, call_value_expr)
@@ -693,9 +691,9 @@ def call_value(fn_decl: "FnObject", *object_args: "NewObject") -> "NewObject":  
 
 def fn_decl(
     fn_name: str,
-    return_type: NewObjectT,
-    body: Union["NewObject", Expr],
-    *object_args: Union["NewObject", Expr],
+    return_type: ObjectT,
+    body: Union["Object", Expr],
+    *object_args: Union["Object", Expr],
 ) -> "FnDecl":
     fn_decl_expr = FnDecl(
         fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
@@ -705,9 +703,9 @@ def fn_decl(
 
 def fn_decl_recursive(
     fn_name: str,
-    return_type: NewObjectT,
-    body: Union["NewObject", Expr],
-    *object_args: Union["NewObject", Expr],
+    return_type: ObjectT,
+    body: Union["Object", Expr],
+    *object_args: Union["Object", Expr],
 ) -> "FnDeclRecursive":
 
     fn_decl_recursive_expr = FnDeclRecursive(
@@ -716,25 +714,25 @@ def fn_decl_recursive(
     return fn_decl_recursive_expr
 
 
-def make_tuple(*objects: Union["NewObject", Expr]) -> "TupleObject":  # type: ignore
+def make_tuple(*objects: Union["Object", Expr]) -> "Tuple":  # type: ignore
     obj_types = tuple([obj.type for obj in objects])
-    return TupleObject(obj_types, Tuple(*get_object_exprs(*objects)))  # type: ignore
+    return Tuple(obj_types, TupleExpr(*get_object_exprs(*objects)))  # type: ignore
 
 
-def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["TupleObject"]:  # type: ignore
-    return TupleObject[typing.Tuple[containedT]]  # type: ignore
+def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tuple"]:  # type: ignore
+    return Tuple[typing.Tuple[containedT]]  # type: ignore
 
 
-def make_fn_type(*containedT: NewObjectT) -> typing.Type["FnObject"]:  # type: ignore
-    return FnObject[typing.Tuple[containedT]]  # type: ignore
+def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
+    return Fn[typing.Tuple[containedT]]  # type: ignore
 
 
-class NewObject:
+class Object:
     src: Expr
 
     def __init__(self, src: Expr) -> None:
         self.src = src
-        self.__class__.__hash__ = NewObject.__hash__  # type: ignore
+        self.__class__.__hash__ = Object.__hash__  # type: ignore
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -756,210 +754,210 @@ class NewObject:
         return hash(self.src)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, NewObject):
+        if not isinstance(other, Object):
             return False
         return self.src == other.src
 
     @staticmethod
-    def default_value() -> "NewObject":
+    def default_value() -> "Object":
         raise NotImplementedError()
 
     @property
-    def type(self) -> NewObjectT:
+    def type(self) -> ObjectT:
         raise NotImplementedError()
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         raise NotImplementedError()
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         raise NotImplementedError()
 
 
-class BoolObject(NewObject):
+class Bool(Object):
     def __init__(self, value: Optional[Union[bool, str, Expr]] = None) -> None:
         src: Expr
         if value is None:
-            src = Var("v", BoolObject)
+            src = Var("v", Bool)
         elif isinstance(value, bool):
             src = BoolLit(value)
         elif isinstance(value, Expr):
-            if value.type != BoolObject:
-                raise TypeError(f"Cannot create BoolObject from {value.type}")
+            if value.type != Bool:
+                raise TypeError(f"Cannot create Bool from {value.type}")
             src = value
         elif isinstance(value, str):
-            src = Var(value, BoolObject)
+            src = Var(value, Bool)
         else:
             raise TypeError(f"Cannot create Bool from {value}")
 
-        NewObject.__init__(self, src)
+        Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["BoolObject"]:
-        return BoolObject
+    def type(self) -> typing.Type["Bool"]:
+        return Bool
 
     @staticmethod
-    def default_value() -> "BoolObject":
-        return BoolObject(False)
+    def default_value() -> "Bool":
+        return Bool(False)
 
     # python doesn't have hooks for and, or, not
-    def And(self, *args: Union["BoolObject", bool]) -> "BoolObject":
+    def And(self, *args: Union["Bool", bool]) -> "Bool":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(And(*get_object_exprs(self, *args)))  # type: ignore
+        return Bool(And(*get_object_exprs(self, *args)))  # type: ignore
 
-    def Or(self, *args: Union["BoolObject", bool]) -> "BoolObject":
+    def Or(self, *args: Union["Bool", bool]) -> "Bool":
         if len(args) == 0:
             raise Exception(f"Arg list must be non-empty: {args}")
-        return BoolObject(Or(*get_object_exprs(self, *args)))  # type: ignore
+        return Bool(Or(*get_object_exprs(self, *args)))  # type: ignore
 
-    def Not(self) -> "BoolObject":
-        return BoolObject(Not(self.src))
+    def Not(self) -> "Bool":
+        return Bool(Not(self.src))
 
-    def __eq__(self, other: Union["BoolObject", bool]) -> "BoolObject":  # type: ignore
+    def __eq__(self, other: Union["Bool", bool]) -> "Bool":  # type: ignore
         if isinstance(other, bool):
-            other = BoolObject(other)
-        return BoolObject(Eq(self.src, other.src))
+            other = Bool(other)
+        return Bool(Eq(self.src, other.src))
 
-    def __ne__(self, other: Union["BoolObject", bool]) -> "BoolObject":  # type: ignore
+    def __ne__(self, other: Union["Bool", bool]) -> "Bool":  # type: ignore
         if isinstance(other, bool):
-            other = BoolObject(other)
-        return BoolObject(Not(Eq(self.src, other.src)))
+            other = Bool(other)
+        return Bool(Not(Eq(self.src, other.src)))
 
     def __repr__(self) -> str:
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         return "Bool"
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         return "Bool"
 
 
-class IntObject(NewObject):
+class Int(Object):
     def __init__(self, value: Optional[Union[int, str, Expr]] = None) -> None:
         src: Expr
         if value is None:
-            src = Var("v", IntObject)
+            src = Var("v", Int)
         elif isinstance(value, int):
             src = IntLit(value)
         elif isinstance(value, Expr):
-            if value.type != IntObject:
-                raise TypeError(f"Cannot create IntObject from {value.type}")
+            if value.type != Int:
+                raise TypeError(f"Cannot create Int from {value.type}")
             src = value
         elif isinstance(value, str):
-            src = Var(value, IntObject)
+            src = Var(value, Int)
         else:
-            raise TypeError(f"Cannot create IntObject from {value}")
+            raise TypeError(f"Cannot create Int from {value}")
 
-        NewObject.__init__(self, src)
+        Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["IntObject"]:
-        return IntObject
+    def type(self) -> typing.Type["Int"]:
+        return Int
 
     @staticmethod
-    def default_value() -> "IntObject":
-        return IntObject(0)
+    def default_value() -> "Int":
+        return Int(0)
 
     def binary_op(
-        self, other: Union["IntObject", int], op: Callable[[Expr, Expr], Expr]
-    ) -> "IntObject":
+        self, other: Union["Int", int], op: Callable[[Expr, Expr], Expr]
+    ) -> "Int":
         if isinstance(other, int):
-            other = IntObject(other)
-        if isinstance(other, IntObject):
-            return IntObject(op(self.src, other.src))
-        raise TypeError(f"Cannot call {op} on IntObject {self} and {other}")
+            other = Int(other)
+        if isinstance(other, Int):
+            return Int(op(self.src, other.src))
+        raise TypeError(f"Cannot call {op} on Int {self} and {other}")
 
     # arithmetic operators
-    def __add__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __add__(self, other: Union["Int", int]) -> "Int":
         return self.binary_op(other, Add)
 
-    def __sub__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __sub__(self, other: Union["Int", int]) -> "Int":
         return self.binary_op(other, Sub)
 
-    def __mul__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __mul__(self, other: Union["Int", int]) -> "Int":
         return self.binary_op(other, Mul)
 
-    def __floordiv__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __floordiv__(self, other: Union["Int", int]) -> "Int":
         return self.binary_op(other, Div)
 
-    def __radd__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __radd__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return IntObject(other) + self
+            return Int(other) + self
         else:
             return other + self
 
-    def __rsub__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __rsub__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return IntObject(other) - self
+            return Int(other) - self
         else:
             return other - self
 
-    def __rmul__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __rmul__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return IntObject(other) * self
+            return Int(other) * self
         else:
             return other * self
 
-    def __rfloordiv__(self, other: Union["IntObject", int]) -> "IntObject":
+    def __rfloordiv__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
-            return IntObject(other) // self
+            return Int(other) // self
         else:
             return other // self
 
     # logical comparison operators
-    def __eq__(self, other: Union["IntObject", int]) -> BoolObject:  # type: ignore
+    def __eq__(self, other: Union["Int", int]) -> Bool:  # type: ignore
         if isinstance(other, int):
-            other = IntObject(other)
-        return BoolObject(Eq(self.src, other.src))
+            other = Int(other)
+        return Bool(Eq(self.src, other.src))
 
-    def __ne__(self, other: Union["IntObject", int]) -> BoolObject:  # type: ignore
+    def __ne__(self, other: Union["Int", int]) -> Bool:  # type: ignore
         if isinstance(other, int):
-            other = IntObject(other)
-        return BoolObject(Not(Eq(self.src, other.src)))
+            other = Int(other)
+        return Bool(Not(Eq(self.src, other.src)))
 
-    def __ge__(self, other: Union["IntObject", int]) -> BoolObject:
+    def __ge__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = IntObject(other)
-        return BoolObject(Ge(self.src, other.src))
+            other = Int(other)
+        return Bool(Ge(self.src, other.src))
 
-    def __gt__(self, other: Union["IntObject", int]) -> BoolObject:
+    def __gt__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = IntObject(other)
-        return BoolObject(Gt(self.src, other.src))
+            other = Int(other)
+        return Bool(Gt(self.src, other.src))
 
-    def __lt__(self, other: Union["IntObject", int]) -> BoolObject:
+    def __lt__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = IntObject(other)
-        return BoolObject(Lt(self.src, other.src))
+            other = Int(other)
+        return Bool(Lt(self.src, other.src))
 
-    def __le__(self, other: Union["IntObject", int]) -> BoolObject:
+    def __le__(self, other: Union["Int", int]) -> Bool:
         if isinstance(other, int):
-            other = IntObject(other)
-        return BoolObject(Le(self.src, other.src))
+            other = Int(other)
+        return Bool(Le(self.src, other.src))
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         return "Int"
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         return "Int"
 
 
-class ListObject(Generic[T], NewObject):
+class List(Generic[T], Object):
     containedT: ObjectContainedT
 
     def __init__(
         self,
-        containedT: ObjectContainedT = IntObject,
+        containedT: ObjectContainedT = Int,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = ListObject[containedT]  # type: ignore
+        full_type = List[containedT]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -968,41 +966,41 @@ class ListObject(Generic[T], NewObject):
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create ListObject from {value}")
+            raise TypeError(f"Cannot create List from {value}")
         self.containedT = containedT
-        NewObject.__init__(self, src)
+        Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["ListObject"]:  # type: ignore
-        return ListObject[self.containedT]  # type: ignore
+    def type(self) -> typing.Type["List"]:  # type: ignore
+        return List[self.containedT]  # type: ignore
 
     @staticmethod
-    def empty(containedT: ObjectContainedT) -> "ListObject":  # type: ignore
-        return ListObject(containedT, Call("list_empty", ListObject[containedT]))  # type: ignore
+    def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
+        return List(containedT, Call("list_empty", List[containedT]))  # type: ignore
 
     @staticmethod
-    def default_value() -> "ListObject[IntObject]":
-        return ListObject.empty(IntObject)
+    def default_value() -> "List[Int]":
+        return List.empty(Int)
 
     def __len__(self) -> int:
         raise NotImplementedError("len must return an int, call len() instead")
 
-    def len(self) -> IntObject:
-        return IntObject(Call("list_length", IntObject, self.src))
+    def len(self) -> Int:
+        return Int(Call("list_length", Int, self.src))
 
-    def __getitem__(self, index: Union[IntObject, int, slice]) -> NewObject:
+    def __getitem__(self, index: Union[Int, int, slice]) -> Object:
         if isinstance(index, int):
-            index = IntObject(index)
+            index = Int(index)
         if isinstance(index, slice):
             (start, stop, step) = (index.start, index.stop, index.step)
             if stop is None and step is None:
                 if isinstance(start, int):
-                    start = IntObject(start)
-                return call("list_tail", ListObject[self.containedT], self, start)  # type: ignore
+                    start = Int(start)
+                return call("list_tail", List[self.containedT], self, start)  # type: ignore
             elif start is None and step is None:
                 if isinstance(stop, int):
-                    stop = IntObject(stop)
-                return call("list_take", ListObject[self.containedT], self, stop)  # type: ignore
+                    stop = Int(stop)
+                return call("list_take", List[self.containedT], self, stop)  # type: ignore
             else:
                 raise NotImplementedError(
                     f"Slices with both start and stop indices specified are not implemented: {index}"
@@ -1010,9 +1008,9 @@ class ListObject(Generic[T], NewObject):
 
         return call("list_get", self.containedT, self, index)
 
-    def __setitem__(self, index: Union[IntObject, int], value: NewObject) -> None:
+    def __setitem__(self, index: Union[Int, int], value: Object) -> None:
         if isinstance(index, int):
-            index = IntObject(index)
+            index = Int(index)
         if value.type != self.containedT:
             raise TypeError(
                 f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
@@ -1020,7 +1018,7 @@ class ListObject(Generic[T], NewObject):
         self.src = Call("list_set", self.type, self.src, index.src, value.src)
 
     # in place append
-    def append(self, value: NewObject) -> "ListObject":  # type: ignore
+    def append(self, value: Object) -> "List":  # type: ignore
         if value.type != self.containedT:
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
@@ -1030,7 +1028,7 @@ class ListObject(Generic[T], NewObject):
         return self
 
     # in place prepend
-    def prepend(self, value: NewObject) -> "ListObject":  # type: ignore
+    def prepend(self, value: Object) -> "List":  # type: ignore
         if value.type != self.containedT:
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
@@ -1040,26 +1038,26 @@ class ListObject(Generic[T], NewObject):
         return self
 
     # list concat that returns a new list
-    def __add__(self, other: "ListObject") -> "ListObject":  # type: ignore
+    def __add__(self, other: "List") -> "List":  # type: ignore
         if self.type != other.type:
             raise TypeError(
                 f"can't add lists of different types: {self.type} and {other.type}"
             )
-        return ListObject(
+        return List(
             self.containedT, Call("list_concat", self.type, self.src, other.src)
         )
 
-    def __eq__(self, other: "ListObject") -> BoolObject:  # type: ignore
+    def __eq__(self, other: "List") -> Bool:  # type: ignore
         if other is None or self.type != other.type:
-            return BoolObject(False)
+            return Bool(False)
         else:
-            return cast(BoolObject, call("list_eq", BoolObject, self, other))
+            return cast(Bool, call("list_eq", Bool, self, other))
 
     def __repr__(self) -> str:
         return f"{self.src}"
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
             return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # type: ignore
@@ -1067,7 +1065,7 @@ class ListObject(Generic[T], NewObject):
             return f"(MLList {contained_type.toSMTType()})"
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
             return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"  # type: ignore
@@ -1075,14 +1073,14 @@ class ListObject(Generic[T], NewObject):
             return f"List {contained_type.cls_str()}"
 
 
-class SetObject(Generic[T], NewObject):
+class Set(Generic[T], Object):
     def __init__(
         self,
-        containedT: Union[type, _GenericAlias] = IntObject,
+        containedT: Union[type, _GenericAlias] = Int,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
         src: Expr
-        full_type = SetObject[containedT]  # type: ignore
+        full_type = Set[containedT]  # type: ignore
         if value is None:
             src = Var("v", full_type)
         elif isinstance(value, Expr):
@@ -1090,71 +1088,71 @@ class SetObject(Generic[T], NewObject):
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create SetObject from {value}")
+            raise TypeError(f"Cannot create Set from {value}")
         self.containedT = containedT
-        NewObject.__init__(self, src)
+        Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["SetObject"]:  # type: ignore
-        return SetObject[self.containedT]  # type: ignore
+    def type(self) -> typing.Type["Set"]:  # type: ignore
+        return Set[self.containedT]  # type: ignore
 
     @staticmethod
-    def default_value() -> "SetObject[IntObject]":
-        return SetObject(IntObject)
+    def default_value() -> "Set[Int]":
+        return Set(Int)
 
-    def add(self, value: NewObject) -> "SetObject":  # type: ignore
+    def add(self, value: Object) -> "Set":  # type: ignore
         if value.type != self.containedT:
             raise TypeError(
                 f"Trying to add element of type: {value.type} to set containing: {self.containedT}"
             )
         return call("set-insert", self.type, value, self)  # type: ignore
 
-    def remove(self, item: NewObject) -> "SetObject":  # type: ignore
+    def remove(self, item: Object) -> "Set":  # type: ignore
         if type(item) != self.containedT:
             raise TypeError(
                 f"Trying to remove element of type: {type(item)} from set containing: {self.containedT}"
             )
-        singleton_s = SetObject.singleton(item)
+        singleton_s = Set.singleton(item)
         return call("set-minus", self.type, self, singleton_s)  # type: ignore
 
     @staticmethod
-    def singleton(item: NewObject) -> "SetObject":  # type: ignore
-        return call("set-singleton", SetObject[type(item)], item)  # type: ignore
+    def singleton(item: Object) -> "Set":  # type: ignore
+        return call("set-singleton", Set[type(item)], item)  # type: ignore
 
-    def union(self, s: "SetObject") -> "SetObject":  # type: ignore
+    def union(self, s: "Set") -> "Set":  # type: ignore
         if self.type != s.type:
             raise TypeError(
                 f"Can't union two sets with type {self.type} and type {s.type}"
             )
         expr = Call("set-union", self.type, self.src, s.src)
-        return SetObject(self.containedT, expr)
+        return Set(self.containedT, expr)
 
-    def difference(self, s: "SetObject") -> "SetObject":  # type: ignore
+    def difference(self, s: "Set") -> "Set":  # type: ignore
         if self.type != s.type:
             raise TypeError(
                 f"Can't take the difference of two sets with type {self.type} and type {s.type}"
             )
         return call("set-minus", self.type, self, s)  # type: ignore
 
-    def __contains__(self, value: NewObject) -> BoolObject:
+    def __contains__(self, value: Object) -> Bool:
         if value.type != self.containedT:
-            return BoolObject(False)
-        return cast(BoolObject, call("set-pointer_varsber", BoolObject, self, value))
+            return Bool(False)
+        return cast(Bool, call("set-pointer_varsber", Bool, self, value))
 
-    def __eq__(self, s: "SetObject") -> BoolObject:  # type: ignore
-        return BoolObject(Eq(self.src, s.src))
-        # return cast(BoolObject, call("set-eq", BoolObject, self, s))
-
-    @staticmethod
-    def empty(containedT: ObjectContainedT) -> "SetObject":  # type: ignore
-        return SetObject(containedT, Call("set-create", SetObject[containedT]))  # type: ignore
+    def __eq__(self, s: "Set") -> Bool:  # type: ignore
+        return Bool(Eq(self.src, s.src))
+        # return cast(Bool, call("set-eq", Bool, self, s))
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
-        return SetObject.cls_str(type_args)
+    def empty(containedT: ObjectContainedT) -> "Set":  # type: ignore
+        return Set(containedT, Call("set-create", Set[containedT]))  # type: ignore
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
+        return Set.cls_str(type_args)
+
+    @staticmethod
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
             return f"(Set {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # type: ignore # this would call List.toSMTType(Int) for instance
@@ -1165,13 +1163,13 @@ class SetObject(Generic[T], NewObject):
 TupleContainedT = TypeVar("TupleContainedT")
 
 
-class TupleObject(Generic[TupleContainedT], NewObject):
+class Tuple(Generic[TupleContainedT], Object):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = TupleObject[typing.Tuple[containedT]]  # type: ignore
+        full_type = Tuple[typing.Tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1180,18 +1178,18 @@ class TupleObject(Generic[TupleContainedT], NewObject):
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create TupleObject from {value}")
+            raise TypeError(f"Cannot create Tuple from {value}")
         self.containedT = containedT
-        NewObject.__init__(self, src)
+        Object.__init__(self, src)
 
-    def __getitem__(self, index: Union[IntObject, int]) -> NewObject:
-        if isinstance(index, int):  # promote to IntObject
-            index = IntObject(index)
+    def __getitem__(self, index: Union[Int, int]) -> Object:
+        if isinstance(index, int):  # promote to Int
+            index = Int(index)
 
-        if isinstance(index, IntObject):
+        if isinstance(index, Int):
             index_lit = index.src.val()  # type: ignore
             item_type = self.containedT[index_lit]
-            if issubclass(item_type, NewObject):
+            if issubclass(item_type, Object):
                 # TODO(jie) create a function to wrap objects around expession
                 return call("tupleGet", item_type, self, index)
             else:
@@ -1206,11 +1204,11 @@ class TupleObject(Generic[TupleContainedT], NewObject):
         return len(self.containedT)
 
     @staticmethod
-    def default_value() -> "TupleObject[typing.Tuple[IntObject, IntObject]]":
-        return TupleObject((IntObject, IntObject), None)  # type: ignore
+    def default_value() -> "Tuple[typing.Tuple[Int, Int]]":
+        return Tuple((Int, Int), None)  # type: ignore
 
     @staticmethod
-    def toSMTType(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         containedT = get_args(type_args[0])
         tuple_length = len(containedT)
         contained_str_list = []
@@ -1224,8 +1222,8 @@ class TupleObject(Generic[TupleContainedT], NewObject):
 
     # TODO(jie): handle contained type
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
-        contained_type_strs: List[str] = []
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
+        contained_type_strs: pyList[str] = []
         for contained_type in get_args(type_args[0]):
             if isinstance(contained_type, _GenericAlias):
                 contained_type_str = get_origin(contained_type).toSMTType(  # type: ignore
@@ -1240,13 +1238,13 @@ class TupleObject(Generic[TupleContainedT], NewObject):
 FnContainedT = TypeVar("FnContainedT")
 
 
-class FnObject(Generic[FnContainedT], NewObject):
+class Fn(Generic[FnContainedT], Object):
     def __init__(
         self,
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union["FnDeclRecursive", "FnDecl", str]] = None,
     ) -> None:
-        full_type = FnObject[typing.Tuple[containedT]]  # type: ignore
+        full_type = Fn[typing.Tuple[containedT]]  # type: ignore
         self.return_type = containedT[0]
         self.argument_types = containedT[1:]
         src: Expr
@@ -1257,8 +1255,8 @@ class FnObject(Generic[FnContainedT], NewObject):
         elif isinstance(value, str):
             src = Var(value, full_type)
         else:
-            raise TypeError(f"Cannot create FnObject from {value}")
-        NewObject.__init__(self, src)
+            raise TypeError(f"Cannot create Fn from {value}")
+        Object.__init__(self, src)
 
     @property
     def name(self) -> str:
@@ -1269,8 +1267,8 @@ class FnObject(Generic[FnContainedT], NewObject):
         raise Exception("Unsupported source type for function objects!")
 
     @staticmethod
-    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:  # type: ignore
-        contained_type_strs: List[str] = []
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
+        contained_type_strs: pyList[str] = []
         for contained_type in get_args(type_args[0]):
             if isinstance(contained_type, _GenericAlias):
                 contained_type_str = get_origin(contained_type).toSMTType(  # type: ignore
@@ -1286,7 +1284,7 @@ class FnObject(Generic[FnContainedT], NewObject):
 
 
 class Var(Expr):
-    def __init__(self, name: str, ty: NewObjectT) -> None:
+    def __init__(self, name: str, ty: ObjectT) -> None:
         Expr.__init__(self, ty, [name])
 
     def name(self) -> str:
@@ -1311,7 +1309,7 @@ class Var(Expr):
 class NonTerm(Var):
     currentNum = 0  # current non terminal number
 
-    def __init__(self, t: NewObjectT, isStart: bool = False, name: str = "") -> None:
+    def __init__(self, t: ObjectT, isStart: bool = False, name: str = "") -> None:
         if name == "":
             name = f"nonTerm{NonTerm.currentNum}"
             NonTerm.currentNum = NonTerm.currentNum + 1
@@ -1335,7 +1333,7 @@ class Pointer(Expr):
 
 
 class Lit(Expr):
-    def __init__(self, val: Union[bool, int, str], ty: NewObjectT) -> None:
+    def __init__(self, val: Union[bool, int, str], ty: ObjectT) -> None:
         Expr.__init__(self, ty, [val])
 
     def val(self) -> Union[bool, int, str]:
@@ -1344,13 +1342,13 @@ class Lit(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        if self.type == BoolObject:
+        if self.type == Bool:
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
 
     def toSMT(self) -> str:
-        if self.type == BoolObject:
+        if self.type == Bool:
             return "true" if self.args[0] else "false"
         else:
             return str(self.args[0])
@@ -1376,17 +1374,17 @@ class ObjectExpr(Expr):
 
 
 def IntLit(val: int) -> Expr:
-    return Lit(val, IntObject)
+    return Lit(val, Int)
 
 
 def EnumIntLit(val: int) -> Expr:
-    return Lit(val, IntObject)
+    return Lit(val, Int)
     # TODO(colin): bring EnumBack
     # return Lit(val, EnumInt())
 
 
 def BoolLit(val: bool) -> Expr:
-    return Lit(val, BoolObject)
+    return Lit(val, Bool)
 
 
 class Add(Expr):
@@ -1398,7 +1396,7 @@ class Add(Expr):
         for arg in args:
             if arg.type != args[0].type:
                 raise Exception(f"Args types not equal: {arg.type} and {args[0].type}")
-        Expr.__init__(self, IntObject, args)
+        Expr.__init__(self, Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1423,7 +1421,7 @@ class Sub(Expr):
                 raise Exception(
                     f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
                 )
-        Expr.__init__(self, IntObject, args)
+        Expr.__init__(self, Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1448,7 +1446,7 @@ class Mul(Expr):
                 raise Exception(
                     f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
                 )
-        Expr.__init__(self, IntObject, args)
+        Expr.__init__(self, Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1474,7 +1472,7 @@ class Div(Expr):
                 raise Exception(
                     f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
                 )
-        Expr.__init__(self, IntObject, args)
+        Expr.__init__(self, Int, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1497,7 +1495,7 @@ class Eq(Expr):
         #     raise Exception(
         #         f"Cannot compare values of different types: {e1}: {e1.type.erase()} and {e2}: {e2.type.erase()}"
         #     )
-        Expr.__init__(self, BoolObject, [e1, e2])
+        Expr.__init__(self, Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1529,7 +1527,7 @@ class Lt(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, BoolObject, [e1, e2])
+        Expr.__init__(self, Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1557,7 +1555,7 @@ class Le(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, BoolObject, [e1, e2])
+        Expr.__init__(self, Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1585,7 +1583,7 @@ class Gt(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, BoolObject, [e1, e2])
+        Expr.__init__(self, Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1613,7 +1611,7 @@ class Ge(Expr):
             raise Exception(
                 f"Cannot compare values of different types: {e1}: {get_type_str(e1.type)} and {e2}: {get_type_str(e2.type)}"
             )
-        Expr.__init__(self, BoolObject, [e1, e2])
+        Expr.__init__(self, Bool, [e1, e2])
 
     def e1(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -1640,10 +1638,10 @@ class And(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == BoolObject, args)):
+        if not all(map(lambda e: e.type == Bool, args)):
             # TODO(jie) how to check this type?
             raise Exception(f"Cannot apply AND to values of type {args}")
-        Expr.__init__(self, BoolObject, args)
+        Expr.__init__(self, Bool, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1664,11 +1662,11 @@ class Or(Expr):
     def __init__(self, *args: Expr) -> None:
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
-        if not all(map(lambda e: e.type == BoolObject, args)):
+        if not all(map(lambda e: e.type == Bool, args)):
             raise Exception(
                 f"Cannot apply OR to values of type {map(lambda e: e.type, args)}"
             )
-        Expr.__init__(self, BoolObject, args)
+        Expr.__init__(self, Bool, args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1687,9 +1685,9 @@ class Not(Expr):
     SMTName = "not"
 
     def __init__(self, e: Expr) -> None:
-        if e.type != BoolObject:
+        if e.type != Bool:
             raise Exception(f"Cannot apply NOT to value of type {e.type}")
-        Expr.__init__(self, BoolObject, [e])
+        Expr.__init__(self, Bool, [e])
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1707,11 +1705,11 @@ class Implies(Expr):
     RosetteName = SMTName = "=>"
 
     def __init__(self, e1: Union[Expr, "MLInst"], e2: Union[Expr, "MLInst"]) -> None:
-        if e1.type != BoolObject:  # type: ignore
+        if e1.type != Bool:  # type: ignore
             raise Exception(f"Cannot apply IMPLIES to value of type {e1.type}")  # type: ignore
-        if e2.type != BoolObject:  # type: ignore
+        if e2.type != Bool:  # type: ignore
             raise Exception(f"Cannot apply IMPLIES to value of type {e2.type}")  # type: ignore
-        Expr.__init__(self, BoolObject, [e1, e2])
+        Expr.__init__(self, Bool, [e1, e2])
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
@@ -1730,7 +1728,7 @@ class Ite(Expr):
     SMTName = "ite"
 
     def __init__(self, c: Expr, e1: Expr, e2: Expr) -> None:
-        if c.type != BoolObject:
+        if c.type != Bool:
             raise Exception(
                 f"ITE condition must be Boolean and not value of type {c.type}"
             )
@@ -1799,7 +1797,7 @@ class Let(Expr):
 
 
 class Call(Expr):
-    def __init__(self, name: str, returnT: NewObjectT, *arguments: Expr) -> None:
+    def __init__(self, name: str, returnT: ObjectT, *arguments: Expr) -> None:
         Expr.__init__(self, returnT, [name, *arguments])
 
     def name(self) -> str:
@@ -1887,7 +1885,7 @@ class Call(Expr):
                 retVal.append("tuple%d" % (len(self.args[idx + 1 :])))
             elif (str(a)) == "tupleGet":
                 index = self.args[idx + 2].args[0]
-                if isinstance(self.args[idx + 1], Tuple):  # type: ignore
+                if isinstance(self.args[idx + 1], TupleExpr):
                     retVal.append(
                         "tuple%d_get%d"
                         % (
@@ -1906,11 +1904,11 @@ class Call(Expr):
                             index,
                         )
                     )
-                elif isinstance(self.args[idx + 1], TupleObject):
+                elif isinstance(self.args[idx + 1], Tuple):
                     retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
                 elif (
                     isinstance(self.args[idx + 1], Var)
-                    and get_origin(self.args[idx + 1].type) == TupleObject
+                    and get_origin(self.args[idx + 1].type) == Tuple
                 ):
                     length = len(get_args(get_args(self.args[idx + 1].type)[0]))
                     retVal.append(f"tuple{length}_get{index}")
@@ -2052,7 +2050,7 @@ class Assert(Expr):
     RosetteName = SMTName = "assert"
 
     def __init__(self, e: Expr) -> None:
-        Expr.__init__(self, BoolObject, [e])
+        Expr.__init__(self, Bool, [e])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -2073,7 +2071,7 @@ class Constraint(Expr):
     SMTName = "constraint"
 
     def __init__(self, e: Expr) -> None:
-        Expr.__init__(self, BoolObject, [e])
+        Expr.__init__(self, Bool, [e])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -2091,8 +2089,7 @@ class Constraint(Expr):
 
 
 ## tuple functions
-# TODO: decide if this Tuple still needed
-class Tuple(Expr):  # type: ignore
+class TupleExpr(Expr):
     def __init__(self, *args: Expr) -> None:
         tuple_type = make_tuple_type(*[a.type for a in args])
         Expr.__init__(self, tuple_type, args)
@@ -2114,7 +2111,7 @@ class Tuple(Expr):  # type: ignore
         return "(tuple%d %s)" % (len(self.args), args)
 
     def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Tuple(self)  # type: ignore
+        return v.visit_TupleExpr(self)
 
 
 class TupleGet(Expr):
@@ -2147,7 +2144,7 @@ class TupleGet(Expr):
 
 class Axiom(Expr):
     def __init__(self, e: Expr, *vars: Expr) -> None:
-        Expr.__init__(self, BoolObject, [e, *vars])
+        Expr.__init__(self, Bool, [e, *vars])
 
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -2244,7 +2241,7 @@ class Synth(Expr):
         ]
 
         return_type = self.type.toSMTType(get_args(self.type))  # type: ignore
-        common_exprs_types: List[str] = []
+        common_exprs_types: pyList[str] = []
         for expr in commonExprs:
             expr_type = parse_type_ref_to_obj(expr.type)
             expr_smt_type = expr_type.toSMTType(get_args(expr_type))  # type: ignore
@@ -2348,7 +2345,7 @@ class FnDeclRecursive(Expr):
     def __init__(
         self,
         name: str,
-        returnT: NewObjectT,
+        returnT: ObjectT,
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
@@ -2360,7 +2357,7 @@ class FnDeclRecursive(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> NewObjectT:
+    def returnT(self) -> ObjectT:
         return self.return_type
 
     def body(self) -> Union[Expr, str]:
@@ -2432,13 +2429,13 @@ class FnDeclRecursive(Expr):
 
 
 class FnDefine(Expr):
-    def __init__(self, name: str, returnT: NewObjectT, *args: Expr) -> None:
+    def __init__(self, name: str, returnT: ObjectT, *args: Expr) -> None:
         Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, *args])  # type: ignore
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> NewObjectT:
+    def returnT(self) -> ObjectT:
         return self.type.args[0]  # type: ignore
 
     def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
@@ -2502,7 +2499,7 @@ class FnDecl(Expr):
     def __init__(
         self,
         name: str,
-        returnT: NewObjectT,
+        returnT: ObjectT,
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
@@ -2514,7 +2511,7 @@ class FnDecl(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> NewObjectT:
+    def returnT(self) -> ObjectT:
         return self.return_type
 
     def body(self) -> Union[Expr, str]:
@@ -2589,7 +2586,7 @@ class TargetCall(Call):
     def __init__(
         self,
         name: str,
-        retT: NewObjectT,
+        retT: ObjectT,
         codegen: Optional[Callable[[Expr], str]],
         *args: Expr,
     ) -> None:
@@ -2612,8 +2609,8 @@ class Target(FnDecl):
     def __init__(
         self,
         name: str,
-        argT: typing.List[NewObjectT],
-        retT: NewObjectT,
+        argT: typing.List[ObjectT],
+        retT: ObjectT,
         semantics: Callable[[Expr], Expr],
         codegen: Callable[[Expr], str],
     ) -> None:
@@ -2687,9 +2684,7 @@ def MLInst_Assume(val: Union[MLInst, Expr, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Assume, val)
 
 
-def MLInst_Call(
-    name: str, retType: NewObjectT, *args: Union[MLInst, ValueRef]
-) -> MLInst:
+def MLInst_Call(name: str, retType: ObjectT, *args: Union[MLInst, ValueRef]) -> MLInst:
     return MLInst(MLInst.Kind.Call, name, retType, *args)
 
 
@@ -2813,7 +2808,7 @@ class Visitor(Generic[T]):
         pass
 
     @abstractmethod
-    def visit_Tuple(self, o: Tuple) -> T:  # type: ignore
+    def visit_TupleExpr(self, o: TupleExpr) -> T:
         pass
 
     @abstractmethod
@@ -2929,8 +2924,8 @@ class ExtendedVisitor(Visitor[None]):
     def visit_Constraint(self, o: Constraint) -> None:
         self.generic_visit(o)
 
-    def visit_Tuple(self, o: Tuple) -> None:  # type: ignore
-        self.generic_visit(o)  # type: ignore
+    def visit_TupleExpr(self, o: TupleExpr) -> None:
+        self.generic_visit(o)
 
     def visit_TupleGet(self, o: TupleGet) -> None:
         self.generic_visit(o)
@@ -2964,7 +2959,7 @@ class ExtendedVisitor(Visitor[None]):
 
 
 class CountVarsVisitor(ExtendedVisitor):
-    vars: Set[Var]
+    vars: pySet[Var]
 
     def __init__(self) -> None:
         self.vars = set()

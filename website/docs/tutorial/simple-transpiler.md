@@ -23,15 +23,15 @@ Our first step is to define the semantics of the target language. Using Metalift
 ```python
 from typing import List
 from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
-from metalift.ir import call, Lit, IntLit, Add, Call, Eq, Expr, Ite, Lit, Sub, Tuple
-from metalift.ir import IntObject, BoolObject, NewObject
+from metalift.ir import call, Lit, IntLit, Add, Call, Eq, Expr, Ite, Lit, Sub, TupleExpr
+from metalift.ir import Int, Bool, Object
 
 def targetLang():
-  x = IntObject("x") # variables to be used in semantic function definition
-  y = IntObject("y")
-  z = IntObject("z")
+  x = Int("x") # variables to be used in semantic function definition
+  y = Int("y")
+  z = Int("z")
   fma = fn_decl("fma",             # function name
-               IntObject,             # return type
+               Int,             # return type
                x + y * z, # body of the function
                x, y, z)           # function inputs
   return [fma]
@@ -55,7 +55,7 @@ inputVars = choose(*ci.readVars, IntLit(0))
 # var_or_add := inputVar + inputVar
 var_or_add = inputVars + inputVars
 # var_or_fma := one of the vars read | fma(var_or_add, var_or_add, var_or_add)
-var_or_fma = choose(*ci.readVars, call("fma", IntObject, var_or_add, var_or_add, var_or_add))
+var_or_fma = choose(*ci.readVars, call("fma", Int, var_or_add, var_or_add, var_or_add))
 ```
 
 A few things of note here:
@@ -67,11 +67,11 @@ After that, we tell Metalift that all values should be computed using the gramma
 
 <!--phmdoctest-share-names-->
 ```python
-def grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
-    var = choose(*reads, IntObject(0))
+    var = choose(*reads, Int(0))
     added = var + var
-    fma_call_object = call("fma", IntObject, added, added, added)
+    fma_call_object = call("fma", Int, added, added, added)
     var_or_fma = choose(*reads, fma_call_object)
     # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma. and the return value must be equal to it
     return ret_val == var_or_fma + var_or_fma
@@ -125,10 +125,10 @@ test = driver.analyze(
 )
 
 
-base = IntObject("base")
-arg1 = IntObject("arg1")
-base2 = IntObject("base2")
-arg2 = IntObject("arg2")
+base = Int("base")
+arg1 = Int("arg1")
+base2 = Int("base2")
+arg2 = Int("arg2")
 driver.add_var_objects([base, arg1, base2, arg2])
 
 test(base, arg1, base2, arg2)
@@ -162,7 +162,7 @@ def codeGen(expr: Expr) -> str:
             return f"{expr.name()}({', '.join(a for a in eval_args)})"
         if isinstance(expr, Lit):
             return f"{expr.val()}"
-        if isinstance(expr, Tuple):
+        if isinstance(expr, TupleExpr):
             return f"({', '.join(eval(a) for a in expr.args)})"
         if isinstance(expr, Ite):
             return f"{eval(expr.e1())} if {eval(expr.c())} else {eval(expr.e2())}"

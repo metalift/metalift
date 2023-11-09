@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import BoolObject, FnDecl, FnDeclRecursive, IntObject, ListObject, NewObject, choose
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, List as mlList, Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (call_scalar_mul, call_vector_add)
 from tests.python.utils.utils import codegen
@@ -11,7 +11,7 @@ from tests.llvm.gaudi.gaudi_common import vector_add, elemwise_mul, scalar_mul, 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vector_add, elemwise_mul, scalar_mul, broadcast_add, reduce_sum, reduce_mul]
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
@@ -24,7 +24,7 @@ def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[N
         )
     )
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
@@ -54,9 +54,9 @@ if __name__ == "__main__":
         ps_grammar
     )
 
-    base_var = ListObject(IntObject, "base")
-    active_var = ListObject(IntObject, "active")
-    opacity_var = IntObject("opacity")
+    base_var = mlList(Int, "base")
+    active_var = mlList(Int, "active")
+    opacity_var = Int("opacity")
     driver.add_var_objects([base_var, active_var, opacity_var])
     driver.add_precondition(base_var.len() == active_var.len())
     driver.add_precondition(base_var.len() > 0)
@@ -82,9 +82,9 @@ if __name__ == "__main__":
         defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar
     )
-    base_var = ListObject(IntObject, "base")
-    active_var = ListObject(IntObject, "active")
-    opacity_var = IntObject("opacity")
+    base_var = mlList(Int, "base")
+    active_var = mlList(Int, "active")
+    opacity_var = Int("opacity")
     driver.add_var_objects([base_var, active_var, opacity_var])
     driver.add_precondition(base_var.len() == active_var.len())
     driver.add_precondition(base_var.len() > 0)

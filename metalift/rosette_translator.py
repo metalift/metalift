@@ -4,13 +4,13 @@ from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
 from metalift.ir import (
-    BoolObject,
+    Bool,
     Expr,
     FnDeclRecursive,
     FnDecl,
-    IntObject,
+    Int,
     Var,
-    ListObject,
+    List as mlList,
     get_nested_list_element_type,
     is_list_type,
     is_nested_list_type,
@@ -30,17 +30,17 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    if v.type == IntObject:
+    if v.type == Int:
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif v.type == BoolObject:
+    elif v.type == Bool:
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
     elif is_list_type(v.type) or is_set_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
+        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
 
         is_nested_list = is_nested_list_type(v.type)
         if is_nested_list:
@@ -95,7 +95,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
 
         len_name = v.args[0] + "-len"
-        genVar(Var(len_name, IntObject), decls, vars_all, listBound)
+        genVar(Var(len_name, Int), decls, vars_all, listBound)
 
         all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
 
