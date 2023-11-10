@@ -1308,6 +1308,8 @@ class VCVisitor:
             obj = op0 <= op1  # type: ignore
         elif cond == "slt" or cond == "ult":
             obj = op0 < op1  # type: ignore
+        elif cond == "sge":
+            obj = op0 >= op1 # type: ignore
         else:
             raise Exception("NYI %s" % cond)
 
@@ -1484,9 +1486,10 @@ class Driver:
         target = []
         for fn in self.fns.values():
             target += fn.target_lang_fn()
-        # TODO(jie) investigate why set(self.var_tracker.all()) makes things wrong
+        # TODO(jie): this is a hack
         synthesized: List[FnDeclRecursive] = run_synthesis(
-            basename="test",
+            # basename="test",
+            basename=list(self.fns.keys())[0],
             targetLang=target,
             vars=set(self.var_tracker.all()),
             invAndPs=synths + self.fns_synths,

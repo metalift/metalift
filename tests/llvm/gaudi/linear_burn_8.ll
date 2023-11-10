@@ -105,8 +105,8 @@ for.body6:                                        ; preds = %for.cond4
   %conv13 = sext i32 %i9 to i64
   %call14 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call12, i64 %conv13) #11
   %i10 = load i32, i32* %call14, align 4
-  %mul = mul nsw i32 %i7, %i10
-  %sub = sub nsw i32 %mul, 255
+  %add = add nsw i32 %i7, %i10
+  %sub = sub nsw i32 %add, 255
   store i32 %sub, i32* %pixel, align 4
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector.0"* %row_vec, i32* nonnull align 4 dereferenceable(4) %pixel)
   br label %invoke.cont

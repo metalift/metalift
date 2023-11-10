@@ -36,7 +36,7 @@
 
 (define-grammar (select_two_args_gram int_x int_y)
  [rv (choose (v0))]
-[v0 (choose (quotient (* int_x int_y ) 255 ) (- (+ int_x int_y ) 255 ) (if (equal? int_y 0 ) 255 (- 255 (quotient (- 255 int_x ) int_y ) ) ) (if (< int_x int_y ) int_y int_x ) (- (+ int_x int_y ) (quotient (* int_x int_y ) 255 ) ) (+ int_x int_y ) (if (equal? int_y 255 ) 255 (quotient int_x (- 255 int_y ) ) ) (if (>= int_x 128 ) (- (- (+ (* 2 int_x ) int_x ) (quotient (* (* 2 int_x ) int_x ) 255 ) ) 255 ) (quotient (* (* 2 int_x ) int_x ) 255 ) ) (if (> int_x int_y ) int_y int_x ))]
+[v0 (choose (quotient (* int_x int_y ) 255 ) (- (+ int_x int_y ) 255 ) (if (equal? int_y 0 ) 255 (- 255 (- 255 (quotient int_x int_y ) ) ) ) (if (< int_x int_y ) int_y int_x ) (- (+ int_x int_y ) (quotient (* int_x int_y ) 255 ) ) (+ int_x int_y ) (if (equal? int_y 255 ) 255 (quotient int_x (- 255 int_y ) ) ) (if (>= int_x 128 ) (- (- (+ (* 2 int_x ) int_x ) (quotient (* (* 2 int_x ) int_x ) 255 ) ) 255 ) (quotient (* (* 2 int_x ) int_x ) 255 ) ) (if (> int_x int_y ) int_y int_x ))]
 ) 
 
 (define-grammar (selection_two_args_gram x y select_two_args)

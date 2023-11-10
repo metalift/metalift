@@ -75,7 +75,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
     z, i, j, _, res = writes
     alpha, a, x, beta, y = reads
-    lower_bound = choose(IntObject(0), IntObject(1))
+    lower_bound = choose(Int(0), Int(1))
     i_lower_cond = choose(
         i >= lower_bound,
         i <= lower_bound,
@@ -103,7 +103,7 @@ def inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Objec
     }
     i = in_scope_mapping["i"]
     z = in_scope_mapping["agg.result"]
-    lower_bound = choose(IntObject(0), IntObject(1))
+    lower_bound = choose(Int(0), Int(1))
     j_lower_cond = choose(
         j >= lower_bound,
         j <= lower_bound,
