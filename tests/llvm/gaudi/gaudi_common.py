@@ -2,7 +2,7 @@ import typing
 from typing import List, Union
 from metalift.frontend.llvm import InvGrammar
 
-from metalift.ir import (Fn, Int, List as mlList, Object, Synth,
+from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth,
                          call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
                          ite)
 from metalift.vc_util import and_objects, or_objects
@@ -147,9 +147,9 @@ def select_linear_burn_body(int_x: Int, int_y: Int) -> Int:
 
 def select_color_burn_body(int_x: Int, int_y: Int) -> Int:
     return ite(
-        int_x == 0,
+        int_y == 0,
         Int(255),
-        255 - (255 - int_x // int_y)
+        255 - (255 - int_x) // int_y
     )
 
 def select_lighten_blend_body(int_x: Int, int_y: Int) -> Int:
@@ -249,13 +249,13 @@ all_possible_select_two_args_bodies = [
 all_possible_selects_two_args_synth = get_select_two_args_synth(all_possible_select_two_args_bodies, [int_x, int_y])
 selection_two_args_synth = get_selection_two_args_synth(x, y, select_two_args_fn_obj)
 
-def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> BoolObject:
+def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     base, active = reads
     base_or_active = choose(base, active)
     return ret_val == call_nested_selection_two_args(base_or_active, base_or_active, select_two_args_fn_obj)
 
-def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> BoolObject:
+def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # outer loop grammar
     out, col, pixel, row, row_vec = writes
     base, active = reads
@@ -289,7 +289,7 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
         out == call_nested_selection_two_args(nested_list, nested_list, select_two_args_fn_obj)
     )
 
-def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> BoolObject:
+def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # inner loop grammar
     col, pixel, row_vec = writes
     out, row = in_scope
