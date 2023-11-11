@@ -1,31 +1,41 @@
 import typing
-from typing import List, Union
+from typing import Callable, List, Union
 from metalift.frontend.llvm import InvGrammar
 
 from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth,
-                         call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
+                         call, call_value, choose, fn_decl, fn_decl_recursive, get_list_element_type, get_object_exprs, is_list_type, is_nested_list_type, is_primitive_type,
                          ite)
 from metalift.vc_util import and_objects, or_objects
 
-VECTORADD = "vector_add"
-ELEMWISEMUL = "elemwise_mul"
-SCALARMUL = "scalar_mul"
-BROADCASTADD = "broadcast_add"
+# Reduce functions
 REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
+
+# Elemwise functions
+VEC_ELEMWISE_ADD = "vec_elemwise_add"
+NESTED_LIST_ELEMWISE_ADD = "nested_list_elemwise_add"
+VEC_ELEMWISE_MUL = "vec_elemwise_mul"
+NESTED_LIST_ELEMWISE_MUL = "nested_list_elemwise_add"
+
+# Scalar functions
+VEC_SCALAR_ADD = "vec_scalar_add"
+NESTED_LIST_SCALAR_ADD = "nested_list_scalar_add"
+VEC_SCALAR_MUL = "vec_scalar_mul"
+NESTED_LIST_SCALAR_MUL = "nested_list_scalar_mul"
+
+# Selection functions
 SELECT_TWO_ARGS = "select_two_args"
 SELECTION_TWO_ARGS = "selection_two_args"
 NESTED_SELECTION_TWO_ARGS = "nested_selection_two_args"
 
+def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
 
-def call_vector_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
-    return call(VECTORADD, mlList[Int], left, right)
+def call_vec_scalar_mul(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(VEC_SCALAR_MUL, mlList[Int], scalar, vec)
 
-def call_scalar_mul(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
-    return call(SCALARMUL, mlList[Int], left, right)
-
-def call_broadcast_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
-    return call(BROADCASTADD, mlList[Int], left, right)
+def call_vec_scalar_add(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(VEC_SCALAR_ADD, mlList[Int], scalar, vec)
 
 def call_reduce_sum(lst) -> Int:
     return call(REDUCESUM, Int, lst)
@@ -33,8 +43,8 @@ def call_reduce_sum(lst) -> Int:
 def call_reduce_mul(lst) -> Int:
     return call(REDUCEMUL, Int, lst)
 
-def call_elemwise_mul(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
-    return call(ELEMWISEMUL, mlList[Int], left, right)
+def call_vec_elemwise_mul(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    return call(VEC_ELEMWISE_MUL, mlList[Int], left, right)
 
 def call_selection(
     left: mlList[Int],
@@ -51,12 +61,12 @@ def call_nested_selection(
     return call(NESTEDSELECTION, mlList[mlList[Int]], left, right, select_fn)
 
 an_arr2_to_arr = lambda left, right: choose(
-    call_elemwise_mul(left, right),
-    call_vector_add(left, right),
+    call_vec_elemwise_mul(left, right),
+    call_vec_elemwise_add(left, right),
 )
 an_int_and_arr_to_arr = lambda num, arr: choose(
-    call_scalar_mul(num, arr),
-    call_broadcast_add(num, arr),
+    call_vec_scalar_mul(num, arr),
+    call_vec_scalar_add(num, arr),
 )
 an_arr_to_int = lambda arr: choose(
     call_reduce_sum(arr),
@@ -71,34 +81,6 @@ nested_x = mlList(mlList[Int], "nested_x")
 nested_y = mlList(mlList[Int], "nested_y")
 int_x = Int("x")
 int_y = Int("y")
-
-def vector_add_body(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
-    vec_size = left.len()
-    cur = left[0] + right[0]
-    left_rest = left[1:]
-    right_rest = right[1:]
-    recursed = call_vector_add(left_rest, right_rest)
-    general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, mlList.empty(Int), general_answer)
-vector_add = fn_decl_recursive(VECTORADD, mlList[Int], vector_add_body(x, y), x, y)
-
-def scalar_mul_body(scalar: Int, arr: mlList[Int]) -> mlList[Int]:
-    vec_size = arr.len()
-    cur = scalar * arr[0]
-    arr_rest = arr[1:]
-    recursed = call_scalar_mul(scalar, arr_rest)
-    general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, mlList.empty(Int), general_answer)
-scalar_mul = fn_decl_recursive(SCALARMUL, mlList[Int], scalar_mul_body(a, x), a, x)
-
-def broadcast_add_body(scalar: Int, arr: mlList[Int]) -> mlList[Int]:
-    vec_size = arr.len()
-    cur = scalar + arr[0]
-    arr_rest = arr[1:]
-    recursed = call_broadcast_add(scalar, arr_rest)
-    general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, mlList.empty(Int), general_answer)
-broadcast_add = fn_decl_recursive(BROADCASTADD, mlList[Int], broadcast_add_body(a, x), a, x)
 
 def reduce_sum_body(lst: List[Int]) -> Int:
     vec_size = lst.len()
@@ -117,16 +99,6 @@ def reduce_mul_body(lst: mlList[Int]) -> Int:
     general_answer = cur * recursed
     return ite(vec_size < 1, Int(1), general_answer)
 reduce_mul = fn_decl_recursive(REDUCEMUL, Int, reduce_mul_body(x), x)
-
-def elemwise_mul_body(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
-    vec_size = left.len()
-    cur = left[0] * right[0]
-    left_rest = left[1:]
-    right_rest = right[1:]
-    recursed = call_elemwise_mul(left_rest, right_rest)
-    general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, mlList.empty(Int), general_answer)
-elemwise_mul = fn_decl_recursive(ELEMWISEMUL, mlList[Int], elemwise_mul_body(x, y), x, y)
 
 # Helper functions for selections
 def mul8x8_div255_body(int_x: IntObject, int_y: IntObject) -> IntObject:
@@ -179,7 +151,7 @@ select_two_args_fn_obj = Fn((Int, Int, Int), SELECT_TWO_ARGS)
 select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, Int, None, int_x, int_y)
 selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y, select_two_args_fn_obj)
 
-def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
+def get_select_two_args_general_synth(args: List[Object]) -> Synth:
     arg_exprs = get_object_exprs(*args)
     arg_expr = choose(*arg_exprs)
     constant = choose(Int(0), Int(1), Int(255))
@@ -206,7 +178,14 @@ def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -
         *get_object_exprs(*args)
     )
 
-def selection_body(
+def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
+    return Synth(
+        SELECT_TWO_ARGS,
+        choose(*select_bodies).src,
+        *get_object_exprs(*args)
+    )
+
+def selection_two_args_body(
     left: mlList[Int],
     right: mlList[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
@@ -367,3 +346,165 @@ def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn, [])
 selection_two_args_inv1_grammar = InvGrammar(selection_two_args_inv1_grammar_fn, ["row", "agg.result"])
+
+def elemwise_body(
+    left: Union[mlList[Int], mlList[mlList[Int]]],
+    right: Union[mlList[Int], mlList[mlList[Int]]],
+    compute_fn: Callable[[Int, Int], Int],
+    vec_fn_name: str,
+    nested_list_fn_name: str
+) -> Union[mlList[Int], mlList[mlList[Int]]]:
+    if is_nested_list_type(left.type) and is_nested_list_type(right.type):
+        cur = call(vec_fn_name, mlList[Int], left[0], right[0])
+        recursed = call(nested_list_fn_name, mlList[mlList[Int]], left[1:], right[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(left.len() < 1, left.len() != right.len()),
+            mlList.empty(mlList[Int]),
+            general_answer
+        )
+    elif is_list_type(left.type) and is_primitive_type(get_list_element_type(left.type)) and is_list_type(right.type) and is_primitive_type(get_list_element_type(right.type)):
+        cur = compute_fn(left[0], right[0])
+        recursed = call(vec_fn_name, mlList[Int], left[1:], right[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(left.len() < 1, left.len() != right.len()),
+            mlList.empty(Int),
+            general_answer
+        )
+    raise Exception("Unsupported types for elemwise operations!")
+
+def scalar_body(
+    scalar: Int,
+    vec_or_nested_list: Union[mlList[Int], mlList[mlList[Int]]],
+    compute_fn: Callable[[Int, Int], Int],
+    vec_fn_name: str,
+    nested_list_fn_name: str
+) -> Union[mlList[Int], mlList[mlList[Int]]]:
+    if is_nested_list_type(vec_or_nested_list.type):
+        cur = call(vec_fn_name, mlList[Int], scalar, vec_or_nested_list[0])
+        recursed = call(nested_list_fn_name, mlList[mlList[Int]], scalar, vec_or_nested_list[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_nested_list.len() < 1),
+            mlList.empty(mlList[Int]),
+            general_answer
+        )
+    elif is_list_type(vec_or_nested_list.type) and is_primitive_type(get_list_element_type(vec_or_nested_list.type)):
+        cur = compute_fn(scalar, vec_or_nested_list[0])
+        recursed = call(vec_fn_name, mlList[Int], scalar, vec_or_nested_list[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_nested_list.len() < 1),
+            mlList.empty(Int),
+            general_answer
+        )
+    raise Exception("Unsupported types for scalar operations!")
+
+vec_elemwise_add = fn_decl_recursive(
+    VEC_ELEMWISE_ADD,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_ADD,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_ADD
+    ),
+    x,
+    y
+)
+nested_list_elemwise_add = fn_decl_recursive(
+    NESTED_LIST_ELEMWISE_ADD,
+    mlList[mlList[Int]],
+    elemwise_body(
+        left=nested_x,
+        right=nested_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_ADD,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_ADD
+    ),
+    nested_x,
+    nested_y
+)
+
+vec_elemwise_mul = fn_decl_recursive(
+    VEC_ELEMWISE_MUL,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x * int_y,
+        vec_fn_name=VEC_ELEMWISE_MUL,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_MUL
+    ),
+    x,
+    y
+)
+nested_list_elemwise_mul = fn_decl_recursive(
+    NESTED_LIST_ELEMWISE_MUL,
+    mlList[mlList[Int]],
+    elemwise_body(
+        left=nested_x,
+        right=nested_y,
+        compute_fn=lambda int_x, int_y: int_x * int_y,
+        vec_fn_name=VEC_ELEMWISE_MUL,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_MUL
+    ),
+    nested_x,
+    nested_y
+)
+
+vec_scalar_add = fn_decl_recursive(
+    VEC_SCALAR_ADD,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=x,
+        compute_fn=lambda scalar, int_x: scalar + int_x,
+        vec_fn_name=VEC_SCALAR_ADD,
+        nested_list_fn_name=NESTED_LIST_SCALAR_ADD
+    ),
+    a,
+    x
+)
+nest_list_scalar_add = fn_decl_recursive(
+    NESTED_LIST_SCALAR_ADD,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=nested_x,
+        compute_fn=lambda scalar, int_x: scalar + int_x,
+        vec_fn_name=VEC_SCALAR_ADD,
+        nested_list_fn_name=NESTED_LIST_SCALAR_ADD
+    ),
+    a,
+    nested_x
+)
+
+vec_scalar_mul = fn_decl_recursive(
+    VEC_SCALAR_MUL,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=x,
+        compute_fn=lambda scalar, int_x: scalar * int_x,
+        vec_fn_name=VEC_SCALAR_MUL,
+        nested_list_fn_name=NESTED_LIST_SCALAR_MUL
+    ),
+    a,
+    x
+)
+nest_list_scalar_mul = fn_decl_recursive(
+    NESTED_LIST_SCALAR_MUL,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=nested_x,
+        compute_fn=lambda scalar, int_x: scalar * int_x,
+        vec_fn_name=VEC_SCALAR_MUL,
+        nested_list_fn_name=NESTED_LIST_SCALAR_MUL
+    ),
+    a,
+    nested_x
+)

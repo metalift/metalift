@@ -2,25 +2,29 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, List as mlList, Object, choose
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (call_scalar_mul, call_vector_add)
+from tests.llvm.gaudi.gaudi_common import (call_vec_elemwise_add,
+                                           call_vec_scalar_mul,
+                                           vec_elemwise_add, vec_scalar_mul)
 from tests.python.utils.utils import codegen
-from tests.llvm.gaudi.gaudi_common import vector_add, elemwise_mul, scalar_mul, broadcast_add, reduce_sum, reduce_mul
+
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vector_add, elemwise_mul, scalar_mul, broadcast_add, reduce_sum, reduce_mul]
+    return [vec_elemwise_add, vec_scalar_mul]
 
 def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     base = reads[0]
     active = reads[1]
     opacity = reads[2]
     ret_val = writes[0]
-    return ret_val == call_vector_add(
-        call_scalar_mul(opacity, active),
+    return ret_val == call_vec_elemwise_add(
+        call_vec_scalar_mul(opacity, active),
         choose(
-            call_scalar_mul(1 - opacity, base),
-            call_scalar_mul(255 - opacity, base)
+            call_vec_scalar_mul(1 - opacity, base),
+            call_vec_scalar_mul(255 - opacity, base)
         )
     )
 
@@ -34,11 +38,11 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
     return and_objects(
         i >= 0,
         i <= active.len(),
-        agg_result == call_vector_add(
-            call_scalar_mul(opacity, active[:i]),
+        agg_result == call_vec_elemwise_add(
+            call_vec_scalar_mul(opacity, active[:i]),
             choose(
-                call_scalar_mul(1 - opacity, base[:i]),
-                call_scalar_mul(255 - opacity, base[:i])
+                call_vec_scalar_mul(1 - opacity, base[:i]),
+                call_vec_scalar_mul(255 - opacity, base[:i])
             )
         )
     )

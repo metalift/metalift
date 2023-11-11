@@ -2,19 +2,20 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Bool, FnDecl, FnDeclRecursive, Int,
-                         List as mlList, Object, choose)
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (an_arr2_to_arr, an_arr_to_int,
-                                           an_int_and_arr_to_arr,
-                                           broadcast_add, elemwise_mul,
-                                           reduce_mul, reduce_sum, scalar_mul,
-                                           vector_add)
+                                           an_int_and_arr_to_arr, reduce_mul,
+                                           reduce_sum, vec_elemwise_add,
+                                           vec_elemwise_mul, vec_scalar_add,
+                                           vec_scalar_mul)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vector_add, elemwise_mul, scalar_mul, broadcast_add, reduce_sum, reduce_mul]
+    return [vec_elemwise_mul,vec_elemwise_add, reduce_sum, reduce_mul, vec_scalar_add, vec_scalar_mul]
 
 def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     input = reads[0]
