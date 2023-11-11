@@ -1,7 +1,14 @@
-from typing import List, Union
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, List as mlList, Object
-from metalift.vc_util import and_objects
+import time
+
+from metalift.frontend.llvm import Driver
+from metalift.ir import Int
+from metalift.ir import List as mlList
+from tests.llvm.gaudi.gaudi_common import (select_two_args_general_synth,
+                                           selection_two_args_inv0_grammar,
+                                           selection_two_args_inv1_grammar,
+                                           selection_two_args_ps_grammar_fn,
+                                           selection_two_args_synth,
+                                           selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, select_min_body, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl
 
@@ -60,7 +67,7 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    driver.fns_synths = [all_possible_selects_two_args_synth, selection_two_args_synth]
+    driver.fns_synths = [select_two_args_general_synth, selection_two_args_synth]
     darken_blend_8(base, active)
 
     start_time = time.time()
