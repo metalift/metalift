@@ -188,10 +188,10 @@ select_two_args_fn_obj = Fn((Int, Int, Int), SELECT_TWO_ARGS)
 select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, Int, None, int_x, int_y)
 selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y, select_two_args_fn_obj)
 
-def get_select_two_args_general_synth(args: List[Object]) -> Synth:
+def get_select_two_args_general_synth(*args: Object) -> Synth:
     arg_exprs = get_object_exprs(*args)
     arg_expr = choose(*arg_exprs)
-    constant = choose(Int(0), Int(1), Int(255))
+    constant = choose(Int(0), Int(255))
     int_exp = choose(arg_expr, constant)
     for _ in range(1):
         int_exp = choose(
@@ -282,6 +282,7 @@ all_possible_select_two_args_bodies = [
     select_darken_blend_body(int_x, int_y)
 ]
 all_possible_selects_two_args_synth = get_select_two_args_synth(all_possible_select_two_args_bodies, [int_x, int_y])
+select_two_args_general_synth = get_select_two_args_general_synth(int_x, int_y)
 selection_two_args_synth = get_selection_two_args_synth(x, y, select_two_args_fn_obj)
 
 def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
