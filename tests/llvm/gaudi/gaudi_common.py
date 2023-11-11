@@ -295,7 +295,7 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     # outer loop grammar
     out, col, pixel, row, row_vec = writes
     base, active = reads
-    index_lower_bound = choose(Int(0) - 1, Int(0), Int(1))
+    index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     index_lower_cond = choose(
         row >= index_lower_bound,
@@ -330,7 +330,7 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     col, pixel, row_vec = writes
     out, row = in_scope
     base, active = reads
-    index_lower_bound = choose(Int(0) - 1, Int(0), Int(1))
+    index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     outer_index_lower_cond = choose(
         row >= index_lower_bound,
