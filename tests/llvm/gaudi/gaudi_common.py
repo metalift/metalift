@@ -180,11 +180,30 @@ select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, Int, None, int_x, int_y)
 selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y, select_two_args_fn_obj)
 
 def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
+    arg_exprs = get_object_exprs(*args)
+    arg_expr = choose(*arg_exprs)
+    constant = choose(Int(0), Int(1), Int(255))
+    int_exp = choose(arg_expr, constant)
+    for _ in range(1):
+        int_exp = choose(
+            int_exp,
+            int_exp + int_exp,
+            int_exp - int_exp,
+            int_exp * int_exp,
+            int_exp // int_exp
+        )
+    cond = choose(
+        int_exp >= int_exp,
+        int_exp > int_exp,
+        int_exp == int_exp,
+        int_exp < int_exp,
+        int_exp <= int_exp
+    )
     return Synth(
-        SELECT,
-        choose(*select_bodies).src,
-        int_x.src,
-        int_y.src
+        SELECT_TWO_ARGS,
+        # choose(*select_bodies).src,
+        ite(cond, int_exp, int_exp).src,
+        *get_object_exprs(*args)
     )
 
 def selection_body(
@@ -250,7 +269,7 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     # outer loop grammar
     out, col, pixel, row, row_vec = writes
     base, active = reads
-    index_lower_bound = choose(1 - IntObject(0), IntObject(0), IntObject(1))
+    index_lower_bound = choose(Int(0) - 1, Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     index_lower_cond = choose(
         row >= index_lower_bound,
@@ -285,7 +304,7 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     col, pixel, row_vec = writes
     out, row = in_scope
     base, active = reads
-    index_lower_bound = choose(1 - IntObject(0), IntObject(0), IntObject(1))
+    index_lower_bound = choose(Int(0) - 1, Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     outer_index_lower_cond = choose(
         row >= index_lower_bound,
