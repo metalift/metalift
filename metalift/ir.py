@@ -37,6 +37,14 @@ T = TypeVar("T")
 
 # Helper functions
 
+def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), Matrix)  # type: ignore
+    else:
+        return issubclass(ty, Matrix)
+    
+def get_matrix_element_type(ty: _GenericAlias) -> ObjectT:
+    return get_args(ty)[0]  # type: ignore
 
 def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
@@ -81,10 +89,6 @@ def is_tuple_type(ty: Union[type, _GenericAlias]) -> bool:
 
 def is_primitive_type(ty: Union[type, _GenericAlias]) -> bool:
     return ty == Int or ty == Bool
-
-
-def is_object_pointer_type(obj: "Object") -> bool:
-    return isinstance(obj, List) or isinstance(obj, Set)
 
 
 def is_pointer_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -1055,6 +1059,129 @@ class List(Generic[T], Object):
         )
 
     def __eq__(self, other: "List") -> Bool:  # type: ignore
+        if other is None or self.type != other.type:
+            return Bool(False)
+        else:
+            return cast(Bool, call("list_eq", Bool, self, other))
+
+    def __repr__(self) -> str:
+        return f"{self.src}"
+
+    @staticmethod
+    def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"(MLList {get_origin(contained_type).toSMTType(get_args(contained_type))})"  # type: ignore
+        else:
+            return f"(MLList {contained_type.toSMTType()})"
+
+    @staticmethod
+    def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"  # type: ignore
+        else:
+            return f"List {contained_type.cls_str()}"
+        
+class Matrix(Generic[T], Object):
+    containedT: ObjectContainedT
+
+    def __init__(
+        self,
+        containedT: ObjectContainedT = Int,
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
+        full_type = List[List[containedT]]  # type: ignore
+        src: Expr
+        if value is None:  # a symbolic variable
+            src = Var("v", full_type)
+        elif isinstance(value, Expr):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, full_type)
+        else:
+            raise TypeError(f"Cannot create List from {value}")
+        self.containedT = List[containedT]
+        Object.__init__(self, src)
+
+    @property
+    def type(self) -> typing.Type["List"]:  # type: ignore
+        return List[self.containedT]  # type: ignore
+
+    @staticmethod
+    def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
+        return List(List[containedT], Call("list_empty", List[List[containedT]]))  # type: ignore
+
+    @staticmethod
+    def default_value() -> "List[List[Int]]":
+        return Matrix.empty(Int)
+
+    def __len__(self) -> int:
+        raise NotImplementedError("len must return an int, call len() instead")
+
+    def len(self) -> Int:
+        return Int(Call("list_length", Int, self.src))
+
+    def __getitem__(self, index: Union[Int, int, slice]) -> Object:
+        if isinstance(index, int):
+            index = Int(index)
+        if isinstance(index, slice):
+            (start, stop, step) = (index.start, index.stop, index.step)
+            if stop is None and step is None:
+                if isinstance(start, int):
+                    start = Int(start)
+                return call("list_tail", List[self.containedT], self, start)  # type: ignore
+            elif start is None and step is None:
+                if isinstance(stop, int):
+                    stop = Int(stop)
+                return call("list_take", List[self.containedT], self, stop)  # type: ignore
+            else:
+                raise NotImplementedError(
+                    f"Slices with both start and stop indices specified are not implemented: {index}"
+                )
+
+        return call("list_get", self.containedT, self, index)
+
+    def __setitem__(self, index: Union[Int, int], value: Object) -> None:
+        if isinstance(index, int):
+            index = Int(index)
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
+            )
+        self.src = Call("list_set", self.type, self.src, index.src, value.src)
+
+    # in place append
+    def append(self, value: Object) -> "List":  # type: ignore
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+
+        self.src = call("list_append", self.type, self, value).src
+        return self
+
+    # in place prepend
+    def prepend(self, value: Object) -> "List":  # type: ignore
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+
+        self.src = call("list_prepend", self.type, value, self).src
+        return self
+
+    # list concat that returns a new list
+    def __add__(self, other: "Matrix") -> "List":  # type: ignore
+        if self.type != other.type:
+            raise TypeError(
+                f"can't add lists of different types: {self.type} and {other.type}"
+            )
+        return List(
+            List[self.containedT], Call("list_concat", self.type, self.src, other.src)
+        )
+
+    def __eq__(self, other: "Matrix") -> Bool:  # type: ignore
         if other is None or self.type != other.type:
             return Bool(False)
         else:

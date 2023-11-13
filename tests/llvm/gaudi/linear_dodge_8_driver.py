@@ -1,7 +1,7 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, List as mlList
+from metalift.ir import Int, List as mlList, Matrix
 from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
                                            selection_two_args_inv0_grammar,
                                            selection_two_args_inv1_grammar,
@@ -24,8 +24,8 @@ if __name__ == "__main__":
         ps_grammar=selection_two_args_ps_grammar_fn
     )
 
-    base = mlList(mlList[Int], "base")
-    active = mlList(mlList[Int], "active")
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
     driver.add_var_objects([base, active])
 
     # Add preconditions

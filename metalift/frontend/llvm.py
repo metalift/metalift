@@ -39,13 +39,14 @@ from metalift.ir import (
     Set as mlSet,
     Synth,
     Var,
+    Matrix,
     call,
     create_object,
     get_list_element_type,
     get_object_exprs,
     implies,
-    is_object_pointer_type,
     is_primitive_type,
+    is_pointer_type,
     make_tuple_type,
     parse_c_or_cpp_type_to_obj,
     parse_type_ref_to_obj,
@@ -207,7 +208,14 @@ def new_vector(
         )
 
     var_name: str = args[0].name
-    list_obj = mlList.empty(get_list_element_type(list_type))
+
+    contained_type = get_list_element_type(list_type)
+
+    if contained_type == mlList[Int]: #special case when the vector is a matrix (2d array)
+        list_obj = Matrix.empty(get_list_element_type(contained_type))
+    else:
+        list_obj = mlList.empty(contained_type)
+
     list_loc = state.get_var_location(var_name)
     return ReturnValue(None, [(var_name, list_obj, list_loc)])
 
@@ -255,10 +263,9 @@ def vector_length(
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
-
     lst = state.read_or_load_operand(args[0])
-    if not isinstance(lst, mlList):
-        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
+    # if not isinstance(lst, mlList):
+    #     raise Exception(f"{args[0]} is not a list! Cannot extract its length")
     lst.containedT = get_list_element_type(list_type)
 
     var_name = args[0].name
@@ -978,11 +985,11 @@ class VCVisitor:
         # Add preconditions
         blk_state = self.fn_blocks_states[block.name]
         blk_state.precond += self.driver.postconditions
-
+        
         return_arg = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
         for arg in self.fn_args + [return_arg]:
             # TODO: make this check for all pointer types
-            if is_object_pointer_type(arg):
+            if is_pointer_type(arg.type):
                 self.store_var_to_block(block.name, arg.var_name(), arg)
             else:
                 self.write_var_to_block(block.name, arg.var_name(), arg)
@@ -1263,6 +1270,9 @@ class VCVisitor:
         ops = list(o.operands)
         left = self.read_operand_from_block(block_name, ops[0])
         right = self.read_operand_from_block(block_name, ops[1])
+        print("Debug info: multiply instruction")
+        print(left)
+        print(right)
         if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("* only supported for int objects!")
         mul_obj = left * right
@@ -1453,7 +1463,7 @@ class Driver:
         # TODO(jie): extract this check to a more generic function
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
-        self.var_tracker.variable(var_object.var_name(), var_object.src.type)
+        self.var_tracker.variable(var_object.var_name(), var_object.type)
 
     def add_var_objects(self, var_objects: List[Object]) -> None:
         for var_object in var_objects:

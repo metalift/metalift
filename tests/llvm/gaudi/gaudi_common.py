@@ -2,7 +2,7 @@ import typing
 from typing import List, Union
 from metalift.frontend.llvm import InvGrammar
 
-from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth,
+from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth, Matrix,
                          call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
                          ite)
 from metalift.vc_util import and_objects, or_objects
@@ -44,11 +44,11 @@ def call_selection_two_args(
     return call(SELECTION_TWO_ARGS, mlList[Int], left, right, select_fn)
 
 def call_nested_selection_two_args(
-    left: mlList[mlList[Int]],
-    right: mlList[mlList[Int]],
+    left: Matrix[Int],
+    right: Matrix[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[mlList[Int]]:
-    return call(NESTED_SELECTION_TWO_ARGS, mlList[mlList[Int]], left, right, select_fn)
+) -> Matrix[Int]:
+    return call(NESTED_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_elemwise_mul(left, right),
@@ -67,8 +67,8 @@ an_arr_to_int = lambda arr: choose(
 a = Int("a")
 x = mlList(Int, "x")
 y = mlList(Int, "y")
-nested_x = mlList(mlList[Int], "nested_x")
-nested_y = mlList(mlList[Int], "nested_y")
+nested_x = Matrix(Int, "nested_x")
+nested_y = Matrix(Int, "nested_y")
 int_x = Int("int_x")
 int_y = Int("int_y")
 
@@ -214,10 +214,10 @@ def get_selection_two_args_synth(
     )
 
 def nested_selection_two_args_body(
-    left: mlList[mlList[Int]],
-    right: mlList[mlList[Int]],
+    left: Matrix[Int],
+    right: Matrix[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[mlList[Int]]:
+) -> Matrix[Int]:
     cur = call_selection_two_args(left[0], right[0], select_fn)
     recursed = call_nested_selection_two_args(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
@@ -228,7 +228,7 @@ def nested_selection_two_args_body(
     )
 nested_selection_two_args_fn_decl = fn_decl_recursive(
     NESTED_SELECTION_TWO_ARGS,
-    mlList[mlList[Int]],
+    Matrix[Int],
     nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj),
     nested_x,
     nested_y,
