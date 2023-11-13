@@ -264,8 +264,8 @@ def vector_length(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
     lst = state.read_or_load_operand(args[0])
-    # if not isinstance(lst, mlList):
-    #     raise Exception(f"{args[0]} is not a list! Cannot extract its length")
+    if not isinstance(lst, mlList) and not isinstance(lst, Matrix):
+        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
     lst.containedT = get_list_element_type(list_type)
 
     var_name = args[0].name
@@ -1270,9 +1270,6 @@ class VCVisitor:
         ops = list(o.operands)
         left = self.read_operand_from_block(block_name, ops[0])
         right = self.read_operand_from_block(block_name, ops[1])
-        print("Debug info: multiply instruction")
-        print(left)
-        print(right)
         if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("* only supported for int objects!")
         mul_obj = left * right
