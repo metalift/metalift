@@ -1111,7 +1111,7 @@ class Matrix(Generic[T], Object):
             src = Var(value, full_type)
         else:
             raise TypeError(f"Cannot create List from {value}")
-        self.containedT = List[containedT]
+        self.containedT = List[containedT]  # type: ignore
         Object.__init__(self, src)
 
     @property
@@ -1162,7 +1162,7 @@ class Matrix(Generic[T], Object):
         self.src = Call("list_set", self.type, self.src, index.src, value.src)
 
     # in place append
-    def append(self, value: Object) -> "List":  # type: ignore
+    def append(self, value: Object) -> "Matrix":  # type: ignore
         if value.type != self.containedT:
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
@@ -1172,7 +1172,7 @@ class Matrix(Generic[T], Object):
         return self
 
     # in place prepend
-    def prepend(self, value: Object) -> "List":  # type: ignore
+    def prepend(self, value: Object) -> "Matrix":  # type: ignore
         if value.type != self.containedT:
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
@@ -1187,9 +1187,7 @@ class Matrix(Generic[T], Object):
             raise TypeError(
                 f"can't add lists of different types: {self.type} and {other.type}"
             )
-        return List(
-            List[self.containedT], Call("list_concat", self.type, self.src, other.src)
-        )
+        return List(List[self.containedT], Call("list_concat", self.type, self.src, other.src)) # type: ignore
 
     def __eq__(self, other: "Matrix") -> Bool:  # type: ignore
         if other is None or self.type != other.type:

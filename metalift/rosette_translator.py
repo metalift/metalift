@@ -75,7 +75,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             nested_element_type = get_nested_list_element_type(v.type)
             for t in tmp:
                 genVar(Var(t, nested_element_type), decls, vars_all, listBound)
-            nested_lsts: List[str] = [
+            nested_lsts: List[str] = [  # type: ignore
                 f"(list {' '.join(tmp[i : i + listBound])})"
                 for i in range(0, len(tmp) - 1, listBound)
             ]
