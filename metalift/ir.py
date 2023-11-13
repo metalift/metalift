@@ -36,15 +36,16 @@ ObjectT = typing.Type["Object"]
 T = TypeVar("T")
 
 # Helper functions
-
 def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
         return issubclass(get_origin(ty), Matrix)  # type: ignore
     else:
         return issubclass(ty, Matrix)
     
+    
 def get_matrix_element_type(ty: _GenericAlias) -> ObjectT:
     return get_args(ty)[0]  # type: ignore
+
 
 def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
@@ -1083,6 +1084,7 @@ class List(Generic[T], Object):
         else:
             return f"List {contained_type.cls_str()}"
         
+
 class Matrix(Generic[T], Object):
     containedT: ObjectContainedT
 
@@ -1177,7 +1179,7 @@ class Matrix(Generic[T], Object):
             raise TypeError(
                 f"can't add lists of different types: {self.type} and {other.type}"
             )
-        return List(List[self.containedT], Call("list_concat", self.type, self.src, other.src)) # type: ignore
+        return List(List[self.containedT], Call("list_concat", self.type, self.src, other.src))  # type: ignore
 
     def __eq__(self, other: "Matrix") -> Bool:  # type: ignore
         if other is None or self.type != other.type:

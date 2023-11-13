@@ -211,7 +211,9 @@ def new_vector(
 
     contained_type = get_list_element_type(list_type)
 
-    if contained_type == mlList[Int]: #special case when the vector is a matrix (2d array)
+    if (
+        contained_type == mlList[Int]
+    ):  # special case when the vector is a matrix (2d array)
         list_obj = Matrix.empty(get_list_element_type(contained_type))
     else:
         list_obj = mlList.empty(contained_type)
@@ -985,7 +987,6 @@ class VCVisitor:
         # Add preconditions
         blk_state = self.fn_blocks_states[block.name]
         blk_state.precond += self.driver.postconditions
-        
         return_arg = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
         for arg in self.fn_args + [return_arg]:
             # TODO: make this check for all pointer types
@@ -1319,7 +1320,7 @@ class VCVisitor:
         elif cond == "slt" or cond == "ult":
             obj = op0 < op1  # type: ignore
         elif cond == "sge":
-            obj = op0 >= op1 # type: ignore
+            obj = op0 >= op1  # type: ignore
         else:
             raise Exception("NYI %s" % cond)
 

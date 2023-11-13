@@ -17,7 +17,7 @@ from metalift.ir import (
     is_set_type,
     is_tuple_type,
     is_matrix_type,
-    get_matrix_element_type
+    get_matrix_element_type,
 )
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
@@ -45,8 +45,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
 
         tmp = [
-            v.args[0] + "_BOUNDEDSET-" + str(i)
-            for i in range(listBound * listBound)
+            v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound * listBound)
         ]
         nested_element_type = get_matrix_element_type(v.type)
         for t in tmp:
@@ -55,9 +54,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             f"(list {' '.join(tmp[i : i + listBound])})"
             for i in range(0, len(tmp) - 1, listBound)
         ]
-        decl = (
-            f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
-        )
+        decl = (f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))" )
         decls.append(decl)
 
     elif is_list_type(v.type) or is_set_type(v.type):
