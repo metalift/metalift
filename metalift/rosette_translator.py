@@ -56,7 +56,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             f"(list {' '.join(tmp[i : i + listBound])})"
             for i in range(0, len(tmp) - 1, listBound)
         ]
-        decl = (f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))" )
+        decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
         decls.append(decl)
 
     elif is_list_type(v.type) or is_set_type(v.type):

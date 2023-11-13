@@ -41,8 +41,8 @@ def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
         return issubclass(get_origin(ty), Matrix)  # type: ignore
     else:
         return issubclass(ty, Matrix)
-    
-    
+
+
 def get_matrix_element_type(ty: _GenericAlias) -> ObjectT:
     return get_args(ty)[0]  # type: ignore
 
@@ -1093,7 +1093,7 @@ class List(Generic[T], Object):
             return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"  # type: ignore
         else:
             return f"List {contained_type.cls_str()}"
-        
+
 
 class Matrix(Generic[T], Object):
     containedT: ObjectContainedT
