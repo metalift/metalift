@@ -1,13 +1,13 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int
-from metalift.ir import List as mlList
-from tests.llvm.gaudi.gaudi_common import (
-    all_possible_selects_two_args_synth, nested_list_computation_inv0_grammar,
-    nested_list_computation_inv1_grammar,
-    nested_list_computation_ps_grammar_fn, nested_list_computation_target_lang,
-    selection_two_args_synth)
+from metalift.ir import Int, List as mlList, Matrix
+from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
+                                           selection_two_args_inv0_grammar,
+                                           selection_two_args_inv1_grammar,
+                                           selection_two_args_ps_grammar_fn,
+                                           selection_two_args_synth,
+                                           selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -24,8 +24,8 @@ if __name__ == "__main__":
         ps_grammar=nested_list_computation_ps_grammar_fn
     )
 
-    base = mlList(mlList[Int], "base")
-    active = mlList(mlList[Int], "active")
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
     driver.add_var_objects([base, active])
 
     # Add preconditions

@@ -1,7 +1,13 @@
-from typing import List, Union
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, List as mlList, Object
-from metalift.vc_util import and_objects
+import time
+
+from metalift.frontend.llvm import Driver
+from metalift.ir import Int, List as mlList, Matrix
+from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
+                                           selection_two_args_inv0_grammar,
+                                           selection_two_args_inv1_grammar,
+                                           selection_two_args_ps_grammar_fn,
+                                           selection_two_args_synth,
+                                           selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl, select_mul8x8_div255_body, select_min_body
 
@@ -51,8 +57,8 @@ if __name__ == "__main__":
         ps_grammar=selection_two_args_ps_grammar_fn
     )
 
-    base = mlList(mlList[Int], "base")
-    active = mlList(mlList[Int], "active")
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
     driver.add_var_objects([base, active])
 
     # Add preconditions

@@ -2,8 +2,8 @@ import typing
 from typing import Callable, List, Union
 from metalift.frontend.llvm import InvGrammar
 
-from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth,
-                         call, call_value, choose, fn_decl, fn_decl_recursive, get_list_element_type, get_object_exprs, is_list_type, is_nested_list_type, is_primitive_type,
+from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth, Matrix,
+                         call, call_value, choose, fn_decl, fn_decl_recursive, get_object_exprs,
                          ite)
 from metalift.vc_util import and_objects, or_objects
 
@@ -67,12 +67,12 @@ def call_selection(
 ) -> mlList[Int]:
     return call(SELECTION, mlList[Int], left, right, select_fn)
 
-def call_nested_selection(
-    left: mlList[mlList[Int]],
-    right: mlList[mlList[Int]],
+def call_nested_selection_two_args(
+    left: Matrix[Int],
+    right: Matrix[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[mlList[Int]]:
-    return call(NESTEDSELECTION, mlList[mlList[Int]], left, right, select_fn)
+) -> Matrix[Int]:
+    return call(NESTED_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_vec_elemwise_mul(left, right),
@@ -117,10 +117,38 @@ def nested_list_computation(*args: Object) -> mlList[mlList[Int]]:
 a = Int("a")
 x = mlList(Int, "x")
 y = mlList(Int, "y")
-nested_x = mlList(mlList[Int], "nested_x")
-nested_y = mlList(mlList[Int], "nested_y")
-int_x = Int("x")
-int_y = Int("y")
+nested_x = Matrix(Int, "nested_x")
+nested_y = Matrix(Int, "nested_y")
+int_x = Int("int_x")
+int_y = Int("int_y")
+
+def vector_add_body(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    vec_size = left.len()
+    cur = left[0] + right[0]
+    left_rest = left[1:]
+    right_rest = right[1:]
+    recursed = call_vector_add(left_rest, right_rest)
+    general_answer = recursed.prepend(cur)
+    return ite(vec_size < 1, mlList.empty(Int), general_answer)
+vector_add = fn_decl_recursive(VECTORADD, mlList[Int], vector_add_body(x, y), x, y)
+
+def scalar_mul_body(scalar: Int, arr: mlList[Int]) -> mlList[Int]:
+    vec_size = arr.len()
+    cur = scalar * arr[0]
+    arr_rest = arr[1:]
+    recursed = call_scalar_mul(scalar, arr_rest)
+    general_answer = recursed.prepend(cur)
+    return ite(vec_size < 1, mlList.empty(Int), general_answer)
+scalar_mul = fn_decl_recursive(SCALARMUL, mlList[Int], scalar_mul_body(a, x), a, x)
+
+def broadcast_add_body(scalar: Int, arr: mlList[Int]) -> mlList[Int]:
+    vec_size = arr.len()
+    cur = scalar + arr[0]
+    arr_rest = arr[1:]
+    recursed = call_broadcast_add(scalar, arr_rest)
+    general_answer = recursed.prepend(cur)
+    return ite(vec_size < 1, mlList.empty(Int), general_answer)
+broadcast_add = fn_decl_recursive(BROADCASTADD, mlList[Int], broadcast_add_body(a, x), a, x)
 
 def reduce_sum_body(lst: List[Int]) -> Int:
     vec_size = lst.len()
@@ -244,20 +272,23 @@ selection = fn_decl_recursive(
     select_fn_obj
 )
 
-def nested_selection_body(
-    left: mlList[mlList[Int]],
-    right: mlList[mlList[Int]],
+def nested_selection_two_args_body(
+    left: Matrix[Int],
+    right: Matrix[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[mlList[Int]]:
-    vec_size = left.len()
-    cur = call_selection(left[0], right[0], select_fn)
-    recursed = call_nested_selection(left[1:], right[1:], select_fn)
+) -> Matrix[Int]:
+    cur = call_selection_two_args(left[0], right[0], select_fn)
+    recursed = call_nested_selection_two_args(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, mlList.empty(mlList[Int]), general_answer)
-nested_selection = fn_decl_recursive(
-    NESTEDSELECTION,
-    mlList[mlList[Int]],
-    nested_selection_body(nested_x, nested_y, select_fn_obj),
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        mlList.empty(mlList[Int]),
+        general_answer
+    )
+nested_selection_two_args_fn_decl = fn_decl_recursive(
+    NESTED_SELECTION_TWO_ARGS,
+    Matrix[Int],
+    nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj),
     nested_x,
     nested_y,
     select_two_args_fn_obj
