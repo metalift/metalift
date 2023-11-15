@@ -4,10 +4,8 @@ from metalift.frontend.llvm import Driver
 from metalift.ir import Int
 from metalift.ir import List as mlList
 from tests.llvm.gaudi.gaudi_common import (
-    all_possible_selects_two_args_synth, nested_list_computation_inv0_grammar,
-    nested_list_computation_inv1_grammar,
-    nested_list_computation_ps_grammar_fn, nested_list_computation_target_lang,
-    selection_two_args_synth)
+    nested_list_computation_inv0_grammar, nested_list_computation_inv1_grammar,
+    nested_list_computation_ps_grammar_fn, nested_list_computation_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -33,7 +31,6 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    driver.fns_synths = [all_possible_selects_two_args_synth, selection_two_args_synth]
     linear_dodge_8(base, active)
 
     start_time = time.time()

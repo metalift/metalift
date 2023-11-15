@@ -86,20 +86,23 @@ an_arr_to_int = lambda arr: choose(
     call_reduce_sum(arr),
     call_reduce_mul(arr),
 )
+
 def vec_computation(*args: Object) -> mlList[Int]:
     e = choose(*args)
-    constant = choose(Int(0), Int(1), Int(255))
-    return choose(
-        e,
-        call_vec_elemwise_add(e, e),
-        call_vec_elemwise_mul(e, e),
-        call_vec_scalar_add(constant, e),
-        call_vec_scalar_mul(constant, e)
-    )
+    constant = choose(Int(0), Int(255))
+    for _ in range(1):
+        e = choose(
+            e,
+            call_vec_elemwise_add(e, e),
+            call_vec_elemwise_mul(e, e),
+            call_vec_scalar_add(constant, e),
+            call_vec_scalar_mul(constant, e)
+        )
+    return e
 
 def nested_list_computation(*args: Object) -> mlList[mlList[Int]]:
     e = choose(*args)
-    constant = choose(Int(0), Int(1), Int(255), 0 - Int(255))
+    constant = choose(Int(0), Int(255), 0 - Int(255))
     for _ in range(2):
         e = choose(
             e,
@@ -191,7 +194,7 @@ selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y
 def get_select_two_args_general_synth(*args: Object) -> Synth:
     arg_exprs = get_object_exprs(*args)
     arg_expr = choose(*arg_exprs)
-    constant = choose(Int(0), Int(255))
+    constant = choose(Int(255), 0 - Int(255))
     int_exp = choose(arg_expr, constant)
     for _ in range(1):
         int_exp = choose(
@@ -634,38 +637,36 @@ def nested_list_computation_inv1_grammar_fn(writes: List[Object], reads: List[Ob
     inner_index_lower_cond = choose(
         col >= index_lower_bound,
         col > index_lower_bound,
-        # col == index_lower_bound,
-        # col < index_lower_bound,
-        # col <= index_lower_bound
+        col == index_lower_bound,
+        col < index_lower_bound,
+        col <= index_lower_bound
     )
     inner_index_upper_cond = choose(
-        # col >= index_upper_bound,
-        # col > index_upper_bound,
-        # col == index_upper_bound,
+        col >= index_upper_bound,
+        col > index_upper_bound,
+        col == index_upper_bound,
         col < index_upper_bound,
         col <= index_upper_bound
     )
-    # vec = choose(
-    #     base[0][:col],
-    #     base[row][:col],
-    #     base[col][:row],
-    #     base[0][:row],
-    #     active[0][:col],
-    #     active[row][:col],
-    #     active[col][:row],
-    #     active[0][:row],
-    #     row_vec
-    # )
-    # nested_list = choose(
-    #     base,
-    #     base[:row],
-    #     base[:col],
-    #     active,
-    #     active[:row],
-    #     active[:col]
-    # )
-    vec = choose(base[row][:col], active[row][:col])
-    nested_list = choose(base[:row], active[:row])
+    vec = choose(
+        base[0][:col],
+        base[row][:col],
+        base[col][:row],
+        base[0][:row],
+        active[0][:col],
+        active[row][:col],
+        active[col][:row],
+        active[0][:row],
+        row_vec
+    )
+    nested_list = choose(
+        base,
+        base[:row],
+        base[:col],
+        active,
+        active[:row],
+        active[:col]
+    )
     return and_objects(
         outer_index_lower_cond,
         outer_index_upper_cond,
