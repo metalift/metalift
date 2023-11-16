@@ -1,13 +1,13 @@
 from typing import List, Union
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import FnDecl, FnDeclRecursive, Int, List as mlList, Object, call, choose, ite
+from metalift.ir import FnDecl, FnDeclRecursive, Int, List as mlList, Object, call, choose, ite, Matrix
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 import time
 
 def cblas_sgemv(
     alpha: Int,
-    a: mlList[mlList[Int]],
+    a: Matrix[Int],
     x: Int,
     beta: Int,
     y: Int
@@ -17,7 +17,7 @@ def cblas_sgemv(
 def sdot(x: mlList[Int], y: mlList[Int]) -> Int:
     return call("sdot", Int, x, y)
 
-def sgemv(a: mlList[mlList[Int]], x: mlList[Int]) -> mlList[Int]:
+def sgemv(a: Matrix[Int], x: mlList[Int]) -> mlList[Int]:
     return call("sgemv", mlList[Int], a, x)
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -34,7 +34,8 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         y.src
     )
 
-    a = mlList(mlList[Int], "a")
+    # a = mlList(mlList[Int], "a")
+    a = Matrix(Int, "a")
     x = mlList(Int, "x")
     sgemv_cond = x.len() == a[0].len()
     sgemv_then = sgemv(a[1:], x).prepend(sdot(a[0], x))
@@ -48,7 +49,8 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     )
 
     alpha = Int("alpha")
-    a = mlList(mlList[Int], "a")
+    # a = mlList(mlList[Int], "a")
+    a = Matrix(Int, "a")
     x = mlList(Int, "x")
     beta = Int("beta")
     y = mlList(Int, "y")
@@ -154,7 +156,8 @@ if __name__ == "__main__":
     )
 
     alpha = Int("alpha")
-    a = mlList(mlList[Int], "a")
+    # a = mlList(mlList[Int], "a")
+    a = Matrix(Int, "a")
     x = mlList(Int, "x")
     beta = Int("beta")
     y = mlList(Int, "y")

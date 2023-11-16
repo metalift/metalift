@@ -4,7 +4,7 @@ from metalift.frontend.llvm import InvGrammar
 
 from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth,
                          call, call_value, choose, fn_decl, fn_decl_recursive, get_list_element_type, get_object_exprs, is_list_type, is_nested_list_type, is_primitive_type,
-                         ite)
+                         ite, Matrix)
 from metalift.vc_util import and_objects, or_objects
 
 # Reduce functions
@@ -40,17 +40,17 @@ def call_vec_scalar_add(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
 def call_vec_scalar_mul(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_MUL, mlList[Int], scalar, vec)
 
-def call_nested_list_elemwise_add(left: mlList[mlList[Int]], right: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_ELEMWISE_ADD, mlList[mlList[Int]], left, right)
+def call_nested_list_elemwise_add(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_ELEMWISE_ADD, Matrix[Int], left, right)
 
-def call_nested_list_elemwise_mul(left: mlList[mlList[Int]], right: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_ELEMWISE_MUL, mlList[mlList[Int]], left, right)
+def call_nested_list_elemwise_mul(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_ELEMWISE_MUL, Matrix[Int], left, right)
 
-def call_nested_list_scalar_add(scalar: Int, nested_list: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_SCALAR_ADD, mlList[mlList[Int]], scalar, nested_list)
+def call_nested_list_scalar_add(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_SCALAR_ADD, Matrix[Int], scalar, nested_list)
 
-def call_nested_list_scalar_mul(scalar: Int, nested_list: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_SCALAR_MUL, mlList[mlList[Int]], scalar, nested_list)
+def call_nested_list_scalar_mul(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_SCALAR_MUL, Matrix[Int], scalar, nested_list)
 
 
 def call_reduce_sum(lst) -> Int:
@@ -68,11 +68,11 @@ def call_selection_two_args(
     return call(SELECTION_TWO_ARGS, mlList[Int], left, right, select_fn)
 
 def call_nested_selection_two_args(
-    left: mlList[mlList[Int]],
-    right: mlList[mlList[Int]],
+    left: Matrix[Int],
+    right: Matrix[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[mlList[Int]]:
-    return call(NESTED_SELECTION_TWO_ARGS, mlList[mlList[Int]], left, right, select_fn)
+) -> Matrix[Int]:
+    return call(NESTED_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_vec_elemwise_mul(left, right),
@@ -97,7 +97,7 @@ def vec_computation(*args: Object) -> mlList[Int]:
         call_vec_scalar_mul(constant, e)
     )
 
-def nested_list_computation(*args: Object) -> mlList[mlList[Int]]:
+def nested_list_computation(*args: Object) -> Matrix[Int]:
     e = choose(*args)
     constant = choose(Int(0), Int(1), Int(255), 0 - Int(255))
     for _ in range(2):
@@ -114,8 +114,8 @@ def nested_list_computation(*args: Object) -> mlList[mlList[Int]]:
 a = Int("a")
 x = mlList(Int, "x")
 y = mlList(Int, "y")
-nested_x = mlList(mlList[Int], "nested_x")
-nested_y = mlList(mlList[Int], "nested_y")
+nested_x = Matrix(Int, "nested_x")
+nested_y = Matrix(Int, "nested_y")
 int_x = Int("int_x")
 int_y = Int("int_y")
 
@@ -249,10 +249,10 @@ def get_selection_two_args_synth(
     )
 
 def nested_selection_two_args_body(
-    left: mlList[mlList[Int]],
-    right: mlList[mlList[Int]],
+    left: Matrix[Int],
+    right: Matrix[Int],
     select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[mlList[Int]]:
+) -> Matrix[Int]:
     cur = call_selection_two_args(left[0], right[0], select_fn)
     recursed = call_nested_selection_two_args(left[1:], right[1:], select_fn)
     general_answer = recursed.prepend(cur)
@@ -263,7 +263,7 @@ def nested_selection_two_args_body(
     )
 nested_selection_two_args_fn_decl = fn_decl_recursive(
     NESTED_SELECTION_TWO_ARGS,
-    mlList[mlList[Int]],
+    Matrix[Int],
     nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj),
     nested_x,
     nested_y,
@@ -395,15 +395,15 @@ selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn,
 selection_two_args_inv1_grammar = InvGrammar(selection_two_args_inv1_grammar_fn, ["row", "agg.result"])
 
 def elemwise_body(
-    left: Union[mlList[Int], mlList[mlList[Int]]],
-    right: Union[mlList[Int], mlList[mlList[Int]]],
+    left: Union[mlList[Int], Matrix[Int]],
+    right: Union[mlList[Int], Matrix[Int]],
     compute_fn: Callable[[Int, Int], Int],
     vec_fn_name: str,
     nested_list_fn_name: str
-) -> Union[mlList[Int], mlList[mlList[Int]]]:
+) -> Union[mlList[Int], Matrix[Int]]:
     if is_nested_list_type(left.type) and is_nested_list_type(right.type):
         cur = call(vec_fn_name, mlList[Int], left[0], right[0])
-        recursed = call(nested_list_fn_name, mlList[mlList[Int]], left[1:], right[1:])
+        recursed = call(nested_list_fn_name, Matrix[Int], left[1:], right[1:])
         general_answer = recursed.prepend(cur)
         return ite(
             or_objects(left.len() < 1, left.len() != right.len()),
@@ -423,14 +423,14 @@ def elemwise_body(
 
 def scalar_body(
     scalar: Int,
-    vec_or_nested_list: Union[mlList[Int], mlList[mlList[Int]]],
+    vec_or_nested_list: Union[mlList[Int], Matrix[Int]],
     compute_fn: Callable[[Int, Int], Int],
     vec_fn_name: str,
     nested_list_fn_name: str
-) -> Union[mlList[Int], mlList[mlList[Int]]]:
+) -> Union[mlList[Int], Matrix[Int]]:
     if is_nested_list_type(vec_or_nested_list.type):
         cur = call(vec_fn_name, mlList[Int], scalar, vec_or_nested_list[0])
-        recursed = call(nested_list_fn_name, mlList[mlList[Int]], scalar, vec_or_nested_list[1:])
+        recursed = call(nested_list_fn_name, Matrix[Int], scalar, vec_or_nested_list[1:])
         general_answer = recursed.prepend(cur)
         return ite(
             or_objects(vec_or_nested_list.len() < 1),
@@ -463,7 +463,7 @@ vec_elemwise_add = fn_decl_recursive(
 )
 nested_list_elemwise_add = fn_decl_recursive(
     NESTED_LIST_ELEMWISE_ADD,
-    mlList[mlList[Int]],
+    Matrix[Int],
     elemwise_body(
         left=nested_x,
         right=nested_y,
@@ -490,7 +490,7 @@ vec_elemwise_mul = fn_decl_recursive(
 )
 nested_list_elemwise_mul = fn_decl_recursive(
     NESTED_LIST_ELEMWISE_MUL,
-    mlList[mlList[Int]],
+    Matrix[Int],
     elemwise_body(
         left=nested_x,
         right=nested_y,
