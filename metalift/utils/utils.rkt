@@ -209,3 +209,7 @@
 (define (list-tuple-append l i)
 (append l (list i)))
 (define (list-tuple-length l) (length l))
+
+(define (quotient-noerr x y)
+  (if (equal? y 0) 0 (quotient x y))
+)

@@ -1478,7 +1478,7 @@ class Mul(Expr):
 
 
 class Div(Expr):
-    RosetteName = "quotient"
+    RosetteName = "quotient-noerr"
     SMTName = "div"
 
     def __init__(self, *args: Expr) -> None:
