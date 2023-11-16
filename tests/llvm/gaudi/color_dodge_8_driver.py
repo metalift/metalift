@@ -1,9 +1,8 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int
-from metalift.ir import List as mlList
-from tests.llvm.gaudi.gaudi_common import (select_two_args_general_synth,
+from metalift.ir import Int, List as mlList, Matrix
+from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
                                            selection_two_args_inv0_grammar,
                                            selection_two_args_inv1_grammar,
                                            selection_two_args_ps_grammar_fn,
@@ -25,8 +24,8 @@ if __name__ == "__main__":
         ps_grammar=selection_two_args_ps_grammar_fn
     )
 
-    base = mlList(mlList[Int], "base")
-    active = mlList(mlList[Int], "active")
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
     driver.add_var_objects([base, active])
 
     # Add preconditions
@@ -34,7 +33,7 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    driver.fns_synths = [select_two_args_general_synth, selection_two_args_synth]
+    driver.fns_synths = [all_possible_selects_two_args_synth, selection_two_args_synth]
     color_dodge_8(base, active)
 
     start_time = time.time()

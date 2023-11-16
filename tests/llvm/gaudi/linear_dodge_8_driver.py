@@ -22,8 +22,8 @@ if __name__ == "__main__":
         ps_grammar=nested_list_computation_ps_grammar_fn
     )
 
-    base = mlList(mlList[Int], "base")
-    active = mlList(mlList[Int], "active")
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
     driver.add_var_objects([base, active])
 
     # Add preconditions
