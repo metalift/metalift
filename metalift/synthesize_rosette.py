@@ -100,7 +100,7 @@ def toExpr(
         "+": Add,
         "-": Sub,
         "*": Mul,
-        "quotient": Div,
+        "quotient-noerr": Div,
         "<": Lt,
         "<=": Le,
         ">": Gt,

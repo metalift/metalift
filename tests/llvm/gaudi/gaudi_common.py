@@ -298,6 +298,11 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     # outer loop grammar
     out, col, pixel, row, row_vec = writes
     base, active = reads
+    return and_objects(
+        row >= 0,
+        row <= base.len(),
+        out == call_nested_selection_two_args(base[:row], active[:row], select_two_args_fn_obj)
+    )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     index_lower_cond = choose(
@@ -333,6 +338,14 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     col, pixel, row_vec = writes
     out, row = in_scope
     base, active = reads
+    return and_objects(
+        row >= 0,
+        row < base.len(),
+        col >= 0,
+        col <= base[0].len(),
+        row_vec == call_selection_two_args(base[row][:col], active[row][:col], select_two_args_fn_obj),
+        out == call_nested_selection_two_args(base[:row], active[:row], select_two_args_fn_obj)
+    )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     outer_index_lower_cond = choose(

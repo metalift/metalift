@@ -846,6 +846,9 @@ class VCVisitor:
 
     uninterp_fns: List[str]
 
+    primitive_var_types: Dict[str, ObjectT]
+    pointer_var_types: Dict[str, ObjectT]
+
     def __init__(
         self,
         driver: "Driver",
@@ -877,6 +880,9 @@ class VCVisitor:
 
         self.uninterp_fns = uninterp_fns
 
+        self.primitive_var_types = {}
+        self.pointer_var_types = {}
+
     # Helper functions
     # Helper functions for reading and writing variables
     def read_operand_from_block(
@@ -901,12 +907,14 @@ class VCVisitor:
         self, block_name: str, op: ValueRef, val: Object
     ) -> None:  # Primitive
         blk_state = self.fn_blocks_states[block_name]
+        self.primitive_var_types[op.name] = val.type
         return blk_state.write_operand(op, val)
 
     def store_operand_to_block(
         self, block_name: str, op: ValueRef, val: Object
     ) -> None:  # Pointer
         blk_state = self.fn_blocks_states[block_name]
+        self.pointer_var_types[op.name] = val.type
         return blk_state.store_operand(op, val)
 
     def write_or_store_operand_to_block(
@@ -925,11 +933,20 @@ class VCVisitor:
 
     def write_var_to_block(self, block_name: str, var_name: str, val: Object) -> None:
         blk_state = self.fn_blocks_states[block_name]
+        self.primitive_var_types[var_name] = val.type
         return blk_state.write_var(var_name, val)
 
     def store_var_to_block(self, block_name: str, var_name: str, val: Object) -> None:
         blk_state = self.fn_blocks_states[block_name]
+        self.pointer_var_types[var_name] = val.type
         return blk_state.store_var(var_name, val)
+
+    def get_var_type(self, var_name: str) -> ObjectT:
+        if var_name in self.primitive_var_types.keys():
+            return self.primitive_var_types[var_name]
+        if var_name in self.pointer_var_types.keys():
+            return self.pointer_var_types[var_name]
+        raise Exception(f"Cannot find type for variable {var_name}")
 
     # Helper functions for loops
     def find_header_loops(self, block_name: str) -> List[LoopInfo]:
@@ -961,7 +978,8 @@ class VCVisitor:
         pointer_havocs: List[Object] = []
         blk_state = self.fn_blocks_states[block_name]
         for var in loop_info.havocs:
-            var_type = blk_state.read_or_load_var(var.name).type
+            var_type = self.get_var_type(var.name)
+            # var_type = blk_state.read_or_load_var(var.name).type
             # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
             obj = create_object(var_type, var.name)
             if var.type.is_pointer:
@@ -993,6 +1011,7 @@ class VCVisitor:
             )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
+        print(o)
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
