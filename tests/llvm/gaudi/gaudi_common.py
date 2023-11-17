@@ -23,6 +23,8 @@ VEC_SCALAR_ADD = "vec_scalar_add"
 NESTED_LIST_SCALAR_ADD = "nested_list_scalar_add"
 VEC_SCALAR_MUL = "vec_scalar_mul"
 NESTED_LIST_SCALAR_MUL = "nested_list_scalar_mul"
+VEC_SCALAR_DIV = "vec_scalar_div"
+NESTED_LIST_SCALAR_DIV = "nested_list_scalar_div"
 
 # Selection functions
 SELECT_TWO_ARGS = "select_two_args"
@@ -48,6 +50,9 @@ def call_vec_scalar_add(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
 def call_vec_scalar_mul(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_MUL, mlList[Int], scalar, vec)
 
+def call_vec_scalar_div(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(VEC_SCALAR_DIV, mlList[Int], scalar, vec)
+
 def call_nested_list_elemwise_add(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
     return call(NESTED_LIST_ELEMWISE_ADD, Matrix[Int], left, right)
 
@@ -59,6 +64,9 @@ def call_nested_list_scalar_add(scalar: Int, nested_list: Matrix[Int]) -> Matrix
 
 def call_nested_list_scalar_mul(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
     return call(NESTED_LIST_SCALAR_MUL, Matrix[Int], scalar, nested_list)
+
+def call_nested_list_scalar_div(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_SCALAR_DIV, Matrix[Int], scalar, nested_list)
 
 
 def call_reduce_sum(lst) -> Int:
@@ -100,6 +108,7 @@ an_arr2_to_arr = lambda left, right: choose(
 an_int_and_arr_to_arr = lambda num, arr: choose(
     call_vec_scalar_mul(num, arr),
     call_vec_scalar_add(num, arr),
+    call_vec_scalar_div(num, arr)
 )
 an_arr_to_int = lambda arr: choose(
     call_reduce_sum(arr),
@@ -633,6 +642,34 @@ nested_list_scalar_mul = fn_decl_recursive(
     a,
     nested_x
 )
+
+vec_scalar_div = fn_decl_recursive(
+    VEC_SCALAR_DIV,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=x,
+        compute_fn=lambda scalar, int_x: int_x // scalar,
+        vec_fn_name=VEC_SCALAR_DIV,
+        nested_list_fn_name=NESTED_LIST_SCALAR_DIV
+    ),
+    a,
+    x
+)
+nested_list_scalar_div = fn_decl_recursive(
+    NESTED_LIST_SCALAR_DIV,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=nested_x,
+        compute_fn=lambda scalar, int_x: int_x // scalar,
+        vec_fn_name=VEC_SCALAR_DIV,
+        nested_list_fn_name=NESTED_LIST_SCALAR_DIV
+    ),
+    a,
+    nested_x
+)
+
 
 def nested_list_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
