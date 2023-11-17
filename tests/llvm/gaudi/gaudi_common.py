@@ -1,10 +1,13 @@
 import typing
 from typing import Callable, List, Union
-from metalift.frontend.llvm import InvGrammar
 
-from metalift.ir import (Bool, Fn, FnDecl, FnDeclRecursive, Int, List as mlList, Object, Synth,
-                         call, call_value, choose, fn_decl, fn_decl_recursive, get_list_element_type, get_object_exprs, is_list_type, is_nested_list_type, is_primitive_type,
-                         ite, Matrix)
+from metalift.frontend.llvm import InvGrammar
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import (Matrix, Object, Synth, call, call_value, choose,
+                         fn_decl, fn_decl_recursive, get_list_element_type,
+                         get_object_exprs, is_list_type, is_nested_list_type,
+                         is_primitive_type, ite)
 from metalift.vc_util import and_objects, or_objects
 
 # Reduce functions

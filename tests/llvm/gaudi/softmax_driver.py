@@ -5,10 +5,12 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (an_arr_to_int,
-                                           an_int_and_arr_to_arr, reduce_mul,
-                                           reduce_sum, vec_scalar_add, an_arr_to_arr, vec_scalar_div,
-                                           vec_scalar_mul, reduce_max, exp, vec_exp_map)
+from tests.llvm.gaudi.gaudi_common import (an_arr_to_arr, an_arr_to_int,
+                                           an_int_and_arr_to_arr, exp,
+                                           reduce_max, reduce_mul, reduce_sum,
+                                           vec_exp_map, vec_scalar_add,
+                                           vec_scalar_div, vec_scalar_mul)
+
 
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
