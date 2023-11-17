@@ -29,6 +29,13 @@ SELECT_TWO_ARGS = "select_two_args"
 SELECTION_TWO_ARGS = "selection_two_args"
 NESTED_SELECTION_TWO_ARGS = "nested_selection_two_args"
 
+# Uninterpreted functions
+EXP_FN_NAME = "exp"
+
+# Operations that involve uninterpreted functions
+VEC_MAP_EXP_FN_NAME = "map_exp"
+NESTED_LIST_MAP_EXP_FN_NAME = "nested_list_map_exp"
+
 def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
 
@@ -77,6 +84,15 @@ def call_nested_selection_two_args(
 ) -> Matrix[Int]:
     return call(NESTED_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
+def call_exp(x: Int) -> Int:
+    return call(EXP_FN_NAME, Int, x)
+
+def call_vec_map_exp(x: mlList[Int]) -> mlList[Int]:
+    return call(VEC_MAP_EXP_FN_NAME, mlList[Int], x)
+
+def call_nested_list_map_exp(x: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
+    return call(NESTED_LIST_MAP_EXP_FN_NAME, mlList[mlList[Int]], x)
+
 an_arr2_to_arr = lambda left, right: choose(
     call_vec_elemwise_mul(left, right),
     call_vec_elemwise_add(left, right),
@@ -89,6 +105,9 @@ an_arr_to_int = lambda arr: choose(
     call_reduce_sum(arr),
     call_reduce_mul(arr),
     call_reduce_max(arr)
+)
+an_arr_to_arr = lambda arr: choose(
+    call_vec_map_exp(arr)
 )
 
 def vec_computation(*args: Object) -> mlList[Int]:
@@ -502,6 +521,32 @@ def scalar_body(
         )
     raise Exception("Unsupported types for scalar operations!")
 
+def map_body(
+    vec_or_nested_list: Union[mlList[Int], Matrix[Int]],
+    map_fn: Callable[[Int], Int],
+    vec_map_fn_name: str,
+    nested_list_map_fn_name: str
+) -> Union[mlList[Int], Matrix[Int]]:
+    if is_nested_list_type(vec_or_nested_list.type):
+        cur = call(vec_map_fn_name, mlList[Int], vec_or_nested_list[0])
+        recursed = call(nested_list_map_fn_name, Matrix[Int], vec_or_nested_list[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_nested_list.len() < 1),
+            mlList.empty(mlList[Int]),
+            general_answer
+        )
+    elif is_list_type(vec_or_nested_list.type) and is_primitive_type(get_list_element_type(vec_or_nested_list.type)):
+        cur = map_fn(vec_or_nested_list[0])
+        recursed = call(vec_map_fn_name, mlList[Int], vec_or_nested_list[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_nested_list.len() < 1),
+            mlList.empty(Int),
+            general_answer
+        )
+    raise Exception("Unsupported types for scalar operations!")
+
 vec_elemwise_add = fn_decl_recursive(
     VEC_ELEMWISE_ADD,
     mlList[Int],
@@ -740,3 +785,28 @@ def nested_list_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]
     ]
 nested_list_computation_inv0_grammar = InvGrammar(nested_list_computation_inv0_grammar_fn, [])
 nested_list_computation_inv1_grammar = InvGrammar(nested_list_computation_inv1_grammar_fn, ["row", "agg.result"])
+
+# Uninterpreted functions
+exp = fn_decl(EXP_FN_NAME, Int, None, int_x)
+vec_exp_map = fn_decl_recursive(
+    VEC_MAP_EXP_FN_NAME,
+    mlList[Int],
+    map_body(
+        vec_or_nested_list=x,
+        map_fn=lambda int_x: call_exp(int_x),
+        vec_map_fn_name=VEC_MAP_EXP_FN_NAME,
+        nested_list_map_fn_name=NESTED_LIST_MAP_EXP_FN_NAME
+    ),
+    x
+)
+nested_list_exp_map = fn_decl_recursive(
+    NESTED_LIST_MAP_EXP_FN_NAME,
+    mlList[Int],
+    map_body(
+        vec_or_nested_list=nested_x,
+        map_fn=lambda int_x: call_exp(int_x),
+        vec_map_fn_name=VEC_MAP_EXP_FN_NAME,
+        nested_list_map_fn_name=NESTED_LIST_MAP_EXP_FN_NAME
+    ),
+    nested_x
+)
