@@ -7,7 +7,9 @@ from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
                                            selection_two_args_inv1_grammar,
                                            selection_two_args_ps_grammar_fn,
                                            selection_two_args_synth,
-                                           selection_two_args_target_lang)
+                                           selection_two_args_target_lang,
+                                           select_two_args_general_synth
+                                           )
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
