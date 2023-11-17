@@ -15,65 +15,47 @@ entry:
   %max_val = alloca i32, align 4
   %i = alloca i32, align 4
   store i32 %max_pos, i32* %max_pos.addr, align 4
-  store i32 0, i32* %max_val, align 4
-  store i32 0, i32* %i, align 4
+  %call = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %input, i64 0) #1
+  %i1 = load i32, i32* %call, align 4
+  store i32 %i1, i32* %max_val, align 4
+  store i32 1, i32* %i, align 4
   br label %for.cond
 
 for.cond:                                         ; preds = %for.inc, %entry
-  %i1 = load i32, i32* %i, align 4
-  %conv = sext i32 %i1 to i64
-  %call = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %input) #1
-  %cmp = icmp ult i64 %conv, %call
+  %i2 = load i32, i32* %i, align 4
+  %i3 = load i32, i32* %max_pos.addr, align 4
+  %cmp = icmp slt i32 %i2, %i3
   br i1 %cmp, label %for.body, label %for.end
 
 for.body:                                         ; preds = %for.cond
-  %i2 = load i32, i32* %i, align 4
-  %conv1 = sext i32 %i2 to i64
-  %call2 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %input, i64 %conv1) #1
-  %i3 = load i32, i32* %call2, align 4
-  %i4 = load i32, i32* %max_val, align 4
-  %cmp3 = icmp sgt i32 %i3, %i4
-  br i1 %cmp3, label %if.then, label %if.end
+  %i4 = load i32, i32* %i, align 4
+  %conv = sext i32 %i4 to i64
+  %call1 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %input, i64 %conv) #1
+  %i5 = load i32, i32* %call1, align 4
+  %i6 = load i32, i32* %max_val, align 4
+  %cmp2 = icmp sgt i32 %i5, %i6
+  br i1 %cmp2, label %if.then, label %if.end
 
 if.then:                                          ; preds = %for.body
-  %i5 = load i32, i32* %i, align 4
-  %conv4 = sext i32 %i5 to i64
-  %call5 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %input, i64 %conv4) #1
-  %i6 = load i32, i32* %call5, align 4
-  store i32 %i6, i32* %max_val, align 4
+  %i7 = load i32, i32* %i, align 4
+  %conv3 = sext i32 %i7 to i64
+  %call4 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %input, i64 %conv3) #1
+  %i8 = load i32, i32* %call4, align 4
+  store i32 %i8, i32* %max_val, align 4
   br label %if.end
 
 if.end:                                           ; preds = %if.then, %for.body
   br label %for.inc
 
 for.inc:                                          ; preds = %if.end
-  %i7 = load i32, i32* %i, align 4
-  %inc = add nsw i32 %i7, 1
+  %i9 = load i32, i32* %i, align 4
+  %inc = add nsw i32 %i9, 1
   store i32 %inc, i32* %i, align 4
   br label %for.cond
 
 for.end:                                          ; preds = %for.cond
-  %i8 = load i32, i32* %max_val, align 4
-  ret i32 %i8
-}
-
-; Function Attrs: noinline nounwind optnone ssp uwtable
-define linkonce_odr hidden i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %this) #0 align 2 {
-entry:
-  %this.addr = alloca %"class.std::__1::vector"*, align 8
-  store %"class.std::__1::vector"* %this, %"class.std::__1::vector"** %this.addr, align 8
-  %this1 = load %"class.std::__1::vector"*, %"class.std::__1::vector"** %this.addr, align 8
-  %i = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
-  %__end_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i, i32 0, i32 1
-  %i1 = load i32*, i32** %__end_, align 8
-  %i2 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base"*
-  %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %i2, i32 0, i32 0
-  %i3 = load i32*, i32** %__begin_, align 8
-  %sub.ptr.lhs.cast = ptrtoint i32* %i1 to i64
-  %sub.ptr.rhs.cast = ptrtoint i32* %i3 to i64
-  %sub.ptr.sub = sub i64 %sub.ptr.lhs.cast, %sub.ptr.rhs.cast
-  %sub.ptr.div = sdiv exact i64 %sub.ptr.sub, 4
-  ret i64 %sub.ptr.div
+  %i10 = load i32, i32* %max_val, align 4
+  ret i32 %i10
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
