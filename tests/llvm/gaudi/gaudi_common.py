@@ -10,6 +10,7 @@ from metalift.vc_util import and_objects, or_objects
 # Reduce functions
 REDUCESUM = "reduce_sum"
 REDUCEMUL = "reduce_mul"
+REDUCEMAX = "reduce_max"
 
 # Elemwise functions
 VEC_ELEMWISE_ADD = "vec_elemwise_add"
@@ -59,6 +60,8 @@ def call_reduce_sum(lst) -> Int:
 def call_reduce_mul(lst) -> Int:
     return call(REDUCEMUL, Int, lst)
 
+def call_reduce_max(lst) -> Int:
+    return call(REDUCEMAX, Int, lst)
 
 def call_selection_two_args(
     left: mlList[Int],
@@ -85,6 +88,7 @@ an_int_and_arr_to_arr = lambda num, arr: choose(
 an_arr_to_int = lambda arr: choose(
     call_reduce_sum(arr),
     call_reduce_mul(arr),
+    call_reduce_max(arr)
 )
 
 def vec_computation(*args: Object) -> mlList[Int]:
@@ -140,6 +144,15 @@ def reduce_mul_body(lst: mlList[Int]) -> Int:
     return ite(vec_size < 1, Int(1), general_answer)
 reduce_mul = fn_decl_recursive(REDUCEMUL, Int, reduce_mul_body(x), x)
 
+def reduce_max_body(lst: mlList[Int]) -> Int:
+    vec_size = lst.len()
+    cur = lst[0]
+    lst_rest = lst[1:]
+    recursed = call_reduce_max(lst_rest)
+    general_answer = ite(cur > recursed, cur, recursed)
+    return ite(vec_size < 1, Int(0), general_answer)
+reduce_max = fn_decl_recursive(REDUCEMAX, Int, reduce_max_body(x), x)
+
 # Helper functions for selections
 def mul8x8_div255_body(int_x: Int, int_y: Int) -> Int:
     return (int_x * int_y) // 255
@@ -194,22 +207,26 @@ selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y
 def get_select_two_args_general_synth(*args: Object) -> Synth:
     arg_exprs = get_object_exprs(*args)
     arg_expr = choose(*arg_exprs)
-    constant = choose(Int(255), 0 - Int(255))
-    int_exp = choose(arg_expr, constant)
-    for _ in range(1):
+
+    arg_or_cons = choose(arg_expr, Int(0), Int(255))
+    int_exp = arg_or_cons
+    for _ in range(3):
         int_exp = choose(
-            int_exp,
-            int_exp + int_exp,
-            int_exp - int_exp,
-            int_exp * int_exp,
-            int_exp // int_exp
+            arg_or_cons,
+            # int_exp + int_exp,
+            arg_or_cons - int_exp,
+            arg_or_cons // int_exp,
+            # int_exp * int_exp,
+            # int_exp // int_exp
         )
+
+    cond_int_exp = arg_or_cons
     cond = choose(
-        int_exp >= int_exp,
-        int_exp > int_exp,
-        int_exp == int_exp,
-        int_exp < int_exp,
-        int_exp <= int_exp
+        # int_exp >= int_exp,
+        # int_exp > int_exp,
+        cond_int_exp == cond_int_exp,
+        # int_exp < int_exp,
+        # int_exp <= int_exp
     )
     return Synth(
         SELECT_TWO_ARGS,
