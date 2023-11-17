@@ -27,18 +27,21 @@ def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def softmax_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
-    return ret_val == call_reduce_max(input)
+    vec = choose(input, input[:max_pos])
+    return ret_val == an_arr_to_int(vec)
 
 def softmax_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # First loop
     input, max_pos = reads
     i, max_val = writes
     vec = choose(input, input[:i])
+    i_lower_bound = choose(Int(0), Int(1))
+    i_upper_bound = choose(max_pos, input.len())
 
     return and_objects(
-        i >= 0,
-        i <= input.len(),
-        max_val == call_reduce_max(input[:i])
+        i >= i_lower_bound,
+        i <= i_upper_bound,
+        max_val == an_arr_to_int(vec)
     )
 
 def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -97,6 +100,7 @@ if __name__ == "__main__":
     driver.add_var_objects([input_var, max_pos_var])
     driver.add_precondition(input_var.len() > 0)
     driver.add_precondition(max_pos_var <= input_var.len())
+    driver.add_precondition(max_pos_var >= 1)
 
     softmax_part1(input_var, max_pos_var)
     driver.synthesize(noVerify=True)
