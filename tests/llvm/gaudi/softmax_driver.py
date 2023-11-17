@@ -26,7 +26,6 @@ def softmax_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     return ret_val == an_arr_to_int(vec)
 
 def softmax_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    # First loop
     input, max_pos = reads
     i, max_val = writes
     vec = choose(input, input[:i])
@@ -48,12 +47,8 @@ def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 def softmax_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
-        vec_elemwise_add,
-        vec_elemwise_mul,
         vec_scalar_mul,
         vec_scalar_add,
-        reduce_sum,
-        reduce_mul,
         vec_exp_map,
         exp
     ]
@@ -67,7 +62,6 @@ def softmax_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope
 
 
 def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    # Second loop
     input, max_pos, max_val = reads
     out, cur, i = writes
     scalar = choose(max_val, 0 - max_val)
@@ -79,6 +73,27 @@ def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
         i >= lower_bound,
         i <= upper_bound,
         out == an_arr_to_arr(an_int_and_arr_to_arr(scalar, vec))
+    )
+
+def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    return [reduce_sum, reduce_mul, reduce_max]
+
+def softmax_part3_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    ret_val = writes[0]
+    output, max_pos = reads
+    return ret_val == an_arr_to_int(choose(output, output[:max_pos]))
+
+
+def softmax_part3_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    output, max_pos = reads
+    i, sum = writes
+    lower_bound = choose(Int(0), Int(1))
+    upper_bound = choose(max_pos, output.len())
+
+    return and_objects(
+        i >= lower_bound,
+        i <= upper_bound,
+        sum == an_arr_to_int(choose(output, output[:max_pos], output[:i]))
     )
 
 if __name__ == "__main__":
@@ -105,31 +120,53 @@ if __name__ == "__main__":
     # softmax_part1(input_var, max_pos_var)
     # driver.synthesize(noVerify=True)
 
-    # Synthesize part 2
+    # # Synthesize part 2
+    # driver = Driver()
+    # softmax_part2 = driver.analyze(
+    #     llvm_filepath="tests/llvm/gaudi/softmax_part2.ll",
+    #     loops_filepath="tests/llvm/gaudi/softmax_part2.loops",
+    #     fn_name="softmax_part2",
+    #     target_lang_fn=softmax_part2_target_lang,
+    #     inv_grammars={
+    #         "softmax_part2_inv0": InvGrammar(softmax_part2_inv0_grammar, []),
+    #     },
+    #     ps_grammar=softmax_part2_ps_grammar
+    # )
+
+    # input_var = mlList(Int, "input")
+    # max_pos_var = Int("max_pos")
+    # max_val_var = Int("max_val")
+    # driver.add_var_objects([input_var, max_pos_var, max_val_var])
+    # driver.add_precondition(input_var.len() > 0)
+    # driver.add_precondition(max_pos_var <= input_var.len())
+    # driver.add_precondition(max_pos_var >= 1)
+
+    # softmax_part2(input_var, max_pos_var, max_val_var, uninterp_fns=[exp.name()])
+    # driver.synthesize(
+    #     uninterp_fns=[exp.name()],
+    #     unboundedInts=True,
+    #     noVerify=True
+    # )
+
+    # Synthesize part 3
     driver = Driver()
-    softmax_part2 = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/softmax_part2.ll",
-        loops_filepath="tests/llvm/gaudi/softmax_part2.loops",
-        fn_name="softmax_part2",
-        target_lang_fn=softmax_part2_target_lang,
+    softmax_part3 = driver.analyze(
+        llvm_filepath="tests/llvm/gaudi/softmax_part3.ll",
+        loops_filepath="tests/llvm/gaudi/softmax_part3.loops",
+        fn_name="softmax_part3",
+        target_lang_fn=softmax_part3_target_lang,
         inv_grammars={
-            "softmax_part2_inv0": InvGrammar(softmax_part2_inv0_grammar, []),
+            "softmax_part3_inv0": InvGrammar(softmax_part3_inv0_grammar, []),
         },
-        ps_grammar=softmax_part2_ps_grammar
+        ps_grammar=softmax_part3_ps_grammar
     )
 
-    input_var = mlList(Int, "input")
+    output_var = mlList(Int, "output")
     max_pos_var = Int("max_pos")
-    max_val_var = Int("max_val")
-    driver.add_var_objects([input_var, max_pos_var, max_val_var])
-    driver.add_precondition(input_var.len() > 0)
-    driver.add_precondition(max_pos_var <= input_var.len())
+    driver.add_var_objects([output_var, max_pos_var])
+    driver.add_precondition(output_var.len() > 0)
+    driver.add_precondition(max_pos_var <= output_var.len())
     driver.add_precondition(max_pos_var >= 1)
 
-    softmax_part2(input_var, max_pos_var, max_val_var, uninterp_fns=[exp.name()])
-    driver.synthesize(
-        uninterp_fns=[exp.name()],
-        unboundedInts=True,
-        noVerify=True
-    )
-
+    softmax_part3(output_var, max_pos_var)
+    driver.synthesize(noVerify=True)
