@@ -2,7 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int
-from metalift.ir import List as mlList
+from metalift.ir import Matrix
 from tests.llvm.gaudi.gaudi_common import (
     nested_list_computation_inv0_grammar, nested_list_computation_inv1_grammar,
     nested_list_computation_ps_grammar_fn, nested_list_computation_target_lang)
