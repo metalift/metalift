@@ -1,16 +1,13 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, List as mlList, Matrix
-from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
+from metalift.ir import Int, Matrix
+from tests.llvm.gaudi.gaudi_common import (get_select_two_args_general_synth,
                                            selection_two_args_inv0_grammar,
                                            selection_two_args_inv1_grammar,
                                            selection_two_args_ps_grammar_fn,
                                            selection_two_args_synth,
-                                           selection_two_args_target_lang,
-                                           select_two_args_general_synth,
-                                           uninterp_div
-                                           )
+                                           selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -19,7 +16,7 @@ if __name__ == "__main__":
         llvm_filepath="tests/llvm/gaudi/color_dodge_8.ll",
         loops_filepath="tests/llvm/gaudi/color_dodge_8.loops",
         fn_name="color_dodge_8",
-        target_lang_fn=selection_two_args_target_lang + [uninterp_div],
+        target_lang_fn=selection_two_args_target_lang,
         inv_grammars={
             "color_dodge_8_inv0": selection_two_args_inv0_grammar,
             "color_dodge_8_inv1": selection_two_args_inv1_grammar
@@ -36,16 +33,20 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    driver.fns_synths = [select_two_args_general_synth, selection_two_args_synth]
-    color_dodge_8(base, active, uninterp_fns=[uninterp_div.name()])
+    int_x = Int("int_x")
+    int_y = Int("int_y")
+    select_synth = get_select_two_args_general_synth(
+        args=[int_x, int_y],
+        constants=[Int(255)],
+        compute_ops=["-", "//"],
+        compare_ops=["<"],
+        depth=2
+    )
+    driver.fns_synths = [select_synth, selection_two_args_synth]
+    color_dodge_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(
-        listBound=2,
-        noVerify=True,
-        uninterp_fns=[uninterp_div.name()],
-        unboundedInts=True
-    )
+    driver.synthesize(listBound=2, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_dodge_8.codegen(codegen))

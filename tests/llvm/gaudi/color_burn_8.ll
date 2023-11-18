@@ -121,8 +121,8 @@ if.else:                                          ; preds = %for.body6
   %conv18 = sext i32 %i12 to i64
   %call19 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call17, i64 %conv18) #11
   %i13 = load i32, i32* %call19, align 4
-  %mul = mul nsw i32 %sub, %i13
-  %sub20 = sub nsw i32 255, %mul
+  %div = sdiv i32 %sub, %i13
+  %sub20 = sub nsw i32 255, %div
   store i32 %sub20, i32* %pixel, align 4
   br label %if.end
 

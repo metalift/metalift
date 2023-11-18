@@ -13,7 +13,7 @@ vector<vector<int>> color_burn_8(vector<vector<int>> base, vector<vector<int>> a
             if (active[row][col] == 0)
                 pixel = 255;
             else
-                pixel = 255 - (255 - base[row][col]) * active[row][col];
+                pixel = 255 - (255 - base[row][col]) / active[row][col];
             row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);
