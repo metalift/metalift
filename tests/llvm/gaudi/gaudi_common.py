@@ -1,12 +1,12 @@
 import typing
-from typing import Callable, List, Union
+from typing import Any, Callable, List, Union
 
 from metalift.frontend.llvm import InvGrammar
-from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, is_matrix_type
 from metalift.ir import List as mlList
 from metalift.ir import (Matrix, Object, Synth, call, call_value, choose,
                          fn_decl, fn_decl_recursive, get_list_element_type,
-                         get_object_exprs, is_list_type, is_nested_list_type,
+                         get_object_exprs, is_list_type,
                          is_primitive_type, ite)
 from metalift.vc_util import and_objects, or_objects
 
@@ -18,16 +18,23 @@ REDUCEMAX = "reduce_max"
 # Elemwise functions
 VEC_ELEMWISE_ADD = "vec_elemwise_add"
 NESTED_LIST_ELEMWISE_ADD = "nested_list_elemwise_add"
+VEC_ELEMWISE_SUB = "vec_elemwise_sub"
+NESTED_LIST_ELEMWISE_SUB = "nested_list_elemwise_sub"
 VEC_ELEMWISE_MUL = "vec_elemwise_mul"
 NESTED_LIST_ELEMWISE_MUL = "nested_list_elemwise_mul"
+VEC_ELEMWISE_DIV = "vec_elemwise_div"
+NESTED_LIST_ELEMWISE_DIV = "nested_list_elemwise_div"
 
 # Scalar functions
 VEC_SCALAR_ADD = "vec_scalar_add"
 NESTED_LIST_SCALAR_ADD = "nested_list_scalar_add"
 VEC_SCALAR_MUL = "vec_scalar_mul"
 NESTED_LIST_SCALAR_MUL = "nested_list_scalar_mul"
+# scalar on the right hand side
 VEC_SCALAR_DIV = "vec_scalar_div"
 NESTED_LIST_SCALAR_DIV = "nested_list_scalar_div"
+VEC_SCALAR_SUB = "vec_scalar_sub"
+NESTED_LIST_SCALAR_SUB = "nested_list_scalar_sub"
 
 # Selection functions
 SELECT_TWO_ARGS = "select_two_args"
@@ -45,8 +52,14 @@ NESTED_LIST_MAP_EXP_FN_NAME = "nested_list_map_exp"
 def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
 
+def call_vec_elemwise_sub(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    return call(VEC_ELEMWISE_SUB, mlList[Int], left, right)
+
 def call_vec_elemwise_mul(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_MUL, mlList[Int], left, right)
+
+def call_vec_elemwise_div(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    return call(VEC_ELEMWISE_DIV, mlList[Int], left, right)
 
 def call_vec_scalar_add(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_ADD, mlList[Int], scalar, vec)
@@ -57,14 +70,23 @@ def call_vec_scalar_mul(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
 def call_vec_scalar_div(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_DIV, mlList[Int], scalar, vec)
 
+def call_vec_scalar_sub(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(VEC_SCALAR_SUB, mlList[Int], scalar, vec)
+
 def call_nested_list_elemwise_add(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
     return call(NESTED_LIST_ELEMWISE_ADD, Matrix[Int], left, right)
 
-def call_nested_list_elemwise_mul(left: mlList[mlList[Int]], right: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_ELEMWISE_MUL, mlList[mlList[Int]], left, right)
+def call_nested_list_elemwise_sub(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_ELEMWISE_SUB, Matrix[Int], left, right)
 
-def call_nested_list_scalar_add(scalar: Int, nested_list: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_SCALAR_ADD, mlList[mlList[Int]], scalar, nested_list)
+def call_nested_list_elemwise_mul(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_ELEMWISE_MUL, Matrix[Int], left, right)
+
+def call_nested_list_elemwise_div(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_ELEMWISE_DIV, Matrix[Int], left, right)
+
+def call_nested_list_scalar_add(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_SCALAR_ADD, Matrix[Int], scalar, nested_list)
 
 def call_nested_list_scalar_mul(scalar: Int, nested_list: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
     return call(NESTED_LIST_SCALAR_MUL, mlList[mlList[Int]], scalar, nested_list)
@@ -72,6 +94,8 @@ def call_nested_list_scalar_mul(scalar: Int, nested_list: mlList[mlList[Int]]) -
 def call_nested_list_scalar_div(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
     return call(NESTED_LIST_SCALAR_DIV, Matrix[Int], scalar, nested_list)
 
+def call_nested_list_scalar_sub(scalar: Int, nested_list: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_SCALAR_SUB, Matrix[Int], scalar, nested_list)
 
 def call_reduce_sum(lst) -> Int:
     return call(REDUCESUM, Int, lst)
@@ -102,8 +126,8 @@ def call_exp(x: Int) -> Int:
 def call_vec_map_exp(x: mlList[Int]) -> mlList[Int]:
     return call(VEC_MAP_EXP_FN_NAME, mlList[Int], x)
 
-def call_nested_list_map_exp(x: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
-    return call(NESTED_LIST_MAP_EXP_FN_NAME, mlList[mlList[Int]], x)
+def call_nested_list_map_exp(x: Matrix[Int]) -> Matrix[Int]:
+    return call(NESTED_LIST_MAP_EXP_FN_NAME, Matrix[Int], x)
 
 def call_uninterp_div(x: Int, y: Int) -> Int:
     return call(UNINTERP_DIV_FN_NAME, Int, x, y)
@@ -126,31 +150,67 @@ an_arr_to_arr = lambda arr: choose(
     call_vec_map_exp(arr)
 )
 
-def vec_computation(*args: Object) -> mlList[Int]:
-    e = choose(*args)
-    constant = choose(Int(0), Int(255))
-    for _ in range(1):
-        e = choose(
-            e,
-            call_vec_elemwise_add(e, e),
-            call_vec_elemwise_mul(e, e),
-            call_vec_scalar_add(constant, e),
-            call_vec_scalar_mul(constant, e)
-        )
-    return e
+def vec_computation(
+    args: List[mlList[Int]],
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+) -> mlList[Int]:
+    op_to_scalar_call_mapping = {
+        "+": call_vec_scalar_add,
+        "-": call_vec_scalar_sub,
+        "*": call_vec_scalar_mul,
+        "//": call_vec_scalar_div,
+    }
+    op_to_elemwise_call_mapping = {
+        "+": call_vec_elemwise_add,
+        "-": call_vec_elemwise_sub,
+        "*": call_vec_elemwise_mul,
+        "//": call_vec_elemwise_div,
+    }
+    vec = choose(*args)
+    cons = None
+    if len(constants) > 0:
+        cons = choose(*constants)
+    for _ in range(depth):
+        choices = [vec]
+        for op in compute_ops:
+            if cons is not None:
+                choices.append(op_to_scalar_call_mapping[op](cons, vec))
+            choices.append(op_to_elemwise_call_mapping[op](vec, vec))
+        vec = choose(*choices)
+    return vec
 
-def nested_list_computation(*args: Object) -> mlList[mlList[Int]]:
-    e = choose(*args)
-    constant = choose(Int(0), Int(255), 0 - Int(255))
-    for _ in range(2):
-        e = choose(
-            e,
-            call_nested_list_elemwise_add(e, e),
-            call_nested_list_elemwise_mul(e, e),
-            call_nested_list_scalar_add(constant, e),
-            call_nested_list_scalar_mul(constant, e)
-        )
-    return e
+def nested_list_computation(
+    args: List[Matrix[Int]],
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+) -> Matrix[Int]:
+    op_to_scalar_call_mapping = {
+        "+": call_nested_list_scalar_add,
+        "-": call_nested_list_scalar_sub,
+        "*": call_nested_list_scalar_mul,
+        "//": call_nested_list_scalar_div,
+    }
+    op_to_elemwise_call_mapping = {
+        "+": call_nested_list_elemwise_add,
+        "-": call_nested_list_elemwise_sub,
+        "*": call_nested_list_elemwise_mul,
+        "//": call_nested_list_elemwise_div,
+    }
+    nested_list = choose(*args)
+    cons = None
+    if len(constants) > 0:
+        cons = choose(*constants)
+    for _ in range(depth):
+        choices = [nested_list]
+        for op in compute_ops:
+            if cons is not None:
+                choices.append(op_to_scalar_call_mapping[op](cons, nested_list))
+            choices.append(op_to_elemwise_call_mapping[op](nested_list, nested_list))
+        nested_list = choose(*choices)
+    return nested_list
 
 # Define some common objects
 a = Int("a")
@@ -274,9 +334,6 @@ def get_select_two_args_general_synth(
     compare_ops: List[str],
     depth: int,
 ) -> Synth:
-    arg_exprs = get_object_exprs(*args)
-    cons_exprs = get_object_exprs(*constants)
-
     # arg_or_cons = choose(arg_expr, Int(0), Int(255))
     # if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
     # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
@@ -295,7 +352,7 @@ def get_select_two_args_general_synth(
     #     ite(cond, if_then_int_exp, if_else_int_exp).src,
     #     *get_object_exprs(*args)
     # )
-    int_exp = choose(*arg_exprs, *cons_exprs)
+    int_exp = choose(*args, *constants)
     for _ in range(depth):
         possible_choices = [int_exp]
         if "+" in compute_ops:
@@ -362,7 +419,7 @@ def nested_selection_two_args_body(
     general_answer = recursed.prepend(cur)
     return ite(
         or_objects(left.len() < 1, left.len() != right.len()),
-        mlList.empty(mlList[Int]),
+        Matrix.empty(Int),
         general_answer
     )
 nested_selection_two_args_fn_decl = fn_decl_recursive(
@@ -523,14 +580,14 @@ def elemwise_body(
     compute_fn: Callable[[Int, Int], Int],
     vec_fn_name: str,
     nested_list_fn_name: str
-) -> Union[mlList[Int], mlList[mlList[Int]]]:
-    if is_nested_list_type(left.type) and is_nested_list_type(right.type):
+) -> Union[mlList[Int], Matrix[Int]]:
+    if is_matrix_type(left.type) and is_matrix_type(right.type):
         cur = call(vec_fn_name, mlList[Int], left[0], right[0])
         recursed = call(nested_list_fn_name, mlList[mlList[Int]], left[1:], right[1:])
         general_answer = recursed.prepend(cur)
         return ite(
             or_objects(left.len() < 1, left.len() != right.len()),
-            mlList.empty(mlList[Int]),
+            Matrix.empty(Int),
             general_answer
         )
     elif is_list_type(left.type) and is_primitive_type(get_list_element_type(left.type)) and is_list_type(right.type) and is_primitive_type(get_list_element_type(right.type)):
@@ -550,14 +607,14 @@ def scalar_body(
     compute_fn: Callable[[Int, Int], Int],
     vec_fn_name: str,
     nested_list_fn_name: str
-) -> Union[mlList[Int], mlList[mlList[Int]]]:
-    if is_nested_list_type(vec_or_nested_list.type):
+) -> Union[mlList[Int], Matrix[Int]]:
+    if is_matrix_type(vec_or_nested_list.type):
         cur = call(vec_fn_name, mlList[Int], scalar, vec_or_nested_list[0])
         recursed = call(nested_list_fn_name, mlList[mlList[Int]], scalar, vec_or_nested_list[1:])
         general_answer = recursed.prepend(cur)
         return ite(
             or_objects(vec_or_nested_list.len() < 1),
-            mlList.empty(mlList[Int]),
+            Matrix.empty(Int),
             general_answer
         )
     elif is_list_type(vec_or_nested_list.type) and is_primitive_type(get_list_element_type(vec_or_nested_list.type)):
@@ -577,13 +634,13 @@ def map_body(
     vec_map_fn_name: str,
     nested_list_map_fn_name: str
 ) -> Union[mlList[Int], Matrix[Int]]:
-    if is_nested_list_type(vec_or_nested_list.type):
+    if is_matrix_type(vec_or_nested_list.type):
         cur = call(vec_map_fn_name, mlList[Int], vec_or_nested_list[0])
         recursed = call(nested_list_map_fn_name, Matrix[Int], vec_or_nested_list[1:])
         general_answer = recursed.prepend(cur)
         return ite(
             or_objects(vec_or_nested_list.len() < 1),
-            mlList.empty(mlList[Int]),
+            Matrix.empty(Int),
             general_answer
         )
     elif is_list_type(vec_or_nested_list.type) and is_primitive_type(get_list_element_type(vec_or_nested_list.type)):
@@ -624,6 +681,33 @@ nested_list_elemwise_add = fn_decl_recursive(
     nested_y
 )
 
+vec_elemwise_sub = fn_decl_recursive(
+    VEC_ELEMWISE_SUB,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x - int_y,
+        vec_fn_name=VEC_ELEMWISE_SUB,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_SUB
+    ),
+    x,
+    y
+)
+nested_list_elemwise_sub = fn_decl_recursive(
+    NESTED_LIST_ELEMWISE_SUB,
+    Matrix[Int],
+    elemwise_body(
+        left=nested_x,
+        right=nested_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_SUB,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_SUB
+    ),
+    nested_x,
+    nested_y
+)
+
 vec_elemwise_mul = fn_decl_recursive(
     VEC_ELEMWISE_MUL,
     mlList[Int],
@@ -646,6 +730,33 @@ nested_list_elemwise_mul = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x * int_y,
         vec_fn_name=VEC_ELEMWISE_MUL,
         nested_list_fn_name=NESTED_LIST_ELEMWISE_MUL
+    ),
+    nested_x,
+    nested_y
+)
+
+vec_elemwise_div = fn_decl_recursive(
+    VEC_ELEMWISE_DIV,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x // int_y,
+        vec_fn_name=VEC_ELEMWISE_DIV,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_DIV
+    ),
+    x,
+    y
+)
+nested_list_elemwise_div = fn_decl_recursive(
+    NESTED_LIST_ELEMWISE_DIV,
+    Matrix[Int],
+    elemwise_body(
+        left=nested_x,
+        right=nested_y,
+        compute_fn=lambda int_x, int_y: int_x // int_y,
+        vec_fn_name=VEC_ELEMWISE_DIV,
+        nested_list_fn_name=NESTED_LIST_ELEMWISE_DIV
     ),
     nested_x,
     nested_y
@@ -732,137 +843,221 @@ nested_list_scalar_div = fn_decl_recursive(
     nested_x
 )
 
+vec_scalar_sub = fn_decl_recursive(
+    VEC_SCALAR_SUB,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=x,
+        compute_fn=lambda scalar, int_x: int_x - scalar,
+        vec_fn_name=VEC_SCALAR_SUB,
+        nested_list_fn_name=NESTED_LIST_SCALAR_SUB
+    ),
+    a,
+    x
+)
+nested_list_scalar_sub = fn_decl_recursive(
+    NESTED_LIST_SCALAR_SUB,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_nested_list=nested_x,
+        compute_fn=lambda scalar, int_x: int_x - scalar,
+        vec_fn_name=VEC_SCALAR_SUB,
+        nested_list_fn_name=NESTED_LIST_SCALAR_SUB
+    ),
+    a,
+    nested_x
+)
 
-def nested_list_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
-    base, active = reads
-    e = choose(base, active)
-    constant = choose(Int(0), Int(1), Int(255))
-    e = choose(
-        e,
-        nested_list_elemwise_add(e, e),
-        nested_list_elemwise_mul(e, e),
-        nested_list_scalar_add(constant, e),
-        nested_list_scalar_mul(constant, e)
-    )
-    return ret_val == e
 
-def nested_list_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
-    base, active = reads
-    return ret_val == nested_list_computation(base, active)
+def get_nested_list_computation_ps_grammar_fn(
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+):
+    def nested_list_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        ret_val = writes[0]
+        base, active = reads
+        return ret_val == nested_list_computation(
+            args=[base, active],
+            constants=constants,
+            compute_ops=compute_ops,
+            depth=depth
+        )
+    return nested_list_computation_ps_grammar_fn
 
-def nested_list_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    # outer loop grammar
-    out, col, pixel, row, row_vec = writes
-    base, active = reads
-    index_lower_bound = choose(Int(0) - 1, Int(0), Int(1))
-    index_upper_bound = choose(base.len(), base[0].len())
-    index_lower_cond = choose(
-        row >= index_lower_bound,
-        row > index_lower_bound,
-        # row == index_lower_bound,
-        # row < index_lower_bound,
-        # row <= index_lower_bound
-    )
-    index_upper_cond = choose(
-        # row >= index_upper_bound,
-        # row > index_upper_bound,
-        # row == index_upper_bound,
-        row < index_upper_bound,
-        row <= index_upper_bound
-    )
-    # nested_list = choose(
-    #     base,
-    #     base[:row],
-    #     base[:col],
-    #     active,
-    #     active[:row],
-    #     active[:col],
-    # )
-    nested_list = choose(base[:row], active[:row])
-    return and_objects(
-        index_lower_cond,
-        index_upper_cond,
-        out == nested_list_computation(nested_list, nested_list)
-    )
+def get_nested_list_computation_inv0_grammar_fn(
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+):
+    def nested_list_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        index_lower_bound = choose(Int(0), Int(1))
+        index_upper_bound = choose(base.len(), base[0].len())
+        index_lower_cond = choose(
+            row >= index_lower_bound,
+            row > index_lower_bound,
+            row == index_lower_bound,
+            row < index_lower_bound,
+            row <= index_lower_bound
+        )
+        index_upper_cond = choose(
+            row >= index_upper_bound,
+            row > index_upper_bound,
+            row == index_upper_bound,
+            row < index_upper_bound,
+            row <= index_upper_bound
+        )
+        nested_list_choices = [
+            base,
+            base[:row],
+            base[:col],
+            active,
+            active[:row],
+            active[:col],
+        ]
+        return and_objects(
+            index_lower_cond,
+            index_upper_cond,
+            out == nested_list_computation(
+                args=nested_list_choices,
+                constants=constants,
+                compute_ops=compute_ops,
+                depth=depth
+            )
+        )
+    return nested_list_computation_inv0_grammar_fn
 
-def nested_list_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    # inner loop grammar
-    col, pixel, row_vec = writes
-    out, row = in_scope
-    base, active = reads
-    index_lower_bound = choose(Int(0) - 1, Int(0), Int(1))
-    index_upper_bound = choose(base.len(), base[0].len())
-    outer_index_lower_cond = choose(
-        row >= index_lower_bound,
-        row > index_lower_bound,
-        # row == index_lower_bound,
-        # row < index_lower_bound,
-        # row <= index_lower_bound
-    )
-    outer_index_upper_cond = choose(
-        # row >= index_upper_bound,
-        # row > index_upper_bound,
-        # row == index_upper_bound,
-        row < index_upper_bound,
-        row <= index_upper_bound
-    )
-    inner_index_lower_cond = choose(
-        col >= index_lower_bound,
-        col > index_lower_bound,
-        col == index_lower_bound,
-        col < index_lower_bound,
-        col <= index_lower_bound
-    )
-    inner_index_upper_cond = choose(
-        col >= index_upper_bound,
-        col > index_upper_bound,
-        col == index_upper_bound,
-        col < index_upper_bound,
-        col <= index_upper_bound
-    )
-    vec = choose(
-        base[0][:col],
-        base[row][:col],
-        base[col][:row],
-        base[0][:row],
-        active[0][:col],
-        active[row][:col],
-        active[col][:row],
-        active[0][:row],
-        row_vec
-    )
-    nested_list = choose(
-        base,
-        base[:row],
-        base[:col],
-        active,
-        active[:row],
-        active[:col]
-    )
-    return and_objects(
-        outer_index_lower_cond,
-        outer_index_upper_cond,
-        inner_index_lower_cond,
-        inner_index_upper_cond,
-        row_vec == vec_computation(vec, vec),
-        out == nested_list_computation(nested_list, nested_list)
-    )
+def get_nested_list_computation_inv1_grammar_fn(
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+):
+    def nested_list_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # inner loop grammar
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        index_lower_bound = choose(Int(0), Int(1))
+        index_upper_bound = choose(base.len(), base[0].len())
+        outer_index_lower_cond = choose(
+            row >= index_lower_bound,
+            row > index_lower_bound,
+            row == index_lower_bound,
+            row < index_lower_bound,
+            row <= index_lower_bound
+        )
+        outer_index_upper_cond = choose(
+            row >= index_upper_bound,
+            row > index_upper_bound,
+            row == index_upper_bound,
+            row < index_upper_bound,
+            row <= index_upper_bound
+        )
+        inner_index_lower_cond = choose(
+            col >= index_lower_bound,
+            col > index_lower_bound,
+            col == index_lower_bound,
+            col < index_lower_bound,
+            col <= index_lower_bound
+        )
+        inner_index_upper_cond = choose(
+            col >= index_upper_bound,
+            col > index_upper_bound,
+            col == index_upper_bound,
+            col < index_upper_bound,
+            col <= index_upper_bound
+        )
+        vec_choices = [
+            base[0][:col],
+            base[row][:col],
+            base[col][:row],
+            base[0][:row],
+            active[0][:col],
+            active[row][:col],
+            active[col][:row],
+            active[0][:row],
+            row_vec
+        ]
+        nested_list_choices = [
+            base,
+            base[:row],
+            base[:col],
+            active,
+            active[:row],
+            active[:col]
+        ]
+        return and_objects(
+            outer_index_lower_cond,
+            outer_index_upper_cond,
+            inner_index_lower_cond,
+            inner_index_upper_cond,
+            row_vec == vec_computation(
+                args=vec_choices,
+                constants=constants,
+                compute_ops=compute_ops,
+                depth=depth
+            ),
+            out == nested_list_computation(
+                args=nested_list_choices,
+                constants=constants,
+                compute_ops=compute_ops,
+                depth=depth
+            )
+        )
+    return nested_list_computation_inv1_grammar_fn
 
 def nested_list_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         vec_elemwise_add,
         nested_list_elemwise_add,
+        vec_elemwise_sub,
+        nested_list_elemwise_sub,
         vec_elemwise_mul,
         nested_list_elemwise_mul,
+        vec_elemwise_div,
+        nested_list_elemwise_div,
         vec_scalar_add,
         nested_list_scalar_add,
+        vec_scalar_sub,
+        nested_list_scalar_sub,
         vec_scalar_mul,
-        nested_list_scalar_mul
+        nested_list_scalar_mul,
+        vec_scalar_div,
+        nested_list_scalar_div
     ]
-nested_list_computation_inv0_grammar = InvGrammar(nested_list_computation_inv0_grammar_fn, [])
-nested_list_computation_inv1_grammar = InvGrammar(nested_list_computation_inv1_grammar_fn, ["row", "agg.result"])
+
+def get_nested_list_computation_grammars(
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+):
+    inv0_grammar = InvGrammar(
+        get_nested_list_computation_inv0_grammar_fn(
+            constants=constants,
+            compute_ops=compute_ops,
+            depth=depth
+        ),
+        []
+    )
+    inv1_grammar = InvGrammar(
+        get_nested_list_computation_inv1_grammar_fn(
+            constants=constants,
+            compute_ops=compute_ops,
+            depth=depth
+        ),
+        ["row", "agg.result"]
+    )
+    ps_grammar = get_nested_list_computation_ps_grammar_fn(
+        constants=constants,
+        compute_ops=compute_ops,
+        depth=depth
+    )
+    return inv0_grammar, inv1_grammar, ps_grammar
 
 # Uninterpreted functions
 exp = fn_decl(EXP_FN_NAME, Int, None, int_x)
