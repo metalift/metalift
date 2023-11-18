@@ -53,11 +53,13 @@ def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, List)
 
+
 def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
     if isinstance(ty, _GenericAlias):
         return issubclass(get_origin(ty), Matrix)  # type: ignore
     else:
         return issubclass(ty, Matrix)
+
 
 def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     contained_type = get_args(ty)[0]
