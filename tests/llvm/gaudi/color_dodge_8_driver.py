@@ -8,7 +8,8 @@ from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
                                            selection_two_args_ps_grammar_fn,
                                            selection_two_args_synth,
                                            selection_two_args_target_lang,
-                                           select_two_args_general_synth
+                                           select_two_args_general_synth,
+                                           uninterp_div
                                            )
 from tests.python.utils.utils import codegen
 
@@ -18,7 +19,7 @@ if __name__ == "__main__":
         llvm_filepath="tests/llvm/gaudi/color_dodge_8.ll",
         loops_filepath="tests/llvm/gaudi/color_dodge_8.loops",
         fn_name="color_dodge_8",
-        target_lang_fn=selection_two_args_target_lang,
+        target_lang_fn=selection_two_args_target_lang + [uninterp_div],
         inv_grammars={
             "color_dodge_8_inv0": selection_two_args_inv0_grammar,
             "color_dodge_8_inv1": selection_two_args_inv1_grammar
@@ -36,10 +37,15 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = [select_two_args_general_synth, selection_two_args_synth]
-    color_dodge_8(base, active)
+    color_dodge_8(base, active, uninterp_fns=[uninterp_div.name()])
 
     start_time = time.time()
-    driver.synthesize(listBound=3, noVerify=True)
+    driver.synthesize(
+        listBound=2,
+        noVerify=True,
+        uninterp_fns=[uninterp_div.name()],
+        unboundedInts=True
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_dodge_8.codegen(codegen))

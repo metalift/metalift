@@ -8,7 +8,7 @@ from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
                                            selection_two_args_ps_grammar_fn,
                                            selection_two_args_synth,
                                            select_two_args_general_synth,
-                                           selection_two_args_target_lang)
+                                           selection_two_args_target_lang, uninterp_div)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -38,7 +38,11 @@ if __name__ == "__main__":
     color_burn_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=2, noVerify=True)
+    driver.synthesize(
+        listBound=2,
+        noVerify=True,
+        unboundedInts=True
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_burn_8.codegen(codegen))

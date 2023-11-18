@@ -36,6 +36,7 @@ NESTED_SELECTION_TWO_ARGS = "nested_selection_two_args"
 
 # Uninterpreted functions
 EXP_FN_NAME = "exp"
+UNINTERP_DIV_FN_NAME = "uninterp_div"
 
 # Operations that involve uninterpreted functions
 VEC_MAP_EXP_FN_NAME = "map_exp"
@@ -103,6 +104,9 @@ def call_vec_map_exp(x: mlList[Int]) -> mlList[Int]:
 
 def call_nested_list_map_exp(x: mlList[mlList[Int]]) -> mlList[mlList[Int]]:
     return call(NESTED_LIST_MAP_EXP_FN_NAME, mlList[mlList[Int]], x)
+
+def call_uninterp_div(x: Int, y: Int) -> Int:
+    return call(UNINTERP_DIV_FN_NAME, Int, x, y)
 
 an_arr2_to_arr = lambda left, right: choose(
     call_vec_elemwise_mul(left, right),
@@ -268,17 +272,10 @@ def get_select_two_args_general_synth(*args: Object) -> Synth:
     arg_expr = choose(*arg_exprs)
 
     arg_or_cons = choose(arg_expr, Int(0), Int(255))
-    int_exp = arg_or_cons
-    for _ in range(3):
-        int_exp = choose(
-            arg_or_cons,
-            # int_exp + int_exp,
-            arg_or_cons - int_exp,
-            arg_or_cons // int_exp,
-            # int_exp * int_exp,
-            # int_exp // int_exp
-        )
-
+    if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
+    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
+    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp // if_else_int_exp)
+    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
     cond_int_exp = arg_or_cons
     cond = choose(
         # int_exp >= int_exp,
@@ -289,7 +286,7 @@ def get_select_two_args_general_synth(*args: Object) -> Synth:
     )
     return Synth(
         SELECT_TWO_ARGS,
-        ite(cond, int_exp, int_exp).src,
+        ite(cond, if_then_int_exp, if_else_int_exp).src,
         *get_object_exprs(*args)
     )
 
@@ -850,3 +847,5 @@ nested_list_exp_map = fn_decl_recursive(
     ),
     nested_x
 )
+
+uninterp_div = fn_decl(UNINTERP_DIV_FN_NAME, Int, None, int_x, int_y)
