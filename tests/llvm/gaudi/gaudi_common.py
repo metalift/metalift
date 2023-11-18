@@ -274,7 +274,7 @@ def get_select_two_args_general_synth(*args: Object) -> Synth:
     arg_or_cons = choose(arg_expr, Int(0), Int(255))
     if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
     if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
-    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp // if_else_int_exp)
+    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp * if_else_int_exp)
     if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
     cond_int_exp = arg_or_cons
     cond = choose(
