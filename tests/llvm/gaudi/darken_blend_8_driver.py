@@ -1,8 +1,8 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, List as mlList, Matrix
-from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth,
+from metalift.ir import Int, Matrix
+from tests.llvm.gaudi.gaudi_common import (get_select_two_args_general_synth,
                                            selection_two_args_inv0_grammar,
                                            selection_two_args_inv1_grammar,
                                            selection_two_args_ps_grammar_fn,
@@ -66,11 +66,20 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    driver.fns_synths = [select_two_args_general_synth, selection_two_args_synth]
+    int_x = Int("int_x")
+    int_y = Int("int_y")
+    select_synth = get_select_two_args_general_synth(
+        args=[int_x, int_y],
+        constants=[],
+        compute_ops=[],
+        compare_ops=[">"],
+        depth=0
+    )
+    driver.fns_synths = [select_synth, selection_two_args_synth]
     darken_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=3, noVerify=True)
+    driver.synthesize(listBound=2, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + darken_blend_8.codegen(codegen))

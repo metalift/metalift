@@ -200,7 +200,10 @@ def toRosette(
         "#lang rosette\n"
         + '(require "./bounded.rkt")\n'
         + '(require "./utils.rkt")\n'
-        + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n\n",
+        + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n"
+        + "(require rosette/solver/smt/z3)\n"
+        + "(current-solver (z3 #:options (hash ':random-seed 0)))\n"
+        + "\n",
         file=f,
     )
 

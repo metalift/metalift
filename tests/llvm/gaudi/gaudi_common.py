@@ -267,26 +267,61 @@ select_two_args_fn_obj = Fn((Int, Int, Int), SELECT_TWO_ARGS)
 select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, Int, None, int_x, int_y)
 selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y, select_two_args_fn_obj)
 
-def get_select_two_args_general_synth(*args: Object) -> Synth:
+def get_select_two_args_general_synth(
+    args: List[Object],
+    constants: List[Int],
+    compute_ops: List[str],
+    compare_ops: List[str],
+    depth: int,
+) -> Synth:
     arg_exprs = get_object_exprs(*args)
-    arg_expr = choose(*arg_exprs)
+    cons_exprs = get_object_exprs(*constants)
 
-    arg_or_cons = choose(arg_expr, Int(0), Int(255))
-    if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
-    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
-    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp * if_else_int_exp)
-    if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
-    cond_int_exp = arg_or_cons
-    cond = choose(
-        # int_exp >= int_exp,
-        # int_exp > int_exp,
-        cond_int_exp == cond_int_exp,
-        # int_exp < int_exp,
-        # int_exp <= int_exp
-    )
+    # arg_or_cons = choose(arg_expr, Int(0), Int(255))
+    # if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
+    # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
+    # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp // if_else_int_exp)
+    # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
+    # cond_int_exp = arg_or_cons
+    # cond = choose(
+    #     cond_int_exp >= cond_int_exp,
+    #     cond_int_exp > cond_int_exp,
+    #     cond_int_exp == cond_int_exp,
+    #     cond_int_exp < cond_int_exp,
+    #     cond_int_exp <= cond_int_exp
+    # )
+    # return Synth(
+    #     SELECT_TWO_ARGS,
+    #     ite(cond, if_then_int_exp, if_else_int_exp).src,
+    #     *get_object_exprs(*args)
+    # )
+    int_exp = choose(*arg_exprs, *cons_exprs)
+    for _ in range(depth):
+        possible_choices = [int_exp]
+        if "+" in compute_ops:
+            possible_choices.append(int_exp + int_exp)
+        if "-" in compute_ops:
+            possible_choices.append(int_exp - int_exp)
+        if "*" in compute_ops:
+            possible_choices.append(int_exp * int_exp)
+        if "//" in compute_ops:
+            possible_choices.append(int_exp // int_exp)
+        int_exp = choose(*possible_choices)
+    cond_choices: List[Bool] = []
+    if ">=" in compare_ops:
+        cond_choices.append(int_exp >= int_exp)
+    if ">" in compare_ops:
+        cond_choices.append(int_exp > int_exp)
+    if "==" in compare_ops:
+        cond_choices.append(int_exp == int_exp)
+    if "<" in compare_ops:
+        cond_choices.append(int_exp < int_exp)
+    if "<=" in compare_ops:
+        cond_choices.append(int_exp <= int_exp)
+    cond = choose(*cond_choices)
     return Synth(
         SELECT_TWO_ARGS,
-        ite(cond, if_then_int_exp, if_else_int_exp).src,
+        ite(cond, int_exp, int_exp).src,
         *get_object_exprs(*args)
     )
 
@@ -351,7 +386,13 @@ all_possible_select_two_args_bodies = [
     select_darken_blend_body(int_x, int_y)
 ]
 all_possible_selects_two_args_synth = get_select_two_args_synth(all_possible_select_two_args_bodies, [int_x, int_y])
-select_two_args_general_synth = get_select_two_args_general_synth(int_x, int_y)
+select_two_args_general_synth = get_select_two_args_general_synth(
+    args=[int_x, int_y],
+    constants=[Int(0), Int(1), Int(128), Int(255)],
+    compute_ops=["+", "-", "*", "//"],
+    compare_ops=[">=", ">", "==", "<", "<="],
+    depth=2
+)
 selection_two_args_synth = get_selection_two_args_synth(x, y, select_two_args_fn_obj)
 
 def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
