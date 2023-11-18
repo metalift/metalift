@@ -53,6 +53,11 @@ def is_list_type(ty: Union[type, _GenericAlias]) -> bool:
     else:
         return issubclass(ty, List)
 
+def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), Matrix)  # type: ignore
+    else:
+        return issubclass(ty, Matrix)
 
 def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     contained_type = get_args(ty)[0]
@@ -1093,29 +1098,30 @@ class Matrix(Generic[T], Object):
         containedT: ObjectContainedT = Int,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = List[List[containedT]]  # type: ignore
+        # full_type = List[List[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
-            src = Var("v", full_type)
+            src = Var("v", Matrix[containedT])
         elif isinstance(value, Expr):
             src = value
         elif isinstance(value, str):
-            src = Var(value, full_type)
+            src = Var(value, Matrix[containedT])
         else:
             raise TypeError(f"Cannot create List from {value}")
+        self.elemT = containedT
         self.containedT = List[containedT]  # type: ignore
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["List"]:  # type: ignore
-        return List[self.containedT]  # type: ignore
+    def type(self) -> typing.Type["Matrix"]:  # type: ignore
+        return Matrix[self.elemT]  # type: ignore
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
-        return List(List[containedT], Call("list_empty", List[List[containedT]]))  # type: ignore
+        return Matrix(containedT, Call("list_empty", Matrix[containedT]))  # type: ignore
 
     @staticmethod
-    def default_value() -> "List[List[Int]]":
+    def default_value() -> "Matrix[Int]":
         return Matrix.empty(Int)
 
     def __len__(self) -> int:
@@ -1132,11 +1138,11 @@ class Matrix(Generic[T], Object):
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = Int(start)
-                return call("list_tail", List[self.containedT], self, start)  # type: ignore
+                return call("list_tail", self.type, self, start)  # type: ignore
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = Int(stop)
-                return call("list_take", List[self.containedT], self, stop)  # type: ignore
+                return call("list_take", self.type, self, stop)  # type: ignore
             else:
                 raise NotImplementedError(
                     f"Slices with both start and stop indices specified are not implemented: {index}"
@@ -1179,7 +1185,7 @@ class Matrix(Generic[T], Object):
             raise TypeError(
                 f"can't add lists of different types: {self.type} and {other.type}"
             )
-        return List(List[self.containedT], Call("list_concat", self.type, self.src, other.src))  # type: ignore
+        return Matrix(self.elemT, Call("list_concat", self.type, self.src, other.src))  # type: ignore
 
     def __eq__(self, other: "Matrix") -> Bool:  # type: ignore
         if other is None or self.type != other.type:
