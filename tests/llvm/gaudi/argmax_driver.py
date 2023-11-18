@@ -22,13 +22,13 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         ARG_MAX_FN_NAME,
         Int,
         ite(
-            values.len() > 1,
+            values.len() <= 1,
+            Int(0),
             ite(
-                values[(call(ARG_MAX_FN_NAME, Int, values[1:]) + 1)] < values[0],
+                values[call(ARG_MAX_FN_NAME, Int, values[1:]) + 1] < values[0],
                 Int(0),
-                (call(ARG_MAX_FN_NAME, Int, values[1:]) + 1)
-            ),
-            Int(0)
+                call(ARG_MAX_FN_NAME, Int, values[1:]) + 1
+            )
         )
     )
     return [argmax_fn]
@@ -49,7 +49,7 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
     agg_result = writes[0]
     i = writes[1]
     return and_objects(
-        i >= 0,
+        i >= 1,
         i <= values.len(),
         agg_result == call(ARG_MAX_FN_NAME, Int, values[:i])
     )
