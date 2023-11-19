@@ -39,14 +39,14 @@ if __name__ == "__main__":
         args=[int_x, int_y],
         constants=[Int(255)],
         compute_ops=["-", "//"],
-        compare_ops=["<"],
+        compare_ops=["=="],
         depth=2
     )
     driver.fns_synths = [select_synth, selection_two_args_synth]
     color_dodge_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=2, noVerify=True)
+    driver.synthesize(listBound=3, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_dodge_8.codegen(codegen))
