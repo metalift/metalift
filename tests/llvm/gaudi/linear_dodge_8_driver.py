@@ -3,12 +3,26 @@ import time
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tests.llvm.gaudi.gaudi_common import (
-    get_nested_list_computation_grammars, nested_list_computation_target_lang)
+    call_nested_list_elemwise_add, call_vec_elemwise_add,
+    get_nested_list_computation_inv0_grammar,
+    get_nested_list_computation_inv1_grammar,
+    get_nested_list_computation_ps_grammar_fn,
+    nested_list_computation_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
     driver = Driver()
-    inv0_grammar, inv1_grammar, ps_grammar = get_nested_list_computation_grammars(
+    inv0_grammar = get_nested_list_computation_inv0_grammar(
+        fixed_grammar=True,
+        fixed_out_fn=call_nested_list_elemwise_add
+    )
+    inv1_grammar = get_nested_list_computation_inv1_grammar(
+        fixed_grammar=True,
+        fixed_row_vec_fn=call_vec_elemwise_add,
+        fixed_out_fn=call_nested_list_elemwise_add
+    )
+    ps_grammar = get_nested_list_computation_ps_grammar_fn(
+        fixed_grammar=False,
         constants=[],
         compute_ops=["+"],
         depth=1
