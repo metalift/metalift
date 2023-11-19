@@ -434,6 +434,7 @@ selection_two_args_synth = get_selection_two_args_synth(x, y, select_two_args_fn
 def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     base, active = reads
+    # return ret_val == call_nested_selection_two_args(base, active, select_two_args_fn_obj)
     base_or_active = choose(base, active)
     return ret_val == call_nested_selection_two_args(base_or_active, base_or_active, select_two_args_fn_obj)
 
