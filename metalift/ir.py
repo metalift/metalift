@@ -732,8 +732,10 @@ def fn_decl_recursive(
     )
     return fn_decl_recursive_expr
 
+
 def synth(fn_name: str, body: "Object", *object_args: "Object") -> "Synth":
     return Synth(fn_name, body.src, *get_object_exprs(*object_args))
+
 
 def make_tuple(*objects: Union["Object", Expr]) -> "Tuple":  # type: ignore
     obj_types = tuple([obj.type for obj in objects])
