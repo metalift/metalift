@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, Optional, Union
 
 from metalift.frontend.llvm import InvGrammar
 from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, is_matrix_type
@@ -38,6 +38,8 @@ NESTED_LIST_SCALAR_SUB = "nested_list_scalar_sub"
 
 # Selection functions
 SELECT_TWO_ARGS = "select_two_args"
+SELECT_TWO_ARGS_ARG = "select_two_args_arg"
+FIXED_SELECT_TWO_ARGS = "fixed_select_two_args"
 SELECTION_TWO_ARGS = "selection_two_args"
 NESTED_SELECTION_TWO_ARGS = "nested_selection_two_args"
 
@@ -283,15 +285,46 @@ def mul8x8_div255_body(int_x: IntObject, int_y: IntObject) -> IntObject:
 def screen8x8_body(int_x: IntObject, int_y: IntObject) -> IntObject:
     return int_x + int_y - mul8x8_div255_body(int_x, int_y)
 
+# Helper functions for compute functions
+def vec_mul8x8_div255_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
+    return call_vec_scalar_div(
+        Int(255),
+        call_vec_elemwise_mul(x, y),
+    )
+
+def nested_list_mul8x8_div255_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
+    return call_nested_list_scalar_div(
+        Int(255),
+        call_nested_list_elemwise_mul(nested_x, nested_y)
+    )
+
+def vec_screen8x8_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
+    return call_vec_elemwise_sub(
+        call_vec_elemwise_add(x, y),
+        vec_mul8x8_div255_body(x, y)
+    )
+
+def nested_list_screen8x8_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
+    return call_nested_list_elemwise_sub(
+        call_nested_list_elemwise_add(nested_x, nested_y),
+        nested_list_mul8x8_div255_body(nested_x, nested_y)
+    )
+
+def vec_linear_burn_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
+    return call_vec_scalar_sub(
+        Int(255),
+        call_vec_elemwise_add(x, y),
+    )
+
+def nested_list_linear_burn_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
+    return call_nested_list_scalar_sub(
+        Int(255),
+        call_nested_list_elemwise_add(nested_x, nested_y)
+    )
+
 # Selection criteria
 def select_darken_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
     return ite(int_x > int_y, int_y, int_x)
-
-def select_multiply_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
-    return mul8x8_div255_body(int_x, int_y)
-
-select_fn_obj = Fn((Int, Int, Int), SELECT)
-select_fn_decl = fn_decl(SELECT, Int, None, int_x, int_y)
 
 def select_color_burn_body(int_x: Int, int_y: Int) -> Int:
     return ite(
@@ -302,12 +335,6 @@ def select_color_burn_body(int_x: Int, int_y: Int) -> Int:
 
 def select_lighten_blend_body(int_x: Int, int_y: Int) -> Int:
     return ite(int_x < int_y, int_y, int_x)
-
-def select_screen_blend_body(int_x: Int, int_y: Int) -> Int:
-    return screen8x8_body(int_x, int_y)
-
-def select_linear_dodge_body(int_x: Int, int_y: Int) -> Int:
-    return int_x + int_y
 
 def select_color_dodge_body(int_x: Int, int_y: Int) -> Int:
     return ite(
@@ -323,9 +350,17 @@ def select_overlay_blend_body(int_x: Int, int_y: Int) -> Int:
         mul8x8_div255_body(2 * int_x, int_x)
     )
 
+select_two_args_fn_obj_arg = Fn((Int, Int, Int), SELECT_TWO_ARGS_ARG)
 select_two_args_fn_obj = Fn((Int, Int, Int), SELECT_TWO_ARGS)
+fixed_select_two_args_fn_obj = Fn((Int, Int, Int), FIXED_SELECT_TWO_ARGS)
 select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, Int, None, int_x, int_y)
-selection_two_args_fn_decl = fn_decl(SELECTION_TWO_ARGS, mlList[Int], None, x, y, select_two_args_fn_obj)
+fixed_select_two_args_fn_decl = fn_decl(
+    FIXED_SELECT_TWO_ARGS,
+    Int,
+    None,
+    int_x,
+    int_y
+)
 
 def get_select_two_args_general_synth(
     args: List[Object],
@@ -400,15 +435,6 @@ def selection_two_args_body(
     general_answer = recursed.prepend(cur)
     return ite(vec_size < 1, mlList.empty(Int), general_answer)
 
-selection = fn_decl_recursive(
-    SELECTION,
-    mlList[Int],
-    selection_body(x, y, select_fn_obj),
-    x,
-    y,
-    select_fn_obj
-)
-
 def nested_selection_two_args_body(
     left: Matrix[Int],
     right: Matrix[Int],
@@ -425,19 +451,22 @@ def nested_selection_two_args_body(
 nested_selection_two_args_fn_decl = fn_decl_recursive(
     NESTED_SELECTION_TWO_ARGS,
     Matrix[Int],
-    nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj),
+    nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj_arg),
     nested_x,
     nested_y,
-    select_two_args_fn_obj
+    select_two_args_fn_obj_arg
 )
-
+selection_two_args_fn_decl = fn_decl_recursive(
+    SELECTION_TWO_ARGS,
+    mlList[Int],
+    selection_two_args_body(x, y, select_two_args_fn_obj_arg),
+    x,
+    y,
+    select_two_args_fn_obj_arg
+)
 all_possible_select_two_args_bodies = [
-    select_multiply_blend_body(int_x, int_y),
-    select_linear_burn_body(int_x, int_y),
     select_color_burn_body(int_x, int_y),
     select_lighten_blend_body(int_x, int_y),
-    select_screen_blend_body(int_x, int_y),
-    select_linear_dodge_body(int_x, int_y),
     select_color_dodge_body(int_x, int_y),
     select_overlay_blend_body(int_x, int_y),
     select_darken_blend_body(int_x, int_y)
@@ -450,7 +479,6 @@ select_two_args_general_synth = get_select_two_args_general_synth(
     compare_ops=[">=", ">", "==", "<", "<="],
     depth=2
 )
-selection_two_args_synth = get_selection_two_args_synth(x, y, select_two_args_fn_obj)
 
 def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
@@ -463,11 +491,15 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     # outer loop grammar
     out, col, pixel, row, row_vec = writes
     base, active = reads
-    # return and_objects(
-    #     row >= 0,
-    #     row <= base.len(),
-    #     out == call_nested_selection_two_args(base[:row], active[:row], select_two_args_fn_obj)
-    # )
+    return and_objects(
+        row >= 0,
+        row <= base.len(),
+        out == call_nested_selection_two_args(
+            base[:row],
+            active[:row],
+            fixed_select_two_args_fn_obj
+        )
+    )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     index_lower_cond = choose(
@@ -503,14 +535,22 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     col, pixel, row_vec = writes
     out, row = in_scope
     base, active = reads
-    # return and_objects(
-    #     row >= 0,
-    #     row < base.len(),
-    #     col >= 0,
-    #     col <= base[0].len(),
-    #     row_vec == call_selection_two_args(base[row][:col], active[row][:col], select_two_args_fn_obj),
-    #     out == call_nested_selection_two_args(base[:row], active[:row], select_two_args_fn_obj)
-    # )
+    return and_objects(
+        row >= 0,
+        row < base.len(),
+        col >= 0,
+        col <= base[0].len(),
+        row_vec == call_selection_two_args(
+            base[row][:col],
+            active[row][:col],
+            fixed_select_two_args_fn_obj
+        ),
+        out == call_nested_selection_two_args(
+            base[:row],
+            active[:row],
+            fixed_select_two_args_fn_obj
+        )
+    )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     outer_index_lower_cond = choose(
@@ -570,7 +610,12 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     )
 
 def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [select_two_args_fn_decl, selection_two_args_fn_decl, nested_selection_two_args_fn_decl]
+    return [
+        select_two_args_fn_decl,
+        fixed_select_two_args_fn_decl,
+        selection_two_args_fn_decl,
+        nested_selection_two_args_fn_decl
+    ]
 
 selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn, [])
 selection_two_args_inv1_grammar = InvGrammar(selection_two_args_inv1_grammar_fn, ["row", "agg.result"])
@@ -873,144 +918,190 @@ nested_list_scalar_sub = fn_decl_recursive(
 
 
 def get_nested_list_computation_ps_grammar_fn(
-    constants: List[Int],
-    compute_ops: List[str],
-    depth: int
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
 ):
+    if fixed_grammar:
+        raise Exception("Must not fix ps grammar!")
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
     def nested_list_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         ret_val = writes[0]
         base, active = reads
-        return ret_val == nested_list_computation(
-            args=[base, active],
-            constants=constants,
-            compute_ops=compute_ops,
-            depth=depth
-        )
-    return nested_list_computation_ps_grammar_fn
-
-def get_nested_list_computation_inv0_grammar_fn(
-    constants: List[Int],
-    compute_ops: List[str],
-    depth: int
-):
-    def nested_list_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len())
-        index_lower_cond = choose(
-            row >= index_lower_bound,
-            row > index_lower_bound,
-            row == index_lower_bound,
-            row < index_lower_bound,
-            row <= index_lower_bound
-        )
-        index_upper_cond = choose(
-            row >= index_upper_bound,
-            row > index_upper_bound,
-            row == index_upper_bound,
-            row < index_upper_bound,
-            row <= index_upper_bound
-        )
-        nested_list_choices = [
-            base,
-            base[:row],
-            base[:col],
-            active,
-            active[:row],
-            active[:col],
-        ]
-        return and_objects(
-            index_lower_cond,
-            index_upper_cond,
-            out == nested_list_computation(
-                args=nested_list_choices,
+        if not fixed_grammar:
+            return ret_val == nested_list_computation(
+                args=[base, active],
                 constants=constants,
                 compute_ops=compute_ops,
                 depth=depth
             )
-        )
-    return nested_list_computation_inv0_grammar_fn
+        else:
+            return ret_val == fixed_out_fn(base, active)
+    return nested_list_computation_ps_grammar_fn
 
-def get_nested_list_computation_inv1_grammar_fn(
-    constants: List[Int],
-    compute_ops: List[str],
-    depth: int
+def get_nested_list_computation_inv0_grammar(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
+) -> InvGrammar:
+    if fixed_grammar:
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    if not fixed_grammar:
+        raise Exception("Must fix inv0 grammar!")
+    def nested_list_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            index_lower_cond = choose(
+                row >= index_lower_bound,
+                row > index_lower_bound,
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
+            )
+            index_upper_cond = choose(
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            nested_list_choices = [
+                base,
+                base[:row],
+                base[:col],
+                active,
+                active[:row],
+                active[:col],
+            ]
+            return and_objects(
+                index_lower_cond,
+                index_upper_cond,
+                out == nested_list_computation(
+                    args=nested_list_choices,
+                    constants=constants,
+                    compute_ops=compute_ops,
+                    depth=depth
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row <= base.len(),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(nested_list_computation_inv0_grammar_fn, [])
+
+def get_nested_list_computation_inv1_grammar(
+    fixed_grammar: bool,
+    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
 ):
+    if fixed_grammar:
+        if fixed_row_vec_fn is None:
+            raise Exception("Must pass in an override row_vec!")
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    if not fixed_grammar:
+        raise Exception("Must fix inv1 grammar!")
     def nested_list_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         # inner loop grammar
         col, pixel, row_vec = writes
         out, row = in_scope
         base, active = reads
-        index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len())
-        outer_index_lower_cond = choose(
-            row >= index_lower_bound,
-            row > index_lower_bound,
-            row == index_lower_bound,
-            row < index_lower_bound,
-            row <= index_lower_bound
-        )
-        outer_index_upper_cond = choose(
-            row >= index_upper_bound,
-            row > index_upper_bound,
-            row == index_upper_bound,
-            row < index_upper_bound,
-            row <= index_upper_bound
-        )
-        inner_index_lower_cond = choose(
-            col >= index_lower_bound,
-            col > index_lower_bound,
-            col == index_lower_bound,
-            col < index_lower_bound,
-            col <= index_lower_bound
-        )
-        inner_index_upper_cond = choose(
-            col >= index_upper_bound,
-            col > index_upper_bound,
-            col == index_upper_bound,
-            col < index_upper_bound,
-            col <= index_upper_bound
-        )
-        vec_choices = [
-            base[0][:col],
-            base[row][:col],
-            base[col][:row],
-            base[0][:row],
-            active[0][:col],
-            active[row][:col],
-            active[col][:row],
-            active[0][:row],
-            row_vec
-        ]
-        nested_list_choices = [
-            base,
-            base[:row],
-            base[:col],
-            active,
-            active[:row],
-            active[:col]
-        ]
-        return and_objects(
-            outer_index_lower_cond,
-            outer_index_upper_cond,
-            inner_index_lower_cond,
-            inner_index_upper_cond,
-            row_vec == vec_computation(
-                args=vec_choices,
-                constants=constants,
-                compute_ops=compute_ops,
-                depth=depth
-            ),
-            out == nested_list_computation(
-                args=nested_list_choices,
-                constants=constants,
-                compute_ops=compute_ops,
-                depth=depth
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            outer_index_lower_cond = choose(
+                row >= index_lower_bound,
+                row > index_lower_bound,
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
             )
-        )
-    return nested_list_computation_inv1_grammar_fn
+            outer_index_upper_cond = choose(
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            inner_index_lower_cond = choose(
+                col >= index_lower_bound,
+                col > index_lower_bound,
+                col == index_lower_bound,
+                col < index_lower_bound,
+                col <= index_lower_bound
+            )
+            inner_index_upper_cond = choose(
+                col >= index_upper_bound,
+                col > index_upper_bound,
+                col == index_upper_bound,
+                col < index_upper_bound,
+                col <= index_upper_bound
+            )
+            vec_choices = [
+                base[0][:col],
+                base[row][:col],
+                base[col][:row],
+                base[0][:row],
+                active[0][:col],
+                active[row][:col],
+                active[col][:row],
+                active[0][:row],
+                row_vec
+            ]
+            nested_list_choices = [
+                base,
+                base[:row],
+                base[:col],
+                active,
+                active[:row],
+                active[:col]
+            ]
+            return and_objects(
+                outer_index_lower_cond,
+                outer_index_upper_cond,
+                inner_index_lower_cond,
+                inner_index_upper_cond,
+                row_vec == vec_computation(
+                    args=vec_choices,
+                    constants=constants,
+                    compute_ops=compute_ops,
+                    depth=depth
+                ),
+                out == nested_list_computation(
+                    args=nested_list_choices,
+                    constants=constants,
+                    compute_ops=compute_ops,
+                    depth=depth
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row < base.len(),
+                col >= 0,
+                col <= base[0].len(),
+                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(
+        nested_list_computation_inv1_grammar_fn,
+        ["row", "agg.result"]
+    )
 
 def nested_list_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -1033,27 +1124,32 @@ def nested_list_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]
     ]
 
 def get_nested_list_computation_grammars(
-    constants: List[Int],
-    compute_ops: List[str],
-    depth: int
+    fixed_grammar: bool,
+    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
 ):
-    inv0_grammar = InvGrammar(
-        get_nested_list_computation_inv0_grammar_fn(
+    inv0_grammar = get_nested_list_computation_inv0_grammar(
+            fixed_grammar=fixed_grammar,
+            fixed_out_fn=fixed_out_fn,
             constants=constants,
             compute_ops=compute_ops,
             depth=depth
-        ),
-        []
-    )
-    inv1_grammar = InvGrammar(
-        get_nested_list_computation_inv1_grammar_fn(
-            constants=constants,
-            compute_ops=compute_ops,
-            depth=depth
-        ),
-        ["row", "agg.result"]
+        )
+    inv1_grammar = get_nested_list_computation_inv1_grammar(
+        fixed_grammar=fixed_grammar,
+        fixed_row_vec_fn=fixed_row_vec_fn,
+        fixed_out_fn=fixed_out_fn,
+        constants=constants,
+        compute_ops=compute_ops,
+        depth=depth
     )
     ps_grammar = get_nested_list_computation_ps_grammar_fn(
+        fixed_grammar=fixed_grammar,
+        fixed_row_vec_fn=fixed_row_vec_fn,
+        fixed_out_fn=fixed_out_fn,
         constants=constants,
         compute_ops=compute_ops,
         depth=depth

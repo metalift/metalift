@@ -2,7 +2,12 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.gaudi.gaudi_common import get_nested_list_computation_grammars, nested_list_computation_target_lang
+from tests.llvm.gaudi.gaudi_common import (
+    get_nested_list_computation_inv0_grammar,
+    get_nested_list_computation_inv1_grammar,
+    get_nested_list_computation_ps_grammar_fn,
+    nested_list_computation_target_lang, nested_list_mul8x8_div255_body,
+    vec_mul8x8_div255_body)
 from tests.python.utils.utils import codegen
 from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl, select_mul8x8_div255_body, select_min_body
 
@@ -40,7 +45,17 @@ def inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Objec
 
 if __name__ == "__main__":
     driver = Driver()
-    inv0_grammar, inv1_grammar, ps_grammar = get_nested_list_computation_grammars(
+    inv0_grammar = get_nested_list_computation_inv0_grammar(
+        fixed_grammar=True,
+        fixed_out_fn=nested_list_mul8x8_div255_body
+    )
+    inv1_grammar = get_nested_list_computation_inv1_grammar(
+        fixed_grammar=True,
+        fixed_row_vec_fn=vec_mul8x8_div255_body,
+        fixed_out_fn=nested_list_mul8x8_div255_body
+    )
+    ps_grammar = get_nested_list_computation_ps_grammar_fn(
+        fixed_grammar=False,
         constants=[Int(255)],
         compute_ops=["*", "//"],
         depth=2

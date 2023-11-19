@@ -1,12 +1,13 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, List as mlList, Matrix
-from tests.llvm.gaudi.gaudi_common import (all_possible_selects_two_args_synth, get_select_two_args_general_synth,
+from metalift.ir import Int, Matrix, synth
+from tests.llvm.gaudi.gaudi_common import (FIXED_SELECT_TWO_ARGS,
+                                           get_select_two_args_general_synth,
+                                           select_overlay_blend_body,
                                            selection_two_args_inv0_grammar,
                                            selection_two_args_inv1_grammar,
                                            selection_two_args_ps_grammar_fn,
-                                           selection_two_args_synth,
                                            selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 
@@ -43,7 +44,13 @@ if __name__ == "__main__":
         compare_ops=[">="],
         depth=5
     )
-    driver.fns_synths = [select_synth, selection_two_args_synth]
+    fixed_select_synth = synth(
+        FIXED_SELECT_TWO_ARGS,
+        select_overlay_blend_body(int_x, int_y),
+        int_x,
+        int_y
+    )
+    driver.fns_synths = [select_synth, fixed_select_synth]
     overlay_blend_8(base, active)
 
     start_time = time.time()
