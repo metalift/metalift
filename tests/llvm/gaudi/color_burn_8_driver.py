@@ -53,7 +53,7 @@ if __name__ == "__main__":
     color_burn_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=3, noVerify=True)
+    driver.synthesize(listBound=2, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_burn_8.codegen(codegen))
