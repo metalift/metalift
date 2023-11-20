@@ -1,0 +1,78 @@
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/color_burn_8_0.rkt...
+Timeout reached for tests/llvm/gaudi/analysis_fixed_inv_listbound2/color_burn_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/color_dodge_8_0.rkt...
+#t
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/color_dodge_8_0.rkt:47:0
+(define (color_dodge_8_ps base active color_dodge_8_rv)
+  (choose
+   (equal?
+    color_dodge_8_rv
+    (nested_selection_two_args active base select_two_args))))
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/color_dodge_8_0.rkt:49:0
+(define (select_two_args int_x int_y)
+  (choose
+   (if (choose (equal? (- (- int_y int_y) (- 255 int_x)) (- int_y int_y)))
+     (- int_y (- int_y int_x))
+     (quotient-noerr int_y (- 255 int_x)))))
+Time taken: 221 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/color_dodge_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/darken_blend_8_0.rkt...
+#t
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/darken_blend_8_0.rkt:45:0
+(define (darken_blend_8_ps base active darken_blend_8_rv)
+  (choose
+   (equal?
+    darken_blend_8_rv
+    (nested_selection_two_args active base select_two_args))))
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/darken_blend_8_0.rkt:47:0
+(define (select_two_args int_x int_y)
+  (choose (if (choose (> int_y int_x)) int_x int_y)))
+Time taken: 5 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/darken_blend_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/lighten_blend_8_0.rkt...
+#t
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/lighten_blend_8_0.rkt:45:0
+(define (lighten_blend_8_ps base active lighten_blend_8_rv)
+  (choose
+   (equal?
+    lighten_blend_8_rv
+    (nested_selection_two_args active base select_two_args))))
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/lighten_blend_8_0.rkt:47:0
+(define (select_two_args int_x int_y)
+  (choose (if (choose (< int_y int_x)) int_x int_y)))
+Time taken: 6 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/lighten_blend_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/linear_burn_8_0.rkt...
+#t
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/linear_burn_8_0.rkt:93:0
+(define (linear_burn_8_ps base active linear_burn_8_rv)
+  (choose
+   (equal?
+    linear_burn_8_rv
+    (nested_list_scalar_sub (v3) (nested_list_elemwise_add active base)))))
+Time taken: 8 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/linear_burn_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/linear_dodge_8_0.rkt...
+#t
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/linear_dodge_8_0.rkt:91:0
+(define (linear_dodge_8_ps base active linear_dodge_8_rv)
+  (choose (equal? linear_dodge_8_rv (nested_list_elemwise_add active base))))
+Time taken: 4 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/linear_dodge_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/multiply_blend_8_0.rkt...
+#t
+/root/metalift/tests/llvm/gaudi/analysis_fixed_inv_listbound2/multiply_blend_8_0.rkt:93:0
+(define (multiply_blend_8_ps base active multiply_blend_8_rv)
+  (choose
+   (equal?
+    multiply_blend_8_rv
+    (nested_list_scalar_div (v3) (nested_list_elemwise_mul base active)))))
+Time taken: 8 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/multiply_blend_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/overlay_blend_8_0.rkt...
+Time taken: 566 seconds for tests/llvm/gaudi/analysis_fixed_inv_listbound2/overlay_blend_8_0.rkt.
+
+Running tests/llvm/gaudi/analysis_fixed_inv_listbound2/screen_blend_8_0.rkt...
+Timeout reached for tests/llvm/gaudi/analysis_fixed_inv_listbound2/screen_blend_8_0.rkt.
+
