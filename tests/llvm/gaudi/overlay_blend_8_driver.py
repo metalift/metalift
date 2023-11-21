@@ -1,14 +1,11 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, Matrix, synth
-from tests.llvm.gaudi.gaudi_common import (FIXED_SELECT_TWO_ARGS,
-                                           get_select_two_args_general_synth,
-                                           select_overlay_blend_body,
-                                           selection_two_args_inv0_grammar,
-                                           selection_two_args_inv1_grammar,
-                                           selection_two_args_ps_grammar_fn,
-                                           selection_two_args_target_lang)
+from metalift.ir import Int, Matrix
+from tests.llvm.gaudi.gaudi_common import (
+    get_select_two_args_synth_without_analysis,
+    selection_two_args_inv0_grammar, selection_two_args_inv1_grammar,
+    selection_two_args_ps_grammar_fn, selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -37,20 +34,8 @@ if __name__ == "__main__":
 
     int_x = Int("int_x")
     int_y = Int("int_y")
-    select_synth = get_select_two_args_general_synth(
-        args=[int_x, int_y],
-        constants=[Int(2), Int(128), Int(255)],
-        compute_ops=["+", "-", "*", "//"],
-        compare_ops=[">="],
-        depth=5
-    )
-    fixed_select_synth = synth(
-        FIXED_SELECT_TWO_ARGS,
-        select_overlay_blend_body(int_x, int_y),
-        int_x,
-        int_y
-    )
-    driver.fns_synths = [select_synth, fixed_select_synth]
+    select_synth = get_select_two_args_synth_without_analysis(5)
+    driver.fns_synths = [select_synth]
     overlay_blend_8(base, active)
 
     start_time = time.time()
