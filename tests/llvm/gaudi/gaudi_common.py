@@ -44,12 +44,12 @@ SELECTION_TWO_ARGS = "selection_two_args"
 NESTED_SELECTION_TWO_ARGS = "nested_selection_two_args"
 
 # Uninterpreted functions
-EXP_FN_NAME = "exp"
+TEST_EXP_FN_NAME = "test_exp"
 UNINTERP_DIV_FN_NAME = "uninterp_div"
 
 # Operations that involve uninterpreted functions
-VEC_MAP_EXP_FN_NAME = "map_exp"
-NESTED_LIST_MAP_EXP_FN_NAME = "nested_list_map_exp"
+VEC_MAP_TEST_EXP_FN_NAME = "map_test_exp"
+NESTED_LIST_MAP_TEST_EXP_FN_NAME = "nested_list_map_exp"
 
 def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
@@ -123,13 +123,13 @@ def call_nested_selection_two_args(
     return call(NESTED_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
 def call_exp(x: Int) -> Int:
-    return call(EXP_FN_NAME, Int, x)
+    return call(TEST_EXP_FN_NAME, Int, x)
 
 def call_vec_map_exp(x: mlList[Int]) -> mlList[Int]:
-    return call(VEC_MAP_EXP_FN_NAME, mlList[Int], x)
+    return call(VEC_MAP_TEST_EXP_FN_NAME, mlList[Int], x)
 
 def call_nested_list_map_exp(x: Matrix[Int]) -> Matrix[Int]:
-    return call(NESTED_LIST_MAP_EXP_FN_NAME, Matrix[Int], x)
+    return call(NESTED_LIST_MAP_TEST_EXP_FN_NAME, Matrix[Int], x)
 
 def call_uninterp_div(x: Int, y: Int) -> Int:
     return call(UNINTERP_DIV_FN_NAME, Int, x, y)
@@ -1131,26 +1131,26 @@ def get_nested_list_computation_grammars(
     return inv0_grammar, inv1_grammar, ps_grammar
 
 # Uninterpreted functions
-exp = fn_decl(EXP_FN_NAME, Int, None, int_x)
+exp = fn_decl(TEST_EXP_FN_NAME, Int, None, int_x)
 vec_exp_map = fn_decl_recursive(
-    VEC_MAP_EXP_FN_NAME,
+    VEC_MAP_TEST_EXP_FN_NAME,
     mlList[Int],
     map_body(
         vec_or_nested_list=x,
         map_fn=lambda int_x: call_exp(int_x),
-        vec_map_fn_name=VEC_MAP_EXP_FN_NAME,
-        nested_list_map_fn_name=NESTED_LIST_MAP_EXP_FN_NAME
+        vec_map_fn_name=VEC_MAP_TEST_EXP_FN_NAME,
+        nested_list_map_fn_name=NESTED_LIST_MAP_TEST_EXP_FN_NAME
     ),
     x
 )
 nested_list_exp_map = fn_decl_recursive(
-    NESTED_LIST_MAP_EXP_FN_NAME,
+    NESTED_LIST_MAP_TEST_EXP_FN_NAME,
     mlList[Int],
     map_body(
         vec_or_nested_list=nested_x,
         map_fn=lambda int_x: call_exp(int_x),
-        vec_map_fn_name=VEC_MAP_EXP_FN_NAME,
-        nested_list_map_fn_name=NESTED_LIST_MAP_EXP_FN_NAME
+        vec_map_fn_name=VEC_MAP_TEST_EXP_FN_NAME,
+        nested_list_map_fn_name=NESTED_LIST_MAP_TEST_EXP_FN_NAME
     ),
     nested_x
 )
