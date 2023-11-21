@@ -476,14 +476,14 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     index_lower_cond = choose(
         row >= index_lower_bound,
         row > index_lower_bound,
-        # row == index_lower_bound,
-        # row < index_lower_bound,
-        # row <= index_lower_bound
+        row == index_lower_bound,
+        row < index_lower_bound,
+        row <= index_lower_bound
     )
     index_upper_cond = choose(
-        # row >= index_upper_bound,
-        # row > index_upper_bound,
-        # row == index_upper_bound,
+        row >= index_upper_bound,
+        row > index_upper_bound,
+        row == index_upper_bound,
         row < index_upper_bound,
         row <= index_upper_bound
     )
@@ -527,28 +527,28 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     outer_index_lower_cond = choose(
         row >= index_lower_bound,
         row > index_lower_bound,
-        # row == index_lower_bound,
-        # row < index_lower_bound,
-        # row <= index_lower_bound
+        row == index_lower_bound,
+        row < index_lower_bound,
+        row <= index_lower_bound
     )
     outer_index_upper_cond = choose(
-        # row >= index_upper_bound,
-        # row > index_upper_bound,
-        # row == index_upper_bound,
+        row >= index_upper_bound,
+        row > index_upper_bound,
+        row == index_upper_bound,
         row < index_upper_bound,
         row <= index_upper_bound
     )
     inner_index_lower_cond = choose(
         col >= index_lower_bound,
         col > index_lower_bound,
-        # col == index_lower_bound,
-        # col < index_lower_bound,
-        # col <= index_lower_bound
+        col == index_lower_bound,
+        col < index_lower_bound,
+        col <= index_lower_bound
     )
     inner_index_upper_cond = choose(
-        # col >= index_upper_bound,
-        # col > index_upper_bound,
-        # col == index_upper_bound,
+        col >= index_upper_bound,
+        col > index_upper_bound,
+        col == index_upper_bound,
         col < index_upper_bound,
         col <= index_upper_bound
     )
@@ -933,14 +933,14 @@ def get_nested_list_computation_inv0_grammar(
             index_lower_cond = choose(
                 row >= index_lower_bound,
                 row > index_lower_bound,
-                # row == index_lower_bound,
-                # row < index_lower_bound,
-                # row <= index_lower_bound
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
             )
             index_upper_cond = choose(
-                # row >= index_upper_bound,
-                # row > index_upper_bound,
-                # row == index_upper_bound,
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
                 row < index_upper_bound,
                 row <= index_upper_bound
             )
@@ -994,28 +994,28 @@ def get_nested_list_computation_inv1_grammar(
             outer_index_lower_cond = choose(
                 row >= index_lower_bound,
                 row > index_lower_bound,
-                # row == index_lower_bound,
-                # row < index_lower_bound,
-                # row <= index_lower_bound
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
             )
             outer_index_upper_cond = choose(
-                # row >= index_upper_bound,
-                # row > index_upper_bound,
-                # row == index_upper_bound,
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
                 row < index_upper_bound,
                 row <= index_upper_bound
             )
             inner_index_lower_cond = choose(
                 col >= index_lower_bound,
                 col > index_lower_bound,
-                # col == index_lower_bound,
-                # col < index_lower_bound,
-                # col <= index_lower_bound
+                col == index_lower_bound,
+                col < index_lower_bound,
+                col <= index_lower_bound
             )
             inner_index_upper_cond = choose(
-                # col >= index_upper_bound,
-                # col > index_upper_bound,
-                # col == index_upper_bound,
+                col >= index_upper_bound,
+                col > index_upper_bound,
+                col == index_upper_bound,
                 col < index_upper_bound,
                 col <= index_upper_bound
             )
