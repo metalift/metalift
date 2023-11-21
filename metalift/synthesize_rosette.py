@@ -427,7 +427,6 @@ def synthesize(
             writeChoicesTo=choices,
             uninterp_fns=uninterp_fns,
         )
-        exit(0)
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)
         procSynthesis = subprocess.Popen(

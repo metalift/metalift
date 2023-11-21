@@ -103,7 +103,7 @@ if __name__ == "__main__":
     driver.add_precondition(input_var.len() > 0)
 
     rmsnorm_part1(input_var, weight_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
 
     # Synthesize the second loop
     driver = Driver()
@@ -129,7 +129,6 @@ if __name__ == "__main__":
 
     driver.synthesize(
         uninterp_fns=[SQRT_FN_NAME],
-        noVerify=True,
         unboundedInts=True
     )
 

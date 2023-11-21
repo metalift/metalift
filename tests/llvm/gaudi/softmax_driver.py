@@ -50,8 +50,8 @@ def softmax_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_scalar_mul,
         vec_scalar_add,
         vec_scalar_div,
+        exp,
         vec_exp_map,
-        exp
     ]
 
 def softmax_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part1(input_var, max_pos_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
 
     # Synthesize part 2
     driver = Driver()
@@ -169,7 +169,6 @@ if __name__ == "__main__":
     driver.synthesize(
         uninterp_fns=[exp.name()],
         unboundedInts=True,
-        noVerify=True
     )
 
     # Synthesize part 3
@@ -193,7 +192,7 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part3(output_var, max_pos_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
 
     # Synthesize part 4
     driver = Driver()
@@ -217,4 +216,4 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
