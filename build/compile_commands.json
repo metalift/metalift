@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/Users/jieq/Desktop/metalift/build/addEmptyBlocks",
+  "command": "/usr/local/bin/g++-7 -DAddEmptyBlocksPass_EXPORTS -I/usr/local/Cellar/llvm@11/11.1.0_4/include -D__GLIBCXX_USE_CXX11_ABI=0 -fno-rtti -g -std=gnu++14 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -fPIC   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fno-rtti -g -o CMakeFiles/AddEmptyBlocksPass.dir/AddEmptyBlocks.cpp.o -c /Users/jieq/Desktop/metalift/llvm-pass/addEmptyBlocks/AddEmptyBlocks.cpp",
+  "file": "/Users/jieq/Desktop/metalift/llvm-pass/addEmptyBlocks/AddEmptyBlocks.cpp",
+  "output": "addEmptyBlocks/CMakeFiles/AddEmptyBlocksPass.dir/AddEmptyBlocks.cpp.o"
+}
+]

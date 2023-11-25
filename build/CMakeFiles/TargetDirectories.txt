@@ -1,0 +1,8 @@
+/Users/jieq/Desktop/metalift/build/CMakeFiles/intrinsics_gen.dir
+/Users/jieq/Desktop/metalift/build/CMakeFiles/omp_gen.dir
+/Users/jieq/Desktop/metalift/build/CMakeFiles/acc_gen.dir
+/Users/jieq/Desktop/metalift/build/CMakeFiles/edit_cache.dir
+/Users/jieq/Desktop/metalift/build/CMakeFiles/rebuild_cache.dir
+/Users/jieq/Desktop/metalift/build/addEmptyBlocks/CMakeFiles/AddEmptyBlocksPass.dir
+/Users/jieq/Desktop/metalift/build/addEmptyBlocks/CMakeFiles/edit_cache.dir
+/Users/jieq/Desktop/metalift/build/addEmptyBlocks/CMakeFiles/rebuild_cache.dir
