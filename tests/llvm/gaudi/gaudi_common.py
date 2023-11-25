@@ -1,5 +1,6 @@
+import copy
 import typing
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 from pyparsing import Set
 
@@ -17,6 +18,7 @@ from sympy.core.expr import Expr as symExpr
 from sympy import Symbol
 from sympy import Integer as symInt
 from functools import lru_cache
+from collections import OrderedDict
 
 # Reduce functions
 REDUCESUM = "reduce_sum"
@@ -379,7 +381,88 @@ def get_select_two_args_synth_without_analysis(depth: int) -> Synth:
         depth=depth
     )
 
+def get_complement_tuple(total: Tuple[int], curr: Tuple[int]) -> Tuple[int]:
+    if len(total) != len(curr):
+        raise Exception("Cannot get complement tuple with different length")
+    return tuple(total[i] - curr[i] for i in range(len(total)))
+
+def make_dict(keys: Tuple[str], values: Tuple[int]) -> OrderedDict:
+    if len(keys) != len(values):
+        raise Exception("Cannot make dictionary from keys and values of different length!")
+    return OrderedDict(
+        {keys[i]: values[i] for i in range(len(keys))}
+    )
+
+def helper_with_counts(
+    args: List[Int],
+    constants: List[Int],
+    ordered_compute_ops: OrderedDict,
+    depth: int
+) -> Optional[Object]:
+    if depth == 0:
+        return choose(*args, *constants)
+    if all(count == 0 for count in ordered_compute_ops.values()):
+        return None
+
+    # First fix left hand side to be depth - 1
+    choices: List[Object] = []
+    one_side_depth = depth - 1
+
+    symmetric_ops = ["+", "*"]
+    asymmetric_ops = ["-", "//"]
+
+    visited_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
+
+    one_side_depth = depth - 1
+    # The other depth can be anywhere from 0 to depth - 1
+    for other_side_depth in range(depth):
+        for op in symmetric_ops + asymmetric_ops:
+            if (op_count := ordered_compute_ops.get(op, 0)) == 0:
+                continue
+            ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
+            ordered_compute_ops_copy[op] = op_count - 1
+            ranges = [range(0, count + 1) for count in ordered_compute_ops_copy.values()]
+            all_combs = set(product(*ranges))
+            for comb in all_combs:
+                comp_comb = get_complement_tuple(
+                    tuple(ordered_compute_ops_copy.values()),
+                    comb
+                )
+                ordered_ops = tuple(ordered_compute_ops.keys())
+                compute_ops_from_comb = make_dict(ordered_ops, comb)
+                compute_ops_from_comp_comb = make_dict(ordered_ops, comp_comb)
+                one_side = helper_with_counts(args, constants, compute_ops_from_comb, one_side_depth)
+                other_side = helper_with_counts(args, constants, compute_ops_from_comp_comb, other_side_depth)
+                if one_side is None or other_side is None:
+                    continue
+                if op in symmetric_ops:
+                    if (comb, comp_comb) not in visited_combs:
+                        if op == "+":
+                            choices.append(one_side + other_side)
+                        if op == "*":
+                            choices.append(one_side * other_side)
+                        visited_combs.add((comb, comp_comb))
+                        visited_combs.add((comp_comb, comb))
+                elif op in asymmetric_ops:
+                    if (comb, comp_comb) not in visited_combs:
+                        if op == "-":
+                            choices.append(one_side - other_side)
+                        if op == "//":
+                            choices.append(one_side // other_side)
+                        visited_combs.add((comb, comp_comb))
+                    if (comp_comb, comb) not in visited_combs:
+                        if op == "-":
+                            choices.append(other_side - one_side)
+                        if op == "//":
+                            choices.append(other_side // one_side)
+                        visited_combs.add((comp_comb, comb))
+
+    if len(choices) == 0:
+        return None
+    return choose(*choices)
+
 # @lru_cache(maxsize=None)
+# TODO(jie): rename this function
 def helper(
     args: List[Int],
     constants: List[Int],
@@ -512,6 +595,39 @@ def get_multi_depth_select_general_synth(
     cond_rhs = helper(args, constants, compute_ops, cond_rhs_depth)
     if_then = helper(args, constants, compute_ops, if_then_depth)
     if_else = helper(args, constants, compute_ops, if_else_depth)
+
+    cond_choices: List[Bool] = []
+    if ">=" in compare_ops:
+        cond_choices.append(cond_lhs >= cond_rhs)
+    if ">" in compare_ops:
+        cond_choices.append(cond_lhs > cond_rhs)
+    if "==" in compare_ops:
+        cond_choices.append(cond_lhs == cond_rhs)
+    if "<" in compare_ops:
+        cond_choices.append(cond_lhs < cond_rhs)
+    if "<=" in compare_ops:
+        cond_choices.append(cond_lhs <= cond_rhs)
+    cond = choose(*cond_choices)
+    return Synth(
+        SELECT_TWO_ARGS,
+        ite(cond, if_then, if_else).src,
+        *get_object_exprs(*args)
+    )
+
+def get_multi_depth_with_counts_select_general_synth(
+    args: List[Object],
+    constants: List[Int],
+    ordered_compute_ops: OrderedDict,
+    compare_ops: List[str],
+    cond_lhs_depth: int,
+    cond_rhs_depth: int,
+    if_then_depth: int,
+    if_else_depth: int,
+) -> Synth:
+    cond_lhs = helper_with_counts(args, constants, ordered_compute_ops, cond_lhs_depth)
+    cond_rhs = helper_with_counts(args, constants, ordered_compute_ops, cond_rhs_depth)
+    if_then = helper_with_counts(args, constants, ordered_compute_ops, if_then_depth)
+    if_else = helper_with_counts(args, constants, ordered_compute_ops, if_else_depth)
 
     cond_choices: List[Bool] = []
     if ">=" in compare_ops:
