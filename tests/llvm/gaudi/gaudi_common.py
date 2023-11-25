@@ -1,14 +1,18 @@
 import typing
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from pyparsing import Set
 
 from metalift.frontend.llvm import InvGrammar
-from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, is_matrix_type
+from metalift.frontend.utils import ObjectSet
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, ObjectWrapper, is_matrix_type
 from metalift.ir import List as mlList
 from metalift.ir import (Matrix, Object, Synth, call, call_value, choose,
                          fn_decl, fn_decl_recursive, get_list_element_type,
                          get_object_exprs, is_list_type,
                          is_primitive_type, ite)
 from metalift.vc_util import and_objects, or_objects
+from itertools import product, combinations, permutations, combinations_with_replacement
 
 # Reduce functions
 REDUCESUM = "reduce_sum"
@@ -371,6 +375,58 @@ def get_select_two_args_synth_without_analysis(depth: int) -> Synth:
         depth=depth
     )
 
+def get_unique_int_exps_with_depth(
+    args: List[Int],
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+) -> Dict[int, Set[ObjectWrapper]]:
+    args_wrappers = [ObjectWrapper(arg) for arg in args]
+    constants_wrappers = [ObjectWrapper(cons) for cons in constants]
+    all_wrappers = [*args_wrappers, *constants_wrappers]
+
+    if depth == 0:
+        return {0: set(all_wrappers)}
+    lower_depths_wrappers = get_unique_int_exps_with_depth(args, constants, compute_ops, depth - 1)
+    choices: Set[ObjectWrapper] = set()
+    lit_0_wrapper = ObjectWrapper(Int(0))
+    lit_1_wrapper = ObjectWrapper(Int(1))
+    # First fix left hand side to be depth - 1
+    lhs_wrappers = lower_depths_wrappers[depth - 1]
+    for rhs_depth in range(depth):
+        if rhs_depth == depth - 1:
+            add_mul_wrappers = combinations_with_replacement(lhs_wrappers, 2)
+        else:
+            add_mul_wrappers = set(product(lhs_wrappers, lower_depths_wrappers[rhs_depth]))
+        for arg1, arg2 in add_mul_wrappers:
+            # This is just to be safe
+            if hash(arg1) > hash(arg2):
+                arg1, arg2 = arg2, arg1
+            if "+" in compute_ops:
+                if arg1 != lit_0_wrapper and arg2 != lit_0_wrapper:
+                    choices.add(ObjectWrapper(arg1.object + arg2.object))
+            if "*" in compute_ops:
+                if arg1 != lit_1_wrapper and arg2 != lit_1_wrapper:
+                    choices.add(ObjectWrapper(arg1.object * arg2.object))
+
+        sub_div_wrappers = set(product(lhs_wrappers, lower_depths_wrappers[rhs_depth]))
+        for arg1, arg2 in sub_div_wrappers:
+            if arg1 != arg2:
+                if "-" in compute_ops:
+                    if arg2 != lit_0_wrapper:
+                        choices.add(ObjectWrapper(arg1.object - arg2.object))
+                    if arg1 != lit_0_wrapper:
+                        choices.add(ObjectWrapper(arg2.object - arg1.object))
+                if "//" in compute_ops:
+                    if arg2 not in {lit_0_wrapper, lit_1_wrapper} and arg1 != lit_0_wrapper:
+                        choices.add(ObjectWrapper(arg1.object // arg2.object))
+                    if arg1 not in {lit_0_wrapper, lit_1_wrapper} and arg2 != lit_0_wrapper:
+                        choices.add(ObjectWrapper(arg2.object // arg1.object))
+
+    return {
+        **get_unique_int_exps_with_depth(args, constants, compute_ops, depth - 1),
+        depth: choices
+    }
 
 def get_select_two_args_general_synth(
     args: List[Object],

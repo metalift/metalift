@@ -652,7 +652,6 @@ def create_object(
     else:
         return object_type(cast(Expr, value))
 
-
 def get_object_exprs(*objects: Union["Object", Expr]) -> pyList[Expr]:
     return [get_object_expr(obj) for obj in objects]
 
@@ -749,6 +748,20 @@ def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tup
 def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
     return Fn[typing.Tuple[containedT]]  # type: ignore
 
+class ObjectWrapper:
+    def __init__(self, object: "Object") -> None:
+        self.object = object
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ObjectWrapper):
+            return False
+        return Object.__eq__(self.object, other.object)
+
+    def __hash__(self) -> int:
+        return Object.__hash__(self.object)
+
+    def __repr__(self) -> str:
+        return repr(self.object)
 
 class Object:
     src: Expr

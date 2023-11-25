@@ -1,0 +1,102 @@
+{
+	"kind" : "toolchains",
+	"toolchains" : 
+	[
+		{
+			"compiler" : 
+			{
+				"id" : "GNU",
+				"implicit" : 
+				{
+					"includeDirectories" : 
+					[
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7/gcc/x86_64-apple-darwin19.4.0/7.5.0/include",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7/gcc/x86_64-apple-darwin19.4.0/7.5.0/include-fixed",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/System/Library/Frameworks"
+					],
+					"linkDirectories" : 
+					[
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7/gcc/x86_64-apple-darwin19.4.0/7.5.0",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/lib"
+					],
+					"linkFrameworkDirectories" : 
+					[
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/System/Library/Frameworks"
+					],
+					"linkLibraries" : 
+					[
+						"gcc_ext.10.5",
+						"gcc"
+					]
+				},
+				"path" : "/usr/local/bin/gcc-7",
+				"version" : "7.5.0"
+			},
+			"language" : "C",
+			"sourceFileExtensions" : 
+			[
+				"c",
+				"m"
+			]
+		},
+		{
+			"compiler" : 
+			{
+				"id" : "GNU",
+				"implicit" : 
+				{
+					"includeDirectories" : 
+					[
+						"/usr/local/Cellar/gcc@7/7.5.0_2/include/c++/7.5.0",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/include/c++/7.5.0/x86_64-apple-darwin19.4.0",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/include/c++/7.5.0/backward",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7/gcc/x86_64-apple-darwin19.4.0/7.5.0/include",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7/gcc/x86_64-apple-darwin19.4.0/7.5.0/include-fixed",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/System/Library/Frameworks"
+					],
+					"linkDirectories" : 
+					[
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7/gcc/x86_64-apple-darwin19.4.0/7.5.0",
+						"/usr/local/Cellar/gcc@7/7.5.0_2/lib/gcc/7",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/lib"
+					],
+					"linkFrameworkDirectories" : 
+					[
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/System/Library/Frameworks"
+					],
+					"linkLibraries" : 
+					[
+						"stdc++",
+						"gcc_ext.10.5",
+						"gcc"
+					]
+				},
+				"path" : "/usr/local/bin/g++-7",
+				"version" : "7.5.0"
+			},
+			"language" : "CXX",
+			"sourceFileExtensions" : 
+			[
+				"C",
+				"M",
+				"c++",
+				"cc",
+				"cpp",
+				"cxx",
+				"mm",
+				"mpp",
+				"CPP",
+				"ixx",
+				"cppm"
+			]
+		}
+	],
+	"version" : 
+	{
+		"major" : 1,
+		"minor" : 0
+	}
+}
