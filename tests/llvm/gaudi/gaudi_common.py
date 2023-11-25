@@ -13,6 +13,10 @@ from metalift.ir import (Matrix, Object, Synth, call, call_value, choose,
                          is_primitive_type, ite)
 from metalift.vc_util import and_objects, or_objects
 from itertools import product, combinations, permutations, combinations_with_replacement
+from sympy.core.expr import Expr as symExpr
+from sympy import Symbol
+from sympy import Integer as symInt
+from functools import lru_cache
 
 # Reduce functions
 REDUCESUM = "reduce_sum"
@@ -375,6 +379,72 @@ def get_select_two_args_synth_without_analysis(depth: int) -> Synth:
         depth=depth
     )
 
+# @lru_cache(maxsize=None)
+def helper(
+    args: List[Int],
+    constants: List[Int],
+    compute_ops: List[str],
+    depth: int
+) -> Object:
+    if depth == 0:
+        return choose(*args, *constants)
+
+    # First fix left hand side to be depth - 1
+    choices: List[Object] = []
+    lhs_depth = depth - 1
+    for rhs_depth in range(depth):
+        lhs = helper(args, constants, compute_ops, lhs_depth)
+        rhs = helper(args, constants, compute_ops, rhs_depth)
+        if "+" in compute_ops:
+            choices.append(lhs + rhs)
+        if "*" in compute_ops:
+            choices.append(lhs * rhs)
+        if "-" in compute_ops:
+            choices.append(lhs - rhs)
+        if "//" in compute_ops:
+            choices.append(lhs // rhs)
+    # Then fix right hand side to be depth - 1
+    rhs_depth = depth - 1
+    for lhs_depth in range(depth - 1):
+        # Skipping lhs_depth because we already visited this case in the last for loop
+        lhs = helper(args, constants, compute_ops, lhs_depth)
+        rhs = helper(args, constants, compute_ops, rhs_depth)
+        if "-" in compute_ops:
+            choices.append(lhs - rhs)
+        if "//" in compute_ops:
+            choices.append(lhs // rhs)
+    return choose(*choices)
+
+def get_sym_unique_int_exps_with_depth(
+    symbols: List[Symbol],
+    constants: List[symInt],
+    compute_ops: List[str],
+    depth: int
+) -> Dict[int, symExpr]:
+    if depth == 0:
+        return {0: {*symbols, *constants}}
+    lower_depths_exprs = get_sym_unique_int_exps_with_depth(symbols, constants, compute_ops, depth - 1)
+    choices: Set[symExpr] = set()
+    # First fix left hand side to be depth - 1
+    lhs_exprs = lower_depths_exprs[depth - 1]
+    for rhs_depth in range(depth):
+        rhs_exprs = lower_depths_exprs[rhs_depth]
+        expr_args = set(product(lhs_exprs, rhs_exprs))
+        for arg1, arg2 in expr_args:
+            if "+" in compute_ops:
+                choices.add(arg1 + arg2)
+            if "-" in compute_ops:
+                choices.add(arg1 - arg2)
+            if "*" in compute_ops:
+                choices.add(arg1 * arg2)
+            if "//" in compute_ops and arg2 != 0:
+                choices.add(arg1 // arg2)
+
+    return {
+        **get_sym_unique_int_exps_with_depth(symbols, constants, compute_ops, depth - 1),
+        depth: choices
+    }
+
 def get_unique_int_exps_with_depth(
     args: List[Int],
     constants: List[Int],
@@ -427,6 +497,39 @@ def get_unique_int_exps_with_depth(
         **get_unique_int_exps_with_depth(args, constants, compute_ops, depth - 1),
         depth: choices
     }
+
+def get_multi_depth_select_general_synth(
+    args: List[Object],
+    constants: List[Int],
+    compute_ops: List[str],
+    compare_ops: List[str],
+    cond_lhs_depth: int,
+    cond_rhs_depth: int,
+    if_then_depth: int,
+    if_else_depth: int,
+) -> Synth:
+    cond_lhs = helper(args, constants, compute_ops, cond_lhs_depth)
+    cond_rhs = helper(args, constants, compute_ops, cond_rhs_depth)
+    if_then = helper(args, constants, compute_ops, if_then_depth)
+    if_else = helper(args, constants, compute_ops, if_else_depth)
+
+    cond_choices: List[Bool] = []
+    if ">=" in compare_ops:
+        cond_choices.append(cond_lhs >= cond_rhs)
+    if ">" in compare_ops:
+        cond_choices.append(cond_lhs > cond_rhs)
+    if "==" in compare_ops:
+        cond_choices.append(cond_lhs == cond_rhs)
+    if "<" in compare_ops:
+        cond_choices.append(cond_lhs < cond_rhs)
+    if "<=" in compare_ops:
+        cond_choices.append(cond_lhs <= cond_rhs)
+    cond = choose(*cond_choices)
+    return Synth(
+        SELECT_TWO_ARGS,
+        ite(cond, if_then, if_else).src,
+        *get_object_exprs(*args)
+    )
 
 def get_select_two_args_general_synth(
     args: List[Object],
@@ -543,15 +646,15 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     # outer loop grammar
     out, col, pixel, row, row_vec = writes
     base, active = reads
-    # return and_objects(
-    #     row >= 0,
-    #     row <= base.len(),
-    #     out == call_nested_selection_two_args(
-    #         base[:row],
-    #         active[:row],
-    #         fixed_select_two_args_fn_obj
-    #     )
-    # )
+    return and_objects(
+        row >= 0,
+        row <= base.len(),
+        out == call_nested_selection_two_args(
+            base[:row],
+            active[:row],
+            fixed_select_two_args_fn_obj
+        )
+    )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     index_lower_cond = choose(
@@ -587,22 +690,22 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     col, pixel, row_vec = writes
     out, row = in_scope
     base, active = reads
-    # return and_objects(
-    #     row >= 0,
-    #     row < base.len(),
-    #     col >= 0,
-    #     col <= base[0].len(),
-    #     row_vec == call_selection_two_args(
-    #         base[row][:col],
-    #         active[row][:col],
-    #         fixed_select_two_args_fn_obj
-    #     ),
-    #     out == call_nested_selection_two_args(
-    #         base[:row],
-    #         active[:row],
-    #         fixed_select_two_args_fn_obj
-    #     )
-    # )
+    return and_objects(
+        row >= 0,
+        row < base.len(),
+        col >= 0,
+        col <= base[0].len(),
+        row_vec == call_selection_two_args(
+            base[row][:col],
+            active[row][:col],
+            fixed_select_two_args_fn_obj
+        ),
+        out == call_nested_selection_two_args(
+            base[:row],
+            active[:row],
+            fixed_select_two_args_fn_obj
+        )
+    )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len())
     outer_index_lower_cond = choose(
@@ -664,7 +767,7 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
 def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         select_two_args_fn_decl,
-        # fixed_select_two_args_fn_decl,
+        fixed_select_two_args_fn_decl,
         selection_two_args_fn_decl,
         nested_selection_two_args_fn_decl
     ]

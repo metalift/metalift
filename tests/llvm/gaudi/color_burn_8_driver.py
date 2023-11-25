@@ -1,11 +1,10 @@
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, Matrix
+from metalift.ir import Int, Matrix, synth
 from tests.llvm.gaudi.gaudi_common import (
-    get_select_two_args_synth_without_analysis,
-    selection_two_args_inv0_grammar, selection_two_args_inv1_grammar,
-    selection_two_args_ps_grammar_fn, selection_two_args_target_lang)
+    FIXED_SELECT_TWO_ARGS, select_color_burn_body, selection_two_args_inv0_grammar, selection_two_args_inv1_grammar,
+    selection_two_args_ps_grammar_fn, selection_two_args_target_lang, get_multi_depth_select_general_synth)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -33,12 +32,27 @@ if __name__ == "__main__":
 
     int_x = Int("int_x")
     int_y = Int("int_y")
-    select_synth = get_select_two_args_synth_without_analysis(3)
-    driver.fns_synths = [select_synth]
+    select_synth = get_multi_depth_select_general_synth(
+        args=[int_x, int_y],
+        constants=[Int(0), Int(255)],
+        compute_ops=["-", "//"],
+        compare_ops=["=="],
+        cond_lhs_depth=0,
+        cond_rhs_depth=0,
+        if_then_depth=0,
+        if_else_depth=3
+    )
+    fixed_select_synth = synth(
+        FIXED_SELECT_TWO_ARGS,
+        select_color_burn_body(int_x, int_y),
+        int_x,
+        int_y
+    )
+    driver.fns_synths = [select_synth, fixed_select_synth]
     color_burn_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=3, noVerify=True)
+    driver.synthesize(listBound=2, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_burn_8.codegen(codegen))
