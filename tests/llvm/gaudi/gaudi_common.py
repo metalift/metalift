@@ -6,7 +6,7 @@ from pyparsing import Set
 
 from metalift.frontend.llvm import InvGrammar
 from metalift.frontend.utils import ObjectSet
-from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, ObjectWrapper, is_matrix_type
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, ObjectWrapper, is_matrix_type, synth
 from metalift.ir import List as mlList
 from metalift.ir import (Matrix, Object, Synth, call, call_value, choose,
                          fn_decl, fn_decl_recursive, get_list_element_type,
@@ -730,37 +730,17 @@ def get_unique_int_exps_with_depth(
         depth: choices
     }
 
-def get_multi_depth_select_general_synth(
+def get_multi_depth_compute_with_counts_general_synth(
     args: List[Object],
     constants: List[Int],
-    compute_ops: List[str],
-    compare_ops: List[str],
-    cond_lhs_depth: int,
-    cond_rhs_depth: int,
-    if_then_depth: int,
-    if_else_depth: int,
+    ordered_compute_ops: OrderedDict,
+    depth: int
 ) -> Synth:
-    cond_lhs = helper(args, constants, compute_ops, cond_lhs_depth)
-    cond_rhs = helper(args, constants, compute_ops, cond_rhs_depth)
-    if_then = helper(args, constants, compute_ops, if_then_depth)
-    if_else = helper(args, constants, compute_ops, if_else_depth)
-
-    cond_choices: List[Bool] = []
-    if ">=" in compare_ops:
-        cond_choices.append(cond_lhs >= cond_rhs)
-    if ">" in compare_ops:
-        cond_choices.append(cond_lhs > cond_rhs)
-    if "==" in compare_ops:
-        cond_choices.append(cond_lhs == cond_rhs)
-    if "<" in compare_ops:
-        cond_choices.append(cond_lhs < cond_rhs)
-    if "<=" in compare_ops:
-        cond_choices.append(cond_lhs <= cond_rhs)
-    cond = choose(*cond_choices)
-    return Synth(
+    body = helper_with_counts(args, constants, ordered_compute_ops, depth)
+    return synth(
         SELECT_TWO_ARGS,
-        ite(cond, if_then, if_else).src,
-        *get_object_exprs(*args)
+        body,
+        *args
     )
 
 def get_multi_depth_with_counts_select_general_synth(
