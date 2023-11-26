@@ -98,7 +98,7 @@ for.body6:                                        ; preds = %for.cond4
   %conv9 = sext i32 %i6 to i64
   %call10 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call8, i64 %conv9) #11
   %i7 = load i32, i32* %call10, align 4
-  %cmp11 = icmp sge i32 %i7, 128
+  %cmp11 = icmp sge i32 %i7, 16
   br i1 %cmp11, label %if.then, label %if.else
 
 if.then:                                          ; preds = %for.body6
@@ -134,9 +134,9 @@ if.then:                                          ; preds = %for.body6
   %call28 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call26, i64 %conv27) #11
   %i19 = load i32, i32* %call28, align 4
   %mul29 = mul nsw i32 %mul24, %i19
-  %div = sdiv i32 %mul29, 255
+  %div = sdiv i32 %mul29, 32
   %sub = sub nsw i32 %add, %div
-  %sub30 = sub nsw i32 %sub, 255
+  %sub30 = sub nsw i32 %sub, 32
   store i32 %sub30, i32* %pixel, align 4
   br label %if.end
 
@@ -157,7 +157,7 @@ if.else:                                          ; preds = %for.body6
   %call39 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call37, i64 %conv38) #11
   %i25 = load i32, i32* %call39, align 4
   %mul40 = mul nsw i32 %mul35, %i25
-  %div41 = sdiv i32 %mul40, 255
+  %div41 = sdiv i32 %mul40, 32
   store i32 %div41, i32* %pixel, align 4
   br label %if.end
 

@@ -224,6 +224,156 @@ def nested_list_computation(
         nested_list = choose(*choices)
     return nested_list
 
+def computation_with_counts(
+    args: List[Union[Matrix[Int], mlList[Int]]],
+    constants: List[Int],
+    ordered_compute_ops: OrderedDict,
+    depth: int,
+    get_constant: bool = False
+) -> Optional[Union[Matrix[Int], mlList[Int], Int]]:
+    op_to_scalar_call_mapping = {
+        "+": call_nested_list_scalar_add,
+        "-": call_nested_list_scalar_sub,
+        "*": call_nested_list_scalar_mul,
+        "//": call_nested_list_scalar_div,
+    }
+    op_to_elemwise_call_mapping = {
+        "+": call_nested_list_elemwise_add,
+        "-": call_nested_list_elemwise_sub,
+        "*": call_nested_list_elemwise_mul,
+        "//": call_nested_list_elemwise_div,
+    }
+    if depth == 0:
+        if get_constant:
+            if len(constants) == 0:
+                return None
+            return choose(*constants)
+        else:
+            return choose(*args)
+    if get_constant:
+        return None
+    if all(count == 0 for count in ordered_compute_ops.values()):
+        return None
+
+    # First fix left hand side to be depth - 1
+    choices: Set[ObjectWrapper] = set()
+    one_side_depth = depth - 1
+
+    symmetric_ops = ["+", "*"]
+    asymmetric_ops = ["-", "//"]
+
+    one_side_depth = depth - 1
+    # The other depth can be anywhere from 0 to depth - 1
+    for other_side_depth in range(depth):
+        for op in symmetric_ops + asymmetric_ops:
+            if (op_count := ordered_compute_ops.get(op, 0)) == 0:
+                continue
+            visited_scalar_call_combs: Set[Tuple[int]] = set()
+            visited_elemwise_call_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
+            ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
+            ordered_compute_ops_copy[op] = op_count - 1
+            ranges = [range(0, count + 1) for count in ordered_compute_ops_copy.values()]
+            all_combs = set(product(*ranges))
+            for comb in all_combs:
+                comp_comb = get_complement_tuple(
+                    tuple(ordered_compute_ops_copy.values()),
+                    comb
+                )
+                ordered_ops = tuple(ordered_compute_ops.keys())
+                compute_ops_from_comb = make_dict(ordered_ops, comb)
+                compute_ops_from_comp_comb = make_dict(ordered_ops, comp_comb)
+                one_side_cons = computation_with_counts(
+                    args,
+                    constants,
+                    compute_ops_from_comb,
+                    one_side_depth,
+                    get_constant=True
+                )
+                one_side_matrix = computation_with_counts(
+                    args,
+                    constants,
+                    compute_ops_from_comb,
+                    one_side_depth,
+                    get_constant=False
+                )
+                other_side_cons = computation_with_counts(
+                    args,
+                    constants,
+                    compute_ops_from_comp_comb,
+                    other_side_depth,
+                    get_constant=True
+                )
+                other_side_matrix = computation_with_counts(
+                    args,
+                    constants,
+                    compute_ops_from_comp_comb,
+                    other_side_depth,
+                    get_constant=False
+                )
+                pairs_with_scalar = [
+                    (one_side_cons, other_side_matrix, comp_comb),
+                    (other_side_cons, one_side_matrix, comb)
+                ]
+                # Handle scalar functions
+                for scalar, matrix, comb in pairs_with_scalar:
+                    if scalar is None or matrix is None:
+                        continue
+                    if comb in visited_scalar_call_combs:
+                        continue
+                    call_result = ObjectWrapper(op_to_scalar_call_mapping[op](scalar, matrix))
+                    choices.add(call_result)
+                    visited_scalar_call_combs.add(comb)
+
+                # Handle elemwise functions
+                if one_side_matrix is None or other_side_matrix is None:
+                    continue
+                elemwise_call = op_to_elemwise_call_mapping[op]
+                if op in symmetric_ops:
+                    if (comb, comp_comb) not in visited_elemwise_call_combs:
+                        call_result = elemwise_call(one_side_matrix, other_side_matrix)
+                        choices.add(ObjectWrapper(call_result))
+                        visited_elemwise_call_combs.add((comb, comp_comb))
+                        visited_elemwise_call_combs.add((comp_comb, comb))
+                elif op in asymmetric_ops:
+                    if (comb, comp_comb) not in visited_elemwise_call_combs:
+                        call_result = elemwise_call(one_side_matrix, other_side_matrix)
+                        choices.add(ObjectWrapper(call_result))
+                        visited_elemwise_call_combs.add((comb, comp_comb))
+                    if (comp_comb, comb) not in visited_elemwise_call_combs:
+                        call_result = elemwise_call(other_side_matrix, one_side_matrix)
+                        choices.add(ObjectWrapper(call_result))
+                        visited_elemwise_call_combs.add((comp_comb, comb))
+
+
+    if len(choices) == 0:
+        return None
+    return choose(*[choice.object for choice in choices])
+    op_to_scalar_call_mapping = {
+        "+": call_nested_list_scalar_add,
+        "-": call_nested_list_scalar_sub,
+        "*": call_nested_list_scalar_mul,
+        "//": call_nested_list_scalar_div,
+    }
+    op_to_elemwise_call_mapping = {
+        "+": call_nested_list_elemwise_add,
+        "-": call_nested_list_elemwise_sub,
+        "*": call_nested_list_elemwise_mul,
+        "//": call_nested_list_elemwise_div,
+    }
+    nested_list = choose(*args)
+    cons = None
+    if len(constants) > 0:
+        cons = choose(*constants)
+    for _ in range(depth):
+        choices = [nested_list]
+        for op in ordered_compute_ops:
+            if cons is not None:
+                choices.append(op_to_scalar_call_mapping[op](cons, nested_list))
+            choices.append(op_to_elemwise_call_mapping[op](nested_list, nested_list))
+        nested_list = choose(*choices)
+    return nested_list
+
+
 # Define some common objects
 a = Int("a")
 x = mlList(Int, "x")
@@ -289,46 +439,46 @@ def reduce_max_body(lst: mlList[Int]) -> Int:
 reduce_max = fn_decl_recursive(REDUCEMAX, Int, reduce_max_body(x), x)
 
 # Helper functions for selections
-def mul8x8_div255_body(int_x: IntObject, int_y: IntObject) -> IntObject:
-    return (int_x * int_y) // 255
+def mul8x8_div32_body(int_x: Int, int_y: Int) -> Int:
+    return (int_x * int_y) // 32
 
-def screen8x8_body(int_x: IntObject, int_y: IntObject) -> IntObject:
-    return int_x + int_y - mul8x8_div255_body(int_x, int_y)
+def screen8x8_body(int_x: Int, int_y: Int) -> Int:
+    return int_x + int_y - mul8x8_div32_body(int_x, int_y)
 
 # Helper functions for compute functions
-def vec_mul8x8_div255_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
+def vec_mul8x8_div32_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
     return call_vec_scalar_div(
-        Int(255),
+        Int(32),
         call_vec_elemwise_mul(x, y),
     )
 
-def nested_list_mul8x8_div255_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
+def nested_list_mul8x8_div32_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
     return call_nested_list_scalar_div(
-        Int(255),
+        Int(32),
         call_nested_list_elemwise_mul(nested_x, nested_y)
     )
 
 def vec_screen8x8_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
     return call_vec_elemwise_sub(
         call_vec_elemwise_add(x, y),
-        vec_mul8x8_div255_body(x, y)
+        vec_mul8x8_div32_body(x, y)
     )
 
 def nested_list_screen8x8_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
     return call_nested_list_elemwise_sub(
         call_nested_list_elemwise_add(nested_x, nested_y),
-        nested_list_mul8x8_div255_body(nested_x, nested_y)
+        nested_list_mul8x8_div32_body(nested_x, nested_y)
     )
 
 def vec_linear_burn_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
     return call_vec_scalar_sub(
-        Int(255),
+        Int(32),
         call_vec_elemwise_add(x, y),
     )
 
 def nested_list_linear_burn_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
     return call_nested_list_scalar_sub(
-        Int(255),
+        Int(32),
         call_nested_list_elemwise_add(nested_x, nested_y)
     )
 
@@ -339,8 +489,8 @@ def select_darken_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
 def select_color_burn_body(int_x: Int, int_y: Int) -> Int:
     return ite(
         int_y == 0,
-        Int(255),
-        255 - (255 - int_x) // int_y
+        Int(32),
+        32 - (32 - int_x) // int_y
     )
 
 def select_lighten_blend_body(int_x: Int, int_y: Int) -> Int:
@@ -348,16 +498,16 @@ def select_lighten_blend_body(int_x: Int, int_y: Int) -> Int:
 
 def select_color_dodge_body(int_x: Int, int_y: Int) -> Int:
     return ite(
-        int_y == 255,
-        Int(255),
-        int_x // (255 - int_y)
+        int_y == 32,
+        Int(32),
+        int_x // (32 - int_y)
     )
 
 def select_overlay_blend_body(int_x: Int, int_y: Int) -> Int:
     return ite(
         int_x >= 128,
-        screen8x8_body(2 * int_x, int_x) - 255,
-        mul8x8_div255_body(2 * int_x, int_x)
+        screen8x8_body(2 * int_x, int_x) - 32,
+        mul8x8_div32_body(2 * int_x, int_x)
     )
 
 select_two_args_fn_obj_arg = Fn((Int, Int, Int), SELECT_TWO_ARGS_ARG)
@@ -375,7 +525,7 @@ fixed_select_two_args_fn_decl = fn_decl(
 def get_select_two_args_synth_without_analysis(depth: int) -> Synth:
     return get_select_two_args_general_synth(
         args=[int_x, int_y],
-        constants=[Int(0), Int(2), Int(128), Int(255)],
+        constants=[Int(0), Int(2), Int(128), Int(32)],
         compute_ops=["+", "-", "*", "//"],
         compare_ops=[">=", ">", "==", "<", "<="],
         depth=depth
@@ -405,13 +555,11 @@ def helper_with_counts(
         return None
 
     # First fix left hand side to be depth - 1
-    choices: List[Object] = []
+    choices: Set[ObjectWrapper] = set()
     one_side_depth = depth - 1
 
     symmetric_ops = ["+", "*"]
     asymmetric_ops = ["-", "//"]
-
-    visited_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
 
     one_side_depth = depth - 1
     # The other depth can be anywhere from 0 to depth - 1
@@ -419,6 +567,7 @@ def helper_with_counts(
         for op in symmetric_ops + asymmetric_ops:
             if (op_count := ordered_compute_ops.get(op, 0)) == 0:
                 continue
+            visited_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
             ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
             ordered_compute_ops_copy[op] = op_count - 1
             ranges = [range(0, count + 1) for count in ordered_compute_ops_copy.values()]
@@ -438,28 +587,28 @@ def helper_with_counts(
                 if op in symmetric_ops:
                     if (comb, comp_comb) not in visited_combs:
                         if op == "+":
-                            choices.append(one_side + other_side)
+                            choices.add(ObjectWrapper(one_side + other_side))
                         if op == "*":
-                            choices.append(one_side * other_side)
+                            choices.add(ObjectWrapper(one_side * other_side))
                         visited_combs.add((comb, comp_comb))
                         visited_combs.add((comp_comb, comb))
                 elif op in asymmetric_ops:
                     if (comb, comp_comb) not in visited_combs:
                         if op == "-":
-                            choices.append(one_side - other_side)
+                            choices.add(ObjectWrapper(one_side - other_side))
                         if op == "//":
-                            choices.append(one_side // other_side)
+                            choices.add(ObjectWrapper(one_side // other_side))
                         visited_combs.add((comb, comp_comb))
                     if (comp_comb, comb) not in visited_combs:
                         if op == "-":
-                            choices.append(other_side - one_side)
+                            choices.add(ObjectWrapper(other_side - one_side))
                         if op == "//":
-                            choices.append(other_side // one_side)
+                            choices.add(ObjectWrapper(other_side // one_side))
                         visited_combs.add((comp_comb, comb))
 
     if len(choices) == 0:
         return None
-    return choose(*choices)
+    return choose(*[choice.object for choice in choices])
 
 # @lru_cache(maxsize=None)
 # TODO(jie): rename this function
@@ -654,7 +803,7 @@ def get_select_two_args_general_synth(
     compare_ops: List[str],
     depth: int,
 ) -> Synth:
-    # arg_or_cons = choose(arg_expr, Int(0), Int(255))
+    # arg_or_cons = choose(arg_expr, Int(0), Int(32))
     # if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
     # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
     # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp // if_else_int_exp)
@@ -1370,6 +1519,186 @@ def get_nested_list_computation_inv1_grammar(
         ["row", "agg.result"]
     )
 
+def get_nested_list_computation_with_counts_ps_grammar_fn(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    ordered_compute_ops: Optional[OrderedDict] = None,
+    depth: Optional[int] = None,
+) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
+    if fixed_grammar and fixed_out_fn is None:
+        raise Exception("Must pass in an override out!")
+    def nested_list_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        ret_val = writes[0]
+        base, active = reads
+        if not fixed_grammar:
+            return ret_val == computation_with_counts(
+                args=[base, active],
+                constants=constants,
+                ordered_compute_ops=ordered_compute_ops,
+                depth=depth
+            )
+        else:
+            return ret_val == fixed_out_fn(base, active)
+    return nested_list_computation_ps_grammar_fn
+
+def get_nested_list_computation_with_counts_inv0_grammar(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    ordered_compute_ops: Optional[OrderedDict] = None,
+    depth: Optional[int] = None,
+) -> InvGrammar:
+    if fixed_grammar:
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def nested_list_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            index_lower_cond = choose(
+                row >= index_lower_bound,
+                row > index_lower_bound,
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
+            )
+            index_upper_cond = choose(
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            nested_list_choices = [
+                base,
+                base[:row],
+                base[:col],
+                active,
+                active[:row],
+                active[:col],
+            ]
+            return and_objects(
+                index_lower_cond,
+                index_upper_cond,
+                out == computation_with_counts(
+                    args=nested_list_choices,
+                    constants=constants,
+                    ordered_compute_ops=ordered_compute_ops,
+                    depth=depth
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row <= base.len(),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(nested_list_computation_inv0_grammar_fn, [])
+
+def get_nested_list_computation_with_counts_inv1_grammar(
+    fixed_grammar: bool,
+    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    ordered_compute_ops: Optional[OrderedDict] = None,
+    depth: Optional[int] = None,
+):
+    if fixed_grammar:
+        if fixed_row_vec_fn is None:
+            raise Exception("Must pass in an override row_vec!")
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def nested_list_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # inner loop grammar
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            outer_index_lower_cond = choose(
+                row >= index_lower_bound,
+                row > index_lower_bound,
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
+            )
+            outer_index_upper_cond = choose(
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            inner_index_lower_cond = choose(
+                col >= index_lower_bound,
+                col > index_lower_bound,
+                col == index_lower_bound,
+                col < index_lower_bound,
+                col <= index_lower_bound
+            )
+            inner_index_upper_cond = choose(
+                col >= index_upper_bound,
+                col > index_upper_bound,
+                col == index_upper_bound,
+                col < index_upper_bound,
+                col <= index_upper_bound
+            )
+            vec_choices = [
+                base[0][:col],
+                base[row][:col],
+                base[col][:row],
+                base[0][:row],
+                active[0][:col],
+                active[row][:col],
+                active[col][:row],
+                active[0][:row],
+                row_vec
+            ]
+            nested_list_choices = [
+                base,
+                base[:row],
+                base[:col],
+                active,
+                active[:row],
+                active[:col]
+            ]
+            return and_objects(
+                outer_index_lower_cond,
+                outer_index_upper_cond,
+                inner_index_lower_cond,
+                inner_index_upper_cond,
+                row_vec == computation_with_counts(
+                    args=vec_choices,
+                    constants=constants,
+                    ordered_compute_ops=ordered_compute_ops,
+                    depth=depth
+                ),
+                out == computation_with_counts(
+                    args=nested_list_choices,
+                    constants=constants,
+                    ordered_compute_ops=ordered_compute_ops,
+                    depth=depth
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row < base.len(),
+                col >= 0,
+                col <= base[0].len(),
+                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(
+        nested_list_computation_inv1_grammar_fn,
+        ["row", "agg.result"]
+    )
+
 def nested_list_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         vec_elemwise_add,
@@ -1393,7 +1722,7 @@ def nested_list_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]
 def get_nested_list_computation_grammars_without_analysis(depth: int) -> Tuple[InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]]:
     return get_nested_list_computation_grammars(
         fixed_grammar=False,
-        constants=[Int(0), Int(2), Int(128), Int(255)],
+        constants=[Int(0), Int(2), Int(128), Int(32)],
         compute_ops=["+", "-", "*", "//"],
         depth=depth
     )
@@ -1418,7 +1747,7 @@ def get_nested_list_computation_grammars(
         fixed_row_vec_fn=fixed_row_vec_fn,
         fixed_out_fn=fixed_out_fn,
         constants=constants,
-        compute_ops=compute_ops,
+        ordered_compute_ops=compute_ops,
         depth=depth
     )
     ps_grammar = get_nested_list_computation_ps_grammar_fn(

@@ -121,7 +121,7 @@ for.body6:                                        ; preds = %for.cond4
   %call22 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call20, i64 %conv21) #11
   %i16 = load i32, i32* %call22, align 4
   %mul = mul nsw i32 %i13, %i16
-  %div = sdiv i32 %mul, 255
+  %div = sdiv i32 %mul, 32
   %sub = sub nsw i32 %add, %div
   store i32 %sub, i32* %pixel, align 4
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector.0"* %row_vec, i32* nonnull align 4 dereferenceable(4) %pixel)
