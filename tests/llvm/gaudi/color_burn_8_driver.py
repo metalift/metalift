@@ -1,11 +1,13 @@
-from collections import OrderedDict
 import time
+from collections import OrderedDict
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix, synth
 from tests.llvm.gaudi.gaudi_common import (
-    FIXED_SELECT_TWO_ARGS, get_multi_depth_with_counts_select_general_synth, select_color_burn_body, selection_two_args_inv0_grammar, selection_two_args_inv1_grammar,
-    selection_two_args_ps_grammar_fn, selection_two_args_target_lang, get_multi_depth_select_general_synth)
+    FIXED_SELECT_TWO_ARGS, get_multi_depth_with_counts_select_general_synth,
+    select_color_burn_body, selection_two_args_inv0_grammar,
+    selection_two_args_inv1_grammar, selection_two_args_ps_grammar_fn,
+    selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -53,7 +55,6 @@ if __name__ == "__main__":
         int_y
     )
     driver.fns_synths = [select_synth, fixed_select_synth]
-    # driver.fns_synths = [select_synth]
     color_burn_8(base, active)
 
     start_time = time.time()
