@@ -2,56 +2,56 @@ from typing import List, Union
 from collections import defaultdict
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Expr, FnDecl,FnDeclRecursive, NewObject, ListObject, IntObject, BoolObject, call, choose, ite, fn_decl,fn_decl_recursive)
+from metalift.ir import (Expr, FnDecl,FnDeclRecursive, Object, List as mlList, Int, Bool, call, choose, ite, fn_decl,fn_decl_recursive)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    arg = IntObject("n")
-    select_pred = fn_decl("Select-pred", BoolObject, (arg > 2), arg)
-    select_pred1 = fn_decl("Select-pred1", BoolObject, (arg < 10), arg)
-    select_pred2 = fn_decl("Select-pred2", BoolObject, (arg > 2) and (arg < 10), arg)
+    arg = Int("n")
+    select_pred = fn_decl("Select-pred", Bool, (arg > 2), arg)
+    select_pred1 = fn_decl("Select-pred1", Bool, (arg < 10), arg)
+    select_pred2 = fn_decl("Select-pred2", Bool, (arg > 2) and (arg < 10), arg)
 
-    data = ListObject(IntObject, "l")
+    data = mlList(Int, "l")
     select_func = fn_decl_recursive(
         "Select",
-        ListObject[IntObject],
+        mlList[Int],
         ite(
             data.len() == 0,
-            ListObject.empty(IntObject),
+            mlList.empty(Int),
             ite(
-                call("Select-pred", BoolObject, data[0]),
-                call("Select", ListObject[IntObject], data[1:]).append(data[0]),
-                call("Select", ListObject[IntObject], data[1:]),
+                call("Select-pred", Bool, data[0]),
+                call("Select", mlList[Int], data[1:]).append(data[0]),
+                call("Select", mlList[Int], data[1:]),
             ),
         ),
         data,
     )
     select_func1 = fn_decl_recursive(
         "Select1",
-        ListObject[IntObject],
+        mlList[Int],
         ite(
             data.len() == 0,
-            ListObject.empty(IntObject),
+            mlList.empty(Int),
             ite(
-                call("Select-pred1", BoolObject, data[0]),
-                call("Select1", ListObject[IntObject], data[1:]).append(data[0]),
-                call("Select1", ListObject[IntObject], data[1:]),
+                call("Select-pred1", Bool, data[0]),
+                call("Select1", mlList[Int], data[1:]).append(data[0]),
+                call("Select1", mlList[Int], data[1:]),
             ),
         ),
         data,
     )
     select_func2 = fn_decl_recursive(
         "Select2",
-        ListObject[IntObject],
+        mlList[Int],
         ite(
             data.len() == 0,
-            ListObject.empty(IntObject),
+            mlList.empty(Int),
             ite(
-                call("Select-pred2", BoolObject, data[0]),
-                call("Select2", ListObject[IntObject], data[1:]).append(data[0]),
-                call("Select2", ListObject[IntObject], data[1:]),
+                call("Select-pred2", Bool, data[0]),
+                call("Select2", mlList[Int], data[1:]).append(data[0]),
+                call("Select2", mlList[Int], data[1:]),
             ),
         ),
         data,
@@ -66,26 +66,26 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         select_func2,
     ]
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Expr:
     # reads = [in_lst]
     ret_val = writes[0]
     in_lst = reads[0]
     return choose(
         ret_val == in_lst,
-        ret_val == call("Select", ListObject[IntObject], in_lst),
-        ret_val == call("Select1", ListObject[IntObject], in_lst),
-        ret_val == call("Select2", ListObject[IntObject], in_lst)
+        ret_val == call("Select", mlList[Int], in_lst),
+        ret_val == call("Select1", mlList[Int], in_lst),
+        ret_val == call("Select2", mlList[Int], in_lst)
     )
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> Expr:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Expr:
     # writes = [out, i]
     # reads = [in]
     out_lst, i = writes[1], writes[0]
     in_lst = reads[0]
 
-    lst = choose(in_lst, out_lst, call("Select", ListObject[IntObject], in_lst))
+    lst = choose(in_lst, out_lst, call("Select", mlList[Int], in_lst))
     lst_inv_cond = choose(
-        lst + call("Select", ListObject[IntObject], lst[i:]) == lst,
+        lst + call("Select", mlList[Int], lst[i:]) == lst,
         out_lst + lst[i:] == lst
     )
 
@@ -97,7 +97,7 @@ def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[
         i < in_lst_length,
         i == in_lst_length,
     )
-    i_bound_int_lit = choose(IntObject(0), IntObject(1))
+    i_bound_int_lit = choose(Int(0), Int(1))
     i_bound_int_lit_cond = choose(
         i >= i_bound_int_lit,
         i <= i_bound_int_lit,
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    v1 = ListObject(IntObject, "in")
+    v1 = mlList(Int, "in")
     driver.add_var_object(v1)
 
     test(v1)

@@ -2,34 +2,34 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (BoolObject, FnDeclRecursive, IntObject, NewObject,
+from metalift.ir import (Bool, FnDeclRecursive, Int, Object,
                          call, choose, fn_decl_recursive, ite)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDeclRecursive]:
-    x = IntObject("x")
+    x = Int("x")
     sum_n = fn_decl_recursive(
         "sum_n",
-        IntObject,
+        Int,
         ite(
             x >= 1,
-            x + call("sum_n", IntObject, x - 1),
-            IntObject(0),
+            x + call("sum_n", Int, x - 1),
+            Int(0),
         ).src,
         x.src
     )
     return [sum_n]
 
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
-    return ret_val == call("sum_n", IntObject, choose(IntObject(1), IntObject(2)))
+    return ret_val == call("sum_n", Int, choose(Int(1), Int(2)))
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     e = choose(*writes)
-    f = choose(IntObject(1), IntObject(2), IntObject(3))
-    c = e == call("sum_n", IntObject, e - f)
+    f = choose(Int(1), Int(2), Int(3))
+    c = e == call("sum_n", Int, e - f)
     d = (e >= f).And(e <= f)
     b = c.And(d)
     return b
