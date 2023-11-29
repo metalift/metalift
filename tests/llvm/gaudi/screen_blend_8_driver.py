@@ -37,12 +37,12 @@ if __name__ == "__main__":
         ordered_compute_ops=ordered_compute_ops,
         depth=3
     )
-    fixed_select_synth = synth(
-        FIXED_SELECT_TWO_ARGS,
-        screen8x8_body(int_x, int_y),
-        int_x,
-        int_y
-    )
+    # fixed_select_synth = synth(
+    #     FIXED_SELECT_TWO_ARGS,
+    #     screen8x8_body(int_x, int_y),
+    #     int_x,
+    #     int_y
+    # )
     # inv0_grammar = get_nested_list_computation_with_counts_inv0_grammar(
     #     fixed_grammar=True,
     #     fixed_out_fn=nested_list_screen8x8_body
@@ -79,12 +79,13 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() > 1)
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
-    driver.fns_synths = [select_synth, fixed_select_synth]
+    driver.fns_synths = [select_synth]
+
 
     screen_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=2, noVerify=True)
+    driver.synthesize(listBound=3, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + screen_blend_8.codegen(codegen))

@@ -477,7 +477,7 @@ def select_color_dodge_body(int_x: Int, int_y: Int) -> Int:
 
 def select_overlay_blend_body(int_x: Int, int_y: Int) -> Int:
     return ite(
-        int_x >= 128,
+        int_x >= 16,
         screen8x8_body(2 * int_x, int_x) - 32,
         mul8x8_div32_body(2 * int_x, int_x)
     )
@@ -576,6 +576,122 @@ def helper_with_counts(
                             choices.add(ObjectWrapper(other_side - one_side))
                         if op == "//":
                             choices.add(ObjectWrapper(other_side // one_side))
+                        visited_combs.add((comp_comb, comb))
+
+    if len(choices) == 0:
+        return None
+    return choose(*[choice.object for choice in choices])
+
+def helper_with_counts_and_constants(
+    args: List[Int],
+    constants: List[Int],
+    ordered_compute_ops: OrderedDict,
+    depth: int
+) -> Optional[Object]:
+    if depth == 0:
+        return choose(*args, *constants)
+    if all(count == 0 for count in ordered_compute_ops.values()):
+        return None
+
+    # First fix left hand side to be depth - 1
+    choices: Set[ObjectWrapper] = set()
+    one_side_depth = depth - 1
+
+    symmetric_ops = ["+", "*"]
+    asymmetric_ops = ["-", "//"]
+
+    one_side_depth = depth - 1
+    # The other depth can be anywhere from 0 to depth - 1
+    for other_side_depth in range(depth):
+        for (arg1, op, arg2), op_count in ordered_compute_ops.items():
+            if op_count == 0:
+                continue
+            visited_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
+            ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
+            ordered_compute_ops_copy[(arg1, op, arg2)] = op_count - 1
+            ranges = [range(0, count + 1) for count in ordered_compute_ops_copy.values()]
+            all_combs = set(product(*ranges))
+            for comb in all_combs:
+                comp_comb = get_complement_tuple(
+                    tuple(ordered_compute_ops_copy.values()),
+                    comb
+                )
+                ordered_ops = tuple(ordered_compute_ops.keys())
+                compute_ops_from_comb = make_dict(ordered_ops, comb)
+                compute_ops_from_comp_comb = make_dict(ordered_ops, comp_comb)
+                one_side = helper_with_counts_and_constants(args, constants, compute_ops_from_comb, one_side_depth)
+                other_side = helper_with_counts_and_constants(args, constants, compute_ops_from_comp_comb, other_side_depth)
+                if op in symmetric_ops:
+                    if (comb, comp_comb) not in visited_combs:
+                        if op == "+":
+                            # For now we assume that we don't have constant + constant
+                            if arg2 is not None or arg1 is not None:
+                                if one_side is None or other_side_depth != 0:
+                                    continue
+                                if arg1 is not None:
+                                    choices.add(ObjectWrapper(one_side + arg1))
+                                else:
+                                    # arg2 must not be None
+                                    choices.add(ObjectWrapper(one_side + arg2))
+                            else:
+                                if one_side is None or other_side is None:
+                                    continue
+                                choices.add(ObjectWrapper(one_side + other_side))
+                        if op == "*":
+                            if arg2 is not None or arg1 is not None:
+                                if one_side is None or other_side_depth != 0:
+                                    continue
+                                if arg1 is not None:
+                                    choices.add(ObjectWrapper(one_side * arg1))
+                                else:
+                                    # arg2 must not be None
+                                    choices.add(ObjectWrapper(one_side * arg2))
+                            else:
+                                if one_side is None or other_side is None:
+                                    continue
+                                choices.add(ObjectWrapper(one_side * other_side))
+                        visited_combs.add((comb, comp_comb))
+                        visited_combs.add((comp_comb, comb))
+                elif op in asymmetric_ops:
+                    if (comb, comp_comb) not in visited_combs:
+                        if op == "-":
+                            if arg1 is not None or arg2 is not None:
+                                if one_side is None or other_side_depth != 0 or arg2 is None:
+                                    continue
+                                choices.add(ObjectWrapper(one_side - arg2))
+                            else:
+                                if one_side is None or other_side is None:
+                                    continue
+                                choices.add(ObjectWrapper(one_side - other_side))
+                        if op == "//":
+                            if arg1 is not None or arg2 is not None:
+                                if one_side is None or other_side_depth != 0 or arg2 is None:
+                                    continue
+                                choices.add(ObjectWrapper(one_side // arg2))
+                            else:
+                                if one_side is None or other_side is None:
+                                    continue
+                                choices.add(ObjectWrapper(one_side // other_side))
+                        visited_combs.add((comb, comp_comb))
+                    if (comp_comb, comb) not in visited_combs:
+                        if op == "-":
+                            if arg1 is not None or arg2 is not None:
+                                if one_side is None or other_side_depth != 0 or arg1 is None:
+                                    continue
+                                choices.add(ObjectWrapper(arg1 - one_side))
+                            else:
+                                if one_side is None or other_side is None:
+                                    continue
+                                choices.add(ObjectWrapper(other_side - one_side))
+                        if op == "//":
+                            if arg1 is not None or arg2 is not None:
+                                if one_side is None or other_side_depth != 0 or arg1 is None:
+                                    continue
+                                choices.add(ObjectWrapper(arg1 // one_side))
+                            else:
+                                if one_side is None or other_side is None:
+                                    continue
+                                choices.add(ObjectWrapper(other_side // one_side))
                         visited_combs.add((comp_comb, comb))
 
     if len(choices) == 0:
@@ -718,17 +834,89 @@ def get_multi_depth_compute_with_counts_general_synth(
 def get_multi_depth_with_counts_select_general_synth(
     args: List[Object],
     constants: List[Int],
-    ordered_compute_ops: OrderedDict,
+    compare_ops: List[str],
+    cond_lhs_depth: int,
+    cond_rhs_depth: int,
+    if_then_depth: int,
+    if_else_depth: int,
+    cond_lhs_ordered_compute_ops: OrderedDict,
+    cond_rhs_ordered_compute_ops: OrderedDict,
+    if_then_ordered_compute_ops: OrderedDict,
+    if_else_ordered_compute_ops: OrderedDict
+) -> Synth:
+    cond_lhs = helper_with_counts(args, constants, cond_lhs_ordered_compute_ops, cond_lhs_depth)
+    cond_rhs = helper_with_counts(args, constants, cond_rhs_ordered_compute_ops, cond_rhs_depth)
+    if_then = helper_with_counts(args, constants, if_then_ordered_compute_ops, if_then_depth)
+    if_else = helper_with_counts(args, constants, if_else_ordered_compute_ops, if_else_depth)
+
+    cond_choices: List[Bool] = []
+    if ">=" in compare_ops:
+        cond_choices.append(cond_lhs >= cond_rhs)
+    if ">" in compare_ops:
+        cond_choices.append(cond_lhs > cond_rhs)
+    if "==" in compare_ops:
+        cond_choices.append(cond_lhs == cond_rhs)
+    if "<" in compare_ops:
+        cond_choices.append(cond_lhs < cond_rhs)
+    if "<=" in compare_ops:
+        cond_choices.append(cond_lhs <= cond_rhs)
+    cond = choose(*cond_choices)
+    return Synth(
+        SELECT_TWO_ARGS,
+        ite(cond, if_then, if_else).src,
+        *get_object_exprs(*args[:2]) # TODO(jie): fix this, this is very hacky
+    )
+
+def get_multi_depth_with_counts_and_constants_select_general_synth(
+    args: List[Object],
+    constants: List[Int],
+    compare_ops: List[str],
+    cond_lhs_depth: int,
+    cond_rhs_depth: int,
+    if_then_depth: int,
+    if_else_depth: int,
+    cond_lhs_ordered_compute_ops: OrderedDict,
+    cond_rhs_ordered_compute_ops: OrderedDict,
+    if_then_ordered_compute_ops: OrderedDict,
+    if_else_ordered_compute_ops: OrderedDict
+) -> Synth:
+    cond_lhs = helper_with_counts_and_constants(args, constants, cond_lhs_ordered_compute_ops, cond_lhs_depth)
+    cond_rhs = helper_with_counts_and_constants(args, constants, cond_rhs_ordered_compute_ops, cond_rhs_depth)
+    if_then = helper_with_counts_and_constants(args, constants, if_then_ordered_compute_ops, if_then_depth)
+    if_else = helper_with_counts_and_constants(args, constants, if_else_ordered_compute_ops, if_else_depth)
+
+    cond_choices: List[Bool] = []
+    if ">=" in compare_ops:
+        cond_choices.append(cond_lhs >= cond_rhs)
+    if ">" in compare_ops:
+        cond_choices.append(cond_lhs > cond_rhs)
+    if "==" in compare_ops:
+        cond_choices.append(cond_lhs == cond_rhs)
+    if "<" in compare_ops:
+        cond_choices.append(cond_lhs < cond_rhs)
+    if "<=" in compare_ops:
+        cond_choices.append(cond_lhs <= cond_rhs)
+    cond = choose(*cond_choices)
+    return Synth(
+        SELECT_TWO_ARGS,
+        ite(cond, if_then, if_else).src,
+        *get_object_exprs(*args[:2]) # TODO(jie): fix this, this is very hacky
+    )
+
+def get_multi_depth_select_general_synth(
+    args: List[Object],
+    constants: List[Int],
+    compute_ops: List[str],
     compare_ops: List[str],
     cond_lhs_depth: int,
     cond_rhs_depth: int,
     if_then_depth: int,
     if_else_depth: int,
 ) -> Synth:
-    cond_lhs = helper_with_counts(args, constants, ordered_compute_ops, cond_lhs_depth)
-    cond_rhs = helper_with_counts(args, constants, ordered_compute_ops, cond_rhs_depth)
-    if_then = helper_with_counts(args, constants, ordered_compute_ops, if_then_depth)
-    if_else = helper_with_counts(args, constants, ordered_compute_ops, if_else_depth)
+    cond_lhs = helper(args, constants, compute_ops, cond_lhs_depth)
+    cond_rhs = helper(args, constants, compute_ops, cond_rhs_depth)
+    if_then = helper(args, constants, compute_ops, if_then_depth)
+    if_else = helper(args, constants, compute_ops, if_else_depth)
 
     cond_choices: List[Bool] = []
     if ">=" in compare_ops:
@@ -858,13 +1046,19 @@ selection_two_args_fn_decl = fn_decl_recursive(
 def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     base, active = reads
-    # return ret_val == call_nested_selection_two_args(base, active, select_two_args_fn_obj)
+    # return ret_val == call_nested_selection_two_args(base, active, fixed_select_two_args_fn_obj)
     base_or_active = choose(base, active)
     return ret_val == call_nested_selection_two_args(base_or_active, base_or_active, select_two_args_fn_obj)
 
 def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # outer loop grammar
-    out, col, pixel, row, row_vec = writes
+    writes_by_name = {
+        w.var_name(): w
+        for w in writes
+    }
+    out = writes_by_name["agg.result"]
+    col = writes_by_name["col"]
+    row = writes_by_name["row"]
     base, active = reads
     return and_objects(
         row >= 0,
@@ -876,19 +1070,19 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
         )
     )
     index_lower_bound = choose(Int(0), Int(1))
-    index_upper_bound = choose(base.len(), base[0].len())
+    index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
     index_lower_cond = choose(
         row >= index_lower_bound,
-        row > index_lower_bound,
-        row == index_lower_bound,
-        row < index_lower_bound,
-        row <= index_lower_bound
+        # row > index_lower_bound,
+        # row == index_lower_bound,
+        # row < index_lower_bound,
+        # row <= index_lower_bound
     )
     index_upper_cond = choose(
-        row >= index_upper_bound,
-        row > index_upper_bound,
-        row == index_upper_bound,
-        row < index_upper_bound,
+        # row >= index_upper_bound,
+        # row > index_upper_bound,
+        # row == index_upper_bound,
+        # row < index_upper_bound,
         row <= index_upper_bound
     )
     nested_list = choose(
@@ -907,7 +1101,12 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
 
 def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # inner loop grammar
-    col, pixel, row_vec = writes
+    writes_by_name = {
+        w.var_name(): w
+        for w in writes
+    }
+    col = writes_by_name["col"]
+    row_vec = writes_by_name["row_vec"]
     out, row = in_scope
     base, active = reads
     return and_objects(
@@ -927,33 +1126,33 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
         )
     )
     index_lower_bound = choose(Int(0), Int(1))
-    index_upper_bound = choose(base.len(), base[0].len())
+    index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
     outer_index_lower_cond = choose(
         row >= index_lower_bound,
-        row > index_lower_bound,
-        row == index_lower_bound,
-        row < index_lower_bound,
-        row <= index_lower_bound
+        # row > index_lower_bound,
+        # row == index_lower_bound,
+        # row < index_lower_bound,
+        # row <= index_lower_bound
     )
     outer_index_upper_cond = choose(
-        row >= index_upper_bound,
-        row > index_upper_bound,
-        row == index_upper_bound,
+        # row >= index_upper_bound,
+        # row > index_upper_bound,
+        # row == index_upper_bound,
         row < index_upper_bound,
-        row <= index_upper_bound
+        # row <= index_upper_bound
     )
     inner_index_lower_cond = choose(
         col >= index_lower_bound,
-        col > index_lower_bound,
-        col == index_lower_bound,
-        col < index_lower_bound,
-        col <= index_lower_bound
+        # col > index_lower_bound,
+        # col == index_lower_bound,
+        # col < index_lower_bound,
+        # col <= index_lower_bound
     )
     inner_index_upper_cond = choose(
-        col >= index_upper_bound,
-        col > index_upper_bound,
-        col == index_upper_bound,
-        col < index_upper_bound,
+        # col >= index_upper_bound,
+        # col > index_upper_bound,
+        # col == index_upper_bound,
+        # col < index_upper_bound,
         col <= index_upper_bound
     )
     vec = choose(
@@ -965,7 +1164,6 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
         active[row][:col],
         active[col][:row],
         active[0][:row],
-        row_vec
     )
     nested_list = choose(
         base,
