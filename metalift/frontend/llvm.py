@@ -1520,7 +1520,7 @@ class Driver:
         # TODO(jie): this is a hack
         synthesized: List[FnDeclRecursive] = run_synthesis(
             # basename="test",
-            basename=list(self.fns.keys())[0],
+            basename=f"{list(self.fns.keys())[0]}_bitwuzla",
             targetLang=target,
             vars=set(self.var_tracker.all()),
             invAndPs=synths + self.fns_synths,

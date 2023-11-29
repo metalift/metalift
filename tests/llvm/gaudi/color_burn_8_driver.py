@@ -54,11 +54,12 @@ if __name__ == "__main__":
         int_x,
         int_y
     )
-    driver.fns_synths = [select_synth, fixed_select_synth]
+    # driver.fns_synths = [select_synth, fixed_select_synth]
+    driver.fns_synths = [select_synth]
     color_burn_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=2, noVerify=True)
+    driver.synthesize(listBound=3, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_burn_8.codegen(codegen))

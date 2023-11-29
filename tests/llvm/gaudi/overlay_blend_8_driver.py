@@ -5,6 +5,8 @@ from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix, synth
 from tests.llvm.gaudi.gaudi_common import (
     FIXED_SELECT_TWO_ARGS,
+    get_multi_depth_select_general_synth,
+    get_multi_depth_with_counts_and_constants_select_general_synth,
     get_multi_depth_with_counts_select_general_synth,
     get_select_two_args_synth_without_analysis,
     select_overlay_blend_body,
@@ -38,20 +40,29 @@ if __name__ == "__main__":
 
     int_x = Int("int_x")
     int_y = Int("int_y")
-    ordered_compute_ops = OrderedDict()
-    ordered_compute_ops["+"] = 1
-    ordered_compute_ops["-"] = 2
-    ordered_compute_ops["*"] = 5
-    ordered_compute_ops["//"] = 2
-    select_synth = get_multi_depth_with_counts_select_general_synth(
-        args=[int_x, int_y],
-        constants=[Int(2), Int(16), Int(32)],
-        ordered_compute_ops=ordered_compute_ops,
+    if_then_ordered_compute_ops = OrderedDict({
+        (None, "+", None): 1,
+        (None, "-", None): 1,
+        (None, "-", 32): 1,
+        (None, "*", None): 1,
+        (None, "//", 32): 1
+    })
+    if_else_ordered_compute_ops = OrderedDict({
+        (None, "*", None): 1,
+        (None, "//", 32): 1
+    })
+    select_synth = get_multi_depth_with_counts_and_constants_select_general_synth(
+        args=[int_x, int_y, 2 * int_x],
+        constants=[Int(16)],
         compare_ops=[">="],
         cond_lhs_depth=0,
         cond_rhs_depth=0,
-        if_then_depth=5,
-        if_else_depth=3
+        if_then_depth=3,
+        if_else_depth=2,
+        cond_lhs_ordered_compute_ops=OrderedDict(),
+        cond_rhs_ordered_compute_ops=OrderedDict(),
+        if_then_ordered_compute_ops=if_then_ordered_compute_ops,
+        if_else_ordered_compute_ops=if_else_ordered_compute_ops
     )
     fixed_select_synth = synth(
         FIXED_SELECT_TWO_ARGS,
