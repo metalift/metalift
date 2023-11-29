@@ -1085,15 +1085,15 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     col = writes_by_name["col"]
     row = writes_by_name["row"]
     base, active = reads
-    return and_objects(
-        row >= 0,
-        row <= base.len(),
-        out == call_nested_selection_two_args(
-            base[:row],
-            active[:row],
-            fixed_select_two_args_fn_obj
-        )
-    )
+    # return and_objects(
+    #     row >= 0,
+    #     row <= base.len(),
+    #     out == call_nested_selection_two_args(
+    #         base[:row],
+    #         active[:row],
+    #         fixed_select_two_args_fn_obj
+    #     )
+    # )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
     index_lower_cond = choose(
@@ -1134,22 +1134,22 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     row_vec = writes_by_name["row_vec"]
     out, row = in_scope
     base, active = reads
-    return and_objects(
-        row >= 0,
-        row < base.len(),
-        col >= 0,
-        col <= base[0].len(),
-        row_vec == call_selection_two_args(
-            base[row][:col],
-            active[row][:col],
-            fixed_select_two_args_fn_obj
-        ),
-        out == call_nested_selection_two_args(
-            base[:row],
-            active[:row],
-            fixed_select_two_args_fn_obj
-        )
-    )
+    # return and_objects(
+    #     row >= 0,
+    #     row < base.len(),
+    #     col >= 0,
+    #     col <= base[0].len(),
+    #     row_vec == call_selection_two_args(
+    #         base[row][:col],
+    #         active[row][:col],
+    #         fixed_select_two_args_fn_obj
+    #     ),
+    #     out == call_nested_selection_two_args(
+    #         base[:row],
+    #         active[:row],
+    #         fixed_select_two_args_fn_obj
+    #     )
+    # )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
     outer_index_lower_cond = choose(
@@ -1181,14 +1181,14 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
         col <= index_upper_bound
     )
     vec = choose(
-        base[0][:col],
+        # base[0][:col],
         base[row][:col],
-        base[col][:row],
-        base[0][:row],
-        active[0][:col],
+        # base[col][:row],
+        # base[0][:row],
+        # active[0][:col],
         active[row][:col],
-        active[col][:row],
-        active[0][:row],
+        # active[col][:row],
+        # active[0][:row],
     )
     nested_list = choose(
         base,
@@ -1210,7 +1210,7 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
 def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         select_two_args_fn_decl,
-        fixed_select_two_args_fn_decl,
+        # fixed_select_two_args_fn_decl,
         selection_two_args_fn_decl,
         nested_selection_two_args_fn_decl
     ]

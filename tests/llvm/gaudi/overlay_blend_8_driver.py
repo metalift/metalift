@@ -41,18 +41,18 @@ if __name__ == "__main__":
     int_x = Int("int_x")
     int_y = Int("int_y")
     if_then_ordered_compute_ops = OrderedDict({
-        (None, "+", None): 1,
+        (2 * int_x, "+", None): 1,
         (None, "-", None): 1,
         (None, "-", 32): 1,
-        (None, "*", None): 1,
+        (2 * int_x, "*", None): 1,
         (None, "//", 32): 1
     })
     if_else_ordered_compute_ops = OrderedDict({
-        (None, "*", None): 1,
+        (2 * int_x, "*", None): 1,
         (None, "//", 32): 1
     })
     select_synth = get_multi_depth_with_counts_and_constants_select_general_synth(
-        args=[int_x, int_y, 2 * int_x],
+        args=[int_x, int_y],
         constants=[Int(16)],
         compare_ops=[">="],
         cond_lhs_depth=0,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         int_x,
         int_y
     )
-    driver.fns_synths = [select_synth, fixed_select_synth]
+    driver.fns_synths = [select_synth]
     overlay_blend_8(base, active)
 
     start_time = time.time()
