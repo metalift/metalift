@@ -61,6 +61,9 @@ UNINTERP_DIV_FN_NAME = "uninterp_div"
 VEC_MAP_TEST_EXP_FN_NAME = "map_test_exp"
 NESTED_LIST_MAP_TEST_EXP_FN_NAME = "nested_list_map_exp"
 
+# Other helper functions
+MATRIX_VEC_MUL = "matrix_vec_mul"
+
 def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
 
@@ -144,14 +147,20 @@ def call_nested_list_map_exp(x: Matrix[Int]) -> Matrix[Int]:
 def call_uninterp_div(x: Int, y: Int) -> Int:
     return call(UNINTERP_DIV_FN_NAME, Int, x, y)
 
+def call_matrix_vec_mul(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
+    return call(MATRIX_VEC_MUL, mlList[Int], matrix, vec)
+
 an_arr2_to_arr = lambda left, right: choose(
-    call_vec_elemwise_mul(left, right),
     call_vec_elemwise_add(left, right),
+    # call_vec_elemwise_sub(left, right),
+    call_vec_elemwise_mul(left, right),
+    # call_vec_elemwise_div(left, right)
 )
 an_int_and_arr_to_arr = lambda num, arr: choose(
-    call_vec_scalar_mul(num, arr),
     call_vec_scalar_add(num, arr),
-    call_vec_scalar_div(num, arr)
+    # call_vec_scalar_sub(num, arr),
+    call_vec_scalar_mul(num, arr),
+    # call_vec_scalar_div(num, arr)
 )
 an_arr_to_int = lambda arr: choose(
     call_reduce_sum(arr),
@@ -229,20 +238,35 @@ def computation_with_counts(
     constants: List[Int],
     ordered_compute_ops: OrderedDict,
     depth: int,
-    get_constant: bool = False
+    get_constant: bool = False,
+    is_vec: bool = False
 ) -> Optional[Union[Matrix[Int], mlList[Int], Int]]:
-    op_to_scalar_call_mapping = {
-        "+": call_nested_list_scalar_add,
-        "-": call_nested_list_scalar_sub,
-        "*": call_nested_list_scalar_mul,
-        "//": call_nested_list_scalar_div,
-    }
-    op_to_elemwise_call_mapping = {
-        "+": call_nested_list_elemwise_add,
-        "-": call_nested_list_elemwise_sub,
-        "*": call_nested_list_elemwise_mul,
-        "//": call_nested_list_elemwise_div,
-    }
+    if is_vec:
+        op_to_scalar_call_mapping = {
+            "+": call_vec_scalar_add,
+            "-": call_vec_scalar_sub,
+            "*": call_vec_scalar_mul,
+            "//": call_vec_scalar_div,
+        }
+        op_to_elemwise_call_mapping = {
+            "+": call_vec_elemwise_add,
+            "-": call_vec_elemwise_sub,
+            "*": call_vec_elemwise_mul,
+            "//": call_vec_elemwise_div,
+        }
+    else:
+        op_to_scalar_call_mapping = {
+            "+": call_nested_list_scalar_add,
+            "-": call_nested_list_scalar_sub,
+            "*": call_nested_list_scalar_mul,
+            "//": call_nested_list_scalar_div,
+        }
+        op_to_elemwise_call_mapping = {
+            "+": call_nested_list_elemwise_add,
+            "-": call_nested_list_elemwise_sub,
+            "*": call_nested_list_elemwise_mul,
+            "//": call_nested_list_elemwise_div,
+        }
     if depth == 0:
         if get_constant:
             if len(constants) == 0:
@@ -287,28 +311,32 @@ def computation_with_counts(
                     constants,
                     compute_ops_from_comb,
                     one_side_depth,
-                    get_constant=True
+                    get_constant=True,
+                    is_vec=is_vec
                 )
                 one_side_matrix = computation_with_counts(
                     args,
                     constants,
                     compute_ops_from_comb,
                     one_side_depth,
-                    get_constant=False
+                    get_constant=False,
+                    is_vec=is_vec
                 )
                 other_side_cons = computation_with_counts(
                     args,
                     constants,
                     compute_ops_from_comp_comb,
                     other_side_depth,
-                    get_constant=True
+                    get_constant=True,
+                    is_vec=is_vec
                 )
                 other_side_matrix = computation_with_counts(
                     args,
                     constants,
                     compute_ops_from_comp_comb,
                     other_side_depth,
-                    get_constant=False
+                    get_constant=False,
+                    is_vec=is_vec
                 )
                 pairs_with_scalar = [
                     (one_side_cons, other_side_matrix, comp_comb),
@@ -348,30 +376,6 @@ def computation_with_counts(
     if len(choices) == 0:
         return None
     return choose(*[choice.object for choice in choices])
-    op_to_scalar_call_mapping = {
-        "+": call_nested_list_scalar_add,
-        "-": call_nested_list_scalar_sub,
-        "*": call_nested_list_scalar_mul,
-        "//": call_nested_list_scalar_div,
-    }
-    op_to_elemwise_call_mapping = {
-        "+": call_nested_list_elemwise_add,
-        "-": call_nested_list_elemwise_sub,
-        "*": call_nested_list_elemwise_mul,
-        "//": call_nested_list_elemwise_div,
-    }
-    nested_list = choose(*args)
-    cons = None
-    if len(constants) > 0:
-        cons = choose(*constants)
-    for _ in range(depth):
-        choices = [nested_list]
-        for op in ordered_compute_ops:
-            if cons is not None:
-                choices.append(op_to_scalar_call_mapping[op](cons, nested_list))
-            choices.append(op_to_elemwise_call_mapping[op](nested_list, nested_list))
-        nested_list = choose(*choices)
-    return nested_list
 
 
 # Define some common objects
@@ -1111,10 +1115,10 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
         row <= index_upper_bound
     )
     nested_list = choose(
-        base,
+        # base,
         base[:row],
         base[:col],
-        active,
+        # active,
         active[:row],
         active[:col],
     )
@@ -1191,10 +1195,10 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
         # active[0][:row],
     )
     nested_list = choose(
-        base,
+        # base,
         base[:row],
         base[:col],
-        active,
+        # active,
         active[:row],
         active[:col]
     )
@@ -1714,7 +1718,8 @@ def get_nested_list_computation_with_counts_ps_grammar_fn(
                 args=[base, active],
                 constants=constants,
                 ordered_compute_ops=ordered_compute_ops,
-                depth=depth
+                depth=depth,
+                is_vec=False
             )
         else:
             return ret_val == fixed_out_fn(base, active)
@@ -1739,23 +1744,23 @@ def get_nested_list_computation_with_counts_inv0_grammar(
             index_upper_bound = choose(base.len(), base[0].len())
             index_lower_cond = choose(
                 row >= index_lower_bound,
-                row > index_lower_bound,
-                row == index_lower_bound,
-                row < index_lower_bound,
-                row <= index_lower_bound
+                # row > index_lower_bound,
+                # row == index_lower_bound,
+                # row < index_lower_bound,
+                # row <= index_lower_bound
             )
             index_upper_cond = choose(
-                row >= index_upper_bound,
-                row > index_upper_bound,
-                row == index_upper_bound,
-                row < index_upper_bound,
+                # row >= index_upper_bound,
+                # row > index_upper_bound,
+                # row == index_upper_bound,
+                # row < index_upper_bound,
                 row <= index_upper_bound
             )
             nested_list_choices = [
-                base,
+                # base,
                 base[:row],
                 base[:col],
-                active,
+                # active,
                 active[:row],
                 active[:col],
             ]
@@ -1766,7 +1771,8 @@ def get_nested_list_computation_with_counts_inv0_grammar(
                     args=nested_list_choices,
                     constants=constants,
                     ordered_compute_ops=ordered_compute_ops,
-                    depth=depth
+                    depth=depth,
+                    is_vec=False
                 )
             )
         else:
@@ -1800,48 +1806,48 @@ def get_nested_list_computation_with_counts_inv1_grammar(
             index_upper_bound = choose(base.len(), base[0].len())
             outer_index_lower_cond = choose(
                 row >= index_lower_bound,
-                row > index_lower_bound,
-                row == index_lower_bound,
-                row < index_lower_bound,
-                row <= index_lower_bound
+                # row > index_lower_bound,
+                # row == index_lower_bound,
+                # row < index_lower_bound,
+                # row <= index_lower_bound
             )
             outer_index_upper_cond = choose(
-                row >= index_upper_bound,
-                row > index_upper_bound,
-                row == index_upper_bound,
+                # row >= index_upper_bound,
+                # row > index_upper_bound,
+                # row == index_upper_bound,
                 row < index_upper_bound,
                 row <= index_upper_bound
             )
             inner_index_lower_cond = choose(
                 col >= index_lower_bound,
-                col > index_lower_bound,
-                col == index_lower_bound,
-                col < index_lower_bound,
-                col <= index_lower_bound
+                # col > index_lower_bound,
+                # col == index_lower_bound,
+                # col < index_lower_bound,
+                # col <= index_lower_bound
             )
             inner_index_upper_cond = choose(
-                col >= index_upper_bound,
-                col > index_upper_bound,
-                col == index_upper_bound,
-                col < index_upper_bound,
+                # col >= index_upper_bound,
+                # col > index_upper_bound,
+                # col == index_upper_bound,
+                # col < index_upper_bound,
                 col <= index_upper_bound
             )
             vec_choices = [
-                base[0][:col],
+                # base[0][:col],
                 base[row][:col],
-                base[col][:row],
-                base[0][:row],
-                active[0][:col],
+                # base[col][:row],
+                # base[0][:row],
+                # active[0][:col],
                 active[row][:col],
-                active[col][:row],
-                active[0][:row],
-                row_vec
+                # active[col][:row],
+                # active[0][:row],
+                # row_vec
             ]
             nested_list_choices = [
-                base,
+                # base,
                 base[:row],
                 base[:col],
-                active,
+                # active,
                 active[:row],
                 active[:col]
             ]
@@ -1854,13 +1860,15 @@ def get_nested_list_computation_with_counts_inv1_grammar(
                     args=vec_choices,
                     constants=constants,
                     ordered_compute_ops=ordered_compute_ops,
-                    depth=depth
+                    depth=depth,
+                    is_vec=True
                 ),
                 out == computation_with_counts(
                     args=nested_list_choices,
                     constants=constants,
                     ordered_compute_ops=ordered_compute_ops,
-                    depth=depth
+                    depth=depth,
+                    is_vec=False
                 )
             )
         else:
