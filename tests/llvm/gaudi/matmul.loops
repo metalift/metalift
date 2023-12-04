@@ -1,10 +1,12 @@
-Printing analysis 'Natural Loop Information' for function '_Z9test_sqrti':
-Printing analysis 'Natural Loop Information' for function '_Z13rmsnorm_part2NSt3__16vectorIiNS_9allocatorIiEEEES3_i':
-Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%invoke.cont10,%for.inc<latch>
+Printing analysis 'Natural Loop Information' for function '_Z6matmulNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES3_':
+Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.cond3,%for.end,%invoke.cont,%for.inc12<latch>,%for.body5,%for.inc
+    Loop at depth 2 containing: %for.cond3<header><exiting>,%for.body5,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev':
+Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE4sizeEv':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backEOi':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC2Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_baseIiNS_9allocatorIiEEEC2Ev':
@@ -47,18 +49,17 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__117_Deallocat
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJiEEEvDpOT_':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__14moveIRiEEONS_16remove_referenceIT_E4typeEOS3_':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIiEEvOT_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJRKiEEEvDpOT_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIRKiEEvOT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE5firstEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemIPiLi0ELb0EE5__getEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC1ERS3_m':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJiEEEvRS2_PT_DpOT0_':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__17forwardIiEEOT_RNS_16remove_referenceIS1_E4typeE':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9constructIiJRKiEEEvRS2_PT_DpOT0_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__17forwardIRKiEEOT_RNS_16remove_referenceIS3_E4typeE':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD1Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionC2ERS3_m':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiE9constructIiJiEEEvPT_DpOT0_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE11__constructIiJRKiEEEvNS_17integral_constantIbLb1EEERS2_PT_DpOT0_':
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiE9constructIiJRKiEEEvPT_DpOT0_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE21_ConstructTransactionD2Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorIiNS_9allocatorIiEEE11__recommendEm':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEEC1EmmS3_':

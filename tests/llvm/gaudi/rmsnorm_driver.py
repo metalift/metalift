@@ -6,13 +6,15 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, call, choose, fn_decl
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (an_arr2_to_arr, an_arr_to_int,
-                                           an_int_and_arr_to_arr, reduce_mul,
-                                           reduce_sum, vec_elemwise_add,
-                                           vec_elemwise_mul, vec_scalar_add,
-                                           vec_scalar_mul)
+                                           an_int_and_arr_to_arr, reduce_max,
+                                           reduce_mul, reduce_sum,
+                                           vec_elemwise_add, vec_elemwise_div,
+                                           vec_elemwise_mul, vec_elemwise_sub,
+                                           vec_scalar_add, vec_scalar_div,
+                                           vec_scalar_mul, vec_scalar_sub)
 from tests.python.utils.utils import codegen
 
-SQRT_FN_NAME = "sqrt"
+SQRT_FN_NAME = "test_sqrt"
 
 def call_sqrt(x: Int) -> Int:
     return call(SQRT_FN_NAME, Int, x)
@@ -20,9 +22,12 @@ def call_sqrt(x: Int) -> Int:
 def rmsnorm_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         vec_elemwise_add,
+        vec_elemwise_sub,
         vec_elemwise_mul,
+        vec_elemwise_div,
         reduce_sum,
         reduce_mul,
+        reduce_max
     ]
 
 def rmsnorm_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -50,9 +55,13 @@ def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     sqrt = fn_decl(SQRT_FN_NAME, Int, None, x)
     return [
         vec_elemwise_add,
+        vec_elemwise_sub,
         vec_elemwise_mul,
-        vec_scalar_mul,
+        vec_elemwise_div,
         vec_scalar_add,
+        vec_scalar_sub,
+        vec_scalar_mul,
+        vec_scalar_div,
         reduce_sum,
         reduce_mul,
         sqrt
@@ -60,6 +69,7 @@ def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 def rmsnorm_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
+    import pdb; pdb.set_trace()
     input, weight, ss = reads
     input_or_weight = choose(input, weight)
     inv_ss = 1 // call_sqrt(ss // input.len() + 1)
@@ -83,27 +93,28 @@ def rmsnorm_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     )
 
 if __name__ == "__main__":
-    # Synthesize the first loop
-    driver = Driver()
-    rmsnorm_part1 = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/rmsnorm_part1.ll",
-        loops_filepath="tests/llvm/gaudi/rmsnorm_part1.loops",
-        fn_name="rmsnorm_part1",
-        target_lang_fn=rmsnorm_part1_target_lang,
-        inv_grammars={
-            "rmsnorm_part1_inv0": InvGrammar(rmsnorm_part1_inv0_grammar, []),
-        },
-        ps_grammar=rmsnorm_part1_ps_grammar
-    )
+    # # Synthesize the first loop
+    # driver = Driver()
+    # rmsnorm_part1 = driver.analyze(
+    #     llvm_filepath="tests/llvm/gaudi/rmsnorm_part1.ll",
+    #     loops_filepath="tests/llvm/gaudi/rmsnorm_part1.loops",
+    #     fn_name="rmsnorm_part1",
+    #     target_lang_fn=rmsnorm_part1_target_lang,
+    #     inv_grammars={
+    #         "rmsnorm_part1_inv0": InvGrammar(rmsnorm_part1_inv0_grammar, []),
+    #     },
+    #     ps_grammar=rmsnorm_part1_ps_grammar
+    # )
 
-    input_var = mlList(Int, "input")
-    weight_var = mlList(Int, "weight")
-    driver.add_var_objects([input_var, weight_var])
-    driver.add_precondition(input_var.len() == weight_var.len())
-    driver.add_precondition(input_var.len() > 0)
+    # input_var = mlList(Int, "input")
+    # weight_var = mlList(Int, "weight")
+    # driver.add_var_objects([input_var, weight_var])
+    # driver.add_precondition(input_var.len() == weight_var.len())
+    # driver.add_precondition(input_var.len() > 0)
 
-    rmsnorm_part1(input_var, weight_var)
-    driver.synthesize()
+    # rmsnorm_part1(input_var, weight_var)
+    # driver.synthesize()
+    # exit(0)
 
     # Synthesize the second loop
     driver = Driver()
