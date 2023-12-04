@@ -152,9 +152,9 @@ def call_matrix_vec_mul(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
 
 an_arr2_to_arr = lambda left, right: choose(
     call_vec_elemwise_add(left, right),
-    # call_vec_elemwise_sub(left, right),
+    call_vec_elemwise_sub(left, right),
     call_vec_elemwise_mul(left, right),
-    # call_vec_elemwise_div(left, right)
+    call_vec_elemwise_div(left, right)
 )
 an_int_and_arr_to_arr = lambda num, arr: choose(
     call_vec_scalar_add(num, arr),
@@ -169,6 +169,9 @@ an_arr_to_int = lambda arr: choose(
 )
 an_arr_to_arr = lambda arr: choose(
     call_vec_map_exp(arr)
+)
+a_matrix_and_vec_to_vec = lambda matrix, arr: choose(
+    call_matrix_vec_mul(matrix, arr)
 )
 
 def vec_computation(
@@ -441,6 +444,17 @@ def reduce_max_body(lst: mlList[Int]) -> Int:
     general_answer = ite(cur > recursed, cur, recursed)
     return ite(vec_size <= 1, lst[0], general_answer)
 reduce_max = fn_decl_recursive(REDUCEMAX, Int, reduce_max_body(x), x)
+
+def matrix_vec_mul_body(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
+    invalid_cond = or_objects(
+        matrix.len() < 1,
+        matrix[0].len() < 1,
+        matrix[0].len() != vec.len()
+    )
+    cur = call_reduce_sum(call_vec_elemwise_mul(matrix[0], vec))
+    recursed = call_matrix_vec_mul(matrix[1:], vec)
+    return ite(invalid_cond, mlList.empty(Int), recursed.prepend(cur))
+matrix_vec_mul = fn_decl_recursive(MATRIX_VEC_MUL, mlList[Int], matrix_vec_mul_body(nested_x, x), nested_x, x)
 
 # Helper functions for selections
 def mul8x8_div32_body(int_x: Int, int_y: Int) -> Int:
