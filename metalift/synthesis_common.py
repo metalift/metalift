@@ -204,6 +204,7 @@ def verify_synth_result(
             fnCalls,
             False,
         )
+        exit(0)
 
     if useRosette:
         procVerify = subprocess.run(

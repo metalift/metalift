@@ -89,4 +89,4 @@ if __name__ == "__main__":
     driver.add_precondition(weight_var[0].len() == input_var.len())
 
     matmul(weight_var, input_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
