@@ -551,18 +551,23 @@ def nested_list_linear_burn_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -
     )
 
 # Helper functions for compute benchmarks using the holing approach
-def screen8x8_hole_body(
-    matrix_or_vecs: List[MatrixOrVecT],
-    constants: List[Int]
-) -> MatrixOrVecT:
-    matrix_or_vec = choose(*matrix_or_vecs)
-    cons = choose(*constants)
+def screen8x8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    cons = choose(Int(32))
     return call_elemwise_sub(
         call_elemwise_add(matrix_or_vec, matrix_or_vec),
         call_scalar_div(
             cons,
             call_elemwise_mul(matrix_or_vec, matrix_or_vec)
         )
+    )
+
+# Helper functions for select benchmarks using the holing approach
+def overlay_blend_hole_body(int_var: Int) -> MatrixOrVecT:
+    cons = choose(Int(2), Int(16), Int(32))
+    return ite(
+        int_var >= cons,
+        cons * int_var + int_var - cons * int_var * int_var // cons - cons,
+        cons * int_var * int_var // cons
     )
 
 # Selection criteria
@@ -1102,6 +1107,15 @@ def get_select_two_args_general_synth(
         *get_object_exprs(*args)
     )
 
+def get_select_synth_from_hole(hole_body: Callable[[Int], Int]) -> Synth:
+    var = choose(int_x, int_y)
+    return synth(
+        SELECT_TWO_ARGS,
+        hole_body(var),
+        int_x,
+        int_y
+    )
+
 def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
     return Synth(
         SELECT_TWO_ARGS,
@@ -1179,31 +1193,15 @@ def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object]
     # )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-    index_lower_cond = choose(
-        row >= index_lower_bound,
-        # row > index_lower_bound,
-        # row == index_lower_bound,
-        # row < index_lower_bound,
-        # row <= index_lower_bound
-    )
-    index_upper_cond = choose(
-        # row >= index_upper_bound,
-        # row > index_upper_bound,
-        # row == index_upper_bound,
-        # row < index_upper_bound,
-        row <= index_upper_bound
-    )
     nested_list = choose(
-        # base,
         base[:row],
         base[:col],
-        # active,
         active[:row],
         active[:col],
     )
     return and_objects(
-        index_lower_cond,
-        index_upper_cond,
+        row >= index_lower_bound,
+        row <= index_upper_bound,
         out == call_nested_selection_two_args(nested_list, nested_list, select_two_args_fn_obj)
     )
 
@@ -1235,59 +1233,23 @@ def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object]
     # )
     index_lower_bound = choose(Int(0), Int(1))
     index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-    outer_index_lower_cond = choose(
-        row >= index_lower_bound,
-        # row > index_lower_bound,
-        # row == index_lower_bound,
-        # row < index_lower_bound,
-        # row <= index_lower_bound
-    )
-    outer_index_upper_cond = choose(
-        # row >= index_upper_bound,
-        # row > index_upper_bound,
-        # row == index_upper_bound,
-        row < index_upper_bound,
-        # row <= index_upper_bound
-    )
-    inner_index_lower_cond = choose(
-        col >= index_lower_bound,
-        # col > index_lower_bound,
-        # col == index_lower_bound,
-        # col < index_lower_bound,
-        # col <= index_lower_bound
-    )
-    inner_index_upper_cond = choose(
-        # col >= index_upper_bound,
-        # col > index_upper_bound,
-        # col == index_upper_bound,
-        # col < index_upper_bound,
-        col <= index_upper_bound
-    )
     vec = choose(
-        # base[0][:col],
         base[row][:col],
-        # base[col][:row],
-        # base[0][:row],
-        # active[0][:col],
         active[row][:col],
-        # active[col][:row],
-        # active[0][:row],
     )
-    nested_list = choose(
-        # base,
+    matrix = choose(
         base[:row],
         base[:col],
-        # active,
         active[:row],
         active[:col]
     )
     return and_objects(
-        outer_index_lower_cond,
-        outer_index_upper_cond,
-        inner_index_lower_cond,
-        inner_index_upper_cond,
+        row >= index_lower_bound,
+        row < index_upper_bound,
+        col >= index_lower_bound,
+        col <= index_upper_bound,
         row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
-        out == call_nested_selection_two_args(nested_list, nested_list, select_two_args_fn_obj)
+        out == call_nested_selection_two_args(matrix, matrix, select_two_args_fn_obj)
     )
 
 def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -1623,49 +1585,43 @@ def get_nested_list_computation_ps_grammar_fn(
             return ret_val == fixed_out_fn(base, active)
     return nested_list_computation_ps_grammar_fn
 
-def get_matrix_computation_hole_inv0_grammar(
-    constants: List[Int],
-    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
-) -> InvGrammar:
+def get_matrix_computation_hole_inv0_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
     def inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         # outer loop grammar
         out, col, pixel, row, row_vec = writes
         base, active = reads
         index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len())
-        matrix_choices = [
+        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
+        matrix = choose(
             base[:row],
             base[:col],
             active[:row],
-            active[:col],
-        ]
+            active[:col]
+        )
         return and_objects(
             row >= index_lower_bound,
             row <= index_upper_bound,
-            out == hole_body(matrix_choices, constants)
+            out == hole_body(matrix)
         )
     return InvGrammar(inv0_grammar_fn, [])
 
-def get_matrix_computation_hole_inv1_grammar(
-    constants: List[Int],
-    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
-) -> InvGrammar:
+def get_matrix_computation_hole_inv1_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
     def inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         # inner loop grammar
         col, pixel, row_vec = writes
         out, row = in_scope
         base, active = reads
         index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len())
-        vec_choices = [base[row][:col], active[row][:col]]
-        matrix_choices = [base[:row], active[:row], base[:col], active[:col]]
+        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
+        vec = choose(base[row][:col], active[row][:col])
+        matrix = choose(base[:row], active[:row], base[:col], active[:col])
         return and_objects(
             row >= index_lower_bound,
             row < index_upper_bound,
             col >= index_lower_bound,
             col <= index_upper_bound,
-            row_vec == hole_body(vec_choices, constants),
-            out == hole_body(matrix_choices, constants)
+            row_vec == hole_body(vec),
+            out == hole_body(matrix)
         )
     return InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
 
@@ -1676,7 +1632,7 @@ def get_matrix_computation_hole_ps_grammar(
     def ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         ret_val = writes[0]
         base, active = reads
-        return ret_val == hole_body([base, active], constants)
+        return ret_val == hole_body(choose(base, active))
     return ps_grammar_fn
 
 
