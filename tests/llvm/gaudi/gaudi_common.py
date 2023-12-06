@@ -64,6 +64,56 @@ NESTED_LIST_MAP_TEST_EXP_FN_NAME = "nested_list_map_exp"
 # Other helper functions
 MATRIX_VEC_MUL = "matrix_vec_mul"
 
+MatrixOrVecT = Union[mlList[Int], Matrix[Int]]
+
+def call_elemwise_add(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(left.type):
+        return call_nested_list_elemwise_add(left, right)
+    else:
+        return call_vec_elemwise_add(left, right)
+
+def call_elemwise_sub(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(left.type):
+        return call_nested_list_elemwise_sub(left, right)
+    else:
+        return call_vec_elemwise_sub(left, right)
+
+def call_elemwise_mul(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(left.type):
+        return call_nested_list_elemwise_mul(left, right)
+    else:
+        return call_vec_elemwise_mul(left, right)
+
+def call_elemwise_div(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(left.type):
+        return call_nested_list_elemwise_div(left, right)
+    else:
+        return call_vec_elemwise_div(left, right)
+
+def call_scalar_add(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(matrix_or_vec.type):
+        return call_nested_list_scalar_add(scalar, matrix_or_vec)
+    else:
+        return call_vec_scalar_add(scalar, matrix_or_vec)
+
+def call_scalar_sub(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(matrix_or_vec.type):
+        return call_nested_list_scalar_sub(scalar, matrix_or_vec)
+    else:
+        return call_vec_scalar_sub(scalar, matrix_or_vec)
+
+def call_scalar_mul(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(matrix_or_vec.type):
+        return call_nested_list_scalar_mul(scalar, matrix_or_vec)
+    else:
+        return call_vec_scalar_mul(scalar, matrix_or_vec)
+
+def call_scalar_div(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(matrix_or_vec.type):
+        return call_nested_list_scalar_div(scalar, matrix_or_vec)
+    else:
+        return call_vec_scalar_div(scalar, matrix_or_vec)
+
 def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
 
@@ -470,6 +520,21 @@ def nested_list_linear_burn_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -
     return call_nested_list_scalar_sub(
         Int(32),
         call_nested_list_elemwise_add(nested_x, nested_y)
+    )
+
+# Helper functions for compute benchmarks using the holing approach
+def screen8x8_hole_body(
+    matrix_or_vecs: List[MatrixOrVecT],
+    constants: List[Int]
+) -> MatrixOrVecT:
+    matrix_or_vec = choose(*matrix_or_vecs)
+    cons = choose(*constants)
+    return call_elemwise_sub(
+        call_elemwise_add(matrix_or_vec, matrix_or_vec),
+        call_scalar_div(
+            cons,
+            call_elemwise_mul(matrix_or_vec, matrix_or_vec)
+        )
     )
 
 # Selection criteria
@@ -1532,6 +1597,63 @@ def get_nested_list_computation_ps_grammar_fn(
         else:
             return ret_val == fixed_out_fn(base, active)
     return nested_list_computation_ps_grammar_fn
+
+def get_matrix_computation_hole_inv0_grammar(
+    constants: List[Int],
+    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
+) -> InvGrammar:
+    def inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        index_lower_bound = choose(Int(0), Int(1))
+        index_upper_bound = choose(base.len(), base[0].len())
+        matrix_choices = [
+            base[:row],
+            base[:col],
+            active[:row],
+            active[:col],
+        ]
+        return and_objects(
+            row >= index_lower_bound,
+            row <= index_upper_bound,
+            out == hole_body(matrix_choices, constants)
+        )
+    return InvGrammar(inv0_grammar_fn, [])
+
+def get_matrix_computation_hole_inv1_grammar(
+    constants: List[Int],
+    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
+) -> InvGrammar:
+    def inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # inner loop grammar
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        index_lower_bound = choose(Int(0), Int(1))
+        index_upper_bound = choose(base.len(), base[0].len())
+        vec_choices = [base[row][:col], active[row][:col]]
+        matrix_choices = [base[:row], active[:row], base[:col], active[:col]]
+        return and_objects(
+            row >= index_lower_bound,
+            row < index_upper_bound,
+            col >= index_lower_bound,
+            col <= index_upper_bound,
+            row_vec == hole_body(vec_choices, constants),
+            out == hole_body(matrix_choices, constants)
+        )
+    return InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+
+def get_matrix_computation_hole_ps_grammar(
+    constants: List[Int],
+    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
+) -> InvGrammar:
+    def ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        ret_val = writes[0]
+        base, active = reads
+        return ret_val == hole_body([base, active], constants)
+    return ps_grammar_fn
+
 
 def get_nested_list_computation_inv0_grammar(
     fixed_grammar: bool,
