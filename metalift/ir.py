@@ -413,6 +413,14 @@ class Expr:
                 return "list-take-noerr"
             else:
                 raise Exception(f"list_take not supported on {list_type} lists yet!")
+        elif fn_name == "list_slice":
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type):
+                return "list-list-slice-noerr"
+            elif is_primitive_type(get_list_element_type(list_type)):
+                return "list-slice-noerr"
+            else:
+                raise Exception(f"list_slice not supported on {list_type} lists yet!")
         elif fn_name == "list_prepend":
             list_type = expr.type
             if is_nested_list_type(list_type):
@@ -1032,11 +1040,17 @@ class List(Generic[T], Object):
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = Int(start)
-                return call("list_tail", List[self.containedT], self, start)  # type: ignore
+                return call("list_tail", self.type, self, start)  # type: ignore
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = Int(stop)
-                return call("list_take", List[self.containedT], self, stop)  # type: ignore
+                return call("list_take", self.type, self, stop)  # type: ignore
+            elif start is not None and stop is not None and step is None:
+                if isinstance(start, int):
+                    start = Int(start)
+                if isinstance(stop, int):
+                    stop = Int(stop)
+                return call("list_slice", self.type, self, start, stop)
             else:
                 raise NotImplementedError(
                     f"Slices with both start and stop indices specified are not implemented: {index}"
@@ -1109,7 +1123,7 @@ class List(Generic[T], Object):
             return f"List {contained_type.cls_str()}"
 
 
-class Matrix(Generic[T], Object):
+class Matrix(List[T], Generic[T], Object):
     containedT: ObjectContainedT
 
     def __init__(
@@ -1117,7 +1131,6 @@ class Matrix(Generic[T], Object):
         containedT: ObjectContainedT = Int,
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        # full_type = List[List[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", Matrix[containedT])
@@ -1148,26 +1161,6 @@ class Matrix(Generic[T], Object):
 
     def len(self) -> Int:
         return Int(Call("list_length", Int, self.src))
-
-    def __getitem__(self, index: Union[Int, int, slice]) -> Object:
-        if isinstance(index, int):
-            index = Int(index)
-        if isinstance(index, slice):
-            (start, stop, step) = (index.start, index.stop, index.step)
-            if stop is None and step is None:
-                if isinstance(start, int):
-                    start = Int(start)
-                return call("list_tail", self.type, self, start)  # type: ignore
-            elif start is None and step is None:
-                if isinstance(stop, int):
-                    stop = Int(stop)
-                return call("list_take", self.type, self, stop)  # type: ignore
-            else:
-                raise NotImplementedError(
-                    f"Slices with both start and stop indices specified are not implemented: {index}"
-                )
-
-        return call("list_get", self.containedT, self, index)
 
     def __setitem__(self, index: Union[Int, int], value: Object) -> None:
         if isinstance(index, int):
