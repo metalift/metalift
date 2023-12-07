@@ -89,8 +89,12 @@ if __name__ == "__main__":
     driver.add_var_objects([token_position_var, head_var, head_size_var, key_cache_layer_var, q_var])
     driver.add_precondition(token_position_var > 0)
     driver.add_precondition(key_cache_layer_var.len() > token_position_var)
-    driver.add_precondition(head_var == 0)
+    driver.add_precondition(head_var >= 0)
+    driver.add_precondition(head_var <= q_var.len())
+    driver.add_precondition(head_var <= key_cache_layer_var.len())
     driver.add_precondition(head_size_var > 0)
+    driver.add_precondition(head_size_var <= q_var.len())
+    driver.add_precondition(head_size_var <= key_cache_layer_var.len())
     driver.add_precondition((head_var * head_size_var + head_size_var) < key_cache_layer_var[0].len())
     driver.add_precondition((head_var * head_size_var + head_size_var) < q_var.len())
 

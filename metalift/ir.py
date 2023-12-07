@@ -374,9 +374,9 @@ class Expr:
                     f"list_get not supported on {List[expr.type]} lists yet!"  # type: ignore
                 )
         elif fn_name == "list_append":
-            if is_list_type(expr.type):
+            if is_nested_list_type(expr.type) or is_matrix_type(expr.type):
                 return "list-list-append"
-            elif is_primitive_type(expr.type):
+            elif is_primitive_type(get_list_element_type(expr.type)):
                 return "list-append"
             else:
                 raise Exception(
