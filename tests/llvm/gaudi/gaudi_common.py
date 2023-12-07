@@ -562,7 +562,28 @@ def screen8x8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
     )
 
 # Helper functions for select benchmarks using the holing approach
-def overlay_blend_hole_body(int_var: Int) -> MatrixOrVecT:
+def darken_blend_hole_body(int_var: Int) -> Int:
+    return ite(
+        int_var > int_var,
+        int_var,
+        int_var
+    )
+
+def color_burn_hole_body(int_var: Int) -> Int:
+    cons = choose(Int(0), Int(32))
+    return ite(
+        int_var == 0,
+        cons,
+        cons - (cons - int_var) // int_var
+    )
+
+def lighten_blend_hole_body(int_var: Int) -> Int:
+    return ite(
+        int_var < int_var,
+        int_var,
+        int_var
+    )
+def overlay_blend_hole_body(int_var: Int) -> Int:
     cons = choose(Int(2), Int(16), Int(32))
     return ite(
         int_var >= cons,

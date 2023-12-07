@@ -14,7 +14,7 @@ vector<int> multiquery_attention_part1(
     for (int timestep = 0; timestep < token_position; timestep++) {
         int score = 0;
         for (int i = 0; i < head_size; ++i) {
-            score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + 1];
+            score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + i];
         }
         // score = score / test_exp(score * 1);
         attention.push_back(score);

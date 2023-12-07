@@ -27,7 +27,7 @@
   (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
 
 (define (list-slice-noerr l start end)
-  (list-take-noerr (list-tail-noerr l end) start)
+  (list-tail-noerr (list-take-noerr l end) start)
 )
 
 (define (list-concat l1 l2)
@@ -183,7 +183,18 @@
       (list)))
 
 (define (list-list-slice-noerr l start end)
-  (list-list-take-noerr (list-list-tail-noerr l end) start)
+  (list-list-tail-noerr (list-list-take-noerr l end) start)
+)
+
+(define (list-list-col-slice-noerr l start end)
+  (if
+    (< (list-list-length l) 1)
+    (list)
+    (list-list-prepend
+      (list-slice-noerr (list-list-ref-noerr l 0) start end)
+      (list-list-col-slice-noerr (list-list-tail-noerr l 1) start end)
+    )
+  )
 )
 
 (define (list-list-prepend i l)

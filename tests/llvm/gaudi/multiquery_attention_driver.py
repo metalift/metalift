@@ -24,8 +24,8 @@ def multiquery_attention_part1_ps_grammar(writes: List[Object], reads: List[Obje
     ret_val = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
     slice_start = head * head_size
-    slice_end = slice_start + head
-    key_cache_layer_slice = key_cache_layer[:token_position][slice_start:slice_end]
+    slice_end = slice_start + head_size
+    key_cache_layer_slice = key_cache_layer[:token_position].col_slice(slice_start, slice_end)
     q_slice = q[slice_start:slice_end]
     return ret_val == call_matrix_vec_mul(key_cache_layer_slice, q_slice)
 
@@ -33,8 +33,8 @@ def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
     slice_start = head * head_size
-    slice_end = slice_start + head
-    key_cache_layer_slice = key_cache_layer[:timestep][slice_start:slice_end]
+    slice_end = slice_start + head_size
+    key_cache_layer_slice = key_cache_layer[:timestep].col_slice(slice_start, slice_end)
     q_slice = q[slice_start:slice_end]
     return and_objects(
         timestep >= 0,
@@ -48,7 +48,7 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
     attention, timestep = in_scope
     slice_start = head * head_size
     curr_slice_end = slice_start + i
-    slice_end = slice_start + head
+    slice_end = slice_start + head_size
     return and_objects(
         timestep >= 0,
         timestep < token_position,
@@ -61,7 +61,7 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
             )
         ),
         attention == call_matrix_vec_mul(
-            key_cache_layer[:timestep][slice_start:slice_end],
+            key_cache_layer[:timestep].col_slice(slice_start, slice_end),
             q[slice_start:slice_end]
         )
     )
@@ -87,12 +87,12 @@ if __name__ == "__main__":
     key_cache_layer_var = Matrix(Int, "key_cache_layer")
     q_var = mlList(Int, "q")
     driver.add_var_objects([token_position_var, head_var, head_size_var, key_cache_layer_var, q_var])
-    driver.add_precondition(token_position_var >= 0)
+    driver.add_precondition(token_position_var > 0)
     driver.add_precondition(key_cache_layer_var.len() > token_position_var)
-    driver.add_precondition(head_var >= 0)
+    driver.add_precondition(head_var == 0)
     driver.add_precondition(head_size_var > 0)
-    driver.add_precondition((head_var + 1) * head_size_var < key_cache_layer_var[0].len())
-    driver.add_precondition((head_var + 1) * head_size_var < q_var.len())
+    driver.add_precondition((head_var * head_size_var + head_size_var) < key_cache_layer_var[0].len())
+    driver.add_precondition((head_var * head_size_var + head_size_var) < q_var.len())
 
     multiquery_attention_part1(
         token_position_var,

@@ -383,7 +383,7 @@ class Expr:
                     f"list_append not supported on {List[expr.type]} lists yet!"  # type: ignore
                 )
         elif fn_name == "list_empty":
-            if is_nested_list_type(expr.type):
+            if is_nested_list_type(expr.type) or is_matrix_type(expr.type):
                 return "list-list-empty"
             elif is_primitive_type(get_list_element_type(expr.type)):
                 return "list-empty"
@@ -391,7 +391,7 @@ class Expr:
                 raise Exception(f"list_empty not supported on {list_type} lists yet!")  # type: ignore
         elif fn_name == "list_tail":
             list_type = expr.arguments()[0].type
-            if is_nested_list_type(list_type):
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
                 return "list-list-tail-noerr"
             elif is_primitive_type(get_list_element_type(list_type)):
                 return "list-tail-noerr"
@@ -399,7 +399,7 @@ class Expr:
                 raise Exception(f"list_tail not supported on {list_type} lists yet!")
         elif fn_name == "list_length":
             list_type = expr.arguments()[0].type
-            if is_nested_list_type(list_type):
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
                 return "list-list-length"
             elif is_primitive_type(get_list_element_type(list_type)):
                 return "length"
@@ -407,7 +407,7 @@ class Expr:
                 raise Exception(f"list_length not supported on {list_type} lists yet!")
         elif fn_name == "list_take":
             list_type = expr.arguments()[0].type
-            if is_nested_list_type(list_type):
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
                 return "list-list-take-noerr"
             elif is_primitive_type(get_list_element_type(list_type)):
                 return "list-take-noerr"
@@ -415,10 +415,16 @@ class Expr:
                 raise Exception(f"list_take not supported on {list_type} lists yet!")
         elif fn_name == "list_slice":
             list_type = expr.arguments()[0].type
-            if is_nested_list_type(list_type):
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
                 return "list-list-slice-noerr"
             elif is_primitive_type(get_list_element_type(list_type)):
                 return "list-slice-noerr"
+            else:
+                raise Exception(f"list_slice not supported on {list_type} lists yet!")
+        elif fn_name == "list_col_slice":
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
+                return "list-list-col-slice-noerr"
             else:
                 raise Exception(f"list_slice not supported on {list_type} lists yet!")
         elif fn_name == "list_prepend":
@@ -1200,6 +1206,13 @@ class Matrix(List[T], Generic[T], Object):
 
         self.src = call("list_prepend", self.type, value, self).src
         return self
+
+    def col_slice(self, start: Union[int, Int], stop: Union[int, Int]) -> "Matrix":
+        if isinstance(start, int):
+            start = Int(start)
+        if isinstance(stop, int):
+            stop = Int(stop)
+        return call("list_col_slice", self.type, self, start, stop)
 
     # list concat that returns a new list
     def __add__(self, other: "Matrix") -> "List":  # type: ignore

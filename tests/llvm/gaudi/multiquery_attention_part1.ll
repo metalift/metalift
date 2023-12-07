@@ -99,19 +99,20 @@ for.body3:                                        ; preds = %for.cond1
   %i11 = load i32, i32* %head.addr, align 4
   %i12 = load i32, i32* %head_size.addr, align 4
   %mul6 = mul nsw i32 %i11, %i12
-  %add7 = add nsw i32 %mul6, 1
+  %i13 = load i32, i32* %i, align 4
+  %add7 = add nsw i32 %mul6, %i13
   %conv8 = sext i32 %add7 to i64
   %call9 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %call5, i64 %conv8) #11
-  %i13 = load i32, i32* %call9, align 4
-  %mul10 = mul nsw i32 %i9, %i13
-  %i14 = load i32, i32* %score, align 4
-  %add11 = add nsw i32 %i14, %mul10
+  %i14 = load i32, i32* %call9, align 4
+  %mul10 = mul nsw i32 %i9, %i14
+  %i15 = load i32, i32* %score, align 4
+  %add11 = add nsw i32 %i15, %mul10
   store i32 %add11, i32* %score, align 4
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body3
-  %i15 = load i32, i32* %i, align 4
-  %inc = add nsw i32 %i15, 1
+  %i16 = load i32, i32* %i, align 4
+  %inc = add nsw i32 %i16, 1
   store i32 %inc, i32* %i, align 4
   br label %for.cond1
 
@@ -123,8 +124,8 @@ invoke.cont:                                      ; preds = %for.end
   br label %for.inc12
 
 for.inc12:                                        ; preds = %invoke.cont
-  %i16 = load i32, i32* %timestep, align 4
-  %inc13 = add nsw i32 %i16, 1
+  %i17 = load i32, i32* %timestep, align 4
+  %inc13 = add nsw i32 %i17, 1
   store i32 %inc13, i32* %timestep, align 4
   br label %for.cond
 

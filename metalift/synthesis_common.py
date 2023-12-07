@@ -8,6 +8,7 @@ from typing import Optional, Dict, Union, Any
 from metalift.rosette_translator import toRosette
 
 from metalift.smt_util import toSMT
+from tests.python.utils.utils import codegen
 
 
 class SynthesisFailed(Exception):
@@ -204,6 +205,17 @@ def verify_synth_result(
             fnCalls,
             False,
         )
+        print("Synthesized PS and INV Candidates\n")
+        for candidate in candidatesSMT:
+            print(
+                f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})"
+            )
+            body = candidate.body()
+            if isinstance(body, str):
+                print(body)
+            else:
+                print(codegen(body))
+            print("\n\n")
         exit(0)
 
     if useRosette:

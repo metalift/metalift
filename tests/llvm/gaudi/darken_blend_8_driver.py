@@ -2,10 +2,12 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.gaudi.gaudi_common import (
-    get_select_two_args_synth_without_analysis,
-    selection_two_args_inv0_grammar, selection_two_args_inv1_grammar,
-    selection_two_args_ps_grammar_fn, selection_two_args_target_lang)
+from tests.llvm.gaudi.gaudi_common import (darken_blend_hole_body,
+                                           get_select_synth_from_hole,
+                                           selection_two_args_inv0_grammar,
+                                           selection_two_args_inv1_grammar,
+                                           selection_two_args_ps_grammar_fn,
+                                           selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 from tests.llvm.gaudi.gaudi_common import get_select_synth, nested_selection, select_min_body, selection, call_nested_selection, select_fn_obj, call_selection, select_fn_decl
 
@@ -64,16 +66,12 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    int_x = Int("int_x")
-    int_y = Int("int_y")
-    select_synth = get_select_two_args_synth_without_analysis(0)
+    select_synth = get_select_synth_from_hole(darken_blend_hole_body)
     driver.fns_synths = [select_synth]
     darken_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=3, noVerify=True)
+    driver.synthesize(listBound=3)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + darken_blend_8.codegen(codegen))
-
-
