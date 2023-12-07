@@ -1508,6 +1508,8 @@ class Driver:
         return f
 
     def synthesize(self, **synthesize_kwargs) -> None:  # type: ignore
+        # if synthesize_kwargs.get("listBound") != 3:
+        #     raise Exception("list bound must be 3")
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
 
         print("asserts: %s" % self.asserts)

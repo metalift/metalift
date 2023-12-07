@@ -1,20 +1,13 @@
-from collections import OrderedDict
 import time
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, Matrix, choose, ite, synth
-from tests.llvm.gaudi.gaudi_common import (
-    FIXED_SELECT_TWO_ARGS,
-    get_multi_depth_select_general_synth,
-    get_multi_depth_with_counts_and_constants_select_general_synth,
-    get_multi_depth_with_counts_select_general_synth,
-    get_select_synth_from_hole,
-    get_select_two_args_synth_without_analysis,
-    overlay_blend_hole_body,
-    select_overlay_blend_body,
-    selection_two_args_inv0_grammar, selection_two_args_inv1_grammar,
-    selection_two_args_ps_grammar_fn, selection_two_args_target_lang,
-    SELECT_TWO_ARGS)
+from metalift.ir import Int, Matrix
+from tests.llvm.gaudi.gaudi_common import (get_select_synth_from_hole,
+                                           overlay_blend_hole_body,
+                                           selection_two_args_inv0_grammar,
+                                           selection_two_args_inv1_grammar,
+                                           selection_two_args_ps_grammar_fn,
+                                           selection_two_args_target_lang)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -45,7 +38,7 @@ if __name__ == "__main__":
     overlay_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(listBound=2)
+    driver.synthesize(listBound=3)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + overlay_blend_8.codegen(codegen))

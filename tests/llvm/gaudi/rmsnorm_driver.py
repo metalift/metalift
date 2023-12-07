@@ -69,7 +69,6 @@ def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 def rmsnorm_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
-    import pdb; pdb.set_trace()
     input, weight, ss = reads
     input_or_weight = choose(input, weight)
     inv_ss = 1 // call_sqrt(ss // input.len() + 1)
