@@ -67,11 +67,11 @@ entry:
   store i32 0, i32* %timestep, align 4
   br label %for.cond
 
-for.cond:                                         ; preds = %for.inc12, %entry
+for.cond:                                         ; preds = %for.inc15, %entry
   %i2 = load i32, i32* %timestep, align 4
   %i3 = load i32, i32* %token_position.addr, align 4
   %cmp = icmp slt i32 %i2, %i3
-  br i1 %cmp, label %for.body, label %for.end14
+  br i1 %cmp, label %for.body, label %for.end17
 
 for.body:                                         ; preds = %for.cond
   store i32 0, i32* %score, align 4
@@ -117,28 +117,37 @@ for.inc:                                          ; preds = %for.body3
   br label %for.cond1
 
 for.end:                                          ; preds = %for.cond1
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %agg.result, i32* nonnull align 4 dereferenceable(4) %score)
+  %i17 = load i32, i32* %score, align 4
+  %i18 = load i32, i32* %score, align 4
+  %mul12 = mul nsw i32 %i18, 1
+  %call13 = call i32 @_Z8test_expi(i32 %mul12)
   br label %invoke.cont
 
 invoke.cont:                                      ; preds = %for.end
-  br label %for.inc12
+  %div = sdiv i32 %i17, %call13
+  store i32 %div, i32* %score, align 4
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %agg.result, i32* nonnull align 4 dereferenceable(4) %score)
+  br label %invoke.cont14
 
-for.inc12:                                        ; preds = %invoke.cont
-  %i17 = load i32, i32* %timestep, align 4
-  %inc13 = add nsw i32 %i17, 1
-  store i32 %inc13, i32* %timestep, align 4
+invoke.cont14:                                    ; preds = %invoke.cont
+  br label %for.inc15
+
+for.inc15:                                        ; preds = %invoke.cont14
+  %i19 = load i32, i32* %timestep, align 4
+  %inc16 = add nsw i32 %i19, 1
+  store i32 %inc16, i32* %timestep, align 4
   br label %for.cond
 
-for.end14:                                        ; preds = %for.cond
+for.end17:                                        ; preds = %for.cond
   store i1 true, i1* %nrvo, align 1
   %nrvo.val = load i1, i1* %nrvo, align 1
   br i1 %nrvo.val, label %nrvo.skipdtor, label %nrvo.unused
 
-nrvo.unused:                                      ; preds = %for.end14
+nrvo.unused:                                      ; preds = %for.end17
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector"* %agg.result) #11
   br label %nrvo.skipdtor
 
-nrvo.skipdtor:                                    ; preds = %nrvo.unused, %for.end14
+nrvo.skipdtor:                                    ; preds = %nrvo.unused, %for.end17
   ret void
 }
 
@@ -184,6 +193,8 @@ entry:
   ret %"class.std::__1::vector"* %arrayidx
 }
 
+declare i32 @__gxx_personality_v0(...)
+
 ; Function Attrs: noinline optnone ssp uwtable
 define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector"* %this, i32* nonnull align 4 dereferenceable(4) %__x) #1 align 2 {
 entry:
@@ -214,8 +225,6 @@ if.else:                                          ; preds = %entry
 if.end:                                           ; preds = %if.else, %if.then
   ret void
 }
-
-declare i32 @__gxx_personality_v0(...)
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
 define linkonce_odr hidden void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector"* %this) unnamed_addr #0 align 2 {

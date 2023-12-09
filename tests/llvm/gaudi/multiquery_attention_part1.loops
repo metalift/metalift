@@ -1,6 +1,6 @@
 Printing analysis 'Natural Loop Information' for function '_Z8test_expi':
 Printing analysis 'Natural Loop Information' for function '_Z26multiquery_attention_part1iiiNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES3_':
-Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.cond1,%for.end,%invoke.cont,%for.inc12<latch>,%for.body3,%for.inc
+Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.cond1,%for.end,%invoke.cont,%invoke.cont14,%for.inc15<latch>,%for.body3,%for.inc
     Loop at depth 2 containing: %for.cond1<header><exiting>,%for.body3,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm':

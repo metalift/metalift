@@ -54,13 +54,15 @@ SELECTION_TWO_ARGS = "selection_two_args"
 MATRIX_SELECTION_TWO_ARGS = "matrix_selection_two_args"
 
 # Uninterpreted functions
-TEST_EXP_FN_NAME = "test_exp"
-TEST_SQRT_FN_NAME = "test_sqrt"
-UNINTERP_DIV_FN_NAME = "uninterp_div"
+MAP_INT_TO_INT = "map_int_to_int"
+TEST_EXP = "test_exp"
+TEST_SQRT = "test_sqrt"
+UNINTERP_DIV = "uninterp_div"
 
 # Operations that involve uninterpreted functions
-VEC_MAP_TEST_EXP_FN_NAME = "map_test_exp"
-VEC_MAP_TEST_SQRT_FN_NAME = "map_test_sqrt"
+VEC_MAP = "vec_map"
+VEC_MAP_TEST_EXP = "vec_map_test_exp"
+VEC_MAP_TEST_SQRT = "vec_map_test_sqrt"
 MATRIX_MAP_TEST_EXP_FN_NAME = "matrix_list_map_exp"
 
 # Other helper functions
@@ -188,16 +190,22 @@ def call_matrix_selection_two_args(
     return call(MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
 def call_exp(x: Int) -> Int:
-    return call(TEST_EXP_FN_NAME, Int, x)
+    return call(TEST_EXP, Int, x)
+
+def call_map_int_to_int(x: Int) -> Int:
+    return call(MAP_INT_TO_INT, Int, x)
+
+def call_vec_map(x: mlList[Int], map_fn: Fn[typing.Tuple[Int, Int]]) -> mlList[Int]:
+    return call(VEC_MAP, mlList[Int], x, map_fn)
 
 def call_vec_map_exp(x: mlList[Int]) -> mlList[Int]:
-    return call(VEC_MAP_TEST_EXP_FN_NAME, mlList[Int], x)
+    return call(VEC_MAP_TEST_EXP, mlList[Int], x)
 
 def call_matrix_map_exp(x: Matrix[Int]) -> Matrix[Int]:
     return call(MATRIX_MAP_TEST_EXP_FN_NAME, Matrix[Int], x)
 
 def call_uninterp_div(x: Int, y: Int) -> Int:
-    return call(UNINTERP_DIV_FN_NAME, Int, x, y)
+    return call(UNINTERP_DIV, Int, x, y)
 
 def call_matrix_vec_mul(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
     return call(MATRIX_VEC_MUL, mlList[Int], matrix, vec)
@@ -220,7 +228,7 @@ an_arr_to_int = lambda arr: choose(
     call_reduce_max(arr)
 )
 an_arr_to_arr = lambda arr: choose(
-    call_vec_map_exp(arr)
+    call_vec_map(arr)
 )
 a_matrix_and_vec_to_vec = lambda matrix, arr: choose(
     call_matrix_vec_mul(matrix, arr)
@@ -437,8 +445,8 @@ def computation_with_counts(
 a = Int("a")
 x = mlList(Int, "x")
 y = mlList(Int, "y")
-nested_x = Matrix(Int, "nested_x")
-nested_y = Matrix(Int, "nested_y")
+matrix_x = Matrix(Int, "matrix_x")
+matrix_y = Matrix(Int, "matrix_y")
 int_x = Int("int_x")
 int_y = Int("int_y")
 
@@ -506,7 +514,7 @@ def matrix_vec_mul_body(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
     cur = call_reduce_sum(call_vec_elemwise_mul(matrix[0], vec))
     recursed = call_matrix_vec_mul(matrix[1:], vec)
     return ite(invalid_cond, mlList.empty(Int), recursed.prepend(cur))
-matrix_vec_mul = fn_decl_recursive(MATRIX_VEC_MUL, mlList[Int], matrix_vec_mul_body(nested_x, x), nested_x, x)
+matrix_vec_mul = fn_decl_recursive(MATRIX_VEC_MUL, mlList[Int], matrix_vec_mul_body(matrix_x, x), matrix_x, x)
 
 # Helper functions for selections
 def mul8x8_div32_body(int_x: Int, int_y: Int) -> Int:
@@ -632,6 +640,976 @@ fixed_select_two_args_fn_decl = fn_decl(
     int_x,
     int_y
 )
+map_int_to_int_fn_obj = Fn((Int, Int), MAP_INT_TO_INT)
+map_int_to_int = fn_decl(
+    MAP_INT_TO_INT,
+    Int,
+    None,
+    int_x
+)
+
+def matrix_selection_two_args_body(
+    left: Matrix[Int],
+    right: Matrix[Int],
+    select_fn: Fn[typing.Tuple[Int, Int, Int]]
+) -> Matrix[Int]:
+    cur = call_selection_two_args(left[0], right[0], select_fn)
+    recursed = call_matrix_selection_two_args(left[1:], right[1:], select_fn)
+    general_answer = recursed.prepend(cur)
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        Matrix.empty(Int),
+        general_answer
+    )
+matrix_selection_two_args_fn_decl = fn_decl_recursive(
+    MATRIX_SELECTION_TWO_ARGS,
+    Matrix[Int],
+    matrix_selection_two_args_body(matrix_x, matrix_y, select_two_args_fn_obj_arg),
+    matrix_x,
+    matrix_y,
+    select_two_args_fn_obj_arg
+)
+
+def selection_two_args_body(
+    left: mlList[Int],
+    right: mlList[Int],
+    select_fn: Fn[typing.Tuple[Int, Int, Int]]
+) -> mlList[Int]:
+    cur = call_value(select_fn, left[0], right[0])
+    recursed = call_selection_two_args(left[1:], right[1:], select_fn)
+    general_answer = recursed.prepend(cur)
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        mlList.empty(Int),
+        general_answer
+    )
+selection_two_args_fn_decl = fn_decl_recursive(
+    SELECTION_TWO_ARGS,
+    mlList[Int],
+    selection_two_args_body(x, y, select_two_args_fn_obj_arg),
+    x,
+    y,
+    select_two_args_fn_obj_arg
+)
+
+
+def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    ret_val = writes[0]
+    base, active = reads
+    # return ret_val == call_nested_selection_two_args(base, active, fixed_select_two_args_fn_obj)
+    base_or_active = choose(base, active)
+    return ret_val == call_matrix_selection_two_args(base_or_active, base_or_active, select_two_args_fn_obj)
+
+def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    # outer loop grammar
+    writes_by_name = {
+        w.var_name(): w
+        for w in writes
+    }
+    out = writes_by_name["agg.result"]
+    col = writes_by_name["col"]
+    row = writes_by_name["row"]
+    base, active = reads
+    # return and_objects(
+    #     row >= 0,
+    #     row <= base.len(),
+    #     out == call_nested_selection_two_args(
+    #         base[:row],
+    #         active[:row],
+    #         fixed_select_two_args_fn_obj
+    #     )
+    # )
+    index_lower_bound = choose(Int(0), Int(1))
+    index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
+    matrix = choose(
+        base[:row],
+        base[:col],
+        active[:row],
+        active[:col],
+    )
+    return and_objects(
+        row >= index_lower_bound,
+        row <= index_upper_bound,
+        out == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj)
+    )
+
+def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    # inner loop grammar
+    writes_by_name = {
+        w.var_name(): w
+        for w in writes
+    }
+    col = writes_by_name["col"]
+    row_vec = writes_by_name["row_vec"]
+    out, row = in_scope
+    base, active = reads
+    # return and_objects(
+    #     row >= 0,
+    #     row < base.len(),
+    #     col >= 0,
+    #     col <= base[0].len(),
+    #     row_vec == call_selection_two_args(
+    #         base[row][:col],
+    #         active[row][:col],
+    #         fixed_select_two_args_fn_obj
+    #     ),
+    #     out == call_nested_selection_two_args(
+    #         base[:row],
+    #         active[:row],
+    #         fixed_select_two_args_fn_obj
+    #     )
+    # )
+    index_lower_bound = choose(Int(0), Int(1))
+    index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
+    vec = choose(
+        base[row][:col],
+        active[row][:col],
+    )
+    matrix = choose(
+        base[:row],
+        base[:col],
+        active[:row],
+        active[:col]
+    )
+    return and_objects(
+        row >= index_lower_bound,
+        row < index_upper_bound,
+        col >= index_lower_bound,
+        col <= index_upper_bound,
+        row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
+        out == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj)
+    )
+
+def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    return [
+        select_two_args_fn_decl,
+        # fixed_select_two_args_fn_decl,
+        selection_two_args_fn_decl,
+        matrix_selection_two_args_fn_decl
+    ]
+
+selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn, [])
+selection_two_args_inv1_grammar = InvGrammar(selection_two_args_inv1_grammar_fn, ["row", "agg.result"])
+
+def elemwise_body(
+    left: Union[mlList[Int], Matrix[Int]],
+    right: Union[mlList[Int], Matrix[Int]],
+    compute_fn: Callable[[Int, Int], Int],
+    vec_fn_name: str,
+    matrix_fn_name: str
+) -> Union[mlList[Int], Matrix[Int]]:
+    if is_matrix_type(left.type) and is_matrix_type(right.type):
+        cur = call(vec_fn_name, mlList[Int], left[0], right[0])
+        recursed = call(matrix_fn_name, Matrix[Int], left[1:], right[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(left.len() < 1, left.len() != right.len()),
+            Matrix.empty(Int),
+            general_answer
+        )
+    elif is_list_type(left.type) and is_primitive_type(get_list_element_type(left.type)) and is_list_type(right.type) and is_primitive_type(get_list_element_type(right.type)):
+        cur = compute_fn(left[0], right[0])
+        recursed = call(vec_fn_name, mlList[Int], left[1:], right[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(left.len() < 1, left.len() != right.len()),
+            mlList.empty(Int),
+            general_answer
+        )
+    raise Exception("Unsupported types for elemwise operations!")
+
+def scalar_body(
+    scalar: Int,
+    vec_or_matrix: Union[mlList[Int], Matrix[Int]],
+    compute_fn: Callable[[Int, Int], Int],
+    vec_fn_name: str,
+    matrix_fn_name: str
+) -> Union[mlList[Int], Matrix[Int]]:
+    if is_matrix_type(vec_or_matrix.type):
+        cur = call(vec_fn_name, mlList[Int], scalar, vec_or_matrix[0])
+        recursed = call(matrix_fn_name, Matrix[Int], scalar, vec_or_matrix[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_matrix.len() < 1),
+            Matrix.empty(Int),
+            general_answer
+        )
+    elif is_list_type(vec_or_matrix.type) and is_primitive_type(get_list_element_type(vec_or_matrix.type)):
+        cur = compute_fn(scalar, vec_or_matrix[0])
+        recursed = call(vec_fn_name, mlList[Int], scalar, vec_or_matrix[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_matrix.len() < 1),
+            mlList.empty(Int),
+            general_answer
+        )
+    raise Exception("Unsupported types for scalar operations!")
+
+def map_body(
+    vec_or_matrix: Union[mlList[Int], Matrix[Int]],
+    map_fn: Callable[[Int], Int],
+    vec_map_fn_name: str,
+    matrix_map_fn_name: str
+) -> Union[mlList[Int], Matrix[Int]]:
+    if is_matrix_type(vec_or_matrix.type):
+        cur = call(vec_map_fn_name, mlList[Int], vec_or_matrix[0])
+        recursed = call(matrix_map_fn_name, Matrix[Int], vec_or_matrix[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_matrix.len() < 1),
+            Matrix.empty(Int),
+            general_answer
+        )
+    elif is_list_type(vec_or_matrix.type) and is_primitive_type(get_list_element_type(vec_or_matrix.type)):
+        cur = map_fn(vec_or_matrix[0])
+        recursed = call(vec_map_fn_name, mlList[Int], vec_or_matrix[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(vec_or_matrix.len() < 1),
+            mlList.empty(Int),
+            general_answer
+        )
+    raise Exception("Unsupported types for scalar operations!")
+
+vec_elemwise_add = fn_decl_recursive(
+    VEC_ELEMWISE_ADD,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_ADD,
+        matrix_fn_name=MATRIX_ELEMWISE_ADD
+    ),
+    x,
+    y
+)
+matrix_elemwise_add = fn_decl_recursive(
+    MATRIX_ELEMWISE_ADD,
+    Matrix[Int],
+    elemwise_body(
+        left=matrix_x,
+        right=matrix_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_ADD,
+        matrix_fn_name=MATRIX_ELEMWISE_ADD
+    ),
+    matrix_x,
+    matrix_y
+)
+
+vec_elemwise_sub = fn_decl_recursive(
+    VEC_ELEMWISE_SUB,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x - int_y,
+        vec_fn_name=VEC_ELEMWISE_SUB,
+        matrix_fn_name=MATRIX_ELEMWISE_SUB
+    ),
+    x,
+    y
+)
+matrix_elemwise_sub = fn_decl_recursive(
+    MATRIX_ELEMWISE_SUB,
+    Matrix[Int],
+    elemwise_body(
+        left=matrix_x,
+        right=matrix_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_SUB,
+        matrix_fn_name=MATRIX_ELEMWISE_SUB
+    ),
+    matrix_x,
+    matrix_y
+)
+
+vec_elemwise_mul = fn_decl_recursive(
+    VEC_ELEMWISE_MUL,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x * int_y,
+        vec_fn_name=VEC_ELEMWISE_MUL,
+        matrix_fn_name=MATRIX_ELEMWISE_MUL
+    ),
+    x,
+    y
+)
+matrix_elemwise_mul = fn_decl_recursive(
+    MATRIX_ELEMWISE_MUL,
+    Matrix[Int],
+    elemwise_body(
+        left=matrix_x,
+        right=matrix_y,
+        compute_fn=lambda int_x, int_y: int_x * int_y,
+        vec_fn_name=VEC_ELEMWISE_MUL,
+        matrix_fn_name=MATRIX_ELEMWISE_MUL
+    ),
+    matrix_x,
+    matrix_y
+)
+
+vec_elemwise_div = fn_decl_recursive(
+    VEC_ELEMWISE_DIV,
+    mlList[Int],
+    elemwise_body(
+        left=x,
+        right=y,
+        compute_fn=lambda int_x, int_y: int_x // int_y,
+        vec_fn_name=VEC_ELEMWISE_DIV,
+        matrix_fn_name=MATRIX_ELEMWISE_DIV
+    ),
+    x,
+    y
+)
+matrix_elemwise_div = fn_decl_recursive(
+    MATRIX_ELEMWISE_DIV,
+    Matrix[Int],
+    elemwise_body(
+        left=matrix_x,
+        right=matrix_y,
+        compute_fn=lambda int_x, int_y: int_x // int_y,
+        vec_fn_name=VEC_ELEMWISE_DIV,
+        matrix_fn_name=MATRIX_ELEMWISE_DIV
+    ),
+    matrix_x,
+    matrix_y
+)
+
+vec_scalar_add = fn_decl_recursive(
+    VEC_SCALAR_ADD,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=x,
+        compute_fn=lambda scalar, int_x: scalar + int_x,
+        vec_fn_name=VEC_SCALAR_ADD,
+        matrix_fn_name=MATRIX_SCALAR_ADD
+    ),
+    a,
+    x
+)
+matrix_scalar_add = fn_decl_recursive(
+    MATRIX_SCALAR_ADD,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=matrix_x,
+        compute_fn=lambda scalar, int_x: scalar + int_x,
+        vec_fn_name=VEC_SCALAR_ADD,
+        matrix_fn_name=MATRIX_SCALAR_ADD
+    ),
+    a,
+    matrix_x
+)
+
+vec_scalar_mul = fn_decl_recursive(
+    VEC_SCALAR_MUL,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=x,
+        compute_fn=lambda scalar, int_x: scalar * int_x,
+        vec_fn_name=VEC_SCALAR_MUL,
+        matrix_fn_name=MATRIX_SCALAR_MUL
+    ),
+    a,
+    x
+)
+matrix_scalar_mul = fn_decl_recursive(
+    MATRIX_SCALAR_MUL,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=matrix_x,
+        compute_fn=lambda scalar, int_x: scalar * int_x,
+        vec_fn_name=VEC_SCALAR_MUL,
+        matrix_fn_name=MATRIX_SCALAR_MUL
+    ),
+    a,
+    matrix_x
+)
+
+vec_scalar_div = fn_decl_recursive(
+    VEC_SCALAR_DIV,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=x,
+        compute_fn=lambda scalar, int_x: int_x // scalar,
+        vec_fn_name=VEC_SCALAR_DIV,
+        matrix_fn_name=MATRIX_SCALAR_DIV
+    ),
+    a,
+    x
+)
+matrix_scalar_div = fn_decl_recursive(
+    MATRIX_SCALAR_DIV,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=matrix_x,
+        compute_fn=lambda scalar, int_x: int_x // scalar,
+        vec_fn_name=VEC_SCALAR_DIV,
+        matrix_fn_name=MATRIX_SCALAR_DIV
+    ),
+    a,
+    matrix_x
+)
+
+vec_scalar_sub = fn_decl_recursive(
+    VEC_SCALAR_SUB,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=x,
+        compute_fn=lambda scalar, int_x: int_x - scalar,
+        vec_fn_name=VEC_SCALAR_SUB,
+        matrix_fn_name=MATRIX_SCALAR_SUB
+    ),
+    a,
+    x
+)
+matrix_scalar_sub = fn_decl_recursive(
+    MATRIX_SCALAR_SUB,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=matrix_x,
+        compute_fn=lambda scalar, int_x: int_x - scalar,
+        vec_fn_name=VEC_SCALAR_SUB,
+        matrix_fn_name=MATRIX_SCALAR_SUB
+    ),
+    a,
+    matrix_x
+)
+
+def vec_map_body(
+    vec: mlList[Int],
+    map_fn: Fn[typing.Tuple[Int, Int]]
+) -> mlList[Int]:
+    cur = call_value(map_fn, vec[0])
+    recursed = call_vec_map(vec[1:], map_fn)
+    return ite(
+        vec.len() < 1,
+        mlList.empty(Int),
+        recursed.prepend(cur)
+    )
+vec_map = fn_decl_recursive(
+    VEC_MAP,
+    mlList[Int],
+    vec_map_body(x, map_int_to_int_fn_obj),
+    x,
+    map_int_to_int_fn_obj
+)
+
+# Uninterpreted functions
+# TODO(jie): this is returning a random prime
+exp = fn_decl(TEST_EXP, Int, Int(79), int_x)
+vec_exp_map = fn_decl_recursive(
+    VEC_MAP_TEST_EXP,
+    mlList[Int],
+    map_body(
+        vec_or_matrix=x,
+        map_fn=lambda int_x: call_exp(int_x),
+        vec_map_fn_name=VEC_MAP_TEST_EXP,
+        matrix_map_fn_name=MATRIX_MAP_TEST_EXP_FN_NAME
+    ),
+    x
+)
+matrix_exp_map = fn_decl_recursive(
+    MATRIX_MAP_TEST_EXP_FN_NAME,
+    mlList[Int],
+    map_body(
+        vec_or_matrix=matrix_x,
+        map_fn=lambda int_x: call_exp(int_x),
+        vec_map_fn_name=VEC_MAP_TEST_EXP,
+        matrix_map_fn_name=MATRIX_MAP_TEST_EXP_FN_NAME
+    ),
+    matrix_x
+)
+
+uninterp_div = fn_decl(UNINTERP_DIV, Int, None, int_x, int_y)
+
+def get_matrix_computation_ps_grammar_fn(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
+) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
+    if fixed_grammar:
+        raise Exception("Must not fix ps grammar!")
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def matrix_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        ret_val = writes[0]
+        base, active = reads
+        if not fixed_grammar:
+            return ret_val == matrix_computation(
+                args=[base, active],
+                constants=constants,
+                compute_ops=compute_ops,
+                depth=depth
+            )
+        else:
+            return ret_val == fixed_out_fn(base, active)
+    return matrix_computation_ps_grammar_fn
+
+def get_matrix_computation_hole_inv0_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
+    def inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        index_lower_bound = choose(Int(0), Int(1))
+        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
+        matrix = choose(
+            base[:row],
+            base[:col],
+            active[:row],
+            active[:col]
+        )
+        return and_objects(
+            row >= index_lower_bound,
+            row <= index_upper_bound,
+            out == hole_body(matrix)
+        )
+    return InvGrammar(inv0_grammar_fn, [])
+
+def get_matrix_computation_hole_inv1_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
+    def inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # inner loop grammar
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        index_lower_bound = choose(Int(0), Int(1))
+        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
+        vec = choose(base[row][:col], active[row][:col])
+        matrix = choose(base[:row], active[:row], base[:col], active[:col])
+        return and_objects(
+            row >= index_lower_bound,
+            row < index_upper_bound,
+            col >= index_lower_bound,
+            col <= index_upper_bound,
+            row_vec == hole_body(vec),
+            out == hole_body(matrix)
+        )
+    return InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+
+def get_matrix_computation_hole_ps_grammar(
+    constants: List[Int],
+    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
+) -> InvGrammar:
+    def ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        ret_val = writes[0]
+        base, active = reads
+        return ret_val == hole_body(choose(base, active))
+    return ps_grammar_fn
+
+
+def get_matrix_computation_inv0_grammar(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
+) -> InvGrammar:
+    if fixed_grammar:
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def matrix_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            index_lower_cond = choose(
+                row >= index_lower_bound,
+                row > index_lower_bound,
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
+            )
+            index_upper_cond = choose(
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            matrix_choices = [
+                base,
+                base[:row],
+                base[:col],
+                active,
+                active[:row],
+                active[:col],
+            ]
+            return and_objects(
+                index_lower_cond,
+                index_upper_cond,
+                out == matrix_computation(
+                    args=matrix_choices,
+                    constants=constants,
+                    compute_ops=compute_ops,
+                    depth=depth
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row <= base.len(),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(matrix_computation_inv0_grammar_fn, [])
+
+def get_matrix_computation_inv1_grammar(
+    fixed_grammar: bool,
+    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
+):
+    if fixed_grammar:
+        if fixed_row_vec_fn is None:
+            raise Exception("Must pass in an override row_vec!")
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def matrix_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # inner loop grammar
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            outer_index_lower_cond = choose(
+                row >= index_lower_bound,
+                row > index_lower_bound,
+                row == index_lower_bound,
+                row < index_lower_bound,
+                row <= index_lower_bound
+            )
+            outer_index_upper_cond = choose(
+                row >= index_upper_bound,
+                row > index_upper_bound,
+                row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            inner_index_lower_cond = choose(
+                col >= index_lower_bound,
+                col > index_lower_bound,
+                col == index_lower_bound,
+                col < index_lower_bound,
+                col <= index_lower_bound
+            )
+            inner_index_upper_cond = choose(
+                col >= index_upper_bound,
+                col > index_upper_bound,
+                col == index_upper_bound,
+                col < index_upper_bound,
+                col <= index_upper_bound
+            )
+            vec_choices = [
+                base[0][:col],
+                base[row][:col],
+                base[col][:row],
+                base[0][:row],
+                active[0][:col],
+                active[row][:col],
+                active[col][:row],
+                active[0][:row],
+                row_vec
+            ]
+            matrix_choices = [
+                base,
+                base[:row],
+                base[:col],
+                active,
+                active[:row],
+                active[:col]
+            ]
+            return and_objects(
+                outer_index_lower_cond,
+                outer_index_upper_cond,
+                inner_index_lower_cond,
+                inner_index_upper_cond,
+                row_vec == vec_computation(
+                    args=vec_choices,
+                    constants=constants,
+                    compute_ops=compute_ops,
+                    depth=depth
+                ),
+                out == matrix_computation(
+                    args=matrix_choices,
+                    constants=constants,
+                    compute_ops=compute_ops,
+                    depth=depth
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row < base.len(),
+                col >= 0,
+                col <= base[0].len(),
+                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(
+        matrix_computation_inv1_grammar_fn,
+        ["row", "agg.result"]
+    )
+
+def get_matrix_computation_with_counts_ps_grammar_fn(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    ordered_compute_ops: Optional[OrderedDict] = None,
+    depth: Optional[int] = None,
+) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
+    if fixed_grammar and fixed_out_fn is None:
+        raise Exception("Must pass in an override out!")
+    def matrix_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        ret_val = writes[0]
+        base, active = reads
+        if not fixed_grammar:
+            return ret_val == computation_with_counts(
+                args=[base, active],
+                constants=constants,
+                ordered_compute_ops=ordered_compute_ops,
+                depth=depth,
+                is_vec=False
+            )
+        else:
+            return ret_val == fixed_out_fn(base, active)
+    return matrix_computation_ps_grammar_fn
+
+def get_matrix_computation_with_counts_inv0_grammar(
+    fixed_grammar: bool,
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    ordered_compute_ops: Optional[OrderedDict] = None,
+    depth: Optional[int] = None,
+) -> InvGrammar:
+    if fixed_grammar:
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def matrix_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # outer loop grammar
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            index_lower_cond = choose(
+                row >= index_lower_bound,
+                # row > index_lower_bound,
+                # row == index_lower_bound,
+                # row < index_lower_bound,
+                # row <= index_lower_bound
+            )
+            index_upper_cond = choose(
+                # row >= index_upper_bound,
+                # row > index_upper_bound,
+                # row == index_upper_bound,
+                # row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            matrix_choices = [
+                # base,
+                base[:row],
+                base[:col],
+                # active,
+                active[:row],
+                active[:col],
+            ]
+            return and_objects(
+                index_lower_cond,
+                index_upper_cond,
+                out == computation_with_counts(
+                    args=matrix_choices,
+                    constants=constants,
+                    ordered_compute_ops=ordered_compute_ops,
+                    depth=depth,
+                    is_vec=False
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row <= base.len(),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(matrix_computation_inv0_grammar_fn, [])
+
+def get_matrix_computation_with_counts_inv1_grammar(
+    fixed_grammar: bool,
+    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    ordered_compute_ops: Optional[OrderedDict] = None,
+    depth: Optional[int] = None,
+):
+    if fixed_grammar:
+        if fixed_row_vec_fn is None:
+            raise Exception("Must pass in an override row_vec!")
+        if fixed_out_fn is None:
+            raise Exception("Must pass in an override out!")
+    def matrix_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        # inner loop grammar
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        if not fixed_grammar:
+            index_lower_bound = choose(Int(0), Int(1))
+            index_upper_bound = choose(base.len(), base[0].len())
+            outer_index_lower_cond = choose(
+                row >= index_lower_bound,
+                # row > index_lower_bound,
+                # row == index_lower_bound,
+                # row < index_lower_bound,
+                # row <= index_lower_bound
+            )
+            outer_index_upper_cond = choose(
+                # row >= index_upper_bound,
+                # row > index_upper_bound,
+                # row == index_upper_bound,
+                row < index_upper_bound,
+                row <= index_upper_bound
+            )
+            inner_index_lower_cond = choose(
+                col >= index_lower_bound,
+                # col > index_lower_bound,
+                # col == index_lower_bound,
+                # col < index_lower_bound,
+                # col <= index_lower_bound
+            )
+            inner_index_upper_cond = choose(
+                # col >= index_upper_bound,
+                # col > index_upper_bound,
+                # col == index_upper_bound,
+                # col < index_upper_bound,
+                col <= index_upper_bound
+            )
+            vec_choices = [
+                # base[0][:col],
+                base[row][:col],
+                # base[col][:row],
+                # base[0][:row],
+                # active[0][:col],
+                active[row][:col],
+                # active[col][:row],
+                # active[0][:row],
+                # row_vec
+            ]
+            matrix_choices = [
+                # base,
+                base[:row],
+                base[:col],
+                # active,
+                active[:row],
+                active[:col]
+            ]
+            return and_objects(
+                outer_index_lower_cond,
+                outer_index_upper_cond,
+                inner_index_lower_cond,
+                inner_index_upper_cond,
+                row_vec == computation_with_counts(
+                    args=vec_choices,
+                    constants=constants,
+                    ordered_compute_ops=ordered_compute_ops,
+                    depth=depth,
+                    is_vec=True
+                ),
+                out == computation_with_counts(
+                    args=matrix_choices,
+                    constants=constants,
+                    ordered_compute_ops=ordered_compute_ops,
+                    depth=depth,
+                    is_vec=False
+                )
+            )
+        else:
+            return and_objects(
+                row >= 0,
+                row < base.len(),
+                col >= 0,
+                col <= base[0].len(),
+                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
+                out == fixed_out_fn(base[:row], active[:row])
+            )
+    return InvGrammar(
+        matrix_computation_inv1_grammar_fn,
+        ["row", "agg.result"]
+    )
+
+def matrix_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    return [
+        vec_elemwise_add,
+        matrix_elemwise_add,
+        vec_elemwise_sub,
+        matrix_elemwise_sub,
+        vec_elemwise_mul,
+        matrix_elemwise_mul,
+        vec_elemwise_div,
+        matrix_elemwise_div,
+        vec_scalar_add,
+        matrix_scalar_add,
+        vec_scalar_sub,
+        matrix_scalar_sub,
+        vec_scalar_mul,
+        matrix_scalar_mul,
+        vec_scalar_div,
+        matrix_scalar_div
+    ]
+
+def get_matrix_computation_grammars_without_analysis(depth: int) -> Tuple[InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]]:
+    return get_matrix_computation_grammars(
+        fixed_grammar=False,
+        constants=[Int(0), Int(2), Int(128), Int(32)],
+        compute_ops=["+", "-", "*", "//"],
+        depth=depth
+    )
+
+def get_matrix_computation_grammars(
+    fixed_grammar: bool,
+    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
+    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
+    constants: Optional[List[Int]] = None,
+    compute_ops: Optional[List[str]] = None,
+    depth: Optional[int] = None,
+) -> Tuple[InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]]:
+    inv0_grammar = get_matrix_computation_inv0_grammar(
+            fixed_grammar=fixed_grammar,
+            fixed_out_fn=fixed_out_fn,
+            constants=constants,
+            compute_ops=compute_ops,
+            depth=depth
+        )
+    inv1_grammar = get_matrix_computation_inv1_grammar(
+        fixed_grammar=fixed_grammar,
+        fixed_row_vec_fn=fixed_row_vec_fn,
+        fixed_out_fn=fixed_out_fn,
+        constants=constants,
+        ordered_compute_ops=compute_ops,
+        depth=depth
+    )
+    ps_grammar = get_matrix_computation_ps_grammar_fn(
+        fixed_grammar=fixed_grammar,
+        fixed_out_fn=fixed_out_fn,
+        constants=constants,
+        compute_ops=compute_ops,
+        depth=depth
+    )
+    return inv0_grammar, inv1_grammar, ps_grammar
 
 def get_select_two_args_synth_without_analysis(depth: int) -> Synth:
     return get_select_two_args_general_synth(
@@ -1140,949 +2118,15 @@ def get_select_synth_from_hole(hole_body: Callable[[Int], Int]) -> Synth:
     )
 
 def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
-    return Synth(
+    return synth(
         SELECT_TWO_ARGS,
-        choose(*select_bodies).src,
-        *get_object_exprs(*args)
+        choose(*select_bodies),
+        *args
     )
 
-def selection_two_args_body(
-    left: mlList[Int],
-    right: mlList[Int],
-    select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> mlList[Int]:
-    vec_size = left.len()
-    cur = call_value(select_fn, left[0], right[0])
-    recursed = call_selection_two_args(left[1:], right[1:], select_fn)
-    general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, mlList.empty(Int), general_answer)
-
-def nested_selection_two_args_body(
-    left: Matrix[Int],
-    right: Matrix[Int],
-    select_fn: Fn[typing.Tuple[Int, Int, Int]]
-) -> Matrix[Int]:
-    cur = call_selection_two_args(left[0], right[0], select_fn)
-    recursed = call_matrix_selection_two_args(left[1:], right[1:], select_fn)
-    general_answer = recursed.prepend(cur)
-    return ite(
-        or_objects(left.len() < 1, left.len() != right.len()),
-        Matrix.empty(Int),
-        general_answer
+def get_map_int_to_int_synth() -> Synth:
+    return synth(
+        MAP_INT_TO_INT,
+        call_exp(int_x),
+        int_x
     )
-nested_selection_two_args_fn_decl = fn_decl_recursive(
-    MATRIX_SELECTION_TWO_ARGS,
-    Matrix[Int],
-    nested_selection_two_args_body(nested_x, nested_y, select_two_args_fn_obj_arg),
-    nested_x,
-    nested_y,
-    select_two_args_fn_obj_arg
-)
-selection_two_args_fn_decl = fn_decl_recursive(
-    SELECTION_TWO_ARGS,
-    mlList[Int],
-    selection_two_args_body(x, y, select_two_args_fn_obj_arg),
-    x,
-    y,
-    select_two_args_fn_obj_arg
-)
-
-
-def selection_two_args_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    ret_val = writes[0]
-    base, active = reads
-    # return ret_val == call_nested_selection_two_args(base, active, fixed_select_two_args_fn_obj)
-    base_or_active = choose(base, active)
-    return ret_val == call_matrix_selection_two_args(base_or_active, base_or_active, select_two_args_fn_obj)
-
-def selection_two_args_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    # outer loop grammar
-    writes_by_name = {
-        w.var_name(): w
-        for w in writes
-    }
-    out = writes_by_name["agg.result"]
-    col = writes_by_name["col"]
-    row = writes_by_name["row"]
-    base, active = reads
-    # return and_objects(
-    #     row >= 0,
-    #     row <= base.len(),
-    #     out == call_nested_selection_two_args(
-    #         base[:row],
-    #         active[:row],
-    #         fixed_select_two_args_fn_obj
-    #     )
-    # )
-    index_lower_bound = choose(Int(0), Int(1))
-    index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-    matrix = choose(
-        base[:row],
-        base[:col],
-        active[:row],
-        active[:col],
-    )
-    return and_objects(
-        row >= index_lower_bound,
-        row <= index_upper_bound,
-        out == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj)
-    )
-
-def selection_two_args_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-    # inner loop grammar
-    writes_by_name = {
-        w.var_name(): w
-        for w in writes
-    }
-    col = writes_by_name["col"]
-    row_vec = writes_by_name["row_vec"]
-    out, row = in_scope
-    base, active = reads
-    # return and_objects(
-    #     row >= 0,
-    #     row < base.len(),
-    #     col >= 0,
-    #     col <= base[0].len(),
-    #     row_vec == call_selection_two_args(
-    #         base[row][:col],
-    #         active[row][:col],
-    #         fixed_select_two_args_fn_obj
-    #     ),
-    #     out == call_nested_selection_two_args(
-    #         base[:row],
-    #         active[:row],
-    #         fixed_select_two_args_fn_obj
-    #     )
-    # )
-    index_lower_bound = choose(Int(0), Int(1))
-    index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-    vec = choose(
-        base[row][:col],
-        active[row][:col],
-    )
-    matrix = choose(
-        base[:row],
-        base[:col],
-        active[:row],
-        active[:col]
-    )
-    return and_objects(
-        row >= index_lower_bound,
-        row < index_upper_bound,
-        col >= index_lower_bound,
-        col <= index_upper_bound,
-        row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
-        out == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj)
-    )
-
-def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [
-        select_two_args_fn_decl,
-        # fixed_select_two_args_fn_decl,
-        selection_two_args_fn_decl,
-        nested_selection_two_args_fn_decl
-    ]
-
-selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn, [])
-selection_two_args_inv1_grammar = InvGrammar(selection_two_args_inv1_grammar_fn, ["row", "agg.result"])
-
-def elemwise_body(
-    left: Union[mlList[Int], mlList[mlList[Int]]],
-    right: Union[mlList[Int], mlList[mlList[Int]]],
-    compute_fn: Callable[[Int, Int], Int],
-    vec_fn_name: str,
-    matrix_fn_name: str
-) -> Union[mlList[Int], Matrix[Int]]:
-    if is_matrix_type(left.type) and is_matrix_type(right.type):
-        cur = call(vec_fn_name, mlList[Int], left[0], right[0])
-        recursed = call(matrix_fn_name, Matrix[Int], left[1:], right[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(left.len() < 1, left.len() != right.len()),
-            Matrix.empty(Int),
-            general_answer
-        )
-    elif is_list_type(left.type) and is_primitive_type(get_list_element_type(left.type)) and is_list_type(right.type) and is_primitive_type(get_list_element_type(right.type)):
-        cur = compute_fn(left[0], right[0])
-        recursed = call(vec_fn_name, mlList[Int], left[1:], right[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(left.len() < 1, left.len() != right.len()),
-            mlList.empty(Int),
-            general_answer
-        )
-    raise Exception("Unsupported types for elemwise operations!")
-
-def scalar_body(
-    scalar: Int,
-    vec_or_matrix: Union[mlList[Int], Matrix[Int]],
-    compute_fn: Callable[[Int, Int], Int],
-    vec_fn_name: str,
-    matrix_fn_name: str
-) -> Union[mlList[Int], Matrix[Int]]:
-    if is_matrix_type(vec_or_matrix.type):
-        cur = call(vec_fn_name, mlList[Int], scalar, vec_or_matrix[0])
-        recursed = call(matrix_fn_name, Matrix[Int], scalar, vec_or_matrix[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(vec_or_matrix.len() < 1),
-            Matrix.empty(Int),
-            general_answer
-        )
-    elif is_list_type(vec_or_matrix.type) and is_primitive_type(get_list_element_type(vec_or_matrix.type)):
-        cur = compute_fn(scalar, vec_or_matrix[0])
-        recursed = call(vec_fn_name, mlList[Int], scalar, vec_or_matrix[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(vec_or_matrix.len() < 1),
-            mlList.empty(Int),
-            general_answer
-        )
-    raise Exception("Unsupported types for scalar operations!")
-
-def map_body(
-    vec_or_matrix: Union[mlList[Int], Matrix[Int]],
-    map_fn: Callable[[Int], Int],
-    vec_map_fn_name: str,
-    matrix_map_fn_name: str
-) -> Union[mlList[Int], Matrix[Int]]:
-    if is_matrix_type(vec_or_matrix.type):
-        cur = call(vec_map_fn_name, mlList[Int], vec_or_matrix[0])
-        recursed = call(matrix_map_fn_name, Matrix[Int], vec_or_matrix[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(vec_or_matrix.len() < 1),
-            Matrix.empty(Int),
-            general_answer
-        )
-    elif is_list_type(vec_or_matrix.type) and is_primitive_type(get_list_element_type(vec_or_matrix.type)):
-        cur = map_fn(vec_or_matrix[0])
-        recursed = call(vec_map_fn_name, mlList[Int], vec_or_matrix[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(vec_or_matrix.len() < 1),
-            mlList.empty(Int),
-            general_answer
-        )
-    raise Exception("Unsupported types for scalar operations!")
-
-vec_elemwise_add = fn_decl_recursive(
-    VEC_ELEMWISE_ADD,
-    mlList[Int],
-    elemwise_body(
-        left=x,
-        right=y,
-        compute_fn=lambda int_x, int_y: int_x + int_y,
-        vec_fn_name=VEC_ELEMWISE_ADD,
-        matrix_fn_name=MATRIX_ELEMWISE_ADD
-    ),
-    x,
-    y
-)
-matrix_elemwise_add = fn_decl_recursive(
-    MATRIX_ELEMWISE_ADD,
-    Matrix[Int],
-    elemwise_body(
-        left=nested_x,
-        right=nested_y,
-        compute_fn=lambda int_x, int_y: int_x + int_y,
-        vec_fn_name=VEC_ELEMWISE_ADD,
-        matrix_fn_name=MATRIX_ELEMWISE_ADD
-    ),
-    nested_x,
-    nested_y
-)
-
-vec_elemwise_sub = fn_decl_recursive(
-    VEC_ELEMWISE_SUB,
-    mlList[Int],
-    elemwise_body(
-        left=x,
-        right=y,
-        compute_fn=lambda int_x, int_y: int_x - int_y,
-        vec_fn_name=VEC_ELEMWISE_SUB,
-        matrix_fn_name=MATRIX_ELEMWISE_SUB
-    ),
-    x,
-    y
-)
-matrix_elemwise_sub = fn_decl_recursive(
-    MATRIX_ELEMWISE_SUB,
-    Matrix[Int],
-    elemwise_body(
-        left=nested_x,
-        right=nested_y,
-        compute_fn=lambda int_x, int_y: int_x + int_y,
-        vec_fn_name=VEC_ELEMWISE_SUB,
-        matrix_fn_name=MATRIX_ELEMWISE_SUB
-    ),
-    nested_x,
-    nested_y
-)
-
-vec_elemwise_mul = fn_decl_recursive(
-    VEC_ELEMWISE_MUL,
-    mlList[Int],
-    elemwise_body(
-        left=x,
-        right=y,
-        compute_fn=lambda int_x, int_y: int_x * int_y,
-        vec_fn_name=VEC_ELEMWISE_MUL,
-        matrix_fn_name=MATRIX_ELEMWISE_MUL
-    ),
-    x,
-    y
-)
-matrix_elemwise_mul = fn_decl_recursive(
-    MATRIX_ELEMWISE_MUL,
-    Matrix[Int],
-    elemwise_body(
-        left=nested_x,
-        right=nested_y,
-        compute_fn=lambda int_x, int_y: int_x * int_y,
-        vec_fn_name=VEC_ELEMWISE_MUL,
-        matrix_fn_name=MATRIX_ELEMWISE_MUL
-    ),
-    nested_x,
-    nested_y
-)
-
-vec_elemwise_div = fn_decl_recursive(
-    VEC_ELEMWISE_DIV,
-    mlList[Int],
-    elemwise_body(
-        left=x,
-        right=y,
-        compute_fn=lambda int_x, int_y: int_x // int_y,
-        vec_fn_name=VEC_ELEMWISE_DIV,
-        matrix_fn_name=MATRIX_ELEMWISE_DIV
-    ),
-    x,
-    y
-)
-matrix_elemwise_div = fn_decl_recursive(
-    MATRIX_ELEMWISE_DIV,
-    Matrix[Int],
-    elemwise_body(
-        left=nested_x,
-        right=nested_y,
-        compute_fn=lambda int_x, int_y: int_x // int_y,
-        vec_fn_name=VEC_ELEMWISE_DIV,
-        matrix_fn_name=MATRIX_ELEMWISE_DIV
-    ),
-    nested_x,
-    nested_y
-)
-
-vec_scalar_add = fn_decl_recursive(
-    VEC_SCALAR_ADD,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=x,
-        compute_fn=lambda scalar, int_x: scalar + int_x,
-        vec_fn_name=VEC_SCALAR_ADD,
-        matrix_fn_name=MATRIX_SCALAR_ADD
-    ),
-    a,
-    x
-)
-matrix_scalar_add = fn_decl_recursive(
-    MATRIX_SCALAR_ADD,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=nested_x,
-        compute_fn=lambda scalar, int_x: scalar + int_x,
-        vec_fn_name=VEC_SCALAR_ADD,
-        matrix_fn_name=MATRIX_SCALAR_ADD
-    ),
-    a,
-    nested_x
-)
-
-vec_scalar_mul = fn_decl_recursive(
-    VEC_SCALAR_MUL,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=x,
-        compute_fn=lambda scalar, int_x: scalar * int_x,
-        vec_fn_name=VEC_SCALAR_MUL,
-        matrix_fn_name=MATRIX_SCALAR_MUL
-    ),
-    a,
-    x
-)
-matrix_scalar_mul = fn_decl_recursive(
-    MATRIX_SCALAR_MUL,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=nested_x,
-        compute_fn=lambda scalar, int_x: scalar * int_x,
-        vec_fn_name=VEC_SCALAR_MUL,
-        matrix_fn_name=MATRIX_SCALAR_MUL
-    ),
-    a,
-    nested_x
-)
-
-vec_scalar_div = fn_decl_recursive(
-    VEC_SCALAR_DIV,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=x,
-        compute_fn=lambda scalar, int_x: int_x // scalar,
-        vec_fn_name=VEC_SCALAR_DIV,
-        matrix_fn_name=MATRIX_SCALAR_DIV
-    ),
-    a,
-    x
-)
-matrix_scalar_div = fn_decl_recursive(
-    MATRIX_SCALAR_DIV,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=nested_x,
-        compute_fn=lambda scalar, int_x: int_x // scalar,
-        vec_fn_name=VEC_SCALAR_DIV,
-        matrix_fn_name=MATRIX_SCALAR_DIV
-    ),
-    a,
-    nested_x
-)
-
-vec_scalar_sub = fn_decl_recursive(
-    VEC_SCALAR_SUB,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=x,
-        compute_fn=lambda scalar, int_x: int_x - scalar,
-        vec_fn_name=VEC_SCALAR_SUB,
-        matrix_fn_name=MATRIX_SCALAR_SUB
-    ),
-    a,
-    x
-)
-matrix_scalar_sub = fn_decl_recursive(
-    MATRIX_SCALAR_SUB,
-    mlList[Int],
-    scalar_body(
-        scalar=a,
-        vec_or_matrix=nested_x,
-        compute_fn=lambda scalar, int_x: int_x - scalar,
-        vec_fn_name=VEC_SCALAR_SUB,
-        matrix_fn_name=MATRIX_SCALAR_SUB
-    ),
-    a,
-    nested_x
-)
-
-
-def get_matrix_computation_ps_grammar_fn(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
-    if fixed_grammar:
-        raise Exception("Must not fix ps grammar!")
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-    def matrix_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        ret_val = writes[0]
-        base, active = reads
-        if not fixed_grammar:
-            return ret_val == matrix_computation(
-                args=[base, active],
-                constants=constants,
-                compute_ops=compute_ops,
-                depth=depth
-            )
-        else:
-            return ret_val == fixed_out_fn(base, active)
-    return matrix_computation_ps_grammar_fn
-
-def get_matrix_computation_hole_inv0_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
-    def inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-        matrix = choose(
-            base[:row],
-            base[:col],
-            active[:row],
-            active[:col]
-        )
-        return and_objects(
-            row >= index_lower_bound,
-            row <= index_upper_bound,
-            out == hole_body(matrix)
-        )
-    return InvGrammar(inv0_grammar_fn, [])
-
-def get_matrix_computation_hole_inv1_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
-    def inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # inner loop grammar
-        col, pixel, row_vec = writes
-        out, row = in_scope
-        base, active = reads
-        index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-        vec = choose(base[row][:col], active[row][:col])
-        matrix = choose(base[:row], active[:row], base[:col], active[:col])
-        return and_objects(
-            row >= index_lower_bound,
-            row < index_upper_bound,
-            col >= index_lower_bound,
-            col <= index_upper_bound,
-            row_vec == hole_body(vec),
-            out == hole_body(matrix)
-        )
-    return InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
-
-def get_matrix_computation_hole_ps_grammar(
-    constants: List[Int],
-    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
-) -> InvGrammar:
-    def ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        ret_val = writes[0]
-        base, active = reads
-        return ret_val == hole_body(choose(base, active))
-    return ps_grammar_fn
-
-
-def get_matrix_computation_inv0_grammar(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-) -> InvGrammar:
-    if fixed_grammar:
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-    def matrix_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            index_lower_cond = choose(
-                row >= index_lower_bound,
-                row > index_lower_bound,
-                row == index_lower_bound,
-                row < index_lower_bound,
-                row <= index_lower_bound
-            )
-            index_upper_cond = choose(
-                row >= index_upper_bound,
-                row > index_upper_bound,
-                row == index_upper_bound,
-                row < index_upper_bound,
-                row <= index_upper_bound
-            )
-            matrix_choices = [
-                base,
-                base[:row],
-                base[:col],
-                active,
-                active[:row],
-                active[:col],
-            ]
-            return and_objects(
-                index_lower_cond,
-                index_upper_cond,
-                out == matrix_computation(
-                    args=matrix_choices,
-                    constants=constants,
-                    compute_ops=compute_ops,
-                    depth=depth
-                )
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row <= base.len(),
-                out == fixed_out_fn(base[:row], active[:row])
-            )
-    return InvGrammar(matrix_computation_inv0_grammar_fn, [])
-
-def get_matrix_computation_inv1_grammar(
-    fixed_grammar: bool,
-    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-):
-    if fixed_grammar:
-        if fixed_row_vec_fn is None:
-            raise Exception("Must pass in an override row_vec!")
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-    def matrix_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # inner loop grammar
-        col, pixel, row_vec = writes
-        out, row = in_scope
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            outer_index_lower_cond = choose(
-                row >= index_lower_bound,
-                row > index_lower_bound,
-                row == index_lower_bound,
-                row < index_lower_bound,
-                row <= index_lower_bound
-            )
-            outer_index_upper_cond = choose(
-                row >= index_upper_bound,
-                row > index_upper_bound,
-                row == index_upper_bound,
-                row < index_upper_bound,
-                row <= index_upper_bound
-            )
-            inner_index_lower_cond = choose(
-                col >= index_lower_bound,
-                col > index_lower_bound,
-                col == index_lower_bound,
-                col < index_lower_bound,
-                col <= index_lower_bound
-            )
-            inner_index_upper_cond = choose(
-                col >= index_upper_bound,
-                col > index_upper_bound,
-                col == index_upper_bound,
-                col < index_upper_bound,
-                col <= index_upper_bound
-            )
-            vec_choices = [
-                base[0][:col],
-                base[row][:col],
-                base[col][:row],
-                base[0][:row],
-                active[0][:col],
-                active[row][:col],
-                active[col][:row],
-                active[0][:row],
-                row_vec
-            ]
-            matrix_choices = [
-                base,
-                base[:row],
-                base[:col],
-                active,
-                active[:row],
-                active[:col]
-            ]
-            return and_objects(
-                outer_index_lower_cond,
-                outer_index_upper_cond,
-                inner_index_lower_cond,
-                inner_index_upper_cond,
-                row_vec == vec_computation(
-                    args=vec_choices,
-                    constants=constants,
-                    compute_ops=compute_ops,
-                    depth=depth
-                ),
-                out == matrix_computation(
-                    args=matrix_choices,
-                    constants=constants,
-                    compute_ops=compute_ops,
-                    depth=depth
-                )
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row < base.len(),
-                col >= 0,
-                col <= base[0].len(),
-                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
-                out == fixed_out_fn(base[:row], active[:row])
-            )
-    return InvGrammar(
-        matrix_computation_inv1_grammar_fn,
-        ["row", "agg.result"]
-    )
-
-def get_matrix_computation_with_counts_ps_grammar_fn(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    ordered_compute_ops: Optional[OrderedDict] = None,
-    depth: Optional[int] = None,
-) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
-    if fixed_grammar and fixed_out_fn is None:
-        raise Exception("Must pass in an override out!")
-    def matrix_computation_ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        ret_val = writes[0]
-        base, active = reads
-        if not fixed_grammar:
-            return ret_val == computation_with_counts(
-                args=[base, active],
-                constants=constants,
-                ordered_compute_ops=ordered_compute_ops,
-                depth=depth,
-                is_vec=False
-            )
-        else:
-            return ret_val == fixed_out_fn(base, active)
-    return matrix_computation_ps_grammar_fn
-
-def get_matrix_computation_with_counts_inv0_grammar(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    ordered_compute_ops: Optional[OrderedDict] = None,
-    depth: Optional[int] = None,
-) -> InvGrammar:
-    if fixed_grammar:
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-    def matrix_computation_inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            index_lower_cond = choose(
-                row >= index_lower_bound,
-                # row > index_lower_bound,
-                # row == index_lower_bound,
-                # row < index_lower_bound,
-                # row <= index_lower_bound
-            )
-            index_upper_cond = choose(
-                # row >= index_upper_bound,
-                # row > index_upper_bound,
-                # row == index_upper_bound,
-                # row < index_upper_bound,
-                row <= index_upper_bound
-            )
-            matrix_choices = [
-                # base,
-                base[:row],
-                base[:col],
-                # active,
-                active[:row],
-                active[:col],
-            ]
-            return and_objects(
-                index_lower_cond,
-                index_upper_cond,
-                out == computation_with_counts(
-                    args=matrix_choices,
-                    constants=constants,
-                    ordered_compute_ops=ordered_compute_ops,
-                    depth=depth,
-                    is_vec=False
-                )
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row <= base.len(),
-                out == fixed_out_fn(base[:row], active[:row])
-            )
-    return InvGrammar(matrix_computation_inv0_grammar_fn, [])
-
-def get_matrix_computation_with_counts_inv1_grammar(
-    fixed_grammar: bool,
-    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    ordered_compute_ops: Optional[OrderedDict] = None,
-    depth: Optional[int] = None,
-):
-    if fixed_grammar:
-        if fixed_row_vec_fn is None:
-            raise Exception("Must pass in an override row_vec!")
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-    def matrix_computation_inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # inner loop grammar
-        col, pixel, row_vec = writes
-        out, row = in_scope
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            outer_index_lower_cond = choose(
-                row >= index_lower_bound,
-                # row > index_lower_bound,
-                # row == index_lower_bound,
-                # row < index_lower_bound,
-                # row <= index_lower_bound
-            )
-            outer_index_upper_cond = choose(
-                # row >= index_upper_bound,
-                # row > index_upper_bound,
-                # row == index_upper_bound,
-                row < index_upper_bound,
-                row <= index_upper_bound
-            )
-            inner_index_lower_cond = choose(
-                col >= index_lower_bound,
-                # col > index_lower_bound,
-                # col == index_lower_bound,
-                # col < index_lower_bound,
-                # col <= index_lower_bound
-            )
-            inner_index_upper_cond = choose(
-                # col >= index_upper_bound,
-                # col > index_upper_bound,
-                # col == index_upper_bound,
-                # col < index_upper_bound,
-                col <= index_upper_bound
-            )
-            vec_choices = [
-                # base[0][:col],
-                base[row][:col],
-                # base[col][:row],
-                # base[0][:row],
-                # active[0][:col],
-                active[row][:col],
-                # active[col][:row],
-                # active[0][:row],
-                # row_vec
-            ]
-            matrix_choices = [
-                # base,
-                base[:row],
-                base[:col],
-                # active,
-                active[:row],
-                active[:col]
-            ]
-            return and_objects(
-                outer_index_lower_cond,
-                outer_index_upper_cond,
-                inner_index_lower_cond,
-                inner_index_upper_cond,
-                row_vec == computation_with_counts(
-                    args=vec_choices,
-                    constants=constants,
-                    ordered_compute_ops=ordered_compute_ops,
-                    depth=depth,
-                    is_vec=True
-                ),
-                out == computation_with_counts(
-                    args=matrix_choices,
-                    constants=constants,
-                    ordered_compute_ops=ordered_compute_ops,
-                    depth=depth,
-                    is_vec=False
-                )
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row < base.len(),
-                col >= 0,
-                col <= base[0].len(),
-                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
-                out == fixed_out_fn(base[:row], active[:row])
-            )
-    return InvGrammar(
-        matrix_computation_inv1_grammar_fn,
-        ["row", "agg.result"]
-    )
-
-def matrix_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [
-        vec_elemwise_add,
-        matrix_elemwise_add,
-        vec_elemwise_sub,
-        matrix_elemwise_sub,
-        vec_elemwise_mul,
-        matrix_elemwise_mul,
-        vec_elemwise_div,
-        matrix_elemwise_div,
-        vec_scalar_add,
-        matrix_scalar_add,
-        vec_scalar_sub,
-        matrix_scalar_sub,
-        vec_scalar_mul,
-        matrix_scalar_mul,
-        vec_scalar_div,
-        matrix_scalar_div
-    ]
-
-def get_matrix_computation_grammars_without_analysis(depth: int) -> Tuple[InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]]:
-    return get_matrix_computation_grammars(
-        fixed_grammar=False,
-        constants=[Int(0), Int(2), Int(128), Int(32)],
-        compute_ops=["+", "-", "*", "//"],
-        depth=depth
-    )
-
-def get_matrix_computation_grammars(
-    fixed_grammar: bool,
-    fixed_row_vec_fn: Optional[Any] = None, # TODO(jie): add type for this
-    fixed_out_fn: Optional[Any] = None, # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-) -> Tuple[InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]]:
-    inv0_grammar = get_matrix_computation_inv0_grammar(
-            fixed_grammar=fixed_grammar,
-            fixed_out_fn=fixed_out_fn,
-            constants=constants,
-            compute_ops=compute_ops,
-            depth=depth
-        )
-    inv1_grammar = get_matrix_computation_inv1_grammar(
-        fixed_grammar=fixed_grammar,
-        fixed_row_vec_fn=fixed_row_vec_fn,
-        fixed_out_fn=fixed_out_fn,
-        constants=constants,
-        ordered_compute_ops=compute_ops,
-        depth=depth
-    )
-    ps_grammar = get_matrix_computation_ps_grammar_fn(
-        fixed_grammar=fixed_grammar,
-        fixed_out_fn=fixed_out_fn,
-        constants=constants,
-        compute_ops=compute_ops,
-        depth=depth
-    )
-    return inv0_grammar, inv1_grammar, ps_grammar
-
-# Uninterpreted functions
-exp = fn_decl(TEST_EXP_FN_NAME, Int, None, int_x)
-vec_exp_map = fn_decl_recursive(
-    VEC_MAP_TEST_EXP_FN_NAME,
-    mlList[Int],
-    map_body(
-        vec_or_matrix=x,
-        map_fn=lambda int_x: call_exp(int_x),
-        vec_map_fn_name=VEC_MAP_TEST_EXP_FN_NAME,
-        matrix_map_fn_name=MATRIX_MAP_TEST_EXP_FN_NAME
-    ),
-    x
-)
-matrix_exp_map = fn_decl_recursive(
-    MATRIX_MAP_TEST_EXP_FN_NAME,
-    mlList[Int],
-    map_body(
-        vec_or_matrix=nested_x,
-        map_fn=lambda int_x: call_exp(int_x),
-        vec_map_fn_name=VEC_MAP_TEST_EXP_FN_NAME,
-        matrix_map_fn_name=MATRIX_MAP_TEST_EXP_FN_NAME
-    ),
-    nested_x
-)
-
-uninterp_div = fn_decl(UNINTERP_DIV_FN_NAME, Int, None, int_x, int_y)
