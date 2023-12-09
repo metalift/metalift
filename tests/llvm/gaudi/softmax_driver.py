@@ -5,11 +5,14 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (an_arr_to_arr, an_arr_to_int,
-                                           an_int_and_arr_to_arr, exp,
-                                           reduce_max, reduce_mul, reduce_sum,
-                                           vec_exp_map, vec_scalar_add,
-                                           vec_scalar_div, vec_scalar_mul)
+from tests.llvm.gaudi.gaudi_common import (an_arr_to_int,
+                                           an_int_and_arr_to_arr, call_vec_map,
+                                           exp, get_map_int_to_int_synth,
+                                           map_int_to_int,
+                                           map_int_to_int_fn_obj, reduce_max,
+                                           reduce_mul, reduce_sum, vec_map,
+                                           vec_scalar_add, vec_scalar_div,
+                                           vec_scalar_mul)
 
 
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -51,7 +54,8 @@ def softmax_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_scalar_add,
         vec_scalar_div,
         exp,
-        vec_exp_map,
+        vec_map,
+        map_int_to_int
     ]
 
 def softmax_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -59,7 +63,7 @@ def softmax_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     input, max_pos, max_val = reads
     scalar = choose(max_val, 0 - max_val)
     vec = choose(input, input[:max_pos])
-    return ret_val == an_arr_to_arr(an_int_and_arr_to_arr(scalar, vec))
+    return ret_val == call_vec_map(an_int_and_arr_to_arr(scalar, vec), map_int_to_int_fn_obj)
 
 
 def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -73,7 +77,7 @@ def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= lower_bound,
         i <= upper_bound,
-        out == an_arr_to_arr(an_int_and_arr_to_arr(scalar, vec))
+        out == call_vec_map(an_int_and_arr_to_arr(scalar, vec), map_int_to_int_fn_obj)
     )
 
 def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -166,6 +170,8 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part2(input_var, max_pos_var, max_val_var, uninterp_fns=[exp.name()])
+    map_int_to_int_synth = get_map_int_to_int_synth()
+    driver.fns_synths = [map_int_to_int_synth]
     driver.synthesize(
         uninterp_fns=[exp.name()],
         unboundedInts=True,
