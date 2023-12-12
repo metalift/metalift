@@ -1,12 +1,18 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import call_exp, call_scalar_vec_div, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_add, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, vec_scalar_add, vec_scalar_div, sqrt, map_int_to_int_fn_obj, scalar_vec_to_vec_target_lang, vec_vec_to_vec_target_lang, vec_to_vec_target_lang
-
+from tests.llvm.gaudi.gaudi_common import (call_exp, call_scalar_vec_div,
+                                           call_vec_elemwise_mul, call_vec_map,
+                                           call_vec_scalar_add,
+                                           get_map_int_to_int_synth,
+                                           map_int_to_int_fn_obj,
+                                           scalar_vec_to_vec_target_lang, sqrt,
+                                           vec_to_vec_target_lang,
+                                           vec_vec_to_vec_target_lang)
 
 
 def silu_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
