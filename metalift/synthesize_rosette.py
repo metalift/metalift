@@ -189,6 +189,24 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
+        elif ast[0] in {"list-slice-noerr", "list-list-slice-noerr"}:
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_slice",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+                toExpr(ast[3], fnsType, varType, choices),
+            )
+        elif ast[0] in {"list-list-col-slice-noerr"}:
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_col_slice",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+                toExpr(ast[3], fnsType, varType, choices),
+            )
         elif ast[0] == "make-tuple":
             arg_eval = []
             for alen in range(1, len(ast)):

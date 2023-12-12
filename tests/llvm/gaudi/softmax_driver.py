@@ -6,7 +6,7 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import (an_arr_to_int,
-                                           an_int_and_arr_to_arr, call_vec_map,
+                                           scalar_vec_to_vec, call_vec_map,
                                            exp, get_map_int_to_int_synth,
                                            map_int_to_int,
                                            map_int_to_int_fn_obj, reduce_max,
@@ -63,7 +63,7 @@ def softmax_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     input, max_pos, max_val = reads
     scalar = choose(max_val, 0 - max_val)
     vec = choose(input, input[:max_pos])
-    return ret_val == call_vec_map(an_int_and_arr_to_arr(scalar, vec), map_int_to_int_fn_obj)
+    return ret_val == call_vec_map(scalar_vec_to_vec(scalar, vec), map_int_to_int_fn_obj)
 
 
 def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -77,7 +77,7 @@ def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= lower_bound,
         i <= upper_bound,
-        out == call_vec_map(an_int_and_arr_to_arr(scalar, vec), map_int_to_int_fn_obj)
+        out == call_vec_map(scalar_vec_to_vec(scalar, vec), map_int_to_int_fn_obj)
     )
 
 def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -108,7 +108,7 @@ def softmax_part4_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     ret_val = writes[0]
     unnormalized_output, max_pos, sum = reads
     vec = choose(unnormalized_output, unnormalized_output[:max_pos])
-    return ret_val == an_int_and_arr_to_arr(sum, vec)
+    return ret_val == scalar_vec_to_vec(sum, vec)
 
 
 def softmax_part4_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -121,7 +121,7 @@ def softmax_part4_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= lower_bound,
         i <= upper_bound,
-        out == an_int_and_arr_to_arr(sum, vec)
+        out == scalar_vec_to_vec(sum, vec)
     )
 
 if __name__ == "__main__":

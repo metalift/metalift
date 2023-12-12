@@ -5,8 +5,8 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, call, choose, fn_decl
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (an_arr2_to_arr, an_arr_to_int,
-                                           an_int_and_arr_to_arr, reduce_max,
+from tests.llvm.gaudi.gaudi_common import (vec_vec_to_vec, an_arr_to_int,
+                                           scalar_vec_to_vec, reduce_max,
                                            reduce_mul, reduce_sum,
                                            vec_elemwise_add, vec_elemwise_div,
                                            vec_elemwise_mul, vec_elemwise_sub,
@@ -35,7 +35,7 @@ def rmsnorm_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     input, weight = reads
     input_or_weight = choose(input, weight)
     return ret_val == an_arr_to_int(
-        an_arr2_to_arr(input_or_weight, input_or_weight)
+        vec_vec_to_vec(input_or_weight, input_or_weight)
     )
 
 def rmsnorm_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -47,7 +47,7 @@ def rmsnorm_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= 0,
         i <= input.len(),
-        ss == an_arr_to_int(an_arr2_to_arr(vec, vec))
+        ss == an_arr_to_int(vec_vec_to_vec(vec, vec))
     )
 
 def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -72,9 +72,9 @@ def rmsnorm_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     input, weight, ss = reads
     input_or_weight = choose(input, weight)
     inv_ss = 1 // call_sqrt(ss // input.len() + 1)
-    return ret_val == an_int_and_arr_to_arr(
+    return ret_val == scalar_vec_to_vec(
         inv_ss,
-        an_arr2_to_arr(input_or_weight, input_or_weight)
+        vec_vec_to_vec(input_or_weight, input_or_weight)
     )
 
 
@@ -88,7 +88,7 @@ def rmsnorm_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= 0,
         i <= input.len(),
-        out == an_int_and_arr_to_arr(inv_ss, an_arr2_to_arr(vec, vec))
+        out == scalar_vec_to_vec(inv_ss, vec_vec_to_vec(vec, vec))
     )
 
 if __name__ == "__main__":

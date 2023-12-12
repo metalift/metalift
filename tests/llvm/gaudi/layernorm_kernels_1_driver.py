@@ -6,8 +6,8 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (an_arr2_to_arr, an_arr_to_int,
-                                           an_int_and_arr_to_arr, reduce_mul,
+from tests.llvm.gaudi.gaudi_common import (vec_vec_to_vec, an_arr_to_int,
+                                           scalar_vec_to_vec, reduce_mul,
                                            reduce_sum, vec_elemwise_add,
                                            vec_elemwise_mul, vec_scalar_add,
                                            vec_scalar_mul)
@@ -28,8 +28,8 @@ def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]
     an_int = choose(epsilon, hidden_size, Int(-1), Int(0), Int(1), Int(2), Int(3))
 
     computed_arr = choose(
-        an_arr2_to_arr(an_arr, an_arr),
-        an_int_and_arr_to_arr(an_int, an_arr)
+        vec_vec_to_vec(an_arr, an_arr),
+        scalar_vec_to_vec(an_int, an_arr)
     )
     return ret_val == an_arr_to_int(computed_arr)
 
@@ -45,7 +45,7 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
     an_arr = choose(input, weight)
     an_arr = choose(an_arr, an_arr[:an_int])
 
-    computed_arr = choose(an_arr2_to_arr(an_arr, an_arr), an_int_and_arr_to_arr(an_int, an_arr))
+    computed_arr = choose(vec_vec_to_vec(an_arr, an_arr), scalar_vec_to_vec(an_int, an_arr))
 
     return and_objects(
         i >= 0,
