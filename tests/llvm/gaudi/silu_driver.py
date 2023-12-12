@@ -5,10 +5,10 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, an_arr_to_int, a_matrix_and_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div
+from tests.llvm.gaudi.gaudi_common import matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, an_arr_to_int, a_matrix_and_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, vec_scalar_add, vec_scalar_div
 
 
-def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+def silu_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         matrix_vec_mul,
         reduce_sum,
@@ -17,15 +17,17 @@ def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_elemwise_add,
         vec_elemwise_sub,
         vec_elemwise_mul,
-        vec_elemwise_div
+        vec_elemwise_div,
+        vec_scalar_add,
+        vec_scalar_div
     ]
 
-def matmul_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def silu_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     weight, input = reads
     return ret_val == a_matrix_and_vec_to_vec(weight, input)
 
-def matmul_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def silu_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     weight, input = reads
     out, col, _, row = writes
     row_lower_bound = choose(Int(0), Int(1))
@@ -39,7 +41,7 @@ def matmul_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: Lis
         out == a_matrix_and_vec_to_vec(matrix, vec)
     )
 
-def matmul_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def silu_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     col, curr = writes
     weight, input = reads
     out, row = in_scope
@@ -69,24 +71,24 @@ def matmul_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: Lis
 
 if __name__ == "__main__":
     driver = Driver()
-    matmul = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/matmul.ll",
-        loops_filepath="tests/llvm/gaudi/matmul.loops",
-        fn_name="matmul",
-        target_lang_fn=matmul_target_lang,
+    silu = driver.analyze(
+        llvm_filepath="tests/llvm/gaudi/silu.ll",
+        loops_filepath="tests/llvm/gaudi/silu.loops",
+        fn_name="silu",
+        target_lang_fn=silu_target_lang,
         inv_grammars={
-            "matmul_inv0": InvGrammar(matmul_inv0_grammar, []),
-            "matmul_inv1": InvGrammar(matmul_inv1_grammar, ["row", "agg.result"])
+            "silu_inv0": InvGrammar(silu_inv0_grammar, []),
+            "silu_inv1": InvGrammar(silu_inv1_grammar, ["row", "agg.result"])
         },
-        ps_grammar=matmul_ps_grammar
+        ps_grammar=silu_ps_grammar
     )
 
-    weight_var = Matrix(Int, "weight")
     input_var = mlList(Int, "input")
-    driver.add_var_objects([weight_var, input_var])
-    driver.add_precondition(weight_var.len() > 0)
-    driver.add_precondition(weight_var[0].len() > 0)
-    driver.add_precondition(weight_var[0].len() == input_var.len())
+    hidden_dim_var = Int("hidden_dim")
 
-    matmul(weight_var, input_var)
+    driver.add_var_objects([input_var, hidden_dim_var])
+    driver.add_precondition(hidden_dim_var >= 0)
+    driver.add_precondition(input_var.len() >= hidden_dim_var)
+
+    silu(input_var, hidden_dim_var)
     driver.synthesize()

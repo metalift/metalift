@@ -45,6 +45,11 @@ VEC_SCALAR_DIV = "vec_scalar_div"
 MATRIX_SCALAR_DIV = "matrix_scalar_div"
 VEC_SCALAR_SUB = "vec_scalar_sub"
 MATRIX_SCALAR_SUB = "matrix_scalar_sub"
+# scalar on the left hand side
+SCALAR_VEC_DIV = "scalar_vec_div"
+SCALAR_MATRIX_DIV = "scalar_matrix_div"
+SCALAR_VEC_SUB = "scalar_vec_sub"
+SCALAR_MATRIX_SUB = "scalar_matrix_sub"
 
 # Selection functions
 SELECT_TWO_ARGS = "select_two_args"
@@ -118,6 +123,18 @@ def call_scalar_div(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
     else:
         return call_vec_scalar_div(scalar, matrix_or_vec)
 
+def call_scalar_rsub(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(matrix_or_vec.type):
+        return call_scalar_matrix_sub(scalar, matrix_or_vec)
+    else:
+        return call_scalar_vec_sub(scalar, matrix_or_vec)
+
+def call_scalar_rdiv(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    if is_matrix_type(matrix_or_vec.type):
+        return call_scalar_matrix_div(scalar, matrix_or_vec)
+    else:
+        return call_scalar_vec_div(scalar, matrix_or_vec)
+
 def call_vec_elemwise_add(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
     return call(VEC_ELEMWISE_ADD, mlList[Int], left, right)
 
@@ -133,14 +150,20 @@ def call_vec_elemwise_div(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
 def call_vec_scalar_add(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_ADD, mlList[Int], scalar, vec)
 
+def call_vec_scalar_sub(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(VEC_SCALAR_SUB, mlList[Int], scalar, vec)
+
 def call_vec_scalar_mul(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_MUL, mlList[Int], scalar, vec)
 
 def call_vec_scalar_div(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
     return call(VEC_SCALAR_DIV, mlList[Int], scalar, vec)
 
-def call_vec_scalar_sub(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
-    return call(VEC_SCALAR_SUB, mlList[Int], scalar, vec)
+def call_scalar_vec_sub(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(SCALAR_VEC_SUB, mlList[Int], scalar, vec)
+
+def call_scalar_vec_div(scalar: Int, vec: mlList[Int]) -> mlList[Int]:
+    return call(SCALAR_VEC_DIV, mlList[Int], scalar, vec)
 
 def call_matrix_elemwise_add(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
     return call(MATRIX_ELEMWISE_ADD, Matrix[Int], left, right)
@@ -165,6 +188,12 @@ def call_matrix_scalar_div(scalar: Int, matrix: Matrix[Int]) -> Matrix[Int]:
 
 def call_matrix_scalar_sub(scalar: Int, matrix: Matrix[Int]) -> Matrix[Int]:
     return call(MATRIX_SCALAR_SUB, Matrix[Int], scalar, matrix)
+
+def call_scalar_matrix_sub(scalar: Int, matrix: Matrix[Int]) -> Matrix[Int]:
+    return call(SCALAR_MATRIX_SUB, Matrix[Int], scalar, matrix)
+
+def call_scalar_matrix_div(scalar: Int, matrix: Matrix[Int]) -> Matrix[Int]:
+    return call(SCALAR_MATRIX_DIV, Matrix[Int], scalar, matrix)
 
 def call_reduce_sum(lst) -> Int:
     return call(REDUCESUM, Int, lst)
@@ -192,6 +221,9 @@ def call_matrix_selection_two_args(
 def call_exp(x: Int) -> Int:
     return call(TEST_EXP, Int, x)
 
+def call_sqrt(x: Int) -> Int:
+    return call(TEST_SQRT, Int, x)
+
 def call_map_int_to_int(x: Int) -> Int:
     return call(MAP_INT_TO_INT, Int, x)
 
@@ -210,28 +242,30 @@ def call_uninterp_div(x: Int, y: Int) -> Int:
 def call_matrix_vec_mul(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
     return call(MATRIX_VEC_MUL, mlList[Int], matrix, vec)
 
-an_arr2_to_arr = lambda left, right: choose(
+vec_vec_to_vec = lambda left, right: choose(
     call_vec_elemwise_add(left, right),
     call_vec_elemwise_sub(left, right),
     call_vec_elemwise_mul(left, right),
     call_vec_elemwise_div(left, right)
 )
-an_int_and_arr_to_arr = lambda num, arr: choose(
+scalar_vec_to_vec = lambda num, arr: choose(
     call_vec_scalar_add(num, arr),
-    # call_vec_scalar_sub(num, arr),
+    call_vec_scalar_sub(num, arr),
     call_vec_scalar_mul(num, arr),
-    # call_vec_scalar_div(num, arr)
+    call_vec_scalar_div(num, arr),
+    call_scalar_vec_sub(num, arr),
+    call_scalar_vec_div(num, arr)
 )
-an_arr_to_int = lambda arr: choose(
-    call_reduce_sum(arr),
-    call_reduce_mul(arr),
-    call_reduce_max(arr)
+vec_to_int = lambda vec: choose(
+    call_reduce_sum(vec),
+    call_reduce_mul(vec),
+    call_reduce_max(vec)
 )
-an_arr_to_arr = lambda arr: choose(
-    call_vec_map(arr)
+vec_to_vec = lambda vec: choose(
+    call_vec_map(vec, map_int_to_int_fn_obj)
 )
-a_matrix_and_vec_to_vec = lambda matrix, arr: choose(
-    call_matrix_vec_mul(matrix, arr)
+matrix_and_vec_to_vec = lambda matrix, vec: choose(
+    call_matrix_vec_mul(matrix, vec)
 )
 
 def vec_computation(
@@ -1018,15 +1052,41 @@ vec_scalar_div = fn_decl_recursive(
     a,
     x
 )
+scalar_vec_div = fn_decl_recursive(
+    SCALAR_VEC_DIV,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=x,
+        compute_fn=lambda scalar, int_x: scalar // int_x,
+        vec_fn_name=SCALAR_VEC_DIV,
+        matrix_fn_name=SCALAR_MATRIX_DIV
+    ),
+    a,
+    x
+)
 matrix_scalar_div = fn_decl_recursive(
     MATRIX_SCALAR_DIV,
-    mlList[Int],
+    Matrix[Int],
     scalar_body(
         scalar=a,
         vec_or_matrix=matrix_x,
         compute_fn=lambda scalar, int_x: int_x // scalar,
         vec_fn_name=VEC_SCALAR_DIV,
         matrix_fn_name=MATRIX_SCALAR_DIV
+    ),
+    a,
+    matrix_x
+)
+scalar_matrix_div = fn_decl_recursive(
+    SCALAR_MATRIX_DIV,
+    Matrix[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=matrix_x,
+        compute_fn=lambda scalar, int_x: scalar // int_x,
+        vec_fn_name=SCALAR_VEC_DIV,
+        matrix_fn_name=SCALAR_MATRIX_DIV
     ),
     a,
     matrix_x
@@ -1045,15 +1105,41 @@ vec_scalar_sub = fn_decl_recursive(
     a,
     x
 )
+scalar_vec_sub = fn_decl_recursive(
+    SCALAR_VEC_SUB,
+    mlList[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=x,
+        compute_fn=lambda scalar, int_x: scalar - int_x,
+        vec_fn_name=SCALAR_VEC_SUB,
+        matrix_fn_name=SCALAR_MATRIX_SUB
+    ),
+    a,
+    x
+)
 matrix_scalar_sub = fn_decl_recursive(
     MATRIX_SCALAR_SUB,
-    mlList[Int],
+    Matrix[Int],
     scalar_body(
         scalar=a,
         vec_or_matrix=matrix_x,
         compute_fn=lambda scalar, int_x: int_x - scalar,
         vec_fn_name=VEC_SCALAR_SUB,
         matrix_fn_name=MATRIX_SCALAR_SUB
+    ),
+    a,
+    matrix_x
+)
+scalar_matrix_sub = fn_decl_recursive(
+    SCALAR_MATRIX_SUB,
+    Matrix[Int],
+    scalar_body(
+        scalar=a,
+        vec_or_matrix=matrix_x,
+        compute_fn=lambda scalar, int_x: int_x - scalar,
+        vec_fn_name=SCALAR_VEC_SUB,
+        matrix_fn_name=SCALAR_MATRIX_SUB
     ),
     a,
     matrix_x
@@ -1081,30 +1167,30 @@ vec_map = fn_decl_recursive(
 # Uninterpreted functions
 # TODO(jie): this is returning a random prime
 exp = fn_decl(TEST_EXP, Int, Int(79), int_x)
-vec_exp_map = fn_decl_recursive(
-    VEC_MAP_TEST_EXP,
-    mlList[Int],
-    map_body(
-        vec_or_matrix=x,
-        map_fn=lambda int_x: call_exp(int_x),
-        vec_map_fn_name=VEC_MAP_TEST_EXP,
-        matrix_map_fn_name=MATRIX_MAP_TEST_EXP_FN_NAME
-    ),
-    x
-)
-matrix_exp_map = fn_decl_recursive(
-    MATRIX_MAP_TEST_EXP_FN_NAME,
-    mlList[Int],
-    map_body(
-        vec_or_matrix=matrix_x,
-        map_fn=lambda int_x: call_exp(int_x),
-        vec_map_fn_name=VEC_MAP_TEST_EXP,
-        matrix_map_fn_name=MATRIX_MAP_TEST_EXP_FN_NAME
-    ),
-    matrix_x
-)
+sqrt = fn_decl(TEST_SQRT, Int, Int(89), int_x)
 
-uninterp_div = fn_decl(UNINTERP_DIV, Int, None, int_x, int_y)
+vec_vec_to_vec_target_lang = [
+    vec_elemwise_add,
+    vec_elemwise_sub,
+    vec_elemwise_mul,
+    vec_elemwise_div,
+]
+matrix_matrix_to_matrix_target_lang = [
+    matrix_elemwise_add,
+    matrix_elemwise_sub,
+    matrix_elemwise_mul,
+    matrix_elemwise_div,
+]
+scalar_vec_to_vec_target_lang = [
+    vec_scalar_add,
+    vec_scalar_sub,
+    vec_scalar_mul,
+    vec_scalar_div,
+    scalar_vec_sub,
+    scalar_vec_div
+]
+matrix_vec_to_vec_target_lang = [matrix_vec_mul]
+vec_to_vec_target_lang = [vec_map, exp, sqrt]
 
 def get_matrix_computation_ps_grammar_fn(
     fixed_grammar: bool,
@@ -2096,9 +2182,11 @@ def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -
         *args
     )
 
-def get_map_int_to_int_synth() -> Synth:
+def get_map_int_to_int_synth(
+    bodies: List[Object] = [call_exp(int_x), call_sqrt(int_x)]
+) -> Synth:
     return synth(
         MAP_INT_TO_INT,
-        call_exp(int_x),
+        choose(*bodies),
         int_x
     )
