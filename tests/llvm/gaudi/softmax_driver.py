@@ -5,7 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (an_arr_to_int,
+from tests.llvm.gaudi.gaudi_common import (vec_to_int,
                                            scalar_vec_to_vec, call_vec_map,
                                            exp, get_map_int_to_int_synth,
                                            map_int_to_int,
@@ -26,7 +26,7 @@ def softmax_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     ret_val = writes[0]
     input, max_pos = reads
     vec = choose(input, input[:max_pos])
-    return ret_val == an_arr_to_int(vec)
+    return ret_val == vec_to_int(vec)
 
 def softmax_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     input, max_pos = reads
@@ -38,7 +38,7 @@ def softmax_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= i_lower_bound,
         i <= i_upper_bound,
-        max_val == an_arr_to_int(vec)
+        max_val == vec_to_int(vec)
     )
 
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -86,7 +86,7 @@ def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def softmax_part3_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     output, max_pos = reads
-    return ret_val == an_arr_to_int(choose(output, output[:max_pos]))
+    return ret_val == vec_to_int(choose(output, output[:max_pos]))
 
 
 def softmax_part3_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -98,7 +98,7 @@ def softmax_part3_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= lower_bound,
         i <= upper_bound,
-        sum == an_arr_to_int(choose(output, output[:max_pos], output[:i]))
+        sum == vec_to_int(choose(output, output[:max_pos], output[:i]))
     )
 
 def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:

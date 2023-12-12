@@ -5,7 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, call, choose, fn_decl
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (vec_vec_to_vec, an_arr_to_int,
+from tests.llvm.gaudi.gaudi_common import (vec_vec_to_vec, vec_to_int,
                                            scalar_vec_to_vec, reduce_max,
                                            reduce_mul, reduce_sum,
                                            vec_elemwise_add, vec_elemwise_div,
@@ -34,7 +34,7 @@ def rmsnorm_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope
     ret_val = writes[0]
     input, weight = reads
     input_or_weight = choose(input, weight)
-    return ret_val == an_arr_to_int(
+    return ret_val == vec_to_int(
         vec_vec_to_vec(input_or_weight, input_or_weight)
     )
 
@@ -47,7 +47,7 @@ def rmsnorm_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= 0,
         i <= input.len(),
-        ss == an_arr_to_int(vec_vec_to_vec(vec, vec))
+        ss == vec_to_int(vec_vec_to_vec(vec, vec))
     )
 
 def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:

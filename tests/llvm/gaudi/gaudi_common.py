@@ -248,13 +248,13 @@ vec_vec_to_vec = lambda left, right: choose(
     call_vec_elemwise_mul(left, right),
     call_vec_elemwise_div(left, right)
 )
-scalar_vec_to_vec = lambda num, arr: choose(
-    call_vec_scalar_add(num, arr),
-    call_vec_scalar_sub(num, arr),
-    call_vec_scalar_mul(num, arr),
-    call_vec_scalar_div(num, arr),
-    call_scalar_vec_sub(num, arr),
-    call_scalar_vec_div(num, arr)
+scalar_vec_to_vec = lambda num, vec: choose(
+    call_vec_scalar_add(num, vec),
+    call_vec_scalar_sub(num, vec),
+    call_vec_scalar_mul(num, vec),
+    call_vec_scalar_div(num, vec),
+    call_scalar_vec_sub(num, vec),
+    call_scalar_vec_div(num, vec)
 )
 vec_to_int = lambda vec: choose(
     call_reduce_sum(vec),
@@ -1218,7 +1218,7 @@ scalar_vec_to_vec_target_lang = [
     scalar_vec_div
 ]
 matrix_vec_to_vec_target_lang = [matrix_vec_mul]
-vec_to_vec_target_lang = [vec_map, exp, sqrt]
+vec_to_vec_target_lang = [vec_map, exp, sqrt, map_int_to_int]
 
 def get_matrix_computation_ps_grammar_fn(
     fixed_grammar: bool,
