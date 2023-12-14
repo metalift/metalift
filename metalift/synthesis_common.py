@@ -216,7 +216,6 @@ def verify_synth_result(
             else:
                 print(codegen(body))
             print("\n\n")
-        exit(0)
 
     if useRosette:
         procVerify = subprocess.run(

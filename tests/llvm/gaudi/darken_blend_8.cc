@@ -9,7 +9,7 @@ vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>>
 	for (int row = 0; row < m; row++) {
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
-			int pixel;
+			float pixel;
 			if (base[row][col] > active[row][col])
 				pixel = active[row][col];
 			else
