@@ -5,7 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import call_exp, call_vec_elemwise_div, call_vec_map, call_vec_scalar_mul, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, map_int_to_int_fn_obj, exp, vec_to_int, vec_vec_to_vec, scalar_vec_to_vec, vec_vec_to_vec_target_lang, scalar_vec_to_vec_target_lang, matrix_vec_to_vec_target_lang, vec_to_int_target_lang, vec_to_vec_target_lang
+from tests.llvm.gaudi.gaudi_common import call_exp, call_vec_elemwise_div, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, map_int_to_int_fn_obj, exp, vec_to_int, vec_vec_to_vec, scalar_vec_to_vec, vec_vec_to_vec_target_lang, scalar_vec_to_vec_target_lang, matrix_vec_to_vec_target_lang, vec_to_int_target_lang, vec_to_vec_target_lang, call_matrix_vec_mul
 
 
 def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -21,15 +21,13 @@ def multiquery_attention_part1_ps_grammar(writes: List[Object], reads: List[Obje
         key_cache_layer[int_var][slice_index:slice_index]
     )
     matrix_input = choose(
-        key_cache_layer[:int_var].col_slice(slice_index, slice_index),
+        key_cache_layer[int_var:int_var].col_slice(slice_index, slice_index),
         key_cache_layer[int_var:int_var]
     )
     vec = choose(
-        vec_vec_to_vec(vec_input, vec_input),
-        matrix_vec_to_vec(matrix_input, vec_input),
-        scalar_vec_to_vec(int_var, vec_input)
+        call_vec_elemwise_mul(vec_input, vec_input),
+        call_matrix_vec_mul(matrix_input, vec_input)
     )
-    rhs_vec = call_vec_map(call_vec_scalar_mul(Int(1), vec), map_int_to_int_fn_obj)
     rhs_vec = call_vec_map(call_vec_scalar_mul(Int(1), vec), map_int_to_int_fn_obj)
     return ret_val == call_vec_elemwise_div(vec, rhs_vec)
 
@@ -43,13 +41,12 @@ def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Ob
         key_cache_layer[int_var][slice_index:slice_index]
     )
     matrix_input = choose(
-        key_cache_layer[:int_var].col_slice(slice_index, slice_index),
+        key_cache_layer[int_var:int_var].col_slice(slice_index, slice_index),
         key_cache_layer[int_var:int_var]
     )
     vec = choose(
-        vec_vec_to_vec(vec_input, vec_input),
-        matrix_vec_to_vec(matrix_input, vec_input),
-        scalar_vec_to_vec(int_var, vec_input)
+        call_vec_elemwise_mul(vec_input, vec_input),
+        call_matrix_vec_mul(matrix_input, vec_input)
     )
     rhs_vec = call_vec_map(call_vec_scalar_mul(Int(1), vec), map_int_to_int_fn_obj)
     return and_objects(
@@ -62,14 +59,42 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes
     attention, timestep = in_scope
-    int_var = choose(token_position, head, head_size, Int(0))
+    slice_start = head * head_size
+    curr_slice_end = slice_start + i
+    slice_end = slice_start + head_size
+    vec_input = choose(
+        q[slice_start:curr_slice_end],
+        q[slice_start:slice_end],
+        key_cache_layer[timestep][slice_start:curr_slice_end]
+    )
+    matrix_input = key_cache_layer[:timestep].col_slice(slice_start, slice_end)
+    expected_score = vec_to_int(call_vec_elemwise_mul(vec_input, vec_input))
+    vec = matrix_vec_to_vec(matrix_input, vec_input)
+    vec_rhs = call_vec_map(
+        call_vec_scalar_mul(Int(1), vec),
+        map_int_to_int_fn_obj
+    )
+    lower_bound = choose(Int(0), Int(1))
+    upper_bound = choose(token_position, head, head_size)
+    return and_objects(
+        timestep >= lower_bound,
+        timestep < upper_bound,
+        i >= lower_bound,
+        i <= upper_bound,
+        score == expected_score,
+        attention == call_vec_elemwise_div(vec, vec_rhs)
+    )
+    token_position, head, head_size, key_cache_layer, q = reads
+    i, score = writes
+    attention, timestep = in_scope
+    int_var = choose(token_position, head, head_size, timestep, i, Int(0))
     slice_index = int_var * int_var + int_var
     vec_input = choose(
         q[slice_index:slice_index],
         key_cache_layer[int_var][slice_index:slice_index]
     )
     matrix_input = choose(
-        key_cache_layer[:int_var].col_slice(slice_index, slice_index),
+        key_cache_layer[int_var:int_var].col_slice(slice_index, slice_index),
         key_cache_layer[int_var:int_var]
     )
     vec = choose(
@@ -154,7 +179,7 @@ if __name__ == "__main__":
     int_x = Int("int_x")
     map_int_to_int_synth = get_map_int_to_int_synth([call_exp(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize()
+    driver.synthesize(noVerify=True)
 
     # driver = Driver()
     # multiquery_attention_part2 = driver.analyze(
