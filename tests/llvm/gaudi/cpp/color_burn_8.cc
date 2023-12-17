@@ -30,10 +30,15 @@ vector<vector<float>> color_burn_8(vector<vector<float>> base, vector<vector<flo
 }
 
 int main() {
-    auto start_time = high_resolution_clock::now();
-    color_burn_8(a, b);
-    auto end_time = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(end_time - start_time);
+    vector<long long> times;
+    for (int i = 0; i < 10; i++) {
+        auto start_time = high_resolution_clock::now();
+        color_burn_8(a, b);
+        auto end_time = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(end_time - start_time);
+        times.push_back(duration.count());
+    }
 
-    cout << "Execution Time: " << duration.count() << " microseconds" << endl;
+
+    cout << "Execution Time: " << average(times) << " microseconds +/-" << stdiv(times) << endl;
 }
