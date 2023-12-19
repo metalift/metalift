@@ -264,8 +264,11 @@ vec_to_int = lambda vec: choose(
 vec_to_vec = lambda vec: choose(
     call_vec_map(vec, map_int_to_int_fn_obj)
 )
-matrix_and_vec_to_vec = lambda matrix, vec: choose(
+matrix_vec_to_vec = lambda matrix, vec: choose(
     call_matrix_vec_mul(matrix, vec)
+)
+matrix_to_matrix = lambda matrix: choose(
+    call_matrix_transpose(matrix)
 )
 
 def vec_computation(

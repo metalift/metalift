@@ -427,6 +427,12 @@ class Expr:
                 return "list-list-col-slice-noerr"
             else:
                 raise Exception(f"list_slice not supported on {list_type} lists yet!")
+        elif fn_name == "matrix_transpose":
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
+                return "matrix-transpose-noerr"
+            else:
+                raise Exception(f"matrix_transpose not supported on {list_type} lists yet!")
         elif fn_name == "list_prepend":
             list_type = expr.type
             if is_nested_list_type(list_type):
@@ -1203,6 +1209,10 @@ class Matrix(List[T], Generic[T], Object):
         if isinstance(stop, int):
             stop = Int(stop)
         return call("list_col_slice", self.type, self, start, stop)
+
+    def transpose(self) -> "Matrix":
+        # return self
+        return call("matrix_transpose", self.type, self)
 
     # list concat that returns a new list
     def __add__(self, other: "Matrix") -> "List":  # type: ignore
@@ -1996,7 +2006,7 @@ class Call(Expr):
                     callStr += a.toRosette() + " "
                 callStr += ")"
                 return callStr
-            elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
+            elif isinstance(self.args[0], str) and (self.args[0].startswith("list") or self.args[0].startswith("matrix")):
                 callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
@@ -2125,7 +2135,7 @@ class CallValue(Expr):
                     callStr += a.toRosette() + " "
                 callStr += ")"
                 return callStr
-            elif isinstance(self.args[0], str) and self.args[0].startswith("list"):
+            elif isinstance(self.args[0], str) and (self.args[0].startswith("list") or self.args[0].startswith("matrix")):
                 callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":

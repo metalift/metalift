@@ -209,6 +209,13 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
                 toExpr(ast[3], fnsType, varType, choices),
             )
+        elif ast[0] in {"matrix-transpose-noerr"}:
+            matrix_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "matrix_transpose",
+                matrix_expr.type,
+                matrix_expr
+            )
         elif ast[0] == "make-tuple":
             arg_eval = []
             for alen in range(1, len(ast)):
