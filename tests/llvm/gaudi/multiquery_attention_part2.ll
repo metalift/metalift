@@ -72,7 +72,7 @@ for.body:                                         ; preds = %for.cond
 for.cond1:                                        ; preds = %for.inc, %for.body
   %i4 = load i32, i32* %timestep, align 4
   %i5 = load i32, i32* %token_position.addr, align 4
-  %cmp2 = icmp sle i32 %i4, %i5
+  %cmp2 = icmp slt i32 %i4, %i5
   br i1 %cmp2, label %for.body3, label %for.end
 
 for.body3:                                        ; preds = %for.cond1

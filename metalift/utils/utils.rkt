@@ -254,9 +254,9 @@
   )
 )
 
-(define (transpose matrix)
+(define (matrix-transpose-noerr matrix)
   (if (empty? matrix)
     (list)
-    (list-list-prepend (firsts matrix) (transpose (rests matrix)))
+    (list-list-prepend (firsts matrix) (matrix-transpose-noerr (rests matrix)))
   )
 )
