@@ -27,26 +27,28 @@ def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursi
 def multiquery_attention_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
-    slice_start = head * head_size
-    slice_end = slice_start + head_size
-    vec_input = choose(q, q[slice_start:slice_end])
+    non_zero_int_var = choose(token_position, head, head_size)
+    int_var = choose(non_zero_int_var, Int(0))
+    slice_index = non_zero_int_var * non_zero_int_var + int_var
+    vec_input = choose(q, q[slice_index:slice_index])
     matrix_input = choose(
-        key_cache_layer[:token_position].col_slice(slice_start, slice_end),
-        key_cache_layer[:token_position]
+        key_cache_layer[:int_var].col_slice(slice_index, slice_index),
+        key_cache_layer[:int_var]
     )
     vec = matrix_and_vec_to_vec(matrix_input, vec_input)
     rhs_vec = call_vec_map(call_vec_scalar_mul(Int(1), vec), map_int_to_int_fn_obj)
-    rhs_vec = call_vec_map(call_vec_scalar_mul(Int(1), vec), map_int_to_int_fn_obj)
-    return ret_val == call_vec_elemwise_div(vec, rhs_vec)
+    return ret_val == vec
+    # return ret_val == call_vec_elemwise_div(vec, rhs_vec)
 
 def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
-    slice_start = head * head_size
-    slice_end = slice_start + head_size
-    vec_input = choose(q, q[slice_start:slice_end])
+    non_zero_int_var = choose(token_position, head, head_size)
+    int_var = choose(non_zero_int_var, Int(0))
+    slice_index = non_zero_int_var * non_zero_int_var + int_var
+    vec_input = choose(q, q[slice_index:slice_index])
     matrix_input = choose(
-        key_cache_layer[:timestep].col_slice(slice_start, slice_end),
+        key_cache_layer[:timestep].col_slice(slice_index, slice_index),
         key_cache_layer[:timestep]
     )
     vec = matrix_and_vec_to_vec(matrix_input, vec_input)
@@ -56,22 +58,23 @@ def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Ob
     return and_objects(
         timestep >= index_lower_bound,
         timestep <= index_upper_bound,
-        attention == call_vec_elemwise_div(vec, rhs_vec)
+        attention == vec
+        # attention == call_vec_elemwise_div(vec, rhs_vec)
     )
 
 def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes
     attention, timestep = in_scope
-    slice_start = head * head_size
-    curr_slice_end = slice_start + i
-    slice_end = slice_start + head_size
+    non_zero_int_var = choose(token_position, head, head_size, timestep, i)
+    int_var = choose(non_zero_int_var, Int(0))
+    slice_index = non_zero_int_var * non_zero_int_var + int_var
     vec_input = choose(
-        q[slice_start:curr_slice_end],
-        q[slice_start:slice_end],
-        key_cache_layer[timestep][slice_start:curr_slice_end]
+        q[slice_index:slice_index],
+        q[slice_index:slice_index],
+        key_cache_layer[timestep][slice_index:slice_index]
     )
-    matrix_input = key_cache_layer[:timestep].col_slice(slice_start, slice_end)
+    matrix_input = key_cache_layer[:timestep].col_slice(slice_index, slice_index)
     expected_score = vec_to_int(call_vec_elemwise_mul(vec_input, vec_input))
     vec = matrix_and_vec_to_vec(matrix_input, vec_input)
     vec_rhs = call_vec_map(
@@ -86,7 +89,8 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
         i >= lower_bound,
         i <= upper_bound,
         score == expected_score,
-        attention == call_vec_elemwise_div(vec, vec_rhs)
+        attention == vec
+        # attention == call_vec_elemwise_div(vec, vec_rhs)
     )
 
 def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -152,7 +156,7 @@ if __name__ == "__main__":
     int_x = Int("int_x")
     map_int_to_int_synth = get_map_int_to_int_synth([call_exp(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize()
+    driver.synthesize(listBound=5, noVerify=True)
 
     # driver = Driver()
     # multiquery_attention_part2 = driver.analyze(

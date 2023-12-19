@@ -232,3 +232,31 @@
 (define (quotient-noerr x y)
   (if (equal? y 0) x (quotient x y))
 )
+
+; (define (transpose lst)
+;   (if (< (length lst) 1) (list) (apply map list lst))
+; )
+
+(define (firsts matrix)
+  (if (empty? matrix)
+      '()
+      (list-prepend
+        (list-ref-noerr (list-list-ref-noerr matrix 0) 0)
+        (firsts (list-tail-noerr matrix 1))
+      )
+  )
+)
+
+(define (rests matrix)
+  (if (empty? matrix)
+    (list)
+    (list-list-col-slice-noerr matrix 1 (length (list-list-ref-noerr matrix 0)))
+  )
+)
+
+(define (transpose matrix)
+  (if (empty? matrix)
+    (list)
+    (list-list-prepend (firsts matrix) (transpose (rests matrix)))
+  )
+)
