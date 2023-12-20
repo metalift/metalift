@@ -1220,6 +1220,11 @@ class Matrix(List[T], Generic[T], Object):
             stop = Int(stop)
         return call("list_col_slice", self.type, self, start, stop)
 
+    def col_vec(self, col_index: Union[int, Int]) -> List[Int]:
+        if isinstance(col_index, int):
+            col_index = Int(col_index)
+        return call("list_col_slice", self.type, self, col_index, col_index + 1).transpose()[0]
+
     def transpose(self) -> "Matrix":
         # return self
         return call("matrix_transpose", self.type, self)
