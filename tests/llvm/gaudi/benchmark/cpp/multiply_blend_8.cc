@@ -2,13 +2,10 @@
 #include <vector>
 #include <chrono>
 
-#include "random.h"
+#include "utils.h"
 
 using namespace std;
 using namespace std::chrono;
-
-vector<vector<float>> a = random_matrix();
-vector<vector<float>> b = random_matrix();
 
 vector<vector<float>> multiply_blend_8(vector<vector<float>> base, vector<vector<float>> active) {
     vector<vector<float>> out;
@@ -26,15 +23,6 @@ vector<vector<float>> multiply_blend_8(vector<vector<float>> base, vector<vector
 }
 
 int main() {
-    vector<long long> times;
-    for (int i = 0; i < 10; i++) {
-        auto start_time = high_resolution_clock::now();
-        multiply_blend_8(a, b);
-        auto end_time = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(end_time - start_time);
-        times.push_back(duration.count());
-    }
-
-
-    cout << "Execution Time: " << average(times) << " microseconds +/-" << stdiv(times) << endl;
+    mat_timer(&multiply_blend_8);
+    return 0;
 }

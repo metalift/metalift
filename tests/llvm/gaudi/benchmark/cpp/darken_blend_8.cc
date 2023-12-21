@@ -2,13 +2,10 @@
 #include <vector>
 #include <chrono>
 
-#include "random.h"
+#include "utils.h"
 
 using namespace std;
 using namespace std::chrono;
-
-static vector<vector<float>> a = random_matrix();
-static vector<vector<float>> b = random_matrix();
 
 vector<vector<float>> darken_blend_8(vector<vector<float>> base, vector<vector<float>> active) {
     vector<vector<float>> out;
@@ -16,6 +13,7 @@ vector<vector<float>> darken_blend_8(vector<vector<float>> base, vector<vector<f
     int n = base[0].size();
     for (int row = 0; row < m; row++) {
         vector<float> row_vec;
+        #pragma omp simd
         for (int col = 0; col < n; col++) {
             float pixel;
             if (base[row][col] > active[row][col])
@@ -30,15 +28,6 @@ vector<vector<float>> darken_blend_8(vector<vector<float>> base, vector<vector<f
 }
 
 int main() {
-    vector<long long> times;
-    for (int i = 0; i < 10; i++) {
-        auto start_time = high_resolution_clock::now();
-        darken_blend_8(a, b);
-        auto end_time = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(end_time - start_time);
-        times.push_back(duration.count());
-    }
-
-
-    cout << "Execution Time: " << average(times) << " microseconds +/-" << stdiv(times) << endl;
+    mat_timer(&darken_blend_8);
+    return 0;
 }
