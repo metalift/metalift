@@ -27,11 +27,11 @@ g++ $FLAG $INCLUDE  utils.cc linear_dodge_8.cc $LINK -o linear_dodge_8_O3
 g++ $FLAG $INCLUDE  utils.cc color_dodge_8.cc $LINK -o color_dodge_8_O3
 ./color_dodge_8_O3
 
-g++ $FLAG $INCLUDE  utils.cc overlay_blend_8.cc $LINK -o overlay_blend_8_02
+g++ $FLAG $INCLUDE  utils.cc overlay_blend_8.cc $LINK -o overlay_blend_8_O3
 ./overlay_blend_8_O3
 
-g++ $FLAG utils.cc normal_blend_8.cc -o normal_blend_8_O3
+g++ $FLAG $INCLUDE utils.cc normal_blend_8.cc $LINK -o normal_blend_8_O3
 ./normal_blend_8_O3
 
-g++ $FLAG utils.cc normal_blend_f.cc -o normal_blend_f_O3
+g++ $FLAG $INCLUDE utils.cc normal_blend_f.cc $LINK -o normal_blend_f_O3
 ./normal_blend_f_O3
