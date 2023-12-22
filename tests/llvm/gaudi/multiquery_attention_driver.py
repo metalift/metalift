@@ -349,13 +349,20 @@ if __name__ == "__main__":
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
 
-    # Add some variables needed by invs
+    multiquery_attention_part2(
+        token_position_var,
+        head_var,
+        head_size_var,
+        key_cache_layer_var,
+        attention_var
+    )
+    # Add some more assertions
     curr_var = Int("curr")
     timestep_var = Int("timestep")
     token_position_var = Int("token_position")
     agg_result_var = mlList(Int, "agg.result")
     i_var = Int("i")
-    driver.add_precondition(
+    driver.asserts.append(
         call(
             "multiquery_attention_part2_inv1",
             Bool,
@@ -388,14 +395,6 @@ if __name__ == "__main__":
                 attention_var[:token_position_var]
             )
         )
-    )
-
-    multiquery_attention_part2(
-        token_position_var,
-        head_var,
-        head_size_var,
-        key_cache_layer_var,
-        attention_var
     )
 
     driver.synthesize(noVerify=True)
