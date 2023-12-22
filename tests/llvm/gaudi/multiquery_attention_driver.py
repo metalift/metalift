@@ -350,45 +350,45 @@ if __name__ == "__main__":
     driver.add_precondition(head_size_var <= attention_var.len())
 
     # Add some variables needed by invs
-    # curr_var = Int("curr")
-    # timestep_var = Int("timestep")
-    # token_position_var = Int("token_position")
-    # agg_result_var = mlList(Int, "agg.result")
-    # i_var = Int("i")
-    # driver.add_precondition(
-    #     call(
-    #         "multiquery_attention_part2_inv1",
-    #         Bool,
-    #         attention_var,
-    #         curr_var,
-    #         head_var,
-    #         head_size_var,
-    #         key_cache_layer_var,
-    #         timestep_var,
-    #         token_position_var,
-    #         agg_result_var,
-    #         i_var
-    #     ) == and_objects(
-    #         i_var >= 0,
-    #         i_var < head_size_var,
-    #         timestep_var >= 0,
-    #         timestep_var <= token_position_var,
-    #         curr_var == call_reduce_sum(
-    #             call_vec_elemwise_mul(
-    #                 key_cache_layer_var.col_vec(head_var * head_size_var)[:timestep_var],
-    #                 attention_var[:timestep_var]
-    #             )
-    #         ),
-    #         agg_result_var == call_matrix_vec_mul(
-    #             key_cache_layer_var[:timestep_var]
-    #             .col_slice(
-    #                 head_var * head_size_var,
-    #                 head_var * head_size_var + i_var
-    #             ).transpose(),
-    #             attention_var[:timestep_var]
-    #         )
-    #     )
-    # )
+    curr_var = Int("curr")
+    timestep_var = Int("timestep")
+    token_position_var = Int("token_position")
+    agg_result_var = mlList(Int, "agg.result")
+    i_var = Int("i")
+    driver.add_precondition(
+        call(
+            "multiquery_attention_part2_inv1",
+            Bool,
+            attention_var,
+            curr_var,
+            head_var,
+            head_size_var,
+            key_cache_layer_var,
+            timestep_var,
+            token_position_var,
+            agg_result_var,
+            i_var
+        ) != and_objects(
+            i_var >= 0,
+            i_var < head_size_var,
+            timestep_var >= 0,
+            timestep_var <= token_position_var,
+            curr_var == call_reduce_sum(
+                call_vec_elemwise_mul(
+                    key_cache_layer_var[:timestep_var].col_vec(head_var * head_size_var + i_var),
+                    attention_var[:timestep_var]
+                )
+            ),
+            agg_result_var == call_matrix_vec_mul(
+                key_cache_layer_var[:token_position_var]
+                .col_slice(
+                    head_var * head_size_var,
+                    head_var * head_size_var + i_var
+                ).transpose(),
+                attention_var[:token_position_var]
+            )
+        )
+    )
 
     multiquery_attention_part2(
         token_position_var,
