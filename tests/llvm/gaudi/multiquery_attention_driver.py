@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, call
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
@@ -33,23 +33,35 @@ def multiquery_attention_part1_ps_grammar(writes: List[Object], reads: List[Obje
         int_var,
         non_zero_int_var * non_zero_int_var + int_var
     )
-    vec_input = choose(q, q[slice_index:slice_index])
-    processed_matrix = choose(key_cache_layer, key_cache_layer.transpose())
-    matrix_input = choose(
-        processed_matrix[int_var:int_var].col_slice(slice_index, slice_index),
-        processed_matrix[int_var:int_var]
+    matrix = choose(key_cache_layer, key_cache_layer.transpose())
+    matrix = choose(
+        matrix,
+        matrix[slice_index:slice_index],
+        matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
     )
-    vec = matrix_vec_to_vec(matrix_input, vec_input)
-    rhs_vec = call_vec_map(call_vec_scalar_mul(Int(1), vec), map_int_to_int_fn_obj)
-    return ret_val == vec
-    # return ret_val == call_vec_elemwise_div(vec, rhs_vec)
+    vec = choose(
+        q,
+        q[slice_index:slice_index],
+        matrix[slice_index] # TODO(jie): do we want to include this?
+    )
+    return ret_val == call_matrix_vec_mul(matrix, vec)
 
 def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
-    non_zero_int_var = choose(token_position, head, head_size)
+    non_zero_int_var = choose(
+        token_position,
+        head,
+        head_size,
+        i,
+        timestep
+    )
     int_var = choose(non_zero_int_var, Int(0))
-    slice_index = non_zero_int_var * non_zero_int_var + int_var
+    slice_index = choose(
+        int_var,
+        non_zero_int_var * non_zero_int_var + int_var
+    )
+
     vec_input = choose(q, q[slice_index:slice_index])
     matrix_input = choose(
         key_cache_layer[:timestep].col_slice(slice_index, slice_index),
@@ -63,7 +75,6 @@ def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Ob
         timestep >= index_lower_bound,
         timestep <= index_upper_bound,
         attention == vec
-        # attention == call_vec_elemwise_div(vec, rhs_vec)
     )
 
 def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -94,7 +105,6 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
         i <= upper_bound,
         score == expected_score,
         attention == vec
-        # attention == call_vec_elemwise_div(vec, vec_rhs)
     )
 
 def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -107,18 +117,30 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         i,
         timestep
     )
+    return and_objects(
+        i >= 0,
+        i <= head_size,
+        xb == call_matrix_vec_mul(
+            key_cache_layer[:token_position].col_slice(head * head_size, head * head_size + i).transpose(),
+            attention[:token_position]
+        )
+    )
     int_var = choose(non_zero_int_var, Int(0))
-    slice_index = choose(int_var, non_zero_int_var * non_zero_int_var + int_var)
+    composed_int_var = non_zero_int_var * non_zero_int_var + int_var
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[slice_index:slice_index],
-        matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
+        matrix[int_var:non_zero_int_var],
+        matrix[composed_int_var:composed_int_var]
+    )
+    matrix = choose(
+        matrix,
+        matrix.col_slice(composed_int_var, composed_int_var)
     )
     vec = choose(
         attention,
-        attention[slice_index:slice_index],
-        matrix[slice_index],
+        attention[int_var:non_zero_int_var],
+        attention[composed_int_var:composed_int_var],
     )
     # key_cache_matrix = key_cache_layer[:token_position].col_slice(head * head_size, head * head_size + i)
     # key_cache_matrix_transpose = key_cache_matrix.transpose()
@@ -132,6 +154,26 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, attention = reads
     curr, timestep = writes
     xb, i = in_scope
+    return and_objects(
+        i >= 0,
+        i < head_size,
+        timestep >= 0,
+        timestep <= token_position,
+        curr == call_reduce_sum(
+            call_vec_elemwise_mul(
+                key_cache_layer[:timestep].col_vec(head * head_size + i),
+                attention_var[:timestep]
+            )
+        ),
+        xb == call_matrix_vec_mul(
+            key_cache_layer[:token_position]
+            .col_slice(
+                head * head_size,
+                head * head_size + i
+            ).transpose(),
+            attention[:token_position]
+        )
+    )
     non_zero_int_var = choose(
         token_position,
         head,
@@ -140,24 +182,32 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
         timestep
     )
     int_var = choose(non_zero_int_var, Int(0))
-    slice_index = choose(int_var, non_zero_int_var * non_zero_int_var + int_var)
+    composed_int_var = non_zero_int_var * non_zero_int_var + int_var
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[slice_index:slice_index],
-        matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
+        matrix[int_var:non_zero_int_var],
+        matrix[composed_int_var:composed_int_var]
+    )
+    matrix = choose(
+        matrix,
+        matrix.col_slice(composed_int_var, composed_int_var)
     )
     vec = choose(
         attention,
-        attention[slice_index:slice_index],
-        matrix[slice_index],
+        attention[int_var:non_zero_int_var],
+        attention[composed_int_var:composed_int_var],
+    )
+    matrix_vec = choose(
+        matrix[int_var],
+        matrix[composed_int_var]
     )
     return and_objects(
         i >= 0,
         i < head_size,
         timestep >= 0,
         timestep <= token_position,
-        curr == call_reduce_sum(call_vec_elemwise_mul(vec, vec)),
+        curr == call_reduce_sum(call_vec_elemwise_mul(matrix_vec, vec)),
         xb == call_matrix_vec_mul(matrix, vec)
     )
     # key_cache_layer_matrix_timestep_slice = key_cache_layer[:timestep].col_slice(head * head_size + i, head * head_size + i + 1).transpose()
@@ -181,24 +231,32 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
 def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
-    non_zero_int_var = choose(token_position, head, head_size)
+    non_zero_int_var = choose(
+        token_position,
+        head,
+        head_size,
+    )
     int_var = choose(non_zero_int_var, Int(0))
-    slice_index = choose(int_var, non_zero_int_var * non_zero_int_var + int_var)
+    composed_int_var = non_zero_int_var * non_zero_int_var + int_var
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[slice_index:slice_index],
-        matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
+        matrix[int_var:non_zero_int_var],
+        matrix[composed_int_var:composed_int_var]
+    )
+    matrix = choose(
+        matrix,
+        matrix.col_slice(composed_int_var, composed_int_var)
     )
     vec = choose(
         attention,
-        attention[slice_index:slice_index],
-        matrix[slice_index],
+        attention[int_var:non_zero_int_var],
+        attention[composed_int_var:composed_int_var],
     )
-    return xb == call_matrix_vec_mul(matrix, vec)
-    # key_cache_matrix = key_cache_layer[:token_position].col_slice(head * head_size, head * head_size + head_size)
-    # key_cache_matrix_transpose = key_cache_matrix.transpose()
-    # return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
+    # return xb == call_matrix_vec_mul(matrix, vec)
+    key_cache_matrix = key_cache_layer[:token_position].col_slice(head * head_size, head * head_size + head_size)
+    key_cache_matrix_transpose = key_cache_matrix.transpose()
+    return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
 
 def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -291,6 +349,47 @@ if __name__ == "__main__":
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
 
+    # Add some variables needed by invs
+    # curr_var = Int("curr")
+    # timestep_var = Int("timestep")
+    # token_position_var = Int("token_position")
+    # agg_result_var = mlList(Int, "agg.result")
+    # i_var = Int("i")
+    # driver.add_precondition(
+    #     call(
+    #         "multiquery_attention_part2_inv1",
+    #         Bool,
+    #         attention_var,
+    #         curr_var,
+    #         head_var,
+    #         head_size_var,
+    #         key_cache_layer_var,
+    #         timestep_var,
+    #         token_position_var,
+    #         agg_result_var,
+    #         i_var
+    #     ) == and_objects(
+    #         i_var >= 0,
+    #         i_var < head_size_var,
+    #         timestep_var >= 0,
+    #         timestep_var <= token_position_var,
+    #         curr_var == call_reduce_sum(
+    #             call_vec_elemwise_mul(
+    #                 key_cache_layer_var.col_vec(head_var * head_size_var)[:timestep_var],
+    #                 attention_var[:timestep_var]
+    #             )
+    #         ),
+    #         agg_result_var == call_matrix_vec_mul(
+    #             key_cache_layer_var[:timestep_var]
+    #             .col_slice(
+    #                 head_var * head_size_var,
+    #                 head_var * head_size_var + i_var
+    #             ).transpose(),
+    #             attention_var[:timestep_var]
+    #         )
+    #     )
+    # )
+
     multiquery_attention_part2(
         token_position_var,
         head_var,
@@ -299,4 +398,4 @@ if __name__ == "__main__":
         attention_var
     )
 
-    driver.synthesize(listBound=5, noVerify=True)
+    driver.synthesize(noVerify=True)
