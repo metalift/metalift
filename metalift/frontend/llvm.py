@@ -1522,7 +1522,7 @@ class Driver:
             target += fn.target_lang_fn()
         # TODO(jie): this is a hack
         inv_and_ps = synths + self.fns_synths
-        inv0_synth = [synth for synth in inv_and_ps if "inv0" in synth.name()]
+        inv0_synth = [synth for synth in inv_and_ps if synth.name().endswith("inv0")]
         synthesized: List[FnDeclRecursive] = run_synthesis(
             # basename="test",
             basename=f"{list(self.fns.keys())[0]}",
