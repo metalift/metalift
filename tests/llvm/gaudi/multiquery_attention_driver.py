@@ -1,12 +1,33 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, call
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, Matrix, call, fn_decl, synth
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.gaudi.gaudi_common import call_exp, call_map_int_to_int, call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_div, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, map_int_to_int_fn_obj, vec_map, map_int_to_int, exp, vec_scalar_mul, vec_to_vec, vec_to_int
 
+# Define some helper variables
+token_position_var = Int("token_position")
+head_var = Int("head")
+head_size_var = Int("head_size")
+i_var = Int("i")
+timestep_var = Int("timestep")
+# Define some helper functions for synthesizing int vars
+PART2_INV0_COMPOSED_INT_INDEX_FN = "part2_inv0_composed_int_index_fn"
+non_zero_int_var = choose(
+    token_position_var,
+    head_var,
+    head_size_var,
+    i_var,
+    timestep_var
+)
+part2_inv0_composed_int_index_fn_decl = fn_decl(PART2_INV0_COMPOSED_INT_INDEX_FN, Int, None)
+part2_inv0_composed_int_index_fn_obj = Fn((Int), PART2_INV0_COMPOSED_INT_INDEX_FN)
+part2_inv0_composed_int_index_synth = synth(
+    PART2_INV0_COMPOSED_INT_INDEX_FN,
+    non_zero_int_var * non_zero_int_var + choose(non_zero_int_var, Int(0))
+)
 
 def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -118,17 +139,16 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         timestep
     )
     int_var = choose(non_zero_int_var, Int(0))
-    slice_index = choose(int_var, non_zero_int_var * non_zero_int_var + int_var)
+    composed_int_var = non_zero_int_var * non_zero_int_var + int_var
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[slice_index:slice_index],
-        matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
+        matrix[int_var:non_zero_int_var],
+        matrix[int_var:int_var].col_slice(composed_int_var, composed_int_var)
     )
     vec = choose(
         attention,
-        attention[slice_index:slice_index],
-        # matrix[slice_index],
+        attention[int_var:non_zero_int_var],
     )
     general_grammar = and_objects(
         i >= 0,
@@ -249,7 +269,8 @@ def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursi
     return [
         reduce_sum,
         vec_elemwise_mul,
-        matrix_vec_mul
+        matrix_vec_mul,
+        # part2_inv0_composed_int_index_fn_decl
     ]
 
 if __name__ == "__main__":
@@ -335,6 +356,7 @@ if __name__ == "__main__":
     driver.add_precondition(head_var <= attention_var.len())
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
+
 
     multiquery_attention_part2(
         token_position_var,
