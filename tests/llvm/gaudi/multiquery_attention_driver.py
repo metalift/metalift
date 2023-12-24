@@ -117,38 +117,25 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         i,
         timestep
     )
-    return and_objects(
-        i >= 0,
-        i <= head_size,
-        xb == call_matrix_vec_mul(
-            key_cache_layer[:token_position].col_slice(head * head_size, head * head_size + i).transpose(),
-            attention[:token_position]
-        )
-    )
     int_var = choose(non_zero_int_var, Int(0))
-    composed_int_var = non_zero_int_var * non_zero_int_var + int_var
+    slice_index = choose(int_var, non_zero_int_var * non_zero_int_var + int_var)
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[int_var:non_zero_int_var],
-        matrix[composed_int_var:composed_int_var]
-    )
-    matrix = choose(
-        matrix,
-        matrix.col_slice(composed_int_var, composed_int_var)
+        matrix[slice_index:slice_index],
+        matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
     )
     vec = choose(
         attention,
-        attention[int_var:non_zero_int_var],
-        attention[composed_int_var:composed_int_var],
+        attention[slice_index:slice_index],
+        # matrix[slice_index],
     )
-    # key_cache_matrix = key_cache_layer[:token_position].col_slice(head * head_size, head * head_size + i)
-    # key_cache_matrix_transpose = key_cache_matrix.transpose()
-    return and_objects(
+    general_grammar = and_objects(
         i >= 0,
         i <= head_size,
         xb == call_matrix_vec_mul(matrix, vec)
     )
+    return general_grammar
 
 def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
@@ -356,45 +343,45 @@ if __name__ == "__main__":
         key_cache_layer_var,
         attention_var
     )
-    # Add some more assertions
-    curr_var = Int("curr")
-    timestep_var = Int("timestep")
-    token_position_var = Int("token_position")
-    agg_result_var = mlList(Int, "agg.result")
-    i_var = Int("i")
-    driver.asserts.append(
-        call(
-            "multiquery_attention_part2_inv1",
-            Bool,
-            attention_var,
-            curr_var,
-            head_var,
-            head_size_var,
-            key_cache_layer_var,
-            timestep_var,
-            token_position_var,
-            agg_result_var,
-            i_var
-        ) != and_objects(
-            i_var >= 0,
-            i_var < head_size_var,
-            timestep_var >= 0,
-            timestep_var <= token_position_var,
-            curr_var == call_reduce_sum(
-                call_vec_elemwise_mul(
-                    key_cache_layer_var[:timestep_var].col_vec(head_var * head_size_var + i_var),
-                    attention_var[:timestep_var]
-                )
-            ),
-            agg_result_var == call_matrix_vec_mul(
-                key_cache_layer_var[:token_position_var]
-                .col_slice(
-                    head_var * head_size_var,
-                    head_var * head_size_var + i_var
-                ).transpose(),
-                attention_var[:token_position_var]
-            )
-        )
-    )
+    # # Add some more assertions
+    # curr_var = Int("curr")
+    # timestep_var = Int("timestep")
+    # token_position_var = Int("token_position")
+    # agg_result_var = mlList(Int, "agg.result")
+    # i_var = Int("i")
+    # driver.asserts.append(
+    #     call(
+    #         "multiquery_attention_part2_inv1",
+    #         Bool,
+    #         attention_var,
+    #         curr_var,
+    #         head_var,
+    #         head_size_var,
+    #         key_cache_layer_var,
+    #         timestep_var,
+    #         token_position_var,
+    #         agg_result_var,
+    #         i_var
+    #     ) != and_objects(
+    #         i_var >= 0,
+    #         i_var < head_size_var,
+    #         timestep_var >= 0,
+    #         timestep_var <= token_position_var,
+    #         curr_var == call_reduce_sum(
+    #             call_vec_elemwise_mul(
+    #                 key_cache_layer_var[:timestep_var].col_vec(head_var * head_size_var + i_var),
+    #                 attention_var[:timestep_var]
+    #             )
+    #         ),
+    #         agg_result_var == call_matrix_vec_mul(
+    #             key_cache_layer_var[:token_position_var]
+    #             .col_slice(
+    #                 head_var * head_size_var,
+    #                 head_var * head_size_var + i_var
+    #             ).transpose(),
+    #             attention_var[:token_position_var]
+    #         )
+    #     )
+    # )
 
     driver.synthesize(noVerify=True)

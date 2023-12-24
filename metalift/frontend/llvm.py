@@ -1507,28 +1507,33 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
-    def synthesize(self, **synthesize_kwargs) -> None:  # type: ignore
+    def synthesize(
+        self,
+        **synthesize_kwargs
+    ) -> None:  # type: ignore
         # if synthesize_kwargs.get("listBound") != 3:
         #     raise Exception("list bound must be 3")
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
-
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
-
         target = []
         for fn in self.fns.values():
             target += fn.target_lang_fn()
         # TODO(jie): this is a hack
+        inv_and_ps = synths + self.fns_synths
+        inv0_synth = [synth for synth in inv_and_ps if "inv0" in synth.name()]
         synthesized: List[FnDeclRecursive] = run_synthesis(
             # basename="test",
             basename=f"{list(self.fns.keys())[0]}",
             targetLang=target,
             vars=set(self.var_tracker.all()),
-            invAndPs=synths + self.fns_synths,
+            invAndPs=inv_and_ps,
             preds=[],
             vc=vc,
             loopAndPsInfo=synths,
             cvcPath="cvc5",
+            rounds_to_guess=10,
+            fns_to_guess=inv0_synth, # TODO(jie): might need to change this
             **synthesize_kwargs,
         )
 
@@ -1545,18 +1550,6 @@ class Driver:
                 ):
                     self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
                     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # if isinstance(f.body(), Implies):
-                #     rhs = cast(Implies, f.body()).args[1]
-                #     if isinstance(rhs, Eq):
-                #         self.fns[name].synthesized = cast(Eq, rhs).e2()
-                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #     elif isinstance(rhs, Call):
-                #         self.fns[name].synthesized = cast(Call, rhs).args[2]
-                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #     else:
-                #         raise Exception(
-                #             f"unhandled situation"
-                #         )
                 else:
                     raise Exception(
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
