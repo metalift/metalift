@@ -11,6 +11,7 @@ from metalift.ir import (
     Int,
     Var,
     List as mlList,
+    call,
     get_nested_list_element_type,
     is_list_type,
     is_nested_list_type,
@@ -141,24 +142,47 @@ def generateVars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
 
 def generateSynth(
     vars: List[str],
-    invariant_guesses: List[Any],
+    rounds_to_guess: int = 0,
+    fns_to_guess: List[FnDeclRecursive] = []
 ) -> str:
-    listvars = "(list " + " ".join(vars) + ")"
-    if invariant_guesses:
-        blocking_constraints = []
-        for inv in invariant_guesses:
-            blocking_constraints.append("(assert (!(eq? inv %s)))" % inv.toRosette())
-        asserts = " ".join(blocking_constraints)
-        synth_fun = (
-            "(define sol\n (synthesize\n #:forall %s\n #:guarantee (begin (assertions) %s)))\n (sat? sol)\n %s"
-            % (listvars, asserts, "(print-forms sol)")
+    listvars = f"(list {' '.join(vars)})"
+    all_synth_funs: List[str] = []
+    synth_fun = f"""
+    (define sol0
+        (synthesize
+            #:forall {listvars}
+            #:guarantee (assertions)
         )
-    else:
-        synth_fun = (
-            "(define sol\n (synthesize\n #:forall %s\n #:guarantee (assertions)))\n (sat? sol)\n %s"
-            % (listvars, "(print-forms sol)")
+    )
+    (sat? sol0)
+    (print-forms sol0)
+    """
+    all_synth_funs.append(synth_fun)
+    blocking_constraints: List[List[Bool]] = []
+    for i in range(1, rounds_to_guess + 1):
+        single_solution_constraints: List[Bool] = []
+        for guess in fns_to_guess:
+            guess_call = f"({guess.name()} {' '.join(arg.name() for arg in guess.arguments())})"
+            constraints = [
+                f"(! (eq? {guess_call} (evaluate {guess_call} sol{prev_i})))"
+                for prev_i in range(i)
+            ]
+            single_solution_constraints.extend(constraints)
+        synth_fun = f"""
+        (define sol{i}
+            (synthesize
+                #:forall {listvars}
+                #:guarantee (begin
+                    (assertions)
+                    {' '.join(single_solution_constraints)}
+                )
+            )
         )
-    return synth_fun
+        (sat? sol{i})
+        (print-forms sol{i})
+        """
+        all_synth_funs.append(synth_fun)
+    return "\n".join(all_synth_funs)
 
 
 def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
@@ -188,7 +212,8 @@ def toRosette(
     preds: List[Expr],
     vc: Expr,
     loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
-    invGuess: List[Any],
+    rounds_to_guess: int,
+    fns_to_guess: List[FnDeclRecursive],
     unboundedInts: bool,
     listBound: int,
     writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
@@ -257,7 +282,7 @@ def toRosette(
 
     # synthesis function
     if not verifyMode:
-        print(generateSynth(vars_all, invGuess), file=f)
+        print(generateSynth(vars_all, rounds_to_guess, fns_to_guess), file=f)
     else:
         print("(verify (assertions))", file=f)
     f.close()

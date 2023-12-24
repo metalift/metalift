@@ -401,8 +401,9 @@ def synthesize(
     listBound: int = 2,
     log: bool = True,
     uninterp_fns: List[str] = [],
+    rounds_to_guess: int = 0,
+    fns_to_guess: List[FnDeclRecursive] = []
 ) -> typing.List[FnDeclRecursive]:
-    invGuess: typing.List[Any] = []
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
@@ -446,13 +447,13 @@ def synthesize(
             preds=preds,
             vc=vc,
             loopAndPsInfo=loopAndPsInfo,
-            invGuess=invGuess,
+            rounds_to_guess=rounds_to_guess,
+            fns_to_guess=fns_to_guess,
             unboundedInts=unboundedInts,
             listBound=listBound,
             writeChoicesTo=choices,
             uninterp_fns=uninterp_fns,
         )
-        exit(0)
 
         synthNames = toSynthesize(loopAndPsInfo, targetLang)
         procSynthesis = subprocess.Popen(
@@ -611,8 +612,8 @@ def synthesize(
                         "\n\n".join([str(c) for c in candidatesSMT]),
                     )
                     print("\n".join(verifyLogs))
-                    invGuess.append(resultSynth[1])
-                    print(invGuess)
+                    inv_guess.append(resultSynth[1])
+                    print(inv_guess)
                 raise VerificationFailed("Verification failed")
         finally:
             procSynthesis.terminate()
