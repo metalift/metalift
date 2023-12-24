@@ -1532,7 +1532,7 @@ class Driver:
             vc=vc,
             loopAndPsInfo=synths,
             cvcPath="cvc5",
-            rounds_to_guess=10,
+            rounds_to_guess=1000,
             fns_to_guess=inv0_synth, # TODO(jie): might need to change this
             **synthesize_kwargs,
         )

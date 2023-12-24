@@ -22,11 +22,19 @@ non_zero_int_var = choose(
     i_var,
     timestep_var
 )
-part2_inv0_composed_int_index_fn_decl = fn_decl(PART2_INV0_COMPOSED_INT_INDEX_FN, Int, None)
-part2_inv0_composed_int_index_fn_obj = Fn((Int), PART2_INV0_COMPOSED_INT_INDEX_FN)
+part2_inv0_composed_int_index_fn_args = [
+    token_position_var,
+    head_var,
+    head_size_var,
+    i_var,
+    timestep_var
+]
+part2_inv0_composed_int_index_fn_decl = fn_decl(PART2_INV0_COMPOSED_INT_INDEX_FN, Int, None, *part2_inv0_composed_int_index_fn_args)
+part2_inv0_composed_int_index_fn_obj = Fn((Int, Int, Int, Int, Int, Int), PART2_INV0_COMPOSED_INT_INDEX_FN)
 part2_inv0_composed_int_index_synth = synth(
     PART2_INV0_COMPOSED_INT_INDEX_FN,
-    non_zero_int_var * non_zero_int_var + choose(non_zero_int_var, Int(0))
+    non_zero_int_var * non_zero_int_var,
+    *part2_inv0_composed_int_index_fn_args
 )
 
 def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -131,24 +139,32 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
 def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
-    non_zero_int_var = choose(
+    non_zero_int_index = choose(
         token_position,
         head,
         head_size,
         i,
         timestep
     )
-    int_var = choose(non_zero_int_var, Int(0))
-    composed_int_var = non_zero_int_var * non_zero_int_var + int_var
+    int_index = choose(non_zero_int_index, Int(0))
+    composed_int_index = call(
+        PART2_INV0_COMPOSED_INT_INDEX_FN,
+        Int,
+        token_position,
+        head,
+        head_size,
+        i,
+        timestep
+    ) + int_index
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[int_var:non_zero_int_var],
-        matrix[int_var:int_var].col_slice(composed_int_var, composed_int_var)
+        matrix[int_index:composed_int_index],
+        matrix[int_index:int_index].col_slice(composed_int_index, composed_int_index)
     )
     vec = choose(
         attention,
-        attention[int_var:non_zero_int_var],
+        attention[int_index:non_zero_int_index],
     )
     general_grammar = and_objects(
         i >= 0,
@@ -270,7 +286,7 @@ def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursi
         reduce_sum,
         vec_elemwise_mul,
         matrix_vec_mul,
-        # part2_inv0_composed_int_index_fn_decl
+        part2_inv0_composed_int_index_fn_decl
     ]
 
 if __name__ == "__main__":
@@ -357,7 +373,7 @@ if __name__ == "__main__":
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
 
-
+    driver.fns_synths = [part2_inv0_composed_int_index_synth]
     multiquery_attention_part2(
         token_position_var,
         head_var,
