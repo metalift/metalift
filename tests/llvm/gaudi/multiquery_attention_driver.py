@@ -207,15 +207,15 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     general_grammar = and_objects(
         i >= 0,
         i <= head_size,
-        # xb == call_matrix_vec_mul(matrix, vec)
-        xb == call_matrix_vec_mul(
-            key_cache_layer[0:token_position]
-            .col_slice(
-                composed_int_index_base,
-                composed_int_index_base + i
-            ).transpose(),
-            attention[0:token_position]
-        )
+        xb == call_matrix_vec_mul(matrix, vec)
+        # xb == call_matrix_vec_mul(
+        #     key_cache_layer[0:token_position]
+        #     .col_slice(
+        #         composed_int_index_base,
+        #         composed_int_index_base + i
+        #     ).transpose(),
+        #     attention[0:token_position]
+        # )
     )
     return general_grammar
 
