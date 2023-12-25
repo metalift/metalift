@@ -1522,7 +1522,7 @@ class Driver:
             target += fn.target_lang_fn()
         # TODO(jie): this is a hack
         inv_and_ps = synths + self.fns_synths
-        inv0_synth = [synth for synth in inv_and_ps if synth.name().endswith("inv0")]
+        inv0_synth = [synth for synth in inv_and_ps if synth.name() == "part2_inv0_composed_int_index_fn"]
         synthesized: List[FnDeclRecursive] = run_synthesis(
             # basename="test",
             basename=f"{list(self.fns.keys())[0]}",
@@ -1533,7 +1533,7 @@ class Driver:
             vc=vc,
             loopAndPsInfo=synths,
             cvcPath="cvc5",
-            rounds_to_guess=20,
+            rounds_to_guess=10,
             fns_to_guess=inv0_synth, # TODO(jie): might need to change this
             **synthesize_kwargs,
         )

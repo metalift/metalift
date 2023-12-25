@@ -38,6 +38,7 @@ for i, lhs_var in enumerate(part2_inv0_composed_int_index_fn_args):
         mul_exprs.append(lhs_var * rhs_var)
 part2_inv0_composed_int_index_synth = synth(
     PART2_INV0_COMPOSED_INT_INDEX_FN,
+    # head_size_var * head_var,
     choose(*mul_exprs),
     *part2_inv0_composed_int_index_fn_args
 )
@@ -183,7 +184,7 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         timestep
     )
     int_index = choose(non_zero_int_index, Int(0))
-    composed_int_index = call(
+    composed_int_index_base = call(
         PART2_INV0_COMPOSED_INT_INDEX_FN,
         Int,
         token_position,
@@ -191,12 +192,13 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         head_size,
         i,
         timestep
-    ) + int_index
+    )
+    composed_int_index = composed_int_index_base + int_index
     matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
         matrix,
-        matrix[int_index:composed_int_index],
-        matrix[int_index:int_index].col_slice(composed_int_index, composed_int_index)
+        matrix[int_index:non_zero_int_index],
+        matrix[int_index:non_zero_int_index].col_slice(composed_int_index_base, composed_int_index_base + i)
     )
     vec = choose(
         attention,
@@ -205,7 +207,15 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     general_grammar = and_objects(
         i >= 0,
         i <= head_size,
-        xb == call_matrix_vec_mul(matrix, vec)
+        # xb == call_matrix_vec_mul(matrix, vec)
+        xb == call_matrix_vec_mul(
+            key_cache_layer[0:token_position]
+            .col_slice(
+                composed_int_index_base,
+                composed_int_index_base + i
+            ).transpose(),
+            attention[0:token_position]
+        )
     )
     return general_grammar
 
@@ -458,4 +468,4 @@ if __name__ == "__main__":
     #     )
     # )
 
-    driver.synthesize(noVerify=True)
+    driver.synthesize(listBound=3, noVerify=True)
