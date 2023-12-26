@@ -421,12 +421,26 @@ class Expr:
                 return "list-slice-noerr"
             else:
                 raise Exception(f"list_slice not supported on {list_type} lists yet!")
+        elif fn_name == "list_slice_with_length":
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
+                return "list-list-slice-with-length-noerr"
+            elif is_primitive_type(get_list_element_type(list_type)):
+                return "list-slice-with-length-noerr"
+            else:
+                raise Exception(f"list_slice_with_length not supported on {list_type} lists yet!")
         elif fn_name == "list_col_slice":
             list_type = expr.arguments()[0].type
             if is_nested_list_type(list_type) or is_matrix_type(list_type):
                 return "list-list-col-slice-noerr"
             else:
-                raise Exception(f"list_slice not supported on {list_type} lists yet!")
+                raise Exception(f"list_col_slice not supported on {list_type} lists yet!")
+        elif fn_name == "list_col_slice_with_length":
+            list_type = expr.arguments()[0].type
+            if is_nested_list_type(list_type) or is_matrix_type(list_type):
+                return "list-list-col-slice-with-length-noerr"
+            else:
+                raise Exception(f"list_col_slice_with_length not supported on {list_type} lists yet!")
         elif fn_name == "matrix_transpose":
             list_type = expr.arguments()[0].type
             if is_nested_list_type(list_type) or is_matrix_type(list_type):
@@ -1099,6 +1113,13 @@ class List(Generic[T], Object):
         self.src = call("list_prepend", self.type, value, self).src
         return self
 
+    def slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "List":
+        if isinstance(start, int):
+            start = Int(start)
+        if isinstance(lst_length, int):
+            lst_length = Int(lst_length)
+        return call("list_slice_with_length", self.type, self, start, lst_length)
+
     # list concat that returns a new list
     def __add__(self, other: "List") -> "List":  # type: ignore
         if self.type != other.type:
@@ -1210,10 +1231,24 @@ class Matrix(List[T], Generic[T], Object):
             stop = Int(stop)
         return call("list_col_slice", self.type, self, start, stop)
 
+    def col_slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "Matrix":
+        if isinstance(start, int):
+            start = Int(start)
+        if isinstance(lst_length, int):
+            lst_length = Int(lst_length)
+        return call("list_col_slice_with_length", self.type, self, start, lst_length)
+
     def col_vec(self, col_index: Union[int, Int]) -> List[Int]:
         if isinstance(col_index, int):
             col_index = Int(col_index)
         return call("list_col_slice", self.type, self, col_index, col_index + 1).transpose()[0]
+
+    def slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "Matrix":
+        if isinstance(start, int):
+            start = Int(start)
+        if isinstance(lst_length, int):
+            lst_length = Int(lst_length)
+        return call("list_slice_with_length", self.type, self, start, lst_length)
 
     def transpose(self) -> "Matrix":
         # return self

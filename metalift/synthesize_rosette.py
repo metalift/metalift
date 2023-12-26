@@ -200,10 +200,28 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
                 toExpr(ast[3], fnsType, varType, choices),
             )
+        elif ast[0] in {"list-slice-with-length-noerr", "list-list-slice-with-length-noerr"}:
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_slice_with_length",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+                toExpr(ast[3], fnsType, varType, choices),
+            )
         elif ast[0] in {"list-list-col-slice-noerr"}:
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_col_slice",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+                toExpr(ast[3], fnsType, varType, choices),
+            )
+        elif ast[0] in {"list-list-col-slice-with-length-noerr"}:
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_col_slice_with_length",
                 list_expr.type,
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),

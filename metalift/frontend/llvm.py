@@ -1540,7 +1540,6 @@ class Driver:
                 fns_to_guess=inv0_synth, # TODO(jie): might need to change this
                 **synthesize_kwargs,
             )
-            import pdb; pdb.set_trace()
             for f in synthesized:
                 if "inv0" in f.name():
                     fn_defs_to_exclude.append(f)
