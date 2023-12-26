@@ -193,13 +193,12 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         i,
         timestep
     )
-    composed_int_index = composed_int_index_base + int_index
-    matrix = choose(key_cache_layer, key_cache_layer.transpose())
     matrix = choose(
-        matrix,
-        matrix[int_index:non_zero_int_index],
-        matrix[int_index:non_zero_int_index].col_slice(composed_int_index_base, composed_int_index_base + i)
+        key_cache_layer,
+        key_cache_layer[int_index:non_zero_int_index],
+        key_cache_layer[int_index:non_zero_int_index].col_slice(composed_int_index_base, composed_int_index_base + i)
     )
+    matrix = choose(matrix, matrix.transpose())
     vec = choose(
         attention,
         attention[int_index:non_zero_int_index],
@@ -208,6 +207,14 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         i >= 0,
         i <= head_size,
         xb == call_matrix_vec_mul(matrix, vec)
+        # xb == call_matrix_vec_mul(
+        #     key_cache_layer[int_index:non_zero_int_index]
+        #     .col_slice(
+        #         composed_int_index_base,
+        #         composed_int_index_base + non_zero_int_index
+        #     ).transpose(),
+        #     attention[int_index:non_zero_int_index]
+        # )
         # xb == call_matrix_vec_mul(
         #     key_cache_layer[0:token_position]
         #     .col_slice(

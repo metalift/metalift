@@ -404,7 +404,8 @@ def synthesize(
     log: bool = True,
     uninterp_fns: List[str] = [],
     rounds_to_guess: int = 0,
-    fns_to_guess: List[FnDeclRecursive] = []
+    fns_to_guess: List[FnDeclRecursive] = [],
+    fn_defs_to_exclude: List[FnDeclRecursive] = []
 ) -> typing.List[FnDeclRecursive]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):
@@ -451,6 +452,7 @@ def synthesize(
             loopAndPsInfo=loopAndPsInfo,
             rounds_to_guess=rounds_to_guess,
             fns_to_guess=fns_to_guess,
+            fn_defs_to_exclude=fn_defs_to_exclude,
             unboundedInts=unboundedInts,
             listBound=listBound,
             writeChoicesTo=choices,
