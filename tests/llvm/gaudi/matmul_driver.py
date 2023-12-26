@@ -5,25 +5,16 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, an_arr_to_int, a_matrix_and_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div
+from tests.llvm.gaudi.gaudi_common import call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, vec_to_int, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, vec_to_int_target_lang, matrix_vec_to_vec_target_lang, vec_vec_to_vec_target_lang
 
 
 def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [
-        matrix_vec_mul,
-        reduce_sum,
-        reduce_mul,
-        reduce_max,
-        vec_elemwise_add,
-        vec_elemwise_sub,
-        vec_elemwise_mul,
-        vec_elemwise_div
-    ]
+    return set(vec_to_int_target_lang + matrix_vec_to_vec_target_lang + vec_vec_to_vec_target_lang)
 
 def matmul_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     weight, input = reads
-    return ret_val == a_matrix_and_vec_to_vec(weight, input)
+    return ret_val == matrix_vec_to_vec(weight, input)
 
 def matmul_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     weight, input = reads
@@ -36,7 +27,7 @@ def matmul_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: Lis
     return and_objects(
         row >= row_lower_bound,
         row <= row_upper_bound,
-        out == a_matrix_and_vec_to_vec(matrix, vec)
+        out == matrix_vec_to_vec(matrix, vec)
     )
 
 def matmul_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -62,8 +53,8 @@ def matmul_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: Lis
         row < upper_bound,
         col >= lower_bound,
         col <= upper_bound,
-        curr == an_arr_to_int(vec_vec_to_vec(vec, vec)),
-        out == a_matrix_and_vec_to_vec(matrix, vec)
+        curr == vec_to_int(vec_vec_to_vec(vec, vec)),
+        out == matrix_vec_to_vec(matrix, vec)
     )
 
 

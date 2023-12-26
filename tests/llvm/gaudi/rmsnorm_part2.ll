@@ -32,7 +32,7 @@ target triple = "x86_64-apple-macosx12.0.0"
 @_ZTVSt12length_error = external unnamed_addr constant { [5 x i8*] }, align 8
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
-define i32 @_Z9test_sqrti(i32 %x) #0 {
+define i32 @_Z13uninterp_sqrti(i32 %x) #0 {
 entry:
   %x.addr = alloca i32, align 4
   store i32 %x, i32* %x.addr, align 4
@@ -64,7 +64,7 @@ entry:
   %i3 = load i32, i32* %size, align 4
   %div = sdiv i32 %i2, %i3
   %add = add nsw i32 %div, 1
-  %call1 = call i32 @_Z9test_sqrti(i32 %add)
+  %call1 = call i32 @_Z13uninterp_sqrti(i32 %add)
   br label %invoke.cont
 
 invoke.cont:                                      ; preds = %entry
