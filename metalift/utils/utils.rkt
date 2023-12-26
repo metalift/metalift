@@ -30,6 +30,10 @@
   (list-tail-noerr (list-take-noerr l end) start)
 )
 
+(define (list-slice-with-length-noerr l start lst_length)
+  (list-slice-noerr l start (+ start lst_length))
+)
+
 (define (list-concat l1 l2)
   (append l1 l2))
 
@@ -186,6 +190,10 @@
   (list-list-tail-noerr (list-list-take-noerr l end) start)
 )
 
+(define (list-list-slice-with-length-noerr l start lst_length)
+  (list-list-slice-noerr l start (+ start lst_length))
+)
+
 (define (list-list-col-slice-noerr l start end)
   (if
     (< (list-list-length l) 1)
@@ -195,6 +203,10 @@
       (list-list-col-slice-noerr (list-list-tail-noerr l 1) start end)
     )
   )
+)
+
+(define (list-list-col-slice-with-length-noerr l start lst_length)
+  (list-list-col-slice-noerr l start (+ start lst_length))
 )
 
 (define (list-list-prepend i l)

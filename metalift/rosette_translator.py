@@ -143,9 +143,25 @@ def generateVars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
 def generateSynth(
     vars: List[str],
     rounds_to_guess: int = 0,
-    fns_to_guess: List[FnDeclRecursive] = []
+    fns_to_guess: List[FnDeclRecursive] = [],
+    fn_defs_to_exclude: List[FnDeclRecursive] = []
 ) -> str:
     listvars = f"(list {' '.join(vars)})"
+    if len(fn_defs_to_exclude) > 0:
+        constraints = [f"(assert (!(eq? {f.name()} {f.toRosette()})))" for f in fn_defs_to_exclude]
+        return f"""
+        (define sol
+            (synthesize
+                #:forall {listvars}
+                #:guarantee (begin
+                    (assertions)
+                    {' '.join(constraints)}
+                )
+            )
+        )
+        (sat? sol)
+        (print-forms sol)
+        """
     all_synth_funs: List[str] = []
     synth_fun = f"""
     (define sol0
@@ -158,23 +174,22 @@ def generateSynth(
     (print-forms sol0)
     """
     all_synth_funs.append(synth_fun)
-    blocking_constraints: List[List[Bool]] = []
     for i in range(1, rounds_to_guess + 1):
         single_solution_constraints: List[Bool] = []
-        for guess in fns_to_guess:
-            guess_call = f"({guess.name()} {' '.join(arg.name() for arg in guess.arguments())})"
-            constraints = [
-                f"(! (eq? {guess_call} (evaluate {guess_call} sol{prev_i})))"
-                for prev_i in range(i)
-            ]
-            single_solution_constraints.extend(constraints)
+        for prev_i in range(i):
+            round_i_constraints = []
+            for guess in fns_to_guess:
+                guess_call = f"({guess.name()} {' '.join(arg.name() for arg in guess.arguments())})"
+                constraint = f"(! (eq? {guess_call} (evaluate {guess_call} sol{prev_i})))"
+                round_i_constraints.append(constraint)
+            single_solution_constraints.append(f"(assume (|| {' '.join(round_i_constraints)}))")
         synth_fun = f"""
         (define sol{i}
             (synthesize
                 #:forall {listvars}
                 #:guarantee (begin
-                    (assertions)
                     {' '.join(single_solution_constraints)}
+                    (assertions)
                 )
             )
         )
@@ -214,6 +229,7 @@ def toRosette(
     loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
     rounds_to_guess: int,
     fns_to_guess: List[FnDeclRecursive],
+    fn_defs_to_exclude: List[FnDeclRecursive],
     unboundedInts: bool,
     listBound: int,
     writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
@@ -282,7 +298,7 @@ def toRosette(
 
     # synthesis function
     if not verifyMode:
-        print(generateSynth(vars_all, rounds_to_guess, fns_to_guess), file=f)
+        print(generateSynth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude), file=f)
     else:
         print("(verify (assertions))", file=f)
     f.close()

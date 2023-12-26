@@ -1523,38 +1523,46 @@ class Driver:
         # TODO(jie): this is a hack
         inv_and_ps = synths + self.fns_synths
         inv0_synth = [synth for synth in inv_and_ps if "inv0" in synth.name()]
-        synthesized: List[FnDeclRecursive] = run_synthesis(
-            # basename="test",
-            basename=f"{list(self.fns.keys())[0]}",
-            targetLang=target,
-            vars=set(self.var_tracker.all()),
-            invAndPs=inv_and_ps,
-            preds=[],
-            vc=vc,
-            loopAndPsInfo=synths,
-            cvcPath="cvc5",
-            rounds_to_guess=200,
-            fns_to_guess=inv0_synth, # TODO(jie): might need to change this
-            **synthesize_kwargs,
-        )
+        # inv0_synth = [synth for synth in inv_and_ps if "part2_inv0_composed_int_index_fn" in synth.name()]
+        fn_defs_to_exclude: List[FnDeclRecursive] = []
+        for i in range(1):
+            synthesized: List[FnDeclRecursive] = run_synthesis(
+                # basename="test",
+                basename=f"{list(self.fns.keys())[0]}__{i}",
+                targetLang=target,
+                vars=set(self.var_tracker.all()),
+                invAndPs=inv_and_ps,
+                preds=[],
+                vc=vc,
+                loopAndPsInfo=synths,
+                cvcPath="cvc5",
+                # fn_defs_to_exclude=fn_defs_to_exclude,
+                rounds_to_guess=20,
+                fns_to_guess=inv0_synth, # TODO(jie): might need to change this
+                **synthesize_kwargs,
+            )
+            import pdb; pdb.set_trace()
+            for f in synthesized:
+                if "inv0" in f.name():
+                    fn_defs_to_exclude.append(f)
 
-        for f in synthesized:
-            m = re.match("(\w+)_ps", f.name())  # ignore the invariants
-            if m:
-                name = m.groups()[0]
-                if isinstance(f.body(), Eq):
-                    self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
-                    print(f"{name} synthesized: {self.fns[name].synthesized}")
-                elif (
-                    isinstance(f.body(), Call)
-                    and cast(Call, f.body()).name() == "list_eq"
-                ):
-                    self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
-                    print(f"{name} synthesized: {self.fns[name].synthesized}")
-                else:
-                    raise Exception(
-                        f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                    )
+            for f in synthesized:
+                m = re.match("(\w+)_ps", f.name())  # ignore the invariants
+                if m:
+                    name = m.groups()[0]
+                    if isinstance(f.body(), Eq):
+                        self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
+                        print(f"{name} synthesized: {self.fns[name].synthesized}")
+                    elif (
+                        isinstance(f.body(), Call)
+                        and cast(Call, f.body()).name() == "list_eq"
+                    ):
+                        self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
+                        print(f"{name} synthesized: {self.fns[name].synthesized}")
+                    else:
+                        raise Exception(
+                            f"synthesized fn body doesn't have form val = ...: {f.body()}"
+                        )
 
     def add_precondition(self, e: Object) -> None:
         # this gets propagated to the State when it is created
