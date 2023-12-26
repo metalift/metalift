@@ -1527,7 +1527,7 @@ class Driver:
         for i in range(1):
             synthesized: List[FnDeclRecursive] = run_synthesis(
                 # basename="test",
-                basename=f"{list(self.fns.keys())[0]}__{i}",
+                basename=f"listbound2_{list(self.fns.keys())[0]}__{i}",
                 targetLang=target,
                 vars=set(self.var_tracker.all()),
                 invAndPs=inv_and_ps,
@@ -1536,7 +1536,7 @@ class Driver:
                 loopAndPsInfo=synths,
                 cvcPath="cvc5",
                 # fn_defs_to_exclude=fn_defs_to_exclude,
-                rounds_to_guess=20,
+                rounds_to_guess=0,
                 fns_to_guess=inv0_synth, # TODO(jie): might need to change this
                 **synthesize_kwargs,
             )

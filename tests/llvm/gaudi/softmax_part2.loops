@@ -1,4 +1,4 @@
-Printing analysis 'Natural Loop Information' for function '_Z8test_expi':
+Printing analysis 'Natural Loop Information' for function '_Z12uninterp_expi':
 Printing analysis 'Natural Loop Information' for function '_Z13softmax_part2NSt3__16vectorIiNS_9allocatorIiEEEEii':
 Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%invoke.cont,%invoke.cont2,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev':
