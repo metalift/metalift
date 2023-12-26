@@ -176,33 +176,29 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     # More constrained grammar
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
-    non_zero_int_index = choose(
-        token_position,
-        head,
-        head_size,
-        i,
-        timestep
-    )
-    int_index = choose(non_zero_int_index, Int(0))
-    composed_int_index_base = call(
-        PART2_INV0_COMPOSED_INT_INDEX_FN,
-        Int,
-        token_position,
-        head,
-        head_size,
-        i,
-        timestep
-    )
+    non_zero_int_vars = [token_position, head, head_size, i, timestep]
+    non_zero_int_var = choose(*non_zero_int_vars)
+    int_index = choose(non_zero_int_var, Int(0))
+    mul_exprs: List[Int] = []
+    for lhs_index, lhs_var in enumerate(non_zero_int_vars):
+        for rhs_index in range(lhs_index + 1):
+            rhs_var = non_zero_int_vars[rhs_index]
+            mul_exprs.append(lhs_var * rhs_var)
+    composed_int_var = choose(*mul_exprs)
     matrix = choose(
         key_cache_layer,
-        key_cache_layer[int_index:non_zero_int_index],
-        key_cache_layer[int_index:non_zero_int_index].col_slice(composed_int_index_base, composed_int_index_base + i)
+        key_cache_layer.slice_with_length(int_index, non_zero_int_var),
+        key_cache_layer.slice_with_length(int_index, non_zero_int_var).col_slice_with_length(
+            composed_int_var,
+            non_zero_int_var
+        )
     )
     matrix = choose(matrix, matrix.transpose())
     vec = choose(
         attention,
-        attention[int_index:non_zero_int_index],
+        attention.slice_with_length(int_index, non_zero_int_var),
     )
+    import pdb; pdb.set_trace()
     general_grammar = and_objects(
         i >= 0,
         i <= head_size,
