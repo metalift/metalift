@@ -11,3 +11,8 @@ vector<int> silu(vector<int> input, int hidden_dim) {
     }
     return output;
 }
+// def silu_ps(input hidden_dim silu_rv)
+// silu_rv == vec_elemwise_mul(scalar_vec_div(1, vec_scalar_add(1, vec_map(list_take(input, hidden_dim), map_int_to_int))), list_take(input, hidden_dim))
+
+// def map_int_to_int(int_x)
+// test_sqrt(int_x)

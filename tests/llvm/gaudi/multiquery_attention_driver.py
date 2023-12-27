@@ -35,6 +35,10 @@ def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursi
 def multiquery_attention_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
+    return ret_val == call_matrix_vec_mul(
+        key_cache_layer[:token_position].col_slice_with_length(head * head_size, head_size),
+        q.slice_with_length(head * head_size, head_size)
+    )
     non_zero_int_var = choose(token_position, head, head_size)
     int_var = choose(non_zero_int_var, Int(0))
     slice_index = choose(
@@ -57,6 +61,14 @@ def multiquery_attention_part1_ps_grammar(writes: List[Object], reads: List[Obje
 def multiquery_attention_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
+    return and_objects(
+        timestep >= 0,
+        timestep <= token_position,
+        attention == call_matrix_vec_mul(
+            key_cache_layer[:timestep].col_slice_with_length(head * head_size, head_size),
+            q.slice_with_length(head * head_size, head_size)
+        )
+    )
     non_zero_int_var = choose(
         token_position,
         head,
@@ -89,6 +101,22 @@ def multiquery_attention_part1_inv1_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes
     attention, timestep = in_scope
+    return and_objects(
+        timestep >= 0,
+        timestep < token_position,
+        i >= 0,
+        i <= head_size,
+        score == call_reduce_sum(
+            call_vec_elemwise_mul(
+                key_cache_layer[timestep].slice_with_length(head * head_size, i),
+                q.slice_with_length(head * head_size, i)
+            )
+        ),
+        attention == call_matrix_vec_mul(
+            key_cache_layer[:timestep].col_slice_with_length(head * head_size, head_size),
+            q.slice_with_length(head * head_size, head_size)
+        )
+    )
     non_zero_int_var = choose(token_position, head, head_size, timestep, i)
     int_var = choose(non_zero_int_var, Int(0))
     slice_index = non_zero_int_var * non_zero_int_var + int_var
@@ -169,23 +197,23 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     general_grammar = and_objects(
         i >= 0,
         i <= head_size,
-        xb == call_matrix_vec_mul(matrix, vec)
+        # xb == call_matrix_vec_mul(matrix, vec)
         # xb == call_matrix_vec_mul(
         #     key_cache_layer[int_index:non_zero_int_index]
         #     .col_slice(
-        #         composed_int_index_base,
+        #         ,
         #         composed_int_index_base + non_zero_int_index
         #     ).transpose(),
         #     attention[int_index:non_zero_int_index]
         # )
-        # xb == call_matrix_vec_mul(
-        #     key_cache_layer[0:token_position]
-        #     .col_slice(
-        #         composed_int_index_base,
-        #         composed_int_index_base + i
-        #     ).transpose(),
-        #     attention[0:token_position]
-        # )
+        xb == call_matrix_vec_mul(
+            key_cache_layer[:token_position]
+            .col_slice_with_length(
+                head * head_size,
+                i
+            ).transpose(),
+            attention[:token_position]
+        )
     )
     return general_grammar
 
@@ -193,26 +221,26 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, attention = reads
     curr, timestep = writes
     xb, i = in_scope
-    # return and_objects(
-    #     i >= 0,
-    #     i < head_size,
-    #     timestep >= 0,
-    #     timestep <= token_position,
-    #     curr == call_reduce_sum(
-    #         call_vec_elemwise_mul(
-    #             key_cache_layer[:timestep].col_vec(head * head_size + i),
-    #             attention_var[:timestep]
-    #         )
-    #     ),
-    #     xb == call_matrix_vec_mul(
-    #         key_cache_layer[:token_position]
-    #         .col_slice(
-    #             head * head_size,
-    #             head * head_size + i
-    #         ).transpose(),
-    #         attention[:token_position]
-    #     )
-    # )
+    return and_objects(
+        i >= 0,
+        i < head_size,
+        timestep >= 0,
+        timestep <= token_position,
+        curr == call_reduce_sum(
+            call_vec_elemwise_mul(
+                key_cache_layer[:timestep].col_vec(head * head_size + i),
+                attention_var[:timestep]
+            )
+        ),
+        xb == call_matrix_vec_mul(
+            key_cache_layer[:token_position]
+            .col_slice_with_length(
+                head * head_size,
+                head * head_size + i
+            ).transpose(),
+            attention[:token_position]
+        )
+    )
     non_zero_int_vars = [token_position, head, head_size, timestep, i]
     non_zero_int_var = choose(*non_zero_int_vars)
     int_index = choose(non_zero_int_var, Int(0))
@@ -300,6 +328,9 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
 def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
+    # key_cache_matrix = key_cache_layer[:token_position].col_slice_with_length(head * head_size, head_size)
+    # key_cache_matrix_transpose = key_cache_matrix.transpose()
+    # return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
     non_zero_int_vars = [token_position, head, head_size]
     non_zero_int_var = choose(*non_zero_int_vars)
     int_index = choose(non_zero_int_var, Int(0))
@@ -395,7 +426,7 @@ if __name__ == "__main__":
     # int_x = Int("int_x")
     # map_int_to_int_synth = get_map_int_to_int_synth([call_exp(int_x)])
     # driver.fns_synths = [map_int_to_int_synth]
-    # driver.synthesize(listBound=5, noVerify=True)
+    # driver.synthesize(listBound=2, noVerify=True)
 
     driver = Driver()
     multiquery_attention_part2 = driver.analyze(
