@@ -13,6 +13,7 @@ float random_float();
 std::array<vector<vector<float>>,2> get_base_active();
 
 void mat_timer(vector<vector<float>> (*func)(vector<vector<float>>, vector<vector<float>>));
+void vec_timer(vector<float> (*func)(vector<float>, vector<float>, float));
 
 double average(std::vector<long long> v);
 double stdiv(std::vector<long long> v);

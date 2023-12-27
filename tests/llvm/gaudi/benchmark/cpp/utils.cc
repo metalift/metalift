@@ -20,11 +20,15 @@ float random_float() {
     return (float)(rand()) / (float)(RAND_MAX);
 }
 
+float random_float_grayscale() {
+    return static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 255.0));
+}
+
 vector<vector<float>> random_matrix(int m, int n) {
     vector<vector<float>> matrix(m, vector<float>(n, 0));
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
-            matrix[i][j] = random_float();
+            matrix[i][j] = random_float_grayscale();
         }
     }
     return matrix;
@@ -33,7 +37,7 @@ vector<vector<float>> random_matrix(int m, int n) {
 vector<float> random_vector(int m) {
     vector<float> vec(m, 0);
     for (int i = 0; i < m; i++) {
-        vec[i] = random_float();
+        vec[i] = random_float_grayscale();
     }
     return vec;
 }
@@ -57,6 +61,16 @@ std::array<vector<vector<float>>,2> get_base_active(int i) {
     return res;
 }
 
+std::vector<float> flatten(const std::vector<std::vector<float>>& nested) {
+    std::vector<float> flat;
+
+    for (const auto& inner : nested) {
+        flat.insert(flat.end(), inner.begin(), inner.end());
+    }
+
+    return flat;
+}
+
 void mat_timer(vector<vector<float>> (*func)(vector<vector<float>>, vector<vector<float>>)) {
     glob("./data/*.jpeg", fn, false);
 
@@ -70,6 +84,32 @@ void mat_timer(vector<vector<float>> (*func)(vector<vector<float>>, vector<vecto
             vector<vector<float>> active = res[1]; 
             auto start_time = high_resolution_clock::now();
             func(base, active);
+            auto end_time = high_resolution_clock::now();
+            time += duration_cast<microseconds>(end_time - start_time).count();
+        }
+        times.push_back(time);
+    }
+
+
+    cout << "Execution Time: " << average(times) << " microseconds +/-" << stdiv(times) << endl;
+}
+
+void vec_timer(vector<float> (*func)(vector<float>, vector<float>, float)) {
+    glob("./data/*.jpeg", fn, false);
+
+    vector<long long> times;
+    size_t count = fn.size();
+    for (int i = 0; i < 5; i++) {
+        long long time = 0;
+        for (int j = 0; j < count; j++) {
+            std::array<vector<vector<float>>,2> res = get_base_active(j);
+            vector<vector<float>> base = res[0]; 
+            vector<float> base_f = flatten(base); 
+            vector<vector<float>> active = res[1]; 
+            vector<float> active_f = flatten(active); 
+            float opacity = random_float();
+            auto start_time = high_resolution_clock::now();
+            func(base_f, active_f, opacity);
             auto end_time = high_resolution_clock::now();
             time += duration_cast<microseconds>(end_time - start_time).count();
         }
