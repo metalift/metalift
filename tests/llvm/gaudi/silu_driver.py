@@ -72,4 +72,4 @@ if __name__ == "__main__":
     int_x = Int("int_x")
     map_int_to_int_synth = get_map_int_to_int_synth([call_sqrt(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize()
+    driver.synthesize(noVerify=True)

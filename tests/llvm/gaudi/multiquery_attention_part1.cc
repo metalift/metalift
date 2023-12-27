@@ -21,3 +21,8 @@ vector<int> multiquery_attention_part1(
     }
     return attention;
 }
+// def multiquery_attention_part1_ps(token_position head head_size key_cache_layer q multiquery_attention_part1_rv)
+// list_eq(multiquery_attention_part1_rv, matrix_vec_mul(list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size)))
+
+// def map_int_to_int(int_x)
+// test_exp(int_x)
