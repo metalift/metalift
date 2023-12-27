@@ -7,10 +7,6 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<float> a = random_vector();
-vector<float> b = random_vector();
-float c = random_float();
-
 vector<float> normal_blend_f(vector<float> base, vector<float> active, float opacity)
 {
   vector<float> out;
@@ -21,15 +17,6 @@ vector<float> normal_blend_f(vector<float> base, vector<float> active, float opa
 }
 
 int main() {
-    vector<long long> times;
-    for (int i = 0; i < 10; i++) {
-        auto start_time = high_resolution_clock::now();
-        normal_blend_f(a, b, c);
-        auto end_time = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(end_time - start_time);
-        times.push_back(duration.count());
-    }
-
-
-    cout << "Execution Time: " << average(times) << " microseconds +/-" << stdiv(times) << endl;
+  vec_timer(&normal_blend_f);
+  return 0;
 }
