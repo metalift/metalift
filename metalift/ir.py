@@ -1241,7 +1241,7 @@ class Matrix(List[T], Generic[T], Object):
     def col_vec(self, col_index: Union[int, Int]) -> List[Int]:
         if isinstance(col_index, int):
             col_index = Int(col_index)
-        return call("list_col_slice", self.type, self, col_index, col_index + 1).transpose()[0]
+        return call("list_col_slice_with_length", self.type, self, col_index, Int(1)).transpose()[0]
 
     def slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "Matrix":
         if isinstance(start, int):
