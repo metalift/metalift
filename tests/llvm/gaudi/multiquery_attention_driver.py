@@ -212,8 +212,8 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     )
     # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
     general_grammar = and_objects(
-        i >= 0,
-        i <= head_size,
+        i >= outer_loop_lower_bound,
+        i <= outer_loop_upper_bound,
         xb == call_matrix_vec_mul(matrix, vec)
         # xb == call_matrix_vec_mul(
         #     key_cache_layer[int_index:non_zero_int_index]
@@ -265,7 +265,7 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_lower_bound:outer_loop_upper_bound]
+        key_cache_layer[outer_loop_lower_bound:i]
         .col_slice(
             composed_int_var + inner_loop_lower_bound,
             composed_int_var + inner_loop_upper_bound
@@ -273,7 +273,7 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
         key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound]
         .col_slice(
             composed_int_var + outer_loop_lower_bound,
-            composed_int_var + outer_loop_upper_bound
+            composed_int_var + i
         )
         # key_cache_layer.slice_with_length(0, i).col_slice_with_length(
         #     composed_int_var,
@@ -293,7 +293,7 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
 
     inner_loop_key_cache_layer_vec = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[i][composed_int_var + inner_loop_lower_bound:composed_int_var+timestep],
+        key_cache_layer[i][composed_int_var + inner_loop_lower_bound:composed_int_var + timestep],
         key_cache_layer[inner_loop_lower_bound:timestep].col_vec(composed_int_var + i)
     )
     inner_loop_vec_to_reduce = ite(
@@ -580,6 +580,7 @@ def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursi
     return [
         reduce_sum,
         vec_elemwise_mul,
+        vec_scalar_mul,
         matrix_vec_mul,
         composed_index_fn_decl,
         matrix_outer_loop_index_first_fn_decl,
