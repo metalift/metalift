@@ -1521,7 +1521,7 @@ class Driver:
             target += fn.target_lang_fn()
         # TODO(jie): this is a hack
         inv_and_ps = synths + self.fns_synths
-        inv0_synth = [synth for synth in inv_and_ps if "inv0" in synth.name()]
+        # inv0_synth = [synth for synth in inv_and_ps if "inv0" in synth.name()]
         # inv0_synth = [synth for synth in inv_and_ps if "part2_inv0_composed_int_index_fn" in synth.name()]
         fn_defs_to_exclude: List[FnDeclRecursive] = []
         for i in range(1):
@@ -1537,7 +1537,7 @@ class Driver:
                 cvcPath="cvc5",
                 # fn_defs_to_exclude=fn_defs_to_exclude,
                 rounds_to_guess=5,
-                fns_to_guess=inv0_synth, # TODO(jie): might need to change this
+                fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
                 **synthesize_kwargs,
             )
             for f in synthesized:

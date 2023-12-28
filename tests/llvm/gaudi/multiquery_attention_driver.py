@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, Matrix, call, fn_decl, synth
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, Matrix, call, fn_decl, ite, synth
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
@@ -181,7 +181,8 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
-    matrix = choose(
+    matrix = ite(
+        is_matrix_outer_loop_index_first(),
         key_cache_layer.slice_with_length(0, i).col_slice_with_length(
             composed_int_var,
             token_position
@@ -189,13 +190,9 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
         key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
             composed_int_var,
             i
-        ),
+        ).transpose(),
     )
-    matrix = choose(matrix, matrix.transpose())
-    vec = choose(
-        attention.slice_with_length(0, i),
-        attention.slice_with_length(0, token_position)
-    )
+    vec = attention.slice_with_length(0, token_position)
     # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
     general_grammar = and_objects(
         i >= 0,
@@ -245,32 +242,25 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     #     )
     # )
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
-    outer_loop_matrix = choose(
-        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
-            composed_int_var,
-            i
-        ),
+    outer_loop_matrix = ite(
+        is_matrix_outer_loop_index_first(),
         key_cache_layer.slice_with_length(0, i).col_slice_with_length(
             composed_int_var,
             token_position
-        )
+        ),
+        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
+            composed_int_var,
+            i
+        ).transpose()
     )
-    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
-    outer_loop_vec = choose(
-        attention.slice_with_length(0, i),
-        attention.slice_with_length(0, token_position)
-    )
+    outer_loop_vec = attention.slice_with_length(0, token_position)
 
-    inner_loop_key_cache_layer_vec = choose(
+    inner_loop_key_cache_layer_vec = ite(
+        is_matrix_outer_loop_index_first(),
         key_cache_layer[i].slice_with_length(composed_int_var, timestep),
-        key_cache_layer[timestep].slice_with_length(composed_int_var, i),
-        key_cache_layer[0:i].col_vec(composed_int_var + timestep),
         key_cache_layer[0:timestep].col_vec(composed_int_var + i)
     )
-    inner_loop_attention_vec = choose(
-        attention.slice_with_length(0, i),
-        attention.slice_with_length(0, timestep)
-    )
+    inner_loop_attention_vec = attention.slice_with_length(0, timestep)
     return and_objects(
         i >= 0,
         i < head_size,
@@ -346,7 +336,8 @@ def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Obje
     # return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
     # composed_int_var = head * head_size
-    matrix = choose(
+    matrix = ite(
+        is_matrix_outer_loop_index_first(),
         key_cache_layer.slice_with_length(0, head_size).col_slice_with_length(
             composed_int_var,
             token_position
@@ -354,13 +345,9 @@ def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Obje
         key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
             composed_int_var,
             head_size
-        )
+        ).transpose()
     )
-    matrix = choose(matrix, matrix.transpose())
-    vec = choose(
-        attention.slice_with_length(0, head_size),
-        attention.slice_with_length(0, token_position)
-    )
+    vec = attention.slice_with_length(0, token_position)
     return xb == call_matrix_vec_mul(matrix, vec)
     non_zero_int_vars = [token_position, head, head_size]
     non_zero_int_var = choose(*non_zero_int_vars)
@@ -428,15 +415,31 @@ composed_index_fn_synth = synth(
     head_size_var
 )
 
+matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
+matrix_outer_loop_index_first_fn_decl = fn_decl(
+    matrix_outer_loop_index_first_fn_name,
+    Bool,
+    None
+)
+matrix_outer_loop_index_first_fn_synth = synth(
+    matrix_outer_loop_index_first_fn_name,
+    choose(Bool(True), Bool(False))
+)
+
 def call_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
     return call(composed_index_fn_name, Int, token_position, head, head_size)
+
+def is_matrix_outer_loop_index_first() -> Bool:
+    return call(matrix_outer_loop_index_first_fn_name, Bool)
+
 
 def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         reduce_sum,
         vec_elemwise_mul,
         matrix_vec_mul,
-        composed_index_fn_decl
+        composed_index_fn_decl,
+        matrix_outer_loop_index_first_fn_decl,
     ]
 
 
@@ -524,7 +527,10 @@ if __name__ == "__main__":
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
 
-    driver.fns_synths = [composed_index_fn_synth]
+    driver.fns_synths = [
+        composed_index_fn_synth,
+        matrix_outer_loop_index_first_fn_synth,
+    ]
     multiquery_attention_part2(
         token_position_var,
         head_var,
