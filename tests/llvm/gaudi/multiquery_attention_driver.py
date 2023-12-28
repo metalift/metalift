@@ -181,18 +181,35 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
+    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
+    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
+    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
+    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer.slice_with_length(0, i).col_slice_with_length(
-            composed_int_var,
-            token_position
+        key_cache_layer[outer_loop_lower_bound:i].col_slice(
+            composed_int_var + inner_loop_lower_bound,
+            composed_int_var + inner_loop_upper_bound
         ),
-        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
-            composed_int_var,
-            i
-        ).transpose(),
+        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
+            composed_int_var + outer_loop_lower_bound,
+            composed_int_var + i
+        )
+        # key_cache_layer.slice_with_length(0, i).col_slice_with_length(
+        #     composed_int_var,
+        #     token_position
+        # ),
+        # key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
+        #     composed_int_var,
+        #     i
+        # ).transpose(),
     )
-    vec = attention.slice_with_length(0, token_position)
+    matrix = choose(matrix, matrix.transpose())
+    vec = ite(
+        is_vector_outer_loop_index(),
+        attention[outer_loop_lower_bound:i],
+        attention[inner_loop_lower_bound:inner_loop_upper_bound]
+    )
     # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
     general_grammar = and_objects(
         i >= 0,
@@ -242,36 +259,60 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     #     )
     # )
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
+    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
+    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
+    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
+    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer.slice_with_length(0, i).col_slice_with_length(
-            composed_int_var,
-            token_position
+        key_cache_layer[outer_loop_lower_bound:outer_loop_upper_bound]
+        .col_slice(
+            composed_int_var + inner_loop_lower_bound,
+            composed_int_var + inner_loop_upper_bound
         ),
-        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
-            composed_int_var,
-            i
-        ).transpose()
+        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound]
+        .col_slice(
+            composed_int_var + outer_loop_lower_bound,
+            composed_int_var + outer_loop_upper_bound
+        )
+        # key_cache_layer.slice_with_length(0, i).col_slice_with_length(
+        #     composed_int_var,
+        #     token_position
+        # ),
+        # key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
+        #     composed_int_var,
+        #     i
+        # ).transpose()
     )
-    outer_loop_vec = attention.slice_with_length(0, token_position)
+    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+    outer_loop_vec = ite(
+        is_vector_outer_loop_index(),
+        attention[outer_loop_lower_bound:i],
+        attention[inner_loop_lower_bound:inner_loop_upper_bound]
+    )
 
     inner_loop_key_cache_layer_vec = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[i].slice_with_length(composed_int_var, timestep),
-        key_cache_layer[0:timestep].col_vec(composed_int_var + i)
+        key_cache_layer[i][composed_int_var + inner_loop_lower_bound:composed_int_var+timestep],
+        key_cache_layer[inner_loop_lower_bound:timestep].col_vec(composed_int_var + i)
     )
-    inner_loop_attention_vec = attention.slice_with_length(0, timestep)
-    return and_objects(
-        i >= 0,
-        i < head_size,
-        timestep >= 0,
-        timestep <= token_position,
-        curr == call_reduce_sum(
-            call_vec_elemwise_mul(
-                inner_loop_key_cache_layer_vec,
-                inner_loop_attention_vec
-            )
+    inner_loop_vec_to_reduce = ite(
+        is_vector_outer_loop_index(),
+        call_vec_scalar_mul(
+            attention[i],
+            inner_loop_key_cache_layer_vec
         ),
+        call_vec_elemwise_mul(
+            inner_loop_key_cache_layer_vec,
+            attention[inner_loop_lower_bound:timestep]
+        )
+    )
+    return and_objects(
+        i >= outer_loop_lower_bound,
+        i < outer_loop_upper_bound,
+        timestep >= inner_loop_lower_bound,
+        timestep <= inner_loop_upper_bound,
+        curr == call_reduce_sum(inner_loop_vec_to_reduce),
         xb == call_matrix_vec_mul(outer_loop_matrix, outer_loop_vec)
     )
     non_zero_int_var = choose(
@@ -335,19 +376,29 @@ def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Obje
     # key_cache_matrix_transpose = key_cache_matrix.transpose()
     # return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
-    # composed_int_var = head * head_size
+    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
+    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
+    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
+    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer.slice_with_length(0, head_size).col_slice_with_length(
-            composed_int_var,
-            token_position
+        key_cache_layer[outer_loop_lower_bound:outer_loop_upper_bound]
+        .col_slice(
+            composed_int_var + inner_loop_lower_bound,
+            composed_int_var + inner_loop_upper_bound
         ),
-        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
-            composed_int_var,
-            head_size
-        ).transpose()
+        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound]
+        .col_slice(
+            composed_int_var + outer_loop_lower_bound,
+            composed_int_var + outer_loop_upper_bound
+        )
     )
-    vec = attention.slice_with_length(0, token_position)
+    matrix = choose(matrix, matrix.transpose())
+    vec = ite(
+        is_vector_outer_loop_index(),
+        attention[outer_loop_lower_bound:outer_loop_upper_bound],
+        attention[inner_loop_lower_bound:inner_loop_upper_bound]
+    )
     return xb == call_matrix_vec_mul(matrix, vec)
     non_zero_int_vars = [token_position, head, head_size]
     non_zero_int_var = choose(*non_zero_int_vars)
@@ -414,6 +465,8 @@ composed_index_fn_synth = synth(
     head_var,
     head_size_var
 )
+def call_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(composed_index_fn_name, Int, token_position, head, head_size)
 
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
 matrix_outer_loop_index_first_fn_decl = fn_decl(
@@ -425,13 +478,103 @@ matrix_outer_loop_index_first_fn_synth = synth(
     matrix_outer_loop_index_first_fn_name,
     choose(Bool(True), Bool(False))
 )
-
-def call_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
-    return call(composed_index_fn_name, Int, token_position, head, head_size)
+vector_outer_loop_index_fn_name = "VECTOR_OUTER_LOOP_INDEX"
+vector_outer_loop_index_fn_decl = fn_decl(
+    vector_outer_loop_index_fn_name,
+    Bool,
+    None
+)
+vector_outer_loop_index_fn_synth = synth(
+    vector_outer_loop_index_fn_name,
+    choose(Bool(True), Bool(False))
+)
 
 def is_matrix_outer_loop_index_first() -> Bool:
     return call(matrix_outer_loop_index_first_fn_name, Bool)
 
+def is_vector_outer_loop_index() -> Bool:
+    return call(vector_outer_loop_index_fn_name, Bool)
+
+
+outer_loop_lower_bound_fn_name = "OUTER_LOOP_LOWER_BOUND"
+outer_loop_lower_bound_fn_decl = fn_decl(
+    outer_loop_lower_bound_fn_name,
+    Int,
+    None,
+    token_position_var,
+    head_var,
+    head_size_var
+)
+outer_loop_lower_bound_fn_synth = synth(
+    outer_loop_lower_bound_fn_name,
+    choose(token_position_var, head_size_var, head_var, Int(0)),
+    token_position_var,
+    head_var,
+    head_size_var
+)
+
+outer_loop_upper_bound_fn_name = "OUTER_LOOP_UPPER_BOUND"
+outer_loop_upper_bound_fn_decl = fn_decl(
+    outer_loop_upper_bound_fn_name,
+    Int,
+    None,
+    token_position_var,
+    head_var,
+    head_size_var
+)
+outer_loop_upper_bound_fn_synth = synth(
+    outer_loop_upper_bound_fn_name,
+    choose(token_position_var, head_size_var, head_var),
+    token_position_var,
+    head_var,
+    head_size_var
+)
+
+inner_loop_lower_bound_fn_name = "INNER_LOOP_LOWER_BOUND"
+inner_loop_lower_bound_fn_decl = fn_decl(
+    inner_loop_lower_bound_fn_name,
+    Int,
+    None,
+    token_position_var,
+    head_var,
+    head_size_var
+)
+inner_loop_lower_bound_fn_synth = synth(
+    inner_loop_lower_bound_fn_name,
+    choose(token_position_var, head_size_var, head_var, Int(0)),
+    token_position_var,
+    head_var,
+    head_size_var
+)
+
+inner_loop_upper_bound_fn_name = "INNER_LOOP_UPPER_BOUND"
+inner_loop_upper_bound_fn_decl = fn_decl(
+    inner_loop_upper_bound_fn_name,
+    Int,
+    None,
+    token_position_var,
+    head_var,
+    head_size_var
+)
+inner_loop_upper_bound_fn_synth = synth(
+    inner_loop_upper_bound_fn_name,
+    choose(token_position_var, head_size_var, head_var),
+    token_position_var,
+    head_var,
+    head_size_var
+)
+
+def get_outer_loop_lower_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(outer_loop_lower_bound_fn_name, Int, token_position, head, head_size)
+
+def get_outer_loop_upper_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(outer_loop_upper_bound_fn_name, Int, token_position, head, head_size)
+
+def get_inner_loop_lower_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(inner_loop_lower_bound_fn_name, Int, token_position, head, head_size)
+
+def get_inner_loop_upper_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(inner_loop_upper_bound_fn_name, Int, token_position, head, head_size)
 
 def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -440,6 +583,11 @@ def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursi
         matrix_vec_mul,
         composed_index_fn_decl,
         matrix_outer_loop_index_first_fn_decl,
+        vector_outer_loop_index_fn_decl,
+        outer_loop_lower_bound_fn_decl,
+        outer_loop_upper_bound_fn_decl,
+        inner_loop_lower_bound_fn_decl,
+        inner_loop_upper_bound_fn_decl,
     ]
 
 
@@ -530,6 +678,11 @@ if __name__ == "__main__":
     driver.fns_synths = [
         composed_index_fn_synth,
         matrix_outer_loop_index_first_fn_synth,
+        vector_outer_loop_index_fn_synth,
+        outer_loop_lower_bound_fn_synth,
+        outer_loop_upper_bound_fn_synth,
+        inner_loop_lower_bound_fn_synth,
+        inner_loop_upper_bound_fn_synth,
     ]
     multiquery_attention_part2(
         token_position_var,
