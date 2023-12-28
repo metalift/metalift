@@ -9,12 +9,15 @@ from tests.llvm.gaudi.gaudi_common import call_exp, call_map_int_to_int, call_ma
 
 # Define some helper functions for synthesizing int vars
 def get_composed_int_var(int_vars: List[Int]) -> Int:
+    return choose(*get_composed_combs(int_vars))
+
+def get_composed_combs(int_vars: List[Int]) -> List[Int]:
     mul_exprs: List[Int] = []
     for lhs_index, lhs_var in enumerate(int_vars):
         for rhs_index in range(lhs_index + 1):
             rhs_var = int_vars[rhs_index]
             mul_exprs.append(lhs_var * rhs_var)
-    return choose(*mul_exprs)
+    return mul_exprs
 
 def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -177,25 +180,22 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     # More constrained grammar
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
-    input_int_vars = [token_position, head, head_size]
-    input_int_var = choose(*input_int_vars)
-    all_non_zero_int_vars = [*input_int_vars, i]
-    non_zero_int_var = choose(*all_non_zero_int_vars)
-    int_index = choose(non_zero_int_var, Int(0))
-    # composed_int_var = get_composed_int_var(all_non_zero_int_vars)
-    composed_int_var = head * head_size
+    composed_int_var = call_composed_index_fn(token_position, head, head_size)
     matrix = choose(
-        key_cache_layer.slice_with_length(0, input_int_var).col_slice_with_length(
+        key_cache_layer.slice_with_length(0, i).col_slice_with_length(
+            composed_int_var,
+            token_position
+        ),
+        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
             composed_int_var,
             i
         ),
-        key_cache_layer.slice_with_length(0, i).col_slice_with_length(
-            composed_int_var,
-            input_int_var
-        )
     )
     matrix = choose(matrix, matrix.transpose())
-    vec = attention.slice(0, non_zero_int_var)
+    vec = choose(
+        attention.slice_with_length(0, i),
+        attention.slice_with_length(0, token_position)
+    )
     # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
     general_grammar = and_objects(
         i >= 0,
@@ -244,26 +244,22 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     #         attention[:token_position]
     #     )
     # )
-    input_int_vars = [token_position, head, head_size]
-    input_int_var = choose(*input_int_vars)
-    outer_loop_int_vars = [*input_int_vars, i]
-    outer_loop_int_var = choose(*outer_loop_int_vars)
-    all_non_zero_int_vars = [*input_int_vars, i, timestep]
-    non_zero_int_var = choose(*all_non_zero_int_vars)
-    int_index = choose(non_zero_int_var, Int(0))
-    # composed_int_var = get_composed_int_var(non_zero_int_vars)
-    composed_int_var = head * head_size
+    composed_int_var = call_composed_index_fn(token_position, head, head_size)
     outer_loop_matrix = choose(
-        key_cache_layer.slice_with_length(0, input_int_var).col_slice_with_length(
+        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
             composed_int_var,
             i
         ),
         key_cache_layer.slice_with_length(0, i).col_slice_with_length(
             composed_int_var,
-            input_int_var
+            token_position
         )
     )
-    outer_loop_vec = attention.slice(0, outer_loop_int_var)
+    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+    outer_loop_vec = choose(
+        attention.slice_with_length(0, i),
+        attention.slice_with_length(0, token_position)
+    )
 
     inner_loop_key_cache_layer_vec = choose(
         key_cache_layer[i].slice_with_length(composed_int_var, timestep),
@@ -271,10 +267,9 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
         key_cache_layer[0:i].col_vec(composed_int_var + timestep),
         key_cache_layer[0:timestep].col_vec(composed_int_var + i)
     )
-    inner_loop_attention_vec = attention.slice_with_length(0, timestep)
-    vec = choose(
-        attention,
-        attention.slice_with_length(0, non_zero_int_var),
+    inner_loop_attention_vec = choose(
+        attention.slice_with_length(0, i),
+        attention.slice_with_length(0, timestep)
     )
     return and_objects(
         i >= 0,
@@ -284,8 +279,9 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
         curr == call_reduce_sum(
             call_vec_elemwise_mul(
                 inner_loop_key_cache_layer_vec,
-                inner_loop_attention_vec)
-            ),
+                inner_loop_attention_vec
+            )
+        ),
         xb == call_matrix_vec_mul(outer_loop_matrix, outer_loop_vec)
     )
     non_zero_int_var = choose(
@@ -348,20 +344,23 @@ def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Obje
     # key_cache_matrix = key_cache_layer[:token_position].col_slice_with_length(head * head_size, head_size)
     # key_cache_matrix_transpose = key_cache_matrix.transpose()
     # return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
-    all_non_zero_int_vars = [token_position, head, head_size]
-    non_zero_int_var = choose(*all_non_zero_int_vars)
-    int_index = choose(non_zero_int_var, Int(0))
-    # composed_int_var = get_composed_int_var(all_non_zero_int_vars)
-    composed_int_var = head * head_size
+    composed_int_var = call_composed_index_fn(token_position, head, head_size)
+    # composed_int_var = head * head_size
     matrix = choose(
-        key_cache_layer.slice_with_length(0, non_zero_int_var).col_slice_with_length(
+        key_cache_layer.slice_with_length(0, head_size).col_slice_with_length(
             composed_int_var,
-            non_zero_int_var
+            token_position
+        ),
+        key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
+            composed_int_var,
+            head_size
         )
     )
     matrix = choose(matrix, matrix.transpose())
-    vec = attention.slice(0, non_zero_int_var)
-    # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
+    vec = choose(
+        attention.slice_with_length(0, head_size),
+        attention.slice_with_length(0, token_position)
+    )
     return xb == call_matrix_vec_mul(matrix, vec)
     non_zero_int_vars = [token_position, head, head_size]
     non_zero_int_var = choose(*non_zero_int_vars)
@@ -409,12 +408,37 @@ def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Obje
     # key_cache_matrix_transpose = key_cache_matrix.transpose()
     # return xb == call_matrix_vec_mul(key_cache_matrix_transpose, attention[:token_position])
 
+token_position_var = Int("token_position")
+head_var = Int("head")
+head_size_var = Int("head_size")
+composed_index_fn_name = "COMPOSED_INDEX_FN"
+composed_index_fn_decl = fn_decl(
+    composed_index_fn_name,
+    Int,
+    None,
+    token_position_var,
+    head_var,
+    head_size_var
+)
+composed_index_fn_synth = synth(
+    composed_index_fn_name,
+    get_composed_int_var([token_position_var, head_var, head_size_var]),
+    token_position_var,
+    head_var,
+    head_size_var
+)
+
+def call_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(composed_index_fn_name, Int, token_position, head, head_size)
+
 def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         reduce_sum,
         vec_elemwise_mul,
         matrix_vec_mul,
+        composed_index_fn_decl
     ]
+
 
 if __name__ == "__main__":
     # # Synthesize part 1
@@ -500,7 +524,7 @@ if __name__ == "__main__":
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
 
-    # driver.fns_synths = [part2_inv0_composed_int_index_synth]
+    driver.fns_synths = [composed_index_fn_synth]
     multiquery_attention_part2(
         token_position_var,
         head_var,
