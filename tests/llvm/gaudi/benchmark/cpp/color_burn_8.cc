@@ -16,9 +16,9 @@ vector<vector<float>> color_burn_8(vector<vector<float>> base, vector<vector<flo
         for (int col = 0; col < n; col++) {
             float pixel;
             if (active[row][col] == 0)
-                pixel = 32;
+                pixel = 255;
             else
-                pixel = 32 - (32 - base[row][col]) / active[row][col];
+                pixel = 255 - (255 - base[row][col]) / active[row][col];
             row_vec.push_back(pixel);
         }
         out.push_back(row_vec);

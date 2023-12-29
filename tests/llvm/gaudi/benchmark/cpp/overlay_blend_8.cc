@@ -15,10 +15,10 @@ vector<vector<float>> overlay_blend_8(vector<vector<float>> base, vector<vector<
         vector<float> row_vec;
         for (int col = 0; col < n; col++) {
             float pixel;
-			if (base[row][col] >= 16)
-                pixel = 2 * base[row][col] + base[row][col] - 2 * base[row][col] * base[row][col] / 32 - 32;
+			if (base[row][col] >= 128)
+                pixel = 2 * base[row][col] + base[row][col] - 2 * base[row][col] * base[row][col] / 255 - 255;
 			else
-                pixel = 2 * base[row][col] * base[row][col] / 32;
+                pixel = 2 * base[row][col] * base[row][col] / 255;
 			row_vec.push_back(pixel);
         }
         out.push_back(row_vec);
