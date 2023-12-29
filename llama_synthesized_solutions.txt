@@ -1,0 +1,95 @@
+# Softmax part 1
+def softmax_part1_inv0(i input max_pos max_val)
+i >= 1 and i <= max_pos and max_val == reduce_max(list_take(input, i))
+
+def softmax_part1_ps(input max_pos softmax_part1_rv)
+softmax_part1_rv == reduce_max(list_take(input, max_pos))
+
+# Softmax part 2
+def softmax_part2_inv0(agg.result cur i input max_pos max_val)
+i >= 0 and i <= max_pos and agg.result == vec_map(vec_scalar_sub(max_val, list_take(input, i)), map_int_to_int)
+
+def softmax_part2_ps(input max_pos max_val softmax_part2_rv)
+softmax_part2_rv == vec_map(vec_scalar_sub(max_val, list_take(input, max_pos)), map_int_to_int)
+
+def map_int_to_int(int_x)
+test_exp(int_x)
+
+# Softmax part 3
+def softmax_part3_inv0(i max_pos output sum)
+i >= 0 and i <= max_pos and sum == reduce_sum(list_take(output, i))
+
+def softmax_part3_ps(output max_pos softmax_part3_rv)
+softmax_part3_rv == reduce_sum(list_take(output, max_pos))
+
+# Softmax part 4
+def softmax_part4_inv0(agg.result i max_pos ref.tmp sum unnormalized_output)
+i >= 0 and i <= max_pos and agg.result == vec_scalar_div(sum, list_take(unnormalized_output, i))
+
+def softmax_part4_ps(unnormalized_output max_pos sum softmax_part4_rv)
+softmax_part4_rv == vec_scalar_div(sum, list_take(unnormalized_output, max_pos))
+
+# matmul
+def matmul_inv0(agg.result col curr input row weight)
+row >= 0 and row <= list_length(weight) and agg.result == matrix_vec_mul(list_take(weight, row), input)
+
+def matmul_inv1(col curr input weight agg.result row)
+row >= 0 and row < list_length(weight) and col >= 0 and col <= list_length(input) and curr == reduce_sum(vec_elemwise_mul(list_take(list_get(weight, row), col), list_take(input, col))) and agg.result == matrix_vec_mul(list_take(weight, row), input)
+
+def matmul_ps(weight input matmul_rv)
+list_eq(matmul_rv, matrix_vec_mul(weight, input))
+
+# rmsnorm part 1
+def rmsnorm_part1_inv0(i input ss weight)
+i >= 0 and i <= list_length(input) and ss == reduce_sum(vec_elemwise_mul(list_take(input, i), list_take(input, i)))
+
+def rmsnorm_part1_ps(input weight rmsnorm_part1_rv)
+rmsnorm_part1_rv == reduce_sum(vec_elemwise_mul(input, input))
+
+# rmsnorm part 2
+def rmsnorm_part2_inv0(agg.result i input ref.tmp ss weight inv_ss)
+i >= 0 and i <= list_length(input) and agg.result == vec_scalar_mul((1 / test_sqrt(((ss / list_length(input)) + 1))), vec_elemwise_mul(list_take(input, i), list_take(weight, i)))
+
+def rmsnorm_part2_ps(input weight ss rmsnorm_part2_rv)
+rmsnorm_part2_rv == vec_scalar_mul((1 / test_sqrt(((ss / list_length(input)) + 1))), vec_elemwise_mul(input, weight))
+
+# Multiquery attention part 1
+def multiquery_attention_part1_inv0(agg.result head head_size i key_cache_layer q score timestep token_position)
+timestep >= 0 and timestep <= token_position and list_eq(agg.result, matrix_vec_mul(list_col_slice_with_length(list_take(key_cache_layer, timestep), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size)))
+
+def multiquery_attention_part1_inv1(head head_size i key_cache_layer q score token_position agg.result timestep)
+timestep >= 0 and timestep < token_position and i >= 0 and i <= head_size and score == reduce_sum(vec_elemwise_mul(list_slice_with_length(list_get(key_cache_layer, timestep), (head * head_size), i), list_slice_with_length(q, (head * head_size), i))) and list_eq(agg.result, matrix_vec_mul(list_col_slice_with_length(list_take(key_cache_layer, timestep), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size)))
+
+def multiquery_attention_part1_ps(token_position head head_size key_cache_layer q multiquery_attention_part1_rv)
+list_eq(multiquery_attention_part1_rv, matrix_vec_mul(list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size)))
+
+def map_int_to_int(int_x)
+test_exp(int_x)
+
+# Multiquery attention part 2
+def multiquery_attention_part2_inv0(agg.result attention curr head head_size i key_cache_layer timestep token_position)
+i >= 0 and i <= head_size and list_eq(agg.result, matrix_vec_mul(matrix_transpose(list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), i)), list_take(attention, token_position)))
+
+def multiquery_attention_part2_inv1(attention curr head head_size key_cache_layer timestep token_position agg.result i)
+i >= 0 and i < head_size and timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_get(matrix_transpose(list_col_slice(list_take(key_cache_layer, timestep), ((head * head_size) + i), (((head * head_size) + i) + 1))), 0), list_take(attention, timestep))) and list_eq(agg.result, matrix_vec_mul(matrix_transpose(list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), ((head * head_size) + i))), list_take(attention, token_position)))
+
+def multiquery_attention_part2_ps(token_position head head_size key_cache_layer attention multiquery_attention_part2_rv)
+list_eq(multiquery_attention_part2_rv, matrix_vec_mul(matrix_transpose(list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size)), list_take(attention, token_position)))
+
+# Multiquery attention part 3
+def silu_inv0(agg.result cons hidden_dim i input ref.tmp)
+i >= 0 and i <= hidden_dim and agg.result == vec_elemwise_mul(scalar_vec_div(1, vec_scalar_add(1, vec_map(list_take(input, i), map_int_to_int))), list_take(input, i))
+
+def silu_ps(input hidden_dim silu_rv)
+silu_rv == vec_elemwise_mul(scalar_vec_div(1, vec_scalar_add(1, vec_map(list_take(input, hidden_dim), map_int_to_int))), list_take(input, hidden_dim))
+
+def map_int_to_int(int_x)
+test_sqrt(int_x)
+
+# Multiquery attention part 4 (elemwise multiplication)
+def elemwise_mul_inv0(agg.result hidden_dim i input1 input2 ref.tmp)
+i >= 0 and i <= hidden_dim and agg.result == vec_elemwise_mul(list_take(input2, i), list_take(input1, i))
+
+
+def elemwise_mul_ps(input1 input2 hidden_dim elemwise_mul_rv)
+elemwise_mul_rv == vec_elemwise_mul(list_take(input2, hidden_dim), list_take(input1, hidden_dim))
