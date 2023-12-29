@@ -109,7 +109,7 @@ if __name__ == "__main__":
         fn_name="rmsnorm_part2",
         target_lang_fn=rmsnorm_part2_target_lang,
         inv_grammars={
-            "rmsnorm_part2_inv0": InvGrammar(rmsnorm_part2_inv0_grammar, ["inv_ss"]),
+            "rmsnorm_part2_inv0": InvGrammar(rmsnorm_part2_inv0_grammar, []),
         },
         ps_grammar=rmsnorm_part2_ps_grammar
     )
