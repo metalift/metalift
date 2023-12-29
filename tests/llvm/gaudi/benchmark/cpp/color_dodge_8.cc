@@ -2,13 +2,10 @@
 #include <vector>
 #include <chrono>
 
-#include "random.h"
+#include "utils.h"
 
 using namespace std;
 using namespace std::chrono;
-
-vector<vector<float>> a = random_matrix();
-vector<vector<float>> b = random_matrix();
 
 vector<vector<float>> color_dodge_8(vector<vector<float>> base, vector<vector<float>> active) {
     vector<vector<float>> out;
@@ -31,10 +28,6 @@ vector<vector<float>> color_dodge_8(vector<vector<float>> base, vector<vector<fl
 
 
 int main() {
-    auto start_time = high_resolution_clock::now();
-    color_dodge_8(a, b);
-    auto end_time = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(end_time - start_time);
-
-    cout << "Execution Time: " << duration.count() << " microseconds" << endl;
+    mat_timer(&color_dodge_8);
+    return 0;
 }
