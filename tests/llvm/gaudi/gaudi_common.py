@@ -2198,3 +2198,39 @@ def get_map_int_to_int_synth(
         choose(*bodies),
         int_x
     )
+
+# Some **general** helper functions to get loop bounds.
+outer_loop_left_bound_fn_name = "OUTER_LOOP_LEFT_BOUND"
+outer_loop_right_bound_fn_name = "OUTER_LOOP_RIGHT_BOUND"
+# def get_loop_bound_fn(
+#     fn_name: str,
+#     loop_fn_args: List[Int],
+# ) -> Tuple[FnDecl, Synth]:
+#     loop_bound_fn_decl = fn_decl(fn_name, Int, None, *loop_fn_args)
+#     loop_bound_fn_synth = synth(
+#         fn_name,
+#         choose(*loop_fn_args, *constants),
+#         *loop_fn_args
+#     )
+#     return loop_bound_fn_decl, loop_bound_fn_synth
+
+def get_loop_lower_bound_fn(
+    lower_bound_fn_name: str,
+    left_bound_fn_name: str,
+    right_bound_fn_name: str,
+    left_bound_smaller_fn_name: str,
+    loop_fn_args: List[Int]
+) -> Tuple[FnDecl, Synth]:
+    left_bound = call(left_bound_fn_name, Int, *loop_fn_args)
+    right_bound = call(right_bound_fn_name, Int, *loop_fn_args)
+    is_left_bound_smaller = call(left_bound_smaller_fn_name, Bool)
+    lower_bound_fn_decl = fn_decl(lower_bound_fn_name, Int, None, *loop_fn_args)
+    lower_bound_fn_synth = synth(
+
+    )
+
+
+def get_no_arg_bool_fn(fn_name: str) -> Tuple[FnDecl, Synth]:
+    bool_fn_decl = fn_decl(fn_name, Bool, None)
+    bool_fn_synth = synth(fn_name, choose(Bool(True), Bool(False)))
+    return bool_fn_decl, bool_fn_synth

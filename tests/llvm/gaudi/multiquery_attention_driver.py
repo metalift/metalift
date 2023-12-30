@@ -498,6 +498,30 @@ def is_vector_outer_loop_index() -> Bool:
 
 # Arguments to all loop functions
 loop_fn_args = [token_position_var, head_var, head_size_var]
+outer_loop_left_bound_smaller_fn_name = "OUTER_LOOP_LEFT_BOUND_SMALLER"
+outer_loop_left_bound_smaller_fn_decl = fn_decl(
+    outer_loop_left_bound_smaller_fn_name,
+    Bool,
+    None
+)
+outer_loop_left_bound_smaller_fn_synth = synth(
+    outer_loop_left_bound_smaller_fn_name,
+    choose(Bool(True), Bool(False))
+)
+inner_loop_left_bound_smaller_fn_name = "INNER_LOOP_LEFT_BOUND_SMALLER"
+inner_loop_left_bound_smaller_fn_decl = fn_decl(
+    inner_loop_left_bound_smaller_fn_name,
+    Bool,
+    None
+)
+inner_loop_left_bound_smaller_fn_synth = synth(
+    inner_loop_left_bound_smaller_fn_name,
+    choose(Bool(True), Bool(False))
+)
+def is_outer_loop_left_bound_smaller() -> Bool:
+    return call(outer_loop_left_bound_smaller_fn_name, Bool)
+def is_inner_loop_left_bound_smaller() -> Bool:
+    return call(inner_loop_left_bound_smaller_fn_name, Bool)
 
 outer_loop_left_bound_fn_name = "OUTER_LOOP_LEFT_BOUND"
 outer_loop_left_bound_fn_decl = fn_decl(
@@ -508,7 +532,7 @@ outer_loop_left_bound_fn_decl = fn_decl(
 )
 outer_loop_left_bound_fn_synth = synth(
     outer_loop_left_bound_fn_name,
-    choose(token_position_var, head_size_var, head_var, Int(0)),
+    choose(Int(0)),
     *loop_fn_args
 )
 
@@ -534,7 +558,7 @@ inner_loop_left_bound_fn_decl = fn_decl(
 )
 inner_loop_left_bound_fn_synth = synth(
     inner_loop_left_bound_fn_name,
-    choose(token_position_var, head_size_var, head_var, Int(0)),
+    Int(0),
     *loop_fn_args
 )
 
@@ -562,33 +586,6 @@ def get_inner_loop_left_bound(token_position: Int, head: Int, head_size: Int) ->
 
 def get_inner_loop_right_bound(token_position: Int, head: Int, head_size: Int) -> Int:
     return call(inner_loop_right_bound_fn_name, Int, token_position, head, head_size)
-
-outer_loop_left_bound_smaller_fn_name = "OUTER_LOOP_LEFT_BOUND_SMALLER"
-outer_loop_left_bound_smaller_fn_decl = fn_decl(
-    outer_loop_left_bound_smaller_fn_name,
-    Bool,
-    None
-)
-outer_loop_left_bound_smaller_fn_synth = synth(
-    outer_loop_left_bound_smaller_fn_name,
-    choose(Bool(True), Bool(False))
-)
-inner_loop_left_bound_smaller_fn_name = "INNER_LOOP_LEFT_BOUND_SMALLER"
-inner_loop_left_bound_smaller_fn_decl = fn_decl(
-    inner_loop_left_bound_smaller_fn_name,
-    Bool,
-    None
-)
-inner_loop_left_bound_smaller_fn_synth = synth(
-    inner_loop_left_bound_smaller_fn_name,
-    choose(Bool(True), Bool(False))
-)
-
-def is_outer_loop_left_bound_smaller() -> Bool:
-    return call(outer_loop_left_bound_smaller_fn_name, Bool)
-
-def is_inner_loop_left_bound_smaller() -> Bool:
-    return call(inner_loop_left_bound_smaller_fn_name, Bool)
 
 def get_lower_bound_fn_body(is_left_bound_smaller: Bool, left_bound: Int, right_bound: Int) -> Int:
     return ite(
@@ -650,7 +647,7 @@ outer_loop_upper_bound_fn_synth = synth(
 )
 
 # inner loop lower bound function
-inner_loop_lower_bound_fn_name = "inner_LOOP_LOWER_BOUND"
+inner_loop_lower_bound_fn_name = "INNER_LOOP_LOWER_BOUND"
 inner_loop_lower_bound_fn_decl = fn_decl(
     inner_loop_lower_bound_fn_name,
     Int,
