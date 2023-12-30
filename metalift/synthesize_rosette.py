@@ -414,7 +414,7 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str = "cvc5",
-    uid: int = 2,
+    uid: int = 3,
     noVerify: bool = False,
     unboundedInts: bool = False,
     optimize_vc_equality: bool = False,
