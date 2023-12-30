@@ -7,24 +7,6 @@ from metalift.ir import Object, choose
 from metalift.vc_util import and_objects, or_objects
 from tests.llvm.gaudi.gaudi_common import call_exp, call_map_int_to_int, call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_div, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, map_int_to_int_fn_obj, vec_map, map_int_to_int, exp, vec_scalar_mul, vec_to_vec, vec_to_int
 
-# Define some helper functions
-def get_lower_and_upper_bounds(is_left_bound_smaller: bool, left_bound: Int, right_bound: Int) -> Tuple[Int, Int]:
-    lower_bound = ite(
-        is_left_bound_smaller,
-        left_bound,
-        # (for i = {var}; i > {var}; i--): right_bound + 1
-        # (for i = {var}; i >= {var}; i--): right_bound
-        choose(right_bound, right_bound + 1)
-    )
-    upper_bound = ite(
-        is_left_bound_smaller,
-        # (for i = {var}; i < {var}; i++): right_bound - 1
-        # (for i = {var}; i <= {var}; i++): right_bound
-        choose(right_bound - 1, right_bound),
-        left_bound
-    ) + 1 # We add 1 here because the upper bound is exclusive
-    return lower_bound, upper_bound
-
 # Define some helper functions for synthesizing int vars
 def get_composed_int_var(int_vars: List[Int]) -> Int:
     return choose(*get_composed_combs(int_vars))
@@ -198,11 +180,13 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     # More constrained grammar
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
+
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_left_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_right_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_left_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_right_bound(token_position, head, head_size)
+    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
+    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
+    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
+    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
+
     matrix = ite(
         is_matrix_outer_loop_index_first(),
         key_cache_layer[outer_loop_lower_bound:i].col_slice(
@@ -277,10 +261,11 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     #     )
     # )
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_left_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_right_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_left_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_right_bound(token_position, head, head_size)
+    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
+    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
+    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
+    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
+
     outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
         key_cache_layer[outer_loop_lower_bound:i]
@@ -391,21 +376,10 @@ def multiquery_attention_part2_ps_grammar(writes: List[Object], reads: List[Obje
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
     composed_int_var = call_composed_index_fn(token_position, head, head_size)
-    outer_loop_left_bound = get_outer_loop_left_bound(token_position, head, head_size)
-    outer_loop_right_bound = get_outer_loop_right_bound(token_position, head, head_size)
-    inner_loop_left_bound = get_inner_loop_left_bound(token_position, head, head_size)
-    inner_loop_right_bound = get_inner_loop_right_bound(token_position, head, head_size)
-
-    outer_loop_lower_bound, outer_loop_upper_bound = get_lower_and_upper_bounds(
-        is_outer_loop_left_bound_smaller(),
-        outer_loop_left_bound,
-        outer_loop_right_bound
-    )
-    inner_loop_lower_bound, inner_loop_upper_bound = get_lower_and_upper_bounds(
-        is_inner_loop_left_bound_smaller(),
-        inner_loop_left_bound,
-        inner_loop_right_bound
-    )
+    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
+    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
+    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
+    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
 
     matrix = ite(
         is_matrix_outer_loop_index_first(),
@@ -522,23 +496,20 @@ def is_matrix_outer_loop_index_first() -> Bool:
 def is_vector_outer_loop_index() -> Bool:
     return call(vector_outer_loop_index_fn_name, Bool)
 
+# Arguments to all loop functions
+loop_fn_args = [token_position_var, head_var, head_size_var]
 
 outer_loop_left_bound_fn_name = "OUTER_LOOP_LEFT_BOUND"
 outer_loop_left_bound_fn_decl = fn_decl(
     outer_loop_left_bound_fn_name,
     Int,
     None,
-    token_position_var,
-    head_var,
-    head_size_var
+    *loop_fn_args
 )
 outer_loop_left_bound_fn_synth = synth(
     outer_loop_left_bound_fn_name,
-    Int(0),
-    # choose(token_position_var, head_size_var, head_var, Int(0)),
-    token_position_var,
-    head_var,
-    head_size_var
+    choose(token_position_var, head_size_var, head_var, Int(0)),
+    *loop_fn_args
 )
 
 outer_loop_right_bound_fn_name = "OUTER_LOOP_RIGHT_BOUND"
@@ -546,17 +517,12 @@ outer_loop_right_bound_fn_decl = fn_decl(
     outer_loop_right_bound_fn_name,
     Int,
     None,
-    token_position_var,
-    head_var,
-    head_size_var
+    *loop_fn_args
 )
 outer_loop_right_bound_fn_synth = synth(
     outer_loop_right_bound_fn_name,
-    head_size_var,
-    # choose(token_position_var, head_size_var, head_var),
-    token_position_var,
-    head_var,
-    head_size_var
+    choose(token_position_var, head_size_var, head_var),
+    *loop_fn_args
 )
 
 inner_loop_left_bound_fn_name = "INNER_LOOP_LEFT_BOUND"
@@ -564,17 +530,12 @@ inner_loop_left_bound_fn_decl = fn_decl(
     inner_loop_left_bound_fn_name,
     Int,
     None,
-    token_position_var,
-    head_var,
-    head_size_var
+    *loop_fn_args
 )
 inner_loop_left_bound_fn_synth = synth(
     inner_loop_left_bound_fn_name,
-    Int(0),
-    # choose(token_position_var, head_size_var, head_var, Int(0)),
-    token_position_var,
-    head_var,
-    head_size_var
+    choose(token_position_var, head_size_var, head_var, Int(0)),
+    *loop_fn_args
 )
 
 inner_loop_right_bound_fn_name = "INNER_LOOP_RIGHT_BOUND"
@@ -582,17 +543,12 @@ inner_loop_right_bound_fn_decl = fn_decl(
     inner_loop_right_bound_fn_name,
     Int,
     None,
-    token_position_var,
-    head_var,
-    head_size_var
+    *loop_fn_args
 )
 inner_loop_right_bound_fn_synth = synth(
     inner_loop_right_bound_fn_name,
-    token_position_var,
-    # choose(token_position_var, head_size_var, head_var),
-    token_position_var,
-    head_var,
-    head_size_var
+    choose(token_position_var, head_size_var, head_var),
+    *loop_fn_args
 )
 
 def get_outer_loop_left_bound(token_position: Int, head: Int, head_size: Int) -> Int:
@@ -615,8 +571,7 @@ outer_loop_left_bound_smaller_fn_decl = fn_decl(
 )
 outer_loop_left_bound_smaller_fn_synth = synth(
     outer_loop_left_bound_smaller_fn_name,
-    Bool(True)
-    # choose(Bool(True), Bool(False))
+    choose(Bool(True), Bool(False))
 )
 inner_loop_left_bound_smaller_fn_name = "INNER_LOOP_LEFT_BOUND_SMALLER"
 inner_loop_left_bound_smaller_fn_decl = fn_decl(
@@ -626,8 +581,7 @@ inner_loop_left_bound_smaller_fn_decl = fn_decl(
 )
 inner_loop_left_bound_smaller_fn_synth = synth(
     inner_loop_left_bound_smaller_fn_name,
-    Bool(True)
-    # choose(Bool(True), Bool(False))
+    choose(Bool(True), Bool(False))
 )
 
 def is_outer_loop_left_bound_smaller() -> Bool:
@@ -635,6 +589,112 @@ def is_outer_loop_left_bound_smaller() -> Bool:
 
 def is_inner_loop_left_bound_smaller() -> Bool:
     return call(inner_loop_left_bound_smaller_fn_name, Bool)
+
+def get_lower_bound_fn_body(is_left_bound_smaller: Bool, left_bound: Int, right_bound: Int) -> Int:
+    return ite(
+        is_left_bound_smaller,
+        left_bound,
+        # (for i = {var}; i > {var}; i--): right_bound + 1
+        # (for i = {var}; i >= {var}; i--): right_bound
+        choose(right_bound, right_bound + 1)
+    )
+
+def get_upper_bound_fn_body(is_left_bound_smaller: Bool, left_bound: Int, right_bound: Int) -> Int:
+    return ite(
+        is_left_bound_smaller,
+        # (for i = {var}; i < {var}; i++): right_bound - 1
+        # (for i = {var}; i <= {var}; i++): right_bound
+        choose(right_bound - 1, right_bound),
+        left_bound
+    ) + 1 # We add 1 here because the upper bound is exclusive
+
+# Define some helper variables
+outer_loop_left_bound = get_outer_loop_left_bound(*loop_fn_args)
+outer_loop_right_bound = get_outer_loop_right_bound(*loop_fn_args)
+inner_loop_left_bound = get_inner_loop_left_bound(*loop_fn_args)
+inner_loop_right_bound = get_inner_loop_right_bound(*loop_fn_args)
+
+# Outer loop lower bound function
+outer_loop_lower_bound_fn_name = "OUTER_LOOP_LOWER_BOUND"
+outer_loop_lower_bound_fn_decl = fn_decl(
+    outer_loop_lower_bound_fn_name,
+    Int,
+    None,
+    *loop_fn_args
+)
+outer_loop_lower_bound_fn_synth = synth(
+    outer_loop_lower_bound_fn_name,
+    get_lower_bound_fn_body(
+        is_outer_loop_left_bound_smaller(),
+        outer_loop_left_bound,
+        outer_loop_right_bound
+    ),
+    *loop_fn_args
+)
+# Outer loop upper bound function
+outer_loop_upper_bound_fn_name = "OUTER_LOOP_UPPER_BOUND"
+outer_loop_upper_bound_fn_decl = fn_decl(
+    outer_loop_upper_bound_fn_name,
+    Int,
+    None,
+    *loop_fn_args
+)
+outer_loop_upper_bound_fn_synth = synth(
+    outer_loop_upper_bound_fn_name,
+    get_upper_bound_fn_body(
+        is_outer_loop_left_bound_smaller(),
+        outer_loop_left_bound,
+        outer_loop_right_bound
+    ),
+    *loop_fn_args
+)
+
+# inner loop lower bound function
+inner_loop_lower_bound_fn_name = "inner_LOOP_LOWER_BOUND"
+inner_loop_lower_bound_fn_decl = fn_decl(
+    inner_loop_lower_bound_fn_name,
+    Int,
+    None,
+    *loop_fn_args
+)
+inner_loop_lower_bound_fn_synth = synth(
+    inner_loop_lower_bound_fn_name,
+    get_lower_bound_fn_body(
+        is_inner_loop_left_bound_smaller(),
+        inner_loop_left_bound,
+        inner_loop_right_bound
+    ),
+    *loop_fn_args
+)
+# inner loop upper bound function
+inner_loop_upper_bound_fn_name = "INNER_LOOP_UPPER_BOUND"
+inner_loop_upper_bound_fn_decl = fn_decl(
+    inner_loop_upper_bound_fn_name,
+    Int,
+    None,
+    *loop_fn_args
+)
+inner_loop_upper_bound_fn_synth = synth(
+    inner_loop_upper_bound_fn_name,
+    get_upper_bound_fn_body(
+        is_inner_loop_left_bound_smaller(),
+        inner_loop_left_bound,
+        inner_loop_right_bound
+    ),
+    *loop_fn_args
+)
+def get_outer_loop_lower_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(outer_loop_lower_bound_fn_name, Int, token_position, head, head_size)
+
+def get_outer_loop_upper_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(outer_loop_upper_bound_fn_name, Int, token_position, head, head_size)
+
+def get_inner_loop_lower_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(inner_loop_lower_bound_fn_name, Int, token_position, head, head_size)
+
+def get_inner_loop_upper_bound(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(inner_loop_upper_bound_fn_name, Int, token_position, head, head_size)
+
 
 def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -650,7 +710,11 @@ def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursi
         inner_loop_left_bound_fn_decl,
         inner_loop_right_bound_fn_decl,
         outer_loop_left_bound_smaller_fn_decl,
-        inner_loop_left_bound_smaller_fn_decl
+        inner_loop_left_bound_smaller_fn_decl,
+        outer_loop_lower_bound_fn_decl,
+        outer_loop_upper_bound_fn_decl,
+        inner_loop_lower_bound_fn_decl,
+        inner_loop_upper_bound_fn_decl
     ]
 
 
@@ -747,7 +811,11 @@ if __name__ == "__main__":
         inner_loop_left_bound_fn_synth,
         inner_loop_right_bound_fn_synth,
         outer_loop_left_bound_smaller_fn_synth,
-        inner_loop_left_bound_smaller_fn_synth
+        inner_loop_left_bound_smaller_fn_synth,
+        outer_loop_lower_bound_fn_synth,
+        outer_loop_upper_bound_fn_synth,
+        inner_loop_lower_bound_fn_synth,
+        inner_loop_upper_bound_fn_synth
     ]
     multiquery_attention_part2(
         token_position_var,
