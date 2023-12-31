@@ -1,12 +1,10 @@
 !shell.nix
 .DS_Store
 *.pyc
+*.ll
+*.loops
 llvm-pass/build/
 synthesisLogs/
-tests/*.ll
-tests/*.loops
-crdt_tests/*.ll
-crdt_tests/*.loops
 tests/struct1.rkt
 tests/struct1.smt
 tests/uninterp.rkt
@@ -19,5 +17,3 @@ rosette-packages/
 nixos.qcow2
 .vscode/
 .venv/
-*.ll
-*.loops
