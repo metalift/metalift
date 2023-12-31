@@ -9,7 +9,7 @@ vector<vector<int>> multiply_blend_8(vector<vector<int>> base, vector<vector<int
 	for (int row = 0; row < m; row++) {
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
-            int pixel = (base[row][col] * active[row][col]) / 255;
+            int pixel = (base[row][col] * active[row][col]) / 32;
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);

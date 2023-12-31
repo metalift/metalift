@@ -8,7 +8,7 @@ from tests.llvm.gaudi.gaudi_common import (
     get_matrix_computation_hole_inv1_grammar,
     get_matrix_computation_hole_ps_grammar,
     get_multi_depth_compute_with_counts_general_synth,
-    screen8x8_hole_body,
+    screen_blend_8_hole_body,
     matrix_computation_target_lang
 )
 from tests.python.utils.utils import codegen
@@ -28,9 +28,9 @@ if __name__ == "__main__":
         depth=3
     )
     constants = [Int(32)]
-    inv0_hole_grammar = get_matrix_computation_hole_inv0_grammar(constants, screen8x8_hole_body)
-    inv1_hole_grammar = get_matrix_computation_hole_inv1_grammar(constants, screen8x8_hole_body)
-    ps_hole_grammar = get_matrix_computation_hole_ps_grammar(constants, screen8x8_hole_body)
+    inv0_hole_grammar = get_matrix_computation_hole_inv0_grammar(constants, screen_blend_8_hole_body)
+    inv1_hole_grammar = get_matrix_computation_hole_inv1_grammar(constants, screen_blend_8_hole_body)
+    ps_hole_grammar = get_matrix_computation_hole_ps_grammar(constants, screen_blend_8_hole_body)
     screen_blend_8 = driver.analyze(
         llvm_filepath="tests/llvm/gaudi/screen_blend_8.ll",
         loops_filepath="tests/llvm/gaudi/screen_blend_8.loops",

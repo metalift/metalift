@@ -570,7 +570,14 @@ def matrix_linear_burn_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Mat
     )
 
 # Helper functions for compute benchmarks using the holing approach
-def screen8x8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def multiply_blend_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+    cons = choose(Int(32))
+    return call_scalar_div(
+        cons,
+        call_elemwise_mul(matrix_or_vec, matrix_or_vec)
+    )
+
+def screen_blend_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
     cons = choose(Int(32))
     return call_elemwise_sub(
         call_elemwise_add(matrix_or_vec, matrix_or_vec),
@@ -1189,6 +1196,14 @@ scalar_vec_to_vec_target_lang = [
     scalar_vec_sub,
     scalar_vec_div
 ]
+scalar_matrix_to_matrix_target_lang = [
+    matrix_scalar_add,
+    matrix_scalar_sub,
+    matrix_scalar_mul,
+    matrix_scalar_div,
+    scalar_matrix_sub,
+    scalar_matrix_div
+]
 vec_to_int_target_lang = [
     reduce_max,
     reduce_sum,
@@ -1242,35 +1257,128 @@ def get_matrix_computation_hole_inv0_grammar(hole_body: Callable[[MatrixOrVecT],
         )
     return InvGrammar(inv0_grammar_fn, [])
 
-def get_matrix_computation_hole_inv1_grammar(hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]) -> InvGrammar:
+def get_matrix_computation_holing_search_space(
+    hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth]
+]:
+    # Get loop index functions
+    row_var = Int("row")
+    col_var = Int("col")
+    pixel_var = Int("pixel")
+    outer_loop_index_fn_decl, outer_loop_index_synth, get_outer_loop_index = get_loop_index_fn(
+        loop_fn_args=[row_var, col_var, pixel_var],
+        prefix="OUTER_LOOP"
+    )
+    inner_loop_index_fn_decl, inner_loop_index_synth, get_inner_loop_index = get_loop_index_fn(
+        loop_fn_args=[row_var, col_var, pixel_var],
+        prefix="INNER_LOOP"
+    )
+    base_outer_loop_index_first_fn_name = "BASE_OUTER_LOOP_INDEX_FIRST"
+    base_outer_loop_index_first_fn_decl, base_outer_loop_index_first_synth = get_no_arg_bool_fn(base_outer_loop_index_first_fn_name)
+    is_base_outer_loop_index_first = call(base_outer_loop_index_first_fn_name, Bool)
+
+    active_outer_loop_index_first_fn_name = "ACTIVE_OUTER_LOOP_INDEX_FIRST"
+    active_outer_loop_index_first_fn_decl, active_outer_loop_index_first_synth = get_no_arg_bool_fn(active_outer_loop_index_first_fn_name)
+    is_active_outer_loop_index_first = call(active_outer_loop_index_first_fn_name, Bool)
+
+    # Target language
+    def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+        return [
+            outer_loop_index_fn_decl,
+            inner_loop_index_fn_decl,
+            base_outer_loop_index_first_fn_decl,
+            active_outer_loop_index_first_fn_decl,
+            *scalar_vec_to_vec_target_lang,
+            *scalar_matrix_to_matrix_target_lang,
+            *vec_vec_to_vec_target_lang,
+            *matrix_matrix_to_matrix_target_lang
+        ]
+
+    fns_synths = [
+        outer_loop_index_synth,
+        inner_loop_index_synth,
+        base_outer_loop_index_first_synth,
+        active_outer_loop_index_first_synth
+    ]
+
+    # inv0 grammar
+    def inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        int_vars = [row, col, pixel]
+        outer_loop_index = get_outer_loop_index(*int_vars)
+        inner_loop_index = get_inner_loop_index(*int_vars)
+        matrix = choose(
+            ite(
+                is_base_outer_loop_index_first,
+                base[:outer_loop_index],
+                base[:inner_loop_index]
+            ),
+            ite(
+                is_active_outer_loop_index_first,
+                active[:outer_loop_index],
+                active[:inner_loop_index]
+            )
+        )
+        return and_objects(
+            outer_loop_index >= 0,
+            outer_loop_index <= base.len(),
+            out == hole_body(matrix)
+        )
+
     def inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        # inner loop grammar
         col, pixel, row_vec = writes
         out, row = in_scope
         base, active = reads
-        index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(base.len(), base[0].len(), active.len(), active[0].len())
-        vec = choose(base[row][:col], active[row][:col])
-        matrix = choose(base[:row], active[:row], base[:col], active[:col])
-        return and_objects(
-            row >= index_lower_bound,
-            row < index_upper_bound,
-            col >= index_lower_bound,
-            col <= index_upper_bound,
-            row_vec == hole_body(vec),
-            out == hole_body(matrix)
+        int_vars = [row, col, pixel]
+        outer_loop_index = get_outer_loop_index(*int_vars)
+        inner_loop_index = get_inner_loop_index(*int_vars)
+        outer_loop_matrix = choose(
+            ite(
+                is_base_outer_loop_index_first,
+                base[:outer_loop_index],
+                base[:inner_loop_index]
+            ),
+            ite(
+                is_active_outer_loop_index_first,
+                active[:outer_loop_index],
+                active[:inner_loop_index]
+            )
         )
-    return InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+        inner_loop_vec = choose(
+            ite(
+                is_base_outer_loop_index_first,
+                base[outer_loop_index][:inner_loop_index],
+                base[:inner_loop_index].col_vec(outer_loop_index)
+            ),
+            ite(
+                is_active_outer_loop_index_first,
+                active[outer_loop_index][:inner_loop_index],
+                active[:inner_loop_index].col_vec(outer_loop_index)
+            )
+        )
+        return and_objects(
+            outer_loop_index >= 0,
+            outer_loop_index < base.len(),
+            inner_loop_index >= 0,
+            inner_loop_index <= base[0].len(),
+            row_vec == hole_body(inner_loop_vec),
+            out == hole_body(outer_loop_matrix)
+        )
 
-def get_matrix_computation_hole_ps_grammar(
-    constants: List[Int],
-    hole_body: Callable[[List[MatrixOrVecT], List[Int]], MatrixOrVecT]
-) -> InvGrammar:
     def ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         ret_val = writes[0]
         base, active = reads
         return ret_val == hole_body(choose(base, active))
-    return ps_grammar_fn
+
+    inv0_grammar = InvGrammar(inv0_grammar_fn, [])
+    inv1_grammar = InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+    return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
 
 
 def get_matrix_computation_inv0_grammar(
@@ -2218,21 +2326,51 @@ def get_upper_bound_fn_body(is_left_bound_smaller: Bool, left_bound: Int, right_
         left_bound
     ) + 1 # We add 1 here because the upper bound is exclusive
 
+def get_loop_index_fn(
+    loop_fn_args: List[Int],
+    prefix: str = "OUTER_LOOP"
+) -> Tuple[FnDecl, Synth, Callable]:
+    index_fn_name = f"{prefix}_INDEX"
+    index_fn_decl = fn_decl(
+        index_fn_name,
+        Int,
+        None,
+        *loop_fn_args
+    )
+    index_synth = synth(
+        index_fn_name,
+        choose(*loop_fn_args),
+        *loop_fn_args
+    )
+    def get_loop_index(*args: Int) -> Int:
+        return call(index_fn_name, Int, *args)
+
+    return index_fn_decl, index_synth, get_loop_index
+
 def get_loop_bound_fns(
     loop_fn_args: List[Int],
     left_bound_choices: List[Int],
     right_bound_choices: List[Int],
     prefix: str = "OUTER_LOOP"
-):
+) -> Tuple[
+    List[FnDecl],
+    List[Synth],
+    Callable,
+    Callable
+]:
     # TODO(jie): add return type
     if prefix not in {"OUTER_LOOP", "INNER_LOOP"}:
         raise Exception("Prefix must be one of OUTER_LOOP and INNER_LOOP")
+
+    index_fn_decl, index_synth, get_index = get_loop_index_fn(loop_fn_args, prefix)
+
+    is_left_bound_smaller_fn_name = f"{prefix}_IS_LEFT_BOUND_SMALLER"
+    is_left_bound_smaller_fn_decl, is_left_bound_smaller_synth = get_no_arg_bool_fn(is_left_bound_smaller_fn_name)
+
     left_bound_fn_name = f"{prefix}_LEFT_BOUND"
     right_bound_fn_name = f"{prefix}_RIGHT_BOUND"
     lower_bound_fn_name = f"{prefix}_LOWER_BOUND"
     upper_bound_fn_name = f"{prefix}_UPPER_BOUND"
-    is_left_bound_smaller_fn_name = f"{prefix}_IS_LEFT_BOUND_SMALLER"
-    is_left_bound_smaller_fn_decl, is_left_bound_smaller_synth = get_no_arg_bool_fn(is_left_bound_smaller_fn_name)
 
     left_bound_fn_decl = fn_decl(
         left_bound_fn_name,
@@ -2292,6 +2430,7 @@ def get_loop_bound_fns(
         return call(upper_bound_fn_name, Int, *args)
 
     all_decls = [
+        index_fn_decl,
         is_left_bound_smaller_fn_decl,
         left_bound_fn_decl,
         right_bound_fn_decl,
@@ -2299,13 +2438,14 @@ def get_loop_bound_fns(
         upper_bound_fn_decl
     ]
     all_synths = [
+        index_synth,
         is_left_bound_smaller_synth,
         left_bound_synth,
         right_bound_synth,
         lower_bound_synth,
         upper_bound_synth
     ]
-    return all_decls, all_synths, get_lower_bound, get_upper_bound
+    return all_decls, all_synths, get_lower_bound, get_upper_bound, get_index
 
 def get_no_arg_bool_fn(fn_name: str) -> Tuple[FnDecl, Synth]:
     bool_fn_decl = fn_decl(fn_name, Bool, None)
