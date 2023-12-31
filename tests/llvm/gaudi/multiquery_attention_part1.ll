@@ -36,7 +36,7 @@ target triple = "x86_64-apple-macosx12.0.0"
 @_ZTVSt12length_error = external unnamed_addr constant { [5 x i8*] }, align 8
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
-define i32 @_Z8test_expi(i32 %x) #0 {
+define i32 @_Z11integer_expi(i32 %x) #0 {
 entry:
   %x.addr = alloca i32, align 4
   store i32 %x, i32* %x.addr, align 4

@@ -272,3 +272,16 @@
     (list-list-prepend (firsts matrix) (matrix-transpose-noerr (rests matrix)))
   )
 )
+
+(define (integer-sqrt n)
+  (define (sqrt-helper guess)
+    (if (or (= guess 0) (= guess 1) (> guess 64 ))
+        1
+        (if (= guess (quotient n guess))
+            guess
+            (sqrt-helper (quotient (+ guess (quotient n guess)) 2)))))
+  (sqrt-helper (quotient n 2)))
+
+(define (integer-exp n)
+  (if (<= n 0) (1) (integer-exp (n - 1)))
+)

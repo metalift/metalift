@@ -359,6 +359,18 @@ class Expr:
         )
 
     @staticmethod
+    def get_integer_fn(expr: Union["Call", "CallValue"]) -> Optional[str]:
+        if isinstance(expr, Call):
+            fn_name = expr.name()
+        else:
+            fn_name = expr.value()  # type: ignore
+        if fn_name == "integer_sqrt":
+            return "integer-sqrt"
+        elif fn_name == "integer_exp":
+            return "integer-exp"
+        raise Exception(f"Unsupported integer function {fn_name}")
+
+    @staticmethod
     def get_list_fn(expr: Union["Call", "CallValue"]) -> Optional[str]:
         if isinstance(expr, Call):
             fn_name = expr.name()
@@ -2046,8 +2058,13 @@ class Call(Expr):
                     callStr += a.toRosette() + " "
                 callStr += ")"
                 return callStr
-            elif isinstance(self.args[0], str) and (self.args[0].startswith("list") or self.args[0].startswith("matrix")):
-                callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
+            elif isinstance(self.args[0], str) and (self.args[0].startswith("list") or self.args[0].startswith("matrix") or self.args[0].startswith("integer")):
+                if self.args[0].startswith("list") or self.args[0].startswith("matrix"):
+                    callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
+                elif self.args[0].startswith("integer"):
+                    callStr = f"({Expr.get_integer_fn(self) or self.args[0]})"
+                else:
+                    raise Exception(f"Cannot parse call expr {self} into Rosette!")
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
