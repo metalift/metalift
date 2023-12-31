@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-int test_exp(int x) { return x; }
+int integer_exp(int x) { return x; }
 
 vector<int> multiquery_attention_part1(
     int token_position,
@@ -16,7 +16,7 @@ vector<int> multiquery_attention_part1(
         for (int i = 0; i < head_size; ++i) {
             score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + i];
         }
-        // score = score / test_exp(score * 1);
+        // score = score / integer_exp(score * 1);
         attention.push_back(score);
     }
     return attention;
@@ -25,4 +25,4 @@ vector<int> multiquery_attention_part1(
 // list_eq(multiquery_attention_part1_rv, matrix_vec_mul(list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size)))
 
 // def map_int_to_int(int_x)
-// test_exp(int_x)
+// integer_exp(int_x)

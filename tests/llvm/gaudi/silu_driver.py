@@ -5,7 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (call_exp, call_scalar_vec_div, call_sqrt,
+from tests.llvm.gaudi.gaudi_common import (call_integer_exp, call_scalar_vec_div, call_integer_sqrt,
                                            call_vec_elemwise_mul, call_vec_map,
                                            call_vec_scalar_add,
                                            get_map_int_to_int_synth,
@@ -70,6 +70,6 @@ if __name__ == "__main__":
 
     silu(input_var, hidden_dim_var, uninterp_fns=[sqrt.name()])
     int_x = Int("int_x")
-    map_int_to_int_synth = get_map_int_to_int_synth([call_sqrt(int_x)])
+    map_int_to_int_synth = get_map_int_to_int_synth([call_integer_sqrt(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
     driver.synthesize(noVerify=True)

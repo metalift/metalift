@@ -232,6 +232,20 @@ def toExpr(
                 matrix_expr.type,
                 matrix_expr
             )
+        elif ast[0] == "integer-sqrt":
+            int_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "integer_sqrt",
+                Int,
+                int_expr
+            )
+        elif ast[0] == "integer-exp":
+            int_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "integer_exp",
+                Int,
+                int_expr
+            )
         elif ast[0] == "make-tuple":
             arg_eval = []
             for alen in range(1, len(ast)):
