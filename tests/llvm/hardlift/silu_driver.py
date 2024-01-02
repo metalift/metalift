@@ -5,7 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.gaudi.gaudi_common import (call_integer_exp, call_scalar_vec_div, call_integer_sqrt,
+from tests.llvm.hardlift.hardlift_common import (call_integer_exp, call_scalar_vec_div, call_integer_sqrt,
                                            call_vec_elemwise_mul, call_vec_map,
                                            call_vec_scalar_add,
                                            get_map_int_to_int_synth,

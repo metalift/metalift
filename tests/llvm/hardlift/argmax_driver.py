@@ -5,7 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Object, fn_decl_recu
 from metalift.vc_util import and_objects
 from metalift.ir import Int, List as mlList
 from collections import defaultdict
-# from tests.llvm.gaudi.gaudi_common import ()
+# from tests.llvm.hardlift.hardlift_common import ()
 from typing import List, Union
 from tests.python.utils.utils import codegen
 

@@ -3,7 +3,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.gaudi.gaudi_common import (
+from tests.llvm.hardlift.hardlift_common import (
     get_matrix_computation_hole_inv0_grammar,
     get_matrix_computation_hole_inv1_grammar,
     get_matrix_computation_hole_ps_grammar,

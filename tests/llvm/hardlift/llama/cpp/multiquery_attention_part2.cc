@@ -9,7 +9,8 @@ vector<int> multiquery_attention_part2(
     vector<int> attention
 ) {
     vector<int> xb;
-    for (int i = 0; i < head_size; i++) {
+    for (int i = head_size - 1; i >= 0; i--) {
+    // for (int i = 0; i < head_size; i++) {
         int curr = 0;
         // TODO(jie): change this back to <=
         for (int timestep = 0; timestep < token_position; timestep++) {

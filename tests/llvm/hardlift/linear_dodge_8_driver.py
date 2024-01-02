@@ -2,7 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.gaudi.gaudi_common import (
+from tests.llvm.hardlift.hardlift_common import (
     get_matrix_computation_grammars_without_analysis,
     matrix_computation_target_lang)
 from tests.python.utils.utils import codegen
