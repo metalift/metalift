@@ -13,8 +13,8 @@ from tests.python.utils.utils import codegen
 if __name__ == "__main__":
     driver = Driver()
     darken_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/darken_blend_8.ll",
-        loops_filepath="tests/llvm/gaudi/darken_blend_8.loops",
+        llvm_filepath="tests/llvm/hardlift/dexter/cpp/darken_blend_8.ll",
+        loops_filepath="tests/llvm/hardlift/dexter/cpp/darken_blend_8.loops",
         fn_name="darken_blend_8",
         target_lang_fn=selection_two_args_target_lang,
         inv_grammars={
@@ -33,12 +33,12 @@ if __name__ == "__main__":
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    select_synth = get_select_synth_from_hole(darken_blend_hole_body)
+    select_synth = get_select_synth_from_hole(driver, darken_blend_hole_body)
     driver.fns_synths = [select_synth]
     darken_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(noVerify=True)
+    driver.synthesize(rounds_to_guess=0)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + darken_blend_8.codegen(codegen))

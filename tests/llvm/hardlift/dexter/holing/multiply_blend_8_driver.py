@@ -14,8 +14,8 @@ if __name__ == "__main__":
     driver = Driver()
     inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths = get_matrix_computation_holing_search_space(multiply_blend_8_hole_body)
     multiply_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/dexter/cpp/multiply_blend_8.ll",
-        loops_filepath="tests/llvm/gaudi/dexter/cpp/multiply_blend_8.loops",
+        llvm_filepath="tests/llvm/hardlift/dexter/cpp/multiply_blend_8.ll",
+        loops_filepath="tests/llvm/hardlift/dexter/cpp/multiply_blend_8.loops",
         fn_name="multiply_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     multiply_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(noVerify=True)
+    driver.synthesize(rounds_to_guess=0)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + multiply_blend_8.codegen(codegen))

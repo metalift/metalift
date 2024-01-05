@@ -190,6 +190,7 @@ def verify_synth_result(
         targetLang = transformedLang
 
         vc, (inCalls, fnCalls) = parseCandidates(vc, inCalls, fnsType, fnCalls, extractedLambdas, None)  # type: ignore
+        import pdb; pdb.set_trace()
 
         inCalls = list(set(inCalls))
         fnCalls = list(set(fnCalls))
@@ -229,6 +230,7 @@ def verify_synth_result(
             return "SAT/UNKNOWN", []
     else:
         # run external verification subprocess
+        import pdb; pdb.set_trace()
         procVerify = subprocess.run(
             [
                 cvcPath,

@@ -22,13 +22,16 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
         or isinstance(funDef, Lit)
     ):
         return funDef
-    elif isinstance(funDef, Call) and funDef.args[0] == funCall:
+    if funCall == "matrix_selection_two_args" and isinstance(funDef, Call) and funDef.args[0] == "selection_two_args":
+        import pdb; pdb.set_trace()
+    # if isinstance(funDef, Call) and funDef.args[0] == funCall:
+    if isinstance(funDef, Call):
         newArgs = []
         for i in range(1, len(funDef.args)):
-            # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
             if not is_fn_decl_type(funDef.args[i].type):
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-        return Call(funCall + "_" + inCall, funDef.type, *newArgs)
+        # return Call(funCall + "_" + inCall, funDef.type, *newArgs)
+        return Call(funDef.name(), funDef.type, *newArgs)
     elif isinstance(funDef, CallValue):
         newArgs = []
 
@@ -52,10 +55,10 @@ def toSMT(
 ) -> None:
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
-        out.write(resources.read_text(utils, "tuples.smt"))
+        # out.write(resources.read_text(utils, "tuples.smt"))
         if not isSynthesis:
             out.write(resources.read_text(utils, "list-axioms.smt"))
-            out.write(resources.read_text(utils, "map-axioms.smt"))
+            # out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
 
@@ -79,7 +82,8 @@ def toSMT(
                         newArgs = filterArgs(t.args[2:])
                         fnDecls.append(
                             FnDeclRecursive(
-                                t.args[0] + "_" + i[1],
+                                t.name(), # TODO(jie): this only handles single function param
+                                # t.args[0] + "_" + i[1],
                                 t.returnT(),
                                 newBody,
                                 *newArgs,
@@ -87,7 +91,8 @@ def toSMT(
                             # if t.kind == Expr.Kind.FnDecl
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
-                                t.args[0] + "_" + i[1],
+                                t.name(), # TODO(jie): this only handles single function param
+                                # t.args[0] + "_" + i[1],
                                 t.returnT(),
                                 newBody,
                                 *newArgs,
