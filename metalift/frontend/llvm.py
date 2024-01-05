@@ -231,11 +231,19 @@ def vector_append(
     assert len(args) == 2
     assign_var_name: str = args[0].name
 
+    lst = state.read_or_load_operand(args[0])
+    value = state.read_or_load_operand(args[1])
+
+    if lst.is_nested:
+        fn_name = "list_list_append"
+    else:
+        fn_name = "list_append"
+
     assign_val = call(
-        "list_append",
+        fn_name,
         parse_type_ref_to_obj(args[0].type),
-        state.read_or_load_operand(args[0]), 
-        state.read_or_load_operand(args[1]),
+        lst,
+        value,
     )
     assign_loc = state.get_var_location(assign_var_name)
     return ReturnValue(
@@ -1420,6 +1428,7 @@ class VCVisitor:
             # process the mangled name -> name, type
             raw_fn_name = get_raw_fn_name_from_call_instruction(o)
             full_demangled_name = get_full_demangled_name(raw_fn_name)
+
             rv = fn_models[fn_name](blk_state, {}, full_demangled_name, *ops[:-1])
 
             if rv.val is not None and o.name != "":
@@ -1512,8 +1521,6 @@ class Driver:
         self,
         **synthesize_kwargs
     ) -> None:  # type: ignore
-        # if synthesize_kwargs.get("listBound") != 3:
-        #     raise Exception("list bound must be 3")
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
@@ -1536,8 +1543,6 @@ class Driver:
                 vc=vc,
                 loopAndPsInfo=synths,
                 cvcPath="cvc5",
-                # fn_defs_to_exclude=fn_defs_to_exclude,
-                rounds_to_guess=5,
                 fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
                 **synthesize_kwargs,
             )

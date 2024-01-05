@@ -276,8 +276,8 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
 
-    # outer_loop_index = get_outer_loop_index(i, timestep)
-    outer_loop_index = i
+    outer_loop_index = get_outer_loop_index(i, timestep)
+    # outer_loop_index = i
     outer_loop_index_slice_start = ite(
         is_outer_loop_left_bound_smaller,
         outer_loop_lower_bound,
@@ -285,7 +285,7 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     )
     outer_loop_index_slice_end = ite(
         is_outer_loop_left_bound_smaller,
-        i,
+        outer_loop_index,
         outer_loop_upper_bound
     )
     matrix = ite(
@@ -357,9 +357,9 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
-    # outer_loop_index = get_outer_loop_index(i, timestep)
-    # inner_loop_index = get_inner_loop_index(i, timestep)
-    outer_loop_index, inner_loop_index = i, timestep
+    outer_loop_index = get_outer_loop_index(i, timestep)
+    inner_loop_index = get_inner_loop_index(i, timestep)
+    # outer_loop_index, inner_loop_index = i, timestep
     outer_loop_index_slice_start = ite(
         is_outer_loop_left_bound_smaller,
         outer_loop_lower_bound,

@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 from pyparsing import Set
 
-from metalift.frontend.llvm import InvGrammar
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, ObjectWrapper, is_matrix_type, synth
 from metalift.ir import List as mlList
@@ -2307,7 +2307,8 @@ def get_select_two_args_general_synth(
         *get_object_exprs(*args)
     )
 
-def get_select_synth_from_hole(hole_body: Callable[[Int], Int]) -> Synth:
+def get_select_synth_from_hole(driver: Driver, hole_body: Callable[[Int], Int]) -> Synth:
+    driver.add_var_objects([int_x, int_y])
     var = choose(int_x, int_y)
     return synth(
         SELECT_TWO_ARGS,

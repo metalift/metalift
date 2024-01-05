@@ -9,6 +9,7 @@ from metalift.ir import (
     Int,
     Bool,
     Call,
+    Matrix,
     ObjectT,
     Expr,
     Eq,
@@ -135,24 +136,39 @@ def toExpr(
                 v1,
                 v2,
             )
-        elif ast[0] in {"length", "list-list-length"}:
-            return Call("list_length", Int, toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "=":
             return Eq(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
+        elif ast[0] == "length":
+            return Call("list_length", Int, toExpr(ast[1], fnsType, varType, choices))
+        elif ast[0] == "list-list-length":
+            return Call("list_list_length", Int, toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "list-empty":
             return Call("list_empty", mlList[Int])
-        elif ast[0] == "list-append" or ast[0] == "append":
+        elif ast[0] == "list-list-empty":
+            return Call("list_list_empty", mlList[mlList[Int]])
+        elif ast[0] == "list-append":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
             elem = toExpr(ast[2], fnsType, varType, choices)
+            import pdb; pdb.set_trace()
             return Call(
                 "list_append",
                 mlList[elem.type],  # type: ignore
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
-        elif ast[0] in {"list-prepend", "list-list-prepend"}:
+        elif ast[0] == "list-list-append":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            elem = toExpr(ast[2], fnsType, varType, choices)
+            return Call(
+                "list_list_append",
+                list_expr.type,
+                list_expr,
+                elem,
+            )
+        elif ast[0] == "list-prepend":
             elem = toExpr(ast[1], fnsType, varType, choices)
             lst = toExpr(ast[2], fnsType, varType, choices)
             return Call(
@@ -161,7 +177,16 @@ def toExpr(
                 elem,
                 lst,
             )
-        elif ast[0] in {"list-ref-noerr", "list-list-ref-noerr"}:
+        elif ast[0] == "list-list-prepend":
+            elem = toExpr(ast[1], fnsType, varType, choices)
+            lst = toExpr(ast[2], fnsType, varType, choices)
+            return Call(
+                "list_list_prepend",
+                lst.type,
+                elem,
+                lst,
+            )
+        elif ast[0] == "list-ref-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_get",
@@ -169,10 +194,26 @@ def toExpr(
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
             )
-        elif ast[0] in {"list-tail-noerr", "list-list-tail-noerr"}:
+        elif ast[0] == "list-list-ref-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_list_get",
+                get_list_element_type(list_expr.type),
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+            )
+        elif ast[0] == "list-tail-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_tail",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+            )
+        elif ast[0] == "list-list-tail-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_list_tail",
                 list_expr.type,
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
@@ -181,7 +222,7 @@ def toExpr(
             lst1 = toExpr(ast[1], fnsType, varType, choices)
             lst2 = toExpr(ast[2], fnsType, varType, choices)
             return Call("list_concat", lst1.type, lst1, lst2)
-        elif ast[0] in {"list-take-noerr", "list-list-take-noerr"}:
+        elif ast[0] == "list-take-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_take",
@@ -189,7 +230,15 @@ def toExpr(
                 toExpr(ast[1], fnsType, varType, choices),
                 toExpr(ast[2], fnsType, varType, choices),
             )
-        elif ast[0] in {"list-slice-noerr", "list-list-slice-noerr"}:
+        elif ast[0] == "list-list-take-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_list_take",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+            )
+        elif ast[0] == "list-slice-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_slice",
@@ -198,7 +247,16 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
                 toExpr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] in {"list-slice-with-length-noerr", "list-list-slice-with-length-noerr"}:
+        elif ast[0] == "list-list-slice-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_list_slice",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+                toExpr(ast[3], fnsType, varType, choices),
+            )
+        elif ast[0] == "list-slice-with-length-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_slice_with_length",
@@ -207,25 +265,34 @@ def toExpr(
                 toExpr(ast[2], fnsType, varType, choices),
                 toExpr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] in {"list-list-col-slice-noerr"}:
+        elif ast[0] == "list-list-slice-with-length-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_col_slice",
+                "list_list_slice_with_length",
                 list_expr.type,
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
                 toExpr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] in {"list-list-col-slice-with-length-noerr"}:
+        elif ast[0] == "list-list-col-slice-noerr":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_col_slice_with_length",
+                "list_list_col_slice",
                 list_expr.type,
                 list_expr,
                 toExpr(ast[2], fnsType, varType, choices),
                 toExpr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] in {"matrix-transpose-noerr"}:
+        elif ast[0] == "list-list-col-slice-with-length-noerr":
+            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            return Call(
+                "list_list_col_slice_with_length",
+                list_expr.type,
+                list_expr,
+                toExpr(ast[2], fnsType, varType, choices),
+                toExpr(ast[3], fnsType, varType, choices),
+            )
+        elif ast[0] == "matrix-transpose-noerr":
             matrix_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call(
                 "matrix_transpose",
@@ -646,8 +713,8 @@ def synthesize(
                         "\n\n".join([str(c) for c in candidatesSMT]),
                     )
                     print("\n".join(verifyLogs))
-                    inv_guess.append(resultSynth[1])
-                    print(inv_guess)
+                    # inv_guess.append(resultSynth[1])
+                    # print(inv_guess)
                 raise VerificationFailed("Verification failed")
         finally:
             procSynthesis.terminate()
