@@ -30,12 +30,15 @@ def topological_sort(fn_decls: List[Union[FnDecl, FnDeclRecursive]]) -> List[Uni
         edges.extend([(dependent_fn_name, fn_decl.name()) for dependent_fn_name in dependent_fn_names])
     graph.add_edges_from(edges)
     ordered_fn_names = list(nx.topological_sort(graph))
+    independent_fn_names = set(all_fn_names) - set(ordered_fn_names)
 
     fn_name_to_decl = {
         fn_decl.name(): fn_decl
         for fn_decl in fn_decls
     }
-    return [fn_name_to_decl[fn_name] for fn_name in ordered_fn_names]
+    dependent_fn_decls = [fn_name_to_decl[fn_name] for fn_name in ordered_fn_names]
+    independent_fn_decls = [fn_name_to_decl[fn_name] for fn_name in independent_fn_names]
+    return dependent_fn_decls + independent_fn_decls
 
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []

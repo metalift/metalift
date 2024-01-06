@@ -173,3 +173,30 @@
 ; end of list take
 
 ; end of list of lists definition
+
+(define-fun list_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
+(list_take (list_take lst end) start))
+
+(define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
+(list_slice lst start (+ start lst_length)))
+
+(define-fun list_list_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(list_list_take (list_list_take matrix end) start))
+
+(define-fun list_list_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(list_list_slice matrix start (+ start lst_length)))
+
+(define-fun-rec list_list_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (list_slice (list_list_get matrix 0) start end) (list_list_col_slice (list_list_tail matrix 1) start end))))
+
+(define-fun-rec list_list_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(list_list_col_slice matrix start (+ start lst_length)))
+
+(define-fun-rec firsts ((matrix (MLList (MLList Int)))) (MLList Int)
+(ite (< (list_list_length matrix) 1) list_empty (list_prepend (list_get (list_list_get matrix 0) 0) (firsts (list_list_tail matrix 1)))))
+
+(define-fun-rec rests ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
+(ite (< (list_list_length matrix) 1) list_list_empty (list_list_col_slice matrix 1 (list_length (list_list_get matrix 0)))))
+
+(define-fun-rec matrix_transpose ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
+(ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (firsts matrix) (matrix_transpose (rests matrix)))))
