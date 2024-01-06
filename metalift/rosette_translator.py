@@ -274,8 +274,8 @@ def toRosette(
     fnsDecls = []
     for t in targetLang:
         if (
-            t.args[1] is None
-            and (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive))
+            (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive))
+            and t.body() is None
             and t.name() not in uninterp_fns
         ):
             fnsDecls.append(t)

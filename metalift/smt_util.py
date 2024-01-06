@@ -61,9 +61,12 @@ def toSMT(
             # out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
+        synthesized_fn_names = set(fn.name() for fn in invAndPs)
+        non_inv_ps_fn_names = set(t.name() for t in targetLang if t.body() is None)
 
-        fnDecls = []
+        fn_decls = []
         axioms = []
+        non_inv_ps_candidates = []
         for t in targetLang:
             if (
                 isinstance(t, FnDeclRecursive)
@@ -80,7 +83,7 @@ def toSMT(
 
                         # remove function type args
                         newArgs = filterArgs(t.args[2:])
-                        fnDecls.append(
+                        fn_decls.append(
                             FnDeclRecursive(
                                 t.name(), # TODO(jie): this only handles single function param
                                 # t.args[0] + "_" + i[1],
@@ -98,8 +101,9 @@ def toSMT(
                                 *newArgs,
                             )
                         )
-                if not found_inline:
-                    out.write(t.toSMT() + "\n\n")
+                if not found_inline and t.name() not in synthesized_fn_names:
+                    out.write("\n" + t.toSMT() + "\n")
+
             # elif t.kind == Expr.Kind.Axiom:
             elif isinstance(t, Axiom):
                 axioms.append(t)
@@ -130,7 +134,10 @@ def toSMT(
             if cand.args[0] in early_candidates_names:
                 early_candidates.append(decl)
             else:
-                candidates.append(decl)
+                if cand.name() in non_inv_ps_fn_names:
+                    non_inv_ps_candidates.append(decl)
+                else:
+                    candidates.append(decl)
 
         for axiom in axioms:
             newBody = axiom.args[0]
@@ -142,9 +149,11 @@ def toSMT(
         for i in inCalls:
             vc = filterBody(vc, i[0], i[1])
 
+        import pdb; pdb.set_trace()
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
-        out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fnDecls]))
+        out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fn_decls]))
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
+        out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in non_inv_ps_candidates]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
         declarations: typing.List[typing.Tuple[str, ObjectT]] = []
