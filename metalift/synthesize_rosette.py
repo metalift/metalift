@@ -152,7 +152,6 @@ def toExpr(
         elif ast[0] == "list-append":
             list_expr = toExpr(ast[1], fnsType, varType, choices)
             elem = toExpr(ast[2], fnsType, varType, choices)
-            import pdb; pdb.set_trace()
             return Call(
                 "list_append",
                 mlList[elem.type],  # type: ignore

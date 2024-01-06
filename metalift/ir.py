@@ -1108,7 +1108,6 @@ class List(Generic[T], Object):
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
-        import pdb; pdb.set_trace()
         if self.is_nested:
             fn_name = "list_list_append"
         else:
@@ -1230,7 +1229,6 @@ class Matrix(List[T], Generic[T], Object):
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
-        import pdb; pdb.set_trace()
 
         self.src = call("list_list_append", self.type, self, value).src
         return self
