@@ -250,8 +250,8 @@
 ; )
 
 (define (firsts matrix)
-  (if (empty? matrix)
-      '()
+  (if (< (list-list-length matrix) 1)
+      (list-empty)
       (list-prepend
         (list-ref-noerr (list-list-ref-noerr matrix 0) 0)
         (firsts (list-tail-noerr matrix 1))
@@ -260,15 +260,15 @@
 )
 
 (define (rests matrix)
-  (if (empty? matrix)
-    (list)
+  (if (< (list-list-length matrix) 1)
+    (list-list-empty)
     (list-list-col-slice-noerr matrix 1 (length (list-list-ref-noerr matrix 0)))
   )
 )
 
 (define (matrix-transpose-noerr matrix)
-  (if (empty? matrix)
-    (list)
+  (if (< (list-list-length matrix) 1)
+    (list-list-empty)
     (list-list-prepend (firsts matrix) (matrix-transpose-noerr (rests matrix)))
   )
 )
