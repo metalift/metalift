@@ -1040,7 +1040,11 @@ class List(Generic[T], Object):
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
-        return List(containedT, Call("list_empty", List[containedT]))  # type: ignore
+        if is_primitive_type(containedT):
+            fn_name = "list_empty"
+        else:
+            fn_name = "list_list_empty"
+        return List(containedT, Call(fn_name, List[containedT]))  # type: ignore
 
     @staticmethod
     def default_value() -> "List[Int]":
@@ -1050,7 +1054,11 @@ class List(Generic[T], Object):
         raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
-        return Int(Call("list_length", Int, self.src))
+        if self.is_nested:
+            fn_name = "list_list_length"
+        else:
+            fn_name = "list_length"
+        return Int(Call(fn_name, Int, self.src))
 
     def __getitem__(self, index: Union[Int, int, slice]) -> Object:
         if isinstance(index, int):
