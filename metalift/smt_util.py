@@ -1,10 +1,41 @@
 import importlib.resources as resources
 from metalift import utils
+import networkx as nx
 
 from metalift.ir import *
 import typing
 from typing import Any, Union, get_args
 
+def get_dependent_fn_names(
+    expr: Any,
+    all_fn_names: List[str],
+    dependent_fn_names: List[str]
+) -> None:
+    if not isinstance(expr, Expr):
+        return
+    if (isinstance(expr, Call) or isinstance(expr, CallValue)) and expr.name() in all_fn_names:
+        dependent_fn_names.append(expr.name())
+        return
+    for arg in expr.args:
+        get_dependent_fn_names(arg, all_fn_names, dependent_fn_names)
+
+def topological_sort(fn_decls: List[Union[FnDecl, FnDeclRecursive]]) -> List[Union[FnDecl, FnDeclRecursive]]:
+    # First we construct a DAG
+    graph = nx.DiGraph()
+    edges: List[Tuple[str, str]] = []
+    all_fn_names = [fn_decl.name() for fn_decl in fn_decls]
+    for fn_decl in fn_decls:
+        dependent_fn_names: List[str] = []
+        get_dependent_fn_names(fn_decl.body(), all_fn_names, dependent_fn_names)
+        edges.extend([(dependent_fn_name, fn_decl.name()) for dependent_fn_name in dependent_fn_names])
+    graph.add_edges_from(edges)
+    ordered_fn_names = list(nx.topological_sort(graph))
+
+    fn_name_to_decl = {
+        fn_decl.name(): fn_decl
+        for fn_decl in fn_decls
+    }
+    return [fn_name_to_decl[fn_name] for fn_name in ordered_fn_names]
 
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
@@ -22,8 +53,6 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
         or isinstance(funDef, Lit)
     ):
         return funDef
-    if funCall == "matrix_selection_two_args" and isinstance(funDef, Call) and funDef.args[0] == "selection_two_args":
-        import pdb; pdb.set_trace()
     # if isinstance(funDef, Call) and funDef.args[0] == funCall:
     if isinstance(funDef, Call):
         newArgs = []
@@ -62,11 +91,9 @@ def toSMT(
 
         early_candidates_names = set()
         synthesized_fn_names = set(fn.name() for fn in invAndPs)
-        non_inv_ps_fn_names = set(t.name() for t in targetLang if t.body() is None)
 
         fn_decls = []
         axioms = []
-        non_inv_ps_candidates = []
         for t in targetLang:
             if (
                 isinstance(t, FnDeclRecursive)
@@ -134,10 +161,7 @@ def toSMT(
             if cand.args[0] in early_candidates_names:
                 early_candidates.append(decl)
             else:
-                if cand.name() in non_inv_ps_fn_names:
-                    non_inv_ps_candidates.append(decl)
-                else:
-                    candidates.append(decl)
+                candidates.append(decl)
 
         for axiom in axioms:
             newBody = axiom.args[0]
@@ -149,11 +173,10 @@ def toSMT(
         for i in inCalls:
             vc = filterBody(vc, i[0], i[1])
 
-        import pdb; pdb.set_trace()
+        candidates = topological_sort(candidates)
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
         out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fn_decls]))
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
-        out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in non_inv_ps_candidates]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
         declarations: typing.List[typing.Tuple[str, ObjectT]] = []
