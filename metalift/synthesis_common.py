@@ -117,7 +117,8 @@ def verify_synth_result(
     if useRosette:
         verifFile = synthDir + basename + f"_{uid}_verif" + ".rkt"
     else:
-        verifFile = synthDir + basename + f"_{uid}" + ".smt"
+        # verifFile = synthDir + basename + f"_{uid}" + ".smt"
+        verifFile = synthDir + basename + ".smt"
 
     if useRosette:
         toRosette(

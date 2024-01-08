@@ -2,12 +2,8 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.hardlift.hardlift_common import (darken_blend_hole_body, get_matrix_computation_holing_search_space,
-                                           get_select_synth_from_hole, multiply_blend_8_hole_body,
-                                           selection_two_args_inv0_grammar,
-                                           selection_two_args_inv1_grammar,
-                                           selection_two_args_ps_grammar_fn,
-                                           selection_two_args_target_lang)
+from tests.llvm.hardlift.hardlift_common import (
+    get_matrix_computation_holing_search_space, multiply_blend_8_hole_body)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":

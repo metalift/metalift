@@ -53,8 +53,8 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
 if __name__ == "__main__":
     driver = Driver()
     normal_blend_f = driver.analyze(
-        "tests/llvm/gaudi/dexter/cpp/normal_blend_f.ll",
-        "tests/llvm/gaudi/dexter/cpp/normal_blend_f.loops",
+        "tests/llvm/hardlift/dexter/cpp/normal_blend_f.ll",
+        "tests/llvm/hardlift/dexter/cpp/normal_blend_f.loops",
         "normal_blend_f",
         target_lang,
         defaultdict(lambda: InvGrammar(inv_grammar, [])),
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     normal_blend_f(base_var, active_var, opacity_var)
 
     start_time = time.time()
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + normal_blend_f.codegen(codegen))
