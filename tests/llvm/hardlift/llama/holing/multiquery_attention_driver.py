@@ -5,7 +5,7 @@ from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, Matrix, call, fn
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects, or_objects
-from tests.llvm.hardlift.hardlift_common import call_integer_exp, call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_loop_bound_fns, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, map_int_to_int_fn_obj, vec_scalar_mul, vec_to_vec, vec_to_int, matrix_vec_to_vec_target_lang
+from tests.llvm.hardlift.hardlift_common import call_integer_exp, call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_loop_fns, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, map_int_to_int_fn_obj, vec_scalar_mul, vec_to_vec, vec_to_int, matrix_vec_to_vec_target_lang
 
 def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -630,7 +630,7 @@ loop_index_fn_args = [i_var, timestep_var]
     get_outer_loop_upper_bound,
     get_outer_loop_index,
     is_outer_loop_left_bound_smaller
-) = get_loop_bound_fns(
+) = get_loop_fns(
     loop_bound_fn_args=loop_bound_fn_args,
     loop_index_fn_args=loop_index_fn_args,
     left_bound_choices=[Int(0)],
@@ -644,7 +644,7 @@ loop_index_fn_args = [i_var, timestep_var]
     get_inner_loop_upper_bound,
     get_inner_loop_index,
     is_inner_loop_left_bound_smaller
-) = get_loop_bound_fns(
+) = get_loop_fns(
     loop_bound_fn_args=loop_bound_fn_args,
     loop_index_fn_args=loop_index_fn_args,
     left_bound_choices=[Int(0)],

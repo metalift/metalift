@@ -3,20 +3,20 @@ import time
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tests.llvm.hardlift.hardlift_common import (
-    get_matrix_computation_holing_search_space, multiply_blend_8_hole_body)
+    overlay_blend_8_hole_body, get_matrix_select_holing_search_space)
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
     driver = Driver()
-    inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths = get_matrix_computation_holing_search_space(multiply_blend_8_hole_body)
-    multiply_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/hardlift/dexter/cpp/multiply_blend_8.ll",
-        loops_filepath="tests/llvm/hardlift/dexter/cpp/multiply_blend_8.loops",
-        fn_name="multiply_blend_8",
+    inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths = get_matrix_select_holing_search_space(driver, overlay_blend_8_hole_body)
+    overlay_blend_8 = driver.analyze(
+        llvm_filepath="tests/llvm/hardlift/dexter/cpp/overlay_blend_8.ll",
+        loops_filepath="tests/llvm/hardlift/dexter/cpp/overlay_blend_8.loops",
+        fn_name="overlay_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={
-            "multiply_blend_8_inv0": inv0_grammar,
-            "multiply_blend_8_inv1": inv1_grammar
+            "overlay_blend_8_inv0": inv0_grammar,
+            "overlay_blend_8_inv1": inv1_grammar
         },
         ps_grammar=ps_grammar_fn
     )
@@ -31,10 +31,10 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    multiply_blend_8(base, active)
+    overlay_blend_8(base, active)
 
     start_time = time.time()
     driver.synthesize(rounds_to_guess=0)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + multiply_blend_8.codegen(codegen))
+    print("\n\ngenerated code:" + overlay_blend_8.codegen(codegen))
