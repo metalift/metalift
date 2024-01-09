@@ -2078,7 +2078,7 @@ class Call(Expr):
                 if self.args[0].startswith("list") or self.args[0].startswith("matrix"):
                     callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 elif self.args[0].startswith("integer"):
-                    callStr = f"({Expr.get_integer_fn(self) or self.args[0]})"
+                    callStr = f"({Expr.get_integer_fn(self) or self.args[0]} "
                 else:
                     raise Exception(f"Cannot parse call expr {self} into Rosette!")
                 for a in self.args[1:]:

@@ -366,6 +366,37 @@ def set_field(
     # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
     return ReturnValue(None, None)
 
+def integer_sqrt(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+
+    int_arg = state.read_or_load_operand(args[0])
+    ret_val = call(
+        "integer_sqrt",
+        Int,
+        int_arg
+    )
+    return ReturnValue(ret_val, [])
+
+def integer_exp(
+    state: "State",
+    global_vars: Dict[str, str],
+    full_demangled_name: str,
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 1
+
+    int_arg = state.read_or_load_operand(args[0])
+    ret_val = call(
+        "integer_exp",
+        Int,
+        int_arg
+    )
+    return ReturnValue(ret_val, [])
 
 fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # list methods
@@ -388,6 +419,9 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # tuple methods
     "MakeTuple": make_tuple,
     "tupleGet": tuple_get,
+    # integer methods
+    "integer_sqrt": integer_sqrt,
+    "integer_exp": integer_exp
 }
 
 

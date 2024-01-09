@@ -283,7 +283,6 @@ def set_field(
     # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
     return ReturnValue(None, None)
 
-
 fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # list methods
     "newList": new_list,

@@ -2504,7 +2504,7 @@ def get_loop_fns(
     List[Synth],
     Callable,
     Callable,
-    Bool
+    Callable
 ]:
     # TODO(jie): add return type
     if prefix not in {"OUTER_LOOP", "INNER_LOOP"}:
@@ -2513,8 +2513,11 @@ def get_loop_fns(
     index_fn_decl, index_synth, get_index = get_loop_index_fn(loop_index_fn_args, prefix)
 
     is_left_bound_smaller_fn_name = f"{prefix}_IS_LEFT_BOUND_SMALLER"
-    is_left_bound_smaller_fn_decl, is_left_bound_smaller_synth = get_no_arg_bool_fn(is_left_bound_smaller_fn_name)
-    is_left_bound_smaller = call(is_left_bound_smaller_fn_name, Bool)
+    (
+        is_left_bound_smaller_fn_decl,
+        is_left_bound_smaller_synth,
+        is_left_bound_smaller
+    ) = get_no_arg_bool_fn(is_left_bound_smaller_fn_name)
 
     left_bound_prefix = f"{prefix}_LEFT"
     right_bound_prefix = f"{prefix}_RIGHT"
@@ -2533,7 +2536,7 @@ def get_loop_fns(
     lower_bound_fn_decl, lower_bound_synth, get_lower_bound = get_loop_bound_fn(
         loop_bound_fn_args,
         get_lower_bound_fn_body(
-            is_left_bound_smaller,
+            is_left_bound_smaller(),
             get_left_bound(*loop_bound_fn_args),
             get_right_bound(*loop_bound_fn_args)
         ),
@@ -2542,7 +2545,7 @@ def get_loop_fns(
     upper_bound_fn_decl, upper_bound_synth, get_upper_bound = get_loop_bound_fn(
         loop_bound_fn_args,
         get_upper_bound_fn_body(
-            call(is_left_bound_smaller_fn_name, Bool),
+            is_left_bound_smaller(),
             get_left_bound(*loop_bound_fn_args),
             get_right_bound(*loop_bound_fn_args)
         ),
@@ -2573,3 +2576,9 @@ def get_no_arg_bool_fn(fn_name: str) -> Tuple[FnDecl, Synth, Callable]:
     def call_fn() -> Bool:
         return call(fn_name, Bool)
     return bool_fn_decl, bool_fn_synth, call_fn
+
+def get_fn_and_rv(fn_name: str, body: Any, fn_args: List[Any]) -> Any:
+    decl = fn_decl(fn_name, body.type, None, *fn_args)
+    fn_synth = synth(fn_name, body, *fn_args)
+    rv = call(fn_name, body.type, *fn_args)
+    return decl, fn_synth, rv
