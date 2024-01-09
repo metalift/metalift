@@ -1,5 +1,6 @@
 #lang rosette/safe
 
+(require "./bounded.rkt")
 (require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)
 
 (provide (all-defined-out))
@@ -249,7 +250,7 @@
 ;   (if (< (length lst) 1) (list) (apply map list lst))
 ; )
 
-(define (firsts matrix)
+(define-bounded (firsts matrix)
   (if (< (list-list-length matrix) 1)
       (list-empty)
       (list-prepend
@@ -266,15 +267,15 @@
   )
 )
 
-(define (matrix-transpose-noerr matrix)
+(define-bounded (matrix-transpose-noerr matrix)
   (if (< (list-list-length matrix) 1)
     (list-list-empty)
     (list-list-prepend (firsts matrix) (matrix-transpose-noerr (rests matrix)))
   )
 )
 
-(define (integer-sqrt n)
-  (define (sqrt-helper guess)
+(define-bounded (integer-sqrt n)
+  (define-bounded (sqrt-helper guess)
     (if (or (= guess 0) (= guess 1) (> guess 64 ))
         1
         (if (= guess (quotient n guess))
@@ -282,6 +283,10 @@
             (sqrt-helper (quotient (+ guess (quotient n guess)) 2)))))
   (sqrt-helper (quotient n 2)))
 
-(define (integer-exp n)
-  (if (<= n 0) (1) (integer-exp (n - 1)))
+(define-bounded (integer-exp n)
+  (if
+    (<= n 0)
+    1
+    (remainder (* 3 (integer-exp (- n 1))) 64)
+  )
 )

@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-vector<int> multiquery_attention_part2(
+vector<int> transformer_part2(
     int token_position,
     int head,
     int head_size,
@@ -19,5 +19,5 @@ vector<int> multiquery_attention_part2(
     }
     return xb;
 }
-// def multiquery_attention_part2_ps(token_position head head_size key_cache_layer attention multiquery_attention_part2_rv)
-// list_eq(multiquery_attention_part2_rv, matrix_vec_mul(matrix_transpose(list_list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size)), list_take(attention, token_position)))
+// def transformer_part2_ps(token_position head head_size key_cache_layer attention transformer_part2_rv)
+// list_eq(transformer_part2_rv, matrix_vec_mul(matrix_transpose(list_list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size)), list_take(attention, token_position)))
