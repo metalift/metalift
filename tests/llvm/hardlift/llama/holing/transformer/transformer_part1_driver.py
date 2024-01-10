@@ -39,7 +39,7 @@ def transformer_part1_ps_grammar(writes: List[Object], reads: List[Object], in_s
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     matrix = ite(
-        is_matrix_outer_loop_index_first(),
+        Bool(True), # is_matrix_outer_loop_index_first(),
         key_cache_layer[outer_loop_lower_bound:outer_loop_upper_bound]
         .col_slice(
             composed_int_var + inner_loop_lower_bound,
@@ -53,29 +53,31 @@ def transformer_part1_ps_grammar(writes: List[Object], reads: List[Object], in_s
     )
     matrix = choose(matrix, matrix.transpose())
     vec = ite(
-        is_vector_outer_loop_index(),
+        Bool(False), # is_vector_outer_loop_index(),
         q[composed_int_var+outer_loop_lower_bound:composed_int_var+outer_loop_upper_bound],
         q[composed_int_var+inner_loop_lower_bound:composed_int_var+inner_loop_upper_bound]
     )
 
-    # Define computed vec
-    computed_vec_fn_name = "ps_computed_vec"
-    computed_vec_fn_args = [*reads, *writes, *in_scope]
-    computed_vec_fn_decl, computed_vec_synth, computed_vec = get_fn_and_rv(
-        computed_vec_fn_name,
-        matrix_vec_to_vec(matrix, vec),
-        computed_vec_fn_args
-    )
-    target_lang.append(computed_vec_fn_decl)
-    fns_synths.append(computed_vec_synth)
+    # # Define computed vec
+    # computed_vec_fn_name = "ps_computed_vec"
+    # computed_vec_fn_args = [*reads, *writes, *in_scope]
+    # computed_vec_fn_decl, computed_vec_synth, computed_vec = get_fn_and_rv(
+    #     computed_vec_fn_name,
+    #     matrix_vec_to_vec(matrix, vec),
+    #     computed_vec_fn_args
+    # )
+    # target_lang.append(computed_vec_fn_decl)
+    # fns_synths.append(computed_vec_synth)
+    computed_vec = matrix_vec_to_vec(matrix, vec)
+    vec = choose(computed_vec)
 
-    vec = choose(vec, computed_vec)
-
-    scalar = choose(Int(0), Int(1))
+    scalar = choose(Int(1))
+    # rhs_vec = call_vec_scalar_mul(scalar, vec)
     rhs_vec = call_vec_map(call_vec_scalar_mul(scalar, vec), map_int_to_int_fn_obj)
 
+    # return attention == rhs_vec
     # return attention == computed_vec
-    return attention == call_vec_elemwise_div(vec, rhs_vec)
+    return attention == call_vec_elemwise_mul(vec, rhs_vec)
 
 def transformer_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
@@ -88,20 +90,21 @@ def transformer_part1_inv0_grammar(writes: List[Object], reads: List[Object], in
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
 
     # Get slice indices
-    outer_loop_index = get_outer_loop_index(i, timestep)
+    # outer_loop_index = get_outer_loop_index(i, timestep)
+    outer_loop_index = get_outer_loop_index(timestep)
     outer_loop_index_slice_start = ite(
-        is_outer_loop_left_bound_smaller(),
+        Bool(True), # is_outer_loop_left_bound_smaller(),
         outer_loop_lower_bound,
         outer_loop_index + 1
     )
     outer_loop_index_slice_end = ite(
-        is_outer_loop_left_bound_smaller(),
+        Bool(True), # is_outer_loop_left_bound_smaller(),
         outer_loop_index,
         outer_loop_upper_bound
     )
 
     matrix = ite(
-        is_matrix_outer_loop_index_first(),
+        Bool(True), # is_matrix_outer_loop_index_first(),
         key_cache_layer[outer_loop_index_slice_start:outer_loop_index_slice_end].col_slice(
             composed_int_var + inner_loop_lower_bound,
             composed_int_var + inner_loop_upper_bound
@@ -113,32 +116,35 @@ def transformer_part1_inv0_grammar(writes: List[Object], reads: List[Object], in
     )
     matrix = choose(matrix, matrix.transpose())
     vec = ite(
-        is_vector_outer_loop_index(),
+        Bool(False), # is_vector_outer_loop_index(),
         q[composed_int_var+outer_loop_index_slice_start:composed_int_var+outer_loop_index_slice_end],
         q[composed_int_var+inner_loop_lower_bound:composed_int_var+inner_loop_upper_bound]
     )
 
-    # Define computed vec
-    computed_vec_fn_name = "inv0_computed_vec"
-    computed_vec_fn_args = [*reads, *writes, *in_scope]
-    computed_vec_fn_decl, computed_vec_synth, computed_vec = get_fn_and_rv(
-        computed_vec_fn_name,
-        matrix_vec_to_vec(matrix, vec),
-        computed_vec_fn_args
-    )
-    target_lang.append(computed_vec_fn_decl)
-    fns_synths.append(computed_vec_synth)
+    # # Define computed vec
+    # computed_vec_fn_name = "inv0_computed_vec"
+    # computed_vec_fn_args = [*reads, *writes, *in_scope]
+    # computed_vec_fn_decl, computed_vec_synth, computed_vec = get_fn_and_rv(
+    #     computed_vec_fn_name,
+    #     matrix_vec_to_vec(matrix, vec),
+    #     computed_vec_fn_args
+    # )
+    # target_lang.append(computed_vec_fn_decl)
+    # fns_synths.append(computed_vec_synth)
 
-    vec = choose(vec, computed_vec)
+    computed_vec = matrix_vec_to_vec(matrix, vec)
+    vec = choose(computed_vec)
 
-    scalar = choose(Int(0), Int(1))
+    scalar = choose(Int(1))
     rhs_vec = call_vec_map(call_vec_scalar_mul(scalar, vec), map_int_to_int_fn_obj)
+    # rhs_vec = call_vec_scalar_mul(scalar, vec)
 
     return and_objects(
         outer_loop_index >= outer_loop_lower_bound,
         outer_loop_index <= outer_loop_upper_bound,
         # attention == computed_vec
-        attention == call_vec_elemwise_div(vec, rhs_vec)
+        attention == call_vec_elemwise_mul(vec, rhs_vec)
+        # attention == call_vec_map(computed_vec, map_int_to_int_fn_obj)
     )
 
 def transformer_part1_inv1_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
@@ -153,31 +159,31 @@ def transformer_part1_inv1_grammar(writes: List[Object], reads: List[Object], in
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
 
     # Get slice indices
-    outer_loop_index = get_outer_loop_index(i, timestep)
-    inner_loop_index = get_inner_loop_index(i, timestep)
+    outer_loop_index = get_outer_loop_index(timestep)
+    inner_loop_index = get_inner_loop_index(i)
     outer_loop_index_slice_start = ite(
-        is_outer_loop_left_bound_smaller(),
+        Bool(True), # is_outer_loop_left_bound_smaller(),
         outer_loop_lower_bound,
         outer_loop_index + 1
     )
     outer_loop_index_slice_end = ite(
-        is_outer_loop_left_bound_smaller(),
+        Bool(True), # is_outer_loop_left_bound_smaller(),
         outer_loop_index,
         outer_loop_upper_bound,
     )
     inner_loop_index_slice_start = ite(
-        is_inner_loop_left_bound_smaller(),
+        Bool(True), # is_inner_loop_left_bound_smaller(),
         inner_loop_lower_bound,
         inner_loop_index + 1
     )
     inner_loop_index_slice_end = ite(
-        is_inner_loop_left_bound_smaller(),
+        Bool(True), # is_inner_loop_left_bound_smaller(),
         inner_loop_index,
         inner_loop_upper_bound,
     )
 
     outer_loop_matrix = ite(
-        is_matrix_outer_loop_index_first(),
+        Bool(True), # is_matrix_outer_loop_index_first(),
         key_cache_layer[outer_loop_index_slice_start:outer_loop_index_slice_end]
         .col_slice(
             composed_int_var + inner_loop_lower_bound,
@@ -191,35 +197,37 @@ def transformer_part1_inv1_grammar(writes: List[Object], reads: List[Object], in
     )
     outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
     outer_loop_vec = ite(
-        is_vector_outer_loop_index(),
+        Bool(False), # is_vector_outer_loop_index(),
         q[composed_int_var+outer_loop_index_slice_start:composed_int_var+outer_loop_index_slice_end],
         q[composed_int_var+inner_loop_lower_bound:composed_int_var+inner_loop_upper_bound]
     )
-    # Define computed vec
-    outer_loop_computed_vec_fn_name = "inv1_computed_vec"
-    outer_loop_computed_vec_fn_args = [*reads, *writes, *in_scope]
-    outer_loop_computed_vec_fn_decl, outer_loop_computed_vec_synth, outer_loop_computed_vec = get_fn_and_rv(
-        outer_loop_computed_vec_fn_name,
-        matrix_vec_to_vec(outer_loop_matrix, outer_loop_vec),
-        outer_loop_computed_vec_fn_args
-    )
-    target_lang.append(outer_loop_computed_vec_fn_decl)
-    fns_synths.append(outer_loop_computed_vec_synth)
+    # # Define computed vec
+    # outer_loop_computed_vec_fn_name = "inv1_computed_vec"
+    # outer_loop_computed_vec_fn_args = [*reads, *writes, *in_scope]
+    # outer_loop_computed_vec_fn_decl, outer_loop_computed_vec_synth, outer_loop_computed_vec = get_fn_and_rv(
+    #     outer_loop_computed_vec_fn_name,
+    #     matrix_vec_to_vec(outer_loop_matrix, outer_loop_vec),
+    #     outer_loop_computed_vec_fn_args
+    # )
+    # target_lang.append(outer_loop_computed_vec_fn_decl)
+    # fns_synths.append(outer_loop_computed_vec_synth)
 
-    outer_loop_vec = choose(outer_loop_vec, outer_loop_computed_vec)
+    outer_loop_computed_vec = matrix_vec_to_vec(outer_loop_matrix, outer_loop_vec)
+    outer_loop_vec = choose(outer_loop_computed_vec)
 
-    scalar = choose(Int(0), Int(1))
+    scalar = choose(Int(1))
     rhs_outer_loop_vec = call_vec_map(call_vec_scalar_mul(scalar, outer_loop_vec), map_int_to_int_fn_obj)
+    # rhs_outer_loop_vec = call_vec_scalar_mul(scalar, outer_loop_vec)
 
     inner_loop_key_cache_layer_vec = ite(
-        is_matrix_outer_loop_index_first(),
+        Bool(True), # is_matrix_outer_loop_index_first(),
         key_cache_layer[outer_loop_index][
             composed_int_var + inner_loop_index_slice_start:composed_int_var + inner_loop_index_slice_end
         ],
         key_cache_layer[inner_loop_index_slice_start:inner_loop_index_slice_end].col_vec(composed_int_var + outer_loop_index)
     )
     inner_loop_vec_to_reduce = ite(
-        is_vector_outer_loop_index(),
+        Bool(False), # is_vector_outer_loop_index(),
         call_vec_scalar_mul(
             q[composed_int_var + outer_loop_index],
             inner_loop_key_cache_layer_vec
@@ -236,11 +244,13 @@ def transformer_part1_inv1_grammar(writes: List[Object], reads: List[Object], in
         inner_loop_index >= inner_loop_lower_bound,
         inner_loop_index <= inner_loop_upper_bound,
         score == call_reduce_sum(inner_loop_vec_to_reduce),
-        attention == call_vec_elemwise_div(
+        attention == call_vec_elemwise_mul(
             outer_loop_vec,
             rhs_outer_loop_vec
         )
+        # attention == call_vec_map(outer_loop_computed_vec, map_int_to_int_fn_obj)
         # attention == outer_loop_computed_vec
+        # attention == rhs_outer_loop_vec
     )
 
 
@@ -285,4 +295,4 @@ if __name__ == "__main__":
         q_var,
     )
 
-    driver.synthesize(listBound=3, rounds_to_guess=5)
+    driver.synthesize(listBound=2, rounds_to_guess=5)

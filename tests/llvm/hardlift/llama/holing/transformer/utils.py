@@ -32,7 +32,8 @@ composed_index_fn_decl = fn_decl(
 )
 composed_index_synth = synth(
     composed_index_fn_name,
-    get_composed_int_var([token_position_var, head_var, head_size_var]),
+    choose(head_var * head_var, head_size_var * head_var),
+    # get_composed_int_var([token_position_var, head_var, head_size_var]),
     token_position_var,
     head_var,
     head_size_var
@@ -80,9 +81,11 @@ loop_index_fn_args = [i_var, timestep_var]
     is_outer_loop_left_bound_smaller
 ) = get_loop_fns(
     loop_bound_fn_args=loop_bound_fn_args,
-    loop_index_fn_args=loop_index_fn_args,
+    # loop_index_fn_args=loop_index_fn_args,
+    loop_index_fn_args=[timestep_var],
     left_bound_choices=[Int(0)],
-    right_bound_choices=loop_bound_fn_args,
+    # right_bound_choices=loop_bound_fn_args,
+    right_bound_choices=[token_position_var],
     prefix="OUTER_LOOP"
 )
 (
@@ -94,9 +97,11 @@ loop_index_fn_args = [i_var, timestep_var]
     is_inner_loop_left_bound_smaller
 ) = get_loop_fns(
     loop_bound_fn_args=loop_bound_fn_args,
-    loop_index_fn_args=loop_index_fn_args,
+    # loop_index_fn_args=loop_index_fn_args,
+    loop_index_fn_args=[i_var],
     left_bound_choices=[Int(0)],
-    right_bound_choices=loop_bound_fn_args,
+    # right_bound_choices=loop_bound_fn_args,
+    right_bound_choices=[head_size_var],
     prefix="INNER_LOOP"
 )
 

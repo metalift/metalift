@@ -493,7 +493,7 @@ def synthesize(
     vc: Expr,
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     cvcPath: str = "cvc5",
-    uid: int = 3,
+    uid: int = 9,
     noVerify: bool = False,
     unboundedInts: bool = False,
     optimize_vc_equality: bool = False,
@@ -508,8 +508,8 @@ def synthesize(
     if not os.path.exists(synthDir):
         os.mkdir(synthDir)
     while True:
-        # synthFile = synthDir + basename + f"_{uid}" + ".rkt"
-        synthFile = synthDir + basename + ".rkt"
+        synthFile = synthDir + basename + f"_{uid}" + ".rkt"
+        # synthFile = synthDir + basename + ".rkt"
 
         with open(synthDir + "utils.rkt", "w") as out:
             out.write(resources.read_text(utils, "utils.rkt"))
