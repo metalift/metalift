@@ -607,7 +607,7 @@ def synthesize(
                     fnsType[ceName] = Fn[typing.Tuple[fn_types]]  # type: ignore
                 for n in synthNames:
                     for r in output:
-                        if "define (" + n + " " in r:
+                        if "define (" + n + " " in r or "define (" + n + ")" in r:
                             startIndex = r.find("(")
                             candidateDict[n] = toExpr(
                                 generateAST(r[startIndex:])[0],

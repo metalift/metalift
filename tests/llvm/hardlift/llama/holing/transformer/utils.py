@@ -1,6 +1,6 @@
 from typing import List
 from metalift.ir import Bool, Int, call, choose, fn_decl, synth
-from tests.llvm.hardlift.hardlift_common import get_loop_fns
+from tests.llvm.hardlift.hardlift_common import get_loop_fns, get_no_arg_bool_fn
 
 # Define arguments to helper functions to synthesize
 token_position_var = Int("token_position")
@@ -61,31 +61,18 @@ def call_vec_composed_index_fn(token_position: Int, head: Int, head_size: Int) -
 
 # Loop functions
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
-matrix_outer_loop_index_first_fn_decl = fn_decl(
-    matrix_outer_loop_index_first_fn_name,
-    Bool,
-    None
-)
-matrix_outer_loop_index_first_synth = synth(
-    matrix_outer_loop_index_first_fn_name,
-    choose(Bool(True), Bool(False))
-)
+(
+    matrix_outer_loop_index_first_fn_decl,
+    matrix_outer_loop_index_first_synth,
+    is_matrix_outer_loop_index_first
+) = get_no_arg_bool_fn(matrix_outer_loop_index_first_fn_name)
+
 vector_outer_loop_index_fn_name = "VECTOR_OUTER_LOOP_INDEX"
-vector_outer_loop_index_fn_decl = fn_decl(
-    vector_outer_loop_index_fn_name,
-    Bool,
-    None
-)
-vector_outer_loop_index_synth = synth(
-    vector_outer_loop_index_fn_name,
-    choose(Bool(True), Bool(False))
-)
-
-def is_matrix_outer_loop_index_first() -> Bool:
-    return call(matrix_outer_loop_index_first_fn_name, Bool)
-
-def is_vector_outer_loop_index() -> Bool:
-    return call(vector_outer_loop_index_fn_name, Bool)
+(
+    vector_outer_loop_index_fn_decl,
+    vector_outer_loop_index_synth,
+    is_vector_outer_loop_index
+) = get_no_arg_bool_fn(vector_outer_loop_index_fn_name)
 
 # Arguments to all loop functions
 loop_bound_fn_args = [token_position_var, head_var, head_size_var]

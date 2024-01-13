@@ -61,17 +61,6 @@ def transformer_part1_ps_grammar(writes: List[Object], reads: List[Object], in_s
         q[vec_composed_int_var+inner_loop_lower_bound:vec_composed_int_var+inner_loop_upper_bound]
     )
 
-    # # Define computed vec
-    # computed_vec_fn_name = "ps_computed_vec"
-    # computed_vec_fn_args = [*reads, *writes, *in_scope]
-    # computed_vec_fn_decl, computed_vec_synth, computed_vec = get_fn_and_rv(
-    #     computed_vec_fn_name,
-    #     matrix_vec_to_vec(matrix, vec),
-    #     computed_vec_fn_args
-    # )
-    # target_lang.append(computed_vec_fn_decl)
-    # fns_synths.append(computed_vec_synth)
-
     computed_vec = matrix_vec_to_vec(key_cache_layer_matrix, q_vec)
     scalar = choose(Int(0), Int(1))
     int_var = choose(token_position, head, head_size)
