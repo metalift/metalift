@@ -1,10 +1,11 @@
 import importlib.resources as resources
-from metalift import utils
-import networkx as nx
-
-from metalift.ir import *
 import typing
 from typing import Any, Union, get_args
+
+import networkx as nx
+
+from metalift import utils
+from metalift.ir import *
 
 
 def get_dependent_fn_names(

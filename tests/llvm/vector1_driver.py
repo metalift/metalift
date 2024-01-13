@@ -2,19 +2,9 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (
-    Bool,
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    List as mlList,
-    Object,
-    call,
-    choose,
-    ite,
-    fn_decl,
-    fn_decl_recursive,
-)
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object, call, choose, fn_decl, fn_decl_recursive, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 

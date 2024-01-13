@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import List
+
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, Int, Object, call, fn_decl
 from tests.python.utils.utils import codegen

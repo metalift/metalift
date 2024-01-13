@@ -1,19 +1,12 @@
+import time
 from typing import List, Union
+
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    List as mlList,
-    Object,
-    call,
-    choose,
-    ite,
-    Matrix,
-)
+from metalift.ir import FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Matrix, Object, call, choose, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
-import time
 
 
 def cblas_sgemv(alpha: Int, a: Matrix[Int], x: Int, beta: Int, y: Int) -> mlList[Int]:

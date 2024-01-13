@@ -1,43 +1,45 @@
-from importlib import resources
-import subprocess
-import pyparsing as pp
 import os
-from metalift import utils
+import subprocess
+import typing
+from importlib import resources
+from typing import IO, Any, Callable, Dict, List, Union
+
+import pyparsing as pp
+
+from metalift import process_tracker, utils
 from metalift.analysis import CodeInfo
 from metalift.ir import (
-    List as mlList,
-    Int,
-    Bool,
-    Call,
-    ObjectT,
-    Expr,
-    Eq,
     Add,
-    Sub,
-    Mul,
-    Div,
-    Lt,
-    Gt,
-    Le,
-    Ge,
     And,
-    Or,
-    Implies,
-    Not,
-    TupleGet,
-    TupleExpr,
-    Ite,
-    Set as mlSet,
-    Var,
-    Let,
-    Target,
-    IntLit,
-    BoolLit,
-    FnDeclRecursive,
-    Fn,
     Axiom,
-    Synth,
+    Bool,
+    BoolLit,
+    Call,
+    Div,
+    Eq,
+    Expr,
+    Fn,
     FnDecl,
+    FnDeclRecursive,
+    Ge,
+    Gt,
+    Implies,
+    Int,
+    IntLit,
+    Ite,
+    Le,
+    Let,
+)
+from metalift.ir import List as mlList
+from metalift.ir import Lt, Mul, Not, ObjectT, Or
+from metalift.ir import Set as mlSet
+from metalift.ir import (
+    Sub,
+    Synth,
+    Target,
+    TupleExpr,
+    TupleGet,
+    Var,
     get_fn_return_type,
     get_list_element_type,
 )
@@ -48,15 +50,9 @@ from metalift.synthesis_common import (
     generateTypes,
     verify_synth_result,
 )
-from metalift import process_tracker
-
-import typing
-from typing import Any, Callable, Dict, List, Union, IO
 
 # TODO: remove after proper replacement
-from metalift.types import FnT, MapT
-
-from metalift.types import CVC5UnsupportedException
+from metalift.types import CVC5UnsupportedException, FnT, MapT
 from tests.python.utils.utils import codegen
 
 

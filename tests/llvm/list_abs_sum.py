@@ -2,7 +2,6 @@ from typing import cast
 
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
-
 from metalift.synthesize_auto import synthesize
 
 # We use test_abs instead of abs because abs is reserved in cvc5.

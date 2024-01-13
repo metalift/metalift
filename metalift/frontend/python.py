@@ -1,17 +1,6 @@
 import copy
 import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 
 from mypy import build
 from mypy.build import BuildResult
@@ -53,34 +42,25 @@ from mypy.nodes import (
     RaiseStmt,
     ReturnStmt,
     TryStmt,
-    TupleExpr as mypyTupleExpr,
-    UnaryExpr,
-    WhileStmt,
-    WithStmt,
 )
+from mypy.nodes import TupleExpr as mypyTupleExpr
+from mypy.nodes import UnaryExpr, WhileStmt, WithStmt
 from mypy.options import Options
 from mypy.traverser import TraverserVisitor
 from mypy.types import CallableType, Instance
 from mypy.types import Type as MypyType
 from mypy.types import UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
-from metalift.analysis_new import VariableTracker
-from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 
-import copy
+from metalift.analysis_new import VariableTracker
+from metalift.frontend.utils import ObjectSet
+from metalift.ir import Bool, Eq, Expr, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object, ObjectT
+from metalift.ir import Set as mlSet
+from metalift.ir import Synth
+from metalift.ir import Tuple as mlTuple
 from metalift.ir import (
-    Bool,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    List as mlList,
-    Object,
-    ObjectT,
-    Set as mlSet,
-    Synth,
-    Tuple as mlTuple,
     Var,
     call,
     create_object,
@@ -89,16 +69,13 @@ from metalift.ir import (
     ite,
     make_tuple,
 )
-
-from metalift.frontend.utils import ObjectSet
-
-
 from metalift.mypy_util import (
     get_fn_name,
     is_func_call,
     is_func_call_with_name,
     is_method_call_with_name,
 )
+from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
 from metalift.vc_util import and_objects, or_objects
 
 # Run the interpreted version of mypy instead of the compiled one to avoid

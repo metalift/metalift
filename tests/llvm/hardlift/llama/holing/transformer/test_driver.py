@@ -1,19 +1,9 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (
-    Bool,
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    Matrix,
-    call,
-    fn_decl,
-    ite,
-    synth,
-)
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
-from metalift.ir import Object, choose
+from metalift.ir import Matrix, Object, call, choose, fn_decl, ite, synth
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
     call_matrix_vec_mul,
@@ -22,11 +12,11 @@ from tests.llvm.hardlift.hardlift_common import (
     call_vec_map,
     call_vec_scalar_mul,
     get_loop_bound_fns,
+    map_int_to_int_fn_obj,
     matrix_vec_mul,
+    matrix_vec_to_vec,
     reduce_sum,
     vec_elemwise_mul,
-    matrix_vec_to_vec,
-    map_int_to_int_fn_obj,
     vec_scalar_mul,
     vec_to_int,
 )

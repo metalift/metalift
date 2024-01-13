@@ -1,29 +1,19 @@
+import re
+import typing
 from abc import abstractmethod
+from collections import Counter
 from enum import Enum
 from inspect import isclass
-import re
+from typing import Any, Callable, Dict, Generic
+from typing import List as pyList  # type: ignore
+from typing import Optional
+from typing import Set as pySet
+from typing import Tuple as pyTuple
+from typing import TypeVar, Union, _GenericAlias, cast, get_args, get_origin
 
 from llvmlite.binding import TypeRef, ValueRef
-from collections import Counter
-import typing
-from typing import (  # type: ignore
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List as pyList,
-    Set as pySet,
-    TypeVar,
-    Union,
-    Optional,
-    Tuple as pyTuple,
-    _GenericAlias,
-    cast,
-    get_args,
-    get_origin,
-    cast,
-)
-from metalift.types import Type, FnT, PointerT
+
+from metalift.types import FnT, PointerT, Type
 
 
 class PrintMode(Enum):

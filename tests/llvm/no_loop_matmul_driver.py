@@ -2,19 +2,9 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (
-    Bool,
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    Object,
-    Tuple as mlTuple,
-    call,
-    choose,
-    ite,
-    make_tuple,
-    make_tuple_type,
-)
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Object
+from metalift.ir import Tuple as mlTuple
+from metalift.ir import call, choose, ite, make_tuple, make_tuple_type
 from tests.python.utils.utils import codegen
 
 L1_NORM = "l1_norm"

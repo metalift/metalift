@@ -1,24 +1,21 @@
 import copy
 import typing
+from collections import OrderedDict
+from itertools import combinations_with_replacement, product
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from pyparsing import Set
+from sympy import Integer as symInt
+from sympy import Symbol
+from sympy.core.expr import Expr as symExpr
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (
-    Bool,
-    Fn,
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    ObjectWrapper,
-    is_matrix_type,
-    synth,
-)
+from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import (
     Matrix,
     Object,
+    ObjectWrapper,
     Synth,
     call,
     call_value,
@@ -28,15 +25,12 @@ from metalift.ir import (
     get_list_element_type,
     get_object_exprs,
     is_list_type,
+    is_matrix_type,
     is_primitive_type,
     ite,
+    synth,
 )
 from metalift.vc_util import and_objects, or_objects
-from itertools import product, combinations_with_replacement
-from sympy.core.expr import Expr as symExpr
-from sympy import Symbol
-from sympy import Integer as symInt
-from collections import OrderedDict
 
 # Reduce functions
 REDUCESUM = "reduce_sum"

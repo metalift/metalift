@@ -1,12 +1,6 @@
-from metalift.ir import (
-    Int,
-    Matrix,
-    call,
-    fn_decl_recursive,
-    ite,
-    List as mlList,
-    fn_decl,
-)
+from metalift.ir import Int
+from metalift.ir import List as mlList
+from metalift.ir import Matrix, call, fn_decl, fn_decl_recursive, ite
 
 # Define some arguments to be used
 lst = mlList(Int, "lst")

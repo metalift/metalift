@@ -1,12 +1,12 @@
 import subprocess
-from metalift.analysis import CodeInfo
-from metalift.ir import *
+import typing
+from typing import Any, Dict, Optional, Union
+
 from llvmlite.binding import ValueRef
 
-import typing
-from typing import Optional, Dict, Union, Any
+from metalift.analysis import CodeInfo
+from metalift.ir import *
 from metalift.rosette_translator import toRosette
-
 from metalift.smt_util import toSMT
 from tests.python.utils.utils import codegen
 

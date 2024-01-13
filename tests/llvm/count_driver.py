@@ -1,16 +1,10 @@
-from typing import List, Union
 from collections import defaultdict
-from metalift.frontend.llvm import InvGrammar
+from typing import List, Union
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import Axiom, Bool, Fn, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
 from metalift.ir import (
-    Axiom,
-    Bool,
-    FnDecl,
-    Fn,
-    FnDeclRecursive,
-    Int,
-    List as mlList,
     Object,
     Synth,
     call,

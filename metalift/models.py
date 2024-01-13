@@ -2,16 +2,11 @@ from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import (
-    Expr,
-    Object,
-    List as mlList,
-    Int,
-    Set as mlSet,
-    parse_type_ref_to_obj,
-    call,
-    make_tuple_type,
-)
+from metalift.ir import Expr, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object
+from metalift.ir import Set as mlSet
+from metalift.ir import call, make_tuple_type, parse_type_ref_to_obj
 from metalift.vc_util import parseOperand
 
 ReturnValue = NamedTuple(

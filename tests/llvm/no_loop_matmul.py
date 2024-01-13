@@ -1,7 +1,6 @@
 import shutil
 
 from metalift.ir import *
-
 from metalift.transpiler import Transpiler
 
 L1_NORM = "l1_norm"

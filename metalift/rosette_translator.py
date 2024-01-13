@@ -1,24 +1,26 @@
 import typing
-from metalift.analysis import CodeInfo
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
+
 import pyparsing as pp
+from llvmlite.binding import ValueRef
+
 from metalift import ir
+from metalift.analysis import CodeInfo
 from metalift.ir import (
     Bool,
     Expr,
-    FnDeclRecursive,
     FnDecl,
+    FnDeclRecursive,
     Int,
     Var,
+    get_matrix_element_type,
     get_nested_list_element_type,
     is_list_type,
+    is_matrix_type,
     is_nested_list_type,
     is_set_type,
     is_tuple_type,
-    is_matrix_type,
-    get_matrix_element_type,
 )
-from llvmlite.binding import ValueRef
-from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says

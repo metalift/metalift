@@ -1,44 +1,30 @@
 import re
+import typing
 from collections import defaultdict
 from copy import deepcopy
-
-from llvmlite.binding import TypeRef, ValueRef
-
-from metalift.ir import (
-    List as mlList,
-    Int,
-    Bool,
-    Call,
-    ObjectT,
-    Expr,
-    Eq,
-    Add,
-    Sub,
-    Mul,
-    Lt,
-    Le,
-    And,
-    Or,
-    Implies,
-    Not,
-    Ite,
-    Set as mlSet,
-    Var,
-    IntLit,
-    BoolLit,
-    Object,
-    MLInst,
-    make_tuple_type,
-    Synth,
-    Lit,
-    parse_type_ref_to_obj,
-)
-from metalift import vc_util, models
-
-from llvmlite.binding import TypeRef, ValueRef
-
-import typing
 from typing import Any, Dict, Optional, Union
+
+from llvmlite.binding import TypeRef, ValueRef
+
+from metalift import models, vc_util
+from metalift.ir import (
+    Add,
+    And,
+    Bool,
+    BoolLit,
+    Call,
+    Eq,
+    Expr,
+    Implies,
+    Int,
+    IntLit,
+    Ite,
+    Le,
+)
+from metalift.ir import List as mlList
+from metalift.ir import Lit, Lt, MLInst, Mul, Not, Object, ObjectT, Or
+from metalift.ir import Set as mlSet
+from metalift.ir import Sub, Synth, Var, make_tuple_type, parse_type_ref_to_obj
 
 
 class State:

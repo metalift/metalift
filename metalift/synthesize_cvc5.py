@@ -1,45 +1,39 @@
-from metalift.analysis import CodeInfo
-import subprocess
-import pyparsing as pp
 import os
-from metalift import process_tracker
-
-from metalift.ir import (
-    Int,
-    Bool,
-    Call,
-    ObjectT,
-    Expr,
-    Eq,
-    Add,
-    Sub,
-    Mul,
-    Lt,
-    Gt,
-    Le,
-    Ge,
-    And,
-    Or,
-    Implies,
-    Not,
-    TupleGet,
-    Ite,
-    Set as mlSet,
-    Var,
-    IntLit,
-    BoolLit,
-    FnDeclRecursive,
-    make_tuple_type,
-    Axiom,
-    Synth,
-    FnDecl,
-    get_fn_return_type,
-)
-from metalift.smt_util import toSMT
-
+import subprocess
 import typing
 from typing import IO, Any, Callable, Dict, Generator, List, Union
 
+import pyparsing as pp
+
+from metalift import process_tracker
+from metalift.analysis import CodeInfo
+from metalift.ir import (
+    Add,
+    And,
+    Axiom,
+    Bool,
+    BoolLit,
+    Call,
+    Eq,
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    Ge,
+    Gt,
+    Implies,
+    Int,
+    IntLit,
+    Ite,
+    Le,
+    Lt,
+    Mul,
+    Not,
+    ObjectT,
+    Or,
+)
+from metalift.ir import Set as mlSet
+from metalift.ir import Sub, Synth, TupleGet, Var, get_fn_return_type, make_tuple_type
+from metalift.smt_util import toSMT
 from metalift.synthesis_common import (
     SynthesisFailed,
     VerificationFailed,

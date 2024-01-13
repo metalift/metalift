@@ -1,17 +1,10 @@
 import re
+from typing import Dict
 
 from llvmlite.binding import ValueRef
+
 from metalift.frontend.utils import ObjectSet
-from metalift.ir import (
-    And,
-    Expr,
-    Lit,
-    Bool,
-    Int,
-    Or,
-    get_object_exprs,
-)
-from typing import Dict
+from metalift.ir import And, Bool, Expr, Int, Lit, Or, get_object_exprs
 
 
 def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Expr:

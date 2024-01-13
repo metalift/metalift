@@ -1,7 +1,9 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import Bool, Int, Object, Set as mlSet, choose, ite, fn_decl_recursive
+from metalift.ir import Bool, Int, Object
+from metalift.ir import Set as mlSet
+from metalift.ir import choose, fn_decl_recursive, ite
 from tests.python.utils.utils import codegen
 
 

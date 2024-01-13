@@ -1,14 +1,9 @@
 from typing import List, Union
 
 from metalift.frontend.python import Driver
+from metalift.ir import Axiom, Bool, Fn, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
 from metalift.ir import (
-    Axiom,
-    Bool,
-    FnDecl,
-    Fn,
-    FnDeclRecursive,
-    Int,
-    List as mlList,
     Object,
     Synth,
     call,

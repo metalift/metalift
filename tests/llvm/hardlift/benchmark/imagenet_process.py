@@ -1,9 +1,9 @@
 import os
-import torchvision
-import numpy as np
-import tarfile
 import os.path
+import tarfile
 
+import numpy as np
+import torchvision
 
 if __name__ == "__main__":
     root = "."

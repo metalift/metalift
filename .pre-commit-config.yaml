@@ -8,6 +8,11 @@ repos:
     rev: 23.12.1
     hooks:
       - id: black
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
   - repo: https://github.com/PyCQA/autoflake
     rev: v2.2.1
     hooks:
