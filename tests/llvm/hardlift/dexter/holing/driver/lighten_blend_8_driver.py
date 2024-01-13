@@ -3,8 +3,8 @@ import time
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tests.llvm.hardlift.hardlift_common import (
-    lighten_blend_8_hole_body,
     get_matrix_select_holing_search_space,
+    lighten_blend_8_hole_body,
 )
 from tests.python.utils.utils import codegen
 

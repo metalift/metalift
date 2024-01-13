@@ -1,5 +1,5 @@
 import typing
-from typing import Generator, Any, Iterable, List
+from typing import Any, Generator, Iterable, List
 
 from metalift.ir import Expr, Object
 

@@ -22,23 +22,13 @@ from llvmlite.binding import TypeRef, ValueRef
 from metalift.analysis import setupBlocks
 from metalift.analysis_new import VariableTracker
 from metalift.frontend.utils import ObjectSet
+from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
+from metalift.ir import List as mlList
+from metalift.ir import Lit, Matrix, Object, ObjectT
+from metalift.ir import Set as mlSet
 from metalift.ir import (
-    Bool,
-    Call,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    Int,
-    Ite,
-    List as mlList,
-    Lit,
-    Object,
-    ObjectT,
-    Set as mlSet,
     Synth,
     Var,
-    Matrix,
     call,
     create_object,
     get_list_element_type,
@@ -50,8 +40,8 @@ from metalift.ir import (
     parse_type_ref_to_obj,
 )
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
-from metalift.vc_util import and_objects, or_objects
 from metalift.vc import Block
+from metalift.vc_util import and_objects, or_objects
 
 # Models
 ReturnValue = NamedTuple(

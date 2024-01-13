@@ -7,15 +7,15 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
-    vec_vec_to_vec,
     an_arr_to_int,
-    scalar_vec_to_vec,
     reduce_mul,
     reduce_sum,
+    scalar_vec_to_vec,
     vec_elemwise_add,
     vec_elemwise_mul,
     vec_scalar_add,
     vec_scalar_mul,
+    vec_vec_to_vec,
 )
 from tests.python.utils.utils import codegen
 

@@ -1,6 +1,5 @@
 from metalift.analysis_new import VariableTracker, analyze
 from metalift.ir import *
-
 from metalift.synthesize_auto import synthesize
 
 

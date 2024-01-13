@@ -1,6 +1,6 @@
 from typing import List
-from metalift.frontend.python import Driver
 
+from metalift.frontend.python import Driver
 from metalift.ir import (
     Add,
     And,
@@ -15,11 +15,9 @@ from metalift.ir import (
     Int,
     Ite,
     Le,
-    List as mlList,
-    Lt,
-    Var,
 )
-
+from metalift.ir import List as mlList
+from metalift.ir import Lt, Var
 from tests.python.utils.utils import codegen
 
 # We use test_abs instead of abs because abs is reserved in cvc5.

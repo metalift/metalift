@@ -1,9 +1,9 @@
-from typing import Callable, List, Dict, cast, Optional, Union, Any
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from llvmlite.binding import ValueRef
 
 from metalift.analysis import analyze
-from metalift.ir import Expr, Var, NonTerm, FnDeclRecursive, Target, Synth, Eq
+from metalift.ir import Eq, Expr, FnDeclRecursive, NonTerm, Synth, Target, Var
 from metalift.synthesize_auto import synthesize  # type: ignore
 
 

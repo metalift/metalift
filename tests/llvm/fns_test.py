@@ -1,16 +1,16 @@
 from metalift import ir
 from metalift.ir import (
-    Eq,
+    Bool,
     Call,
+    Eq,
+    FnDeclRecursive,
+    FnT,
     Int,
     IntLit,
-    FnDeclRecursive,
-    Var,
     Ite,
     ListT,
-    Bool,
-    FnT,
     PrintMode,
+    Var,
 )
 
 f = Var("f", FnT(Bool()))

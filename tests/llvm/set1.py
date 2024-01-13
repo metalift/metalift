@@ -1,17 +1,5 @@
 from metalift.analysis_new import VariableTracker, analyze
-from metalift.ir import (
-    Bool,
-    Choose,
-    Eq,
-    Synth,
-    Call,
-    Int,
-    IntLit,
-    Ite,
-    SetT,
-    Var,
-)
-
+from metalift.ir import Bool, Call, Choose, Eq, Int, IntLit, Ite, SetT, Synth, Var
 from metalift.synthesize_auto import synthesize
 
 

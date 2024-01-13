@@ -1,16 +1,9 @@
 from typing import List, Literal
 
 from metalift.frontend.python import Driver
-from metalift.ir import (
-    Bool,
-    Int,
-    Tuple as mlTuple,
-    Object,
-    call,
-    choose,
-    fn_decl_recursive,
-    make_tuple,
-)
+from metalift.ir import Bool, Int, Object
+from metalift.ir import Tuple as mlTuple
+from metalift.ir import call, choose, fn_decl_recursive, make_tuple
 from tests.python.utils.utils import codegen
 
 

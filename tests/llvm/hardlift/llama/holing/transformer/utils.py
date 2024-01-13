@@ -1,4 +1,5 @@
 from typing import List
+
 from metalift.ir import Int, call, choose, fn_decl, synth
 from tests.llvm.hardlift.hardlift_common import get_loop_fns, get_no_arg_bool_fn
 

@@ -2,15 +2,9 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (
-    Int,
-    Object,
-    Tuple as mlTuple,
-    call,
-    choose,
-    make_tuple,
-    fn_decl_recursive,
-)
+from metalift.ir import Int, Object
+from metalift.ir import Tuple as mlTuple
+from metalift.ir import call, choose, fn_decl_recursive, make_tuple
 from tests.python.utils.utils import codegen
 
 

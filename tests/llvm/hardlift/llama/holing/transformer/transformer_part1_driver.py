@@ -1,48 +1,47 @@
+from typing import List, Union
+
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, ite
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
-from metalift.ir import Object, choose
+from metalift.ir import Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
     call_integer_exp,
     call_map_int_to_int,
     call_reduce_sum,
     call_vec_elemwise_mul,
-    call_vec_elemwise_mul,
     call_vec_map,
     call_vec_scalar_mul,
-    call_vec_scalar_mul,
     get_map_int_to_int_synth,
-    matrix_vec_mul,
-    reduce_sum,
-    vec_elemwise_mul,
-    matrix_vec_to_vec,
-    vec_elemwise_div,
-    map_int_to_int_fn_obj,
-    vec_scalar_mul,
-    vec_map,
     map_int_to_int,
+    map_int_to_int_fn_obj,
+    matrix_vec_mul,
+    matrix_vec_to_vec,
+    reduce_sum,
+    vec_elemwise_div,
+    vec_elemwise_mul,
+    vec_map,
     vec_scalar_div,
+    vec_scalar_mul,
 )
 from tests.llvm.hardlift.llama.holing.transformer.utils import (
     call_matrix_composed_index_fn,
+    call_vec_composed_index_fn,
     common_fn_decls,
     common_synths,
-    is_matrix_outer_loop_index_first,
-    is_vector_outer_loop_index,
-    get_outer_loop_lower_bound,
-    get_outer_loop_upper_bound,
+    get_inner_loop_index,
     get_inner_loop_lower_bound,
     get_inner_loop_upper_bound,
     get_outer_loop_index,
-    is_outer_loop_left_bound_smaller,
-    get_inner_loop_index,
+    get_outer_loop_lower_bound,
+    get_outer_loop_upper_bound,
     is_inner_loop_left_bound_smaller,
+    is_matrix_outer_loop_index_first,
+    is_outer_loop_left_bound_smaller,
+    is_vector_outer_loop_index,
     vec_composed_index_fn_decl,
     vec_composed_index_synth,
-    call_vec_composed_index_fn,
 )
-from typing import List, Union
 
 driver = Driver()
 # Define initial target lang

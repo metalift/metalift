@@ -9,8 +9,8 @@ from metalift.ir import (
     Object,
     call,
     choose,
-    ite,
     fn_decl_recursive,
+    ite,
 )
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen

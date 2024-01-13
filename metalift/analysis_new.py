@@ -1,9 +1,10 @@
 import re
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
 
-from typing import Callable, Dict, List, Optional, Set, Union, Tuple
-
+from metalift import ir
 from metalift.analysis import LoopInfo, parseLoops
 from metalift.ir import (
     And,
@@ -15,7 +16,6 @@ from metalift.ir import (
     Var,
     parse_type_ref_to_obj,
 )
-from metalift import ir
 
 
 def format_with_index(a: str, idx: int) -> str:

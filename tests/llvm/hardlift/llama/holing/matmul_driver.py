@@ -1,9 +1,9 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, ite
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
-from metalift.ir import Object, choose
+from metalift.ir import Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
     call_matrix_vec_mul,

@@ -1,20 +1,9 @@
 from typing import List, Union
 
 from metalift.frontend.python import Driver
-from metalift.ir import (
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    Object,
-    List as mlList,
-    Int,
-    Bool,
-    call,
-    choose,
-    ite,
-    fn_decl,
-    fn_decl_recursive,
-)
+from metalift.ir import Bool, Expr, FnDecl, FnDeclRecursive, Int
+from metalift.ir import List as mlList
+from metalift.ir import Object, call, choose, fn_decl, fn_decl_recursive, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 

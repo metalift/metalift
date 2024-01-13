@@ -1,6 +1,5 @@
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
-
 from metalift.synthesize_auto import synthesize
 
 # # programmatically generated grammar

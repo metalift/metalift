@@ -1,5 +1,6 @@
-from mypy.nodes import CallExpr, NameExpr, MemberExpr
 from typing import cast
+
+from mypy.nodes import CallExpr, MemberExpr, NameExpr
 
 
 def is_func_call(o: CallExpr) -> bool:
