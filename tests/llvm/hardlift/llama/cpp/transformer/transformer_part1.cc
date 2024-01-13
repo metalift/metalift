@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-int integer_exp(int x) { return x; }
+int integer_sqrt(int x) { return x; }
 
 vector<int> transformer_part1(
     int token_position,
@@ -16,7 +16,7 @@ vector<int> transformer_part1(
         for (int i = 0; i < head_size; ++i) {
             score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + i];
         }
-        score /= integer_exp(head_size * 1);
+        score /= integer_sqrt(head_size * 1);
         attention.push_back(score);
     }
     return attention;
