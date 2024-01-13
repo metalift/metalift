@@ -3,12 +3,11 @@ from metalift.ir import *
 
 from metalift.synthesize_auto import synthesize
 
+
 def grammar(name, args, ret):
     inputVars = Choose(*args, IntLit(0))
     var_or_add = Add(inputVars, inputVars)
-    var_or_fma = Choose(
-        *args, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
-    )
+    var_or_fma = Choose(*args, Call("fma", Int(), var_or_add, var_or_add, var_or_add))
     summary = Eq(ret, Add(var_or_fma, var_or_fma))
     return Synth(name, summary, ret, *args)
 
@@ -22,22 +21,25 @@ def targetLang():
 
 
 def codeGen(summary: FnDeclRecursive):
-    expr = summary.body() 
+    expr = summary.body()
+
     def eval(expr):
         if isinstance(expr, Eq):
-            return "%s = %s"%(expr.e1(), eval(expr.e2()))
+            return "%s = %s" % (expr.e1(), eval(expr.e2()))
         if isinstance(expr, Add):
-            return "%s + %s"%(eval(expr.args[0]), eval(expr.args[1]))
+            return "%s + %s" % (eval(expr.args[0]), eval(expr.args[1]))
         if isinstance(expr, Call):
             eval_args = []
             for a in expr.arguments():
                 eval_args.append(eval(a))
-            return "%s(%s)"%(expr.name(), ', '.join(a for a in eval_args))
+            return "%s(%s)" % (expr.name(), ", ".join(a for a in eval_args))
         if isinstance(expr, Lit):
-            return "%s"%(expr.val())
+            return "%s" % (expr.val())
         else:
-            return "%s"%(expr)
+            return "%s" % (expr)
+
     return eval(expr)
+
 
 if __name__ == "__main__":
     filename = "tests/llvm/fma_dsl.ll"
@@ -57,12 +59,9 @@ if __name__ == "__main__":
 
     synth_fun = grammar(fnName, [base, arg1, base2, arg2], Var("ret", Int()))
 
-    vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Call(
-        fnName,
-        Bool(),
-        ret,
-        base, arg1, base2, arg2
-    ))
+    vc = test_analysis.call(base, arg1, base2, arg2)(
+        variable_tracker, lambda ret: Call(fnName, Bool(), ret, base, arg1, base2, arg2)
+    )
 
     vars = variable_tracker.all()
     loopAndPsInfo = [synth_fun]

@@ -9,7 +9,6 @@ from metalift.ir import (
     Int,
     Bool,
     Call,
-    Matrix,
     ObjectT,
     Expr,
     Eq,
@@ -51,7 +50,7 @@ from metalift.synthesis_common import (
 from metalift import process_tracker
 
 import typing
-from typing import Any, Callable, Dict, List, Union, IO, get_args
+from typing import Any, Callable, Dict, List, Union, IO
 
 # TODO: remove after proper replacement
 from metalift.types import FnT, MapT
@@ -144,7 +143,9 @@ def toExpr(
         elif ast[0] == "length":
             return Call("list_length", Int, toExpr(ast[1], fnsType, varType, choices))
         elif ast[0] == "list-list-length":
-            return Call("list_list_length", Int, toExpr(ast[1], fnsType, varType, choices))
+            return Call(
+                "list_list_length", Int, toExpr(ast[1], fnsType, varType, choices)
+            )
         elif ast[0] == "list-empty":
             return Call("list_empty", mlList[Int])
         elif ast[0] == "list-list-empty":
@@ -293,25 +294,13 @@ def toExpr(
             )
         elif ast[0] == "matrix-transpose-noerr":
             matrix_expr = toExpr(ast[1], fnsType, varType, choices)
-            return Call(
-                "matrix_transpose",
-                matrix_expr.type,
-                matrix_expr
-            )
+            return Call("matrix_transpose", matrix_expr.type, matrix_expr)
         elif ast[0] == "integer-sqrt":
             int_expr = toExpr(ast[1], fnsType, varType, choices)
-            return Call(
-                "integer_sqrt",
-                Int,
-                int_expr
-            )
+            return Call("integer_sqrt", Int, int_expr)
         elif ast[0] == "integer-exp":
             int_expr = toExpr(ast[1], fnsType, varType, choices)
-            return Call(
-                "integer_exp",
-                Int,
-                int_expr
-            )
+            return Call("integer_exp", Int, int_expr)
         elif ast[0] == "make-tuple":
             arg_eval = []
             for alen in range(1, len(ast)):
@@ -501,7 +490,7 @@ def synthesize(
     uninterp_fns: List[str] = [],
     rounds_to_guess: int = 0,
     fns_to_guess: List[FnDeclRecursive] = [],
-    fn_defs_to_exclude: List[FnDeclRecursive] = []
+    fn_defs_to_exclude: List[FnDeclRecursive] = [],
 ) -> typing.List[FnDeclRecursive]:
     synthDir = "./synthesisLogs/"
     if not os.path.exists(synthDir):

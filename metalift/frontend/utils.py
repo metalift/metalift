@@ -3,6 +3,7 @@ from typing import Generator, Any, Iterable, List
 
 from metalift.ir import Expr, Object
 
+
 # print the short name of a type: a.b.c.D -> D
 def qual_name(t: type) -> str:
     if isinstance(t, type):

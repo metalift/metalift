@@ -2,7 +2,7 @@ package original.arithmetic;
 
 import java.util.List;
 
-public class Delta {	
+public class Delta {
 	public static int deltaList(List<Integer> data) {
 		int min = Integer.MAX_VALUE;
 		int max = Integer.MIN_VALUE;

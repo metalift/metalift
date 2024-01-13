@@ -1,16 +1,13 @@
-import os
-import sys
-
 from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
 from metalift.synthesize_rosette import synthesize
+
 
 # # programmatically generated grammar
 def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
-
         f = Choose(
             Call("Select-pred", FnT(Bool(), *ci.readVars)),
             Call("Select-pred1", FnT(Bool(), *ci.readVars)),
@@ -19,7 +16,7 @@ def grammar(ci: CodeInfo):
         a = Choose(
             ci.modifiedVars[0],
             *ci.readVars,
-            Call("Select", ListT(Int()), *ci.readVars, f)
+            Call("Select", ListT(Int()), *ci.readVars, f),
         )
         i = Choose(IntLit(0), IntLit(1))
         e = Choose(
@@ -91,11 +88,14 @@ def grammar(ci: CodeInfo):
 
 
 def targetLang():
-
     arg = Var("n", Int())
     select_pred = FnDeclRecursive("Select-pred", FnT(Bool()), Gt(arg, IntLit(2)), arg)
-    select_pred1 = FnDeclRecursive("Select-pred1", FnT(Bool()), Lt(arg, IntLit(10)), arg)
-    select_pred2 = FnDeclRecursive("Select-pred2", FnT(Bool()), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg)
+    select_pred1 = FnDeclRecursive(
+        "Select-pred1", FnT(Bool()), Lt(arg, IntLit(10)), arg
+    )
+    select_pred2 = FnDeclRecursive(
+        "Select-pred2", FnT(Bool()), And(Gt(arg, IntLit(2)), Lt(arg, IntLit(10))), arg
+    )
     data = Var("l", ListT(Int()))
     f = Var("f", FnT(Bool()))
     select_func = FnDeclRecursive(
@@ -149,7 +149,14 @@ if __name__ == "__main__":
     # toRosette(basename+".rkt",lang,vars, invAndPs, preds, vc, loopAndPsInfo,[])
 
     candidates = synthesize(
-        basename, lang, vars, invAndPs, preds, vc, loopAndPsInfo, cvcPath,
+        basename,
+        lang,
+        vars,
+        invAndPs,
+        preds,
+        vc,
+        loopAndPsInfo,
+        cvcPath,
     )
     # print("====== verified candidates")
     # for c in candidates:print(c,"\n")

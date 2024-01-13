@@ -1,7 +1,7 @@
 #include "list.h"
 #include <iostream>
 
-	
+
 bool test(List<int> data, int val) {
 	bool equal = true;
 	for(int i=0; i<listLength(data); i++) {
@@ -11,4 +11,3 @@ bool test(List<int> data, int val) {
 	}
 	return equal;
 }
-

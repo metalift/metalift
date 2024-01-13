@@ -24,20 +24,20 @@ public class PcaJava {
     /*
      * void parse_args(int argc, String[] argv) { int c; extern char *optarg;
      * extern int optind;
-     * 
+     *
      * num_rows = DEF_NUM_ROWS; num_cols = DEF_NUM_COLS; grid_size =
      * DEF_GRID_SIZE;
-     * 
+     *
      * while ((c = getopt(argc, argv, "r:c:s:")) != EOF) { switch (c) { case
      * 'r': num_rows = atoi(optarg); break; case 'c': num_cols = atoi(optarg);
      * break; case 's': grid_size = atoi(optarg); break; case '?':
      * printf("Usage: %s -r <num_rows> -c <num_cols> -s <max value>\n",
      * argv[0]); exit(1); } }
-     * 
+     *
      * if (num_rows <= 0 || num_cols <= 0 || grid_size <= 0) { printf(
      * "Illegal argument value. All values must be numeric and greater than 0\n"
      * ); exit(1); }
-     * 
+     *
      * printf("Number of rows = %d\n", num_rows);
      * printf("Number of cols = %d\n", num_cols);
      * printf("Max value for each element = %d\n", grid_size); }

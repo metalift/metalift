@@ -1,9 +1,23 @@
 from typing import List, Union
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Expr, FnDecl,FnDeclRecursive, Object, List as mlList, Int, Bool, call, choose, ite, fn_decl,fn_decl_recursive)
+from metalift.ir import (
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    Object,
+    List as mlList,
+    Int,
+    Bool,
+    call,
+    choose,
+    ite,
+    fn_decl,
+    fn_decl_recursive,
+)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
+
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     arg = Int("n")
@@ -64,7 +78,10 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         select_func2,
     ]
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Expr:
+
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Expr:
     # reads = [in_lst]
     ret_val = writes[0]
     in_lst = reads[0]
@@ -72,16 +89,18 @@ def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]
         ret_val == in_lst,
         ret_val == call("Select", mlList[Int], in_lst),
         ret_val == call("Select1", mlList[Int], in_lst),
-        ret_val == call("Select2", mlList[Int], in_lst)
+        ret_val == call("Select2", mlList[Int], in_lst),
     )
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Expr:
+
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Expr:
     i, out_lst = writes[0], writes[1]
     in_lst = reads[1]
     lst = choose(in_lst, out_lst, call("Select", mlList[Int], in_lst))
     lst_inv_cond = choose(
-        lst + call("Select", mlList[Int], lst[i:]) == lst,
-        out_lst + lst[i:] == lst
+        lst + call("Select", mlList[Int], lst[i:]) == lst, out_lst + lst[i:] == lst
     )
 
     in_lst_length = in_lst.len()
@@ -100,7 +119,9 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
         i < i_bound_int_lit,
         i == i_bound_int_lit,
     )
-    return choose(and_objects(i_bound_int_lit_cond, i_bound_in_lst_length_cond, lst_inv_cond))
+    return choose(
+        and_objects(i_bound_int_lit_cond, i_bound_in_lst_length_cond, lst_inv_cond)
+    )
 
 
 if __name__ == "__main__":
@@ -110,7 +131,7 @@ if __name__ == "__main__":
         fn_name="test",
         target_lang_fn=target_lang,
         inv_grammar=inv_grammar,
-        ps_grammar=ps_grammar
+        ps_grammar=ps_grammar,
     )
 
     in_lst = mlList(Int, "in_lst")

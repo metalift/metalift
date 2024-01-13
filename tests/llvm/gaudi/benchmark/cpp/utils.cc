@@ -10,7 +10,7 @@
 using namespace std;
 using namespace std::chrono;
 
-#include <opencv2/opencv.hpp> 
+#include <opencv2/opencv.hpp>
 using namespace cv;
 
 static vector<cv::String> fn;
@@ -54,7 +54,7 @@ std::array<vector<vector<float>>,2> get_base_active(int i) {
         }
     }
     vector<vector<float> > active = random_matrix(img.rows, img.cols);
-    
+
     std::array<vector<vector<float>>,2> res;
     res[0] = base;
     res[1] = active;
@@ -80,8 +80,8 @@ void mat_timer(vector<vector<float>> (*func)(vector<vector<float>>, vector<vecto
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<float>>,2> res = get_base_active(j);
-            vector<vector<float>> base = res[0]; 
-            vector<vector<float>> active = res[1]; 
+            vector<vector<float>> base = res[0];
+            vector<vector<float>> active = res[1];
             auto start_time = high_resolution_clock::now();
             func(base, active);
             auto end_time = high_resolution_clock::now();
@@ -103,10 +103,10 @@ void vec_timer(vector<float> (*func)(vector<float>, vector<float>, float)) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<float>>,2> res = get_base_active(j);
-            vector<vector<float>> base = res[0]; 
-            vector<float> base_f = flatten(base); 
-            vector<vector<float>> active = res[1]; 
-            vector<float> active_f = flatten(active); 
+            vector<vector<float>> base = res[0];
+            vector<float> base_f = flatten(base);
+            vector<vector<float>> active = res[1];
+            vector<float> active_f = flatten(active);
             float opacity = random_float();
             auto start_time = high_resolution_clock::now();
             func(base_f, active_f, opacity);

@@ -3,7 +3,7 @@
 #include <vector>
 using namespace std;
 
-#include <opencv2/opencv.hpp> 
+#include <opencv2/opencv.hpp>
 using namespace cv;
 
 vector<vector<float>> random_matrix(int m = 512, int n = 512);

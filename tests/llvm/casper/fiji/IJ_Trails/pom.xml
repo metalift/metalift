@@ -14,7 +14,7 @@
     <groupId>uk.ac.ox.micron</groupId>
     <artifactId>Temporal_plugins</artifactId>
     <version>1.0.0</version>
-    
+
     <properties>
         <imagej.app.directory>/Applications/Fiji.app</imagej.app.directory>
     </properties>

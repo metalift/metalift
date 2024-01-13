@@ -40,7 +40,7 @@ cd llvm-pass
 mkdir build
 cd build
 cmake ..
-make 
+make
 cd ../..
 ```
 

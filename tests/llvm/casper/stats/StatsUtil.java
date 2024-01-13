@@ -309,10 +309,10 @@ public class StatsUtil{
 
    /**
     * gaussian
-    *                         a normalised gaussian to reflect the distribution of the data 
+    *                         a normalised gaussian to reflect the distribution of the data
     * @param numberOfSamples
     *                         sample number appropriate to size of original data array
-    * @param variance                    
+    * @param variance
     *                         variance of data
     * @param mean
     *                         mean of data
@@ -327,7 +327,7 @@ public class StatsUtil{
             gaussian[i] = Math.sqrt(1/(period)* variance)*(Math.exp(-(i-mean)*(i-mean)/(2 * variance)));
             tempGaussian += gaussian[i];
         }
-        
+
         for (int i=0; i< numberOfSamples; i++){ //normalise
             gaussian[i] /= tempGaussian;
         }
@@ -345,8 +345,8 @@ public class StatsUtil{
      * @param numberOfSamples
      *                         sample number appropriate to size of original data array
      * @return
-     *                        Smoothed data as array of doubles 
-     */ 
+     *                        Smoothed data as array of doubles
+     */
     public static double[] convolve(int[] data, double[] gaussian, int numberOfSamples){
         double convolved[] = new double[data.length - (numberOfSamples + 1)];
         for (int i=0; i<convolved.length; i++){

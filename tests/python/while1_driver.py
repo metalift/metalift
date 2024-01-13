@@ -17,13 +17,11 @@ def ps_grammar(
 
 
 # inv: ite(y<=x, 0<=x, y=0)
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     x, y = reads
-    return ite(
-        y <= x,
-        0 <= x,
-        y == 0
-    )
+    return ite(y <= x, 0 <= x, y == 0)
 
 
 def target() -> List[FnDecl]:

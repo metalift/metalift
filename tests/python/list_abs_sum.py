@@ -2,6 +2,7 @@
 
 from typing import List
 
+
 def test(lst: List[int]) -> int:
     i: int = 0
     sum: int = 0

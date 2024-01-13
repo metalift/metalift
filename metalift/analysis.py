@@ -9,7 +9,6 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Type,
     Union,
     cast,
 )
@@ -31,7 +30,6 @@ from metalift.ir import (
     MLInst_Not,
     MLInst_Or,
     MLInst_Return,
-    Object,
     ObjectT,
     Synth,
     Var,

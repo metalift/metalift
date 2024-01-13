@@ -1,10 +1,24 @@
 from typing import List, Union
 
 from metalift.frontend.python import Driver
-from metalift.ir import (Axiom, Bool, FnDecl, Fn,
-                         FnDeclRecursive, Int, List as mlList, Object,
-                         Synth, call, call_value, choose, fn_decl,
-                         fn_decl_recursive, implies, ite)
+from metalift.ir import (
+    Axiom,
+    Bool,
+    FnDecl,
+    Fn,
+    FnDeclRecursive,
+    Int,
+    List as mlList,
+    Object,
+    Synth,
+    call,
+    call_value,
+    choose,
+    fn_decl,
+    fn_decl_recursive,
+    implies,
+    ite,
+)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
@@ -14,20 +28,13 @@ LR_NAME = "lr"
 val = Int("val")
 val2 = Int("val2")
 
+
 def fns_synths() -> List[Synth]:
-    lm_synth = Synth(
-        LM_NAME,
-        choose(Int(0), Int(1), Int(2), Int(3)).src,
-        val.src
-    )
+    lm_synth = Synth(LM_NAME, choose(Int(0), Int(1), Int(2), Int(3)).src, val.src)
     v = choose(val, val2)
-    lr_synth = Synth(
-        LR_NAME,
-        choose(v + v, v - v, v * v).src,
-        val.src,
-        val2.src
-    )
+    lr_synth = Synth(LR_NAME, choose(v + v, v - v, v * v).src, val.src, val2.src)
     return [lm_synth, lr_synth]
+
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     in_lst = mlList(Int, "in_lst")
@@ -43,7 +50,9 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         ite(
             in_lst.len() == 0,
             mlList.empty(Int),
-            call("map", mlList[Int], in_lst[1:], lm_fn).prepend(call_value(lm_fn, in_lst[0]))
+            call("map", mlList[Int], in_lst[1:], lm_fn).prepend(
+                call_value(lm_fn, in_lst[0])
+            ),
         ),
         in_lst,
         lm_fn,
@@ -55,7 +64,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         ite(
             in_lst.len() == 0,
             Int(0),
-            call_value(lr_fn, in_lst[0], call("reduce", Int, in_lst[1:], lr_fn))
+            call_value(lr_fn, in_lst[0], call("reduce", Int, in_lst[1:], lr_fn)),
         ),
         in_lst,
         lr_fn,
@@ -71,56 +80,47 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
             "reduce",
             Int,
             call(
-                "map",
-                mlList[Int],
-                mr_axiom_in_lst[:mr_axiom_index + 1],
-                lm_fn_object
+                "map", mlList[Int], mr_axiom_in_lst[: mr_axiom_index + 1], lm_fn_object
             ),
-            lr_fn_object
-        ) == call(
+            lr_fn_object,
+        )
+        == call(
             LR_NAME,
             Int,
             call(
                 "reduce",
                 Int,
                 call(
-                    "map",
-                    mlList[Int],
-                    mr_axiom_in_lst[:mr_axiom_index],
-                    lm_fn_object
+                    "map", mlList[Int], mr_axiom_in_lst[:mr_axiom_index], lm_fn_object
                 ),
-                lr_fn_object
+                lr_fn_object,
             ),
-            call(
-                LM_NAME,
-                Int,
-                mr_axiom_in_lst[mr_axiom_index]
-            ),
-        )
+            call(LM_NAME, Int, mr_axiom_in_lst[mr_axiom_index]),
+        ),
     ).src
     map_reduce_axiom = Axiom(implies_expr, mr_axiom_in_lst.src, mr_axiom_index.src)
 
     return [map_fn, reduce_fn, map_reduce_axiom, mapper, reducer]
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     # reads = [in_lst]
     ret_val = writes[0]
     in_lst = reads[0]
     lm_fn_object = Fn((Int, Int), LM_NAME)
     lr_fn_object = Fn((Int, Int), LR_NAME)
     call_obj = call(
-        "reduce",
-        Int,
-        call("map", mlList[Int], in_lst, lm_fn_object),
-        lr_fn_object
+        "reduce", Int, call("map", mlList[Int], in_lst, lm_fn_object), lr_fn_object
     )
-    choices = choose(
-        ret_val == call_obj,
-        ret_val > call_obj
-    )
+    choices = choose(ret_val == call_obj, ret_val > call_obj)
     return choices
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     # writes = [count, i]
     # reads = [count, i, in_lst]
     lm_fn_object = Fn((Int, Int), LM_NAME)
@@ -128,21 +128,10 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
     count, i = writes
     in_lst = reads[2]
     call_expr = call(
-        "reduce",
-        Int,
-        call(
-            "map",
-            mlList[Int],
-            in_lst[:i],
-            lm_fn_object
-        ),
-        lr_fn_object
+        "reduce", Int, call("map", mlList[Int], in_lst[:i], lm_fn_object), lr_fn_object
     )
 
-    count_inv_cond = choose(
-        count == call_expr,
-        count >= call_expr
-    )
+    count_inv_cond = choose(count == call_expr, count >= call_expr)
     in_lst_length = in_lst.len()
     i_bound_in_lst_length_cond = choose(
         i >= in_lst_length,
@@ -159,20 +148,17 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
         i < i_bound_int_lit,
         i == i_bound_int_lit,
     )
-    return choose(and_objects(i_bound_in_lst_length_cond, i_bound_int_lit_cond, count_inv_cond))
+    return choose(
+        and_objects(i_bound_in_lst_length_cond, i_bound_int_lit_cond, count_inv_cond)
+    )
+
 
 if __name__ == "__main__":
     filename = "tests/python/count.py"
 
     driver = Driver()
     driver.fns_synths = fns_synths()
-    test = driver.analyze(
-        filename,
-        "test",
-        target_lang,
-        inv_grammar,
-        ps_grammar
-    )
+    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
     in_lst = mlList(Int, "in_lst")
     driver.add_var_object(in_lst)
 

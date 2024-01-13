@@ -21,4 +21,3 @@ List<int> main (List<List<int>> points) {
 	listAppend(result, SXY_ll);
 	return result;
 }
-	

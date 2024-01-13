@@ -15,11 +15,8 @@ from metalift.ir import (
     Add,
     Sub,
     Mul,
-    Div,
     Lt,
-    Gt,
     Le,
-    Ge,
     And,
     Or,
     Implies,
@@ -27,8 +24,6 @@ from metalift.ir import (
     Ite,
     Set as mlSet,
     Var,
-    Let,
-    Target,
     IntLit,
     BoolLit,
     Object,
@@ -43,7 +38,7 @@ from metalift import vc_util, models
 from llvmlite.binding import TypeRef, ValueRef
 
 import typing
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, Optional, Union
 
 
 class State:

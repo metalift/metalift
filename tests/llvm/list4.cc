@@ -9,7 +9,7 @@ struct Role { int roleId; int name; };
 List<User> test(List<User> users, List<Role> roles)
 {
   List<User> listUsers = newList<User>();
-  
+
   for (int i = 0; i < listLength(users); ++i) {
     for (int j = 0; j < listLength(roles); ++j) {
       if (listGet(users, i).roleId == listGet(roles, j).roleId) {
@@ -23,7 +23,7 @@ List<User> test(List<User> users, List<Role> roles)
 }
 
 // test code
-int main (int argc, char ** argv) 
+int main (int argc, char ** argv)
 {
   List<User> users = newList<User>();
   User u1; u1.id = 1; u1.roleId = 1;
@@ -38,7 +38,7 @@ int main (int argc, char ** argv)
   Role r2; r2.roleId = 2; r2.name = 2;
   roles = listAppend(roles, r1);
   roles = listAppend(roles, r2);
-  
+
   List<User> r = test(users, roles);
   for (std::vector<User>::const_iterator i = r->contents.begin(); i != r->contents.end(); ++i)
     std::cout << "id: " << i->id << " roleId: " << i->roleId << std::endl;

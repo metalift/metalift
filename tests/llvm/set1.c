@@ -6,6 +6,6 @@ set* test(set* s, int add, int value) {
   } else {
     s = set_remove(s, value);
   }
-  
+
   return s;
 }

@@ -2,7 +2,7 @@ package original.arithmetic;
 
 import java.util.List;
 
-public class MaxAbs {	
+public class MaxAbs {
 	public static int maxAbsList(List<Integer> data) {
 		int max = Integer.MIN_VALUE;
 		for(int i=0; i<data.size(); i++) {

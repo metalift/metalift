@@ -2,7 +2,7 @@
 #include <iostream>
 
 
-       
+
 List<int> main(List<int> fst_list, List<int> snd_list, List<int> emit_list, List<int> speed_list) {
     Array<int> result;
 

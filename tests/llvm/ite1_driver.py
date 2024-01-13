@@ -9,13 +9,17 @@ def target_lang() -> List[FnDecl]:
     return []
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     i = reads[0]
     return ret_val == ite(i > 10, Int(1), Int(2))
 
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     raise Exception("no loop in the source")
 
 
@@ -27,7 +31,7 @@ if __name__ == "__main__":
         fn_name="test",
         target_lang_fn=target_lang,
         inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
-        ps_grammar=ps_grammar
+        ps_grammar=ps_grammar,
     )
 
     i = Int("i")

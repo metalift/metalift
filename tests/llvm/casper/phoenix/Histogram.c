@@ -20,4 +20,3 @@ List<List<int>> main(List<List<int>> image, List<int> hR, List<int> hG, List<int
 
 	return result;
 }
-

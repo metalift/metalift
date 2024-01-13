@@ -1,18 +1,18 @@
 {
 	"backtrace" : 3,
-	"backtraceGraph" : 
+	"backtraceGraph" :
 	{
-		"commands" : 
+		"commands" :
 		[
 			"add_custom_target",
 			"find_package"
 		],
-		"files" : 
+		"files" :
 		[
 			"/usr/local/Cellar/llvm@11/11.1.0_4/lib/cmake/llvm/LLVMConfig.cmake",
 			"CMakeLists.txt"
 		],
-		"nodes" : 
+		"nodes" :
 		[
 			{
 				"file" : 1
@@ -37,7 +37,7 @@
 	},
 	"id" : "omp_gen::@6890427a1f51a3e7e1df",
 	"name" : "omp_gen",
-	"paths" : 
+	"paths" :
 	{
 		"build" : ".",
 		"source" : "."

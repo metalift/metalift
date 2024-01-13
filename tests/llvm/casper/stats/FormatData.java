@@ -1,7 +1,7 @@
 package original.stats;
 
 /**
- * Format Data.java 
+ * Format Data.java
  * =============
  * This file is a part of a program which serves as a utility for data analysis
  * of experimental data
@@ -19,7 +19,7 @@ package original.stats;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -33,7 +33,7 @@ public class FormatData {
 
 	Scanner scan = new Scanner(new BufferedReader(new FileReader("files/"+fileName)));
 	PrintWriter fitFout = new PrintWriter("files/data_"+fileName);
-      
+
 	int length = IOUtil.skipToInt(scan);
 
 	double xError=IOUtil.skipToDouble(scan);

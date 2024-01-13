@@ -2,11 +2,11 @@ package original.phoenix;
 
 import java.util.List;
 
-public class LinearRegression {	
+public class LinearRegression {
 
 	public static class Point {
 		public int x, y;
-	
+
 		public Point(int x, int y) {
 			this.x = x;
 			this.y = y;
@@ -33,5 +33,5 @@ public class LinearRegression {
 		result[4] = SXY_ll;
 		return result;
 	}
-	
+
 }

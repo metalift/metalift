@@ -6,7 +6,7 @@ int silu(int x) {
   return x / (1 + exp(-x));
 }
 
-std::vector<int> activation_kernels(std::vector<int> x, std::vector<int> y) 
+std::vector<int> activation_kernels(std::vector<int> x, std::vector<int> y)
 {
   std::vector<int> out;
   for (int i = 0; i < x.size(); ++i)

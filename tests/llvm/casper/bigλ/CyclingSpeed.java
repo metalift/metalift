@@ -11,7 +11,7 @@ public class CyclingSpeed {
     public int emit;
     public double speed;
 	}
-       
+
   public Map<Integer,Integer> cyclingSpeed(List<Record> data) {
     Map<Integer,Integer> result = new HashMap<Integer,Integer>();
 

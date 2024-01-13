@@ -6,10 +6,10 @@ sidebar_position: 0
 Metalift is a framework for building compilers for domain-specific languages (DSLs). If you are a developer and you want to use a new DSL for your application, you would need to rewrite your code manually, which is often tedious and error-prone. Rather than doing that, you can use Metalift to _generate a compiler_ that translates from your source language to your favorite DSL!
 
 ## How does it work?
-Metalift is a compiler generator. Unlike traditional syntax-driven compilers, which consists of rules that recognize patterns in the input code and translate them into the target language, Metalift uses [verified lifting](https://homes.cs.washington.edu/~akcheung/papers/pldi16.html) to search for possible candidate programs in the target language that the given input can be 
+Metalift is a compiler generator. Unlike traditional syntax-driven compilers, which consists of rules that recognize patterns in the input code and translate them into the target language, Metalift uses [verified lifting](https://homes.cs.washington.edu/~akcheung/papers/pldi16.html) to search for possible candidate programs in the target language that the given input can be
 translated to. This frees you from the need to devise, check, and maintain those pesky syntax-driven rules!
 
-To make the search efficient, rather than searching programs that are expressible in the concrete syntax of the target DSL, Metalift searches over the space of programs expressed in a high-level _specification language_ instead. The specification language has a functional language-like syntax (think Haskell) and represents the semantics of the target DSL. See [below](#specLang) for details.      
+To make the search efficient, rather than searching programs that are expressible in the concrete syntax of the target DSL, Metalift searches over the space of programs expressed in a high-level _specification language_ instead. The specification language has a functional language-like syntax (think Haskell) and represents the semantics of the target DSL. See [below](#specLang) for details.
 
 The Metalift toolchain consists of three components, as shown below:
 ![](/img/docs/overview/arch.png)

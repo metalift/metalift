@@ -5,11 +5,9 @@ from typing import (
     Callable,
     Dict,
     List,
-    Literal,
     Optional,
     Set,
     Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -75,7 +73,6 @@ from mypy.nodes import (
     PassStmt,
     RaiseStmt,
     ReturnStmt,
-    Statement,
     TryStmt,
     TupleExpr as mypyTupleExpr,
     UnaryExpr,
@@ -123,7 +120,7 @@ from metalift.mypy_util import (
     is_func_call_with_name,
     is_method_call_with_name,
 )
-from metalift.vc_util import and_objects, or_objects, and_exprs
+from metalift.vc_util import and_objects, or_objects
 
 # Run the interpreted version of mypy instead of the compiled one to avoid
 # TypeError: interpreted classes cannot inherit from compiled traits
@@ -343,7 +340,6 @@ class PredicateTracker:
 
 
 class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
-
     driver: "Driver"
     fn_name: str
     fn_type: CallableType

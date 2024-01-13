@@ -1,5 +1,5 @@
 {
-	"inputs" : 
+	"inputs" :
 	[
 		{
 			"path" : "CMakeLists.txt"
@@ -201,12 +201,12 @@
 		}
 	],
 	"kind" : "cmakeFiles",
-	"paths" : 
+	"paths" :
 	{
 		"build" : "/Users/jieq/Desktop/metalift/build",
 		"source" : "/Users/jieq/Desktop/metalift/llvm-pass"
 	},
-	"version" : 
+	"version" :
 	{
 		"major" : 1,
 		"minor" : 0

@@ -2,7 +2,7 @@ import re
 from llvmlite import binding as llvm
 from llvmlite.binding import ValueRef
 
-from typing import Callable, Dict, List, Optional, Set, Type, Union, Tuple
+from typing import Callable, Dict, List, Optional, Set, Union, Tuple
 
 from metalift.analysis import LoopInfo, parseLoops
 from metalift.ir import (
@@ -11,13 +11,11 @@ from metalift.ir import (
     Eq,
     Expr,
     Implies,
-    Int,
     ObjectT,
     Var,
-    Object,
     parse_type_ref_to_obj,
 )
-from metalift import ir, models_new
+from metalift import ir
 
 
 def format_with_index(a: str, idx: int) -> str:

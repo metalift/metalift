@@ -10,7 +10,7 @@
 
 using namespace llvm;
 
-namespace 
+namespace
 {
   /*
    Add empty BBs after all conditional branches to ensure that there is always a "else" BB.
@@ -29,12 +29,12 @@ namespace
    2. change all PHI nodes in the original successors of the two branches such that they
       point to the newly created BBs as their predecessors instead
    */
-  struct AddEmptyBlockPass : public FunctionPass 
+  struct AddEmptyBlockPass : public FunctionPass
   {
     static char ID;
     AddEmptyBlockPass() : FunctionPass(ID) {}
 
-    BasicBlock *createBB(Function &F, BasicBlock * succ) 
+    BasicBlock *createBB(Function &F, BasicBlock * succ)
     {
       auto * bb = BasicBlock::Create(F.getContext(), "", &F);
       IRBuilder<> builder(bb);
@@ -42,13 +42,13 @@ namespace
       return bb;
     }
 
-    virtual bool runOnFunction(Function &F) 
+    virtual bool runOnFunction(Function &F)
     {
       std::map<BranchInst*, BranchInst*> toReplace;
 
-      for (auto &B : F) 
+      for (auto &B : F)
       {
-        for (auto &I : B) 
+        for (auto &I : B)
         {
           if (auto *op = dyn_cast<BranchInst>(&I))
           {
@@ -62,17 +62,17 @@ namespace
 
               BranchInst *br = BranchInst::Create(trueBB, falseBB, op->getCondition());
               toReplace.insert(std::pair<BranchInst*, BranchInst*>(op, br));
-            }            
+            }
           }
         }
       }
 
-      for (auto &kv : toReplace) 
+      for (auto &kv : toReplace)
       {
         if (!kv.first->use_empty())
           kv.first->replaceAllUsesWith(kv.second);
         errs() << "replace: " << *kv.first << " with " << *kv.second << "\n";
-        ReplaceInstWithInst(kv.first, kv.second); 
+        ReplaceInstWithInst(kv.first, kv.second);
       }
 
       return toReplace.size();

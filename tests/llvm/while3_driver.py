@@ -2,8 +2,16 @@ from collections import defaultdict
 from typing import List
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import (Bool, FnDeclRecursive, Expr, Int,
-                         Object, call, choose, ite, fn_decl_recursive)
+from metalift.ir import (
+    Bool,
+    FnDeclRecursive,
+    Int,
+    Object,
+    call,
+    choose,
+    ite,
+    fn_decl_recursive,
+)
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
@@ -13,17 +21,15 @@ def target_lang() -> List[FnDeclRecursive]:
     sum_n = fn_decl_recursive(
         "sum_n",
         Int,
-        ite(
-            x >= 1,
-            x + call("sum_n", Int, x - 1),
-            Int(0)
-        ),
+        ite(x >= 1, x + call("sum_n", Int, x - 1), Int(0)),
         x,
     )
     return [sum_n]
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     input_arg = reads[0]
     int_lit = choose(Int(0), Int(1), Int(2))
@@ -32,16 +38,15 @@ def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]
         input_arg <= int_lit,
         input_arg > int_lit,
         input_arg < int_lit,
-        input_arg == int_lit
+        input_arg == int_lit,
     )
-    ite_stmt = ite(
-        input_arg_bound,
-        Int(0),
-        call("sum_n", Int, reads[0] - int_lit)
-    )
+    ite_stmt = ite(input_arg_bound, Int(0), call("sum_n", Int, reads[0] - int_lit))
     return ret_val == ite_stmt
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     x, y = writes
     input_arg = reads[0]
     int_lit = choose(Int(0), Int(1), Int(2))
@@ -51,7 +56,7 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
         x_or_y <= int_lit,
         x_or_y > int_lit,
         x_or_y < int_lit,
-        x_or_y == int_lit
+        x_or_y == int_lit,
     )
     x_or_y_input_arg_bound = choose(
         x_or_y >= input_arg,
@@ -72,15 +77,12 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
         input_arg_bound,
         x_or_y_int_lit_bound,
         x_or_y_input_arg_bound,
-        x == call("sum_n", Int, y - int_lit)
+        x == call("sum_n", Int, y - int_lit),
     )
 
-    not_in_loop_cond = and_objects(
-        input_arg_bound,
-        x == int_lit,
-        y == int_lit
-    )
+    not_in_loop_cond = and_objects(input_arg_bound, x == int_lit, y == int_lit)
     return inv_cond.Or(not_in_loop_cond)
+
 
 if __name__ == "__main__":
     driver = Driver()
@@ -90,7 +92,7 @@ if __name__ == "__main__":
         fn_name="test",
         target_lang_fn=target_lang,
         inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
-        ps_grammar=ps_grammar
+        ps_grammar=ps_grammar,
     )
 
     arg = Int("arg")

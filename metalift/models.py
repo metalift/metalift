@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple, cast
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
@@ -282,6 +282,7 @@ def set_field(
     pointer_vars[obj.name].args[fieldName.args[0]] = primitive_vars[val.name]
     # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
     return ReturnValue(None, None)
+
 
 fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # list methods

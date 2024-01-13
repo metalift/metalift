@@ -1,7 +1,7 @@
 package original.stats;
 
 /**
-* IOUtil.java  
+* IOUtil.java
 * ============
 * Copyright (C) 2013  Magdalen Berns
 * This program is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@ package original.stats;
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
-* This file provides a library of static methods for handling common 
+* This file provides a library of static methods for handling common
 * IO requirements.
 */
 
@@ -25,7 +25,7 @@ import java.io.*;
 public class IOUtil{
 
     /*
-    * does not accept anything but doubles 
+    * does not accept anything but doubles
     * @ return the first double
     */
     public static double skipToDouble(Scanner scanner){
@@ -67,16 +67,16 @@ public class IOUtil{
     }
 
     public static String fileName() throws IOException {
-        System.out.printf("Type file name or hit '!' \n"); 
+        System.out.printf("Type file name or hit '!' \n");
         String typed= typedInput();
-        System.out.printf("Found %s \n", typed); 
+        System.out.printf("Found %s \n", typed);
         return typed;
     }
 
     public static String getFileName() throws IOException {
-        System.out.printf("Type file name or hit '!' \n"); 
+        System.out.printf("Type file name or hit '!' \n");
         String typed= typedInput();
-        System.out.printf("Found %s \n", typed); 
+        System.out.printf("Found %s \n", typed);
         return typed;
     }
 

@@ -15,7 +15,7 @@ public class YelpKids {
 
 	public Map<String,Integer> reviewCount(List<Record> data) {
     Map<String,Integer> result = new HashMap<String,Integer>();
-        
+
     for (Record record : data) {
       if (!result.containsKey(record.city)) {
         result.put(record.city, 0);

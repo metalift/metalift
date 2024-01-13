@@ -5,27 +5,37 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.hardlift.hardlift_common import call_reduce_sum, call_vec_elemwise_mul, reduce_sum, vec_elemwise_mul
+from tests.llvm.hardlift.hardlift_common import (
+    call_reduce_sum,
+    call_vec_elemwise_mul,
+    reduce_sum,
+    vec_elemwise_mul,
+)
+
 
 def rmsnorm_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vec_elemwise_mul, reduce_sum]
 
-def rmsnorm_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def rmsnorm_part1_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     input, weight = reads
     vec = choose(input, weight)
     return ret_val == call_reduce_sum(call_vec_elemwise_mul(vec, vec))
 
-def rmsnorm_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def rmsnorm_part1_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     # First loop
     input, weight = reads
     i, ss = writes
     vec = choose(input[:i], weight[:i])
 
     return and_objects(
-        i >= 0,
-        i <= input.len(),
-        ss == call_reduce_sum(call_vec_elemwise_mul(vec, vec))
+        i >= 0, i <= input.len(), ss == call_reduce_sum(call_vec_elemwise_mul(vec, vec))
     )
 
 
@@ -40,7 +50,7 @@ if __name__ == "__main__":
         inv_grammars={
             "rmsnorm_part1_inv0": InvGrammar(rmsnorm_part1_inv0_grammar, []),
         },
-        ps_grammar=rmsnorm_part1_ps_grammar
+        ps_grammar=rmsnorm_part1_ps_grammar,
     )
 
     input_var = mlList(Int, "input")

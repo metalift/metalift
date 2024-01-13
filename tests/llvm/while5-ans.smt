@@ -4,7 +4,7 @@
                        0))
 
 ; ps : x = sum_n(2) + sum_n(3)
-(define-fun ps ( (x Int) ) Bool 
+(define-fun ps ( (x Int) ) Bool
   (= x (+ (sum_n 2) (sum_n 3))))
 
 ; first invariant : (x = sum_n(y-1) and y>=1 and y <= 3)

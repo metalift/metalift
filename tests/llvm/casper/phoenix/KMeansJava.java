@@ -1,9 +1,9 @@
 package original.phoenix;
 
 /**
- * 
+ *
  * Translation of Phoenix k-means implementation
- * 
+ *
  */
 
 public class KMeansJava {

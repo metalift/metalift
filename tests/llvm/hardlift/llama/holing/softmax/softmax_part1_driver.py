@@ -11,21 +11,24 @@ from tests.llvm.hardlift.hardlift_common import call_reduce_max, reduce_max
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [reduce_max]
 
-def softmax_part1_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def softmax_part1_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
     vec = choose(input[:max_pos])
     return ret_val == call_reduce_max(vec)
 
-def softmax_part1_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def softmax_part1_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     input, max_pos = reads
     i, max_val = writes
     vec = input[:i]
-    return and_objects(
-        i >= 1,
-        i <= max_pos,
-        max_val == call_reduce_max(vec)
-    )
+    return and_objects(i >= 1, i <= max_pos, max_val == call_reduce_max(vec))
+
 
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [reduce_max]
@@ -42,7 +45,7 @@ if __name__ == "__main__":
         inv_grammars={
             "softmax_part1_inv0": InvGrammar(softmax_part1_inv0_grammar, []),
         },
-        ps_grammar=softmax_part1_ps_grammar
+        ps_grammar=softmax_part1_ps_grammar,
     )
 
     input_var = mlList(Int, "input")

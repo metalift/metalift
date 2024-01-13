@@ -6,4 +6,3 @@
 ;(define-fun inv0 ((return_val Int) (x Int)) Bool (=> (<= 100 x) (<= 0 return_val) ))
 ;; 100 <= x --> return_val = 0
 ;(define-fun ps ((return_val Int) (x Int)) Bool (=> (<= 100 x) (= return_val 0)))
-

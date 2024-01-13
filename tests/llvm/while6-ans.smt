@@ -2,8 +2,8 @@
                   (ite (>= x 1)
                        (+ x (sum_n (- x 1)))
                        0))
-                       
-(define-fun ps ( (x Int) ) Bool 
+
+(define-fun ps ( (x Int) ) Bool
   (= x 30))
 
 ; inner loop invariant

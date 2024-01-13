@@ -1,9 +1,9 @@
 package original.stats;
 
 /**
- * AverageData.java 
+ * AverageData.java
  * =============
- *		
+ *
  * This is a program to help with data analysis.
  * You can open a one column array and average all the data points.
  * File must be in the format where the first line gives its length
@@ -16,7 +16,7 @@ package original.stats;
  * *
  * *
  * x + n
- *    
+ *
  * Copyright (C) 2013-2014  Magdalen Berns <m.berns@sms.ed.ac.uk>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@ package original.stats;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -42,7 +42,7 @@ import java.util.Scanner;
 public class AverageData {
 
     public static void main(String[] args) throws IOException{
-      	System.out.printf("Please type the name of the data file you wish to average. \n"); 
+      	System.out.printf("Please type the name of the data file you wish to average. \n");
     	String choice= IOUtil.getFileName();
 
     	if ( !choice.equals(null) ) {
@@ -50,8 +50,8 @@ public class AverageData {
         	int length = IOUtil.skipToInt(scan);
         	double[] data = PlotReader.data1Column(scan,length);
         	double mean = StatsUtil.mean(data);
-        	System.out.printf("Mean value %g \n", mean); 
-        	System.out.printf("std Dev value %g \n", Math.sqrt(StatsUtil.variance(data,mean))); 
+        	System.out.printf("Mean value %g \n", mean);
+        	System.out.printf("std Dev value %g \n", Math.sqrt(StatsUtil.variance(data,mean)));
         	System.exit(0);
         }
     }

@@ -1,6 +1,3 @@
-import typing
-
-
 class CVC5UnsupportedException(Exception):
     pass
 

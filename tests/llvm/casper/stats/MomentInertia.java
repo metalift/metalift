@@ -3,11 +3,11 @@ package original.stats;
 /*
     MomentInertia.java
     ==================
-    
+
     A class to calculate the moment of intertia for various situations.
     Copyright (C) 2013  Magdalen Berns
-    
-    
+
+
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,12 +25,12 @@ package original.stats;
 
 
 class MomentInertia{
-	
+
 	public static double centerUniformRod(double length, double mass){
-			return (mass * length * length )/12;  	
+			return (mass * length * length )/12;
 	}
 	public static double sphere(double length, double mass){
-			return (mass * length * length )/12;  	
+			return (mass * length * length )/12;
 	}
 
 

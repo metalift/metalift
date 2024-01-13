@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ShakespearSentiment {   
+public class ShakespearSentiment {
   public Map<String,Integer> sentiment(List<String> words) {
     Map<String,Integer> result = new HashMap<String,Integer>();
 

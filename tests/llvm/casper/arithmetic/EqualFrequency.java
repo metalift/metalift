@@ -2,7 +2,7 @@ package original.arithmetic;
 
 import java.util.List;
 
-public class EqualFrequency {	
+public class EqualFrequency {
 	public static boolean equalFrequency(List<Integer> data) {
 		int first = 0;
 		int second = 0;

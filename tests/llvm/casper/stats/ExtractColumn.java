@@ -1,10 +1,10 @@
 package original.stats;
 
 /*
-		ExtractColumn.java 
+		ExtractColumn.java
 		=============
-		
-    This is a java program to be run when you want to pull a column out of a data file 
+
+    This is a java program to be run when you want to pull a column out of a data file
     in order to meddle with it. Copyright (C) 2013  Magdalen Berns
 
     This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@ package original.stats;
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -30,8 +30,8 @@ import java.util.Scanner;
 public class ExtractColumn {
 
 	public static void main(String[] args) throws IOException {
-     			
-		System.out.printf("Which file would you like to pull a column out of? \n"); 
+
+		System.out.printf("Which file would you like to pull a column out of? \n");
 		String inFileName = IOUtil.getFileName();
 	 	if(inFileName.equals("!")){
  		 	System.out.println("No file selected.");
@@ -42,12 +42,12 @@ public class ExtractColumn {
 			PrintWriter outFile = new PrintWriter("column.txt");
   			int length = IOUtil.skipToInt(scan);
 			double xError=IOUtil.skipToDouble(scan);
-			double yError= IOUtil.skipToDouble(scan);    
+			double yError= IOUtil.skipToDouble(scan);
    			double[][] data = PlotReader.data2Column(scan,length);
    			PlotUtil p = new PlotUtil(data);
 
 			PlotWriter.aColumn(p.y(),outFile);
 			outFile.close();
- 	 	} 
-	}  
+ 	 	}
+	}
 }

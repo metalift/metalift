@@ -3,9 +3,9 @@
 
 # Get Started at [metalift.pages.dev](https://metalift.pages.dev)
 
-See [tests](https://github.com/metalift/metalift/tree/main/tests) folder for test cases. 
+See [tests](https://github.com/metalift/metalift/tree/main/tests) folder for test cases.
 Check out any of the python files in that folder to see how to define
-your target language and build your own lifting based compiler. 
+your target language and build your own lifting based compiler.
 Do not use `main.py`.
 
 We currently support [Rosette](https://emina.github.io/rosette/) (and [cvc5](https://cvc5.github.io/) but cvc5 has been flaky) as the synthesis backend, and [Z3](https://github.com/Z3Prover/z3) as the verifier.
@@ -20,9 +20,9 @@ cd llvm-pass
 mkdir build
 cd build
 cmake ..
-make 
+make
 cd ..
-```` 
+````
 Then run it with:
 ````angular2
 opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll name>

@@ -2,6 +2,7 @@ from metalift.analysis import CodeInfo, analyze
 from metalift.ir import *
 from metalift.synthesize_rosette import synthesize
 
+
 # postcondition for struct1.c
 def summary(r, x, y):
     return Eq(r, Call("my_add", Int(), x, y))
