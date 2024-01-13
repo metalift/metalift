@@ -7,16 +7,22 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.hardlift.hardlift_common import (call_vec_elemwise_add,
-                                           call_vec_scalar_mul,
-                                           vec_elemwise_add, vec_scalar_mul)
+from tests.llvm.hardlift.hardlift_common import (
+    call_vec_elemwise_add,
+    call_vec_scalar_mul,
+    vec_elemwise_add,
+    vec_scalar_mul,
+)
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vec_elemwise_add, vec_scalar_mul]
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     base, active, opacity = reads
     out = writes[0]
     cons = choose(Int(255))
@@ -24,13 +30,13 @@ def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]
     vec_var = choose(base, active)
     return out == call_vec_elemwise_add(
         call_vec_scalar_mul(int_var, vec_var),
-        call_vec_scalar_mul(
-            cons - int_var,
-            vec_var
-        )
+        call_vec_scalar_mul(cons - int_var, vec_var),
     )
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     base, active, opacity = reads
     out = writes[0]
     i = writes[1]
@@ -41,14 +47,13 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
     return and_objects(
         i >= 0,
         i <= base.len(),
-        out == call_vec_elemwise_add(
+        out
+        == call_vec_elemwise_add(
             call_vec_scalar_mul(int_var, vec_var),
-            call_vec_scalar_mul(
-                cons - int_var,
-                vec_var
-            )
-        )
+            call_vec_scalar_mul(cons - int_var, vec_var),
+        ),
     )
+
 
 if __name__ == "__main__":
     driver = Driver()
@@ -58,7 +63,7 @@ if __name__ == "__main__":
         "normal_blend_8",
         target_lang,
         defaultdict(lambda: InvGrammar(inv_grammar, [])),
-        ps_grammar
+        ps_grammar,
     )
 
     base_var = mlList(Int, "base")

@@ -5,26 +5,36 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.hardlift.hardlift_common import (call_vec_map,
-                                                 call_vec_scalar_sub,
-                                                 get_map_int_to_int_synth,
-                                                 map_int_to_int,
-                                                 map_int_to_int_fn_obj,
-                                                 vec_map, vec_scalar_sub)
+from tests.llvm.hardlift.hardlift_common import (
+    call_vec_map,
+    call_vec_scalar_sub,
+    get_map_int_to_int_synth,
+    map_int_to_int,
+    map_int_to_int_fn_obj,
+    vec_map,
+    vec_scalar_sub,
+)
 
 
 def softmax_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vec_scalar_sub, vec_map, map_int_to_int]
 
-def softmax_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def softmax_part2_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     input, max_pos, max_val = reads
     int_var = choose(max_pos, max_val)
     vec = choose(input[:max_pos])
-    return ret_val == call_vec_map(call_vec_scalar_sub(int_var, vec), map_int_to_int_fn_obj)
+    return ret_val == call_vec_map(
+        call_vec_scalar_sub(int_var, vec), map_int_to_int_fn_obj
+    )
 
 
-def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def softmax_part2_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     input, max_pos, max_val = reads
     out, cur, i = writes
     int_var = choose(max_pos, max_val)
@@ -33,8 +43,9 @@ def softmax_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_sco
     return and_objects(
         i >= 0,
         i <= max_pos,
-        out == call_vec_map(call_vec_scalar_sub(int_var, vec), map_int_to_int_fn_obj)
+        out == call_vec_map(call_vec_scalar_sub(int_var, vec), map_int_to_int_fn_obj),
     )
+
 
 if __name__ == "__main__":
     # Synthesize part 2
@@ -47,7 +58,7 @@ if __name__ == "__main__":
         inv_grammars={
             "softmax_part2_inv0": InvGrammar(softmax_part2_inv0_grammar, []),
         },
-        ps_grammar=softmax_part2_ps_grammar
+        ps_grammar=softmax_part2_ps_grammar,
     )
 
     input_var = mlList(Int, "input")

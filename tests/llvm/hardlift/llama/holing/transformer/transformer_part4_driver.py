@@ -5,23 +5,25 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.hardlift.hardlift_common import (call_vec_elemwise_mul,
-                                                 vec_elemwise_mul)
+from tests.llvm.hardlift.hardlift_common import call_vec_elemwise_mul, vec_elemwise_mul
 
 
 def transformer_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vec_elemwise_mul]
 
-def transformer_part4_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def transformer_part4_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     input1, input2, hidden_dim = reads
-    vec = choose(
-        input1[:hidden_dim],
-        input2[:hidden_dim]
-    )
+    vec = choose(input1[:hidden_dim], input2[:hidden_dim])
     return ret_val == call_vec_elemwise_mul(vec, vec)
 
-def transformer_part4_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def transformer_part4_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     input1, input2, hidden_dim = reads
     out, i, _ = writes
     vec = choose(
@@ -29,11 +31,7 @@ def transformer_part4_inv0_grammar(writes: List[Object], reads: List[Object], in
         input2[:i],
     )
 
-    return and_objects(
-        i >= 0,
-        i <= hidden_dim,
-        out == call_vec_elemwise_mul(vec, vec)
-    )
+    return and_objects(i >= 0, i <= hidden_dim, out == call_vec_elemwise_mul(vec, vec))
 
 
 if __name__ == "__main__":
@@ -43,8 +41,10 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/hardlift/llama/cpp/transformer/transformer_part4.loops",
         fn_name="transformer_part4",
         target_lang_fn=transformer_part4_target_lang,
-        inv_grammars={"transformer_part4_inv0": InvGrammar(transformer_part4_inv0_grammar, [])},
-        ps_grammar=transformer_part4_ps_grammar
+        inv_grammars={
+            "transformer_part4_inv0": InvGrammar(transformer_part4_inv0_grammar, [])
+        },
+        ps_grammar=transformer_part4_ps_grammar,
     )
 
     input1_var = mlList(Int, "input1")

@@ -5,7 +5,6 @@ import os
 from metalift import process_tracker
 
 from metalift.ir import (
-    List as mlList,
     Int,
     Bool,
     Call,
@@ -15,7 +14,6 @@ from metalift.ir import (
     Add,
     Sub,
     Mul,
-    Div,
     Lt,
     Gt,
     Le,
@@ -28,8 +26,6 @@ from metalift.ir import (
     Ite,
     Set as mlSet,
     Var,
-    Let,
-    Target,
     IntLit,
     BoolLit,
     FnDeclRecursive,
@@ -42,7 +38,7 @@ from metalift.ir import (
 from metalift.smt_util import toSMT
 
 import typing
-from typing import IO, Any, Callable, Dict, Generator, List, Union, get_args
+from typing import IO, Any, Callable, Dict, Generator, List, Union
 
 from metalift.synthesis_common import (
     SynthesisFailed,

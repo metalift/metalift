@@ -2,7 +2,6 @@ from abc import abstractmethod
 from enum import Enum
 from inspect import isclass
 import re
-import traceback
 
 from llvmlite.binding import TypeRef, ValueRef
 from collections import Counter
@@ -59,6 +58,7 @@ T = TypeVar("T")
 #     "list-list-col-slice-with-length-noerr":" list_col_slice_with_length",
 #     "matrix-transpose-noerr": "matrix_transpose"
 # }
+
 
 # Helper functions
 def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -442,7 +442,9 @@ class Expr:
             if is_nested_list_type(list_type) or is_matrix_type(list_type):
                 return "matrix-transpose-noerr"
             else:
-                raise Exception(f"matrix_transpose not supported on {list_type} lists yet!")
+                raise Exception(
+                    f"matrix_transpose not supported on {list_type} lists yet!"
+                )
         elif fn_name == "list_prepend":
             return "list-prepend"
         elif fn_name == "list_list_prepend":
@@ -676,6 +678,7 @@ def create_object(
     else:
         return object_type(cast(Expr, value))
 
+
 def get_object_exprs(*objects: Union["Object", Expr]) -> pyList[Expr]:
     return [get_object_expr(obj) for obj in objects]
 
@@ -749,7 +752,6 @@ def fn_decl_recursive(
     body: Union["Object", Expr],
     *object_args: Union["Object", Expr],
 ) -> "FnDeclRecursive":
-
     fn_decl_recursive_expr = FnDeclRecursive(
         fn_name, return_type, get_object_expr(body), *get_object_exprs(*object_args)
     )
@@ -772,6 +774,7 @@ def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tup
 def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
     return Fn[typing.Tuple[containedT]]  # type: ignore
 
+
 class ObjectWrapper:
     def __init__(self, object: "Object") -> None:
         self.object = object
@@ -786,6 +789,7 @@ class ObjectWrapper:
 
     def __repr__(self) -> str:
         return repr(self.object)
+
 
 class Object:
     src: Expr
@@ -1136,7 +1140,9 @@ class List(Generic[T], Object):
         self.src = call(fn_name, self.type, value, self).src
         return self
 
-    def slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "List":
+    def slice_with_length(
+        self, start: Union[int, Int], lst_length: Union[int, Int]
+    ) -> "List":
         if isinstance(start, int):
             start = Int(start)
         if isinstance(lst_length, int):
@@ -1258,19 +1264,27 @@ class Matrix(List[T], Generic[T], Object):
             stop = Int(stop)
         return call("list_list_col_slice", self.type, self, start, stop)
 
-    def col_slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "Matrix":
+    def col_slice_with_length(
+        self, start: Union[int, Int], lst_length: Union[int, Int]
+    ) -> "Matrix":
         if isinstance(start, int):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        return call("list_list_col_slice_with_length", self.type, self, start, lst_length)
+        return call(
+            "list_list_col_slice_with_length", self.type, self, start, lst_length
+        )
 
     def col_vec(self, col_index: Union[int, Int]) -> List[Int]:
         if isinstance(col_index, int):
             col_index = Int(col_index)
-        return call("list_list_col_slice_with_length", self.type, self, col_index, Int(1)).transpose()[0]
+        return call(
+            "list_list_col_slice_with_length", self.type, self, col_index, Int(1)
+        ).transpose()[0]
 
-    def slice_with_length(self, start: Union[int, Int], lst_length: Union[int, Int]) -> "Matrix":
+    def slice_with_length(
+        self, start: Union[int, Int], lst_length: Union[int, Int]
+    ) -> "Matrix":
         if isinstance(start, int):
             start = Int(start)
         if isinstance(lst_length, int):
@@ -2074,7 +2088,11 @@ class Call(Expr):
                     callStr += a.toRosette() + " "
                 callStr += ")"
                 return callStr
-            elif isinstance(self.args[0], str) and (self.args[0].startswith("list") or self.args[0].startswith("matrix") or self.args[0].startswith("integer")):
+            elif isinstance(self.args[0], str) and (
+                self.args[0].startswith("list")
+                or self.args[0].startswith("matrix")
+                or self.args[0].startswith("integer")
+            ):
                 if self.args[0].startswith("list") or self.args[0].startswith("matrix"):
                     callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 elif self.args[0].startswith("integer"):
@@ -2208,7 +2226,9 @@ class CallValue(Expr):
                     callStr += a.toRosette() + " "
                 callStr += ")"
                 return callStr
-            elif isinstance(self.args[0], str) and (self.args[0].startswith("list") or self.args[0].startswith("matrix")):
+            elif isinstance(self.args[0], str) and (
+                self.args[0].startswith("list") or self.args[0].startswith("matrix")
+            ):
                 callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 for a in self.args[1:]:
                     if isinstance(a, ValueRef) and a.name != "":

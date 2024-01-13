@@ -98,7 +98,7 @@
                 (= (list_concat xs (cons y ys))
                    (list_concat (list_append xs y) ys))))
 
-; i < len(l) --> l[i] : tail(l, i+1) == tail(l, i) 
+; i < len(l) --> l[i] : tail(l, i+1) == tail(l, i)
 ;(assert (forall ( (i Int) (l (MLList Int)) )
 ;                (=> (< i (list_length l))
 ;                  (= (cons (list_get l i) (list_tail l (+ i 1)))
@@ -156,4 +156,3 @@
 
 
 ))
-

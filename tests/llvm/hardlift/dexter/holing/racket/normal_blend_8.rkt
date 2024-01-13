@@ -7,26 +7,26 @@
 
 
 
- (define-bounded (vec_elemwise_add x y) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) )) 
+ (define-bounded (vec_elemwise_add x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
 
 
- (define-bounded (vec_scalar_mul a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (vec_scalar_mul a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 )) ) ))
 
 (define-grammar (normal_blend_8_inv0_gram active agg.result base i opacity ref.tmp)
  [rv (choose (&& (&& (>= i 0 ) (<= i (length base ) ) ) (equal? agg.result (vec_elemwise_add (vec_scalar_mul (v0) (v1)) (vec_scalar_mul (- (v2) (v0) ) (v1))) ) ))]
 [v0 (choose opacity)]
 [v1 (choose (list-take-noerr base i ) (list-take-noerr active i ))]
 [v2 (choose 255)]
-) 
+)
 
 (define-grammar (normal_blend_8_ps_gram base active opacity normal_blend_8_rv)
  [rv (choose (equal? normal_blend_8_rv (vec_elemwise_add (vec_scalar_mul (v0) (v1)) (vec_scalar_mul (- (v2) (v0) ) (v1))) ))]
 [v0 (choose opacity)]
 [v1 (choose base active)]
 [v2 (choose 255)]
-) 
+)
 
 (define (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) (normal_blend_8_inv0_gram active agg.result base i opacity ref.tmp #:depth 10))
 (define (normal_blend_8_ps base active opacity normal_blend_8_rv) (normal_blend_8_ps_gram base active opacity normal_blend_8_rv #:depth 10))
@@ -63,4 +63,3 @@
     )
     (sat? sol0)
     (print-forms sol0)
-    

@@ -1,4 +1,3 @@
-from inspect import isclass
 import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
@@ -10,8 +9,6 @@ from metalift.ir import (
     FnDecl,
     Int,
     Var,
-    List as mlList,
-    call,
     get_nested_list_element_type,
     is_list_type,
     is_nested_list_type,
@@ -21,7 +18,7 @@ from metalift.ir import (
     get_matrix_element_type,
 )
 from llvmlite.binding import ValueRef
-from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
+from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -142,11 +139,13 @@ def generateSynth(
     vars: List[str],
     rounds_to_guess: int = 0,
     fns_to_guess: List[FnDeclRecursive] = [],
-    fn_defs_to_exclude: List[FnDeclRecursive] = []
+    fn_defs_to_exclude: List[FnDeclRecursive] = [],
 ) -> str:
     listvars = f"(list {' '.join(vars)})"
     if len(fn_defs_to_exclude) > 0:
-        constraints = [f"(assert (!(eq? {f.name()} {f.toRosette()})))" for f in fn_defs_to_exclude]
+        constraints = [
+            f"(assert (!(eq? {f.name()} {f.toRosette()})))" for f in fn_defs_to_exclude
+        ]
         return f"""
         (define sol
             (synthesize
@@ -178,9 +177,13 @@ def generateSynth(
             round_i_constraints = []
             for guess in fns_to_guess:
                 guess_call = f"({guess.name()} {' '.join(arg.name() for arg in guess.arguments())})"
-                constraint = f"(! (eq? {guess_call} (evaluate {guess_call} sol{prev_i})))"
+                constraint = (
+                    f"(! (eq? {guess_call} (evaluate {guess_call} sol{prev_i})))"
+                )
                 round_i_constraints.append(constraint)
-            single_solution_constraints.append(f"(assume (|| {' '.join(round_i_constraints)}))")
+            single_solution_constraints.append(
+                f"(assume (|| {' '.join(round_i_constraints)}))"
+            )
         synth_fun = f"""
         (define sol{i}
             (synthesize
@@ -241,7 +244,7 @@ def toRosette(
         + '(require "./utils.rkt")\n'
         + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n"
         + "(require rosette/solver/smt/bitwuzla)\n"
-        + "(current-solver (bitwuzla #:path \"/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla\" #:options (hash ':seed 0)))\n"
+        + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n'
         # + "(current-solver)\n"
         + "\n",
         # + "(require rosette/solver/smt/z3)\n"
@@ -296,7 +299,10 @@ def toRosette(
 
     # synthesis function
     if not verifyMode:
-        print(generateSynth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude), file=f)
+        print(
+            generateSynth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude),
+            file=f,
+        )
     else:
         print("(verify (assertions))", file=f)
     f.close()

@@ -20,7 +20,7 @@ public class WikiPageCount {
       }
       result.put(record.name, result.get(record.name) + record.views);
     }
-        
+
     return result;
   }
 }

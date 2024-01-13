@@ -50,7 +50,3 @@ List<T> listConcat (List<T> in, List<T> e)
     r->contents.push_back(listGet(e, i));
   return r;
 }
-
-
-
-

@@ -2,6 +2,7 @@
 
 from typing import List
 
+
 def test(in_lst: List[int]) -> int:
     count: int = 0
     i: int = 0

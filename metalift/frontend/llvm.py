@@ -1,7 +1,6 @@
 import copy
 import re
 import subprocess
-import typing
 from collections import defaultdict
 from typing import (
     Any,
@@ -45,7 +44,6 @@ from metalift.ir import (
     get_list_element_type,
     get_object_exprs,
     implies,
-    is_primitive_type,
     is_pointer_type,
     make_tuple_type,
     parse_c_or_cpp_type_to_obj,
@@ -190,7 +188,6 @@ def new_vector(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-
     assert len(args) == 1
     primitive_match = re.match(
         rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
@@ -366,6 +363,7 @@ def set_field(
     # XXX: not tracking pointer_varsory writes as assigns for now. This might be fine for now since all return vals must be loaded to primitive_vars
     return ReturnValue(None, None)
 
+
 def integer_sqrt(
     state: "State",
     global_vars: Dict[str, str],
@@ -375,12 +373,9 @@ def integer_sqrt(
     assert len(args) == 1
 
     int_arg = state.read_or_load_operand(args[0])
-    ret_val = call(
-        "integer_sqrt",
-        Int,
-        int_arg
-    )
+    ret_val = call("integer_sqrt", Int, int_arg)
     return ReturnValue(ret_val, [])
+
 
 def integer_exp(
     state: "State",
@@ -391,12 +386,9 @@ def integer_exp(
     assert len(args) == 1
 
     int_arg = state.read_or_load_operand(args[0])
-    ret_val = call(
-        "integer_exp",
-        Int,
-        int_arg
-    )
+    ret_val = call("integer_exp", Int, int_arg)
     return ReturnValue(ret_val, [])
+
 
 fn_models: Dict[str, Callable[..., ReturnValue]] = {
     # list methods
@@ -421,7 +413,7 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     "tupleGet": tuple_get,
     # integer methods
     "integer_sqrt": integer_sqrt,
-    "integer_exp": integer_exp
+    "integer_exp": integer_exp,
 }
 
 
@@ -1550,10 +1542,7 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
-    def synthesize(
-        self,
-        **synthesize_kwargs
-    ) -> None:  # type: ignore
+    def synthesize(self, **synthesize_kwargs) -> None:  # type: ignore
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
@@ -1562,7 +1551,9 @@ class Driver:
             target += fn.target_lang_fn()
         # TODO(jie): this is a hack
         inv_and_ps = synths + self.fns_synths
-        inv0_synth = [synth for synth in inv_and_ps if "VEC_COMPOSED_INDEX_FN" in synth.name()]
+        inv0_synth = [
+            synth for synth in inv_and_ps if "VEC_COMPOSED_INDEX_FN" in synth.name()
+        ]
         # inv0_synth = [synth for synth in inv_and_ps if "part2_inv0_composed_int_index_fn" in synth.name()]
         fn_defs_to_exclude: List[FnDeclRecursive] = []
         for i in range(1):

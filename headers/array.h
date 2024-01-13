@@ -11,26 +11,26 @@ using Array = Array<T> *;
 
 
 template <class T>
-int arrayLength (Array<T> l) 
+int arrayLength (Array<T> l)
 {
   return l->contents.size();
 }
 
 template <class T>
-Array<T> newarray() 
+Array<T> newarray()
 {
   //return (Array<T>)malloc(sizeof(struct Array));
   return new Array<T>(100);
 }
 
 template <class T>
-T arrayGet (Array<T> l, int i) 
-{ 
+T arrayGet (Array<T> l, int i)
+{
   return l->contents[i];
 }
 
 template <class T>
-void arraySet (Array<T> l, int i, int v) 
-{ 
+void arraySet (Array<T> l, int i, int v)
+{
   l->contents[i] = v ;
 }

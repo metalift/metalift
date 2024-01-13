@@ -18,7 +18,9 @@ def ps_grammar(
     return ret_val == ite(i > 10, Int(2), Int(1))
 
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     raise Exception("no loop in the source")
 
 

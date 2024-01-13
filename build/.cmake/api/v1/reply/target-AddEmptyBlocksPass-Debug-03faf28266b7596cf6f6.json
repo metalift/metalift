@@ -1,26 +1,26 @@
 {
-	"artifacts" : 
+	"artifacts" :
 	[
 		{
 			"path" : "addEmptyBlocks/libAddEmptyBlocksPass.so"
 		}
 	],
 	"backtrace" : 1,
-	"backtraceGraph" : 
+	"backtraceGraph" :
 	{
-		"commands" : 
+		"commands" :
 		[
 			"add_library",
 			"link_directories",
 			"include_directories",
 			"target_compile_features"
 		],
-		"files" : 
+		"files" :
 		[
 			"addEmptyBlocks/CMakeLists.txt",
 			"CMakeLists.txt"
 		],
-		"nodes" : 
+		"nodes" :
 		[
 			{
 				"file" : 0
@@ -54,10 +54,10 @@
 			}
 		]
 	},
-	"compileGroups" : 
+	"compileGroups" :
 	[
 		{
-			"compileCommandFragments" : 
+			"compileCommandFragments" :
 			[
 				{
 					"fragment" : "-D__GLIBCXX_USE_CXX11_ABI=0 -fno-rtti -g -std=gnu++14 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -fPIC   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS"
@@ -66,13 +66,13 @@
 					"fragment" : "-fno-rtti -g"
 				}
 			],
-			"defines" : 
+			"defines" :
 			[
 				{
 					"define" : "AddEmptyBlocksPass_EXPORTS"
 				}
 			],
-			"includes" : 
+			"includes" :
 			[
 				{
 					"backtrace" : 4,
@@ -80,25 +80,25 @@
 				}
 			],
 			"language" : "CXX",
-			"languageStandard" : 
+			"languageStandard" :
 			{
-				"backtraces" : 
+				"backtraces" :
 				[
 					5,
 					5
 				],
 				"standard" : "14"
 			},
-			"sourceIndexes" : 
+			"sourceIndexes" :
 			[
 				0
 			]
 		}
 	],
 	"id" : "AddEmptyBlocksPass::@94458f7775f5eb91f699",
-	"link" : 
+	"link" :
 	{
-		"commandFragments" : 
+		"commandFragments" :
 		[
 			{
 				"fragment" : "-undefined dynamic_lookup",
@@ -114,22 +114,22 @@
 	},
 	"name" : "AddEmptyBlocksPass",
 	"nameOnDisk" : "libAddEmptyBlocksPass.so",
-	"paths" : 
+	"paths" :
 	{
 		"build" : "addEmptyBlocks",
 		"source" : "addEmptyBlocks"
 	},
-	"sourceGroups" : 
+	"sourceGroups" :
 	[
 		{
 			"name" : "Source Files",
-			"sourceIndexes" : 
+			"sourceIndexes" :
 			[
 				0
 			]
 		}
 	],
-	"sources" : 
+	"sources" :
 	[
 		{
 			"backtrace" : 1,

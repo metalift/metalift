@@ -1,5 +1,6 @@
 # same as while4.c
 
+
 def test() -> int:
     x: int = 0
     y: int = 1

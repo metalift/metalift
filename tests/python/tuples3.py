@@ -1,5 +1,6 @@
 # same as tuples3.cc
 
+
 def test(x: int, y: int) -> int:
     u = (x, x)
     v = (y, y)

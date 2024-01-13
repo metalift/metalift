@@ -1,13 +1,11 @@
 import os
-from torch.utils.data import Dataset
 import torchvision
-from PIL import Image
 import numpy as np
 import tarfile
 import os.path
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     root = "."
     output_folder = "./data/"
     tarfile_name = "data.tar.gz"
@@ -16,7 +14,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    image_set = torchvision.datasets.ImageNet(root = root)
+    image_set = torchvision.datasets.ImageNet(root=root)
 
     np.random.seed(1)
     rng = np.random.default_rng()
@@ -24,8 +22,6 @@ if __name__ == '__main__':
     for i in chosen:
         img, _ = image_set[i]
         img.save(f"{output_folder}{i}.jpeg", "JPEG")
-    
+
     with tarfile.open(tarfile_name, "w:gz") as tar:
         tar.add(output_folder, arcname=os.path.basename(output_folder))
-
-    

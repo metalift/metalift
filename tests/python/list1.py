@@ -2,6 +2,7 @@
 
 from typing import List
 
+
 def test(in_lst: List[int]) -> List[int]:
     out_lst: List[int] = []
     i: int = 0

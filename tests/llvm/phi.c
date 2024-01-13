@@ -23,7 +23,7 @@ bb14:                                             ; preds = %bb
   br label %bb11
 
 bb15:                                             ; preds = %bb
-  br label %bb7  
+  br label %bb7
 
 bb7:                                              ; preds = %bb15
   %tmp8 = load i32, i32* %tmp, align 4
@@ -40,7 +40,7 @@ bb11:                                             ; preds = %bb14, %bb7
   where bb14 and bb15 are added and the preds in bb11's phi node are updated
   */
 
-void test (int r, int y) 
+void test (int r, int y)
 {
   int l = (1+y) || (2+r);
 }

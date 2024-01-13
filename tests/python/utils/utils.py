@@ -1,4 +1,20 @@
-from metalift.ir import Add, And, Call, Div, Eq, Expr, Ge, Gt, Ite, Le, Lit, Lt, Mul, Sub, Tuple, TupleExpr
+from metalift.ir import (
+    Add,
+    And,
+    Call,
+    Div,
+    Eq,
+    Expr,
+    Ge,
+    Gt,
+    Ite,
+    Le,
+    Lit,
+    Lt,
+    Mul,
+    Sub,
+    TupleExpr,
+)
 
 
 def codegen(expr: Expr) -> str:
@@ -35,5 +51,6 @@ def codegen(expr: Expr) -> str:
         if isinstance(expr, And):
             return " and ".join(eval(a) for a in expr.args)
         else:
-            return "%s"%(expr)
+            return "%s" % (expr)
+
     return eval(expr)

@@ -8,7 +8,9 @@ def target_lang() -> List[FnDecl]:
     return []
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     i = reads[0]
     default = Int(40)
@@ -18,7 +20,9 @@ def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]
     return ret_val == case1
 
 
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     raise Exception("no loop in the source")
 
 

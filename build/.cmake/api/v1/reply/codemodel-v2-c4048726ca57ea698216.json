@@ -1,23 +1,23 @@
 {
-	"configurations" : 
+	"configurations" :
 	[
 		{
-			"directories" : 
+			"directories" :
 			[
 				{
 					"build" : ".",
-					"childIndexes" : 
+					"childIndexes" :
 					[
 						1
 					],
 					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
-					"minimumCMakeVersion" : 
+					"minimumCMakeVersion" :
 					{
 						"string" : "3.1"
 					},
 					"projectIndex" : 0,
 					"source" : ".",
-					"targetIndexes" : 
+					"targetIndexes" :
 					[
 						1,
 						2,
@@ -27,30 +27,30 @@
 				{
 					"build" : "addEmptyBlocks",
 					"jsonFile" : "directory-addEmptyBlocks-Debug-72566ee10a63b14c59a2.json",
-					"minimumCMakeVersion" : 
+					"minimumCMakeVersion" :
 					{
 						"string" : "3.1"
 					},
 					"parentIndex" : 0,
 					"projectIndex" : 0,
 					"source" : "addEmptyBlocks",
-					"targetIndexes" : 
+					"targetIndexes" :
 					[
 						0
 					]
 				}
 			],
 			"name" : "Debug",
-			"projects" : 
+			"projects" :
 			[
 				{
-					"directoryIndexes" : 
+					"directoryIndexes" :
 					[
 						0,
 						1
 					],
 					"name" : "AddEmptyBlocks",
-					"targetIndexes" : 
+					"targetIndexes" :
 					[
 						0,
 						1,
@@ -59,7 +59,7 @@
 					]
 				}
 			],
-			"targets" : 
+			"targets" :
 			[
 				{
 					"directoryIndex" : 1,
@@ -93,12 +93,12 @@
 		}
 	],
 	"kind" : "codemodel",
-	"paths" : 
+	"paths" :
 	{
 		"build" : "/Users/jieq/Desktop/metalift/build",
 		"source" : "/Users/jieq/Desktop/metalift/llvm-pass"
 	},
-	"version" : 
+	"version" :
 	{
 		"major" : 2,
 		"minor" : 5

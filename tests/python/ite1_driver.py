@@ -19,7 +19,7 @@ def ps_grammar(
 
 
 def inv_grammar(
-   writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
 ) -> Bool:
     raise Exception("no loop in the source")
 

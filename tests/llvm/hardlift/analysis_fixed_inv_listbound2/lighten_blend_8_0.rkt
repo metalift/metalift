@@ -7,38 +7,38 @@
 
 
 
- (define-bounded (selection_two_args x y select_two_args_arg) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (select_two_args_arg (list-ref-noerr x 0 ) (list-ref-noerr y 0 )) (selection_two_args (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) select_two_args_arg) ) )) 
+ (define-bounded (selection_two_args x y select_two_args_arg)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (select_two_args_arg (list-ref-noerr x 0 ) (list-ref-noerr y 0 )) (selection_two_args (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) select_two_args_arg) ) ))
 
 
- (define-bounded (nested_selection_two_args nested_x nested_y select_two_args_arg) 
-(if (or (< (length nested_x ) 1 ) (! (equal? (length nested_x ) (length nested_y ) ) ) ) (list-empty ) (list-prepend (selection_two_args (list-list-ref-noerr nested_x 0 ) (list-list-ref-noerr nested_y 0 ) select_two_args_arg) (nested_selection_two_args (list-tail-noerr nested_x 1 ) (list-tail-noerr nested_y 1 ) select_two_args_arg) ) )) 
+ (define-bounded (nested_selection_two_args nested_x nested_y select_two_args_arg)
+(if (or (< (length nested_x ) 1 ) (! (equal? (length nested_x ) (length nested_y ) ) ) ) (list-empty ) (list-prepend (selection_two_args (list-list-ref-noerr nested_x 0 ) (list-list-ref-noerr nested_y 0 ) select_two_args_arg) (nested_selection_two_args (list-tail-noerr nested_x 1 ) (list-tail-noerr nested_y 1 ) select_two_args_arg) ) ))
 
 (define-grammar (lighten_blend_8_inv0_gram active agg.result base col pixel row row_vec)
  [rv (choose (&& (&& (>= row 0 ) (<= row (length base ) ) ) (equal? agg.result (nested_selection_two_args (list-take-noerr base row ) (list-take-noerr active row ) fixed_select_two_args) ) ))]
 
-) 
+)
 
 (define-grammar (lighten_blend_8_inv1_gram active base col pixel row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (< row (length base ) ) ) (>= col 0 ) ) (<= col (length (list-list-ref-noerr base 0 ) ) ) ) (equal? row_vec (selection_two_args (list-take-noerr (list-list-ref-noerr base row ) col ) (list-take-noerr (list-list-ref-noerr active row ) col ) fixed_select_two_args) ) ) (equal? agg.result (nested_selection_two_args (list-take-noerr base row ) (list-take-noerr active row ) fixed_select_two_args) ) ))]
 
-) 
+)
 
 (define-grammar (lighten_blend_8_ps_gram base active lighten_blend_8_rv)
  [rv (choose (equal? lighten_blend_8_rv (nested_selection_two_args (v0) (v0) select_two_args) ))]
 [v0 (choose base active)]
-) 
+)
 
 (define-grammar (select_two_args_gram int_x int_y)
  [rv (choose (if (v0) (v1) (v1) ))]
 [v0 (choose (< (v1) (v1) ))]
 [v1 (choose int_x int_y)]
-) 
+)
 
 (define-grammar (fixed_select_two_args_gram int_x int_y)
  [rv (choose (if (< int_x int_y ) int_y int_x ))]
 
-) 
+)
 
 (define (lighten_blend_8_inv0 active agg.result base col pixel row row_vec) (lighten_blend_8_inv0_gram active agg.result base col pixel row row_vec #:depth 10))
 (define (lighten_blend_8_inv1 active base col pixel row_vec agg.result row) (lighten_blend_8_inv1_gram active base col pixel row_vec agg.result row #:depth 10))

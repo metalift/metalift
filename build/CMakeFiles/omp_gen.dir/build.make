@@ -80,4 +80,3 @@ CMakeFiles/omp_gen.dir/clean:
 CMakeFiles/omp_gen.dir/depend:
 	cd /Users/jieq/Desktop/metalift/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/jieq/Desktop/metalift/llvm-pass /Users/jieq/Desktop/metalift/llvm-pass /Users/jieq/Desktop/metalift/build /Users/jieq/Desktop/metalift/build /Users/jieq/Desktop/metalift/build/CMakeFiles/omp_gen.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/omp_gen.dir/depend
-

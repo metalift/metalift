@@ -45,6 +45,7 @@ def grammar(name, args, ret):
 def targetLang():
     return []
 
+
 if __name__ == "__main__":
     filename = "tests/llvm/set1.ll"
     basename = "set1"
@@ -62,12 +63,9 @@ if __name__ == "__main__":
 
     synth_fun = grammar(fnName, [s, add, value], Var("ret", SetT(Int())))
 
-    vc = test_analysis.call(s, add, value)(variable_tracker, lambda ret: Call(
-        fnName,
-        Bool(),
-        ret,
-        s, add, value
-    ))
+    vc = test_analysis.call(s, add, value)(
+        variable_tracker, lambda ret: Call(fnName, Bool(), ret, s, add, value)
+    )
 
     vars = variable_tracker.all()
 

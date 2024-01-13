@@ -8,13 +8,13 @@ template <typename...T>
 using Tuple = tup<T...> *;
 
 template <class...T>
-Tuple<T...> newTuple() 
+Tuple<T...> newTuple()
 {
-  
+
   return new tup<T...>();
 }
 template <class...T>
-Tuple<T...> MakeTuple(T...args) 
+Tuple<T...> MakeTuple(T...args)
 {
   Tuple<T...> r = newTuple<T...>();
   r->contents = std::make_tuple(args...);
@@ -25,9 +25,9 @@ Tuple<T...> MakeTuple(T...args)
 template <class...T, int I = 0 >
 typename std::enable_if<(I < sizeof...(T)),
                    int>::type
- tupleGet(Tuple<T...> t, int i) 
-{ 
-		
+ tupleGet(Tuple<T...> t, int i)
+{
+
 		return std::get<I>(t->contents);
 
 // switch (i) {
@@ -35,5 +35,3 @@ typename std::enable_if<(I < sizeof...(T)),
 //         case 1: return get<1>(t->contents);
 //     }
 }
-
-

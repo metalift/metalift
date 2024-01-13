@@ -1,7 +1,7 @@
 #include "list.h"
 #include <iostream>
 
-	
+
 bool equalFrequency(List<int> data) {
 	int first = 0;
 	int second = 0;
@@ -16,4 +16,3 @@ bool equalFrequency(List<int> data) {
 	}
 	return first == second;
 }
-

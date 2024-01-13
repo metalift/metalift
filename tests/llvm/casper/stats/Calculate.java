@@ -28,7 +28,7 @@ public class Calculate{
     public Calculate(){
         num1=0.0;
         num=0.0;
-    } 
+    }
 
    /**
     * subtract

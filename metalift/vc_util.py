@@ -4,7 +4,6 @@ from llvmlite.binding import ValueRef
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import (
     And,
-    BoolLit,
     Expr,
     Lit,
     Bool,

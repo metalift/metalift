@@ -21,14 +21,17 @@ def target_lang() -> List[FnDecl]:
     return [uninterp]
 
 
-def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     x, y = reads
     return ret_val == uninterp(x, x) + uninterp(y, y)
 
 
-
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     raise Exception("no loop in the source")
 
 

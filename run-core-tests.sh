@@ -30,4 +30,3 @@ for test in ${tests[*]}; do
   printf "\n\nrunning %s\n" "$test"
   python -m $test
 done
-

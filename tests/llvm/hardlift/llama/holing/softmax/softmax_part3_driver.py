@@ -11,23 +11,25 @@ from tests.llvm.hardlift.hardlift_common import call_reduce_sum, reduce_sum
 def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [reduce_sum]
 
-def softmax_part3_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def softmax_part3_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     output, max_pos = reads
     vec = choose(output[:max_pos])
     return ret_val == call_reduce_sum(vec)
 
 
-def softmax_part3_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def softmax_part3_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     output, max_pos = reads
     i, sum = writes
     vec = choose(output[:i])
 
-    return and_objects(
-        i >= 0,
-        i <= max_pos,
-        sum == call_reduce_sum(vec)
-    )
+    return and_objects(i >= 0, i <= max_pos, sum == call_reduce_sum(vec))
+
 
 if __name__ == "__main__":
     # Synthesize part 3
@@ -40,7 +42,7 @@ if __name__ == "__main__":
         inv_grammars={
             "softmax_part3_inv0": InvGrammar(softmax_part3_inv0_grammar, []),
         },
-        ps_grammar=softmax_part3_ps_grammar
+        ps_grammar=softmax_part3_ps_grammar,
     )
 
     output_var = mlList(Int, "output")

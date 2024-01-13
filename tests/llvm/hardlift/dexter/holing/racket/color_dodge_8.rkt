@@ -7,51 +7,51 @@
 
 
 
- (define-bounded (selection_two_args x y select_two_args_arg) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (select_two_args_arg (list-ref-noerr x 0 ) (list-ref-noerr y 0 )) (selection_two_args (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) select_two_args_arg) ) )) 
+ (define-bounded (selection_two_args x y select_two_args_arg)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (select_two_args_arg (list-ref-noerr x 0 ) (list-ref-noerr y 0 )) (selection_two_args (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) select_two_args_arg) ) ))
 
 
- (define-bounded (matrix_selection_two_args matrix_x matrix_y select_two_args_arg) 
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (selection_two_args (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 ) select_two_args_arg) (matrix_selection_two_args (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) select_two_args_arg ) ) )) 
+ (define-bounded (matrix_selection_two_args matrix_x matrix_y select_two_args_arg)
+(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (selection_two_args (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 ) select_two_args_arg) (matrix_selection_two_args (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) select_two_args_arg ) ) ))
 
 (define-grammar (color_dodge_8_inv0_gram active agg.result base col pixel row row_vec)
  [rv (choose (&& (&& (>= (OUTER_LOOP_INDEX row col) 0 ) (<= (OUTER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) ) ) ) (equal? agg.result (matrix_selection_two_args (v0) (v0) select_two_args ) ) ))]
 [v0 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v1) 0 (OUTER_LOOP_INDEX row col) ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v1) 0 (OUTER_LOOP_INDEX row col) ) ) ))]
 [v1 (choose base active)]
-) 
+)
 
 (define-grammar (color_dodge_8_inv1_gram active base col pixel row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= (OUTER_LOOP_INDEX row col) 0 ) (< (OUTER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) ) ) ) (>= (INNER_LOOP_INDEX row col) 0 ) ) (<= (INNER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (length (list-list-ref-noerr base 0 ) ) (list-list-length base ) ) ) ) (equal? row_vec (selection_two_args (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v0) (OUTER_LOOP_INDEX row col) ) (INNER_LOOP_INDEX row col) ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v0) (INNER_LOOP_INDEX row col) ) (OUTER_LOOP_INDEX row col) 1 ) ) 0 ) ) (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v0) (OUTER_LOOP_INDEX row col) ) (INNER_LOOP_INDEX row col) ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v0) (INNER_LOOP_INDEX row col) ) (OUTER_LOOP_INDEX row col) 1 ) ) 0 ) ) select_two_args) ) ) (equal? agg.result (matrix_selection_two_args (v1) (v1) select_two_args ) ) ))]
 [v0 (choose base active)]
 [v1 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v0) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v0) 0 (OUTER_LOOP_INDEX row col) ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v0) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v0) 0 (OUTER_LOOP_INDEX row col) ) ) ))]
-) 
+)
 
 (define-grammar (color_dodge_8_ps_gram base active color_dodge_8_rv)
  [rv (choose (equal? color_dodge_8_rv (matrix_selection_two_args (v0) (v0) select_two_args ) ))]
 [v0 (choose (v1) (matrix-transpose-noerr (v1) ))]
 [v1 (choose base active)]
-) 
+)
 
 (define-grammar (select_two_args_gram int_x int_y)
  [rv (choose (if (equal? (v0) (v1) ) (v1) (quotient-noerr (v0) (- (v1) (v0) ) ) ))]
 [v0 (choose int_x int_y)]
 [v1 (choose 32)]
-) 
+)
 
 (define-grammar (OUTER_LOOP_INDEX_gram row col)
  [rv (choose (v0))]
 [v0 (choose row col)]
-) 
+)
 
 (define-grammar (INNER_LOOP_INDEX_gram row col)
  [rv (choose (v0))]
 [v0 (choose row col)]
-) 
+)
 
 (define-grammar (OUTER_LOOP_INDEX_FIRST_gram )
  [rv (choose (v0))]
 [v0 (choose true false)]
-) 
+)
 
 (define (color_dodge_8_inv0 active agg.result base col pixel row row_vec) (color_dodge_8_inv0_gram active agg.result base col pixel row row_vec #:depth 10))
 (define (color_dodge_8_inv1 active base col pixel row_vec agg.result row) (color_dodge_8_inv1_gram active base col pixel row_vec agg.result row #:depth 10))
@@ -106,4 +106,3 @@
     )
     (sat? sol0)
     (print-forms sol0)
-    

@@ -39,7 +39,7 @@ def targetLang():
 
 Here we first define three variables (lines 1-3), and use them to define a single semantic function, `fma`, which computes `x+y*z`. Notice that we are using Metalift's IR to define everything.
 
-If our target language has more constructs, we would define more semantic functions. 
+If our target language has more constructs, we would define more semantic functions.
 
 
 ## Search Space Description
@@ -79,7 +79,7 @@ def grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -
 ```
 We wrap this in a `Synth` AST node and return it afterwards.
 
-Where do the read and written variables come from? They are provided by Metalift's code analyzer (more on this later), which is passed into our grammar function as the `CodeInfo` object, along with other info such as the input code's name. Our goal is to provide various types of analysis results to the developer so that they can programmatically generate the grammar for the transpiled code. 
+Where do the read and written variables come from? They are provided by Metalift's code analyzer (more on this later), which is passed into our grammar function as the `CodeInfo` object, along with other info such as the input code's name. Our goal is to provide various types of analysis results to the developer so that they can programmatically generate the grammar for the transpiled code.
 
 
 ## Transpiler Flow
@@ -100,7 +100,7 @@ int test(int base, int arg1, int base2, int arg2) {
 
 We do this using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
 
-We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains [information about the code to be transpiled](https://github.com/metalift/metalift/blob/main/metalift/analysis.py#L185). The code info is then used to generate our grammar as described above. 
+We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains [information about the code to be transpiled](https://github.com/metalift/metalift/blob/main/metalift/analysis.py#L185). The code info is then used to generate our grammar as described above.
 
 <!--phmdoctest-share-names-->
 ```python

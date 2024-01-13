@@ -6,20 +6,24 @@ from metalift.ir import *
 import typing
 from typing import Any, Union, get_args
 
+
 def get_dependent_fn_names(
-    expr: Any,
-    all_fn_names: List[str],
-    dependent_fn_names: List[str]
+    expr: Any, all_fn_names: List[str], dependent_fn_names: List[str]
 ) -> None:
     if not isinstance(expr, Expr):
         return
-    if (isinstance(expr, Call) or isinstance(expr, CallValue)) and expr.name() in all_fn_names:
+    if (
+        isinstance(expr, Call) or isinstance(expr, CallValue)
+    ) and expr.name() in all_fn_names:
         dependent_fn_names.append(expr.name())
         return
     for arg in expr.args:
         get_dependent_fn_names(arg, all_fn_names, dependent_fn_names)
 
-def topological_sort(fn_decls: List[Union[FnDecl, FnDeclRecursive]]) -> List[Union[FnDecl, FnDeclRecursive]]:
+
+def topological_sort(
+    fn_decls: List[Union[FnDecl, FnDeclRecursive]]
+) -> List[Union[FnDecl, FnDeclRecursive]]:
     # First we construct a DAG
     graph = nx.DiGraph()
     edges: List[Tuple[str, str]] = []
@@ -27,18 +31,23 @@ def topological_sort(fn_decls: List[Union[FnDecl, FnDeclRecursive]]) -> List[Uni
     for fn_decl in fn_decls:
         dependent_fn_names: List[str] = []
         get_dependent_fn_names(fn_decl.body(), all_fn_names, dependent_fn_names)
-        edges.extend([(dependent_fn_name, fn_decl.name()) for dependent_fn_name in dependent_fn_names])
+        edges.extend(
+            [
+                (dependent_fn_name, fn_decl.name())
+                for dependent_fn_name in dependent_fn_names
+            ]
+        )
     graph.add_edges_from(edges)
     ordered_fn_names = list(nx.topological_sort(graph))
     independent_fn_names = set(all_fn_names) - set(ordered_fn_names)
 
-    fn_name_to_decl = {
-        fn_decl.name(): fn_decl
-        for fn_decl in fn_decls
-    }
+    fn_name_to_decl = {fn_decl.name(): fn_decl for fn_decl in fn_decls}
     dependent_fn_decls = [fn_name_to_decl[fn_name] for fn_name in ordered_fn_names]
-    independent_fn_decls = [fn_name_to_decl[fn_name] for fn_name in independent_fn_names]
+    independent_fn_decls = [
+        fn_name_to_decl[fn_name] for fn_name in independent_fn_names
+    ]
     return dependent_fn_decls + independent_fn_decls
+
 
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
@@ -115,7 +124,7 @@ def toSMT(
                         newArgs = filterArgs(t.args[2:])
                         fn_decls.append(
                             FnDeclRecursive(
-                                t.name(), # TODO(jie): this only handles single function param
+                                t.name(),  # TODO(jie): this only handles single function param
                                 # t.args[0] + "_" + i[1],
                                 t.returnT(),
                                 newBody,
@@ -124,7 +133,7 @@ def toSMT(
                             # if t.kind == Expr.Kind.FnDecl
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
-                                t.name(), # TODO(jie): this only handles single function param
+                                t.name(),  # TODO(jie): this only handles single function param
                                 # t.args[0] + "_" + i[1],
                                 t.returnT(),
                                 newBody,

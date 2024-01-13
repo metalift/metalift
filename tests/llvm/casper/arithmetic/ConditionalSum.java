@@ -2,7 +2,7 @@ package original.arithmetic;
 
 import java.util.List;
 
-public class ConditionalSum {	
+public class ConditionalSum {
 	public static int sumList(List<Integer> data) {
 		int sum = 0;
 		for(int i=0; i<data.size(); i++) {

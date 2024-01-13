@@ -36,9 +36,9 @@ public class LinearData{
         int length = IOUtil.skipToInt(scan);
         double xError=IOUtil.skipToDouble(scan);
         double yError= IOUtil.skipToDouble(scan);
-        double[][] data = PlotReader.data2Column(scan, length); 
+        double[][] data = PlotReader.data2Column(scan, length);
         PlotUtil p = new PlotUtil(data);
-        
+
         PrintWriter residualsWriter=new PrintWriter("files/residuals.txt");
         handleData(fitFout,residualsWriter, p.x(), p.y(), xError, yError);
     }
@@ -50,10 +50,10 @@ public class LinearData{
                                 double xError,
                                 double yError
                                 ){
-    
+
         double xMean= StatsUtil.mean(x);
         double yMean= StatsUtil.mean(y);
-        
+
         double xVar= StatsUtil.variance(x, xMean);
         double yVar= StatsUtil.variance(y, yMean);
 
@@ -70,20 +70,20 @@ public class LinearData{
                           xError,
                           Calculate.multiply(y,yError),
                       residualsWriter);
-        residualsWriter.close(); 
+        residualsWriter.close();
 
     	System.out.printf("\nLength of data = %2.0f  ",(float) x.length);
-    
+
         double standardError = StatsUtil.standardError(y, fit);
     	System.out.printf("\nGradient= %2.4f with error +/-  %2.4f ",
     	                  gradient,
     	                  StatsUtil.errorGradient(xVar,standardError, x.length)
     	                 );
-    
+
     	System.out.printf("\nResidual sum squares  = %2.2f ",
     	                  Math.sqrt(standardError / (x.length-1)
     	                  ));
-    
+
     	System.out.printf("\nOffset = %g with error  +/-  %g ",
     	                  offset,
     	                  StatsUtil.errorOffset(x.length,
@@ -91,10 +91,10 @@ public class LinearData{
     	                                        xMean,
     	                                        standardError)
                          );
-    
+
         System.out.printf("\nLinear Correlation Coefficient %g",
         StatsUtil.linearCorrelationCoefficient(StatsUtil.regressionSumOfSquares(fit, yMean), yVar));
-        
+
         PlotWriter.errorsFit(x,
                          y,
                          fit,
@@ -102,7 +102,7 @@ public class LinearData{
                          Calculate.multiply(y, yError),
                      fitFout);
         fitFout.close();
-        
+
         System.exit(0);
     }
 }

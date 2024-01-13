@@ -7,26 +7,29 @@ from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import call_vec_scalar_div, vec_scalar_div
 
+
 def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [vec_scalar_div]
 
-def softmax_part4_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+
+def softmax_part4_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     ret_val = writes[0]
     unnormalized_output, max_pos, sum = reads
     vec = choose(unnormalized_output[:max_pos])
     return ret_val == call_vec_scalar_div(sum, vec)
 
 
-def softmax_part4_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def softmax_part4_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
     unnormalized_output, max_pos, sum = reads
     out, i, _ = writes
     vec = choose(unnormalized_output[:i])
 
-    return and_objects(
-        i >= 0,
-        i <= max_pos,
-        out == call_vec_scalar_div(sum, vec)
-    )
+    return and_objects(i >= 0, i <= max_pos, out == call_vec_scalar_div(sum, vec))
+
 
 if __name__ == "__main__":
     # Synthesize part 4
@@ -39,7 +42,7 @@ if __name__ == "__main__":
         inv_grammars={
             "softmax_part4_inv0": InvGrammar(softmax_part4_inv0_grammar, []),
         },
-        ps_grammar=softmax_part4_ps_grammar
+        ps_grammar=softmax_part4_ps_grammar,
     )
 
     unnormalized_output_var = mlList(Int, "unnormalized_output")

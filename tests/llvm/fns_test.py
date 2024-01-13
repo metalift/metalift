@@ -37,7 +37,7 @@ def list_append(l1, l2):
     return Call("list_append", ListT(Int()), l1, l2)
 
 
-ir.printMode = PrintMode.RosetteVC # type: ignore
+ir.printMode = PrintMode.RosetteVC  # type: ignore
 select_func = FnDeclRecursive(
     "Select",
     ListT(Int()),

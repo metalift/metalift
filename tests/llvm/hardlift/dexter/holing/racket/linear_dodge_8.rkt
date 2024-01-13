@@ -7,117 +7,117 @@
 
 
 
- (define-bounded (vec_scalar_add a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (+ a (list-ref-noerr x 0 ) ) (vec_scalar_add a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (vec_scalar_add a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (+ a (list-ref-noerr x 0 ) ) (vec_scalar_add a (list-tail-noerr x 1 )) ) ))
 
 
- (define-bounded (vec_scalar_sub a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) a ) (vec_scalar_sub a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (vec_scalar_sub a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) a ) (vec_scalar_sub a (list-tail-noerr x 1 )) ) ))
 
 
- (define-bounded (vec_scalar_mul a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (vec_scalar_mul a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 )) ) ))
 
 
- (define-bounded (vec_scalar_div a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) a ) (vec_scalar_div a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (vec_scalar_div a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) a ) (vec_scalar_div a (list-tail-noerr x 1 )) ) ))
 
 
- (define-bounded (scalar_vec_sub a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (- a (list-ref-noerr x 0 ) ) (scalar_vec_sub a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (scalar_vec_sub a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- a (list-ref-noerr x 0 ) ) (scalar_vec_sub a (list-tail-noerr x 1 )) ) ))
 
 
- (define-bounded (scalar_vec_div a x) 
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr a (list-ref-noerr x 0 ) ) (scalar_vec_div a (list-tail-noerr x 1 )) ) )) 
+ (define-bounded (scalar_vec_div a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr a (list-ref-noerr x 0 ) ) (scalar_vec_div a (list-tail-noerr x 1 )) ) ))
 
 
- (define-bounded (matrix_scalar_add a matrix_x) 
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_add a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_add a (list-list-tail-noerr matrix_x 1 ) ) ) )) 
+ (define-bounded (matrix_scalar_add a matrix_x)
+(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_add a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_add a (list-list-tail-noerr matrix_x 1 ) ) ) ))
 
 
- (define-bounded (matrix_scalar_sub a matrix_x) 
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_sub a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_sub a (list-list-tail-noerr matrix_x 1 ) ) ) )) 
+ (define-bounded (matrix_scalar_sub a matrix_x)
+(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_sub a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_sub a (list-list-tail-noerr matrix_x 1 ) ) ) ))
 
 
- (define-bounded (matrix_scalar_mul a matrix_x) 
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_mul a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_mul a (list-list-tail-noerr matrix_x 1 ) ) ) )) 
+ (define-bounded (matrix_scalar_mul a matrix_x)
+(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_mul a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_mul a (list-list-tail-noerr matrix_x 1 ) ) ) ))
 
 
- (define-bounded (matrix_scalar_div a matrix_x) 
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_div a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_div a (list-list-tail-noerr matrix_x 1 ) ) ) )) 
+ (define-bounded (matrix_scalar_div a matrix_x)
+(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_div a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_div a (list-list-tail-noerr matrix_x 1 ) ) ) ))
 
 
- (define-bounded (scalar_matrix_sub a matrix_x) 
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (scalar_vec_sub a (list-list-ref-noerr matrix_x 0 )) (scalar_matrix_sub a (list-list-tail-noerr matrix_x 1 )) ) )) 
+ (define-bounded (scalar_matrix_sub a matrix_x)
+(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (scalar_vec_sub a (list-list-ref-noerr matrix_x 0 )) (scalar_matrix_sub a (list-list-tail-noerr matrix_x 1 )) ) ))
 
 
- (define-bounded (scalar_matrix_div a matrix_x) 
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (scalar_vec_div a (list-list-ref-noerr matrix_x 0 )) (scalar_matrix_div a (list-list-tail-noerr matrix_x 1 )) ) )) 
+ (define-bounded (scalar_matrix_div a matrix_x)
+(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (scalar_vec_div a (list-list-ref-noerr matrix_x 0 )) (scalar_matrix_div a (list-list-tail-noerr matrix_x 1 )) ) ))
 
 
- (define-bounded (vec_elemwise_add x y) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) )) 
+ (define-bounded (vec_elemwise_add x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
 
 
- (define-bounded (vec_elemwise_sub x y) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_sub (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) )) 
+ (define-bounded (vec_elemwise_sub x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_sub (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
 
 
- (define-bounded (vec_elemwise_mul x y) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) )) 
+ (define-bounded (vec_elemwise_mul x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
 
 
- (define-bounded (vec_elemwise_div x y) 
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_div (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) )) 
+ (define-bounded (vec_elemwise_div x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_div (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
 
 
- (define-bounded (matrix_elemwise_add matrix_x matrix_y) 
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_add (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_add (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) )) 
+ (define-bounded (matrix_elemwise_add matrix_x matrix_y)
+(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_add (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_add (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
 
 
- (define-bounded (matrix_elemwise_sub matrix_x matrix_y) 
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_sub (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_sub (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) )) 
+ (define-bounded (matrix_elemwise_sub matrix_x matrix_y)
+(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_sub (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_sub (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
 
 
- (define-bounded (matrix_elemwise_mul matrix_x matrix_y) 
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_mul (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_mul (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) )) 
+ (define-bounded (matrix_elemwise_mul matrix_x matrix_y)
+(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_mul (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_mul (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
 
 
- (define-bounded (matrix_elemwise_div matrix_x matrix_y) 
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_div (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_div (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) )) 
+ (define-bounded (matrix_elemwise_div matrix_x matrix_y)
+(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_div (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_div (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
 
 (define-grammar (linear_dodge_8_inv0_gram active agg.result base col pixel row row_vec)
  [rv (choose (&& (&& (>= (OUTER_LOOP_INDEX row col) 0 ) (<= (OUTER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) ) ) ) (equal? agg.result (matrix_elemwise_add (v0) (v0) ) ) ))]
 [v0 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v1) 0 (OUTER_LOOP_INDEX row col) ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v1) 0 (OUTER_LOOP_INDEX row col) ) ) ))]
 [v1 (choose base active)]
-) 
+)
 
 (define-grammar (linear_dodge_8_inv1_gram active base col pixel row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= (OUTER_LOOP_INDEX row col) 0 ) (< (OUTER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) ) ) ) (>= (INNER_LOOP_INDEX row col) 0 ) ) (<= (INNER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (length (list-list-ref-noerr base 0 ) ) (list-list-length base ) ) ) ) (equal? row_vec (vec_elemwise_add (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v0) (OUTER_LOOP_INDEX row col) ) (INNER_LOOP_INDEX row col) ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v0) (INNER_LOOP_INDEX row col) ) (OUTER_LOOP_INDEX row col) 1 ) ) 0 ) ) (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v0) (OUTER_LOOP_INDEX row col) ) (INNER_LOOP_INDEX row col) ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v0) (INNER_LOOP_INDEX row col) ) (OUTER_LOOP_INDEX row col) 1 ) ) 0 ) )) ) ) (equal? agg.result (matrix_elemwise_add (v1) (v1) ) ) ))]
 [v0 (choose base active)]
 [v1 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v0) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v0) 0 (OUTER_LOOP_INDEX row col) ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v0) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v0) 0 (OUTER_LOOP_INDEX row col) ) ) ))]
-) 
+)
 
 (define-grammar (linear_dodge_8_ps_gram base active linear_dodge_8_rv)
  [rv (choose (equal? linear_dodge_8_rv (matrix_elemwise_add (v0) (v0) ) ))]
 [v0 (choose (v1) (matrix-transpose-noerr (v1) ))]
 [v1 (choose base active)]
-) 
+)
 
 (define-grammar (OUTER_LOOP_INDEX_gram row col)
  [rv (choose (v0))]
 [v0 (choose row col)]
-) 
+)
 
 (define-grammar (INNER_LOOP_INDEX_gram row col)
  [rv (choose (v0))]
 [v0 (choose row col)]
-) 
+)
 
 (define-grammar (OUTER_LOOP_INDEX_FIRST_gram )
  [rv (choose (v0))]
 [v0 (choose true false)]
-) 
+)
 
 (define (linear_dodge_8_inv0 active agg.result base col pixel row row_vec) (linear_dodge_8_inv0_gram active agg.result base col pixel row row_vec #:depth 10))
 (define (linear_dodge_8_inv1 active base col pixel row_vec agg.result row) (linear_dodge_8_inv1_gram active base col pixel row_vec agg.result row #:depth 10))
@@ -169,4 +169,3 @@
     )
     (sat? sol0)
     (print-forms sol0)
-    
