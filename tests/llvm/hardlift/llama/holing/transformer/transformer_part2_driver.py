@@ -6,14 +6,14 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, call_vec_scalar_mul, matrix_vec_mul, reduce_sum, vec_elemwise_mul, matrix_vec_to_vec, vec_scalar_mul
-from tests.llvm.hardlift.llama.holing.transformer.utils import call_composed_index_fn, get_outer_loop_lower_bound, get_outer_loop_upper_bound, get_inner_loop_lower_bound, get_inner_loop_upper_bound, is_matrix_outer_loop_index_first, is_vector_outer_loop_index, get_outer_loop_index, is_outer_loop_left_bound_smaller, is_outer_loop_left_bound_smaller, common_fn_decls, get_inner_loop_index, is_inner_loop_left_bound_smaller, common_synths
+from tests.llvm.hardlift.llama.holing.transformer.utils import call_matrix_composed_index_fn, get_outer_loop_lower_bound, get_outer_loop_upper_bound, get_inner_loop_lower_bound, get_inner_loop_upper_bound, is_matrix_outer_loop_index_first, is_vector_outer_loop_index, get_outer_loop_index, is_outer_loop_left_bound_smaller, is_outer_loop_left_bound_smaller, common_fn_decls, get_inner_loop_index, is_inner_loop_left_bound_smaller, common_synths
 
 def transformer_part2_inv0_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     # More constrained grammar
     token_position, head, head_size, key_cache_layer, attention = reads
     xb, curr, i, timestep = writes
 
-    composed_int_var = call_composed_index_fn(token_position, head, head_size)
+    composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
     outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
     outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
@@ -60,7 +60,7 @@ def transformer_part2_inv1_grammar(writes: List[Object], reads: List[Object], in
     curr, timestep = writes
     xb, i = in_scope
 
-    composed_int_var = call_composed_index_fn(token_position, head, head_size)
+    composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
     outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
     outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
@@ -140,7 +140,7 @@ def transformer_part2_inv1_grammar(writes: List[Object], reads: List[Object], in
 def transformer_part2_ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
-    composed_int_var = call_composed_index_fn(token_position, head, head_size)
+    composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
     outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
     outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)

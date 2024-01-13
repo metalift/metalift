@@ -11,8 +11,7 @@ vector<int> transformer_part2(
     vector<int> xb;
     for (int i = 0; i < head_size; i++) {
         int curr = 0;
-        // TODO(jie): change this back to <=
-        for (int timestep = 0; timestep < token_position; timestep++) {
+        for (int timestep = 0; timestep <= token_position; timestep++) {
             curr += attention[timestep] * key_cache_layer[timestep][head * head_size + i];
         }
         xb.push_back(curr);
@@ -20,4 +19,4 @@ vector<int> transformer_part2(
     return xb;
 }
 // def transformer_part2_ps(token_position head head_size key_cache_layer attention transformer_part2_rv)
-// list_eq(transformer_part2_rv, matrix_vec_mul(matrix_transpose(list_list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size)), list_take(attention, token_position)))
+// list_eq(transformer_part2_rv, matrix_vec_mul(matrix_transpose(list_list_col_slice_with_length(list_take(key_cache_layer, token_position + 1), (head * head_size), head_size)), list_take(attention, token_position + 1)))

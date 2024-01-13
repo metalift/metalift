@@ -16,3 +16,5 @@ vector<vector<int>> multiply_blend_8(vector<vector<int>> base, vector<vector<int
 	}
 	return out;
 }
+// def multiply_blend_8_ps(base active multiply_blend_8_rv)
+// multiply_blend_8_rv == matrix_scalar_div(32, matrix_elemwise_mul(base, active))

@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-vector<vector<int>> screen_blend_8(vector<vector<int>> base, vector<vector<int>> active)
+vector<vector<int>> dissolve_blend_8(vector<vector<int>> base, vector<vector<int>> active, int opacity)
 {
     vector<vector<int>> out;
     int m = base.size();
@@ -9,7 +9,11 @@ vector<vector<int>> screen_blend_8(vector<vector<int>> base, vector<vector<int>>
 	for (int row = 0; row < m; row++) {
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
-			int pixel = base[row][col] + active[row][col] - (base[row][col] * active[row][col]) / 32;
+            int pixel;
+            if (opacity - 5 >= 0)
+                pixel = active[row][col];
+            else
+                pixel = base[row][col];
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);

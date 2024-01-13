@@ -21,25 +21,43 @@ def get_composed_combs(int_vars: List[Int]) -> List[Int]:
             mul_exprs.append(lhs_var * rhs_var)
     return mul_exprs
 
-composed_index_fn_name = "COMPOSED_INDEX_FN"
-composed_index_fn_decl = fn_decl(
-    composed_index_fn_name,
+matrix_composed_index_fn_name = "MATRIX_COMPOSED_INDEX_FN"
+matrix_composed_index_fn_decl = fn_decl(
+    matrix_composed_index_fn_name,
     Int,
     None,
     token_position_var,
     head_var,
     head_size_var
 )
-composed_index_synth = synth(
-    composed_index_fn_name,
-    choose(head_var * head_var, head_size_var * head_var),
-    # get_composed_int_var([token_position_var, head_var, head_size_var]),
+matrix_composed_index_synth = synth(
+    matrix_composed_index_fn_name,
+    get_composed_int_var([token_position_var, head_var, head_size_var]),
     token_position_var,
     head_var,
     head_size_var
 )
-def call_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
-    return call(composed_index_fn_name, Int, token_position, head, head_size)
+def call_matrix_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(matrix_composed_index_fn_name, Int, token_position, head, head_size)
+
+vec_composed_index_fn_name = "VEC_COMPOSED_INDEX_FN"
+vec_composed_index_fn_decl = fn_decl(
+    vec_composed_index_fn_name,
+    Int,
+    None,
+    token_position_var,
+    head_var,
+    head_size_var
+)
+vec_composed_index_synth = synth(
+    vec_composed_index_fn_name,
+    get_composed_int_var([token_position_var, head_var, head_size_var]),
+    token_position_var,
+    head_var,
+    head_size_var
+)
+def call_vec_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(vec_composed_index_fn_name, Int, token_position, head, head_size)
 
 # Loop functions
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
@@ -81,11 +99,9 @@ loop_index_fn_args = [i_var, timestep_var]
     is_outer_loop_left_bound_smaller
 ) = get_loop_fns(
     loop_bound_fn_args=loop_bound_fn_args,
-    # loop_index_fn_args=loop_index_fn_args,
-    loop_index_fn_args=[timestep_var],
+    loop_index_fn_args=loop_index_fn_args,
     left_bound_choices=[Int(0)],
-    # right_bound_choices=loop_bound_fn_args,
-    right_bound_choices=[token_position_var],
+    right_bound_choices=loop_bound_fn_args,
     prefix="OUTER_LOOP"
 )
 (
@@ -97,23 +113,21 @@ loop_index_fn_args = [i_var, timestep_var]
     is_inner_loop_left_bound_smaller
 ) = get_loop_fns(
     loop_bound_fn_args=loop_bound_fn_args,
-    # loop_index_fn_args=loop_index_fn_args,
-    loop_index_fn_args=[i_var],
+    loop_index_fn_args=loop_index_fn_args,
     left_bound_choices=[Int(0)],
-    # right_bound_choices=loop_bound_fn_args,
-    right_bound_choices=[head_size_var],
+    right_bound_choices=loop_bound_fn_args,
     prefix="INNER_LOOP"
 )
 
 common_fn_decls = [
-    composed_index_fn_decl,
+    matrix_composed_index_fn_decl,
     matrix_outer_loop_index_first_fn_decl,
     vector_outer_loop_index_fn_decl,
     *outer_loop_fn_decls,
     *inner_loop_fn_decls
 ]
 common_synths = [
-    composed_index_synth,
+    matrix_composed_index_synth,
     matrix_outer_loop_index_first_synth,
     vector_outer_loop_index_synth,
     *outer_loop_synths,

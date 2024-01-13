@@ -20,3 +20,9 @@ vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>>
 	}
 	return out;
 }
+
+// def darken_blend_8_ps(base active darken_blend_8_rv)
+// darken_blend_8_rv == matrix_selection_two_args(active, base, select_two_args)
+
+// def select_two_args(int_x int_y)
+// int_y if int_x > int_y else int_x

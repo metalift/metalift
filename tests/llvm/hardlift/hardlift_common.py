@@ -626,6 +626,16 @@ def linear_dodge_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
     return call_elemwise_add(matrix_or_vec, matrix_or_vec)
 
 # Helper functions for select benchmarks using the holing approach
+def dissolve_blend_8_hole_body(int_var: Int) -> Int:
+    opacity_var = Int("opacity")
+    cons = Int(5)
+    int_var = choose(int_var, opacity_var)
+    return ite(
+        (int_var - cons) > int_var,
+        int_var,
+        int_var
+    )
+
 def darken_blend_8_hole_body(int_var: Int) -> Int:
     return ite(
         int_var > int_var,
@@ -1447,8 +1457,15 @@ def get_matrix_select_holing_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
+        writes_by_name = {write_var.var_name(): write_var for write_var in writes}
+        out = writes_by_name["agg.result"]
+        col = writes_by_name["col"]
+        row = writes_by_name["row"]
+
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+
         int_vars = [row, col]
         outer_loop_index = get_outer_loop_index(*int_vars)
         matrix = choose(base, active)
@@ -1469,9 +1486,18 @@ def get_matrix_select_holing_search_space(
         )
 
     def inv1_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
-        col, pixel, row_vec = writes
-        out, row = in_scope
-        base, active = reads
+        writes_by_name = {write_var.var_name(): write_var for write_var in writes}
+        col = writes_by_name["col"]
+        row_vec = writes_by_name["row_vec"]
+
+        in_scope_by_name = {in_scope_var.var_name(): in_scope_var for in_scope_var in in_scope}
+        out = in_scope_by_name["agg.result"]
+        row = in_scope_by_name["row"]
+
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+
         int_vars = [row, col]
         outer_loop_index = get_outer_loop_index(*int_vars)
         inner_loop_index = get_inner_loop_index(*int_vars)
@@ -1515,7 +1541,9 @@ def get_matrix_select_holing_search_space(
 
     def ps_grammar_fn(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
         ret_val = writes[0]
-        base, active = reads
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
         matrix = choose(base, active)
         matrix = choose(matrix, matrix.transpose())
         return ret_val == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj)
