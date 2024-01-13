@@ -20,3 +20,8 @@ vector<vector<int>> overlay_blend_8(vector<vector<int>> base, vector<vector<int>
 	}
 	return out;
 }
+// def overlay_blend_8_ps(base active overlay_blend_8_rv)
+// overlay_blend_8_rv == matrix_selection_two_args(base, base, select_two_args)
+
+// def select_two_args(int_x int_y)
+// ((((2 * int_x) + int_y) - (((2 * int_y) * int_y) / 32)) - 32) if int_x >= 16 else (((2 * int_y) * int_x) / 32)

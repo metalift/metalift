@@ -1,0 +1,24 @@
+darken_blend_8_np
+8959.158046543598ms +/- 197.25137266947706ms
+numpy_blend.py:101: RuntimeWarning: divide by zero encountered in floor_divide
+  return np.where(np.equal(active, 0), 255, 255 - (255 - base) // active)
+color_burn_8_np
+8995.32849388197ms +/- 759.770908117669ms
+lighten_blend_8_np
+8942.027984187007ms +/- 61.56590678440761ms
+color_dodge_8_np
+7796.591059491038ms +/- 777.5313620731243ms
+overlay_blend_8_np
+5852.066696155816ms +/- 30.90788942284745ms
+multiply_blend_8_np
+1332.4808499775827ms +/- 160.96189700833642ms
+linear_burn_8_np
+1062.5303061679006ms +/- 32.34216330221227ms
+screen_blend_8_np
+2041.0272740758955ms +/- 52.48494245248513ms
+linear_dodge_8_np
+881.0949615202844ms +/- 34.318319289093786ms
+normal_blend_f_np
+4410.363694373518ms +/- 44.12834181140696ms
+normal_blend_8_np
+1088.1416564807296ms +/- 7.503055009517975ms

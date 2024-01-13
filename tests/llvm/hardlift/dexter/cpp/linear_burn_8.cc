@@ -16,3 +16,5 @@ vector<vector<int>> linear_burn_8(vector<vector<int>> base, vector<vector<int>> 
 	}
 	return out;
 }
+// def linear_burn_8_ps(base active linear_burn_8_rv)
+// linear_burn_8_rv == matrix_scalar_sub(32, matrix_elemwise_add(base, active))

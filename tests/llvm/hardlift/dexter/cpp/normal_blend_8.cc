@@ -9,3 +9,5 @@ vector<int> normal_blend_8(vector<int> base, vector<int> active, int opacity)
 
   return out;
 }
+// def normal_blend_8_ps(base active opacity normal_blend_8_rv)
+// normal_blend_8_rv == vec_elemwise_add(vec_scalar_mul(opacity, active), vec_scalar_mul((255 - opacity), base))

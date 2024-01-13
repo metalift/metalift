@@ -16,15 +16,15 @@ vector<int> transformer_part1(
         for (int i = 0; i < head_size; ++i) {
             score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + i];
         }
-        // score = integer_exp(score * 1);
-        // score = score / (score * 1);
-        score = score * integer_exp(score * 1);
+        score /= integer_exp(head_size * 1);
         attention.push_back(score);
     }
     return attention;
 }
-// def transformer_part1_ps(token_position head head_size key_cache_layer q transformer_part1_rv)
-// list_eq(transformer_part1_rv, matrix_vec_mul(list_list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size)))
+// def transformer_part1_ps(token_position head head_size key_cache_layer q transformer_part1_rv):
+    // computed_vec = matrix_vec_mul(list_list_col_slice_with_length(list_take(key_cache_layer, token_position), (head * head_size), head_size), list_slice_with_length(q, (head * head_size), head_size))
+
+    // return list_eq(transformer_part1_rv, vec_scalar_div(map_int_to_int(head_size * 1), computed_vec))
 
 // def map_int_to_int(int_x)
-// integer_exp(int_x)
+// integer_sqrt(int_x)

@@ -16,3 +16,5 @@ vector<vector<int>> linear_dodge_8(vector<vector<int>> base, vector<vector<int>>
 	}
 	return out;
 }
+// def linear_dodge_8_ps(base active linear_dodge_8_rv)
+// linear_dodge_8_rv == matrix_elemwise_add(base, active)
