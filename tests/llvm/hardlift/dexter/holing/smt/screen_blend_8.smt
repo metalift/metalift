@@ -243,39 +243,29 @@
 (define-fun-rec matrix_elemwise_mul ((matrix_x (MLList (MLList Int))) (matrix_y (MLList (MLList Int)))) (MLList (MLList Int))
 (ite (or (< (list_list_length matrix_x) 1) (not (= (list_list_length matrix_x) (list_list_length matrix_y)))) list_list_empty (list_list_prepend (vec_elemwise_mul (list_list_get matrix_x 0) (list_list_get matrix_y 0)) (matrix_elemwise_mul (list_list_tail matrix_x 1) (list_list_tail matrix_y 1)))))
 
-(define-fun-rec OUTER_LOOP_INDEX ((row Int) (col Int)) Int
-row)
-
-
-
 (define-fun-rec OUTER_LOOP_INDEX_FIRST () Bool
 true)
 
 
 
-(define-fun-rec INNER_LOOP_INDEX ((row Int) (col Int)) Int
-col)
-
-
-
 (define-fun-rec screen_blend_8_inv0 ((active (MLList (MLList Int))) (agg.result (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row Int) (row_vec (MLList Int))) Bool
-(and (and (>= (OUTER_LOOP_INDEX row col) 0) (<= (OUTER_LOOP_INDEX row col) (ite OUTER_LOOP_INDEX_FIRST (list_list_length base) (list_length (list_list_get base 0))))) (= agg.result (matrix_elemwise_sub (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col))) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col)))) (matrix_scalar_div 32 (matrix_elemwise_mul (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col))) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col)))))))))
+(and (and (>= row 0) (<= row (list_list_length base))) (= agg.result (matrix_elemwise_sub (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice base 0 row))) (matrix_scalar_div 32 (matrix_elemwise_mul (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice base 0 row))))))))
 
 
 
 (define-fun-rec screen_blend_8_inv1 ((active (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row_vec (MLList Int)) (agg.result (MLList (MLList Int))) (row Int)) Bool
-(and (and (and (and (and (>= (OUTER_LOOP_INDEX row col) 0) (< (OUTER_LOOP_INDEX row col) (ite OUTER_LOOP_INDEX_FIRST (list_list_length base) (list_length (list_list_get base 0))))) (>= (INNER_LOOP_INDEX row col) 0)) (<= (INNER_LOOP_INDEX row col) (ite OUTER_LOOP_INDEX_FIRST (list_length (list_list_get base 0)) (list_list_length base)))) (= row_vec (vec_elemwise_sub (vec_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base (OUTER_LOOP_INDEX row col)) (INNER_LOOP_INDEX row col)) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base (INNER_LOOP_INDEX row col)) (OUTER_LOOP_INDEX row col) 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get active (OUTER_LOOP_INDEX row col)) (INNER_LOOP_INDEX row col)) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base (INNER_LOOP_INDEX row col)) (OUTER_LOOP_INDEX row col) 1)) 0))) (vec_scalar_div 32 (vec_elemwise_mul (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base (OUTER_LOOP_INDEX row col)) (INNER_LOOP_INDEX row col)) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base (INNER_LOOP_INDEX row col)) (OUTER_LOOP_INDEX row col) 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get active (OUTER_LOOP_INDEX row col)) (INNER_LOOP_INDEX row col)) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base (INNER_LOOP_INDEX row col)) (OUTER_LOOP_INDEX row col) 1)) 0))))))) (= agg.result (matrix_elemwise_sub (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col))) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col)))) (matrix_scalar_div 32 (matrix_elemwise_mul (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col))) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col)))))))))
+(and (and (and (and (and (>= row 0) (<= row (list_list_length base))) (>= col 0)) (<= col (list_length (list_list_get base 0)))) (= row_vec (vec_elemwise_sub (vec_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base col) row 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get active row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base col) row 1)) 0))) (vec_scalar_div 32 (vec_elemwise_mul (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base col) row 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get active row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base col) row 1)) 0))))))) (= agg.result (matrix_elemwise_sub (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice base 0 row))) (matrix_scalar_div 32 (matrix_elemwise_mul (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice base 0 row))))))))
 
 
 
 (define-fun-rec screen_blend_8_ps ((base (MLList (MLList Int))) (active (MLList (MLList Int))) (screen_blend_8_rv (MLList (MLList Int)))) Bool
 (= screen_blend_8_rv (matrix_elemwise_sub (matrix_elemwise_add base active) (matrix_scalar_div 32 (matrix_elemwise_mul base active)))))
 
-(declare-const col Int)
 (declare-const base (MLList (MLList Int)))
-(declare-const pixel Int)
-(declare-const active (MLList (MLList Int)))
 (declare-const agg.result (MLList (MLList Int)))
+(declare-const active (MLList (MLList Int)))
+(declare-const pixel Int)
+(declare-const col Int)
 (declare-const row Int)
 (declare-const row_vec (MLList Int))
 (declare-const screen_blend_8_rv (MLList Int))
