@@ -4,7 +4,7 @@ from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tests.llvm.hardlift.hardlift_common import (
     dissolve_blend_8_hole_body,
-    get_matrix_select_holing_search_space,
+    get_dissolve_holing_search_space,
 )
 from tests.python.utils.utils import codegen
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_matrix_select_holing_search_space(driver, dissolve_blend_8_hole_body)
+    ) = get_dissolve_holing_search_space(driver, dissolve_blend_8_hole_body)
     dissolve_blend_8 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/dexter/cpp/dissolve_blend_8.ll",
         loops_filepath="tests/llvm/hardlift/dexter/cpp/dissolve_blend_8.loops",
@@ -32,7 +32,8 @@ if __name__ == "__main__":
     base = Matrix(Int, "base")
     active = Matrix(Int, "active")
     opacity = Int("opacity")
-    driver.add_var_objects([base, active, opacity])
+    rand_cons = Int("rand_cons")
+    driver.add_var_objects([base, active, opacity, rand_cons])
 
     # Add preconditions
     driver.add_precondition(base.len() > 1)
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    dissolve_blend_8(base, active, opacity)
+    dissolve_blend_8(base, active, opacity, rand_cons)
 
     start_time = time.time()
     driver.synthesize(rounds_to_guess=0)

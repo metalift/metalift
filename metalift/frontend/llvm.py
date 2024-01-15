@@ -1058,6 +1058,8 @@ class VCVisitor:
             self.visit_mul_instruction(block_name, o)
         elif o.opcode in {"sdiv"}:
             self.visit_div_instruction(block_name, o)
+        elif o.opcode in {"srem"}:
+            self.visit_rem_instruction(block_name, o)
         elif o.opcode == "bitcast":
             self.visit_bitcast_instruction(block_name, o)
         elif o.opcode == "sext":
@@ -1326,6 +1328,15 @@ class VCVisitor:
         if not isinstance(left, Int) or not isinstance(right, Int):
             raise Exception("division only supported for int objects!")
         div_obj = left // right
+        self.write_operand_to_block(block_name, o, div_obj)
+
+    def visit_rem_instruction(self, block_name: str, o: ValueRef) -> None:
+        ops = list(o.operands)
+        left = self.read_operand_from_block(block_name, ops[0])
+        right = self.read_operand_from_block(block_name, ops[1])
+        if not isinstance(left, Int) or not isinstance(right, Int):
+            raise Exception("remainder only supported for int objects!")
+        div_obj = left % right
         self.write_operand_to_block(block_name, o, div_obj)
 
     def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:

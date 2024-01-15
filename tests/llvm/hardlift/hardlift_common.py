@@ -65,10 +65,13 @@ SCALAR_MATRIX_SUB = "scalar_matrix_sub"
 
 # Selection functions
 SELECT_TWO_ARGS = "select_two_args"
+DISSOLVE_SELECT_TWO_ARGS = "dissolve_select_two_args"
 SELECT_TWO_ARGS_ARG = "select_two_args_arg"
-FIXED_SELECT_TWO_ARGS = "fixed_select_two_args"
+DISSOLVE_SELECT_TWO_ARGS_ARG = "dissolve_select_two_args_arg"
 SELECTION_TWO_ARGS = "selection_two_args"
+DISSOLVE_SELECTION_TWO_ARGS = "dissolve_selection_two_args"
 MATRIX_SELECTION_TWO_ARGS = "matrix_selection_two_args"
+DISSOLVE_MATRIX_SELECTION_TWO_ARGS = "dissolve_matrix_selection_two_args"
 
 # Uninterpreted functions
 MAP_INT_TO_INT = "map_int_to_int"
@@ -78,9 +81,6 @@ INTEGER_SQRT = "integer_sqrt"
 
 # Operations that involve uninterpreted functions
 VEC_MAP = "vec_map"
-VEC_MAP_TEST_EXP = "vec_map_test_exp"
-VEC_MAP_TEST_SQRT = "vec_map_test_sqrt"
-MATRIX_MAP_TEST_EXP_FN_NAME = "matrix_list_map_exp"
 
 # Other helper functions
 MATRIX_VEC_MUL = "matrix_vec_mul"
@@ -256,10 +256,46 @@ def call_selection_two_args(
     return call(SELECTION_TWO_ARGS, mlList[Int], left, right, select_fn)
 
 
+def call_dissolve_selection_two_args(
+    left: mlList[Int],
+    right: mlList[Int],
+    opacity: Int,
+    rand_cons: Int,
+    select_fn: Fn[typing.Tuple[Int, Int, Int]],
+) -> mlList[Int]:
+    return call(
+        DISSOLVE_SELECTION_TWO_ARGS,
+        mlList[Int],
+        left,
+        right,
+        opacity,
+        rand_cons,
+        select_fn,
+    )
+
+
 def call_matrix_selection_two_args(
     left: Matrix[Int], right: Matrix[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
 ) -> Matrix[Int]:
     return call(MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
+
+
+def call_dissolve_matrix_selection_two_args(
+    left: Matrix[Int],
+    right: Matrix[Int],
+    opacity: Int,
+    rand_cons: Int,
+    select_fn: Fn[typing.Tuple[Int, Int, Int]],
+) -> Matrix[Int]:
+    return call(
+        DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
+        Matrix[Int],
+        left,
+        right,
+        opacity,
+        rand_cons,
+        select_fn,
+    )
 
 
 def call_integer_exp(x: Int) -> Int:
@@ -276,18 +312,6 @@ def call_map_int_to_int(x: Int) -> Int:
 
 def call_vec_map(x: mlList[Int], map_fn: Fn[typing.Tuple[Int, Int]]) -> mlList[Int]:
     return call(VEC_MAP, mlList[Int], x, map_fn)
-
-
-def call_vec_map_exp(x: mlList[Int]) -> mlList[Int]:
-    return call(VEC_MAP_TEST_EXP, mlList[Int], x)
-
-
-def call_matrix_map_exp(x: Matrix[Int]) -> Matrix[Int]:
-    return call(MATRIX_MAP_TEST_EXP_FN_NAME, Matrix[Int], x)
-
-
-def call_uninterp_div(x: Int, y: Int) -> Int:
-    return call(UNINTERP_DIV, Int, x, y)
 
 
 def call_matrix_vec_mul(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
@@ -313,7 +337,6 @@ vec_to_int = lambda vec: choose(
 )
 vec_to_vec = lambda vec: choose(call_vec_map(vec, map_int_to_int_fn_obj))
 matrix_vec_to_vec = lambda matrix, vec: choose(call_matrix_vec_mul(matrix, vec))
-matrix_to_matrix = lambda matrix: choose(call_matrix_transpose(matrix))
 
 
 def vec_computation(
@@ -529,6 +552,8 @@ matrix_x = Matrix(Int, "matrix_x")
 matrix_y = Matrix(Int, "matrix_y")
 int_x = Int("int_x")
 int_y = Int("int_y")
+opacity = Int("opacity")
+rand_cons = Int("rand_cons")
 
 
 def reduce_sum_body(lst: List[Int]) -> Int:
@@ -655,10 +680,14 @@ def linear_dodge_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
 
 # Helper functions for select benchmarks using the holing approach
 def dissolve_blend_8_hole_body(int_var: Int) -> Int:
-    opacity_var = Int("opacity")
-    cons = Int(5)
-    int_var = choose(int_var, opacity_var)
-    return ite((int_var - cons) > int_var, int_var, int_var)
+    cons = choose(Int(0), Int(1), Int(100))
+    int_var = choose(int_var, ((int_var % cons) + cons) // cons)
+    # return ite(
+    #     (opacity - ((rand_cons % 100) + 1)// 100) >= 0,
+    #     int_y,
+    #     int_x
+    # )
+    return ite((int_var - int_var) >= cons, int_var, int_var)
 
 
 def darken_blend_8_hole_body(int_var: Int) -> Int:
@@ -715,9 +744,18 @@ def select_overlay_blend_body(int_x: Int, int_y: Int) -> Int:
 
 select_two_args_fn_obj_arg = Fn((Int, Int, Int), SELECT_TWO_ARGS_ARG)
 select_two_args_fn_obj = Fn((Int, Int, Int), SELECT_TWO_ARGS)
-fixed_select_two_args_fn_obj = Fn((Int, Int, Int), FIXED_SELECT_TWO_ARGS)
 select_two_args_fn_decl = fn_decl(SELECT_TWO_ARGS, Int, None, int_x, int_y)
-fixed_select_two_args_fn_decl = fn_decl(FIXED_SELECT_TWO_ARGS, Int, None, int_x, int_y)
+
+dissolve_select_two_args_fn_obj_arg = Fn(
+    (Int, Int, Int, Int, Int), DISSOLVE_SELECT_TWO_ARGS_ARG
+)
+dissolve_select_two_args_fn_obj = Fn(
+    (Int, Int, Int, Int, Int), DISSOLVE_SELECT_TWO_ARGS
+)
+dissolve_select_two_args_fn_decl = fn_decl(
+    DISSOLVE_SELECT_TWO_ARGS, Int, None, int_x, int_y, opacity, rand_cons
+)
+
 map_int_to_int_fn_obj = Fn((Int, Int), MAP_INT_TO_INT)
 map_int_to_int = fn_decl(MAP_INT_TO_INT, Int, None, int_x)
 
@@ -745,6 +783,41 @@ matrix_selection_two_args_fn_decl = fn_decl_recursive(
 )
 
 
+def dissolve_matrix_selection_two_args_body(
+    left: Matrix[Int],
+    right: Matrix[Int],
+    opacity: Int,
+    rand_cons: Int,
+    dissolve_select_fn: Fn[typing.Tuple[Int, Int, Int, Int]],
+) -> Matrix[Int]:
+    cur = call_dissolve_selection_two_args(
+        left[0], right[0], opacity, rand_cons, dissolve_select_fn
+    )
+    recursed = call_dissolve_matrix_selection_two_args(
+        left[1:], right[1:], opacity, rand_cons, dissolve_select_fn
+    )
+    general_answer = recursed.prepend(cur)
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        Matrix.empty(Int),
+        general_answer,
+    )
+
+
+dissolve_matrix_selection_two_args_fn_decl = fn_decl_recursive(
+    DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
+    Matrix[Int],
+    dissolve_matrix_selection_two_args_body(
+        matrix_x, matrix_y, opacity, rand_cons, dissolve_select_two_args_fn_obj_arg
+    ),
+    matrix_x,
+    matrix_y,
+    opacity,
+    rand_cons,
+    dissolve_select_two_args_fn_obj_arg,
+)
+
+
 def selection_two_args_body(
     left: mlList[Int], right: mlList[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
 ) -> mlList[Int]:
@@ -768,12 +841,44 @@ selection_two_args_fn_decl = fn_decl_recursive(
 )
 
 
+def dissolve_selection_two_args_body(
+    left: mlList[Int],
+    right: mlList[Int],
+    opacity: Int,
+    rand_cons: Int,
+    dissolve_select_fn: Fn[typing.Tuple[Int, Int, Int, Int, Int]],
+) -> mlList[Int]:
+    cur = call_value(dissolve_select_fn, left[0], right[0], opacity, rand_cons)
+    recursed = call_dissolve_selection_two_args(
+        left[1:], right[1:], opacity, rand_cons, dissolve_select_fn
+    )
+    general_answer = recursed.prepend(cur)
+    return ite(
+        or_objects(left.len() < 1, left.len() != right.len()),
+        mlList.empty(Int),
+        general_answer,
+    )
+
+
+dissolve_selection_two_args_fn_decl = fn_decl_recursive(
+    DISSOLVE_SELECTION_TWO_ARGS,
+    mlList[Int],
+    dissolve_selection_two_args_body(
+        x, y, opacity, rand_cons, dissolve_select_two_args_fn_obj_arg
+    ),
+    x,
+    y,
+    opacity,
+    rand_cons,
+    dissolve_select_two_args_fn_obj_arg,
+)
+
+
 def selection_two_args_ps_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object]
 ) -> Bool:
     ret_val = writes[0]
     base, active = reads
-    # return ret_val == call_nested_selection_two_args(base, active, fixed_select_two_args_fn_obj)
     base_or_active = choose(base, active)
     return ret_val == call_matrix_selection_two_args(
         base_or_active, base_or_active, select_two_args_fn_obj
@@ -833,7 +938,6 @@ def selection_two_args_inv1_grammar_fn(
 def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         select_two_args_fn_decl,
-        # fixed_select_two_args_fn_decl,
         selection_two_args_fn_decl,
         matrix_selection_two_args_fn_decl,
     ]
@@ -1499,6 +1603,144 @@ def get_matrix_select_holing_search_space(
         matrix = choose(matrix, matrix.transpose())
         return ret_val == call_matrix_selection_two_args(
             matrix, matrix, select_two_args_fn_obj
+        )
+
+    inv0_grammar = InvGrammar(inv0_grammar_fn, [])
+    inv1_grammar = InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+    return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
+
+
+def get_dissolve_holing_search_space(
+    driver: Driver, hole_body: Callable[[Int], Int]
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
+    (
+        outer_loop_index_first_fn_decl,
+        outer_loop_index_first_synth,
+        is_outer_loop_index_first,
+    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
+
+    # Target language
+    def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+        return [
+            outer_loop_index_first_fn_decl,
+            dissolve_select_two_args_fn_decl,
+            dissolve_selection_two_args_fn_decl,
+            dissolve_matrix_selection_two_args_fn_decl,
+        ]
+
+    # Functions to synthesize
+    int_var = choose(int_x, int_y, opacity, rand_cons)
+    dissolve_select_synth = synth(
+        DISSOLVE_SELECT_TWO_ARGS, hole_body(int_var), int_x, int_y, opacity, rand_cons
+    )
+    driver.add_var_objects([int_x, int_y, opacity, rand_cons])
+    fns_synths = [dissolve_select_synth, outer_loop_index_first_synth]
+
+    # inv0 grammar
+    def inv0_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        writes_by_name = {write_var.var_name(): write_var for write_var in writes}
+        out = writes_by_name["agg.result"]
+        col = writes_by_name["col"]
+        row = writes_by_name["row"]
+
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+        opacity = reads_by_name["opacity"]
+        rand_cons = reads_by_name["rand_cons"]
+
+        matrix = choose(base, active)
+        matrix = ite(
+            is_outer_loop_index_first(),  # Then outer loop has to be over row
+            matrix[:row],
+            matrix.col_slice(0, row),
+        )
+        matrix = choose(matrix, matrix.transpose())
+        return and_objects(
+            row >= 0,
+            row <= base.len(),
+            out
+            == call_dissolve_matrix_selection_two_args(
+                matrix, matrix, opacity, rand_cons, dissolve_select_two_args_fn_obj
+            ),
+        )
+
+    def inv1_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        writes_by_name = {write_var.var_name(): write_var for write_var in writes}
+        col = writes_by_name["col"]
+        row_vec = writes_by_name["row_vec"]
+
+        in_scope_by_name = {
+            in_scope_var.var_name(): in_scope_var for in_scope_var in in_scope
+        }
+        out = in_scope_by_name["agg.result"]
+        row = in_scope_by_name["row"]
+
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+        opacity = reads_by_name["opacity"]
+        rand_cons = reads_by_name["rand_cons"]
+
+        matrix = choose(base, active)
+        outer_loop_matrix = ite(
+            is_outer_loop_index_first(),  # Then outer loop has to be over row
+            matrix[:row],
+            matrix.col_slice(0, row),
+        )
+        outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+        inner_loop_vec = ite(
+            is_outer_loop_index_first(),
+            matrix[row][:col],
+            matrix[:col].col_vec(row),
+        )
+        return and_objects(
+            row >= 0,
+            row <= base.len(),
+            col >= 0,
+            col <= base[0].len(),
+            row_vec
+            == call_dissolve_selection_two_args(
+                inner_loop_vec,
+                inner_loop_vec,
+                opacity,
+                rand_cons,
+                dissolve_select_two_args_fn_obj,
+            ),
+            out
+            == call_dissolve_matrix_selection_two_args(
+                outer_loop_matrix,
+                outer_loop_matrix,
+                opacity,
+                rand_cons,
+                dissolve_select_two_args_fn_obj,
+            ),
+        )
+
+    def ps_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        ret_val = writes[0]
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+        opacity = reads_by_name["opacity"]
+        rand_cons = reads_by_name["rand_cons"]
+        matrix = choose(base, active)
+        matrix = choose(matrix, matrix.transpose())
+        return ret_val == call_dissolve_matrix_selection_two_args(
+            matrix, matrix, opacity, rand_cons, dissolve_select_two_args_fn_obj
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])

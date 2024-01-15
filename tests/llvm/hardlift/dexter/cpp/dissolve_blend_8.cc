@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-vector<vector<int>> dissolve_blend_8(vector<vector<int>> base, vector<vector<int>> active, int opacity)
+vector<vector<int>> dissolve_blend_8(vector<vector<int>> base, vector<vector<int>> active, int opacity, int rand_cons)
 {
     vector<vector<int>> out;
     int m = base.size();
@@ -9,8 +9,9 @@ vector<vector<int>> dissolve_blend_8(vector<vector<int>> base, vector<vector<int
 	for (int row = 0; row < m; row++) {
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
+            int rand_val = ((rand_cons % 100) + 1) / 100;
             int pixel;
-            if (opacity - 5 >= 0)
+            if (opacity - rand_val >= 0)
                 pixel = active[row][col];
             else
                 pixel = base[row][col];

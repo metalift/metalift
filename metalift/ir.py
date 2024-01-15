@@ -156,6 +156,8 @@ class Expr:
             return Mul(*[f(a) for a in self.args])
         elif isinstance(self, Div):
             return Div(*[f(a) for a in self.args])
+        elif isinstance(self, Mod):
+            return Mod(*[f(a) for a in self.args])
         elif isinstance(self, Implies):
             return Implies(*[f(a) for a in self.args])
         elif isinstance(self, And):
@@ -268,6 +270,8 @@ class Expr:
                     return Mul(*newArgs)
                 elif isinstance(e, Div):
                     return Div(*newArgs)
+                elif isinstance(e, Mod):
+                    return Mod(*newArgs)
                 elif isinstance(e, Call):
                     return Call(typing.cast(str, newArgs[0]), e.type, *newArgs[1:])
                 elif isinstance(e, Choose):
@@ -939,6 +943,9 @@ class Int(Object):
     def __floordiv__(self, other: Union["Int", int]) -> "Int":
         return self.binary_op(other, Div)
 
+    def __mod__(self, other: Union["Int", int]) -> "Int":
+        return self.binary_op(other, Mod)
+
     def __radd__(self, other: Union["Int", int]) -> "Int":
         if isinstance(other, int):
             return Int(other) + self
@@ -962,6 +969,12 @@ class Int(Object):
             return Int(other) // self
         else:
             return other // self
+
+    def __rmod__(self, other: Union["Int", int]) -> "Int":
+        if isinstance(other, int):
+            return Int(other) % self
+        else:
+            return other % self
 
     # logical comparison operators
     def __eq__(self, other: Union["Int", int]) -> Bool:  # type: ignore
@@ -1732,6 +1745,32 @@ class Div(Expr):
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Div(self)
+
+
+class Mod(Expr):
+    RosetteName = "remainder"
+    SMTName = "mod"
+
+    def __init__(self, *args: Expr) -> None:
+        if len(args) != 2:
+            raise Exception(f"Must exactly have two arguments: {args}")
+        for arg in args:
+            if get_type_str(arg.type) != get_type_str(args[0].type):
+                raise Exception(
+                    f"Args types not equal: {get_type_str(arg.type)} and {get_type_str(args[0].type)}"
+                )
+        Expr.__init__(self, Int, args)
+
+    def toRosette(
+        self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
+    ) -> str:
+        return Expr.toRosetteSimple(self, self.RosetteName)
+
+    def toSMT(self) -> str:
+        return Expr.toSMTSimple(self, self.SMTName)
+
+    def accept(self, v: "Visitor[T]") -> T:
+        return v.visit_Mod(self)
 
 
 class Eq(Expr):
@@ -3004,6 +3043,10 @@ class Visitor(Generic[T]):
 
     @abstractmethod
     def visit_Div(self, o: Div) -> T:
+        pass
+
+    @abstractmethod
+    def visit_Mod(self, o: Mod) -> T:
         pass
 
     @abstractmethod
