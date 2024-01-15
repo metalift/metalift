@@ -1,0 +1,31 @@
+Testing has taken more than 2hr for elewise_mul_. 1 runs has finished.
+elewise_mul_
+5362829.9257885665ms +/- 0.0ms
+Testing has taken more than 2hr for matmul_. 4 runs has finished.
+matmul_
+1033612.5752711669ms +/- 10652.071988692407ms
+multiquery_attention_part1_
+17927.01930878684ms +/- 167.62666322393514ms
+multiquery_attention_part2_
+66441.06111219153ms +/- 2794.0301860674426ms
+Testing has taken more than 2hr for rmsnorm_part1_. 1 runs has finished.
+rmsnorm_part1_
+2818790.892546065ms +/- 0.0ms
+Testing has taken more than 2hr for rmsnorm_part2_. 1 runs has finished.
+rmsnorm_part2_
+6783013.477202505ms +/- 0.0ms
+Testing has taken more than 2hr for silu_. 1 runs has finished.
+silu_
+12449737.338935025ms +/- 0.0ms
+Testing has taken more than 2hr for softmax_part1_. 5 runs has finished.
+softmax_part1_
+498040.815807879ms +/- 5067.193583662253ms
+Testing has taken more than 2hr for softmax_part2_. 2 runs has finished.
+softmax_part2_
+2999146.6898294166ms +/- 2926.491475664079ms
+Testing has taken more than 2hr for softmax_part3_. 2 runs has finished.
+softmax_part3_
+554215.2853910811ms +/- 4568.948999512941ms
+Testing has taken more than 2hr for softmax_part4_. 2 runs has finished.
+softmax_part4_
+1742838.6832852848ms +/- 56548.192277085036ms

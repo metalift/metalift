@@ -1,7 +1,7 @@
 import os
 
-# isort: skip_file
+# pragma: no autoflake
 if os.environ.get("SYNTH_CVC5") == "1":
-    pass
+    from metalift.synthesize_cvc5 import synthesize  # noqa
 else:
-    pass
+    from metalift.synthesize_rosette import synthesize  # noqa
