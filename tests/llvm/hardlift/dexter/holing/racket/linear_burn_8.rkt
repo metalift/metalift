@@ -87,17 +87,17 @@
 (if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_div (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_div (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
 
 (define-grammar (linear_burn_8_inv0_gram active agg.result base col pixel row row_vec)
- [rv (choose (&& (&& (>= (OUTER_LOOP_INDEX row col) 0 ) (<= (OUTER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) ) ) ) (equal? agg.result (matrix_scalar_sub (v0) (matrix_elemwise_add (v1) (v1) ) ) ) ))]
+ [rv (choose (&& (&& (>= row 0 ) (<= row (list-list-length base ) ) ) (equal? agg.result (matrix_scalar_sub (v0) (matrix_elemwise_add (v1) (v1) ) ) ) ))]
 [v0 (choose 32)]
-[v1 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v2) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v2) 0 (OUTER_LOOP_INDEX row col) ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v2) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v2) 0 (OUTER_LOOP_INDEX row col) ) ) ))]
+[v1 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v2) row ) (list-list-col-slice-noerr (v2) 0 row ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v2) row ) (list-list-col-slice-noerr (v2) 0 row ) ) ))]
 [v2 (choose base active)]
 )
 
 (define-grammar (linear_burn_8_inv1_gram active base col pixel row_vec agg.result row)
- [rv (choose (&& (&& (&& (&& (&& (>= (OUTER_LOOP_INDEX row col) 0 ) (< (OUTER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) ) ) ) (>= (INNER_LOOP_INDEX row col) 0 ) ) (<= (INNER_LOOP_INDEX row col) (if (OUTER_LOOP_INDEX_FIRST) (length (list-list-ref-noerr base 0 ) ) (list-list-length base ) ) ) ) (equal? row_vec (vec_scalar_sub (v0) (vec_elemwise_add (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v1) (OUTER_LOOP_INDEX row col) ) (INNER_LOOP_INDEX row col) ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v1) (INNER_LOOP_INDEX row col) ) (OUTER_LOOP_INDEX row col) 1 ) ) 0 ) ) (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v1) (OUTER_LOOP_INDEX row col) ) (INNER_LOOP_INDEX row col) ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v1) (INNER_LOOP_INDEX row col) ) (OUTER_LOOP_INDEX row col) 1 ) ) 0 ) ))) ) ) (equal? agg.result (matrix_scalar_sub (v0) (matrix_elemwise_add (v2) (v2) ) ) ) ))]
+ [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (list-list-length base ) ) ) (>= col 0 ) ) (<= col (length (list-list-ref-noerr base 0 ) ) ) ) (equal? row_vec (vec_scalar_sub (v0) (vec_elemwise_add (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v1) row ) col ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v1) col ) row 1 ) ) 0 ) ) (if (OUTER_LOOP_INDEX_FIRST) (list-take-noerr (list-list-ref-noerr (v1) row ) col ) (list-list-ref-noerr (matrix-transpose-noerr (list-list-col-slice-with-length-noerr (list-list-take-noerr (v1) col ) row 1 ) ) 0 ) ))) ) ) (equal? agg.result (matrix_scalar_sub (v0) (matrix_elemwise_add (v2) (v2) ) ) ) ))]
 [v0 (choose 32)]
 [v1 (choose base active)]
-[v2 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v1) 0 (OUTER_LOOP_INDEX row col) ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) (OUTER_LOOP_INDEX row col) ) (list-list-col-slice-noerr (v1) 0 (OUTER_LOOP_INDEX row col) ) ) ))]
+[v2 (choose (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) row ) (list-list-col-slice-noerr (v1) 0 row ) ) (matrix-transpose-noerr (if (OUTER_LOOP_INDEX_FIRST) (list-list-take-noerr (v1) row ) (list-list-col-slice-noerr (v1) 0 row ) ) ))]
 )
 
 (define-grammar (linear_burn_8_ps_gram base active linear_burn_8_rv)
@@ -105,16 +105,6 @@
 [v0 (choose 32)]
 [v1 (choose (v2) (matrix-transpose-noerr (v2) ))]
 [v2 (choose base active)]
-)
-
-(define-grammar (OUTER_LOOP_INDEX_gram row col)
- [rv (choose (v0))]
-[v0 (choose row col)]
-)
-
-(define-grammar (INNER_LOOP_INDEX_gram row col)
- [rv (choose (v0))]
-[v0 (choose row col)]
 )
 
 (define-grammar (OUTER_LOOP_INDEX_FIRST_gram )
@@ -126,8 +116,6 @@
 (define (linear_burn_8_inv1 active base col pixel row_vec agg.result row) (linear_burn_8_inv1_gram active base col pixel row_vec agg.result row #:depth 10))
 (define (linear_burn_8_ps base active linear_burn_8_rv) (linear_burn_8_ps_gram base active linear_burn_8_rv #:depth 10))
 
-(define (OUTER_LOOP_INDEX row col) (OUTER_LOOP_INDEX_gram row col #:depth 10))
-(define (INNER_LOOP_INDEX row col) (INNER_LOOP_INDEX_gram row col #:depth 10))
 (define (OUTER_LOOP_INDEX_FIRST ) (OUTER_LOOP_INDEX_FIRST_gram  #:depth 10))
 
 (define-symbolic active_BOUNDEDSET-len integer?)

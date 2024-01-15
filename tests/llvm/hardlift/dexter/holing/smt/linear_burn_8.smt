@@ -201,59 +201,72 @@
 (define-fun-rec matrix_transpose ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
 (ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (firsts matrix) (matrix_transpose (rests matrix)))))
 
-(define-fun-rec select_two_args ((int_x Int) (int_y Int)) Int
-(ite (>= int_x 16) (- (- (+ (* 2 int_x) int_y) (div (* (* 2 int_y) int_y) 32)) 32) (div (* (* 2 int_y) int_x) 32)))
+(define-fun-rec vec_scalar_add ((a Int) (x (MLList Int))) (MLList Int)
+(ite (< (list_length x) 1) list_empty (list_prepend (+ a (list_get x 0)) (vec_scalar_add a (list_tail x 1)))))
 
-(define-fun-rec selection_two_args ((x (MLList Int)) (y (MLList Int))) (MLList Int)
-(ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (select_two_args (list_get x 0) (list_get y 0)) (selection_two_args (list_tail x 1) (list_tail y 1)))))
+(define-fun-rec vec_scalar_sub ((a Int) (x (MLList Int))) (MLList Int)
+(ite (< (list_length x) 1) list_empty (list_prepend (- (list_get x 0) a) (vec_scalar_sub a (list_tail x 1)))))
 
+(define-fun-rec vec_scalar_mul ((a Int) (x (MLList Int))) (MLList Int)
+(ite (< (list_length x) 1) list_empty (list_prepend (* a (list_get x 0)) (vec_scalar_mul a (list_tail x 1)))))
 
+(define-fun-rec vec_scalar_div ((a Int) (x (MLList Int))) (MLList Int)
+(ite (< (list_length x) 1) list_empty (list_prepend (div (list_get x 0) a) (vec_scalar_div a (list_tail x 1)))))
 
-(define-fun-rec matrix_selection_two_args ((matrix_x (MLList (MLList Int))) (matrix_y (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (or (< (list_list_length matrix_x) 1) (not (= (list_list_length matrix_x) (list_list_length matrix_y)))) list_list_empty (list_list_prepend (selection_two_args (list_list_get matrix_x 0) (list_list_get matrix_y 0)) (matrix_selection_two_args (list_list_tail matrix_x 1) (list_list_tail matrix_y 1)))))
+(define-fun-rec scalar_vec_sub ((a Int) (x (MLList Int))) (MLList Int)
+(ite (< (list_length x) 1) list_empty (list_prepend (- a (list_get x 0)) (scalar_vec_sub a (list_tail x 1)))))
 
-(define-fun-rec OUTER_LOOP_INDEX ((row Int) (col Int)) Int
-row)
+(define-fun-rec scalar_vec_div ((a Int) (x (MLList Int))) (MLList Int)
+(ite (< (list_length x) 1) list_empty (list_prepend (div a (list_get x 0)) (scalar_vec_div a (list_tail x 1)))))
 
+(define-fun-rec matrix_scalar_sub ((a Int) (matrix_x (MLList (MLList Int)))) (MLList (MLList Int))
+(ite (< (list_list_length matrix_x) 1) list_list_empty (list_list_prepend (vec_scalar_sub a (list_list_get matrix_x 0)) (matrix_scalar_sub a (list_list_tail matrix_x 1)))))
 
+(define-fun-rec vec_elemwise_add ((x (MLList Int)) (y (MLList Int))) (MLList Int)
+(ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (+ (list_get x 0) (list_get y 0)) (vec_elemwise_add (list_tail x 1) (list_tail y 1)))))
+
+(define-fun-rec vec_elemwise_sub ((x (MLList Int)) (y (MLList Int))) (MLList Int)
+(ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (- (list_get x 0) (list_get y 0)) (vec_elemwise_sub (list_tail x 1) (list_tail y 1)))))
+
+(define-fun-rec vec_elemwise_mul ((x (MLList Int)) (y (MLList Int))) (MLList Int)
+(ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (* (list_get x 0) (list_get y 0)) (vec_elemwise_mul (list_tail x 1) (list_tail y 1)))))
+
+(define-fun-rec vec_elemwise_div ((x (MLList Int)) (y (MLList Int))) (MLList Int)
+(ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (div (list_get x 0) (list_get y 0)) (vec_elemwise_div (list_tail x 1) (list_tail y 1)))))
+
+(define-fun-rec matrix_elemwise_add ((matrix_x (MLList (MLList Int))) (matrix_y (MLList (MLList Int)))) (MLList (MLList Int))
+(ite (or (< (list_list_length matrix_x) 1) (not (= (list_list_length matrix_x) (list_list_length matrix_y)))) list_list_empty (list_list_prepend (vec_elemwise_add (list_list_get matrix_x 0) (list_list_get matrix_y 0)) (matrix_elemwise_add (list_list_tail matrix_x 1) (list_list_tail matrix_y 1)))))
 
 (define-fun-rec OUTER_LOOP_INDEX_FIRST () Bool
 true)
 
 
 
-(define-fun-rec INNER_LOOP_INDEX ((row Int) (col Int)) Int
-col)
+(define-fun-rec linear_burn_8_inv0 ((active (MLList (MLList Int))) (agg.result (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row Int) (row_vec (MLList Int))) Bool
+(and (and (>= row 0) (<= row (list_list_length base))) (= agg.result (matrix_scalar_sub 32 (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice base 0 row)))))))
 
 
 
-(define-fun-rec overlay_blend_8_inv0 ((active (MLList (MLList Int))) (agg.result (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row Int) (row_vec (MLList Int))) Bool
-(and (and (>= (OUTER_LOOP_INDEX row col) 0) (<= (OUTER_LOOP_INDEX row col) (ite OUTER_LOOP_INDEX_FIRST (list_list_length base) (list_length (list_list_get base 0))))) (= agg.result (matrix_selection_two_args (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col))) (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col)))))))
+(define-fun-rec linear_burn_8_inv1 ((active (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row_vec (MLList Int)) (agg.result (MLList (MLList Int))) (row Int)) Bool
+(and (and (and (and (and (>= row 0) (<= row (list_list_length base))) (>= col 0)) (<= col (list_length (list_list_get base 0)))) (= row_vec (vec_scalar_sub 32 (vec_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take active col) row 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get active row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take active col) row 1)) 0)))))) (= agg.result (matrix_scalar_sub 32 (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice active 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice active 0 row)))))))
 
 
 
-(define-fun-rec overlay_blend_8_inv1 ((active (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row_vec (MLList Int)) (agg.result (MLList (MLList Int))) (row Int)) Bool
-(and (and (and (and (and (>= (OUTER_LOOP_INDEX row col) 0) (< (OUTER_LOOP_INDEX row col) (ite OUTER_LOOP_INDEX_FIRST (list_list_length base) (list_length (list_list_get base 0))))) (>= (INNER_LOOP_INDEX row col) 0)) (<= (INNER_LOOP_INDEX row col) (ite OUTER_LOOP_INDEX_FIRST (list_length (list_list_get base 0)) (list_list_length base)))) (= row_vec (selection_two_args (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base (OUTER_LOOP_INDEX row col)) (INNER_LOOP_INDEX row col)) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take active (INNER_LOOP_INDEX row col)) (OUTER_LOOP_INDEX row col) 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base (OUTER_LOOP_INDEX row col)) (INNER_LOOP_INDEX row col)) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take base (INNER_LOOP_INDEX row col)) (OUTER_LOOP_INDEX row col) 1)) 0))))) (= agg.result (matrix_selection_two_args (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col))) (ite OUTER_LOOP_INDEX_FIRST (list_list_take base (OUTER_LOOP_INDEX row col)) (list_list_col_slice base 0 (OUTER_LOOP_INDEX row col)))))))
+(define-fun-rec linear_burn_8_ps ((base (MLList (MLList Int))) (active (MLList (MLList Int))) (linear_burn_8_rv (MLList (MLList Int)))) Bool
+(= linear_burn_8_rv (matrix_scalar_sub 32 (matrix_elemwise_add active base))))
 
-
-
-(define-fun-rec overlay_blend_8_ps ((base (MLList (MLList Int))) (active (MLList (MLList Int))) (overlay_blend_8_rv (MLList (MLList Int)))) Bool
-(= overlay_blend_8_rv (matrix_selection_two_args base base)))
-
-(declare-const active (MLList (MLList Int)))
 (declare-const agg.result (MLList (MLList Int)))
-(declare-const int_y Int)
-(declare-const int_x Int)
-(declare-const base (MLList (MLList Int)))
-(declare-const col Int)
 (declare-const pixel Int)
+(declare-const col Int)
+(declare-const base (MLList (MLList Int)))
 (declare-const row Int)
 (declare-const row_vec (MLList Int))
-(declare-const overlay_blend_8_rv (MLList Int))
+(declare-const linear_burn_8_rv (MLList Int))
+(declare-const active (MLList (MLList Int)))
 
 
 
-(assert (not (and (and (and (and (=> (and (and (> (list_list_length base) 1) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active list_list_empty base 0 0 0 list_empty)) (=> (and (and (and (and (< row (list_list_length base)) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (overlay_blend_8_inv1 active base 0 pixel list_empty agg.result row))) (=> (or (and (and (and (and (and (and (and (>= (list_get (list_list_get base row) col) 16) (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (overlay_blend_8_inv1 active base col pixel row_vec agg.result row)) (and (and (and (and (and (and (and (not (>= (list_get (list_list_get base row) col) 16)) (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (overlay_blend_8_inv1 active base col pixel row_vec agg.result row))) (overlay_blend_8_inv1 active base (+ col 1) (ite (and (and (and (and (and (and (and (not (>= (list_get (list_list_get base row) col) 16)) (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (overlay_blend_8_inv1 active base col pixel row_vec agg.result row)) (div (* (* 2 (list_get (list_list_get base row) col)) (list_get (list_list_get base row) col)) 32) (- (- (+ (* 2 (list_get (list_list_get base row) col)) (list_get (list_list_get base row) col)) (div (* (* 2 (list_get (list_list_get base row) col)) (list_get (list_list_get base row) col)) 32)) 32)) (list_append row_vec (ite (and (and (and (and (and (and (and (not (>= (list_get (list_list_get base row) col) 16)) (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (overlay_blend_8_inv1 active base col pixel row_vec agg.result row)) (div (* (* 2 (list_get (list_list_get base row) col)) (list_get (list_list_get base row) col)) 32) (- (- (+ (* 2 (list_get (list_list_get base row) col)) (list_get (list_list_get base row) col)) (div (* (* 2 (list_get (list_list_get base row) col)) (list_get (list_list_get base row) col)) 32)) 32))) agg.result row))) (=> (and (and (and (and (and (and (not (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (overlay_blend_8_inv1 active base col pixel row_vec agg.result row)) (overlay_blend_8_inv0 active (list_list_append agg.result row_vec) base col pixel (+ row 1) row_vec))) (=> (or (and (and (and (and (not (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec)) (and (and (and (and (and (not true) (not (< row (list_list_length base)))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (overlay_blend_8_inv0 active agg.result base col pixel row row_vec))) (overlay_blend_8_ps base active agg.result)))))
+(assert (not (and (and (and (and (=> (and (and (> (list_list_length base) 1) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active list_list_empty base 0 0 0 list_empty)) (=> (and (and (and (and (< row (list_list_length base)) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base 0 pixel list_empty agg.result row))) (=> (and (and (and (and (and (and (< col (list_length (list_list_get base 0))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base col pixel row_vec agg.result row)) (linear_burn_8_inv1 active base (+ col 1) (- (+ (list_get (list_list_get base row) col) (list_get (list_list_get active row) col)) 32) (list_append row_vec (- (+ (list_get (list_list_get base row) col) (list_get (list_list_get active row) col)) 32)) agg.result row))) (=> (and (and (and (and (and (and (not (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base col pixel row_vec agg.result row)) (linear_burn_8_inv0 active (list_list_append agg.result row_vec) base col pixel (+ row 1) row_vec))) (=> (or (and (and (and (and (not (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (and (and (and (and (and (not true) (not (< row (list_list_length base)))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec))) (linear_burn_8_ps base active agg.result)))))
 
 (check-sat)
 (get-model)

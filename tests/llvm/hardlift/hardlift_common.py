@@ -1298,54 +1298,6 @@ def get_matrix_computation_hole_inv0_grammar(
     return InvGrammar(inv0_grammar_fn, [])
 
 
-def get_dexter_double_loop_fns() -> (
-    Tuple[
-        List[FnDecl],
-        List[Synth],
-        Callable,
-        Callable,
-        Bool,
-    ]
-):
-    # Get loop index functions
-    row_var = Int("row")
-    col_var = Int("col")
-    (
-        outer_loop_index_fn_decl,
-        outer_loop_index_synth,
-        get_outer_loop_index,
-    ) = get_loop_index_fn(loop_fn_args=[row_var, col_var], prefix="OUTER_LOOP")
-    (
-        inner_loop_index_fn_decl,
-        inner_loop_index_synth,
-        get_inner_loop_index,
-    ) = get_loop_index_fn(loop_fn_args=[row_var, col_var], prefix="INNER_LOOP")
-    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
-    (
-        outer_loop_index_first_fn_decl,
-        outer_loop_index_first_synth,
-        is_outer_loop_index_first,
-    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
-
-    fn_decls = [
-        outer_loop_index_fn_decl,
-        inner_loop_index_fn_decl,
-        outer_loop_index_first_fn_decl,
-    ]
-    synths = [
-        outer_loop_index_synth,
-        inner_loop_index_synth,
-        outer_loop_index_first_synth,
-    ]
-    return (
-        fn_decls,
-        synths,
-        get_outer_loop_index,
-        get_inner_loop_index,
-        is_outer_loop_index_first,
-    )
-
-
 def get_matrix_computation_holing_search_space(
     hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]
 ) -> Tuple[
@@ -1355,25 +1307,24 @@ def get_matrix_computation_holing_search_space(
     Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
     List[Synth],
 ]:
+    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
     (
-        loop_fn_decls,
-        loop_synths,
-        get_outer_loop_index,
-        get_inner_loop_index,
+        outer_loop_index_first_fn_decl,
+        outer_loop_index_first_synth,
         is_outer_loop_index_first,
-    ) = get_dexter_double_loop_fns()
+    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
 
     # Target language
     def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return [
-            *loop_fn_decls,
+            outer_loop_index_first_fn_decl,
             *scalar_vec_to_vec_target_lang,
             *scalar_matrix_to_matrix_target_lang,
             *vec_vec_to_vec_target_lang,
             *matrix_matrix_to_matrix_target_lang,
         ]
 
-    fns_synths = loop_synths
+    fns_synths = [outer_loop_index_first_synth]
 
     # inv0 grammar
     def inv0_grammar_fn(
@@ -1382,18 +1333,16 @@ def get_matrix_computation_holing_search_space(
         out, col, pixel, row, row_vec = writes
         base, active = reads
         int_vars = [row, col]
-        outer_loop_index = get_outer_loop_index(*int_vars)
         matrix = choose(base, active)
         matrix = ite(
             is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:outer_loop_index],
-            matrix.col_slice(0, outer_loop_index),
+            matrix[:row],
+            matrix.col_slice(0, row),
         )
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
-            outer_loop_index >= 0,
-            outer_loop_index
-            <= ite(is_outer_loop_index_first(), base.len(), base[0].len()),
+            row >= 0,
+            row <= base.len(),
             out == hole_body(matrix),
         )
 
@@ -1404,27 +1353,23 @@ def get_matrix_computation_holing_search_space(
         out, row = in_scope
         base, active = reads
         int_vars = [row, col]
-        outer_loop_index = get_outer_loop_index(*int_vars)
-        inner_loop_index = get_inner_loop_index(*int_vars)
         matrix = choose(base, active)
         outer_loop_matrix = ite(
             is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:outer_loop_index],
-            matrix.col_slice(0, outer_loop_index),
+            matrix[:row],
+            matrix.col_slice(0, row),
         )
         outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
         inner_loop_vec = ite(
             is_outer_loop_index_first(),
-            matrix[outer_loop_index][:inner_loop_index],
-            matrix[:inner_loop_index].col_vec(outer_loop_index),
+            matrix[row][:col],
+            matrix[:col].col_vec(row),
         )
         return and_objects(
-            outer_loop_index >= 0,
-            outer_loop_index
-            < ite(is_outer_loop_index_first(), base.len(), base[0].len()),
-            inner_loop_index >= 0,
-            inner_loop_index
-            <= ite(is_outer_loop_index_first(), base[0].len(), base.len()),
+            row >= 0,
+            row <= base.len(),
+            col >= 0,
+            col <= base[0].len(),
             row_vec == hole_body(inner_loop_vec),
             out == hole_body(outer_loop_matrix),
         )
@@ -1452,18 +1397,17 @@ def get_matrix_select_holing_search_space(
     Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
     List[Synth],
 ]:
+    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
     (
-        loop_fn_decls,
-        loop_synths,
-        get_outer_loop_index,
-        get_inner_loop_index,
+        outer_loop_index_first_fn_decl,
+        outer_loop_index_first_synth,
         is_outer_loop_index_first,
-    ) = get_dexter_double_loop_fns()
+    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
 
     # Target language
     def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return [
-            *loop_fn_decls,
+            outer_loop_index_first_fn_decl,
             select_two_args_fn_decl,
             selection_two_args_fn_decl,
             matrix_selection_two_args_fn_decl,
@@ -1471,7 +1415,7 @@ def get_matrix_select_holing_search_space(
 
     # Functions to synthesize
     select_synth = get_select_synth_from_hole(driver, hole_body)
-    fns_synths = [select_synth, *loop_synths]
+    fns_synths = [select_synth, outer_loop_index_first_synth]
 
     # inv0 grammar
     def inv0_grammar_fn(
@@ -1486,19 +1430,16 @@ def get_matrix_select_holing_search_space(
         base = reads_by_name["base"]
         active = reads_by_name["active"]
 
-        int_vars = [row, col]
-        outer_loop_index = get_outer_loop_index(*int_vars)
         matrix = choose(base, active)
         matrix = ite(
             is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:outer_loop_index],
-            matrix.col_slice(0, outer_loop_index),
+            matrix[:row],
+            matrix.col_slice(0, row),
         )
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
-            outer_loop_index >= 0,
-            outer_loop_index
-            <= ite(is_outer_loop_index_first(), base.len(), base[0].len()),
+            row >= 0,
+            row <= base.len(),
             out
             == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
         )
@@ -1520,29 +1461,23 @@ def get_matrix_select_holing_search_space(
         base = reads_by_name["base"]
         active = reads_by_name["active"]
 
-        int_vars = [row, col]
-        outer_loop_index = get_outer_loop_index(*int_vars)
-        inner_loop_index = get_inner_loop_index(*int_vars)
-
         matrix = choose(base, active)
         outer_loop_matrix = ite(
             is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:outer_loop_index],
-            matrix.col_slice(0, outer_loop_index),
+            matrix[:row],
+            matrix.col_slice(0, row),
         )
         outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
         inner_loop_vec = ite(
             is_outer_loop_index_first(),
-            matrix[outer_loop_index][:inner_loop_index],
-            matrix[:inner_loop_index].col_vec(outer_loop_index),
+            matrix[row][:col],
+            matrix[:col].col_vec(row),
         )
         return and_objects(
-            outer_loop_index >= 0,
-            outer_loop_index
-            < ite(is_outer_loop_index_first(), base.len(), base[0].len()),
-            inner_loop_index >= 0,
-            inner_loop_index
-            <= ite(is_outer_loop_index_first(), base[0].len(), base.len()),
+            row >= 0,
+            row <= base.len(),
+            col >= 0,
+            col <= base[0].len(),
             row_vec
             == call_selection_two_args(
                 inner_loop_vec, inner_loop_vec, select_two_args_fn_obj
