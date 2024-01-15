@@ -31,7 +31,7 @@ from metalift.ir import (
     Let,
 )
 from metalift.ir import List as mlList
-from metalift.ir import Lt, Mul, Not, ObjectT, Or
+from metalift.ir import Lt, Mod, Mul, Not, ObjectT, Or
 from metalift.ir import Set as mlSet
 from metalift.ir import (
     Sub,
@@ -103,6 +103,7 @@ def toExpr(
         "&&": And,
         "or": Or,
         "=>": Implies,
+        "remainder": Mod,
     }
     expr_uni = {"!": Not}
     if isinstance(ast, list):
