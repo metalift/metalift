@@ -1550,12 +1550,7 @@ class Driver:
         target = []
         for fn in self.fns.values():
             target += fn.target_lang_fn()
-        # TODO(jie): this is a hack
         inv_and_ps = synths + self.fns_synths
-        inv0_synth = [
-            synth for synth in inv_and_ps if "VEC_COMPOSED_INDEX_FN" in synth.name()
-        ]
-        # inv0_synth = [synth for synth in inv_and_ps if "part2_inv0_composed_int_index_fn" in synth.name()]
         fn_defs_to_exclude: List[FnDeclRecursive] = []
         for i in range(1):
             synthesized: List[FnDeclRecursive] = run_synthesis(
@@ -1569,7 +1564,7 @@ class Driver:
                 loopAndPsInfo=synths,
                 cvcPath="cvc5",
                 # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
-                fns_to_guess=inv0_synth,
+                fns_to_guess=synths,
                 **synthesize_kwargs,
             )
             for f in synthesized:
