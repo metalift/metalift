@@ -1,7 +1,7 @@
 from typing import List
 
 from metalift.ir import Int, call, choose, fn_decl, synth
-from tests.llvm.hardlift.hardlift_common import get_loop_fns, get_no_arg_bool_fn
+from tests.llvm.hardlift.hardlift_common import get_no_arg_bool_fn
 
 # Define arguments to helper functions to synthesize
 token_position_var = Int("token_position")
@@ -81,49 +81,13 @@ vector_outer_loop_index_fn_name = "VECTOR_OUTER_LOOP_INDEX"
     is_vector_outer_loop_index,
 ) = get_no_arg_bool_fn(vector_outer_loop_index_fn_name)
 
-# Arguments to all loop functions
-loop_bound_fn_args = [token_position_var, head_var, head_size_var]
-loop_index_fn_args = [i_var, timestep_var]
-(
-    outer_loop_fn_decls,
-    outer_loop_synths,
-    get_outer_loop_lower_bound,
-    get_outer_loop_upper_bound,
-    get_outer_loop_index,
-    is_outer_loop_left_bound_smaller,
-) = get_loop_fns(
-    loop_bound_fn_args=loop_bound_fn_args,
-    loop_index_fn_args=loop_index_fn_args,
-    left_bound_choices=[Int(0)],
-    right_bound_choices=loop_bound_fn_args,
-    prefix="OUTER_LOOP",
-)
-(
-    inner_loop_fn_decls,
-    inner_loop_synths,
-    get_inner_loop_lower_bound,
-    get_inner_loop_upper_bound,
-    get_inner_loop_index,
-    is_inner_loop_left_bound_smaller,
-) = get_loop_fns(
-    loop_bound_fn_args=loop_bound_fn_args,
-    loop_index_fn_args=loop_index_fn_args,
-    left_bound_choices=[Int(0)],
-    right_bound_choices=loop_bound_fn_args,
-    prefix="INNER_LOOP",
-)
-
 common_fn_decls = [
     matrix_composed_index_fn_decl,
     matrix_outer_loop_index_first_fn_decl,
     vector_outer_loop_index_fn_decl,
-    *outer_loop_fn_decls,
-    *inner_loop_fn_decls,
 ]
 common_synths = [
     matrix_composed_index_synth,
     matrix_outer_loop_index_first_synth,
     vector_outer_loop_index_synth,
-    *outer_loop_synths,
-    *inner_loop_synths,
 ]

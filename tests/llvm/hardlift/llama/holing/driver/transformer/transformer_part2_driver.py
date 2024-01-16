@@ -11,24 +11,15 @@ from tests.llvm.hardlift.hardlift_common import (
     call_vec_elemwise_mul,
     call_vec_scalar_mul,
     matrix_vec_mul,
-    matrix_vec_to_vec,
     reduce_sum,
     vec_elemwise_mul,
     vec_scalar_mul,
 )
-from tests.llvm.hardlift.llama.holing.transformer.utils import (
+from tests.llvm.hardlift.llama.holing.driver.transformer.utils import (
     call_matrix_composed_index_fn,
     common_fn_decls,
     common_synths,
-    get_inner_loop_index,
-    get_inner_loop_lower_bound,
-    get_inner_loop_upper_bound,
-    get_outer_loop_index,
-    get_outer_loop_lower_bound,
-    get_outer_loop_upper_bound,
-    is_inner_loop_left_bound_smaller,
     is_matrix_outer_loop_index_first,
-    is_outer_loop_left_bound_smaller,
     is_vector_outer_loop_index,
 )
 
@@ -41,43 +32,29 @@ def transformer_part2_inv0_grammar(
     xb, curr, i, timestep = writes
 
     composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
 
     # Get slice indices
-    outer_loop_index = get_outer_loop_index(i, timestep)
-    outer_loop_index_slice_start = ite(
-        is_outer_loop_left_bound_smaller(), outer_loop_lower_bound, outer_loop_index + 1
-    )
-    outer_loop_index_slice_end = ite(
-        is_outer_loop_left_bound_smaller(), outer_loop_index, outer_loop_upper_bound
-    )
-
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[
-            outer_loop_index_slice_start:outer_loop_index_slice_end
-        ].col_slice(
-            composed_int_var + inner_loop_lower_bound,
-            composed_int_var + inner_loop_upper_bound,
+        key_cache_layer[0:i].col_slice(
+            composed_int_var,
+            composed_int_var + token_position + 1,
         ),
-        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            composed_int_var + outer_loop_index_slice_start,
-            composed_int_var + outer_loop_index_slice_end,
+        key_cache_layer[0 : token_position + 1].col_slice(
+            composed_int_var,
+            composed_int_var + i,
         ),
     )
     matrix = choose(matrix, matrix.transpose())
     vec = ite(
         is_vector_outer_loop_index(),
-        attention[outer_loop_index_slice_start:outer_loop_index_slice_end],
-        attention[inner_loop_lower_bound:inner_loop_upper_bound],
+        attention[0:i],
+        attention[0 : token_position + 1],
     )
     return and_objects(
-        outer_loop_index >= outer_loop_lower_bound,
-        outer_loop_index <= outer_loop_upper_bound,
-        xb == matrix_vec_to_vec(matrix, vec),
+        i >= 0,
+        i <= head_size,
+        xb == call_matrix_vec_mul(matrix, vec),
     )
 
 
@@ -89,77 +66,43 @@ def transformer_part2_inv1_grammar(
     xb, i = in_scope
 
     composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
-
-    # Get slice indices
-    outer_loop_index = get_outer_loop_index(i, timestep)
-    inner_loop_index = get_inner_loop_index(i, timestep)
-    outer_loop_index_slice_start = ite(
-        is_outer_loop_left_bound_smaller(), outer_loop_lower_bound, outer_loop_index + 1
-    )
-    outer_loop_index_slice_end = ite(
-        is_outer_loop_left_bound_smaller(),
-        outer_loop_index,
-        outer_loop_upper_bound,
-    )
-    inner_loop_index_slice_start = ite(
-        is_inner_loop_left_bound_smaller(), inner_loop_lower_bound, inner_loop_index + 1
-    )
-    inner_loop_index_slice_end = ite(
-        is_inner_loop_left_bound_smaller(),
-        inner_loop_index,
-        inner_loop_upper_bound,
-    )
 
     outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[
-            outer_loop_index_slice_start:outer_loop_index_slice_end
-        ].col_slice(
-            composed_int_var + inner_loop_lower_bound,
-            composed_int_var + inner_loop_upper_bound,
+        key_cache_layer[0:i].col_slice(
+            composed_int_var,
+            composed_int_var + token_position + 1,
         ),
-        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            composed_int_var + outer_loop_index_slice_start,
-            composed_int_var + outer_loop_index_slice_end,
+        key_cache_layer[0 : token_position + 1].col_slice(
+            composed_int_var,
+            composed_int_var + i,
         ),
     )
     outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
     outer_loop_vec = ite(
         is_vector_outer_loop_index(),
-        attention[outer_loop_index_slice_start:outer_loop_index_slice_end],
-        attention[inner_loop_lower_bound:inner_loop_upper_bound],
+        attention[0:i],
+        attention[0 : token_position + 1],
     )
 
     inner_loop_key_cache_layer_vec = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_index][
-            composed_int_var
-            + inner_loop_index_slice_start : composed_int_var
-            + inner_loop_index_slice_end
-        ],
-        key_cache_layer[
-            inner_loop_index_slice_start:inner_loop_index_slice_end
-        ].col_vec(composed_int_var + outer_loop_index),
+        key_cache_layer[i][composed_int_var : composed_int_var + timestep],
+        key_cache_layer[0:timestep].col_vec(composed_int_var + i),
     )
     inner_loop_vec_to_reduce = ite(
         is_vector_outer_loop_index(),
-        call_vec_scalar_mul(
-            attention[outer_loop_index], inner_loop_key_cache_layer_vec
-        ),
+        call_vec_scalar_mul(attention[i], inner_loop_key_cache_layer_vec),
         call_vec_elemwise_mul(
             inner_loop_key_cache_layer_vec,
-            attention[inner_loop_index_slice_start:inner_loop_index_slice_end],
+            attention[0:timestep],
         ),
     )
     return and_objects(
-        outer_loop_index >= outer_loop_lower_bound,
-        outer_loop_index < outer_loop_upper_bound,
-        inner_loop_index >= inner_loop_lower_bound,
-        inner_loop_index <= inner_loop_upper_bound,
+        i >= 0,
+        i < head_size,
+        timestep >= 0,
+        timestep <= token_position + 1,
         curr == call_reduce_sum(inner_loop_vec_to_reduce),
         xb == call_matrix_vec_mul(outer_loop_matrix, outer_loop_vec),
     )
@@ -171,33 +114,25 @@ def transformer_part2_ps_grammar(
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
     composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_lower_bound:outer_loop_upper_bound].col_slice(
-            composed_int_var + inner_loop_lower_bound,
-            composed_int_var + inner_loop_upper_bound,
+        key_cache_layer[0:head_size].col_slice(
+            composed_int_var,
+            composed_int_var + token_position + 1,
         ),
-        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            composed_int_var + outer_loop_lower_bound,
-            composed_int_var + outer_loop_upper_bound,
+        key_cache_layer[0 : token_position + 1].col_slice(
+            composed_int_var,
+            composed_int_var + head_size,
         ),
     )
     matrix = choose(matrix, matrix.transpose())
     vec = ite(
         is_vector_outer_loop_index(),
-        attention[outer_loop_lower_bound:outer_loop_upper_bound],
-        attention[inner_loop_lower_bound:inner_loop_upper_bound],
+        attention[0:head_size],
+        attention[0 : token_position + 1],
     )
 
-    i >= choose(0, 1)
-    i <= upper_bound
-    vec = choose(input[choose(0, 1) : upper_bound])
-
-    return xb == matrix_vec_to_vec(matrix, vec)
+    return xb == call_matrix_vec_mul(matrix, vec)
 
 
 def transformer_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -213,8 +148,8 @@ def transformer_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 if __name__ == "__main__":
     driver = Driver()
     transformer_part2 = driver.analyze(
-        llvm_filepath="tests/llvm/hardlift/llama/cpp/transformer_part2.ll",
-        loops_filepath="tests/llvm/hardlift/llama/cpp/transformer_part2.loops",
+        llvm_filepath="tests/llvm/hardlift/llama/cpp/transformer/transformer_part2.ll",
+        loops_filepath="tests/llvm/hardlift/llama/cpp/transformer/transformer_part2.loops",
         fn_name="transformer_part2",
         target_lang_fn=transformer_part2_target_lang,
         inv_grammars={
@@ -259,4 +194,4 @@ if __name__ == "__main__":
     transformer_part2(
         token_position_var, head_var, head_size_var, key_cache_layer_var, attention_var
     )
-    driver.synthesize(listBound=3, noVerify=True)
+    driver.synthesize(listBound=3)
