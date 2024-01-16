@@ -1471,7 +1471,10 @@ class VCVisitor:
                         self.store_var_to_block(
                             block_name=block_name, var_name=name, val=value
                         )
-        elif fn_name in self.uninterp_fns or fn_name in {"integer-sqrt", "integer-exp"}:
+        elif fn_name in self.uninterp_fns or fn_name in {
+            "integer-sqrt-noerr",
+            "integer-exp-noerr",
+        }:
             # The last operand is the function name
             ops = list(o.operands)[:-1]
             ops_objs = [

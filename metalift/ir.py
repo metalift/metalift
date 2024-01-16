@@ -384,9 +384,9 @@ class Expr:
         else:
             fn_name = expr.value()  # type: ignore
         if fn_name == "integer_sqrt":
-            return "integer-sqrt"
+            return "integer-sqrt-noerr"
         elif fn_name == "integer_exp":
-            return "integer-exp"
+            return "integer-exp-noerr"
         raise Exception(f"Unsupported integer function {fn_name}")
 
     @staticmethod

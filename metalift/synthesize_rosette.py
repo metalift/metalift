@@ -293,10 +293,10 @@ def toExpr(
         elif ast[0] == "matrix-transpose-noerr":
             matrix_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call("matrix_transpose", matrix_expr.type, matrix_expr)
-        elif ast[0] == "integer-sqrt":
+        elif ast[0] == "integer-sqrt-noerr":
             int_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call("integer_sqrt", Int, int_expr)
-        elif ast[0] == "integer-exp":
+        elif ast[0] == "integer-exp-noerr":
             int_expr = toExpr(ast[1], fnsType, varType, choices)
             return Call("integer_exp", Int, int_expr)
         elif ast[0] == "make-tuple":

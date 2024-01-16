@@ -3,45 +3,52 @@ from typing import List, Union
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
-from metalift.ir import Matrix, Object, choose, ite
+from metalift.ir import Matrix, Object, call, choose, fn_decl, ite, synth
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
-    call_integer_exp,
-    call_map_int_to_int,
+    call_matrix_vec_mul,
     call_reduce_sum,
     call_vec_elemwise_mul,
-    call_vec_map,
     call_vec_scalar_mul,
-    get_map_int_to_int_synth,
-    map_int_to_int,
-    map_int_to_int_fn_obj,
     matrix_vec_mul,
     matrix_vec_to_vec,
     reduce_sum,
     vec_elemwise_div,
     vec_elemwise_mul,
-    vec_map,
     vec_scalar_div,
     vec_scalar_mul,
 )
-from tests.llvm.hardlift.llama.holing.transformer.utils import (
+from tests.llvm.hardlift.llama.holing.driver.transformer.utils import (
     call_matrix_composed_index_fn,
     call_vec_composed_index_fn,
     common_fn_decls,
     common_synths,
-    get_inner_loop_index,
-    get_inner_loop_lower_bound,
-    get_inner_loop_upper_bound,
-    get_outer_loop_index,
-    get_outer_loop_lower_bound,
-    get_outer_loop_upper_bound,
-    is_inner_loop_left_bound_smaller,
     is_matrix_outer_loop_index_first,
-    is_outer_loop_left_bound_smaller,
     is_vector_outer_loop_index,
     vec_composed_index_fn_decl,
     vec_composed_index_synth,
 )
+
+token_position_var = Int("token_position")
+head_var = Int("head")
+head_size_var = Int("head_size")
+sqrt_arg_fn_name = "SQRT_ARG_FN"
+sqrt_arg_fn_decl = fn_decl(
+    sqrt_arg_fn_name, Int, None, token_position_var, head_var, head_size_var
+)
+sqrt_arg_synth = synth(
+    sqrt_arg_fn_name,
+    head_size_var * 1,
+    # choose(Int(0), Int(1)) * choose(token_position_var, head_var, head_size_var),
+    token_position_var,
+    head_var,
+    head_size_var,
+)
+
+
+def call_sqrt_arg(token_position: Int, head: Int, head_size: Int) -> Int:
+    return call(sqrt_arg_fn_name, Int, token_position, head, head_size)
+
 
 driver = Driver()
 # Define initial target lang
@@ -50,19 +57,15 @@ target_lang = [
     vec_scalar_div,
     vec_elemwise_mul,
     vec_elemwise_div,
-    map_int_to_int,
-    vec_map,
     reduce_sum,
     matrix_vec_mul,
     vec_composed_index_fn_decl,
+    sqrt_arg_fn_decl,
     *common_fn_decls,
 ]
 
 # Define initial synths
-int_x = Int("int_x")
-driver.add_var_object(int_x)
-map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
-fns_synths = [map_int_to_int_synth, vec_composed_index_synth, *common_synths]
+fns_synths = [vec_composed_index_synth, sqrt_arg_synth, *common_synths]
 
 
 def transformer_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -78,19 +81,15 @@ def transformer_part1_ps_grammar(
         token_position, head, head_size
     )
     vec_composed_int_var = call_vec_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
     key_cache_layer_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_lower_bound:outer_loop_upper_bound].col_slice(
-            matrix_composed_int_var + inner_loop_lower_bound,
-            matrix_composed_int_var + inner_loop_upper_bound,
+        key_cache_layer[0:token_position].col_slice(
+            matrix_composed_int_var,
+            matrix_composed_int_var + head_size,
         ),
-        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            matrix_composed_int_var + outer_loop_lower_bound,
-            matrix_composed_int_var + outer_loop_upper_bound,
+        key_cache_layer[0:head_size].col_slice(
+            matrix_composed_int_var,
+            matrix_composed_int_var + token_position,
         ),
     )
     key_cache_layer_matrix = choose(
@@ -98,28 +97,14 @@ def transformer_part1_ps_grammar(
     )
     q_vec = ite(
         is_vector_outer_loop_index(),
-        q[
-            vec_composed_int_var
-            + outer_loop_lower_bound : vec_composed_int_var
-            + outer_loop_upper_bound
-        ],
-        q[
-            vec_composed_int_var
-            + inner_loop_lower_bound : vec_composed_int_var
-            + inner_loop_upper_bound
-        ],
+        q[vec_composed_int_var : vec_composed_int_var + token_position],
+        q[vec_composed_int_var : vec_composed_int_var + head_size],
     )
 
-    computed_vec = matrix_vec_to_vec(key_cache_layer_matrix, q_vec)
-    scalar = choose(Int(0), Int(1))
-    int_var = choose(token_position, head, head_size)
+    computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = choose(
-        call_vec_elemwise_mul(
-            vec, call_vec_map(call_vec_scalar_mul(scalar, vec), map_int_to_int_fn_obj)
-        ),
-        call_vec_scalar_mul(call_map_int_to_int(int_var), vec),
-    )
+    vec = call_vec_scalar_mul(call_sqrt_arg(token_position, head, head_size), vec)
+
     return attention == vec
 
 
@@ -133,31 +118,16 @@ def transformer_part1_inv0_grammar(
         token_position, head, head_size
     )
     vec_composed_int_var = call_vec_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
-
-    # Get slice indices
-    outer_loop_index = get_outer_loop_index(i, timestep)
-    outer_loop_index_slice_start = ite(
-        is_outer_loop_left_bound_smaller(), outer_loop_lower_bound, outer_loop_index + 1
-    )
-    outer_loop_index_slice_end = ite(
-        is_outer_loop_left_bound_smaller(), outer_loop_index, outer_loop_upper_bound
-    )
 
     key_cache_layer_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[
-            outer_loop_index_slice_start:outer_loop_index_slice_end
-        ].col_slice(
-            matrix_composed_int_var + inner_loop_lower_bound,
-            matrix_composed_int_var + inner_loop_upper_bound,
+        key_cache_layer[0:timestep].col_slice(
+            matrix_composed_int_var,
+            matrix_composed_int_var + head_size,
         ),
-        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            matrix_composed_int_var + outer_loop_index_slice_start,
-            matrix_composed_int_var + outer_loop_index_slice_end,
+        key_cache_layer[0:head_size].col_slice(
+            matrix_composed_int_var,
+            matrix_composed_int_var + timestep,
         ),
     )
     key_cache_layer_matrix = choose(
@@ -165,32 +135,17 @@ def transformer_part1_inv0_grammar(
     )
     q_vec = ite(
         is_vector_outer_loop_index(),
-        q[
-            vec_composed_int_var
-            + outer_loop_index_slice_start : vec_composed_int_var
-            + outer_loop_index_slice_end
-        ],
-        q[
-            vec_composed_int_var
-            + inner_loop_lower_bound : vec_composed_int_var
-            + inner_loop_upper_bound
-        ],
+        q[vec_composed_int_var : vec_composed_int_var + timestep],
+        q[vec_composed_int_var : vec_composed_int_var + head_size],
     )
 
-    computed_vec = matrix_vec_to_vec(key_cache_layer_matrix, q_vec)
-    scalar = choose(Int(0), Int(1))
-    int_var = choose(token_position, head, head_size)
+    computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = choose(
-        call_vec_elemwise_mul(
-            vec, call_vec_map(call_vec_scalar_mul(scalar, vec), map_int_to_int_fn_obj)
-        ),
-        call_vec_scalar_mul(call_map_int_to_int(int_var), vec),
-    )
+    vec = call_vec_scalar_mul(call_sqrt_arg(token_position, head, head_size), vec)
 
     return and_objects(
-        outer_loop_index >= outer_loop_lower_bound,
-        outer_loop_index <= outer_loop_upper_bound,
+        timestep >= 0,
+        timestep <= token_position,
         attention == vec,
     )
 
@@ -206,42 +161,16 @@ def transformer_part1_inv1_grammar(
         token_position, head, head_size
     )
     vec_composed_int_var = call_vec_composed_index_fn(token_position, head, head_size)
-    outer_loop_lower_bound = get_outer_loop_lower_bound(token_position, head, head_size)
-    outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
-    inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
-    inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
-
-    # Get slice indices
-    outer_loop_index = get_outer_loop_index(i, timestep)
-    inner_loop_index = get_inner_loop_index(i, timestep)
-    outer_loop_index_slice_start = ite(
-        is_outer_loop_left_bound_smaller(), outer_loop_lower_bound, outer_loop_index + 1
-    )
-    outer_loop_index_slice_end = ite(
-        is_outer_loop_left_bound_smaller(),
-        outer_loop_index,
-        outer_loop_upper_bound,
-    )
-    inner_loop_index_slice_start = ite(
-        is_inner_loop_left_bound_smaller(), inner_loop_lower_bound, inner_loop_index + 1
-    )
-    inner_loop_index_slice_end = ite(
-        is_inner_loop_left_bound_smaller(),
-        inner_loop_index,
-        inner_loop_upper_bound,
-    )
 
     key_cache_layer_outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[
-            outer_loop_index_slice_start:outer_loop_index_slice_end
-        ].col_slice(
-            matrix_composed_int_var + inner_loop_lower_bound,
-            matrix_composed_int_var + inner_loop_upper_bound,
+        key_cache_layer[0:timestep].col_slice(
+            matrix_composed_int_var,
+            matrix_composed_int_var + head_size,
         ),
-        key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            matrix_composed_int_var + outer_loop_index_slice_start,
-            matrix_composed_int_var + outer_loop_index_slice_end,
+        key_cache_layer[0:head_size].col_slice(
+            matrix_composed_int_var,
+            matrix_composed_int_var + timestep,
         ),
     )
     key_cache_layer_outer_loop_matrix = choose(
@@ -249,16 +178,8 @@ def transformer_part1_inv1_grammar(
     )
     q_outer_loop_vec = ite(
         is_vector_outer_loop_index(),
-        q[
-            vec_composed_int_var
-            + outer_loop_index_slice_start : vec_composed_int_var
-            + outer_loop_index_slice_end
-        ],
-        q[
-            vec_composed_int_var
-            + inner_loop_lower_bound : vec_composed_int_var
-            + inner_loop_upper_bound
-        ],
+        q[vec_composed_int_var : vec_composed_int_var + timestep],
+        q[vec_composed_int_var : vec_composed_int_var + head_size],
     )
 
     outer_loop_computed_vec = matrix_vec_to_vec(
@@ -267,47 +188,33 @@ def transformer_part1_inv1_grammar(
     scalar = choose(Int(0), Int(1))
     int_var = choose(token_position, head, head_size)
     outer_loop_vec = choose(q_outer_loop_vec, outer_loop_computed_vec)
-    outer_loop_vec = choose(
-        call_vec_elemwise_mul(
-            outer_loop_vec,
-            call_vec_map(
-                call_vec_scalar_mul(scalar, outer_loop_vec), map_int_to_int_fn_obj
-            ),
-        ),
-        call_vec_scalar_mul(call_map_int_to_int(int_var), outer_loop_vec),
+    outer_loop_vec = call_vec_scalar_mul(
+        call_sqrt_arg(token_position, head, head_size), outer_loop_vec
     )
 
     inner_loop_key_cache_layer_vec = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_index][
-            matrix_composed_int_var
-            + inner_loop_index_slice_start : matrix_composed_int_var
-            + inner_loop_index_slice_end
+        key_cache_layer[timestep][
+            matrix_composed_int_var : matrix_composed_int_var + i
         ],
-        key_cache_layer[
-            inner_loop_index_slice_start:inner_loop_index_slice_end
-        ].col_vec(matrix_composed_int_var + outer_loop_index),
+        key_cache_layer[0:i].col_vec(matrix_composed_int_var + timestep),
     )
     inner_loop_vec_to_reduce = ite(
         is_vector_outer_loop_index(),
         call_vec_scalar_mul(
-            q[vec_composed_int_var + outer_loop_index], inner_loop_key_cache_layer_vec
+            q[vec_composed_int_var + timestep], inner_loop_key_cache_layer_vec
         ),
         call_vec_elemwise_mul(
             inner_loop_key_cache_layer_vec,
-            q[
-                vec_composed_int_var
-                + inner_loop_index_slice_start : vec_composed_int_var
-                + inner_loop_index_slice_end
-            ],
+            q[vec_composed_int_var : vec_composed_int_var + i],
         ),
     )
 
     return and_objects(
-        outer_loop_index >= outer_loop_lower_bound,
-        outer_loop_index < outer_loop_upper_bound,
-        inner_loop_index >= inner_loop_lower_bound,
-        inner_loop_index <= inner_loop_upper_bound,
+        timestep >= 0,
+        timestep < token_position,
+        i >= 0,
+        i <= head_size,
         score == call_reduce_sum(inner_loop_vec_to_reduce),
         attention == outer_loop_vec,
     )
@@ -360,4 +267,4 @@ if __name__ == "__main__":
         q_var,
     )
 
-    driver.synthesize(listBound=3, rounds_to_guess=10)
+    driver.synthesize(listBound=3, rounds_to_guess=0)
