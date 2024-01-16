@@ -57,4 +57,4 @@ if __name__ == "__main__":
     driver.add_precondition(input2_var.len() >= hidden_dim_var)
 
     transformer_part4(input1_var, input2_var, hidden_dim_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
