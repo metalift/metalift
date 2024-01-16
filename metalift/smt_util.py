@@ -11,15 +11,12 @@ from metalift.ir import *
 def get_dependent_fn_names(
     expr: Any, all_fn_names: List[str], dependent_fn_names: List[str]
 ) -> None:
-    if not isinstance(expr, Expr):
+    if isinstance(expr, str) and expr in all_fn_names:
+        dependent_fn_names.append(expr)
         return
-    if (
-        isinstance(expr, Call) or isinstance(expr, CallValue)
-    ) and expr.name() in all_fn_names:
-        dependent_fn_names.append(expr.name())
-        return
-    for arg in expr.args:
-        get_dependent_fn_names(arg, all_fn_names, dependent_fn_names)
+    elif isinstance(expr, Expr):
+        for arg in expr.args:
+            get_dependent_fn_names(arg, all_fn_names, dependent_fn_names)
 
 
 def topological_sort(
@@ -36,6 +33,7 @@ def topological_sort(
             [
                 (dependent_fn_name, fn_decl.name())
                 for dependent_fn_name in dependent_fn_names
+                if fn_decl.name() != dependent_fn_name
             ]
         )
     graph.add_edges_from(edges)
@@ -108,6 +106,7 @@ def toSMT(
 
         fn_decls = []
         axioms = []
+        targetLang = topological_sort(targetLang)
         for t in targetLang:
             if (
                 isinstance(t, FnDeclRecursive)
