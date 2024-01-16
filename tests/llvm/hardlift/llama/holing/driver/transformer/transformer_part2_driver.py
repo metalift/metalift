@@ -192,6 +192,11 @@ def transformer_part2_ps_grammar(
         attention[outer_loop_lower_bound:outer_loop_upper_bound],
         attention[inner_loop_lower_bound:inner_loop_upper_bound],
     )
+
+    i >= choose(0, 1)
+    i <= upper_bound
+    vec = choose(input[choose(0, 1) : upper_bound])
+
     return xb == matrix_vec_to_vec(matrix, vec)
 
 
