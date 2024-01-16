@@ -12,7 +12,6 @@ from tests.llvm.hardlift.hardlift_common import (
     vec_elemwise_mul,
     vec_scalar_mul,
 )
-from tests.python.utils.utils import codegen
 
 
 def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -25,8 +24,10 @@ def rmsnorm_part2_ps_grammar(
     ret_val = writes[0]
     input, weight, ss = reads
     vec = choose(input, weight)
-    inv_ss = 1 // call_integer_sqrt(ss // input.len() + 1)
-    return ret_val == call_vec_scalar_mul(inv_ss, call_vec_elemwise_mul(vec, vec))
+    cons = choose(Int(1))
+    int_var = choose(ss, input.len())
+    scalar = cons // call_integer_sqrt(int_var // int_var + cons)
+    return ret_val == call_vec_scalar_mul(scalar, call_vec_elemwise_mul(vec, vec))
 
 
 def rmsnorm_part2_inv0_grammar(
@@ -36,12 +37,14 @@ def rmsnorm_part2_inv0_grammar(
     input, weight, ss = reads
     out = writes[0]
     i = writes[1]
-    inv_ss = 1 // call_integer_sqrt(ss // input.len() + 1)
+    cons = choose(Int(1))
+    int_var = choose(ss, input.len())
+    scalar = cons // call_integer_sqrt(int_var // int_var + cons)
     vec = choose(input[:i], weight[:i])
     return and_objects(
         i >= 0,
         i <= input.len(),
-        out == call_vec_scalar_mul(inv_ss, call_vec_elemwise_mul(vec, vec)),
+        out == call_vec_scalar_mul(scalar, call_vec_elemwise_mul(vec, vec)),
     )
 
 
@@ -68,6 +71,4 @@ if __name__ == "__main__":
 
     rmsnorm_part2(input_var, weight_var, ss)
 
-    driver.synthesize(noVerify=True)
-
-    print("\n\ngenerated code:" + rmsnorm_part2.codegen(codegen))
+    driver.synthesize()
