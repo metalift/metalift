@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -17,7 +18,7 @@ def softmax_part1_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
-    vec = choose(input[:max_pos])
+    vec = choose(input[1:max_pos])
     return ret_val == call_reduce_max(vec)
 
 
@@ -26,15 +27,45 @@ def softmax_part1_inv0_grammar(
 ) -> Bool:
     input, max_pos = reads
     i, max_val = writes
-    vec = input[:i]
+    vec = input[1:i]
     return and_objects(i >= 1, i <= max_pos, max_val == call_reduce_max(vec))
 
 
-def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [reduce_max]
+def softmax_part1_relaxed_ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
+    ret_val = writes[0]
+    input, max_pos = reads
+    lower_bound = choose(Int(0), Int(1), Int(2))
+    upper_bound = choose(max_pos, max_pos - 1, max_pos + 1)
+    vec = input[lower_bound:upper_bound]
+    return ret_val == call_reduce_max(vec)
+
+
+def softmax_part1_relaxed_inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
+    input, max_pos = reads
+    i, max_val = writes
+    lower_bound = choose(Int(0), Int(1), Int(2))
+    upper_bound = choose(max_pos, max_pos - 1, max_pos + 1)
+    vec = input[lower_bound:i]
+    return and_objects(
+        i >= lower_bound, i <= upper_bound, max_val == call_reduce_max(vec)
+    )
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+    if parser_args.relaxed:
+        inv0_grammar_fn = softmax_part1_relaxed_inv0_grammar
+        ps_grammar_fn = softmax_part1_relaxed_ps_grammar
+    else:
+        inv0_grammar_fn = softmax_part1_inv0_grammar
+        ps_grammar_fn = softmax_part1_ps_grammar
+
     # Synthesize part 1
     driver = Driver()
     softmax_part1 = driver.analyze(
@@ -43,9 +74,9 @@ if __name__ == "__main__":
         fn_name="softmax_part1",
         target_lang_fn=softmax_part1_target_lang,
         inv_grammars={
-            "softmax_part1_inv0": InvGrammar(softmax_part1_inv0_grammar, []),
+            "softmax_part1_inv0": InvGrammar(inv0_grammar_fn, []),
         },
-        ps_grammar=softmax_part1_ps_grammar,
+        ps_grammar=ps_grammar_fn,
     )
 
     input_var = mlList(Int, "input")
@@ -56,4 +87,4 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part1(input_var, max_pos_var)
-    driver.synthesize(noVerify=True)
+    driver.synthesize()
