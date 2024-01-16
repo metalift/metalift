@@ -99,6 +99,7 @@ def toSMT(
     with open(outFile, mode="w") as out:
         # out.write(resources.read_text(utils, "tuples.smt"))
         if not isSynthesis:
+            out.write(resources.read_text(utils, "integer-fn-axioms.smt"))
             out.write(resources.read_text(utils, "list-axioms.smt"))
             # out.write(resources.read_text(utils, "map-axioms.smt"))
 
