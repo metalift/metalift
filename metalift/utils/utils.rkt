@@ -243,7 +243,7 @@
 (define (list-tuple-length l) (length l))
 
 (define (quotient-noerr x y)
-  (if (equal? y 0) x (quotient x y))
+  (quotient x (if (equal? y 0) 1 y))
 )
 
 ; (define (transpose lst)
