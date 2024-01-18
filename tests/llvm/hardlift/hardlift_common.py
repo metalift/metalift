@@ -1,10 +1,5 @@
-import copy
 import typing
-from collections import OrderedDict
-from itertools import product
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
-from pyparsing import Set
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
@@ -12,7 +7,6 @@ from metalift.ir import List as mlList
 from metalift.ir import (
     Matrix,
     Object,
-    ObjectWrapper,
     Synth,
     call,
     call_value,
@@ -362,182 +356,6 @@ def vec_computation(
             choices.append(op_to_elemwise_call_mapping[op](vec, vec))
         vec = choose(*choices)
     return vec
-
-
-def matrix_computation(
-    args: List[Matrix[Int]], constants: List[Int], compute_ops: List[str], depth: int
-) -> Matrix[Int]:
-    op_to_scalar_call_mapping = {
-        "+": call_matrix_scalar_add,
-        "-": call_matrix_scalar_sub,
-        "*": call_matrix_scalar_mul,
-        "//": call_matrix_scalar_div,
-    }
-    op_to_elemwise_call_mapping = {
-        "+": call_matrix_elemwise_add,
-        "-": call_matrix_elemwise_sub,
-        "*": call_matrix_elemwise_mul,
-        "//": call_matrix_elemwise_div,
-    }
-    matrix = choose(*args)
-    cons = None
-    if len(constants) > 0:
-        cons = choose(*constants)
-    for _ in range(depth):
-        choices = [matrix]
-        for op in compute_ops:
-            if cons is not None:
-                choices.append(op_to_scalar_call_mapping[op](cons, matrix))
-            choices.append(op_to_elemwise_call_mapping[op](matrix, matrix))
-        matrix = choose(*choices)
-    return matrix
-
-
-def computation_with_counts(
-    args: List[Union[Matrix[Int], mlList[Int]]],
-    constants: List[Int],
-    ordered_compute_ops: OrderedDict,
-    depth: int,
-    get_constant: bool = False,
-    is_vec: bool = False,
-) -> Optional[Union[Matrix[Int], mlList[Int], Int]]:
-    if is_vec:
-        op_to_scalar_call_mapping = {
-            "+": call_vec_scalar_add,
-            "-": call_vec_scalar_sub,
-            "*": call_vec_scalar_mul,
-            "//": call_vec_scalar_div,
-        }
-        op_to_elemwise_call_mapping = {
-            "+": call_vec_elemwise_add,
-            "-": call_vec_elemwise_sub,
-            "*": call_vec_elemwise_mul,
-            "//": call_vec_elemwise_div,
-        }
-    else:
-        op_to_scalar_call_mapping = {
-            "+": call_matrix_scalar_add,
-            "-": call_matrix_scalar_sub,
-            "*": call_matrix_scalar_mul,
-            "//": call_matrix_scalar_div,
-        }
-        op_to_elemwise_call_mapping = {
-            "+": call_matrix_elemwise_add,
-            "-": call_matrix_elemwise_sub,
-            "*": call_matrix_elemwise_mul,
-            "//": call_matrix_elemwise_div,
-        }
-    if depth == 0:
-        if get_constant:
-            if len(constants) == 0:
-                return None
-            return choose(*constants)
-        else:
-            return choose(*args)
-    if get_constant:
-        return None
-    if all(count == 0 for count in ordered_compute_ops.values()):
-        return None
-
-    # First fix left hand side to be depth - 1
-    choices: Set[ObjectWrapper] = set()
-    one_side_depth = depth - 1
-
-    symmetric_ops = ["+", "*"]
-    asymmetric_ops = ["-", "//"]
-
-    one_side_depth = depth - 1
-    # The other depth can be anywhere from 0 to depth - 1
-    for other_side_depth in range(depth):
-        for op in symmetric_ops + asymmetric_ops:
-            if (op_count := ordered_compute_ops.get(op, 0)) == 0:
-                continue
-            visited_scalar_call_combs: Set[Tuple[int]] = set()
-            visited_elemwise_call_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
-            ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
-            ordered_compute_ops_copy[op] = op_count - 1
-            ranges = [
-                range(0, count + 1) for count in ordered_compute_ops_copy.values()
-            ]
-            all_combs = set(product(*ranges))
-            for comb in all_combs:
-                comp_comb = get_complement_tuple(
-                    tuple(ordered_compute_ops_copy.values()), comb
-                )
-                ordered_ops = tuple(ordered_compute_ops.keys())
-                compute_ops_from_comb = make_dict(ordered_ops, comb)
-                compute_ops_from_comp_comb = make_dict(ordered_ops, comp_comb)
-                one_side_cons = computation_with_counts(
-                    args,
-                    constants,
-                    compute_ops_from_comb,
-                    one_side_depth,
-                    get_constant=True,
-                    is_vec=is_vec,
-                )
-                one_side_matrix = computation_with_counts(
-                    args,
-                    constants,
-                    compute_ops_from_comb,
-                    one_side_depth,
-                    get_constant=False,
-                    is_vec=is_vec,
-                )
-                other_side_cons = computation_with_counts(
-                    args,
-                    constants,
-                    compute_ops_from_comp_comb,
-                    other_side_depth,
-                    get_constant=True,
-                    is_vec=is_vec,
-                )
-                other_side_matrix = computation_with_counts(
-                    args,
-                    constants,
-                    compute_ops_from_comp_comb,
-                    other_side_depth,
-                    get_constant=False,
-                    is_vec=is_vec,
-                )
-                pairs_with_scalar = [
-                    (one_side_cons, other_side_matrix, comp_comb),
-                    (other_side_cons, one_side_matrix, comb),
-                ]
-                # Handle scalar functions
-                for scalar, matrix, comb in pairs_with_scalar:
-                    if scalar is None or matrix is None:
-                        continue
-                    if comb in visited_scalar_call_combs:
-                        continue
-                    call_result = ObjectWrapper(
-                        op_to_scalar_call_mapping[op](scalar, matrix)
-                    )
-                    choices.add(call_result)
-                    visited_scalar_call_combs.add(comb)
-
-                # Handle elemwise functions
-                if one_side_matrix is None or other_side_matrix is None:
-                    continue
-                elemwise_call = op_to_elemwise_call_mapping[op]
-                if op in symmetric_ops:
-                    if (comb, comp_comb) not in visited_elemwise_call_combs:
-                        call_result = elemwise_call(one_side_matrix, other_side_matrix)
-                        choices.add(ObjectWrapper(call_result))
-                        visited_elemwise_call_combs.add((comb, comp_comb))
-                        visited_elemwise_call_combs.add((comp_comb, comb))
-                elif op in asymmetric_ops:
-                    if (comb, comp_comb) not in visited_elemwise_call_combs:
-                        call_result = elemwise_call(one_side_matrix, other_side_matrix)
-                        choices.add(ObjectWrapper(call_result))
-                        visited_elemwise_call_combs.add((comb, comp_comb))
-                    if (comp_comb, comb) not in visited_elemwise_call_combs:
-                        call_result = elemwise_call(other_side_matrix, one_side_matrix)
-                        choices.add(ObjectWrapper(call_result))
-                        visited_elemwise_call_combs.add((comp_comb, comb))
-
-    if len(choices) == 0:
-        return None
-    return choose(*[choice.object for choice in choices])
 
 
 # Define some common objects
@@ -1394,7 +1212,7 @@ def get_matrix_computation_general_search_space(
             row <= base.len(),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                var=matrix, cons=cons, depth=depth
+                matrix_or_vec_var=matrix, int_vars=cons, depth=depth
             ),
         )
 
@@ -1423,11 +1241,11 @@ def get_matrix_computation_general_search_space(
             col <= base[0].len(),
             row_vec
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                var=inner_loop_vec, cons=cons, depth=depth
+                matrix_or_vec_var=inner_loop_vec, int_vars=cons, depth=depth
             ),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                var=outer_loop_matrix, cons=cons, depth=depth
+                matrix_or_vec_var=outer_loop_matrix, int_vars=cons, depth=depth
             ),
         )
 
@@ -1439,7 +1257,7 @@ def get_matrix_computation_general_search_space(
         matrix = choose(base, active)
         matrix = choose(matrix, matrix.transpose())
         return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
-            var=matrix, cons=cons, depth=depth
+            matrix_or_vec_var=matrix, int_vars=cons, depth=depth
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
@@ -1837,27 +1655,36 @@ def get_dissolve_holing_search_space(
 
 
 def get_matrix_or_vec_expr_with_depth(
-    var: MatrixOrVecT, cons: List[Int], depth: int, depth_to_expr: Dict[int, Any]
+    matrix_or_vec_var: MatrixOrVecT,
+    int_vars: List[Int],
+    depth: int,
+    depth_to_expr: Dict[int, Any],
 ) -> MatrixOrVecT:
     if depth in depth_to_expr.keys():
         return depth_to_expr[depth]
     if depth == 0:
-        depth_to_expr[depth] = var
-        return var
+        depth_to_expr[depth] = matrix_or_vec_var
+        return matrix_or_vec_var
     expr_choices: List[Any] = []
     depth_minus_one_expr = get_matrix_or_vec_expr_with_depth(
-        var=var, cons=cons, depth=depth - 1, depth_to_expr=depth_to_expr
+        matrix_or_vec_var=matrix_or_vec_var,
+        int_vars=int_vars,
+        depth=depth - 1,
+        depth_to_expr=depth_to_expr,
     )
     for other_depth in range(depth):
         other_expr = get_matrix_or_vec_expr_with_depth(
-            var=var, cons=cons, depth=other_depth, depth_to_expr=depth_to_expr
+            matrix_or_vec_var=matrix_or_vec_var,
+            int_vars=int_vars,
+            depth=other_depth,
+            depth_to_expr=depth_to_expr,
         )
         expr_choices.append(call_elemwise_add(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_sub(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_mul(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_div(depth_minus_one_expr, other_expr))
-        if other_depth == 0 and len(cons) > 0:
-            scalar = choose(*cons)
+        if len(int_vars) > 0:
+            scalar = get_int_expr_with_depth(choose(*int_vars), other_depth, {})
             expr_choices.append(call_scalar_add(scalar, depth_minus_one_expr))
             expr_choices.append(call_scalar_sub(scalar, depth_minus_one_expr))
             expr_choices.append(call_scalar_mul(scalar, depth_minus_one_expr))
@@ -1868,29 +1695,37 @@ def get_matrix_or_vec_expr_with_depth(
         if other_depth != depth - 1:
             expr_choices.append(call_elemwise_sub(other_expr, depth_minus_one_expr))
             expr_choices.append(call_elemwise_div(other_expr, depth_minus_one_expr))
+            scalar = get_int_expr_with_depth(choose(*int_vars), depth - 1, {})
+            expr_choices.append(call_scalar_add(scalar, other_expr))
+            expr_choices.append(call_scalar_sub(scalar, other_expr))
+            expr_choices.append(call_scalar_mul(scalar, other_expr))
+            expr_choices.append(call_scalar_div(scalar, other_expr))
+            expr_choices.append(call_scalar_rsub(scalar, other_expr))
+            expr_choices.append(call_scalar_rdiv(scalar, other_expr))
     depth_to_expr[depth] = choose(*expr_choices)
     return depth_to_expr[depth]
 
 
 def get_matrix_or_vec_expr_eq_or_below_depth(
-    var: MatrixOrVecT,
-    cons: List[Int],
+    matrix_or_vec_var: MatrixOrVecT,
+    int_vars: List[Int],
     depth: int,
 ) -> Int:
     depth_to_expr: Dict[int, Any] = {}
     for curr_depth in range(0, depth + 1):
         get_matrix_or_vec_expr_with_depth(
-            var=var, cons=cons, depth=curr_depth, depth_to_expr=depth_to_expr
+            matrix_or_vec_var=matrix_or_vec_var,
+            int_vars=int_vars,
+            depth=curr_depth,
+            depth_to_expr=depth_to_expr,
         )
     final_expr = choose(*[expr for expr in depth_to_expr.values()])
     return final_expr
 
 
-def get_expr_with_depth(
+def get_int_expr_with_depth(
     var: Any,
     depth: int,
-    symm_bi_ops: List[Callable],
-    asymm_bi_ops: List[Callable],
     depth_to_expr: Dict[int, Any],
 ) -> Any:
     if depth in depth_to_expr.keys():
@@ -1900,45 +1735,37 @@ def get_expr_with_depth(
         return var
 
     expr_choices: List[Any] = []
-    depth_minus_one_expr = get_expr_with_depth(
+    depth_minus_one_expr = get_int_expr_with_depth(
         var=var,
         depth=depth - 1,
-        symm_bi_ops=symm_bi_ops,
-        asymm_bi_ops=asymm_bi_ops,
         depth_to_expr=depth_to_expr,
     )
     for other_depth in range(depth):
-        other_expr = get_expr_with_depth(
+        other_expr = get_int_expr_with_depth(
             var=var,
             depth=other_depth,
-            symm_bi_ops=symm_bi_ops,
-            asymm_bi_ops=asymm_bi_ops,
             depth_to_expr=depth_to_expr,
         )
-        for bi_op in symm_bi_ops + asymm_bi_ops:
-            expr_choices.append(bi_op(depth_minus_one_expr, other_expr))
+        expr_choices.append(depth_minus_one_expr + other_expr)
+        expr_choices.append(depth_minus_one_expr - other_expr)
+        expr_choices.append(depth_minus_one_expr * other_expr)
+        expr_choices.append(depth_minus_one_expr // other_expr)
 
         # Since - and // are non-symmetric we switch the operands
         if other_depth != depth - 1:
-            for bi_op in asymm_bi_ops:
-                expr_choices.append(bi_op(other_expr, depth_minus_one_expr))
+            expr_choices.append(other_expr - depth_minus_one_expr)
+            expr_choices.append(other_expr // depth_minus_one_expr)
+
     depth_to_expr[depth] = choose(*expr_choices)
     return depth_to_expr[depth]
 
 
-def get_expr_eq_or_below_depth(
-    var: Any,
-    depth: int,
-    symm_bi_ops: List[Callable],
-    asymm_bi_ops: List[Callable],
-) -> Int:
+def get_int_expr_eq_or_below_depth(var: Any, depth: int) -> Int:
     depth_to_expr: Dict[int, Any] = {}
     for curr_depth in range(0, depth + 1):
-        get_expr_with_depth(
+        get_int_expr_with_depth(
             var=var,
             depth=curr_depth,
-            symm_bi_ops=symm_bi_ops,
-            asymm_bi_ops=asymm_bi_ops,
             depth_to_expr=depth_to_expr,
         )
     final_int_expr = choose(*[int_exp for int_exp in depth_to_expr.values()])
@@ -1946,12 +1773,7 @@ def get_expr_eq_or_below_depth(
 
 
 def get_cond_expr_eq_or_below_depth(int_var: Int, depth: int) -> Int:
-    int_expr = get_expr_eq_or_below_depth(
-        var=int_var,
-        depth=depth,
-        symm_bi_ops=[Int.__add__, Int.__mul__],
-        asymm_bi_ops=[Int.__sub__, Int.__floordiv__],
-    )
+    int_expr = get_int_expr_eq_or_below_depth(var=int_var, depth=depth)
     cond_expr = choose(
         int_expr < int_expr,
         int_expr <= int_expr,
