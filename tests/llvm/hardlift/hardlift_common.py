@@ -328,36 +328,6 @@ vec_to_int = lambda vec: choose(
 vec_to_vec = lambda vec: choose(call_vec_map(vec, map_int_to_int_fn_obj))
 matrix_vec_to_vec = lambda matrix, vec: choose(call_matrix_vec_mul(matrix, vec))
 
-
-def vec_computation(
-    args: List[mlList[Int]], constants: List[Int], compute_ops: List[str], depth: int
-) -> mlList[Int]:
-    op_to_scalar_call_mapping = {
-        "+": call_vec_scalar_add,
-        "-": call_vec_scalar_sub,
-        "*": call_vec_scalar_mul,
-        "//": call_vec_scalar_div,
-    }
-    op_to_elemwise_call_mapping = {
-        "+": call_vec_elemwise_add,
-        "-": call_vec_elemwise_sub,
-        "*": call_vec_elemwise_mul,
-        "//": call_vec_elemwise_div,
-    }
-    vec = choose(*args)
-    cons = None
-    if len(constants) > 0:
-        cons = choose(*constants)
-    for _ in range(depth):
-        choices = [vec]
-        for op in compute_ops:
-            if cons is not None:
-                choices.append(op_to_scalar_call_mapping[op](cons, vec))
-            choices.append(op_to_elemwise_call_mapping[op](vec, vec))
-        vec = choose(*choices)
-    return vec
-
-
 # Define some common objects
 a = Int("a")
 x = mlList(Int, "x")
@@ -1710,6 +1680,8 @@ def get_matrix_or_vec_expr_with_depth(
         depth=depth - 1,
         depth_to_expr=depth_to_expr,
     )
+    if not depth_minus_one_expr.is_nested:
+        expr_choices.append(vec_to_vec(depth_minus_one_expr))
     for other_depth in range(depth):
         other_expr = get_matrix_or_vec_expr_with_depth(
             matrix_or_vec_var=matrix_or_vec_var,
