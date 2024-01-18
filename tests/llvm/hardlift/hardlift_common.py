@@ -1166,7 +1166,7 @@ vec_to_vec_target_lang = [vec_map, map_int_to_int]
 
 
 def get_matrix_computation_general_search_space(
-    depth: int, cons: List[Int]
+    depth: int, int_vars: List[Int]
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1212,7 +1212,7 @@ def get_matrix_computation_general_search_space(
             row <= base.len(),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=matrix, int_vars=cons, depth=depth
+                matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
             ),
         )
 
@@ -1241,11 +1241,11 @@ def get_matrix_computation_general_search_space(
             col <= base[0].len(),
             row_vec
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=inner_loop_vec, int_vars=cons, depth=depth
+                matrix_or_vec_var=inner_loop_vec, int_vars=int_vars, depth=depth
             ),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=outer_loop_matrix, int_vars=cons, depth=depth
+                matrix_or_vec_var=outer_loop_matrix, int_vars=int_vars, depth=depth
             ),
         )
 
@@ -1257,7 +1257,7 @@ def get_matrix_computation_general_search_space(
         matrix = choose(base, active)
         matrix = choose(matrix, matrix.transpose())
         return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
-            matrix_or_vec_var=matrix, int_vars=cons, depth=depth
+            matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
@@ -1516,8 +1516,8 @@ def get_matrix_select_general_search_space(
     return get_matrix_select_search_space(select_synth)
 
 
-def get_dissolve_holing_search_space(
-    driver: Driver, hole_body: Callable[[Int], Int]
+def get_dissolve_search_space(
+    dissolve_select_synth: Synth,
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1541,12 +1541,6 @@ def get_dissolve_holing_search_space(
             dissolve_matrix_selection_two_args_fn_decl,
         ]
 
-    # Functions to synthesize
-    int_var = choose(int_x, int_y, opacity, rand_cons)
-    dissolve_select_synth = synth(
-        DISSOLVE_SELECT_TWO_ARGS, hole_body(int_var), int_x, int_y, opacity, rand_cons
-    )
-    driver.add_var_objects([int_x, int_y, opacity, rand_cons])
     fns_synths = [dissolve_select_synth, outer_loop_index_first_synth]
 
     # inv0 grammar
@@ -1652,6 +1646,50 @@ def get_dissolve_holing_search_space(
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
     inv1_grammar = InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
     return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
+
+
+def get_dissolve_holing_search_space(
+    driver: Driver,
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    int_var = choose(int_x, int_y, opacity, rand_cons)
+    dissolve_select_synth = synth(
+        DISSOLVE_SELECT_TWO_ARGS,
+        get_int_expr_eq_or_below_depth(var=int_var, depth=4),
+        int_x,
+        int_y,
+        opacity,
+        rand_cons,
+    )
+    driver.add_var_objects([int_x, int_y, opacity, rand_cons])
+    return get_dissolve_search_space(dissolve_select_synth)
+
+
+def get_dissolve_general_search_space(
+    driver: Driver,
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    int_var = choose(int_x, int_y, opacity, rand_cons)
+    dissolve_select_synth = synth(
+        DISSOLVE_SELECT_TWO_ARGS,
+        get_int_expr_eq_or_below_depth(var=int_var, depth=4),
+        int_x,
+        int_y,
+        opacity,
+        rand_cons,
+    )
+    driver.add_var_objects([int_x, int_y, opacity, rand_cons])
+    return get_dissolve_search_space(dissolve_select_synth)
 
 
 def get_matrix_or_vec_expr_with_depth(

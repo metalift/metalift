@@ -15,7 +15,7 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_matrix_computation_general_search_space(depth=1, cons=[])
+    ) = get_matrix_computation_general_search_space(depth=1, int_vars=[])
     linear_dodge_8 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/dexter/cpp/linear_dodge_8.ll",
         loops_filepath="tests/llvm/hardlift/dexter/cpp/linear_dodge_8.loops",
