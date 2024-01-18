@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,11 +6,21 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tests.llvm.hardlift.hardlift_common import call_vec_scalar_div, vec_scalar_div
+from tests.llvm.hardlift.hardlift_common import (
+    get_map_int_to_int_synth,
+    get_matrix_or_vec_expr_eq_or_below_depth,
+    scalar_vec_to_vec_target_lang,
+    vec_to_vec_target_lang,
+    vec_vec_to_vec_target_lang,
+)
 
 
 def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_scalar_div]
+    return [
+        *vec_vec_to_vec_target_lang,
+        *scalar_vec_to_vec_target_lang,
+        *vec_to_vec_target_lang,
+    ]
 
 
 def softmax_part4_ps_grammar(
@@ -17,8 +28,15 @@ def softmax_part4_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     unnormalized_output, max_pos, sum = reads
-    vec = choose(unnormalized_output[:max_pos])
-    return ret_val == call_vec_scalar_div(sum, vec)
+    lower_bound = Int(0)
+    upper_bound = max_pos
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+    vec = choose(unnormalized_output[lower_bound:upper_bound])
+    return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec, int_vars=[sum, max_pos], depth=parser_args.depth
+    )
 
 
 def softmax_part4_inv0_grammar(
@@ -26,12 +44,34 @@ def softmax_part4_inv0_grammar(
 ) -> Bool:
     unnormalized_output, max_pos, sum = reads
     out, i, _ = writes
-    vec = choose(unnormalized_output[:i])
 
-    return and_objects(i >= 0, i <= max_pos, out == call_vec_scalar_div(sum, vec))
+    lower_bound = Int(0)
+    upper_bound = max_pos
+    slice_upper_bound = i
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+        slice_upper_bound = choose(
+            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
+        )
+
+    vec = choose(unnormalized_output[lower_bound:slice_upper_bound])
+
+    return and_objects(
+        i >= lower_bound,
+        i <= upper_bound,
+        out
+        == get_matrix_or_vec_expr_eq_or_below_depth(
+            matrix_or_vec_var=vec, int_vars=[sum, max_pos], depth=parser_args.depth
+        ),
+    )
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
     # Synthesize part 4
     driver = Driver()
     softmax_part4 = driver.analyze(
@@ -54,4 +94,9 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
-    driver.synthesize()
+    map_int_to_int_synth = get_map_int_to_int_synth()
+    driver.fns_synths = [map_int_to_int_synth]
+
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+    driver.synthesize(filename=f"softmax_part4{depth_suffix}{relaxed_suffix}")

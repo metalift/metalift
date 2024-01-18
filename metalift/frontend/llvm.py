@@ -1548,7 +1548,7 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
-    def synthesize(self, **synthesize_kwargs) -> None:  # type: ignore
+    def synthesize(self, filename: str, **synthesize_kwargs) -> None:  # type: ignore
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
@@ -1559,8 +1559,7 @@ class Driver:
         fn_defs_to_exclude: List[FnDeclRecursive] = []
         for i in range(1):
             synthesized: List[FnDeclRecursive] = run_synthesis(
-                # basename="test",
-                basename=f"{list(self.fns.keys())[0]}",
+                basename=filename,
                 targetLang=target,
                 vars=set(self.var_tracker.all()),
                 invAndPs=inv_and_ps,

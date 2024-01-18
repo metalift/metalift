@@ -28,7 +28,12 @@ def softmax_part2_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos, max_val = reads
-    vec = choose(input[:max_pos])
+    lower_bound = Int(0)
+    upper_bound = max_pos
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+    vec = choose(input[lower_bound:upper_bound])
     return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec, int_vars=[max_val, max_pos], depth=parser_args.depth
     )
@@ -39,12 +44,22 @@ def softmax_part2_inv0_grammar(
 ) -> Bool:
     input, max_pos, max_val = reads
     out, cur, i = writes
-    int_var = choose(max_pos, max_val)
-    vec = choose(input[:i])
+
+    lower_bound = Int(0)
+    upper_bound = max_pos
+    slice_upper_bound = i
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+        slice_upper_bound = choose(
+            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
+        )
+
+    vec = choose(input[lower_bound:slice_upper_bound])
 
     return and_objects(
-        i >= 0,
-        i <= max_pos,
+        i >= lower_bound,
+        i <= upper_bound,
         out
         == get_matrix_or_vec_expr_eq_or_below_depth(
             matrix_or_vec_var=vec, int_vars=[max_val, max_pos], depth=parser_args.depth
@@ -55,6 +70,7 @@ def softmax_part2_inv0_grammar(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
     parser_args = parser.parse_args()
 
     # Synthesize part 2
@@ -81,4 +97,7 @@ if __name__ == "__main__":
     softmax_part2(input_var, max_pos_var, max_val_var)
     map_int_to_int_synth = get_map_int_to_int_synth()
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize()
+
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+    driver.synthesize(filename=f"softmax_part2{depth_suffix}{relaxed_suffix}")

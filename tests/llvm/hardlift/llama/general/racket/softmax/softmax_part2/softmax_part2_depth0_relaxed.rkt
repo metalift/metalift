@@ -51,15 +51,20 @@
 (if (< (length x ) 1 ) (list-empty ) (list-prepend (map_int_to_int (list-ref-noerr x 0 )) (vec_map (list-tail-noerr x 1 ) map_int_to_int) ) ))
 
 (define-grammar (softmax_part2_inv0_gram agg.result cur i input max_pos max_val)
- [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? agg.result (v0) ) ))]
-[v0 (choose (v1))]
-[v1 (choose (list-take-noerr input i ))]
+ [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? agg.result (v2) ) ))]
+[v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
+[v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
+[v2 (choose (v3))]
+[v3 (choose (list-slice-noerr input (v0) (v4) ))]
+[v4 (choose i (- i 1 ) (+ i 1 ))]
 )
 
 (define-grammar (softmax_part2_ps_gram input max_pos max_val softmax_part2_rv)
  [rv (choose (equal? softmax_part2_rv (v0) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-take-noerr input max_pos ))]
+[v1 (choose (list-slice-noerr input (v2) (v3) ))]
+[v2 (choose 0 (- 0 1 ) (+ 0 1 ))]
+[v3 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
