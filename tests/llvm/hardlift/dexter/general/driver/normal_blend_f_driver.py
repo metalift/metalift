@@ -8,16 +8,15 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
-    call_vec_elemwise_add,
-    call_vec_scalar_mul,
-    vec_elemwise_add,
-    vec_scalar_mul,
+    get_matrix_or_vec_expr_eq_or_below_depth,
+    scalar_vec_to_vec_target_lang,
+    vec_vec_to_vec_target_lang,
 )
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_add, vec_scalar_mul]
+    return [*vec_vec_to_vec_target_lang, *scalar_vec_to_vec_target_lang]
 
 
 def ps_grammar(
@@ -25,12 +24,9 @@ def ps_grammar(
 ) -> Bool:
     base, active, opacity = reads
     out = writes[0]
-    cons = choose(Int(1))
-    int_var = choose(opacity)
     vec_var = choose(base, active)
-    return out == call_vec_elemwise_add(
-        call_vec_scalar_mul(int_var, vec_var),
-        call_vec_scalar_mul(cons - int_var, vec_var),
+    return out == get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec_var, int_vars=[opacity, Int(1)], depth=3
     )
 
 
@@ -41,16 +37,13 @@ def inv_grammar(
     out = writes[0]
     i = writes[1]
 
-    cons = choose(Int(1))
-    int_var = choose(opacity)
     vec_var = choose(base[:i], active[:i])
     return and_objects(
         i >= 0,
         i <= base.len(),
         out
-        == call_vec_elemwise_add(
-            call_vec_scalar_mul(int_var, vec_var),
-            call_vec_scalar_mul(cons - int_var, vec_var),
+        == get_matrix_or_vec_expr_eq_or_below_depth(
+            matrix_or_vec_var=vec_var, int_vars=[opacity, Int(1)], depth=3
         ),
     )
 
