@@ -3,8 +3,7 @@ import time
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tests.llvm.hardlift.hardlift_common import (
-    get_matrix_computation_holing_search_space,
-    linear_burn_8_hole_body,
+    get_matrix_computation_general_search_space,
 )
 from tests.python.utils.utils import codegen
 
@@ -16,7 +15,7 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_matrix_computation_holing_search_space(linear_burn_8_hole_body)
+    ) = get_matrix_computation_general_search_space(depth=2, cons=[Int(32)])
     linear_burn_8 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/dexter/cpp/linear_burn_8.ll",
         loops_filepath="tests/llvm/hardlift/dexter/cpp/linear_burn_8.loops",
