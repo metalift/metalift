@@ -1,13 +1,10 @@
 import copy
 import typing
 from collections import OrderedDict
-from itertools import combinations_with_replacement, product
+from itertools import product
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from pyparsing import Set
-from sympy import Integer as symInt
-from sympy import Symbol
-from sympy.core.expr import Expr as symExpr
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
@@ -23,7 +20,6 @@ from metalift.ir import (
     fn_decl,
     fn_decl_recursive,
     get_list_element_type,
-    get_object_exprs,
     is_list_type,
     is_matrix_type,
     is_primitive_type,
@@ -1351,55 +1347,104 @@ matrix_vec_to_vec_target_lang = [matrix_vec_mul, vec_elemwise_mul, reduce_sum]
 vec_to_vec_target_lang = [vec_map, map_int_to_int]
 
 
-def get_matrix_computation_ps_grammar_fn(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
-    if fixed_grammar:
-        raise Exception("Must not fix ps grammar!")
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
+def get_matrix_computation_general_search_space(
+    depth: int, cons: List[Int]
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
+    (
+        outer_loop_index_first_fn_decl,
+        outer_loop_index_first_synth,
+        is_outer_loop_index_first,
+    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
 
-    def matrix_computation_ps_grammar_fn(
+    # Target language
+    def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+        return [
+            outer_loop_index_first_fn_decl,
+            *scalar_vec_to_vec_target_lang,
+            *scalar_matrix_to_matrix_target_lang,
+            *vec_vec_to_vec_target_lang,
+            *matrix_matrix_to_matrix_target_lang,
+        ]
+
+    fns_synths = [outer_loop_index_first_synth]
+
+    # inv0 grammar
+    def inv0_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        out, col, pixel, row, row_vec = writes
+        base, active = reads
+        int_vars = [row, col]
+        matrix = choose(base, active)
+        matrix = ite(
+            is_outer_loop_index_first(),  # Then outer loop has to be over row
+            matrix[:row],
+            matrix.col_slice(0, row),
+        )
+        matrix = choose(matrix, matrix.transpose())
+        return and_objects(
+            row >= 0,
+            row <= base.len(),
+            out
+            == get_matrix_or_vec_expr_eq_or_below_depth(
+                var=matrix, cons=cons, depth=depth
+            ),
+        )
+
+    def inv1_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        col, pixel, row_vec = writes
+        out, row = in_scope
+        base, active = reads
+        matrix = choose(base, active)
+        outer_loop_matrix = ite(
+            is_outer_loop_index_first(),  # Then outer loop has to be over row
+            matrix[:row],
+            matrix.col_slice(0, row),
+        )
+        outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+        inner_loop_vec = ite(
+            is_outer_loop_index_first(),
+            matrix[row][:col],
+            matrix[:col].col_vec(row),
+        )
+        return and_objects(
+            row >= 0,
+            row <= base.len(),
+            col >= 0,
+            col <= base[0].len(),
+            row_vec
+            == get_matrix_or_vec_expr_eq_or_below_depth(
+                var=inner_loop_vec, cons=cons, depth=depth
+            ),
+            out
+            == get_matrix_or_vec_expr_eq_or_below_depth(
+                var=outer_loop_matrix, cons=cons, depth=depth
+            ),
+        )
+
+    def ps_grammar_fn(
         writes: List[Object], reads: List[Object], in_scope: List[Object]
     ) -> Bool:
         ret_val = writes[0]
         base, active = reads
-        if not fixed_grammar:
-            return ret_val == matrix_computation(
-                args=[base, active],
-                constants=constants,
-                compute_ops=compute_ops,
-                depth=depth,
-            )
-        else:
-            return ret_val == fixed_out_fn(base, active)
-
-    return matrix_computation_ps_grammar_fn
-
-
-def get_matrix_computation_hole_inv0_grammar(
-    hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]
-) -> InvGrammar:
-    def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
-    ) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        index_lower_bound = choose(Int(0), Int(1))
-        index_upper_bound = choose(
-            base.len(), base[0].len(), active.len(), active[0].len()
-        )
-        matrix = choose(base[:row], base[:col], active[:row], active[:col])
-        return and_objects(
-            row >= index_lower_bound, row <= index_upper_bound, out == hole_body(matrix)
+        matrix = choose(base, active)
+        matrix = choose(matrix, matrix.transpose())
+        return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
+            var=matrix, cons=cons, depth=depth
         )
 
-    return InvGrammar(inv0_grammar_fn, [])
+    inv0_grammar = InvGrammar(inv0_grammar_fn, [])
+    inv1_grammar = InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+    return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
 
 
 def get_matrix_computation_holing_search_space(
@@ -1492,8 +1537,8 @@ def get_matrix_computation_holing_search_space(
     return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
 
 
-def get_matrix_select_holing_search_space(
-    driver: Driver, hole_body: Callable[[Int], Int]
+def get_matrix_select_search_space(
+    select_synth: Synth,
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1518,7 +1563,6 @@ def get_matrix_select_holing_search_space(
         ]
 
     # Functions to synthesize
-    select_synth = get_select_synth_from_hole(driver, hole_body)
     fns_synths = [select_synth, outer_loop_index_first_synth]
 
     # inv0 grammar
@@ -1608,6 +1652,50 @@ def get_matrix_select_holing_search_space(
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
     inv1_grammar = InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
     return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
+
+
+def get_matrix_select_holing_search_space(
+    driver: Driver, hole_body: Callable[[Int], Int]
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    select_synth = get_select_synth_from_hole(driver, hole_body)
+    return get_matrix_select_search_space(select_synth)
+
+
+def get_matrix_select_holing_search_space(
+    driver: Driver, hole_body: Callable[[Int], Int]
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    select_synth = get_select_synth_from_hole(driver, hole_body)
+    return get_matrix_select_search_space(select_synth)
+
+
+def get_matrix_select_general_search_space(
+    driver: Driver, depth: int, cons: Int
+) -> Tuple[
+    InvGrammar,
+    InvGrammar,
+    Callable[[List[Object], List[Object], List[Object]], List[Object]],
+    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
+    List[Synth],
+]:
+    int_x, int_y = Int("int_x"), Int("int_y")
+    driver.add_var_objects([int_x, int_y])
+    int_var = choose(int_x, int_y, *cons)
+    select_synth = synth(
+        SELECT_TWO_ARGS, get_cond_expr_eq_or_below_depth(int_var, depth), int_x, int_y
+    )
+    return get_matrix_select_search_space(select_synth)
 
 
 def get_dissolve_holing_search_space(
@@ -1748,984 +1836,130 @@ def get_dissolve_holing_search_space(
     return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
 
 
-def get_matrix_computation_inv0_grammar(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-) -> InvGrammar:
-    if fixed_grammar:
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-
-    def matrix_computation_inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
-    ) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            index_lower_cond = choose(
-                row >= index_lower_bound,
-                row > index_lower_bound,
-                row == index_lower_bound,
-                row < index_lower_bound,
-                row <= index_lower_bound,
-            )
-            index_upper_cond = choose(
-                row >= index_upper_bound,
-                row > index_upper_bound,
-                row == index_upper_bound,
-                row < index_upper_bound,
-                row <= index_upper_bound,
-            )
-            matrix_choices = [
-                base,
-                base[:row],
-                base[:col],
-                active,
-                active[:row],
-                active[:col],
-            ]
-            return and_objects(
-                index_lower_cond,
-                index_upper_cond,
-                out
-                == matrix_computation(
-                    args=matrix_choices,
-                    constants=constants,
-                    compute_ops=compute_ops,
-                    depth=depth,
-                ),
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row <= base.len(),
-                out == fixed_out_fn(base[:row], active[:row]),
-            )
-
-    return InvGrammar(matrix_computation_inv0_grammar_fn, [])
-
-
-def get_matrix_computation_inv1_grammar(
-    fixed_grammar: bool,
-    fixed_row_vec_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-):
-    if fixed_grammar:
-        if fixed_row_vec_fn is None:
-            raise Exception("Must pass in an override row_vec!")
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-
-    def matrix_computation_inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
-    ) -> Bool:
-        # inner loop grammar
-        col, pixel, row_vec = writes
-        out, row = in_scope
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            outer_index_lower_cond = choose(
-                row >= index_lower_bound,
-                row > index_lower_bound,
-                row == index_lower_bound,
-                row < index_lower_bound,
-                row <= index_lower_bound,
-            )
-            outer_index_upper_cond = choose(
-                row >= index_upper_bound,
-                row > index_upper_bound,
-                row == index_upper_bound,
-                row < index_upper_bound,
-                row <= index_upper_bound,
-            )
-            inner_index_lower_cond = choose(
-                col >= index_lower_bound,
-                col > index_lower_bound,
-                col == index_lower_bound,
-                col < index_lower_bound,
-                col <= index_lower_bound,
-            )
-            inner_index_upper_cond = choose(
-                col >= index_upper_bound,
-                col > index_upper_bound,
-                col == index_upper_bound,
-                col < index_upper_bound,
-                col <= index_upper_bound,
-            )
-            vec_choices = [
-                base[0][:col],
-                base[row][:col],
-                base[col][:row],
-                base[0][:row],
-                active[0][:col],
-                active[row][:col],
-                active[col][:row],
-                active[0][:row],
-                row_vec,
-            ]
-            matrix_choices = [
-                base,
-                base[:row],
-                base[:col],
-                active,
-                active[:row],
-                active[:col],
-            ]
-            return and_objects(
-                outer_index_lower_cond,
-                outer_index_upper_cond,
-                inner_index_lower_cond,
-                inner_index_upper_cond,
-                row_vec
-                == vec_computation(
-                    args=vec_choices,
-                    constants=constants,
-                    compute_ops=compute_ops,
-                    depth=depth,
-                ),
-                out
-                == matrix_computation(
-                    args=matrix_choices,
-                    constants=constants,
-                    compute_ops=compute_ops,
-                    depth=depth,
-                ),
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row < base.len(),
-                col >= 0,
-                col <= base[0].len(),
-                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
-                out == fixed_out_fn(base[:row], active[:row]),
-            )
-
-    return InvGrammar(matrix_computation_inv1_grammar_fn, ["row", "agg.result"])
-
-
-def get_matrix_computation_with_counts_ps_grammar_fn(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    ordered_compute_ops: Optional[OrderedDict] = None,
-    depth: Optional[int] = None,
-) -> Callable[[List[Object], List[Object], List[Object]], Bool]:
-    if fixed_grammar and fixed_out_fn is None:
-        raise Exception("Must pass in an override out!")
-
-    def matrix_computation_ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
-    ) -> Bool:
-        ret_val = writes[0]
-        base, active = reads
-        if not fixed_grammar:
-            return ret_val == computation_with_counts(
-                args=[base, active],
-                constants=constants,
-                ordered_compute_ops=ordered_compute_ops,
-                depth=depth,
-                is_vec=False,
-            )
-        else:
-            return ret_val == fixed_out_fn(base, active)
-
-    return matrix_computation_ps_grammar_fn
-
-
-def get_matrix_computation_with_counts_inv0_grammar(
-    fixed_grammar: bool,
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    ordered_compute_ops: Optional[OrderedDict] = None,
-    depth: Optional[int] = None,
-) -> InvGrammar:
-    if fixed_grammar:
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-
-    def matrix_computation_inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
-    ) -> Bool:
-        # outer loop grammar
-        out, col, pixel, row, row_vec = writes
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            index_lower_cond = choose(
-                row >= index_lower_bound,
-                # row > index_lower_bound,
-                # row == index_lower_bound,
-                # row < index_lower_bound,
-                # row <= index_lower_bound
-            )
-            index_upper_cond = choose(
-                # row >= index_upper_bound,
-                # row > index_upper_bound,
-                # row == index_upper_bound,
-                # row < index_upper_bound,
-                row
-                <= index_upper_bound
-            )
-            matrix_choices = [
-                # base,
-                base[:row],
-                base[:col],
-                # active,
-                active[:row],
-                active[:col],
-            ]
-            return and_objects(
-                index_lower_cond,
-                index_upper_cond,
-                out
-                == computation_with_counts(
-                    args=matrix_choices,
-                    constants=constants,
-                    ordered_compute_ops=ordered_compute_ops,
-                    depth=depth,
-                    is_vec=False,
-                ),
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row <= base.len(),
-                out == fixed_out_fn(base[:row], active[:row]),
-            )
-
-    return InvGrammar(matrix_computation_inv0_grammar_fn, [])
-
-
-def get_matrix_computation_with_counts_inv1_grammar(
-    fixed_grammar: bool,
-    fixed_row_vec_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    ordered_compute_ops: Optional[OrderedDict] = None,
-    depth: Optional[int] = None,
-):
-    if fixed_grammar:
-        if fixed_row_vec_fn is None:
-            raise Exception("Must pass in an override row_vec!")
-        if fixed_out_fn is None:
-            raise Exception("Must pass in an override out!")
-
-    def matrix_computation_inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
-    ) -> Bool:
-        # inner loop grammar
-        col, pixel, row_vec = writes
-        out, row = in_scope
-        base, active = reads
-        if not fixed_grammar:
-            index_lower_bound = choose(Int(0), Int(1))
-            index_upper_bound = choose(base.len(), base[0].len())
-            outer_index_lower_cond = choose(
-                row >= index_lower_bound,
-                # row > index_lower_bound,
-                # row == index_lower_bound,
-                # row < index_lower_bound,
-                # row <= index_lower_bound
-            )
-            outer_index_upper_cond = choose(
-                # row >= index_upper_bound,
-                # row > index_upper_bound,
-                # row == index_upper_bound,
-                row < index_upper_bound,
-                row <= index_upper_bound,
-            )
-            inner_index_lower_cond = choose(
-                col >= index_lower_bound,
-                # col > index_lower_bound,
-                # col == index_lower_bound,
-                # col < index_lower_bound,
-                # col <= index_lower_bound
-            )
-            inner_index_upper_cond = choose(
-                # col >= index_upper_bound,
-                # col > index_upper_bound,
-                # col == index_upper_bound,
-                # col < index_upper_bound,
-                col
-                <= index_upper_bound
-            )
-            vec_choices = [
-                # base[0][:col],
-                base[row][:col],
-                # base[col][:row],
-                # base[0][:row],
-                # active[0][:col],
-                active[row][:col],
-                # active[col][:row],
-                # active[0][:row],
-                # row_vec
-            ]
-            matrix_choices = [
-                # base,
-                base[:row],
-                base[:col],
-                # active,
-                active[:row],
-                active[:col],
-            ]
-            return and_objects(
-                outer_index_lower_cond,
-                outer_index_upper_cond,
-                inner_index_lower_cond,
-                inner_index_upper_cond,
-                row_vec
-                == computation_with_counts(
-                    args=vec_choices,
-                    constants=constants,
-                    ordered_compute_ops=ordered_compute_ops,
-                    depth=depth,
-                    is_vec=True,
-                ),
-                out
-                == computation_with_counts(
-                    args=matrix_choices,
-                    constants=constants,
-                    ordered_compute_ops=ordered_compute_ops,
-                    depth=depth,
-                    is_vec=False,
-                ),
-            )
-        else:
-            return and_objects(
-                row >= 0,
-                row < base.len(),
-                col >= 0,
-                col <= base[0].len(),
-                row_vec == fixed_row_vec_fn(base[row][:col], active[row][:col]),
-                out == fixed_out_fn(base[:row], active[:row]),
-            )
-
-    return InvGrammar(matrix_computation_inv1_grammar_fn, ["row", "agg.result"])
-
-
-def matrix_computation_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [
-        vec_elemwise_add,
-        matrix_elemwise_add,
-        vec_elemwise_sub,
-        matrix_elemwise_sub,
-        vec_elemwise_mul,
-        matrix_elemwise_mul,
-        vec_elemwise_div,
-        matrix_elemwise_div,
-        vec_scalar_add,
-        matrix_scalar_add,
-        vec_scalar_sub,
-        matrix_scalar_sub,
-        vec_scalar_mul,
-        matrix_scalar_mul,
-        vec_scalar_div,
-        matrix_scalar_div,
-    ]
-
-
-def get_matrix_computation_grammars_without_analysis(
-    depth: int,
-) -> Tuple[
-    InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]
-]:
-    return get_matrix_computation_grammars(
-        fixed_grammar=False,
-        constants=[Int(0), Int(2), Int(128), Int(32)],
-        compute_ops=["+", "-", "*", "//"],
-        depth=depth,
+def get_matrix_or_vec_expr_with_depth(
+    var: MatrixOrVecT, cons: List[Int], depth: int, depth_to_expr: Dict[int, Any]
+) -> MatrixOrVecT:
+    if depth in depth_to_expr.keys():
+        return depth_to_expr[depth]
+    if depth == 0:
+        depth_to_expr[depth] = var
+        return var
+    expr_choices: List[Any] = []
+    depth_minus_one_expr = get_matrix_or_vec_expr_with_depth(
+        var=var, cons=cons, depth=depth - 1, depth_to_expr=depth_to_expr
     )
-
-
-def get_matrix_computation_grammars(
-    fixed_grammar: bool,
-    fixed_row_vec_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    fixed_out_fn: Optional[Any] = None,  # TODO(jie): add type for this
-    constants: Optional[List[Int]] = None,
-    compute_ops: Optional[List[str]] = None,
-    depth: Optional[int] = None,
-) -> Tuple[
-    InvGrammar, InvGrammar, Callable[[List[Object], List[Object], List[Object]], Bool]
-]:
-    inv0_grammar = get_matrix_computation_inv0_grammar(
-        fixed_grammar=fixed_grammar,
-        fixed_out_fn=fixed_out_fn,
-        constants=constants,
-        compute_ops=compute_ops,
-        depth=depth,
-    )
-    inv1_grammar = get_matrix_computation_inv1_grammar(
-        fixed_grammar=fixed_grammar,
-        fixed_row_vec_fn=fixed_row_vec_fn,
-        fixed_out_fn=fixed_out_fn,
-        constants=constants,
-        ordered_compute_ops=compute_ops,
-        depth=depth,
-    )
-    ps_grammar = get_matrix_computation_ps_grammar_fn(
-        fixed_grammar=fixed_grammar,
-        fixed_out_fn=fixed_out_fn,
-        constants=constants,
-        compute_ops=compute_ops,
-        depth=depth,
-    )
-    return inv0_grammar, inv1_grammar, ps_grammar
-
-
-def get_select_two_args_synth_without_analysis(depth: int) -> Synth:
-    return get_select_two_args_general_synth(
-        args=[int_x, int_y],
-        constants=[Int(0), Int(2), Int(128), Int(32)],
-        compute_ops=["+", "-", "*", "//"],
-        compare_ops=[">=", ">", "==", "<", "<="],
-        depth=depth,
-    )
-
-
-def get_complement_tuple(total: Tuple[int], curr: Tuple[int]) -> Tuple[int]:
-    if len(total) != len(curr):
-        raise Exception("Cannot get complement tuple with different length")
-    return tuple(total[i] - curr[i] for i in range(len(total)))
-
-
-def make_dict(keys: Tuple[str], values: Tuple[int]) -> OrderedDict:
-    if len(keys) != len(values):
-        raise Exception(
-            "Cannot make dictionary from keys and values of different length!"
+    for other_depth in range(depth):
+        other_expr = get_matrix_or_vec_expr_with_depth(
+            var=var, cons=cons, depth=other_depth, depth_to_expr=depth_to_expr
         )
-    return OrderedDict({keys[i]: values[i] for i in range(len(keys))})
+        expr_choices.append(call_elemwise_add(depth_minus_one_expr, other_expr))
+        expr_choices.append(call_elemwise_sub(depth_minus_one_expr, other_expr))
+        expr_choices.append(call_elemwise_mul(depth_minus_one_expr, other_expr))
+        expr_choices.append(call_elemwise_div(depth_minus_one_expr, other_expr))
+        if other_depth == 0 and len(cons) > 0:
+            scalar = choose(*cons)
+            expr_choices.append(call_scalar_add(scalar, depth_minus_one_expr))
+            expr_choices.append(call_scalar_sub(scalar, depth_minus_one_expr))
+            expr_choices.append(call_scalar_mul(scalar, depth_minus_one_expr))
+            expr_choices.append(call_scalar_div(scalar, depth_minus_one_expr))
+            expr_choices.append(call_scalar_rsub(scalar, depth_minus_one_expr))
+            expr_choices.append(call_scalar_rdiv(scalar, depth_minus_one_expr))
+
+        if other_depth != depth - 1:
+            expr_choices.append(call_elemwise_sub(other_expr, depth_minus_one_expr))
+            expr_choices.append(call_elemwise_div(other_expr, depth_minus_one_expr))
+    depth_to_expr[depth] = choose(*expr_choices)
+    return depth_to_expr[depth]
 
 
-def helper_with_counts(
-    args: List[Int], constants: List[Int], ordered_compute_ops: OrderedDict, depth: int
-) -> Optional[Object]:
-    if depth == 0:
-        return choose(*args, *constants)
-    if all(count == 0 for count in ordered_compute_ops.values()):
-        return None
-
-    # First fix left hand side to be depth - 1
-    choices: Set[ObjectWrapper] = set()
-    one_side_depth = depth - 1
-
-    symmetric_ops = ["+", "*"]
-    asymmetric_ops = ["-", "//"]
-
-    one_side_depth = depth - 1
-    # The other depth can be anywhere from 0 to depth - 1
-    for other_side_depth in range(depth):
-        for op in symmetric_ops + asymmetric_ops:
-            if (op_count := ordered_compute_ops.get(op, 0)) == 0:
-                continue
-            visited_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
-            ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
-            ordered_compute_ops_copy[op] = op_count - 1
-            ranges = [
-                range(0, count + 1) for count in ordered_compute_ops_copy.values()
-            ]
-            all_combs = set(product(*ranges))
-            for comb in all_combs:
-                comp_comb = get_complement_tuple(
-                    tuple(ordered_compute_ops_copy.values()), comb
-                )
-                ordered_ops = tuple(ordered_compute_ops.keys())
-                compute_ops_from_comb = make_dict(ordered_ops, comb)
-                compute_ops_from_comp_comb = make_dict(ordered_ops, comp_comb)
-                one_side = helper_with_counts(
-                    args, constants, compute_ops_from_comb, one_side_depth
-                )
-                other_side = helper_with_counts(
-                    args, constants, compute_ops_from_comp_comb, other_side_depth
-                )
-                if one_side is None or other_side is None:
-                    continue
-                if op in symmetric_ops:
-                    if (comb, comp_comb) not in visited_combs:
-                        if op == "+":
-                            choices.add(ObjectWrapper(one_side + other_side))
-                        if op == "*":
-                            choices.add(ObjectWrapper(one_side * other_side))
-                        visited_combs.add((comb, comp_comb))
-                        visited_combs.add((comp_comb, comb))
-                elif op in asymmetric_ops:
-                    if (comb, comp_comb) not in visited_combs:
-                        if op == "-":
-                            choices.add(ObjectWrapper(one_side - other_side))
-                        if op == "//":
-                            choices.add(ObjectWrapper(one_side // other_side))
-                        visited_combs.add((comb, comp_comb))
-                    if (comp_comb, comb) not in visited_combs:
-                        if op == "-":
-                            choices.add(ObjectWrapper(other_side - one_side))
-                        if op == "//":
-                            choices.add(ObjectWrapper(other_side // one_side))
-                        visited_combs.add((comp_comb, comb))
-
-    if len(choices) == 0:
-        return None
-    return choose(*[choice.object for choice in choices])
-
-
-def helper_with_counts_and_constants(
-    args: List[Int], constants: List[Int], ordered_compute_ops: OrderedDict, depth: int
-) -> Optional[Object]:
-    if depth == 0:
-        return choose(*args, *constants)
-    if all(count == 0 for count in ordered_compute_ops.values()):
-        return None
-
-    # First fix left hand side to be depth - 1
-    choices: Set[ObjectWrapper] = set()
-    one_side_depth = depth - 1
-
-    symmetric_ops = ["+", "*"]
-    asymmetric_ops = ["-", "//"]
-
-    one_side_depth = depth - 1
-    # The other depth can be anywhere from 0 to depth - 1
-    for other_side_depth in range(depth):
-        for (arg1, op, arg2), op_count in ordered_compute_ops.items():
-            if op_count == 0:
-                continue
-            visited_combs: Set[Tuple[Tuple[int], Tuple[int]]] = set()
-            ordered_compute_ops_copy = copy.deepcopy(ordered_compute_ops)
-            ordered_compute_ops_copy[(arg1, op, arg2)] = op_count - 1
-            ranges = [
-                range(0, count + 1) for count in ordered_compute_ops_copy.values()
-            ]
-            all_combs = set(product(*ranges))
-            for comb in all_combs:
-                comp_comb = get_complement_tuple(
-                    tuple(ordered_compute_ops_copy.values()), comb
-                )
-                ordered_ops = tuple(ordered_compute_ops.keys())
-                compute_ops_from_comb = make_dict(ordered_ops, comb)
-                compute_ops_from_comp_comb = make_dict(ordered_ops, comp_comb)
-                one_side = helper_with_counts_and_constants(
-                    args, constants, compute_ops_from_comb, one_side_depth
-                )
-                other_side = helper_with_counts_and_constants(
-                    args, constants, compute_ops_from_comp_comb, other_side_depth
-                )
-                if op in symmetric_ops:
-                    if (comb, comp_comb) not in visited_combs:
-                        if op == "+":
-                            # For now we assume that we don't have constant + constant
-                            if arg2 is not None or arg1 is not None:
-                                if one_side is None or other_side_depth != 0:
-                                    continue
-                                if arg1 is not None:
-                                    choices.add(ObjectWrapper(one_side + arg1))
-                                else:
-                                    # arg2 must not be None
-                                    choices.add(ObjectWrapper(one_side + arg2))
-                            else:
-                                if one_side is None or other_side is None:
-                                    continue
-                                choices.add(ObjectWrapper(one_side + other_side))
-                        if op == "*":
-                            if arg2 is not None or arg1 is not None:
-                                if one_side is None or other_side_depth != 0:
-                                    continue
-                                if arg1 is not None:
-                                    choices.add(ObjectWrapper(one_side * arg1))
-                                else:
-                                    # arg2 must not be None
-                                    choices.add(ObjectWrapper(one_side * arg2))
-                            else:
-                                if one_side is None or other_side is None:
-                                    continue
-                                choices.add(ObjectWrapper(one_side * other_side))
-                        visited_combs.add((comb, comp_comb))
-                        visited_combs.add((comp_comb, comb))
-                elif op in asymmetric_ops:
-                    if (comb, comp_comb) not in visited_combs:
-                        if op == "-":
-                            if arg1 is not None or arg2 is not None:
-                                if (
-                                    one_side is None
-                                    or other_side_depth != 0
-                                    or arg2 is None
-                                ):
-                                    continue
-                                choices.add(ObjectWrapper(one_side - arg2))
-                            else:
-                                if one_side is None or other_side is None:
-                                    continue
-                                choices.add(ObjectWrapper(one_side - other_side))
-                        if op == "//":
-                            if arg1 is not None or arg2 is not None:
-                                if (
-                                    one_side is None
-                                    or other_side_depth != 0
-                                    or arg2 is None
-                                ):
-                                    continue
-                                choices.add(ObjectWrapper(one_side // arg2))
-                            else:
-                                if one_side is None or other_side is None:
-                                    continue
-                                choices.add(ObjectWrapper(one_side // other_side))
-                        visited_combs.add((comb, comp_comb))
-                    if (comp_comb, comb) not in visited_combs:
-                        if op == "-":
-                            if arg1 is not None or arg2 is not None:
-                                if (
-                                    one_side is None
-                                    or other_side_depth != 0
-                                    or arg1 is None
-                                ):
-                                    continue
-                                choices.add(ObjectWrapper(arg1 - one_side))
-                            else:
-                                if one_side is None or other_side is None:
-                                    continue
-                                choices.add(ObjectWrapper(other_side - one_side))
-                        if op == "//":
-                            if arg1 is not None or arg2 is not None:
-                                if (
-                                    one_side is None
-                                    or other_side_depth != 0
-                                    or arg1 is None
-                                ):
-                                    continue
-                                choices.add(ObjectWrapper(arg1 // one_side))
-                            else:
-                                if one_side is None or other_side is None:
-                                    continue
-                                choices.add(ObjectWrapper(other_side // one_side))
-                        visited_combs.add((comp_comb, comb))
-
-    if len(choices) == 0:
-        return None
-    return choose(*[choice.object for choice in choices])
-
-
-# @lru_cache(maxsize=None)
-# TODO(jie): rename this function
-def helper(
-    args: List[Int], constants: List[Int], compute_ops: List[str], depth: int
-) -> Object:
-    if depth == 0:
-        return choose(*args, *constants)
-
-    # First fix left hand side to be depth - 1
-    choices: List[Object] = []
-    lhs_depth = depth - 1
-    for rhs_depth in range(depth):
-        lhs = helper(args, constants, compute_ops, lhs_depth)
-        rhs = helper(args, constants, compute_ops, rhs_depth)
-        if "+" in compute_ops:
-            choices.append(lhs + rhs)
-        if "*" in compute_ops:
-            choices.append(lhs * rhs)
-        if "-" in compute_ops:
-            choices.append(lhs - rhs)
-        if "//" in compute_ops:
-            choices.append(lhs // rhs)
-    # Then fix right hand side to be depth - 1
-    rhs_depth = depth - 1
-    for lhs_depth in range(depth - 1):
-        # Skipping lhs_depth because we already visited this case in the last for loop
-        lhs = helper(args, constants, compute_ops, lhs_depth)
-        rhs = helper(args, constants, compute_ops, rhs_depth)
-        if "-" in compute_ops:
-            choices.append(lhs - rhs)
-        if "//" in compute_ops:
-            choices.append(lhs // rhs)
-    return choose(*choices)
-
-
-def get_sym_unique_int_exps_with_depth(
-    symbols: List[Symbol], constants: List[symInt], compute_ops: List[str], depth: int
-) -> Dict[int, symExpr]:
-    if depth == 0:
-        return {0: {*symbols, *constants}}
-    lower_depths_exprs = get_sym_unique_int_exps_with_depth(
-        symbols, constants, compute_ops, depth - 1
-    )
-    choices: Set[symExpr] = set()
-    # First fix left hand side to be depth - 1
-    lhs_exprs = lower_depths_exprs[depth - 1]
-    for rhs_depth in range(depth):
-        rhs_exprs = lower_depths_exprs[rhs_depth]
-        expr_args = set(product(lhs_exprs, rhs_exprs))
-        for arg1, arg2 in expr_args:
-            if "+" in compute_ops:
-                choices.add(arg1 + arg2)
-            if "-" in compute_ops:
-                choices.add(arg1 - arg2)
-            if "*" in compute_ops:
-                choices.add(arg1 * arg2)
-            if "//" in compute_ops and arg2 != 0:
-                choices.add(arg1 // arg2)
-
-    return {
-        **get_sym_unique_int_exps_with_depth(
-            symbols, constants, compute_ops, depth - 1
-        ),
-        depth: choices,
-    }
-
-
-def get_unique_int_exps_with_depth(
-    args: List[Int], constants: List[Int], compute_ops: List[str], depth: int
-) -> Dict[int, Set[ObjectWrapper]]:
-    args_wrappers = [ObjectWrapper(arg) for arg in args]
-    constants_wrappers = [ObjectWrapper(cons) for cons in constants]
-    all_wrappers = [*args_wrappers, *constants_wrappers]
-
-    if depth == 0:
-        return {0: set(all_wrappers)}
-    lower_depths_wrappers = get_unique_int_exps_with_depth(
-        args, constants, compute_ops, depth - 1
-    )
-    choices: Set[ObjectWrapper] = set()
-    lit_0_wrapper = ObjectWrapper(Int(0))
-    lit_1_wrapper = ObjectWrapper(Int(1))
-    # First fix left hand side to be depth - 1
-    lhs_wrappers = lower_depths_wrappers[depth - 1]
-    for rhs_depth in range(depth):
-        if rhs_depth == depth - 1:
-            add_mul_wrappers = combinations_with_replacement(lhs_wrappers, 2)
-        else:
-            add_mul_wrappers = set(
-                product(lhs_wrappers, lower_depths_wrappers[rhs_depth])
-            )
-        for arg1, arg2 in add_mul_wrappers:
-            # This is just to be safe
-            if hash(arg1) > hash(arg2):
-                arg1, arg2 = arg2, arg1
-            if "+" in compute_ops:
-                if arg1 != lit_0_wrapper and arg2 != lit_0_wrapper:
-                    choices.add(ObjectWrapper(arg1.object + arg2.object))
-            if "*" in compute_ops:
-                if arg1 != lit_1_wrapper and arg2 != lit_1_wrapper:
-                    choices.add(ObjectWrapper(arg1.object * arg2.object))
-
-        sub_div_wrappers = set(product(lhs_wrappers, lower_depths_wrappers[rhs_depth]))
-        for arg1, arg2 in sub_div_wrappers:
-            if arg1 != arg2:
-                if "-" in compute_ops:
-                    if arg2 != lit_0_wrapper:
-                        choices.add(ObjectWrapper(arg1.object - arg2.object))
-                    if arg1 != lit_0_wrapper:
-                        choices.add(ObjectWrapper(arg2.object - arg1.object))
-                if "//" in compute_ops:
-                    if (
-                        arg2 not in {lit_0_wrapper, lit_1_wrapper}
-                        and arg1 != lit_0_wrapper
-                    ):
-                        choices.add(ObjectWrapper(arg1.object // arg2.object))
-                    if (
-                        arg1 not in {lit_0_wrapper, lit_1_wrapper}
-                        and arg2 != lit_0_wrapper
-                    ):
-                        choices.add(ObjectWrapper(arg2.object // arg1.object))
-
-    return {
-        **get_unique_int_exps_with_depth(args, constants, compute_ops, depth - 1),
-        depth: choices,
-    }
-
-
-def get_multi_depth_compute_with_counts_general_synth(
-    args: List[Object],
-    constants: List[Int],
-    ordered_compute_ops: OrderedDict,
+def get_matrix_or_vec_expr_eq_or_below_depth(
+    var: MatrixOrVecT,
+    cons: List[Int],
     depth: int,
-) -> Synth:
-    body = helper_with_counts(args, constants, ordered_compute_ops, depth)
-    return synth(SELECT_TWO_ARGS, body, *args)
+) -> Int:
+    depth_to_expr: Dict[int, Any] = {}
+    for curr_depth in range(0, depth + 1):
+        get_matrix_or_vec_expr_with_depth(
+            var=var, cons=cons, depth=curr_depth, depth_to_expr=depth_to_expr
+        )
+    final_expr = choose(*[expr for expr in depth_to_expr.values()])
+    return final_expr
 
 
-def get_multi_depth_with_counts_select_general_synth(
-    args: List[Object],
-    constants: List[Int],
-    compare_ops: List[str],
-    cond_lhs_depth: int,
-    cond_rhs_depth: int,
-    if_then_depth: int,
-    if_else_depth: int,
-    cond_lhs_ordered_compute_ops: OrderedDict,
-    cond_rhs_ordered_compute_ops: OrderedDict,
-    if_then_ordered_compute_ops: OrderedDict,
-    if_else_ordered_compute_ops: OrderedDict,
-) -> Synth:
-    cond_lhs = helper_with_counts(
-        args, constants, cond_lhs_ordered_compute_ops, cond_lhs_depth
-    )
-    cond_rhs = helper_with_counts(
-        args, constants, cond_rhs_ordered_compute_ops, cond_rhs_depth
-    )
-    if_then = helper_with_counts(
-        args, constants, if_then_ordered_compute_ops, if_then_depth
-    )
-    if_else = helper_with_counts(
-        args, constants, if_else_ordered_compute_ops, if_else_depth
-    )
-
-    cond_choices: List[Bool] = []
-    if ">=" in compare_ops:
-        cond_choices.append(cond_lhs >= cond_rhs)
-    if ">" in compare_ops:
-        cond_choices.append(cond_lhs > cond_rhs)
-    if "==" in compare_ops:
-        cond_choices.append(cond_lhs == cond_rhs)
-    if "<" in compare_ops:
-        cond_choices.append(cond_lhs < cond_rhs)
-    if "<=" in compare_ops:
-        cond_choices.append(cond_lhs <= cond_rhs)
-    cond = choose(*cond_choices)
-    return Synth(
-        SELECT_TWO_ARGS,
-        ite(cond, if_then, if_else).src,
-        *get_object_exprs(*args[:2]),  # TODO(jie): fix this, this is very hacky
-    )
-
-
-def get_multi_depth_with_counts_and_constants_select_general_synth(
-    args: List[Object],
-    constants: List[Int],
-    compare_ops: List[str],
-    cond_lhs_depth: int,
-    cond_rhs_depth: int,
-    if_then_depth: int,
-    if_else_depth: int,
-    cond_lhs_ordered_compute_ops: OrderedDict,
-    cond_rhs_ordered_compute_ops: OrderedDict,
-    if_then_ordered_compute_ops: OrderedDict,
-    if_else_ordered_compute_ops: OrderedDict,
-) -> Synth:
-    cond_lhs = helper_with_counts_and_constants(
-        args, constants, cond_lhs_ordered_compute_ops, cond_lhs_depth
-    )
-    cond_rhs = helper_with_counts_and_constants(
-        args, constants, cond_rhs_ordered_compute_ops, cond_rhs_depth
-    )
-    if_then = helper_with_counts_and_constants(
-        args, constants, if_then_ordered_compute_ops, if_then_depth
-    )
-    if_else = helper_with_counts_and_constants(
-        args, constants, if_else_ordered_compute_ops, if_else_depth
-    )
-
-    cond_choices: List[Bool] = []
-    if ">=" in compare_ops:
-        cond_choices.append(cond_lhs >= cond_rhs)
-    if ">" in compare_ops:
-        cond_choices.append(cond_lhs > cond_rhs)
-    if "==" in compare_ops:
-        cond_choices.append(cond_lhs == cond_rhs)
-    if "<" in compare_ops:
-        cond_choices.append(cond_lhs < cond_rhs)
-    if "<=" in compare_ops:
-        cond_choices.append(cond_lhs <= cond_rhs)
-    cond = choose(*cond_choices)
-    return Synth(
-        SELECT_TWO_ARGS,
-        ite(cond, if_then, if_else).src,
-        *get_object_exprs(*args[:2]),  # TODO(jie): fix this, this is very hacky
-    )
-
-
-def get_multi_depth_select_general_synth(
-    args: List[Object],
-    constants: List[Int],
-    compute_ops: List[str],
-    compare_ops: List[str],
-    cond_lhs_depth: int,
-    cond_rhs_depth: int,
-    if_then_depth: int,
-    if_else_depth: int,
-) -> Synth:
-    cond_lhs = helper(args, constants, compute_ops, cond_lhs_depth)
-    cond_rhs = helper(args, constants, compute_ops, cond_rhs_depth)
-    if_then = helper(args, constants, compute_ops, if_then_depth)
-    if_else = helper(args, constants, compute_ops, if_else_depth)
-
-    cond_choices: List[Bool] = []
-    if ">=" in compare_ops:
-        cond_choices.append(cond_lhs >= cond_rhs)
-    if ">" in compare_ops:
-        cond_choices.append(cond_lhs > cond_rhs)
-    if "==" in compare_ops:
-        cond_choices.append(cond_lhs == cond_rhs)
-    if "<" in compare_ops:
-        cond_choices.append(cond_lhs < cond_rhs)
-    if "<=" in compare_ops:
-        cond_choices.append(cond_lhs <= cond_rhs)
-    cond = choose(*cond_choices)
-    return Synth(
-        SELECT_TWO_ARGS, ite(cond, if_then, if_else).src, *get_object_exprs(*args)
-    )
-
-
-def get_select_two_args_general_synth(
-    args: List[Object],
-    constants: List[Int],
-    compute_ops: List[str],
-    compare_ops: List[str],
+def get_expr_with_depth(
+    var: Any,
     depth: int,
-) -> Synth:
-    # arg_or_cons = choose(arg_expr, Int(0), Int(32))
-    # if_then_int_exp, if_else_int_exp = arg_or_cons, arg_or_cons
-    # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
-    # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp // if_else_int_exp)
-    # if_else_int_exp = choose(if_else_int_exp, if_else_int_exp - if_else_int_exp)
-    # cond_int_exp = arg_or_cons
-    # cond = choose(
-    #     cond_int_exp >= cond_int_exp,
-    #     cond_int_exp > cond_int_exp,
-    #     cond_int_exp == cond_int_exp,
-    #     cond_int_exp < cond_int_exp,
-    #     cond_int_exp <= cond_int_exp
-    # )
-    # return Synth(
-    #     SELECT_TWO_ARGS,
-    #     ite(cond, if_then_int_exp, if_else_int_exp).src,
-    #     *get_object_exprs(*args)
-    # )
-    int_exp = choose(*args, *constants)
-    for _ in range(depth):
-        possible_choices = [int_exp]
-        if "+" in compute_ops:
-            possible_choices.append(int_exp + int_exp)
-        if "-" in compute_ops:
-            possible_choices.append(int_exp - int_exp)
-        if "*" in compute_ops:
-            possible_choices.append(int_exp * int_exp)
-        if "//" in compute_ops:
-            possible_choices.append(int_exp // int_exp)
-        int_exp = choose(*possible_choices)
-    cond_choices: List[Bool] = []
-    if ">=" in compare_ops:
-        cond_choices.append(int_exp >= int_exp)
-    if ">" in compare_ops:
-        cond_choices.append(int_exp > int_exp)
-    if "==" in compare_ops:
-        cond_choices.append(int_exp == int_exp)
-    if "<" in compare_ops:
-        cond_choices.append(int_exp < int_exp)
-    if "<=" in compare_ops:
-        cond_choices.append(int_exp <= int_exp)
-    cond = choose(*cond_choices)
-    return Synth(
-        SELECT_TWO_ARGS, ite(cond, int_exp, int_exp).src, *get_object_exprs(*args)
+    symm_bi_ops: List[Callable],
+    asymm_bi_ops: List[Callable],
+    depth_to_expr: Dict[int, Any],
+) -> Any:
+    if depth in depth_to_expr.keys():
+        return depth_to_expr[depth]
+    if depth == 0:
+        depth_to_expr[depth] = var
+        return var
+
+    expr_choices: List[Any] = []
+    depth_minus_one_expr = get_expr_with_depth(
+        var=var,
+        depth=depth - 1,
+        symm_bi_ops=symm_bi_ops,
+        asymm_bi_ops=asymm_bi_ops,
+        depth_to_expr=depth_to_expr,
     )
+    for other_depth in range(depth):
+        other_expr = get_expr_with_depth(
+            var=var,
+            depth=other_depth,
+            symm_bi_ops=symm_bi_ops,
+            asymm_bi_ops=asymm_bi_ops,
+            depth_to_expr=depth_to_expr,
+        )
+        for bi_op in symm_bi_ops + asymm_bi_ops:
+            expr_choices.append(bi_op(depth_minus_one_expr, other_expr))
+
+        # Since - and // are non-symmetric we switch the operands
+        if other_depth != depth - 1:
+            for bi_op in asymm_bi_ops:
+                expr_choices.append(bi_op(other_expr, depth_minus_one_expr))
+    depth_to_expr[depth] = choose(*expr_choices)
+    return depth_to_expr[depth]
+
+
+def get_expr_eq_or_below_depth(
+    var: Any,
+    depth: int,
+    symm_bi_ops: List[Callable],
+    asymm_bi_ops: List[Callable],
+) -> Int:
+    depth_to_expr: Dict[int, Any] = {}
+    for curr_depth in range(0, depth + 1):
+        get_expr_with_depth(
+            var=var,
+            depth=curr_depth,
+            symm_bi_ops=symm_bi_ops,
+            asymm_bi_ops=asymm_bi_ops,
+            depth_to_expr=depth_to_expr,
+        )
+    final_int_expr = choose(*[int_exp for int_exp in depth_to_expr.values()])
+    return final_int_expr
+
+
+def get_cond_expr_eq_or_below_depth(int_var: Int, depth: int) -> Int:
+    int_expr = get_expr_eq_or_below_depth(
+        var=int_var,
+        depth=depth,
+        symm_bi_ops=[Int.__add__, Int.__mul__],
+        asymm_bi_ops=[Int.__sub__, Int.__floordiv__],
+    )
+    cond_expr = choose(
+        int_expr < int_expr,
+        int_expr <= int_expr,
+        int_expr == int_expr,
+        int_expr >= int_expr,
+        int_expr > int_expr,
+    )
+    return ite(cond_expr, int_expr, int_expr)
 
 
 def get_select_synth_from_hole(

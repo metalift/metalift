@@ -1,0 +1,7 @@
+Testing has taken more than 2hr for elewise_mul_nb. 2 runs has finished.
+elewise_mul_nb
+2686112.6034809276ms +/- 31108.35556127131ms
+matmul_nb
+22592.53919394687ms +/- 139.29709570731768ms
+multiquery_attention_part1_nb
+577.7526318095624ms +/- 28.915762384004783ms
