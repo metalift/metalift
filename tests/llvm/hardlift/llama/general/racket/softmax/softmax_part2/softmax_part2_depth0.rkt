@@ -52,20 +52,14 @@
 
 (define-grammar (softmax_part2_inv0_gram agg.result cur i input max_pos max_val)
  [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? agg.result (v0) ) ))]
-[v0 (choose (v1) (v2))]
-[v1 (choose (list-take-noerr input i ))]
-[v2 (choose (v3) (vec_elemwise_add (v1) (v1)) (vec_elemwise_sub (v1) (v1)) (vec_elemwise_mul (v1) (v1)) (vec_elemwise_div (v1) (v1)) (vec_scalar_add (v4) (v1)) (vec_scalar_sub (v4) (v1)) (vec_scalar_mul (v4) (v1)) (vec_scalar_div (v4) (v1)) (scalar_vec_sub (v4) (v1)) (scalar_vec_div (v4) (v1)))]
-[v3 (choose (vec_map (v1) map_int_to_int))]
-[v4 (choose max_val max_pos)]
+[v0 (choose (v1))]
+[v1 (choose (list-slice-noerr input 0 i ))]
 )
 
 (define-grammar (softmax_part2_ps_gram input max_pos max_val softmax_part2_rv)
  [rv (choose (equal? softmax_part2_rv (v0) ))]
-[v0 (choose (v1) (v2))]
-[v1 (choose (list-take-noerr input max_pos ))]
-[v2 (choose (v3) (vec_elemwise_add (v1) (v1)) (vec_elemwise_sub (v1) (v1)) (vec_elemwise_mul (v1) (v1)) (vec_elemwise_div (v1) (v1)) (vec_scalar_add (v4) (v1)) (vec_scalar_sub (v4) (v1)) (vec_scalar_mul (v4) (v1)) (vec_scalar_div (v4) (v1)) (scalar_vec_sub (v4) (v1)) (scalar_vec_div (v4) (v1)))]
-[v3 (choose (vec_map (v1) map_int_to_int))]
-[v4 (choose max_val max_pos)]
+[v0 (choose (v1))]
+[v1 (choose (list-slice-noerr input 0 max_pos ))]
 )
 
 (define-grammar (map_int_to_int_gram int_x)

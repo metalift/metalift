@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -17,7 +18,12 @@ def softmax_part3_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     output, max_pos = reads
-    vec = choose(output[:max_pos])
+    lower_bound = Int(0)
+    upper_bound = max_pos
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+    vec = choose(output[lower_bound:upper_bound])
     return ret_val == call_reduce_sum(vec)
 
 
@@ -26,12 +32,26 @@ def softmax_part3_inv0_grammar(
 ) -> Bool:
     output, max_pos = reads
     i, sum = writes
-    vec = choose(output[:i])
+    lower_bound = Int(0)
+    upper_bound = max_pos
+    slice_upper_bound = i
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+        slice_upper_bound = choose(
+            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
+        )
+    vec = choose(output[lower_bound:slice_upper_bound])
 
-    return and_objects(i >= 0, i <= max_pos, sum == call_reduce_sum(vec))
+    return and_objects(i >= lower_bound, i <= upper_bound, sum == call_reduce_sum(vec))
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+
     # Synthesize part 3
     driver = Driver()
     softmax_part3 = driver.analyze(
@@ -53,4 +73,7 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part3(output_var, max_pos_var)
-    driver.synthesize()
+
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+    driver.synthesize(filename=f"softmax_part3{depth_suffix}{relaxed_suffix}")
