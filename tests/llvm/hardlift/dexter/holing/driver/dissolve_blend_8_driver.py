@@ -2,10 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.hardlift.hardlift_common import (
-    dissolve_blend_8_hole_body,
-    get_dissolve_holing_search_space,
-)
+from tests.llvm.hardlift.hardlift_common import get_dissolve_holing_search_space
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
@@ -16,7 +13,7 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_dissolve_holing_search_space(driver, dissolve_blend_8_hole_body)
+    ) = get_dissolve_holing_search_space(driver)
     dissolve_blend_8 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/dexter/cpp/dissolve_blend_8.ll",
         loops_filepath="tests/llvm/hardlift/dexter/cpp/dissolve_blend_8.loops",

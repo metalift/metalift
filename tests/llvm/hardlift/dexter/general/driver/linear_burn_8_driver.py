@@ -15,7 +15,7 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_matrix_computation_general_search_space(depth=2, cons=[Int(32)])
+    ) = get_matrix_computation_general_search_space(depth=2, int_vars=[Int(32)])
     linear_burn_8 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/dexter/cpp/linear_burn_8.ll",
         loops_filepath="tests/llvm/hardlift/dexter/cpp/linear_burn_8.loops",
