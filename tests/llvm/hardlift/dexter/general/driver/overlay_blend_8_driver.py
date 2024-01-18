@@ -41,7 +41,7 @@ if __name__ == "__main__":
     overlay_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(rounds_to_guess=0)
+    driver.synthesize(filename="overlay_blend_8", rounds_to_guess=0)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + overlay_blend_8.codegen(codegen))

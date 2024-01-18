@@ -69,7 +69,7 @@ if __name__ == "__main__":
     normal_blend_f(base_var, active_var, opacity_var)
 
     start_time = time.time()
-    driver.synthesize()
+    driver.synthesize(filename="normal_blend_f")
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + normal_blend_f.codegen(codegen))
