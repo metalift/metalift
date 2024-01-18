@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -6,15 +7,23 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
-    call_reduce_sum,
-    call_vec_elemwise_mul,
-    reduce_sum,
-    vec_elemwise_mul,
+    get_map_int_to_int_synth,
+    get_matrix_or_vec_expr_eq_or_below_depth,
+    scalar_vec_to_vec_target_lang,
+    vec_to_int,
+    vec_to_int_target_lang,
+    vec_to_vec_target_lang,
+    vec_vec_to_vec_target_lang,
 )
 
 
 def rmsnorm_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_mul, reduce_sum]
+    return [
+        *vec_vec_to_vec_target_lang,
+        *scalar_vec_to_vec_target_lang,
+        *vec_to_vec_target_lang,
+        *vec_to_int_target_lang,
+    ]
 
 
 def rmsnorm_part1_ps_grammar(
@@ -22,8 +31,16 @@ def rmsnorm_part1_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     input, weight = reads
-    vec = choose(input, weight)
-    return ret_val == call_reduce_sum(call_vec_elemwise_mul(vec, vec))
+    lower_bound = Int(0)
+    upper_bound = input.len()
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+    vec = choose(input[lower_bound:upper_bound], weight[lower_bound:upper_bound])
+    vec = get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+    )
+    return ret_val == vec_to_int(vec)
 
 
 def rmsnorm_part1_inv0_grammar(
@@ -32,14 +49,32 @@ def rmsnorm_part1_inv0_grammar(
     # First loop
     input, weight = reads
     i, ss = writes
-    vec = choose(input[:i], weight[:i])
 
-    return and_objects(
-        i >= 0, i <= input.len(), ss == call_reduce_sum(call_vec_elemwise_mul(vec, vec))
+    lower_bound = Int(0)
+    upper_bound = input.len()
+    slice_upper_bound = i
+    if parser_args.relaxed:
+        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
+        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
+        slice_upper_bound = choose(
+            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
+        )
+    vec = choose(
+        input[lower_bound:slice_upper_bound], weight[lower_bound:slice_upper_bound]
     )
+    vec = get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+    )
+
+    return and_objects(i >= lower_bound, i <= upper_bound, ss == vec_to_int(vec))
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+
     # Synthesize the first loop
     driver = Driver()
     rmsnorm_part1 = driver.analyze(
@@ -60,4 +95,9 @@ if __name__ == "__main__":
     driver.add_precondition(input_var.len() > 0)
 
     rmsnorm_part1(input_var, weight_var)
-    driver.synthesize()
+    map_int_to_int_synth = get_map_int_to_int_synth()
+    driver.fns_synths = [map_int_to_int_synth]
+
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+    driver.synthesize(filename=f"rmsnorm_part1{depth_suffix}{relaxed_suffix}")
