@@ -1750,6 +1750,8 @@ def get_int_expr_with_depth(
         depth=depth - 1,
         depth_to_expr=depth_to_expr,
     )
+    expr_choices.append(call_integer_sqrt(depth_minus_one_expr))
+    expr_choices.append(call_integer_exp(depth_minus_one_expr))
     for other_depth in range(depth):
         other_expr = get_int_expr_with_depth(
             var=var,
