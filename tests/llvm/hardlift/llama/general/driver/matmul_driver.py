@@ -4,46 +4,28 @@ from typing import List, Union
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
-from metalift.ir import Matrix, Object, choose, ite
+from metalift.ir import Matrix, Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
-    call_matrix_vec_mul,
-    call_reduce_sum,
-    call_vec_elemwise_mul,
-    call_vec_scalar_mul,
+    get_int_expr_eq_or_below_depth,
     get_map_int_to_int_synth,
     get_matrix_or_vec_expr_eq_or_below_depth,
-    get_no_arg_bool_fn,
     matrix_vec_mul,
-    reduce_sum,
-    vec_elemwise_mul,
-    vec_scalar_mul,
+    scalar_vec_to_vec_target_lang,
+    vec_to_int,
+    vec_to_int_target_lang,
+    vec_to_vec_target_lang,
+    vec_vec_to_vec_target_lang,
 )
-
-# Some loop functions
-matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
-(
-    matrix_outer_loop_index_first_fn_decl,
-    matrix_outer_loop_index_first_synth,
-    is_matrix_outer_loop_index_first,
-) = get_no_arg_bool_fn(matrix_outer_loop_index_first_fn_name)
-
-vector_outer_loop_index_fn_name = "VECTOR_OUTER_LOOP_INDEX"
-(
-    vector_outer_loop_index_fn_decl,
-    vector_outer_loop_index_synth,
-    is_vector_outer_loop_index,
-) = get_no_arg_bool_fn(vector_outer_loop_index_fn_name)
 
 
 def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
+        *vec_vec_to_vec_target_lang,
+        *scalar_vec_to_vec_target_lang,
+        *vec_to_vec_target_lang,
+        *vec_to_int_target_lang,
         matrix_vec_mul,
-        vec_elemwise_mul,
-        vec_scalar_mul,
-        reduce_sum,
-        matrix_outer_loop_index_first_fn_decl,
-        vector_outer_loop_index_fn_decl,
     ]
 
 
@@ -52,47 +34,14 @@ def matmul_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     weight, input = reads
-    outer_loop_lower_bound = Int(0)
-    outer_loop_upper_bound = weight.len()
-    inner_loop_lower_bound = Int(0)
-    inner_loop_upper_bound = input.len()
-    if parser_args.relaxed:
-        outer_loop_lower_bound = choose(
-            outer_loop_lower_bound,
-            outer_loop_lower_bound - 1,
-            outer_loop_lower_bound + 1,
-        )
-        outer_loop_upper_bound = choose(
-            outer_loop_upper_bound,
-            outer_loop_upper_bound - 1,
-            outer_loop_upper_bound + 1,
-        )
-        inner_loop_lower_bound = choose(
-            inner_loop_lower_bound,
-            inner_loop_lower_bound - 1,
-            inner_loop_lower_bound + 1,
-        )
-        inner_loop_upper_bound = choose(
-            inner_loop_upper_bound,
-            inner_loop_upper_bound - 1,
-            inner_loop_upper_bound + 1,
-        )
+    slice_index = choose(Int(0), weight.len(), input.len()).maybe_relaxed(
+        parser_args.relaxed
+    )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
 
-    matrix = ite(
-        is_matrix_outer_loop_index_first(),
-        weight[outer_loop_lower_bound:outer_loop_upper_bound].col_slice(
-            inner_loop_lower_bound, inner_loop_upper_bound
-        ),
-        weight[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            outer_loop_lower_bound, outer_loop_upper_bound
-        ),
-    )
+    matrix = weight[slice_index:slice_index].col_slice(slice_index, slice_index)
     matrix = choose(matrix, matrix.transpose())
-    vec = ite(
-        is_vector_outer_loop_index(),
-        input[outer_loop_lower_bound:outer_loop_upper_bound],
-        input[inner_loop_lower_bound:inner_loop_upper_bound],
-    )
+    vec = choose(input[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
         int_vars=[Int(0), Int(1)],
@@ -110,48 +59,15 @@ def matmul_inv0_grammar(
 
     outer_loop_lower_bound = Int(0)
     outer_loop_upper_bound = weight.len()
-    inner_loop_lower_bound = Int(0)
-    inner_loop_upper_bound = input.len()
-    outer_loop_slice_upper_bound = row
-    if parser_args.relaxed:
-        outer_loop_lower_bound = choose(
-            outer_loop_lower_bound,
-            outer_loop_lower_bound - 1,
-            outer_loop_lower_bound + 1,
-        )
-        outer_loop_upper_bound = choose(
-            outer_loop_upper_bound,
-            outer_loop_upper_bound - 1,
-            outer_loop_upper_bound + 1,
-        )
-        inner_loop_lower_bound = choose(
-            inner_loop_lower_bound,
-            inner_loop_lower_bound - 1,
-            inner_loop_lower_bound + 1,
-        )
-        inner_loop_upper_bound = choose(
-            inner_loop_upper_bound,
-            inner_loop_upper_bound - 1,
-            inner_loop_upper_bound + 1,
-        )
-        outer_loop_slice_upper_bound = choose(
-            outer_loop_slice_upper_bound,
-            outer_loop_slice_upper_bound - 1,
-            outer_loop_slice_upper_bound + 1,
-        )
-    matrix = ite(
-        is_matrix_outer_loop_index_first(),
-        weight[outer_loop_lower_bound:outer_loop_slice_upper_bound],
-        weight[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            outer_loop_lower_bound, outer_loop_slice_upper_bound
-        ),
+
+    slice_index = choose(Int(0), row, weight.len(), input.len()).maybe_relaxed(
+        parser_args.relaxed
     )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
+
+    matrix = weight[slice_index:slice_index].col_slice(slice_index, slice_index)
     matrix = choose(matrix, matrix.transpose())
-    vec = ite(
-        is_vector_outer_loop_index(),
-        input[outer_loop_lower_bound:outer_loop_slice_upper_bound],
-        input[inner_loop_lower_bound:inner_loop_upper_bound],
-    )
+    vec = choose(input[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
         int_vars=[Int(0), Int(1)],
@@ -159,7 +75,9 @@ def matmul_inv0_grammar(
         additional_matrix=matrix,
     )
     return and_objects(
-        row >= outer_loop_lower_bound, row <= outer_loop_upper_bound, out == vec
+        row >= outer_loop_lower_bound.maybe_relaxed(parser_args.relaxed),
+        row <= outer_loop_upper_bound.maybe_relaxed(parser_args.relaxed),
+        out == vec,
     )
 
 
@@ -173,71 +91,28 @@ def matmul_inv1_grammar(
     outer_loop_upper_bound = weight.len()
     inner_loop_lower_bound = Int(0)
     inner_loop_upper_bound = input.len()
-    outer_loop_slice_upper_bound = row
-    inner_loop_slice_upper_bound = col
-    if parser_args.relaxed:
-        outer_loop_lower_bound = choose(
-            outer_loop_lower_bound,
-            outer_loop_lower_bound - 1,
-            outer_loop_lower_bound + 1,
-        )
-        outer_loop_upper_bound = choose(
-            outer_loop_upper_bound,
-            outer_loop_upper_bound - 1,
-            outer_loop_upper_bound + 1,
-        )
-        inner_loop_lower_bound = choose(
-            inner_loop_lower_bound,
-            inner_loop_lower_bound - 1,
-            inner_loop_lower_bound + 1,
-        )
-        inner_loop_upper_bound = choose(
-            inner_loop_upper_bound,
-            inner_loop_upper_bound - 1,
-            inner_loop_upper_bound + 1,
-        )
-        outer_loop_slice_upper_bound = choose(
-            outer_loop_slice_upper_bound,
-            outer_loop_slice_upper_bound - 1,
-            outer_loop_slice_upper_bound + 1,
-        )
-        inner_loop_slice_upper_bound = choose(
-            inner_loop_slice_upper_bound,
-            inner_loop_slice_upper_bound - 1,
-            inner_loop_slice_upper_bound + 1,
-        )
-    outer_loop_matrix = ite(
-        is_matrix_outer_loop_index_first(),
-        weight[outer_loop_lower_bound:outer_loop_slice_upper_bound],
-        weight[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            outer_loop_lower_bound, outer_loop_slice_upper_bound
-        ),
-    )
-    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
-    outer_loop_vec = ite(
-        is_vector_outer_loop_index(),
-        input[outer_loop_lower_bound:outer_loop_slice_upper_bound],
-        input[inner_loop_lower_bound:inner_loop_upper_bound],
-    )
 
-    inner_loop_weight_vec = ite(
-        is_matrix_outer_loop_index_first(),
-        weight[row][inner_loop_lower_bound:inner_loop_slice_upper_bound],
-        weight[inner_loop_lower_bound:inner_loop_slice_upper_bound].col_vec(row),
+    slice_index = choose(Int(0), row, weight.len(), input.len()).maybe_relaxed(
+        parser_args.relaxed
     )
-    inner_loop_vec_to_reduce = ite(
-        is_vector_outer_loop_index(),
-        call_vec_scalar_mul(input[row], inner_loop_weight_vec),
-        call_vec_elemwise_mul(inner_loop_weight_vec, input[:col]),
-    )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
 
+    matrix = weight[slice_index:slice_index].col_slice(slice_index, slice_index)
+    matrix = choose(matrix, matrix.transpose())
+    vec = choose(input[slice_index:slice_index], matrix[slice_index])
+    vec = get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec,
+        int_vars=[Int(0), Int(1)],
+        depth=parser_args.depth,
+        additional_matrix=matrix,
+    )
     return and_objects(
-        row >= 0,
-        row < weight.len(),
-        col >= 0,
-        col <= input.len(),
-        curr == call_reduce_sum(inner_loop_vec_to_reduce),
-        out == call_matrix_vec_mul(outer_loop_matrix, outer_loop_vec),
+        row >= outer_loop_lower_bound.maybe_relaxed(parser_args.relaxed),
+        row < outer_loop_upper_bound.maybe_relaxed(parser_args.relaxed),
+        col >= inner_loop_lower_bound.maybe_relaxed(parser_args.relaxed),
+        col <= inner_loop_upper_bound.maybe_relaxed(parser_args.relaxed),
+        curr == vec_to_int(vec),
+        out == vec,
     )
 
 
@@ -269,8 +144,6 @@ if __name__ == "__main__":
     map_int_to_int_synth = get_map_int_to_int_synth()
     driver.fns_synths = [
         map_int_to_int_synth,
-        matrix_outer_loop_index_first_synth,
-        vector_outer_loop_index_synth,
     ]
 
     matmul(weight_var, input_var)

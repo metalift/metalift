@@ -68,17 +68,20 @@
 [v1 (choose (length input ) (- (length input ) 1 ) (+ (length input ) 1 ))]
 [v2 (choose (reduce_sum (v3)) (reduce_mul (v3)) (reduce_max (v3)))]
 [v3 (choose (v4))]
-[v4 (choose (list-slice-noerr input (v0) (v5) ) (list-slice-noerr weight (v0) (v5) ))]
-[v5 (choose i (- i 1 ) (+ i 1 ))]
+[v4 (choose (list-slice-noerr input (v5) (v5) ) (list-slice-noerr weight (v5) (v5) ))]
+[v5 (choose (v6))]
+[v6 (choose (v7) (- (v7) 1 ) (+ (v7) 1 ))]
+[v7 (choose 0 (length input ) i)]
 )
 
 (define-grammar (rmsnorm_part1_ps_gram input weight rmsnorm_part1_rv)
  [rv (choose (equal? rmsnorm_part1_rv (v0) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (v2))]
-[v2 (choose (list-slice-noerr input (v3) (v4) ) (list-slice-noerr weight (v3) (v4) ))]
-[v3 (choose 0 (- 0 1 ) (+ 0 1 ))]
-[v4 (choose (length input ) (- (length input ) 1 ) (+ (length input ) 1 ))]
+[v2 (choose (list-slice-noerr input (v3) (v3) ) (list-slice-noerr weight (v3) (v3) ))]
+[v3 (choose (v4))]
+[v4 (choose (v5) (- (v5) 1 ) (+ (v5) 1 ))]
+[v5 (choose 0 (length input ))]
 )
 
 (define-grammar (map_int_to_int_gram int_x)

@@ -7,8 +7,9 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
+    get_int_expr_eq_or_below_depth,
     get_map_int_to_int_synth,
-    get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar,
+    get_matrix_or_vec_expr_eq_or_below_depth,
     vec_elemwise_mul,
     vec_scalar_mul,
 )
@@ -26,12 +27,12 @@ def rmsnorm_part2_ps_grammar(
 
     lower_bound = Int(0)
     upper_bound = input.len()
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-
-    vec = choose(input[lower_bound:upper_bound], weight[lower_bound:upper_bound])
-    return ret_val == get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
+    slice_index = choose(lower_bound, upper_bound, Int(1), ss).maybe_relaxed(
+        parser_args.relaxed
+    )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
+    vec = choose(input[slice_index:slice_index], weight[slice_index:slice_index])
+    return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
         int_vars=[Int(1), ss, input.len()],
         depth=parser_args.depth,
@@ -48,21 +49,16 @@ def rmsnorm_part2_inv0_grammar(
 
     lower_bound = Int(0)
     upper_bound = input.len()
-    slice_upper_bound = i
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-        slice_upper_bound = choose(
-            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
-        )
-    vec = choose(
-        input[lower_bound:slice_upper_bound], weight[lower_bound:slice_upper_bound]
+    slice_index = choose(lower_bound, upper_bound, i, Int(1), ss).maybe_relaxed(
+        parser_args.relaxed
     )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
+    vec = choose(input[slice_index:slice_index], weight[slice_index:slice_index])
     return and_objects(
-        i >= lower_bound,
-        i <= upper_bound,
+        i >= lower_bound.maybe_relaxed(parser_args.depth),
+        i <= upper_bound.maybe_relaxed(parser_args.depth),
         out
-        == get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
+        == get_matrix_or_vec_expr_eq_or_below_depth(
             matrix_or_vec_var=vec,
             int_vars=[Int(1), ss, input.len()],
             depth=parser_args.depth,
