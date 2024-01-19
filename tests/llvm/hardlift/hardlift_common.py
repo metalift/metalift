@@ -1136,7 +1136,7 @@ vec_to_vec_target_lang = [vec_map, map_int_to_int]
 
 
 def get_matrix_computation_general_search_space(
-    depth: int, int_vars: List[Int]
+    depth: int, int_vars: List[Int], relaxed: bool
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1144,24 +1144,19 @@ def get_matrix_computation_general_search_space(
     Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
     List[Synth],
 ]:
-    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
-    (
-        outer_loop_index_first_fn_decl,
-        outer_loop_index_first_synth,
-        is_outer_loop_index_first,
-    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
-
     # Target language
     def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return [
-            outer_loop_index_first_fn_decl,
+            matrix_vec_mul,
+            reduce_sum,
+            *vec_to_vec_target_lang,
             *scalar_vec_to_vec_target_lang,
             *scalar_matrix_to_matrix_target_lang,
             *vec_vec_to_vec_target_lang,
             *matrix_matrix_to_matrix_target_lang,
         ]
 
-    fns_synths = [outer_loop_index_first_synth]
+    fns_synths = [get_map_int_to_int_synth()]
 
     # inv0 grammar
     def inv0_grammar_fn(
@@ -1169,17 +1164,17 @@ def get_matrix_computation_general_search_space(
     ) -> Bool:
         out, col, pixel, row, row_vec = writes
         base, active = reads
-        int_vars = [row, col]
-        matrix = choose(base, active)
-        matrix = ite(
-            is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:row],
-            matrix.col_slice(0, row),
+        lower_bound = Int(0)
+        upper_bound = base.len()
+        slice_index = choose(lower_bound, upper_bound, row, *int_vars).maybe_relaxed(
+            relaxed
         )
+        matrix = choose(base, active)
+        matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
-            row >= 0,
-            row <= base.len(),
+            row >= lower_bound.maybe_relaxed(relaxed),
+            row <= upper_bound.maybe_relaxed(relaxed),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
                 matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
@@ -1192,30 +1187,32 @@ def get_matrix_computation_general_search_space(
         col, pixel, row_vec = writes
         out, row = in_scope
         base, active = reads
+        outer_loop_lower_bound = Int(0)
+        outer_loop_upper_bound = base.len()
+        inner_loop_lower_bound = Int(0)
+        inner_loop_upper_bound = base[0].len()
+        slice_index = choose(
+            Int(0), base.len(), base[0].len(), row, col, *int_vars
+        ).maybe_relaxed(relaxed)
         matrix = choose(base, active)
-        outer_loop_matrix = ite(
-            is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:row],
-            matrix.col_slice(0, row),
-        )
-        outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
-        inner_loop_vec = ite(
-            is_outer_loop_index_first(),
-            matrix[row][:col],
-            matrix[:col].col_vec(row),
-        )
+        matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
+        matrix = choose(matrix, matrix.transpose())
+        vec = matrix[slice_index]
         return and_objects(
-            row >= 0,
-            row <= base.len(),
-            col >= 0,
-            col <= base[0].len(),
+            row >= outer_loop_lower_bound,
+            row <= outer_loop_upper_bound,
+            col >= inner_loop_lower_bound,
+            col <= inner_loop_upper_bound,
             row_vec
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=inner_loop_vec, int_vars=int_vars, depth=depth
+                matrix_or_vec_var=vec,
+                int_vars=int_vars,
+                depth=depth,
+                additional_matrix=matrix,
             ),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=outer_loop_matrix, int_vars=int_vars, depth=depth
+                matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
             ),
         )
 
@@ -1225,6 +1222,10 @@ def get_matrix_computation_general_search_space(
         ret_val = writes[0]
         base, active = reads
         matrix = choose(base, active)
+        slice_index = choose(
+            Int(0), base.len(), base[0].len(), *int_vars
+        ).maybe_relaxed(relaxed)
+        matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
             matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
@@ -1326,7 +1327,7 @@ def get_matrix_computation_holing_search_space(
 
 
 def get_matrix_select_search_space(
-    select_synth: Synth,
+    select_synth: Synth, relaxed: bool
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1334,24 +1335,23 @@ def get_matrix_select_search_space(
     Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
     List[Synth],
 ]:
-    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
-    (
-        outer_loop_index_first_fn_decl,
-        outer_loop_index_first_synth,
-        is_outer_loop_index_first,
-    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
-
     # Target language
     def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return [
-            outer_loop_index_first_fn_decl,
+            matrix_vec_mul,
+            reduce_sum,
             select_two_args_fn_decl,
             selection_two_args_fn_decl,
             matrix_selection_two_args_fn_decl,
+            *vec_to_vec_target_lang,
+            *scalar_vec_to_vec_target_lang,
+            *scalar_matrix_to_matrix_target_lang,
+            *vec_vec_to_vec_target_lang,
+            *matrix_matrix_to_matrix_target_lang,
         ]
 
     # Functions to synthesize
-    fns_synths = [select_synth, outer_loop_index_first_synth]
+    fns_synths = [select_synth, get_map_int_to_int_synth()]
 
     # inv0 grammar
     def inv0_grammar_fn(
@@ -1367,15 +1367,14 @@ def get_matrix_select_search_space(
         active = reads_by_name["active"]
 
         matrix = choose(base, active)
-        matrix = ite(
-            is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:row],
-            matrix.col_slice(0, row),
-        )
+        lower_bound = Int(0)
+        upper_bound = base.len()
+        slice_index = choose(lower_bound, upper_bound, row).maybe_relaxed(relaxed)
+        matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
-            row >= 0,
-            row <= base.len(),
+            row >= lower_bound.maybe_relaxed(relaxed),
+            row <= upper_bound.maybe_relaxed(relaxed),
             out
             == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
         )
@@ -1398,30 +1397,25 @@ def get_matrix_select_search_space(
         active = reads_by_name["active"]
 
         matrix = choose(base, active)
-        outer_loop_matrix = ite(
-            is_outer_loop_index_first(),  # Then outer loop has to be over row
-            matrix[:row],
-            matrix.col_slice(0, row),
+        slice_index = choose(Int(0), base.len(), base[0].len(), row, col).maybe_relaxed(
+            relaxed
         )
-        outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
-        inner_loop_vec = ite(
-            is_outer_loop_index_first(),
-            matrix[row][:col],
-            matrix[:col].col_vec(row),
-        )
+        matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
+        matrix = choose(matrix, matrix.transpose())
+        vec = matrix[slice_index]
+
+        outer_loop_lower_bound = Int(0)
+        outer_loop_upper_bound = base.len()
+        inner_loop_lower_bound = Int(0)
+        inner_loop_upper_bound = base[0].len()
         return and_objects(
-            row >= 0,
-            row <= base.len(),
-            col >= 0,
-            col <= base[0].len(),
-            row_vec
-            == call_selection_two_args(
-                inner_loop_vec, inner_loop_vec, select_two_args_fn_obj
-            ),
+            row >= outer_loop_lower_bound.maybe_relaxed(relaxed),
+            row <= outer_loop_upper_bound.maybe_relaxed(relaxed),
+            col >= inner_loop_lower_bound.maybe_relaxed(relaxed),
+            col <= inner_loop_upper_bound.maybe_relaxed(relaxed),
+            row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
             out
-            == call_matrix_selection_two_args(
-                outer_loop_matrix, outer_loop_matrix, select_two_args_fn_obj
-            ),
+            == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
         )
 
     def ps_grammar_fn(
@@ -1431,8 +1425,10 @@ def get_matrix_select_search_space(
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
         base = reads_by_name["base"]
         active = reads_by_name["active"]
+        slice_index = choose(Int(0), base.len(), base[0].len()).maybe_relaxed(relaxed)
         matrix = choose(base, active)
         matrix = choose(matrix, matrix.transpose())
+        matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         return ret_val == call_matrix_selection_two_args(
             matrix, matrix, select_two_args_fn_obj
         )
@@ -1469,7 +1465,7 @@ def get_matrix_select_holing_search_space(
 
 
 def get_matrix_select_general_search_space(
-    driver: Driver, depth: int, cons: Int
+    driver: Driver, depth: int, cons: Int, relaxed: bool
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1483,7 +1479,7 @@ def get_matrix_select_general_search_space(
     select_synth = synth(
         SELECT_TWO_ARGS, get_cond_expr_eq_or_below_depth(int_var, depth), int_x, int_y
     )
-    return get_matrix_select_search_space(select_synth)
+    return get_matrix_select_search_space(select_synth, relaxed)
 
 
 def get_dissolve_search_space(

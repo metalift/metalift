@@ -1,3 +1,4 @@
+import argparse
 import time
 
 from metalift.frontend.llvm import Driver
@@ -8,6 +9,11 @@ from tests.llvm.hardlift.hardlift_common import (
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+
     driver = Driver()
     (
         inv0_grammar,
@@ -15,7 +21,9 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_matrix_computation_general_search_space(depth=1, int_vars=[])
+    ) = get_matrix_computation_general_search_space(
+        depth=parser_args.depth, int_vars=[Int(0), Int(1)], relaxed=parser_args.relaxed
+    )
     linear_dodge_8 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/dexter/cpp/linear_dodge_8.ll",
         loops_filepath="tests/llvm/hardlift/dexter/cpp/linear_dodge_8.loops",
@@ -41,7 +49,10 @@ if __name__ == "__main__":
     linear_dodge_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(rounds_to_guess=0)
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+    driver.synthesize(filename=f"linear_dodge_8{depth_suffix}{relaxed_suffix}")
+
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + linear_dodge_8.codegen(codegen))
