@@ -1608,7 +1608,7 @@ class MetaliftFunc:
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
-    synthesized: Optional[Object]
+    synthesized: Optional[Object]  # TODO(colin): change this into list
 
     loops: List[LoopInfo]
 

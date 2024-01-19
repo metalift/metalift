@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
@@ -1667,6 +1667,7 @@ def get_matrix_or_vec_expr_with_depth(
     int_vars: List[Int],
     depth: int,
     depth_to_expr: Dict[int, Any],
+    additional_matrix: Optional[Matrix[Int]] = None,
 ) -> MatrixOrVecT:
     if depth in depth_to_expr.keys():
         return depth_to_expr[depth]
@@ -1679,6 +1680,7 @@ def get_matrix_or_vec_expr_with_depth(
         int_vars=int_vars,
         depth=depth - 1,
         depth_to_expr=depth_to_expr,
+        additional_matrix=additional_matrix,
     )
     if not depth_minus_one_expr.is_nested:
         expr_choices.append(vec_to_vec(depth_minus_one_expr))
@@ -1688,6 +1690,7 @@ def get_matrix_or_vec_expr_with_depth(
             int_vars=int_vars,
             depth=other_depth,
             depth_to_expr=depth_to_expr,
+            additional_matrix=additional_matrix,
         )
         expr_choices.append(call_elemwise_add(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_sub(depth_minus_one_expr, other_expr))
@@ -1701,6 +1704,10 @@ def get_matrix_or_vec_expr_with_depth(
             expr_choices.append(call_scalar_div(scalar, depth_minus_one_expr))
             expr_choices.append(call_scalar_rsub(scalar, depth_minus_one_expr))
             expr_choices.append(call_scalar_rdiv(scalar, depth_minus_one_expr))
+        if additional_matrix is not None and not matrix_or_vec_var.is_nested:
+            expr_choices.append(
+                call_matrix_vec_mul(additional_matrix, depth_minus_one_expr)
+            )
 
         if other_depth != depth - 1:
             expr_choices.append(call_elemwise_sub(other_expr, depth_minus_one_expr))
@@ -1720,6 +1727,7 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
     matrix_or_vec_var: MatrixOrVecT,
     int_vars: List[Int],
     depth: int,
+    additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
     depth_to_expr: Dict[int, Any] = {}
     for curr_depth in range(0, depth + 1):
@@ -1728,9 +1736,37 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
             int_vars=int_vars,
             depth=curr_depth,
             depth_to_expr=depth_to_expr,
+            additional_matrix=additional_matrix,
         )
     final_expr = choose(*[expr for expr in depth_to_expr.values()])
     return final_expr
+
+
+def get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
+    matrix_or_vec_var: MatrixOrVecT, int_vars: List[Int], depth: int
+) -> Int:
+    scalar = choose(*int_vars)
+    matrix_or_vec = matrix_or_vec_var
+    for _ in range(depth):
+        scalar = choose(
+            scalar, scalar + scalar, scalar - scalar, scalar * scalar, scalar // scalar
+        )
+        matrix_or_vec = choose(
+            matrix_or_vec,
+            call_elemwise_add(matrix_or_vec, matrix_or_vec),
+            call_elemwise_sub(matrix_or_vec, matrix_or_vec),
+            call_elemwise_mul(matrix_or_vec, matrix_or_vec),
+            call_elemwise_div(matrix_or_vec, matrix_or_vec),
+            call_scalar_add(scalar, matrix_or_vec),
+            call_scalar_sub(scalar, matrix_or_vec),
+            call_scalar_mul(scalar, matrix_or_vec),
+            call_scalar_div(scalar, matrix_or_vec),
+            call_scalar_rsub(scalar, matrix_or_vec),
+            call_scalar_rdiv(scalar, matrix_or_vec),
+        )
+        if not matrix_or_vec.is_nested:
+            matrix_or_vec = choose(matrix_or_vec, vec_to_vec(matrix_or_vec))
+    return matrix_or_vec
 
 
 def get_int_expr_with_depth(

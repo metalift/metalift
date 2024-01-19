@@ -8,7 +8,7 @@ from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
     get_map_int_to_int_synth,
-    get_matrix_or_vec_expr_eq_or_below_depth,
+    get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar,
     vec_elemwise_mul,
     vec_scalar_mul,
 )
@@ -31,7 +31,7 @@ def rmsnorm_part2_ps_grammar(
         upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
 
     vec = choose(input[lower_bound:upper_bound], weight[lower_bound:upper_bound])
-    return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
+    return ret_val == get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
         matrix_or_vec_var=vec,
         int_vars=[Int(1), ss, input.len()],
         depth=parser_args.depth,
@@ -62,7 +62,7 @@ def rmsnorm_part2_inv0_grammar(
         i >= lower_bound,
         i <= upper_bound,
         out
-        == get_matrix_or_vec_expr_eq_or_below_depth(
+        == get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
             matrix_or_vec_var=vec,
             int_vars=[Int(1), ss, input.len()],
             depth=parser_args.depth,

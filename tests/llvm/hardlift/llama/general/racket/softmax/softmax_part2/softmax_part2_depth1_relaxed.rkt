@@ -54,23 +54,22 @@
  [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? agg.result (v2) ) ))]
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
 [v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
-[v2 (choose (v3) (v5))]
-[v3 (choose (list-slice-noerr input (v0) (v4) ))]
-[v4 (choose i (- i 1 ) (+ i 1 ))]
-[v5 (choose (v6) (vec_elemwise_add (v3) (v3)) (vec_elemwise_sub (v3) (v3)) (vec_elemwise_mul (v3) (v3)) (vec_elemwise_div (v3) (v3)) (vec_scalar_add (v7) (v3)) (vec_scalar_sub (v7) (v3)) (vec_scalar_mul (v7) (v3)) (vec_scalar_div (v7) (v3)) (scalar_vec_sub (v7) (v3)) (scalar_vec_div (v7) (v3)))]
-[v6 (choose (vec_map (v3) map_int_to_int))]
+[v2 (choose (list-slice-noerr input (v3) (v3) ) (v5))]
+[v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
+[v4 (choose 0 max_pos i max_val)]
+[v5 (choose (v6) (vec_elemwise_add (list-slice-noerr input (v3) (v3) ) (list-slice-noerr input (v3) (v3) )) (vec_elemwise_sub (list-slice-noerr input (v3) (v3) ) (list-slice-noerr input (v3) (v3) )) (vec_elemwise_mul (list-slice-noerr input (v3) (v3) ) (list-slice-noerr input (v3) (v3) )) (vec_elemwise_div (list-slice-noerr input (v3) (v3) ) (list-slice-noerr input (v3) (v3) )) (vec_scalar_add (v7) (list-slice-noerr input (v3) (v3) )) (vec_scalar_sub (v7) (list-slice-noerr input (v3) (v3) )) (vec_scalar_mul (v7) (list-slice-noerr input (v3) (v3) )) (vec_scalar_div (v7) (list-slice-noerr input (v3) (v3) )) (scalar_vec_sub (v7) (list-slice-noerr input (v3) (v3) )) (scalar_vec_div (v7) (list-slice-noerr input (v3) (v3) )))]
+[v6 (choose (vec_map (list-slice-noerr input (v3) (v3) ) map_int_to_int))]
 [v7 (choose max_val max_pos)]
 )
 
 (define-grammar (softmax_part2_ps_gram input max_pos max_val softmax_part2_rv)
  [rv (choose (equal? softmax_part2_rv (v0) ))]
-[v0 (choose (v1) (v4))]
-[v1 (choose (list-slice-noerr input (v2) (v3) ))]
-[v2 (choose 0 (- 0 1 ) (+ 0 1 ))]
-[v3 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
-[v4 (choose (v5) (vec_elemwise_add (v1) (v1)) (vec_elemwise_sub (v1) (v1)) (vec_elemwise_mul (v1) (v1)) (vec_elemwise_div (v1) (v1)) (vec_scalar_add (v6) (v1)) (vec_scalar_sub (v6) (v1)) (vec_scalar_mul (v6) (v1)) (vec_scalar_div (v6) (v1)) (scalar_vec_sub (v6) (v1)) (scalar_vec_div (v6) (v1)))]
-[v5 (choose (vec_map (v1) map_int_to_int))]
-[v6 (choose max_val max_pos)]
+[v0 (choose (list-slice-noerr input (v1) (v1) ) (v3))]
+[v1 (choose (v2) (- (v2) 1 ) (+ (v2) 1 ))]
+[v2 (choose 0 max_pos max_val)]
+[v3 (choose (v4) (vec_elemwise_add (list-slice-noerr input (v1) (v1) ) (list-slice-noerr input (v1) (v1) )) (vec_elemwise_sub (list-slice-noerr input (v1) (v1) ) (list-slice-noerr input (v1) (v1) )) (vec_elemwise_mul (list-slice-noerr input (v1) (v1) ) (list-slice-noerr input (v1) (v1) )) (vec_elemwise_div (list-slice-noerr input (v1) (v1) ) (list-slice-noerr input (v1) (v1) )) (vec_scalar_add (v5) (list-slice-noerr input (v1) (v1) )) (vec_scalar_sub (v5) (list-slice-noerr input (v1) (v1) )) (vec_scalar_mul (v5) (list-slice-noerr input (v1) (v1) )) (vec_scalar_div (v5) (list-slice-noerr input (v1) (v1) )) (scalar_vec_sub (v5) (list-slice-noerr input (v1) (v1) )) (scalar_vec_div (v5) (list-slice-noerr input (v1) (v1) )))]
+[v4 (choose (vec_map (list-slice-noerr input (v1) (v1) ) map_int_to_int))]
+[v5 (choose max_val max_pos)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)

@@ -42,7 +42,10 @@ if __name__ == "__main__":
     linear_dodge_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(rounds_to_guess=0)
+    driver.synthesize(filename="linear_dodge_8", rounds_to_guess=0, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
+    import pdb
+
+    pdb.set_trace()
     print("\n\ngenerated code:" + linear_dodge_8.codegen(codegen))

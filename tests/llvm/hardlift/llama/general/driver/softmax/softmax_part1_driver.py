@@ -18,12 +18,8 @@ def softmax_part1_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
-    lower_bound = Int(1)
-    upper_bound = max_pos
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-    vec = choose(input[lower_bound:upper_bound])
+    slice_index = choose(Int(1), max_pos).maybe_relaxed(parser_args.relaxed)
+    vec = input[slice_index:slice_index]
     return ret_val == vec_to_int(vec)
 
 
@@ -32,17 +28,13 @@ def softmax_part1_inv0_grammar(
 ) -> Bool:
     input, max_pos = reads
     i, max_val = writes
-    lower_bound = Int(1)
-    upper_bound = max_pos
-    slice_upper_bound = i
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-        slice_upper_bound = choose(
-            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
-        )
-    vec = input[lower_bound:slice_upper_bound]
-    return and_objects(i >= lower_bound, i <= upper_bound, max_val == vec_to_int(vec))
+    slice_index = choose(Int(1), max_pos, i).maybe_relaxed(parser_args.relaxed)
+    vec = input[slice_index:slice_index]
+    return and_objects(
+        i >= Int(1).maybe_relaxed(parser_args.relaxed),
+        i <= max_pos.maybe_relaxed(parser_args.relaxed),
+        max_val == vec_to_int(vec),
+    )
 
 
 if __name__ == "__main__":
@@ -72,4 +64,4 @@ if __name__ == "__main__":
 
     softmax_part1(input_var, max_pos_var)
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
-    driver.synthesize(filename=f"softmax_part1{relaxed_suffix}")
+    driver.synthesize(filename=f"softmax_part1_depth0{relaxed_suffix}")
