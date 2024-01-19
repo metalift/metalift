@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -10,6 +11,8 @@ from tests.llvm.hardlift.hardlift_common import (
     call_reduce_sum,
     call_vec_elemwise_mul,
     call_vec_scalar_mul,
+    get_map_int_to_int_synth,
+    get_matrix_or_vec_expr_eq_or_below_depth,
     get_no_arg_bool_fn,
     matrix_vec_mul,
     reduce_sum,
@@ -49,14 +52,54 @@ def matmul_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     weight, input = reads
+    outer_loop_lower_bound = Int(0)
+    outer_loop_upper_bound = weight.len()
+    inner_loop_lower_bound = Int(0)
+    inner_loop_upper_bound = input.len()
+    if parser_args.relaxed:
+        outer_loop_lower_bound = choose(
+            outer_loop_lower_bound,
+            outer_loop_lower_bound - 1,
+            outer_loop_lower_bound + 1,
+        )
+        outer_loop_upper_bound = choose(
+            outer_loop_upper_bound,
+            outer_loop_upper_bound - 1,
+            outer_loop_upper_bound + 1,
+        )
+        inner_loop_lower_bound = choose(
+            inner_loop_lower_bound,
+            inner_loop_lower_bound - 1,
+            inner_loop_lower_bound + 1,
+        )
+        inner_loop_upper_bound = choose(
+            inner_loop_upper_bound,
+            inner_loop_upper_bound - 1,
+            inner_loop_upper_bound + 1,
+        )
+
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        weight,
-        weight[0 : input.len()].col_slice(0, weight.len()),
+        weight[outer_loop_lower_bound:outer_loop_upper_bound].col_slice(
+            inner_loop_lower_bound, inner_loop_upper_bound
+        ),
+        weight[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
+            outer_loop_lower_bound, outer_loop_upper_bound
+        ),
     )
     matrix = choose(matrix, matrix.transpose())
-    vec = ite(is_vector_outer_loop_index(), input[: weight.len()], input)
-    return ret_val == call_matrix_vec_mul(matrix, vec)
+    vec = ite(
+        is_vector_outer_loop_index(),
+        input[outer_loop_lower_bound:outer_loop_upper_bound],
+        input[inner_loop_lower_bound:inner_loop_upper_bound],
+    )
+    vec = get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec,
+        int_vars=[Int(0), Int(1)],
+        depth=parser_args.depth,
+        additional_matrix=matrix,
+    )
+    return ret_val == vec
 
 
 def matmul_inv0_grammar(
@@ -64,16 +107,59 @@ def matmul_inv0_grammar(
 ) -> Bool:
     weight, input = reads
     out, col, _, row = writes
+
+    outer_loop_lower_bound = Int(0)
+    outer_loop_upper_bound = weight.len()
+    inner_loop_lower_bound = Int(0)
+    inner_loop_upper_bound = input.len()
+    outer_loop_slice_upper_bound = row
+    if parser_args.relaxed:
+        outer_loop_lower_bound = choose(
+            outer_loop_lower_bound,
+            outer_loop_lower_bound - 1,
+            outer_loop_lower_bound + 1,
+        )
+        outer_loop_upper_bound = choose(
+            outer_loop_upper_bound,
+            outer_loop_upper_bound - 1,
+            outer_loop_upper_bound + 1,
+        )
+        inner_loop_lower_bound = choose(
+            inner_loop_lower_bound,
+            inner_loop_lower_bound - 1,
+            inner_loop_lower_bound + 1,
+        )
+        inner_loop_upper_bound = choose(
+            inner_loop_upper_bound,
+            inner_loop_upper_bound - 1,
+            inner_loop_upper_bound + 1,
+        )
+        outer_loop_slice_upper_bound = choose(
+            outer_loop_slice_upper_bound,
+            outer_loop_slice_upper_bound - 1,
+            outer_loop_slice_upper_bound + 1,
+        )
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        weight[:row],
-        weight[0 : input.len()].col_slice(0, row),
+        weight[outer_loop_lower_bound:outer_loop_slice_upper_bound],
+        weight[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
+            outer_loop_lower_bound, outer_loop_slice_upper_bound
+        ),
     )
     matrix = choose(matrix, matrix.transpose())
-    vec = ite(is_vector_outer_loop_index(), input[:row], input)
-
+    vec = ite(
+        is_vector_outer_loop_index(),
+        input[outer_loop_lower_bound:outer_loop_slice_upper_bound],
+        input[inner_loop_lower_bound:inner_loop_upper_bound],
+    )
+    vec = get_matrix_or_vec_expr_eq_or_below_depth(
+        matrix_or_vec_var=vec,
+        int_vars=[Int(0), Int(1)],
+        depth=parser_args.depth,
+        additional_matrix=matrix,
+    )
     return and_objects(
-        row >= 0, row <= weight.len(), out == call_matrix_vec_mul(matrix, vec)
+        row >= outer_loop_lower_bound, row <= outer_loop_upper_bound, out == vec
     )
 
 
@@ -83,16 +169,61 @@ def matmul_inv1_grammar(
     col, curr = writes
     weight, input = reads
     out, row = in_scope
+    outer_loop_lower_bound = Int(0)
+    outer_loop_upper_bound = weight.len()
+    inner_loop_lower_bound = Int(0)
+    inner_loop_upper_bound = input.len()
+    outer_loop_slice_upper_bound = row
+    inner_loop_slice_upper_bound = col
+    if parser_args.relaxed:
+        outer_loop_lower_bound = choose(
+            outer_loop_lower_bound,
+            outer_loop_lower_bound - 1,
+            outer_loop_lower_bound + 1,
+        )
+        outer_loop_upper_bound = choose(
+            outer_loop_upper_bound,
+            outer_loop_upper_bound - 1,
+            outer_loop_upper_bound + 1,
+        )
+        inner_loop_lower_bound = choose(
+            inner_loop_lower_bound,
+            inner_loop_lower_bound - 1,
+            inner_loop_lower_bound + 1,
+        )
+        inner_loop_upper_bound = choose(
+            inner_loop_upper_bound,
+            inner_loop_upper_bound - 1,
+            inner_loop_upper_bound + 1,
+        )
+        outer_loop_slice_upper_bound = choose(
+            outer_loop_slice_upper_bound,
+            outer_loop_slice_upper_bound - 1,
+            outer_loop_slice_upper_bound + 1,
+        )
+        inner_loop_slice_upper_bound = choose(
+            inner_loop_slice_upper_bound,
+            inner_loop_slice_upper_bound - 1,
+            inner_loop_slice_upper_bound + 1,
+        )
     outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        weight[:row],
-        weight[0 : input.len()].col_slice(0, row),
+        weight[outer_loop_lower_bound:outer_loop_slice_upper_bound],
+        weight[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
+            outer_loop_lower_bound, outer_loop_slice_upper_bound
+        ),
     )
     outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
-    outer_loop_vec = ite(is_vector_outer_loop_index(), input[:row], input)
+    outer_loop_vec = ite(
+        is_vector_outer_loop_index(),
+        input[outer_loop_lower_bound:outer_loop_slice_upper_bound],
+        input[inner_loop_lower_bound:inner_loop_upper_bound],
+    )
 
     inner_loop_weight_vec = ite(
-        is_matrix_outer_loop_index_first(), weight[row][:col], weight[:col].col_vec(row)
+        is_matrix_outer_loop_index_first(),
+        weight[row][inner_loop_lower_bound:inner_loop_slice_upper_bound],
+        weight[inner_loop_lower_bound:inner_loop_slice_upper_bound].col_vec(row),
     )
     inner_loop_vec_to_reduce = ite(
         is_vector_outer_loop_index(),
@@ -111,6 +242,11 @@ def matmul_inv1_grammar(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+
     driver = Driver()
     matmul = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/llama/cpp/matmul.ll",
@@ -130,10 +266,15 @@ if __name__ == "__main__":
     driver.add_precondition(weight_var.len() > 0)
     driver.add_precondition(weight_var[0].len() > 0)
     driver.add_precondition(weight_var[0].len() == input_var.len())
+    map_int_to_int_synth = get_map_int_to_int_synth()
     driver.fns_synths = [
+        map_int_to_int_synth,
         matrix_outer_loop_index_first_synth,
         vector_outer_loop_index_synth,
     ]
 
     matmul(weight_var, input_var)
-    driver.synthesize()
+
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+    driver.synthesize(filename=f"matmul{depth_suffix}{relaxed_suffix}")

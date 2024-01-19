@@ -917,6 +917,11 @@ class Int(Object):
     def type(self) -> typing.Type["Int"]:
         return Int
 
+    def maybe_relaxed(self, relaxed: bool = False) -> "Int":
+        if relaxed:
+            return choose(self, self - 1, self + 1)
+        return self
+
     @staticmethod
     def default_value() -> "Int":
         return Int(0)

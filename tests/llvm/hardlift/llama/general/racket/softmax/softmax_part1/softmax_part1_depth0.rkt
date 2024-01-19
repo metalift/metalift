@@ -20,13 +20,14 @@
 
 (define-grammar (softmax_part1_inv0_gram i input max_pos max_val)
  [rv (choose (&& (&& (>= i 1 ) (<= i max_pos ) ) (equal? max_val (v0) ) ))]
-[v0 (choose (reduce_sum (list-slice-noerr input 1 i )) (reduce_mul (list-slice-noerr input 1 i )) (reduce_max (list-slice-noerr input 1 i )))]
+[v0 (choose (reduce_sum (list-slice-noerr input (v1) (v1) )) (reduce_mul (list-slice-noerr input (v1) (v1) )) (reduce_max (list-slice-noerr input (v1) (v1) )))]
+[v1 (choose 1 max_pos i)]
 )
 
 (define-grammar (softmax_part1_ps_gram input max_pos softmax_part1_rv)
  [rv (choose (equal? softmax_part1_rv (v0) ))]
-[v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
-[v1 (choose (list-slice-noerr input 1 max_pos ))]
+[v0 (choose (reduce_sum (list-slice-noerr input (v1) (v1) )) (reduce_mul (list-slice-noerr input (v1) (v1) )) (reduce_max (list-slice-noerr input (v1) (v1) )))]
+[v1 (choose 1 max_pos)]
 )
 
 (define (softmax_part1_inv0 i input max_pos max_val) (softmax_part1_inv0_gram i input max_pos max_val #:depth 10))

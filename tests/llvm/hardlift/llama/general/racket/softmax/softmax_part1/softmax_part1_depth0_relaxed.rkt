@@ -22,16 +22,16 @@
  [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? max_val (v2) ) ))]
 [v0 (choose 1 (- 1 1 ) (+ 1 1 ))]
 [v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
-[v2 (choose (reduce_sum (list-slice-noerr input (v0) (v3) )) (reduce_mul (list-slice-noerr input (v0) (v3) )) (reduce_max (list-slice-noerr input (v0) (v3) )))]
-[v3 (choose i (- i 1 ) (+ i 1 ))]
+[v2 (choose (reduce_sum (list-slice-noerr input (v3) (v3) )) (reduce_mul (list-slice-noerr input (v3) (v3) )) (reduce_max (list-slice-noerr input (v3) (v3) )))]
+[v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
+[v4 (choose 1 max_pos i)]
 )
 
 (define-grammar (softmax_part1_ps_gram input max_pos softmax_part1_rv)
  [rv (choose (equal? softmax_part1_rv (v0) ))]
-[v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
-[v1 (choose (list-slice-noerr input (v2) (v3) ))]
-[v2 (choose 1 (- 1 1 ) (+ 1 1 ))]
-[v3 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
+[v0 (choose (reduce_sum (list-slice-noerr input (v1) (v1) )) (reduce_mul (list-slice-noerr input (v1) (v1) )) (reduce_max (list-slice-noerr input (v1) (v1) )))]
+[v1 (choose (v2) (- (v2) 1 ) (+ (v2) 1 ))]
+[v2 (choose 1 max_pos)]
 )
 
 (define (softmax_part1_inv0 i input max_pos max_val) (softmax_part1_inv0_gram i input max_pos max_val #:depth 10))

@@ -5,3 +5,23 @@ matmul_nb
 22592.53919394687ms +/- 139.29709570731768ms
 multiquery_attention_part1_nb
 577.7526318095624ms +/- 28.915762384004783ms
+multiquery_attention_part2_nb
+688.8740007765591ms +/- 52.171314132559296ms
+rmsnorm_part1_nb
+62041.145232040435ms +/- 3983.5029716022577ms
+Testing has taken more than 2hr for rmsnorm_part2_nb. 1 runs has finished.
+rmsnorm_part2_nb
+3740818.5412585735ms +/- 0.0ms
+Testing has taken more than 2hr for silu_nb. 1 runs has finished.
+silu_nb
+3938792.704087682ms +/- 0.0ms
+softmax_part1_nb
+19334.504519216716ms +/- 746.1299395285956ms
+Testing has taken more than 2hr for softmax_part2_nb. 4 runs has finished.
+softmax_part2_nb
+1034410.8890399802ms +/- 99220.65848571491ms
+softmax_part3_nb
+23353.82775021717ms +/- 881.2515473042259ms
+Testing has taken more than 2hr for softmax_part4_nb. 4 runs has finished.
+softmax_part4_nb
+1028567.559977062ms +/- 60757.527779403565ms

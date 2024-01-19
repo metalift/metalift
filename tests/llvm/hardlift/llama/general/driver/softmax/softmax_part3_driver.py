@@ -20,10 +20,8 @@ def softmax_part3_ps_grammar(
     output, max_pos = reads
     lower_bound = Int(0)
     upper_bound = max_pos
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-    vec = choose(output[lower_bound:upper_bound])
+    slice_index = choose(lower_bound, upper_bound).maybe_relaxed(parser_args.relaxed)
+    vec = output[slice_index:slice_index]
     return ret_val == call_reduce_sum(vec)
 
 
@@ -34,16 +32,14 @@ def softmax_part3_inv0_grammar(
     i, sum = writes
     lower_bound = Int(0)
     upper_bound = max_pos
-    slice_upper_bound = i
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-        slice_upper_bound = choose(
-            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
-        )
-    vec = choose(output[lower_bound:slice_upper_bound])
+    slice_index = choose(lower_bound, upper_bound, i).maybe_relaxed(parser_args.relaxed)
+    vec = output[slice_index:slice_index]
 
-    return and_objects(i >= lower_bound, i <= upper_bound, sum == call_reduce_sum(vec))
+    return and_objects(
+        i >= lower_bound.maybe_relaxed(parser_args.relaxed),
+        i <= upper_bound.maybe_relaxed(parser_args.relaxed),
+        sum == call_reduce_sum(vec),
+    )
 
 
 if __name__ == "__main__":
