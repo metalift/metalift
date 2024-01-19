@@ -52,20 +52,24 @@
 
 (define-grammar (softmax_part4_inv0_gram agg.result i max_pos ref.tmp sum unnormalized_output)
  [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? agg.result (v0) ) ))]
-[v0 (choose (v1) (v2))]
-[v1 (choose (list-slice-noerr unnormalized_output 0 i ))]
-[v2 (choose (v3) (vec_elemwise_add (v1) (v1)) (vec_elemwise_sub (v1) (v1)) (vec_elemwise_mul (v1) (v1)) (vec_elemwise_div (v1) (v1)) (vec_scalar_add (v4) (v1)) (vec_scalar_sub (v4) (v1)) (vec_scalar_mul (v4) (v1)) (vec_scalar_div (v4) (v1)) (scalar_vec_sub (v4) (v1)) (scalar_vec_div (v4) (v1)))]
-[v3 (choose (vec_map (v1) map_int_to_int))]
-[v4 (choose sum max_pos)]
+[v0 (choose (list-slice-noerr unnormalized_output (v1) (v1) ) (v4))]
+[v1 (choose (v2) (v3))]
+[v2 (choose 0 max_pos i sum)]
+[v3 (choose (integer-sqrt-noerr (v2) ) (integer-exp-noerr (v2) ) (+ (v2) (v2) ) (- (v2) (v2) ) (* (v2) (v2) ) (quotient-noerr (v2) (v2) ))]
+[v4 (choose (v5) (vec_elemwise_add (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_elemwise_sub (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_elemwise_mul (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_elemwise_div (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_add (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_sub (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_mul (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_div (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (scalar_vec_sub (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (scalar_vec_div (v6) (list-slice-noerr unnormalized_output (v1) (v1) )))]
+[v5 (choose (vec_map (list-slice-noerr unnormalized_output (v1) (v1) ) map_int_to_int))]
+[v6 (choose sum max_pos)]
 )
 
 (define-grammar (softmax_part4_ps_gram unnormalized_output max_pos sum softmax_part4_rv)
  [rv (choose (equal? softmax_part4_rv (v0) ))]
-[v0 (choose (v1) (v2))]
-[v1 (choose (list-slice-noerr unnormalized_output 0 max_pos ))]
-[v2 (choose (v3) (vec_elemwise_add (v1) (v1)) (vec_elemwise_sub (v1) (v1)) (vec_elemwise_mul (v1) (v1)) (vec_elemwise_div (v1) (v1)) (vec_scalar_add (v4) (v1)) (vec_scalar_sub (v4) (v1)) (vec_scalar_mul (v4) (v1)) (vec_scalar_div (v4) (v1)) (scalar_vec_sub (v4) (v1)) (scalar_vec_div (v4) (v1)))]
-[v3 (choose (vec_map (v1) map_int_to_int))]
-[v4 (choose sum max_pos)]
+[v0 (choose (list-slice-noerr unnormalized_output (v1) (v1) ) (v4))]
+[v1 (choose (v2) (v3))]
+[v2 (choose 0 max_pos sum)]
+[v3 (choose (integer-sqrt-noerr (v2) ) (integer-exp-noerr (v2) ) (+ (v2) (v2) ) (- (v2) (v2) ) (* (v2) (v2) ) (quotient-noerr (v2) (v2) ))]
+[v4 (choose (v5) (vec_elemwise_add (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_elemwise_sub (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_elemwise_mul (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_elemwise_div (list-slice-noerr unnormalized_output (v1) (v1) ) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_add (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_sub (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_mul (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (vec_scalar_div (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (scalar_vec_sub (v6) (list-slice-noerr unnormalized_output (v1) (v1) )) (scalar_vec_div (v6) (list-slice-noerr unnormalized_output (v1) (v1) )))]
+[v5 (choose (vec_map (list-slice-noerr unnormalized_output (v1) (v1) ) map_int_to_int))]
+[v6 (choose sum max_pos)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)

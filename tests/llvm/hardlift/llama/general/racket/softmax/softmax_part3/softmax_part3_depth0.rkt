@@ -11,13 +11,13 @@
 (if (< (length x ) 1 ) 0 (+ (list-ref-noerr x 0 ) (reduce_sum (list-tail-noerr x 1 )) ) ))
 
 (define-grammar (softmax_part3_inv0_gram i max_pos output sum)
- [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? sum (reduce_sum (v0)) ) ))]
-[v0 (choose (list-slice-noerr output 0 i ))]
+ [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? sum (reduce_sum (list-slice-noerr output (v0) (v0) )) ) ))]
+[v0 (choose 0 max_pos i)]
 )
 
 (define-grammar (softmax_part3_ps_gram output max_pos softmax_part3_rv)
- [rv (choose (equal? softmax_part3_rv (reduce_sum (v0)) ))]
-[v0 (choose (list-slice-noerr output 0 max_pos ))]
+ [rv (choose (equal? softmax_part3_rv (reduce_sum (list-slice-noerr output (v0) (v0) )) ))]
+[v0 (choose 0 max_pos)]
 )
 
 (define (softmax_part3_inv0 i max_pos output sum) (softmax_part3_inv0_gram i max_pos output sum #:depth 10))
