@@ -7,24 +7,65 @@
 
 
 
+ (define-bounded (vec_elemwise_add x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+
+
+ (define-bounded (vec_elemwise_sub x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_sub (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+
+
+ (define-bounded (vec_elemwise_mul x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+
+
+ (define-bounded (vec_elemwise_div x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_div (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+
+
+ (define-bounded (vec_scalar_add a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (+ a (list-ref-noerr x 0 ) ) (vec_scalar_add a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (vec_scalar_sub a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) a ) (vec_scalar_sub a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (vec_scalar_mul a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 )) ) ))
+
+
  (define-bounded (vec_scalar_div a x)
 (if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) a ) (vec_scalar_div a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (scalar_vec_sub a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- a (list-ref-noerr x 0 ) ) (scalar_vec_sub a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (scalar_vec_div a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr a (list-ref-noerr x 0 ) ) (scalar_vec_div a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (vec_map x map_int_to_int)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (map_int_to_int (list-ref-noerr x 0 )) (vec_map (list-tail-noerr x 1 ) map_int_to_int) ) ))
 
 (define-grammar (softmax_part4_inv0_gram agg.result i max_pos ref.tmp sum unnormalized_output)
  [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? agg.result (v2) ) ))]
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
 [v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
-[v2 (choose (v3))]
-[v3 (choose (list-slice-noerr unnormalized_output (v0) (v4) ))]
-[v4 (choose i (- i 1 ) (+ i 1 ))]
+[v2 (choose (list-slice-noerr unnormalized_output (v3) (v3) ))]
+[v3 (choose (v4))]
+[v4 (choose (v5) (- (v5) 1 ) (+ (v5) 1 ))]
+[v5 (choose 0 max_pos i sum)]
 )
 
 (define-grammar (softmax_part4_ps_gram unnormalized_output max_pos sum softmax_part4_rv)
  [rv (choose (equal? softmax_part4_rv (v0) ))]
-[v0 (choose (v1))]
-[v1 (choose (list-slice-noerr unnormalized_output (v2) (v3) ))]
-[v2 (choose 0 (- 0 1 ) (+ 0 1 ))]
-[v3 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
+[v0 (choose (list-slice-noerr unnormalized_output (v1) (v1) ))]
+[v1 (choose (v2))]
+[v2 (choose (v3) (- (v3) 1 ) (+ (v3) 1 ))]
+[v3 (choose 0 max_pos sum)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
@@ -34,6 +75,8 @@
 
 (define (softmax_part4_inv0 agg.result i max_pos ref.tmp sum unnormalized_output) (softmax_part4_inv0_gram agg.result i max_pos ref.tmp sum unnormalized_output #:depth 10))
 (define (softmax_part4_ps unnormalized_output max_pos sum softmax_part4_rv) (softmax_part4_ps_gram unnormalized_output max_pos sum softmax_part4_rv #:depth 10))
+
+(define (map_int_to_int int_x) (map_int_to_int_gram int_x #:depth 10))
 
 (define-symbolic agg.result_BOUNDEDSET-len integer?)
 (define-symbolic agg.result_BOUNDEDSET-0 integer?)
