@@ -8,13 +8,20 @@ from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
     get_int_expr_eq_or_below_depth,
+    get_map_int_to_int_synth,
     get_matrix_or_vec_expr_eq_or_below_depth,
-    vec_elemwise_mul,
+    scalar_vec_to_vec_target_lang,
+    vec_to_vec_target_lang,
+    vec_vec_to_vec_target_lang,
 )
 
 
 def transformer_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_mul]
+    return [
+        *vec_vec_to_vec_target_lang,
+        *scalar_vec_to_vec_target_lang,
+        *vec_to_vec_target_lang,
+    ]
 
 
 def transformer_part4_ps_grammar(
@@ -91,6 +98,8 @@ if __name__ == "__main__":
     driver.add_precondition(input2_var.len() >= hidden_dim_var)
 
     transformer_part4(input1_var, input2_var, hidden_dim_var)
+    map_int_to_int_synth = get_map_int_to_int_synth()
+    driver.fns_synths = [map_int_to_int_synth]
 
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
     depth_suffix = f"_depth{parser_args.depth}"
