@@ -7,6 +7,7 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tests.llvm.hardlift.hardlift_common import (
+    get_int_expr_eq_or_below_depth,
     get_map_int_to_int_synth,
     get_matrix_or_vec_expr_eq_or_below_depth,
     scalar_vec_to_vec_target_lang,
@@ -33,10 +34,11 @@ def rmsnorm_part1_ps_grammar(
     input, weight = reads
     lower_bound = Int(0)
     upper_bound = input.len()
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-    vec = choose(input[lower_bound:upper_bound], weight[lower_bound:upper_bound])
+    slice_index = choose(lower_bound, upper_bound, Int(1)).maybe_relaxed(
+        parser_args.relaxed
+    )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    vec = choose(input[slice_index:slice_index], weight[slice_index:slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
     )
@@ -52,21 +54,20 @@ def rmsnorm_part1_inv0_grammar(
 
     lower_bound = Int(0)
     upper_bound = input.len()
-    slice_upper_bound = i
-    if parser_args.relaxed:
-        lower_bound = choose(lower_bound, lower_bound - 1, lower_bound + 1)
-        upper_bound = choose(upper_bound, upper_bound - 1, upper_bound + 1)
-        slice_upper_bound = choose(
-            slice_upper_bound, slice_upper_bound - 1, slice_upper_bound + 1
-        )
-    vec = choose(
-        input[lower_bound:slice_upper_bound], weight[lower_bound:slice_upper_bound]
+    slice_index = choose(lower_bound, upper_bound, i, Int(1)).maybe_relaxed(
+        parser_args.relaxed
     )
+    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    vec = choose(input[slice_index:slice_index], weight[slice_index:slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
     )
 
-    return and_objects(i >= lower_bound, i <= upper_bound, ss == vec_to_int(vec))
+    return and_objects(
+        i >= lower_bound.maybe_relaxed(parser_args.relaxed),
+        i <= upper_bound.maybe_relaxed(parser_args.relaxed),
+        ss == vec_to_int(vec),
+    )
 
 
 if __name__ == "__main__":

@@ -65,21 +65,27 @@
 (define-grammar (rmsnorm_part1_inv0_gram i input ss weight)
  [rv (choose (&& (&& (>= i 0 ) (<= i (length input ) ) ) (equal? ss (v0) ) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
-[v1 (choose (v2) (v3))]
-[v2 (choose (list-slice-noerr input 0 i ) (list-slice-noerr weight 0 i ))]
-[v3 (choose (v4) (vec_elemwise_add (v2) (v2)) (vec_elemwise_sub (v2) (v2)) (vec_elemwise_mul (v2) (v2)) (vec_elemwise_div (v2) (v2)) (vec_scalar_add (v5) (v2)) (vec_scalar_sub (v5) (v2)) (vec_scalar_mul (v5) (v2)) (vec_scalar_div (v5) (v2)) (scalar_vec_sub (v5) (v2)) (scalar_vec_div (v5) (v2)))]
-[v4 (choose (vec_map (v2) map_int_to_int))]
-[v5 (choose 0 1)]
+[v1 (choose (v2) (v6))]
+[v2 (choose (list-slice-noerr input (v3) (v3) ) (list-slice-noerr weight (v3) (v3) ))]
+[v3 (choose (v4) (v5))]
+[v4 (choose 0 (length input ) i)]
+[v5 (choose (integer-sqrt-noerr (v4) ) (integer-exp-noerr (v4) ) (+ (v4) (v4) ) (- (v4) (v4) ) (* (v4) (v4) ) (quotient-noerr (v4) (v4) ))]
+[v6 (choose (v7) (vec_elemwise_add (v2) (v2)) (vec_elemwise_sub (v2) (v2)) (vec_elemwise_mul (v2) (v2)) (vec_elemwise_div (v2) (v2)) (vec_scalar_add (v8) (v2)) (vec_scalar_sub (v8) (v2)) (vec_scalar_mul (v8) (v2)) (vec_scalar_div (v8) (v2)) (scalar_vec_sub (v8) (v2)) (scalar_vec_div (v8) (v2)))]
+[v7 (choose (vec_map (v2) map_int_to_int))]
+[v8 (choose 0 1)]
 )
 
 (define-grammar (rmsnorm_part1_ps_gram input weight rmsnorm_part1_rv)
  [rv (choose (equal? rmsnorm_part1_rv (v0) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
-[v1 (choose (v2) (v3))]
-[v2 (choose (list-slice-noerr input 0 (length input ) ) (list-slice-noerr weight 0 (length input ) ))]
-[v3 (choose (v4) (vec_elemwise_add (v2) (v2)) (vec_elemwise_sub (v2) (v2)) (vec_elemwise_mul (v2) (v2)) (vec_elemwise_div (v2) (v2)) (vec_scalar_add (v5) (v2)) (vec_scalar_sub (v5) (v2)) (vec_scalar_mul (v5) (v2)) (vec_scalar_div (v5) (v2)) (scalar_vec_sub (v5) (v2)) (scalar_vec_div (v5) (v2)))]
-[v4 (choose (vec_map (v2) map_int_to_int))]
-[v5 (choose 0 1)]
+[v1 (choose (v2) (v6))]
+[v2 (choose (list-slice-noerr input (v3) (v3) ) (list-slice-noerr weight (v3) (v3) ))]
+[v3 (choose (v4) (v5))]
+[v4 (choose 0 (length input ))]
+[v5 (choose (integer-sqrt-noerr (v4) ) (integer-exp-noerr (v4) ) (+ (v4) (v4) ) (- (v4) (v4) ) (* (v4) (v4) ) (quotient-noerr (v4) (v4) ))]
+[v6 (choose (v7) (vec_elemwise_add (v2) (v2)) (vec_elemwise_sub (v2) (v2)) (vec_elemwise_mul (v2) (v2)) (vec_elemwise_div (v2) (v2)) (vec_scalar_add (v8) (v2)) (vec_scalar_sub (v8) (v2)) (vec_scalar_mul (v8) (v2)) (vec_scalar_div (v8) (v2)) (scalar_vec_sub (v8) (v2)) (scalar_vec_div (v8) (v2)))]
+[v7 (choose (vec_map (v2) map_int_to_int))]
+[v8 (choose 0 1)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)

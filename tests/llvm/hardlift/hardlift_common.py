@@ -1729,6 +1729,13 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
     depth: int,
     additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
+    if depth >= 3:
+        return get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
+            matrix_or_vec_var=matrix_or_vec_var,
+            int_vars=int_vars,
+            depth=depth,
+            additional_matrix=additional_matrix,
+        )
     depth_to_expr: Dict[int, Any] = {}
     for curr_depth in range(0, depth + 1):
         get_matrix_or_vec_expr_with_depth(
@@ -1743,7 +1750,10 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
 
 
 def get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
-    matrix_or_vec_var: MatrixOrVecT, int_vars: List[Int], depth: int
+    matrix_or_vec_var: MatrixOrVecT,
+    int_vars: List[Int],
+    depth: int,
+    additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
     scalar = choose(*int_vars)
     matrix_or_vec = matrix_or_vec_var
@@ -1766,6 +1776,10 @@ def get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
         )
         if not matrix_or_vec.is_nested:
             matrix_or_vec = choose(matrix_or_vec, vec_to_vec(matrix_or_vec))
+            if additional_matrix is not None:
+                matrix_or_vec = choose(
+                    call_matrix_vec_mul(additional_matrix, matrix_or_vec)
+                )
     return matrix_or_vec
 
 
@@ -1809,6 +1823,8 @@ def get_int_expr_with_depth(
 
 
 def get_int_expr_eq_or_below_depth(var: Any, depth: int) -> Int:
+    if depth >= 3:
+        return get_int_expr_eq_or_below_depth_with_sym_grammar(var, depth)
     depth_to_expr: Dict[int, Any] = {}
     for curr_depth in range(0, depth + 1):
         get_int_expr_with_depth(
@@ -1818,6 +1834,21 @@ def get_int_expr_eq_or_below_depth(var: Any, depth: int) -> Int:
         )
     final_int_expr = choose(*[int_exp for int_exp in depth_to_expr.values()])
     return final_int_expr
+
+
+def get_int_expr_eq_or_below_depth_with_sym_grammar(var: Any, depth: int) -> Int:
+    int_expr = var
+    for _ in range(depth):
+        int_expr = choose(
+            int_expr,
+            int_expr + int_expr,
+            int_expr - int_expr,
+            int_expr * int_expr,
+            int_expr // int_expr,
+            call_integer_exp(int_expr),
+            call_integer_sqrt(int_expr),
+        )
+    return int_expr
 
 
 def get_cond_expr_eq_or_below_depth(int_var: Int, depth: int) -> Int:
