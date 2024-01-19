@@ -10,13 +10,18 @@ from tests.llvm.hardlift.hardlift_common import (
     get_int_expr_eq_or_below_depth,
     get_map_int_to_int_synth,
     get_matrix_or_vec_expr_eq_or_below_depth,
-    vec_elemwise_mul,
-    vec_scalar_mul,
+    scalar_vec_to_vec_target_lang,
+    vec_to_vec_target_lang,
+    vec_vec_to_vec_target_lang,
 )
 
 
 def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_scalar_mul, vec_elemwise_mul]
+    return [
+        *vec_vec_to_vec_target_lang,
+        *scalar_vec_to_vec_target_lang,
+        *vec_to_vec_target_lang,
+    ]
 
 
 def rmsnorm_part2_ps_grammar(
