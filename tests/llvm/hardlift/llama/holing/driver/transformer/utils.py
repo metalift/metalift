@@ -36,8 +36,7 @@ matrix_composed_index_fn_decl = fn_decl(
 )
 matrix_composed_index_synth = synth(
     matrix_composed_index_fn_name,
-    head_size_var * head_var,
-    # get_composed_int_var([token_position_var, head_var, head_size_var]),
+    get_composed_int_var([token_position_var, head_var, head_size_var]),
     token_position_var,
     head_var,
     head_size_var,
@@ -56,8 +55,7 @@ vec_composed_index_fn_decl = fn_decl(
 )
 vec_composed_index_synth = synth(
     vec_composed_index_fn_name,
-    head_size_var * head_var,
-    # get_composed_int_var([token_position_var, head_var, head_size_var]),
+    get_composed_int_var([token_position_var, head_var, head_size_var]),
     token_position_var,
     head_var,
     head_size_var,

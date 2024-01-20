@@ -9,6 +9,7 @@ from tests.llvm.hardlift.hardlift_common import (
     call_matrix_vec_mul,
     call_reduce_sum,
     call_vec_elemwise_mul,
+    call_vec_scalar_div,
     call_vec_scalar_mul,
     matrix_vec_mul,
     matrix_vec_to_vec,
@@ -103,7 +104,7 @@ def transformer_part1_ps_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_mul(call_sqrt_arg(token_position, head, head_size), vec)
+    vec = call_vec_scalar_div(call_sqrt_arg(token_position, head, head_size), vec)
 
     return attention == vec
 
@@ -141,7 +142,7 @@ def transformer_part1_inv0_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_mul(call_sqrt_arg(token_position, head, head_size), vec)
+    vec = call_vec_scalar_div(call_sqrt_arg(token_position, head, head_size), vec)
 
     return and_objects(
         timestep >= 0,
@@ -188,7 +189,7 @@ def transformer_part1_inv1_grammar(
     scalar = choose(Int(0), Int(1))
     int_var = choose(token_position, head, head_size)
     outer_loop_vec = choose(q_outer_loop_vec, outer_loop_computed_vec)
-    outer_loop_vec = call_vec_scalar_mul(
+    outer_loop_vec = call_vec_scalar_div(
         call_sqrt_arg(token_position, head, head_size), outer_loop_vec
     )
 
