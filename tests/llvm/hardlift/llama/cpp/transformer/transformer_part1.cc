@@ -16,8 +16,7 @@ vector<int> transformer_part1(
         for (int i = 0; i < head_size; ++i) {
             score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + i];
         }
-        // TODO(jie): change this back
-        score *= integer_sqrt(head_size * 1);
+        score /= integer_sqrt(head_size * 1);
         attention.push_back(score);
     }
     return attention;

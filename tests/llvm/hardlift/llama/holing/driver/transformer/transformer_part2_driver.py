@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -114,6 +115,10 @@ def transformer_part2_ps_grammar(
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
     composed_int_var = call_matrix_composed_index_fn(token_position, head, head_size)
+    outer_loop_lower_bound = Int(0).maybe_relaxed(parser_args.relaxed)
+    outer_loop_upper_bound = token_position.maybe_relaxed(parser_args.relaxed)
+    inner_loop_lower_bound = Int(0).maybe_relaxed(parser_args.relaxed)
+    inner_loop_upper_bound = head_size.maybe_relaxed(parser_args.relaxed)
     matrix = ite(
         is_matrix_outer_loop_index_first(),
         key_cache_layer[0:head_size].col_slice(
@@ -146,6 +151,12 @@ def transformer_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--list-bound", type=int, required=True)
+    parser.add_argument("--rounds-to-guess", type=int, required=True)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+
     driver = Driver()
     transformer_part2 = driver.analyze(
         llvm_filepath="tests/llvm/hardlift/llama/cpp/transformer/transformer_part2.ll",
@@ -194,4 +205,12 @@ if __name__ == "__main__":
     transformer_part2(
         token_position_var, head_var, head_size_var, key_cache_layer_var, attention_var
     )
-    driver.synthesize(listBound=3)
+    rounds_to_guess_suffix = f"_rounds{parser_args.rounds_to_guess}"
+    list_bound_suffix = f"_listbound{parser_args.list_bound}"
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+
+    driver.synthesize(
+        filename=f"transformer_part2{rounds_to_guess_suffix}{list_bound_suffix}{relaxed_suffix}",
+        listBound=parser_args.list_bound,
+        rounds_to_guess=parser_args.rounds_to_guess,
+    )
