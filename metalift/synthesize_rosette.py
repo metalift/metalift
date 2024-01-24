@@ -483,7 +483,7 @@ def synthesize(
     noVerify: bool = False,
     unboundedInts: bool = False,
     optimize_vc_equality: bool = False,
-    listBound: int = 5,
+    listBound: int = 4,
     log: bool = True,
     uninterp_fns: List[str] = [],
     rounds_to_guess: int = 0,
