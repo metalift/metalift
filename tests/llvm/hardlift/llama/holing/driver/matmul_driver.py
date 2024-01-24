@@ -136,4 +136,4 @@ if __name__ == "__main__":
     ]
 
     matmul(weight_var, input_var)
-    driver.synthesize()
+    driver.synthesize(filename="matmul")

@@ -53,4 +53,4 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part3(output_var, max_pos_var)
-    driver.synthesize()
+    driver.synthesize(filename="softmax_part3")

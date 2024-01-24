@@ -60,4 +60,4 @@ if __name__ == "__main__":
     driver.add_precondition(input_var.len() > 0)
 
     rmsnorm_part1(input_var, weight_var)
-    driver.synthesize()
+    driver.synthesize(filename="rmsnorm_part1")
