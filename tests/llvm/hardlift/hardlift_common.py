@@ -1461,7 +1461,7 @@ def get_matrix_select_holing_search_space(
     List[Synth],
 ]:
     select_synth = get_select_synth_from_hole(driver, hole_body)
-    return get_matrix_select_search_space(select_synth)
+    return get_matrix_select_search_space(select_synth, False)
 
 
 def get_matrix_select_general_search_space(
