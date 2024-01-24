@@ -1,0 +1,308 @@
+first run, skipping
+1th run ------
+darken_blend_8_np
+16049.787663854659ms +/- 0.0ms
+2th run ------
+darken_blend_8_np
+14631.227085832506ms +/- 1418.5605780221522ms
+3th run ------
+darken_blend_8_np
+14772.790853555003ms +/- 1175.4247500411389ms
+4th run ------
+darken_blend_8_np
+14738.054575631395ms +/- 1019.7241461635169ms
+5th run ------
+darken_blend_8_np
+14500.631825812161ms +/- 1028.2743388522526ms
+6th run ------
+darken_blend_8_np
+14048.00427906836ms +/- 1380.3919408299416ms
+7th run ------
+darken_blend_8_np
+14094.698206255478ms +/- 1283.1025468966152ms
+8th run ------
+darken_blend_8_np
+13913.79136883188ms +/- 1292.1490294881876ms
+9th run ------
+darken_blend_8_np
+14140.873406599792ms +/- 1377.193726806223ms
+first run, skipping
+1th run ------
+color_burn_8_np
+20052.71421186626ms +/- 0.0ms
+2th run ------
+color_burn_8_np
+19200.837356504053ms +/- 851.8768553622067ms
+3th run ------
+color_burn_8_np
+20010.590315796435ms +/- 1339.849181052383ms
+4th run ------
+color_burn_8_np
+20488.529088906944ms +/- 1425.3677713145446ms
+5th run ------
+color_burn_8_np
+20382.653579488397ms +/- 1292.3533266024044ms
+6th run ------
+color_burn_8_np
+19924.00098716219ms +/- 1563.2099249795763ms
+7th run ------
+color_burn_8_np
+19946.949294369137ms +/- 1448.3423953452943ms
+8th run ------
+color_burn_8_np
+20245.14565593563ms +/- 1567.779073321779ms
+9th run ------
+color_burn_8_np
+20188.730889ms +/- 1486.703992386831ms
+first run, skipping
+1th run ------
+lighten_blend_8_np
+15485.520381480455ms +/- 0.0ms
+2th run ------
+lighten_blend_8_np
+14351.164968218654ms +/- 1134.355413261801ms
+3th run ------
+lighten_blend_8_np
+13706.936838105321ms +/- 1299.1925324303857ms
+4th run ------
+lighten_blend_8_np
+14046.46152886562ms +/- 1269.549910066473ms
+5th run ------
+lighten_blend_8_np
+13996.467931382358ms +/- 1139.9136013212167ms
+6th run ------
+lighten_blend_8_np
+13904.452573973686ms +/- 1060.7402974932886ms
+7th run ------
+lighten_blend_8_np
+13943.621018369284ms +/- 986.7301619768832ms
+8th run ------
+lighten_blend_8_np
+13944.506434141658ms +/- 923.0045225854478ms
+9th run ------
+lighten_blend_8_np
+14098.042901398407ms +/- 972.55602281929ms
+first run, skipping
+1th run ------
+color_dodge_8_np
+20322.743681259453ms +/- 0.0ms
+2th run ------
+color_dodge_8_np
+19472.633779980242ms +/- 850.109901279211ms
+3th run ------
+color_dodge_8_np
+19590.69971833378ms +/- 713.9120121559588ms
+4th run ------
+color_dodge_8_np
+18772.79178216122ms +/- 1545.6949721686992ms
+5th run ------
+color_dodge_8_np
+18242.176437564194ms +/- 1742.8565440900068ms
+6th run ------
+color_dodge_8_np
+17853.497307747602ms +/- 1812.9115001858338ms
+7th run ------
+color_dodge_8_np
+18118.550865378762ms +/- 1799.624205151873ms
+8th run ------
+color_dodge_8_np
+18187.303645536304ms +/- 1693.193722895636ms
+9th run ------
+color_dodge_8_np
+18362.311947780352ms +/- 1671.3417460078867ms
+first run, skipping
+1th run ------
+overlay_blend_8_np
+10013.935944065452ms +/- 0.0ms
+2th run ------
+overlay_blend_8_np
+9614.592377562076ms +/- 399.34356650337577ms
+3th run ------
+overlay_blend_8_np
+9771.337965192894ms +/- 394.2780929182072ms
+4th run ------
+overlay_blend_8_np
+9453.883730340749ms +/- 647.2426010338755ms
+5th run ------
+overlay_blend_8_np
+9330.31977955252ms +/- 629.4526093456611ms
+6th run ------
+overlay_blend_8_np
+9560.032268054783ms +/- 770.7234435123698ms
+7th run ------
+overlay_blend_8_np
+9550.253903759378ms +/- 713.9531444635489ms
+8th run ------
+overlay_blend_8_np
+9609.039219212718ms +/- 685.713459922479ms
+9th run ------
+overlay_blend_8_np
+9529.837516136467ms +/- 684.2086342307941ms
+first run, skipping
+1th run ------
+multiply_blend_8_np
+4324.807261116803ms +/- 0.0ms
+2th run ------
+multiply_blend_8_np
+4180.0562012940645ms +/- 144.75105982273817ms
+3th run ------
+multiply_blend_8_np
+3954.8189096773663ms +/- 339.7532260570726ms
+4th run ------
+multiply_blend_8_np
+3776.038879994303ms +/- 427.1546417898ms
+5th run ------
+multiply_blend_8_np
+3684.998744353652ms +/- 423.22818383459577ms
+6th run ------
+multiply_blend_8_np
+3623.3207302478454ms +/- 410.2307888414225ms
+7th run ------
+multiply_blend_8_np
+3729.3984879340446ms +/- 460.17704808063945ms
+8th run ------
+multiply_blend_8_np
+3851.272383471951ms +/- 537.8338740055116ms
+9th run ------
+multiply_blend_8_np
+3920.051763765514ms +/- 543.1109601462675ms
+first run, skipping
+1th run ------
+linear_burn_8_np
+4687.624807469547ms +/- 0.0ms
+2th run ------
+linear_burn_8_np
+4422.745106741786ms +/- 264.8797007277608ms
+3th run ------
+linear_burn_8_np
+4213.461887091398ms +/- 366.56936945988406ms
+4th run ------
+linear_burn_8_np
+4232.738598249853ms +/- 319.2093384425371ms
+5th run ------
+linear_burn_8_np
+4160.436812415719ms +/- 320.0404261001373ms
+6th run ------
+linear_burn_8_np
+4170.002582327773ms +/- 292.9375616953489ms
+7th run ------
+linear_burn_8_np
+4084.889006268765ms +/- 342.0810190486008ms
+8th run ------
+linear_burn_8_np
+4013.221196946688ms +/- 371.94881354205495ms
+9th run ------
+linear_burn_8_np
+4119.104961657689ms +/- 461.15629026728044ms
+first run, skipping
+1th run ------
+screen_blend_8_np
+5575.953288003802ms +/- 0.0ms
+2th run ------
+screen_blend_8_np
+5396.092252340168ms +/- 179.86103566363454ms
+3th run ------
+screen_blend_8_np
+5461.063671236237ms +/- 173.23172913778563ms
+4th run ------
+screen_blend_8_np
+5178.376354742795ms +/- 512.0969446343535ms
+5th run ------
+screen_blend_8_np
+5167.722450196743ms +/- 458.52878567367793ms
+6th run ------
+screen_blend_8_np
+5126.965736349423ms +/- 428.3838870619545ms
+7th run ------
+screen_blend_8_np
+5102.184458103563ms +/- 401.2247716552771ms
+8th run ------
+screen_blend_8_np
+5118.304395349696ms +/- 377.72691107973156ms
+9th run ------
+screen_blend_8_np
+5113.591241960724ms +/- 356.37376594761633ms
+first run, skipping
+1th run ------
+linear_dodge_8_np
+2787.8290116786957ms +/- 0.0ms
+2th run ------
+linear_dodge_8_np
+2617.410389240831ms +/- 170.41862243786454ms
+3th run ------
+linear_dodge_8_np
+2620.2768639971814ms +/- 139.20526069131586ms
+4th run ------
+linear_dodge_8_np
+2863.8002132065594ms +/- 438.6849020465158ms
+5th run ------
+linear_dodge_8_np
+2904.650785960257ms +/- 400.78751453116587ms
+6th run ------
+linear_dodge_8_np
+2931.7136613341668ms +/- 370.83804545143886ms
+7th run ------
+linear_dodge_8_np
+2928.366558360202ms +/- 343.4271945831627ms
+8th run ------
+linear_dodge_8_np
+2972.563175833784ms +/- 341.8667067799916ms
+9th run ------
+linear_dodge_8_np
+2978.4074891358614ms +/- 322.73862721865174ms
+first run, skipping
+1th run ------
+normal_blend_f_np
+6604.578191414475ms +/- 0.0ms
+2th run ------
+normal_blend_f_np
+6165.90524604544ms +/- 438.672945369035ms
+3th run ------
+normal_blend_f_np
+6334.949967761834ms +/- 430.62923481750414ms
+4th run ------
+normal_blend_f_np
+6815.147018292919ms +/- 911.5090649170145ms
+5th run ------
+normal_blend_f_np
+6796.280775405467ms +/- 816.1511874790513ms
+6th run ------
+normal_blend_f_np
+6810.022912298639ms +/- 745.6741015024647ms
+7th run ------
+normal_blend_f_np
+6792.892676245953ms +/- 691.6340778364071ms
+8th run ------
+normal_blend_f_np
+6796.1984045105055ms +/- 647.0235546694212ms
+9th run ------
+normal_blend_f_np
+6737.430473065211ms +/- 632.2605005985591ms
+first run, skipping
+1th run ------
+normal_blend_8_np
+5069.077054969966ms +/- 0.0ms
+2th run ------
+normal_blend_8_np
+4532.197195105255ms +/- 536.8798598647118ms
+3th run ------
+normal_blend_8_np
+4390.717226080596ms +/- 481.86424701984777ms
+4th run ------
+normal_blend_8_np
+4346.049756510183ms +/- 424.4177339962069ms
+5th run ------
+normal_blend_8_np
+4292.530631460249ms +/- 394.412876727956ms
+6th run ------
+normal_blend_8_np
+4332.538263717045ms +/- 370.99548645231965ms
+7th run ------
+normal_blend_8_np
+4355.660363632654ms +/- 348.11337007960674ms
+8th run ------
+normal_blend_8_np
+4418.03811234422ms +/- 365.06429346749627ms
+9th run ------
+normal_blend_8_np
+4393.360262115796ms +/- 351.1921348043495ms
