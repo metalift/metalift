@@ -1,0 +1,446 @@
+first run, skipping
+1th run ------
+elewise_mul_runner
+elewise_mul_np
+154654.08775676042ms +/- 0.0ms
+2th run ------
+elewise_mul_runner
+elewise_mul_np
+144180.65517861396ms +/- 10473.432578146458ms
+3th run ------
+elewise_mul_runner
+elewise_mul_np
+144130.54028184465ms +/- 8551.815576340663ms
+4th run ------
+elewise_mul_runner
+elewise_mul_np
+153101.55082307756ms +/- 17212.996619750546ms
+5th run ------
+elewise_mul_runner
+elewise_mul_np
+160071.9609722495ms +/- 20769.599724018568ms
+6th run ------
+elewise_mul_runner
+elewise_mul_np
+164274.22271560258ms +/- 21160.70050931373ms
+7th run ------
+elewise_mul_runner
+elewise_mul_np
+167215.2769151809ms +/- 20873.575462337303ms
+8th run ------
+elewise_mul_runner
+elewise_mul_np
+169537.27273107506ms +/- 20469.111741655128ms
+9th run ------
+elewise_mul_runner
+elewise_mul_np
+171642.16851432703ms +/- 20195.925041508995ms
+first run, skipping
+1th run ------
+matmul_runner
+matmul_np
+3466.1164339631796ms +/- 0.0ms
+2th run ------
+matmul_runner
+matmul_np
+2298.563922289759ms +/- 1167.5525116734207ms
+3th run ------
+matmul_runner
+matmul_np
+1916.6948841884732ms +/- 1095.6431153424965ms
+4th run ------
+matmul_runner
+matmul_np
+1718.7184146605432ms +/- 1008.9149739241104ms
+5th run ------
+matmul_runner
+matmul_np
+1596.082347072661ms +/- 935.1395403790332ms
+6th run ------
+matmul_runner
+matmul_np
+1516.8100891945262ms +/- 871.8708358060146ms
+7th run ------
+matmul_runner
+matmul_np
+1501.9047079341751ms +/- 808.0208344534689ms
+8th run ------
+matmul_runner
+matmul_np
+1451.0927791707218ms +/- 767.6968314573506ms
+9th run ------
+matmul_runner
+matmul_np
+1414.112063849138ms +/- 731.3102912085162ms
+first run, skipping
+1th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+685.948952101171ms +/- 0.0ms
+2th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+624.1065440699458ms +/- 61.842408031225204ms
+3th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+711.0271534572045ms +/- 132.89108432561795ms
+4th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+717.5966135691851ms +/- 115.6481890840388ms
+5th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+750.3127612173557ms +/- 122.39684709371262ms
+6th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+768.1484365214905ms +/- 118.63689722499485ms
+7th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+783.8193564010518ms +/- 116.35079037956878ms
+8th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+787.9035132937133ms +/- 109.37129642586159ms
+9th run ------
+multiquery_attention_part1_runner
+multiquery_attention_part1_np
+804.4576513477498ms +/- 113.24873651405096ms
+first run, skipping
+1th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1358.321277424693ms +/- 0.0ms
+2th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1196.6603393666446ms +/- 161.6609380580485ms
+3th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1112.5760811070602ms +/- 177.6602494557176ms
+4th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1066.0021828953177ms +/- 173.72321998343827ms
+5th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1055.4762532934546ms +/- 156.80238041899995ms
+6th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1033.625422200809ms +/- 151.2496265056016ms
+7th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1029.7145733077612ms +/- 140.35723613551372ms
+8th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1008.0550999846309ms +/- 143.25349563308404ms
+9th run ------
+multiquery_attention_part2_runner
+multiquery_attention_part2_np
+1010.8591610979703ms +/- 135.29335645886636ms
+first run, skipping
+1th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+235054.60928566754ms +/- 0.0ms
+2th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+235695.8476374857ms +/- 641.2383518181741ms
+3th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+234976.42686311156ms +/- 1144.2276509057174ms
+4th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+235237.3040819075ms +/- 1089.0883608243303ms
+5th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+234943.77560447901ms +/- 1137.3331237558987ms
+6th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+235248.49076010287ms +/- 1241.8516386138767ms
+7th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+235403.98587446127ms +/- 1211.1788613176993ms
+8th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+235503.48383456003ms +/- 1163.135358970174ms
+9th run ------
+rmsnorm_part1_runner
+rmsnorm_part1_np
+236070.0222213442ms +/- 1941.7233025415337ms
+first run, skipping
+1th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+8021.724358201027ms +/- 0.0ms
+2th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7573.023969307542ms +/- 448.70038889348507ms
+3th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7249.335380271077ms +/- 586.3189956615862ms
+4th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7049.504593480378ms +/- 614.5115975743481ms
+5th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7066.135237552226ms +/- 550.641367980721ms
+6th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7099.094718539466ms +/- 508.0386143898329ms
+7th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7157.155147487564ms +/- 491.38317394758303ms
+8th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7223.732877639122ms +/- 492.24323738258386ms
+9th run ------
+rmsnorm_part1_dot_runner
+rmsnorm_part1_dot_np
+7287.469747165839ms +/- 497.8753985865924ms
+first run, skipping
+1th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+370883.8759753853ms +/- 0.0ms
+2th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+355058.8820562698ms +/- 15824.993919115514ms
+3th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+330731.8884267782ms +/- 36749.9504733273ms
+4th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+316423.9454555791ms +/- 40336.96618543922ms
+5th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+305980.2773926407ms +/- 41688.577371644256ms
+6th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+299095.2095418858ms +/- 41052.43028868249ms
+7th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+296669.5343684405ms +/- 38468.79254226675ms
+8th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+301076.8299762858ms +/- 37826.40323539882ms
+9th run ------
+rmsnorm_part2_runner
+rmsnorm_part2_np
+301772.6149449332ms +/- 35717.332639370245ms
+first run, skipping
+1th run ------
+silu_runner
+silu_np
+255534.87324900925ms +/- 0.0ms
+2th run ------
+silu_runner
+silu_np
+274455.4004170932ms +/- 18920.527168083936ms
+3th run ------
+silu_runner
+silu_np
+281054.51766215265ms +/- 18048.663728197458ms
+4th run ------
+silu_runner
+silu_np
+284538.05243736133ms +/- 16754.722927295083ms
+5th run ------
+silu_runner
+silu_np
+286649.4523992762ms +/- 15569.477560054427ms
+6th run ------
+silu_runner
+silu_np
+287870.80318263423ms +/- 14472.929267805863ms
+7th run ------
+silu_runner
+silu_np
+289157.3666891615ms +/- 13764.936858924457ms
+8th run ------
+silu_runner
+silu_np
+289685.1079836488ms +/- 12951.404441459408ms
+9th run ------
+silu_runner
+silu_np
+289871.9209752356ms +/- 12222.128159864978ms
+first run, skipping
+1th run ------
+softmax_part1_runner
+softmax_part1_np
+22959.126899950206ms +/- 0.0ms
+2th run ------
+softmax_part1_runner
+softmax_part1_np
+22556.01557670161ms +/- 403.111323248595ms
+3th run ------
+softmax_part1_runner
+softmax_part1_np
+22376.417839278776ms +/- 415.7441366942227ms
+4th run ------
+softmax_part1_runner
+softmax_part1_np
+22461.78768016398ms +/- 389.22540974994496ms
+5th run ------
+softmax_part1_runner
+softmax_part1_np
+22449.085417948663ms +/- 349.05948710435683ms
+6th run ------
+softmax_part1_runner
+softmax_part1_np
+22329.14468102778ms +/- 416.4905038696399ms
+7th run ------
+softmax_part1_runner
+softmax_part1_np
+22367.083118031067ms +/- 396.6354369616153ms
+8th run ------
+softmax_part1_runner
+softmax_part1_np
+22379.312572302297ms +/- 372.4266746413577ms
+9th run ------
+softmax_part1_runner
+softmax_part1_np
+22402.283979786767ms +/- 357.08797302722394ms
+first run, skipping
+1th run ------
+softmax_part2_runner
+softmax_part2_np
+71761.4283412695ms +/- 0.0ms
+2th run ------
+softmax_part2_runner
+softmax_part2_np
+71867.97757958993ms +/- 106.54923832044005ms
+3th run ------
+softmax_part2_runner
+softmax_part2_np
+71356.0801409185ms +/- 729.1409115490218ms
+4th run ------
+softmax_part2_runner
+softmax_part2_np
+71991.09795805998ms +/- 1268.2577561096662ms
+5th run ------
+softmax_part2_runner
+softmax_part2_np
+72564.7703493014ms +/- 1613.438018219615ms
+6th run ------
+softmax_part2_runner
+softmax_part2_np
+72472.55780330549ms +/- 1487.2236887544093ms
+7th run ------
+softmax_part2_runner
+softmax_part2_np
+72407.41703832256ms +/- 1386.1161161101081ms
+8th run ------
+softmax_part2_runner
+softmax_part2_np
+72405.23015859071ms +/- 1296.6058107703284ms
+9th run ------
+softmax_part2_runner
+softmax_part2_np
+72510.29843029876ms +/- 1258.0551847994363ms
+first run, skipping
+1th run ------
+softmax_part3_runner
+softmax_part3_np
+22218.009461648762ms +/- 0.0ms
+2th run ------
+softmax_part3_runner
+softmax_part3_np
+22130.42471278459ms +/- 87.58474886417389ms
+3th run ------
+softmax_part3_runner
+softmax_part3_np
+21952.003851843376ms +/- 262.2633524921209ms
+4th run ------
+softmax_part3_runner
+softmax_part3_np
+22043.873035814613ms +/- 277.32001448854595ms
+5th run ------
+softmax_part3_runner
+softmax_part3_np
+22055.096306093037ms +/- 249.05613730986855ms
+6th run ------
+softmax_part3_runner
+softmax_part3_np
+22040.250680564593ms +/- 229.76675694367572ms
+7th run ------
+softmax_part3_runner
+softmax_part3_np
+22074.45965108595ms +/- 228.63171554519855ms
+8th run ------
+softmax_part3_runner
+softmax_part3_np
+22130.55974699091ms +/- 260.32469918895794ms
+9th run ------
+softmax_part3_runner
+softmax_part3_np
+22164.454503916204ms +/- 263.49554485973266ms
+first run, skipping
+1th run ------
+softmax_part4_runner
+softmax_part4_np
+52598.91490731388ms +/- 0.0ms
+2th run ------
+softmax_part4_runner
+softmax_part4_np
+53015.24267997593ms +/- 416.32777266204357ms
+3th run ------
+softmax_part4_runner
+softmax_part4_np
+53156.97011041144ms +/- 394.6211752244612ms
+4th run ------
+softmax_part4_runner
+softmax_part4_np
+52929.62670093402ms +/- 521.3918693747615ms
+5th run ------
+softmax_part4_runner
+softmax_part4_np
+52810.71817949414ms +/- 523.4849864553523ms
+6th run ------
+softmax_part4_runner
+softmax_part4_np
+52980.94689504554ms +/- 610.9442313841129ms
+7th run ------
+softmax_part4_runner
+softmax_part4_np
+52976.12648350852ms +/- 565.7476785634298ms
+8th run ------
+softmax_part4_runner
+softmax_part4_np
+53053.27831173781ms +/- 567.2111278164232ms
+9th run ------
+softmax_part4_runner
+softmax_part4_np
+53164.37639130486ms +/- 620.2605281081738ms
+first run, skipping
+1th run ------
