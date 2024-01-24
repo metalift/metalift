@@ -87,4 +87,5 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part1(input_var, max_pos_var)
-    driver.synthesize()
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    driver.synthesize(filename=f"softmax_part1{relaxed_suffix}")

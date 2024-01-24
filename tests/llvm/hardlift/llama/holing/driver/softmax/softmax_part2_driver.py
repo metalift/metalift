@@ -72,4 +72,4 @@ if __name__ == "__main__":
     softmax_part2(input_var, max_pos_var, max_val_var)
     map_int_to_int_synth = get_map_int_to_int_synth()
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize()
+    driver.synthesize(filename="softmax_part2")

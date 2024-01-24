@@ -71,4 +71,4 @@ if __name__ == "__main__":
 
     rmsnorm_part2(input_var, weight_var, ss)
 
-    driver.synthesize()
+    driver.synthesize(filename="rmsnorm_part2")
