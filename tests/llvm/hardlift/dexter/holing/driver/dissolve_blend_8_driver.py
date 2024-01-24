@@ -41,7 +41,7 @@ if __name__ == "__main__":
     dissolve_blend_8(base, active, opacity, rand_cons)
 
     start_time = time.time()
-    driver.synthesize(rounds_to_guess=0)
+    driver.synthesize(filename="dissolve_blend_8")
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + dissolve_blend_8.codegen(codegen))
