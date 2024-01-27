@@ -5,6 +5,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tests.llvm.hardlift.codegen.pytorch_codegen import pytorch_codegen
 from tests.llvm.hardlift.hardlift_common import (
     call_integer_exp,
     call_scalar_vec_div,
@@ -101,4 +102,5 @@ if __name__ == "__main__":
     int_x = Int("int_x")
     map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize(filename="transformer_part3")
+    driver.synthesize(filename="transformer_part3", noVerify=True)
+    print("\n\ngenerated code:" + transformer_part3.codegen(pytorch_codegen))

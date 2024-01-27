@@ -289,6 +289,15 @@ def silu_np(input, hidden_dim):
     )
 
 
+def silu_opt_np(input, hidden_dim):
+    return input[:hidden_dim] / (1 + np.exp(-input[:hidden_dim]))
+
+
+def silu_opt_with_temp_var_np(input, hidden_dim):
+    input_slice = input[:hidden_dim]
+    return input_slice / (1 + np.exp(-input_slice))
+
+
 def silu_runner(inputs, _, f=None):
     total_time = 0
     for i in range(len(inputs)):
@@ -297,6 +306,34 @@ def silu_runner(inputs, _, f=None):
 
         start_time = time.perf_counter()
         silu_np(inp, hidden_dim)
+        end_time = time.perf_counter()
+        del inp
+        total_time += (end_time - start_time) * 1000
+    return total_time
+
+
+def silu_opt_runner(inputs, _, f=None):
+    total_time = 0
+    for i in range(len(inputs)):
+        inp = inputs[i].flatten()
+        hidden_dim = len(inp)
+
+        start_time = time.perf_counter()
+        silu_opt_np(inp, hidden_dim)
+        end_time = time.perf_counter()
+        del inp
+        total_time += (end_time - start_time) * 1000
+    return total_time
+
+
+def silu_opt_with_temp_var_runner(inputs, _, f=None):
+    total_time = 0
+    for i in range(len(inputs)):
+        inp = inputs[i].flatten()
+        hidden_dim = len(inp)
+
+        start_time = time.perf_counter()
+        silu_opt_with_temp_var_np(inp, hidden_dim)
         end_time = time.perf_counter()
         del inp
         total_time += (end_time - start_time) * 1000
@@ -393,7 +430,40 @@ def softmax_part4_runner(inputs, _, f=None):
     return total_time
 
 
-timer(weights, None, None, silu_runner)
+def multiquery_attention_part2_einsum_runner(k_matrixes, q_matrixes, f=None):
+    total_time = 0
+    for i in range(len(k_matrixes)):
+        k_matrix = k_matrixes[i]
+        q_matrix = q_matrixes[i]
+        token_position = k_matrix.shape[0] - 1
+
+        num_head = 32
+        head = int(rng.integers(low=0, high=num_head))
+        head_size = k_matrix.shape[0] // num_head
+
+        key_cache_layer = k_matrix
+        q = q_matrix.flatten()
+
+        attention = multiquery_attention_part1_np(
+            token_position, head, head_size, key_cache_layer, q
+        )
+        attention = np.append(attention, np.array([0])).astype(np.float32)
+
+        start_time = time.perf_counter()
+        multiquery_attention_part2_einsum_np(
+            token_position, head, head_size, key_cache_layer, attention
+        )
+        end_time = time.perf_counter()
+        del key_cache_layer
+        del attention
+        total_time += (end_time - start_time) * 1000
+    return total_time
+
+
+timer(weights, None, None, silu_opt_with_temp_var_runner)
+# timer(k_weights, q_weights, None, multiquery_attention_part2_einsum_runner)
+# timer(weights, w_input, None, rmsnorm_part1_dot_runner)
+# timer(weights, None, None, silu_opt_runner)
 exit(0)
 
 # # In[16]:
@@ -496,7 +566,6 @@ def multiquery_attention_part2_einsum_runner(k_matrixes, q_matrixes, f=None):
 
 
 timer(k_weights, q_weights, None, multiquery_attention_part2_einsum_runner)
-print("HAHAHAHAH")
 
 
 random_k_weights = [np.random(8192, 8192).astype(np.float32) for _ in range(100)]
