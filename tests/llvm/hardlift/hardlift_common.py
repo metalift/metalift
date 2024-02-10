@@ -1373,10 +1373,14 @@ def get_matrix_select_search_space(
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
-            row >= lower_bound.maybe_relaxed(relaxed),
-            row <= upper_bound.maybe_relaxed(relaxed),
+            # row >= lower_bound.maybe_relaxed(relaxed),
+            # row <= upper_bound.maybe_relaxed(relaxed),
+            row >= 0,
+            row <= base.len(),
             out
-            == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
+            == call_matrix_selection_two_args(
+                base[:row], active[:row], select_two_args_fn_obj
+            ),
         )
 
     def inv1_grammar_fn(
@@ -1409,13 +1413,22 @@ def get_matrix_select_search_space(
         inner_loop_lower_bound = Int(0)
         inner_loop_upper_bound = base[0].len()
         return and_objects(
-            row >= outer_loop_lower_bound.maybe_relaxed(relaxed),
-            row <= outer_loop_upper_bound.maybe_relaxed(relaxed),
-            col >= inner_loop_lower_bound.maybe_relaxed(relaxed),
-            col <= inner_loop_upper_bound.maybe_relaxed(relaxed),
-            row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
+            # row >= outer_loop_lower_bound.maybe_relaxed(relaxed),
+            # row <= outer_loop_upper_bound.maybe_relaxed(relaxed),
+            # col >= inner_loop_lower_bound.maybe_relaxed(relaxed),
+            # col <= inner_loop_upper_bound.maybe_relaxed(relaxed),
+            row >= 0,
+            row < base.len(),
+            col >= 0,
+            col <= base[0].len(),
+            row_vec
+            == call_selection_two_args(
+                base[row][:col], active[row][:col], select_two_args_fn_obj
+            ),
             out
-            == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
+            == call_matrix_selection_two_args(
+                base[:row], active[:row], select_two_args_fn_obj
+            ),
         )
 
     def ps_grammar_fn(
@@ -1430,7 +1443,7 @@ def get_matrix_select_search_space(
         matrix = choose(matrix, matrix.transpose())
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         return ret_val == call_matrix_selection_two_args(
-            matrix, matrix, select_two_args_fn_obj
+            base, active, select_two_args_fn_obj
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
@@ -1864,7 +1877,8 @@ def get_select_synth_from_hole(
 ) -> Synth:
     driver.add_var_objects([int_x, int_y])
     var = choose(int_x, int_y)
-    return synth(SELECT_TWO_ARGS, hole_body(var), int_x, int_y)
+    return synth(SELECT_TWO_ARGS, ite(int_x < int_y, int_x, int_y), int_x, int_y)
+    # return synth(SELECT_TWO_ARGS, hole_body(var), int_x, int_y)
 
 
 def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
