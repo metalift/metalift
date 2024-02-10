@@ -103,4 +103,6 @@ if __name__ == "__main__":
     map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
     driver.synthesize(filename="transformer_part3", noVerify=True)
-    print("\n\ngenerated code:" + transformer_part3.codegen(pytorch_codegen))
+    ps_expr = driver.get_ps_expr()
+
+    print("\n\ngenerated code:" + pytorch_codegen(ps_expr, driver.synthesized_fns))

@@ -1498,6 +1498,7 @@ class Driver:
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
     target_fn: Callable[[], List[FnDecl]]
     fns_synths: List[Synth]
+    synthesized_fns: Dict[str, Any]
 
     def __init__(self) -> None:
         self.asserts = []
@@ -1506,6 +1507,7 @@ class Driver:
         self.var_tracker = VariableTracker()
         self.pred_tracker = PredicateTracker()
         self.fns_synths = []
+        self.synthesized_fns = {}
 
     def __post_init__(self) -> None:
         print("post init")
@@ -1546,6 +1548,22 @@ class Driver:
         self.fns[fn_name] = f
         return f
 
+    def get_ps_expr(self) -> Expr:
+        for fname, f in self.synthesized_fns.items():
+            m = re.match("(\w+)_ps", fname)  # ignore the invariants
+            if m:
+                if isinstance(f.body(), Eq):
+                    return cast(Eq, f.body()).e2()
+                elif (
+                    isinstance(f.body(), Call)
+                    and cast(Call, f.body()).name() == "list_eq"
+                ):
+                    return cast(Call, f.body()).arguments()[1]
+                else:
+                    raise Exception(
+                        f"synthesized fn body doesn't have form val = ...: {f.body()}"
+                    )
+
     def synthesize(self, filename: str, **synthesize_kwargs) -> None:  # type: ignore
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
@@ -1574,22 +1592,40 @@ class Driver:
                     fn_defs_to_exclude.append(f)
 
             for f in synthesized:
-                m = re.match("(\w+)_ps", f.name())  # ignore the invariants
-                if m:
-                    name = m.groups()[0]
-                    if isinstance(f.body(), Eq):
-                        self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
-                        print(f"{name} synthesized: {self.fns[name].synthesized}")
-                    elif (
-                        isinstance(f.body(), Call)
-                        and cast(Call, f.body()).name() == "list_eq"
-                    ):
-                        self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
-                        print(f"{name} synthesized: {self.fns[name].synthesized}")
-                    else:
-                        raise Exception(
-                            f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                        )
+                name = f.name()
+                if name not in [ip.name() for ip in inv_and_ps]:
+                    continue
+                self.synthesized_fns[name] = f
+                # if isinstance(f.body(), Eq):
+                #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
+                #     print(f"{name} synthesized: {self.fns[name].synthesized}")
+                # elif (
+                #     isinstance(f.body(), Call)
+                #     and cast(Call, f.body()).name() == "list_eq"
+                # ):
+                #     self.synthesized_fns.append(cast(Call, f.body()).arguments()[1])
+                #     print(f"{name} synthesized: {self.fns[name].synthesized}")
+                # else:
+                #     import pdb; pdb.set_trace()
+                #     raise Exception(
+                #         f"synthesized fn body doesn't have form val = ...: {f.body()}"
+                #     )
+                # m = re.match("(\w+)_ps", f.name())  # ignore the invariants
+                # if m:
+                #     name = m.groups()[0]
+                #     if isinstance(f.body(), Eq):
+                #         self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
+                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
+                #     elif (
+                #         isinstance(f.body(), Call)
+                #         and cast(Call, f.body()).name() == "list_eq"
+                #     ):
+                #         self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
+                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
+                #     else:
+                #         raise Exception(
+                #             f"synthesized fn body doesn't have form val = ...: {f.body()}"
+                #         )
 
     def add_precondition(self, e: Object) -> None:
         # this gets propagated to the State when it is created
@@ -1656,7 +1692,7 @@ class MetaliftFunc:
         self.target_lang_fn = target_lang_fn
         self.inv_grammars = inv_grammars
         self.ps_grammar = ps_grammar
-        self.synthesized = None
+        self.synthesized = []
 
         # Parse and process loops
         raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_ref.name)

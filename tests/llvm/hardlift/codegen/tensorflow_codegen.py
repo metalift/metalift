@@ -3,23 +3,23 @@ from typing import Dict
 from metalift.ir import Call, Expr, Lit
 
 
-def pytorch_codegen(
+def tensorflow_codegen(
     ps_expr: Expr, all_synthesized_fns: Dict[str, Expr], mode: str = "Float"
 ) -> str:
     translations = {
-        "vec_elemwise_mul": lambda args: f"torch.multiply({helper(args[1])}, {helper(args[0])})",
-        "matrix_vec_mul": lambda args: f"torch.matmul({helper(args[0])}, {helper(args[1])})",
-        "matrix_transpose": lambda args: f"torch.transpose({helper(args[0])}, 0, 1)",
-        "test_sqrt": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))",
+        "vec_elemwise_mul": lambda args: f"tf.multiply({helper(args[1])}, {helper(args[0])})",
+        "matrix_vec_mul": lambda args: f"tf.linalg.matvec({helper(args[0])}, {helper(args[1])})",
+        "matrix_transpose": lambda args: f"tf.transpose({helper(args[0])})",
+        "test_sqrt": lambda args: f"tf.sqrt({helper(args[0])})",
         #### Which of the name is used for sqrt?
-        "integer_sqrt": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))",
+        "integer_sqrt": lambda args: f"torch.sqrt({helper(args[0])})",
         "vec_map": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))"
         if helper(args[1]) == "integer_sqrt"
         else f"torch.exp({helper(args[0])})",
-        "reduce_sum": lambda args: f"torch.sum({helper(args[0])})",
+        "reduce_sum": lambda args: f"tf.reduce_sum({helper(args[0])})",
         "reduce_max": lambda args: f"torch.max({helper(args[0])})",
         "list_length": lambda args: f"{helper(args[0])}.size(dim=0)",
-        "vec_scalar_mul": lambda args: f"torch.multiply({helper(args[0])}, {helper(args[1])})",
+        "vec_scalar_mul": lambda args: f"tf.multiply({helper(args[0])}, {helper(args[1])})",
         "scalar_vec_div": lambda args: f"torch.divide({helper(args[0])}, {helper(args[1])})",
         "rand": lambda args: "torch.randint(1, 2147483647, base.shape, dtype=torch.int32, device='cuda')",
         "Ite": lambda args: f"torch.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
@@ -48,10 +48,10 @@ def pytorch_codegen(
         "Or": lambda args: " or ".join(helper(a) for a in args),
         "Not": lambda args: f"not {helper(args[0])}",
         "vec_map": {
-            "integer_exp": lambda args: f"torch.exp({helper(args[0])})",
-            "integer_sqrt": lambda args: f"torch.sqrt({helper(args[0])})",
+            "integer_exp": lambda args: f"tf.exp({helper(args[0])})",
+            "integer_sqrt": lambda args: f"tf.sqrt({helper(args[0])})",
         },
-        "matrix_selection_two_args": lambda args: f"torch.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
+        "matrix_selection_two_args": lambda args: f"tf.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
     }
     vars_to_replace = {"int_x": "base", "int_y": "active"}
 
