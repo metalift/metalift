@@ -2136,12 +2136,7 @@ class Call(Expr):
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
                     else:
-                        try:
-                            callStr += a.toRosette() + " "
-                        except:
-                            import pdb
-
-                            pdb.set_trace()
+                        callStr += a.toRosette() + " "
                 callStr += ")"
                 return callStr
             else:
