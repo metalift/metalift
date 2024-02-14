@@ -2,7 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.hardlift.codegen.pytorch_codegen import pytorch_codegen
+from tests.llvm.hardlift.codegen.gaudi_codegen import gaudi_codegen
 from tests.llvm.hardlift.hardlift_common import (
     darken_blend_8_hole_body,
     get_matrix_select_holing_search_space,
@@ -45,6 +45,6 @@ if __name__ == "__main__":
     driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    ps_expr = driver.get_ps_expr()
+    ps_fn_decl = driver.get_ps_fn_decl()
 
-    print("\n\ngenerated code:" + pytorch_codegen(ps_expr, driver.synthesized_fns))
+    print("\n\ngenerated code:" + gaudi_codegen(ps_fn_decl, driver.synthesized_fns))

@@ -13,6 +13,7 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -1566,6 +1567,37 @@ class Driver:
                         f"synthesized fn body doesn't have form val = ...: {f.body()}"
                     )
 
+    def get_ps_fn_decl(self) -> Union[FnDecl, FnDeclRecursive]:
+        # TODO(jie): delete potentially
+        for fname, f in self.synthesized_fns.items():
+            if re.match("(\w+)_ps", fname):
+                return f
+        raise Exception("Cannot find PS function!")
+
+    def get_actual_ps_fn_decl(self) -> Union[FnDecl, FnDeclRecursive]:
+        """Currently, the ps function decl is in the form of ret_val == body, and the return value is a boolean.
+
+        We want to rewrite it in a way suitable for code generation, which includes extracting the actual return type and the body.
+        """
+        for fname, f in self.synthesized_fns.items():
+            m = re.match("(\w+)_ps", fname)  # ignore the invariants
+            if m:
+                if isinstance(f.body(), Eq):
+                    body = cast(Eq, f.body()).e2()
+                elif (
+                    isinstance(f.body(), Call)
+                    and cast(Call, f.body()).name() == "list_eq"
+                ):
+                    body = cast(Call, f.body()).arguments()[1]
+                else:
+                    raise Exception(
+                        f"synthesized fn body doesn't have form val = ...: {f.body()}"
+                    )
+                actual_args = f.arguments()[:-1]
+                actual_return_type = f.arguments()[-1].type
+                return f.__class__(f.name(), actual_return_type, body, *actual_args)
+        raise Exception("ps function is not found!")
+
     def synthesize(self, filename: str, **synthesize_kwargs) -> None:  # type: ignore
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
@@ -1758,7 +1790,7 @@ class MetaliftFunc:
         self.driver.add_var_object(ret_val)
 
         # TODO(jie) instead of constructin this call manually can we replace it with a method call.
-        ps = call(f"{self.fn_name}_ps", Bool, ret_val, *args)
+        ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
 
         self.driver.postconditions.append(cast(Bool, ps))
 

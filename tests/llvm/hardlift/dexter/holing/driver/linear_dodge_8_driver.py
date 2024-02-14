@@ -2,11 +2,11 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tests.llvm.hardlift.codegen.gaudi_codegen import gaudi_codegen
 from tests.llvm.hardlift.hardlift_common import (
     get_matrix_computation_holing_search_space,
     linear_dodge_8_hole_body,
 )
-from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
     driver = Driver()
@@ -45,7 +45,6 @@ if __name__ == "__main__":
     driver.synthesize(filename="linear_dodge_8", rounds_to_guess=0, noVerify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    import pdb
 
-    pdb.set_trace()
-    print("\n\ngenerated code:" + linear_dodge_8.codegen(codegen))
+    ps_fn_decl = driver.get_actual_ps_fn_decl()
+    print("\n\ngenerated code:" + gaudi_codegen(ps_fn_decl, driver.synthesized_fns))
