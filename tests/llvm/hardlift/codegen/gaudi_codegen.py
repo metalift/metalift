@@ -101,9 +101,6 @@ def gaudi_codegen(
     # First we generate the function header
     # If the return value is a tensor, then we include it in the arguments.
     # The return value is always the last argument to the fn decl
-    import pdb
-
-    pdb.set_trace()
     # If we just call returnT then it's always a bool, due to the way we define the ps function
     if not is_list_type(ps_fn_decl.returnT()) and not is_matrix_type(
         ps_fn_decl.returnT()
@@ -127,4 +124,3 @@ def gaudi_codegen(
 
     # Generate the body
     # Generate the return value
-    r
