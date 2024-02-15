@@ -10,7 +10,6 @@ def pytorch_codegen(
         "vec_elemwise_mul": lambda args: f"torch.multiply({helper(args[1])}, {helper(args[0])})",
         "matrix_vec_mul": lambda args: f"torch.matmul({helper(args[0])}, {helper(args[1])})",
         "matrix_transpose": lambda args: f"torch.transpose({helper(args[0])}, 0, 1)",
-        "test_sqrt": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))",
         #### Which of the name is used for sqrt?
         "integer_sqrt": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))",
         "vec_map": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))"
