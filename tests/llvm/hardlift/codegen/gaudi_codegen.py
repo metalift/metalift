@@ -1,10 +1,12 @@
 from typing import Dict, Union
 
 from metalift.ir import (
+    Call,
     Expr,
     FnDecl,
     FnDeclRecursive,
     ObjectT,
+    Var,
     create_object,
     is_list_type,
     is_matrix_type,
@@ -90,7 +92,18 @@ def gaudi_codegen(
     mode: str = "Float",  # TODO(jie): extract this as enum
 ) -> str:
     def expr_codegen(expr: Expr):
-        pass
+        # TODO(jie): handle floats
+        if isinstance(expr, Var):
+            if is_list_type(expr.type) or is_matrix_type(expr.type):
+                return f"v_u8_ld_tnsr_b(inputCoord, {expr.name()})"
+            else:
+                return expr.name()
+        elif isinstance(expr, Call):
+            if expr.name() == "matrix_elemwise_add":
+                first_arg, second_arg = expr.arguments()
+                return (
+                    f"v_u8_add_b({expr_codegen(first_arg)}, {expr_codegen(second_arg)})"
+                )
 
     def type_codegen(ty: ObjectT) -> str:
         if is_list_type(ty) or is_matrix_type(ty):
@@ -112,15 +125,54 @@ def gaudi_codegen(
         ]
         arguments_str = ", ".join(arguments)
         header = f"{ret_type_str} main({arguments_str})"
+        body = None  # TODO(jie)
     else:
-        rv = create_object(ps_fn_decl.returnT(), f"{ps_fn_decl.name()}_rv").src
+        rv_name = f"{ps_fn_decl.name()}_rv"
+        rv = create_object(ps_fn_decl.returnT(), rv_name).src
         arguments = [
             f"{type_codegen(arg.type)} {arg.name()}"
             for arg in [*ps_fn_decl.arguments(), rv]
         ]
-        arguments.append(rv)
         arguments_str = ", ".join(arguments)
         header = f"void main({arguments_str})"
+        # Generate the body
+        # Generate the return value
+        body = (
+            f"v_u8_st_tnsr(outputCoord, {rv_name}, {expr_codegen(ps_fn_decl.body())});"
+        )
 
-    # Generate the body
-    # Generate the return value
+    # If mode is float, then we operate on 64 elements at a time, else 256
+    if mode == "Float":
+        vec_len = 64
+    else:
+        vec_len = 256
+
+    main_body = f"""
+    int5 index_space_start = get_index_space_offset();
+    int5 index_space_end = index_space_start + get_index_space_size();
+
+    int5 inputCoord = {{ 0 }};
+    int5 outputCoord = {{ 0 }};
+
+    // We operate on a block of 256 char elements at a time.
+    // Our index space operates on the basis of vec_len of 256.
+    unsigned vec_len = {vec_len};
+    for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
+        #pragma loop_unroll(4)
+        for (int j = index_space_start[1]; j < index_space_end[1]; j++) {{
+            // index space mapping
+            // coordinate 0 is for dim0.
+            inputCoord[0] = outputCoord[0] = (i * vec_len);
+            // coordinate 1 is for dim1.
+            inputCoord[1] = outputCoord[1] = j;
+
+            {body}
+        }}
+    }}
+    """
+
+    return f"""
+    {header} {{
+        {main_body}
+    }}
+    """
