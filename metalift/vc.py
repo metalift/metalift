@@ -371,11 +371,11 @@ class VC:
 
             elif opcode == "store":
                 # store either a reg or a literal
-                s.mem[ops[1]] = VC.parseOperand(ops[0], s.regs)
+                s.mem[ops[1]] = VC.parse_operand(ops[0], s.regs)
 
             elif opcode in ("add", "sub", "mul"):
-                op1 = VC.parseOperand(ops[0], s.regs)
-                op2 = VC.parseOperand(ops[1], s.regs)
+                op1 = VC.parse_operand(ops[0], s.regs)
+                op2 = VC.parse_operand(ops[1], s.regs)
                 if opcode == "add":
                     s.regs[i] = Add(op1, op2)
                 elif opcode == "sub":
@@ -385,8 +385,8 @@ class VC:
 
             elif opcode == "icmp":
                 cond = re.match("\S+ = icmp (\w+) \S+ \S+ \S+", str(i).strip()).group(1)  # type: ignore
-                op1 = VC.parseOperand(ops[0], s.regs)
-                op2 = VC.parseOperand(ops[1], s.regs)
+                op1 = VC.parse_operand(ops[0], s.regs)
+                op2 = VC.parse_operand(ops[1], s.regs)
 
                 if cond == "eq":
                     r: Expr = Eq(op2, op1)
@@ -411,9 +411,9 @@ class VC:
                 # XXX: this is a hack. bitcast should operate on reg values.
                 # this is because we currently do not assign out numerical addresses that are stored in regs
                 if ops[0] in s.regs:
-                    s.regs[i] = VC.parseOperand(ops[0], s.regs)
+                    s.regs[i] = VC.parse_operand(ops[0], s.regs)
                 else:
-                    s.mem[i] = VC.parseOperand(ops[0], s.mem)
+                    s.mem[i] = VC.parse_operand(ops[0], s.mem)
 
             elif opcode == "call":  # last arg is fn to be called
                 fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
@@ -479,7 +479,7 @@ class VC:
                 # if isinstance(ops[0], MLInstruction):
                 #   s.assumes.append(VC.evalMLInst(ops[0], s.regs, s.mem))
                 # elif isinstance(ops[0], ValueRef):
-                #   s.assumes.append(VC.parseOperand(ops[0], s.regs))
+                #   s.assumes.append(VC.parse_operand(ops[0], s.regs))
                 # else: raise Exception("NYI: %s" % i)
 
             elif opcode == "havoc":
@@ -534,7 +534,7 @@ class VC:
             raise Exception("NYI: %s" % i)
 
     @staticmethod
-    def parseOperand(
+    def parse_operand(
         op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True
     ) -> Expr:
-        return vc_util.parseOperand(op, reg, hasType)
+        return vc_util.parse_operand(op, reg, hasType)
