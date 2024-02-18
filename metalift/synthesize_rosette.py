@@ -52,7 +52,7 @@ from metalift.synthesis_common import (
 )
 
 # TODO: remove after proper replacement
-from metalift.types import CVC5UnsupportedException, FnT, MapT
+from metalift.types import CVC5UnsupportedException
 from tests.python.utils.utils import codegen
 
 

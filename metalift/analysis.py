@@ -34,7 +34,6 @@ from metalift.ir import (
     Synth,
     Var,
 )
-from metalift.types import String
 from metalift.vc import VC, Block
 
 orig_value_ref_operands = ValueRef.operands
