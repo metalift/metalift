@@ -1,178 +1,502 @@
-from typing import Dict, Union
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional, Union
 
 from metalift.ir import (
     Call,
     Expr,
     FnDecl,
     FnDeclRecursive,
+    Int,
+    Lit,
     ObjectT,
     Var,
     create_object,
     is_list_type,
     is_matrix_type,
 )
+from tests.llvm.tenspiler.codegen.utils import DataType
 
-# def gaudi_codegen(
-#     ps_expr: Expr, all_synthesized_fns: Dict[str, Expr], mode: str = "Float"
-# ) -> str:
-#     translations = {
-#         "vec_elemwise_mul": lambda args: f"torch.multiply({helper(args[1])}, {helper(args[0])})",
-#         "matrix_vec_mul": lambda args: f"torch.matmul({helper(args[0])}, {helper(args[1])})",
-#         "matrix_transpose": lambda args: f"torch.transpose({helper(args[0])}, 0, 1)",
-#         "test_sqrt": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))",
-#         #### Which of the name is used for sqrt?
-#         "integer_sqrt": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))",
-#         "vec_map": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))"
-#         if helper(args[1]) == "integer_sqrt"
-#         else f"torch.exp({helper(args[0])})",
-#         "reduce_sum": lambda args: f"torch.sum({helper(args[0])})",
-#         "reduce_max": lambda args: f"torch.max({helper(args[0])})",
-#         "list_length": lambda args: f"{helper(args[0])}.size(dim=0)",
-#         "vec_scalar_mul": lambda args: f"torch.multiply({helper(args[0])}, {helper(args[1])})",
-#         "scalar_vec_div": lambda args: f"torch.divide({helper(args[0])}, {helper(args[1])})",
-#         "rand": lambda args: "torch.randint(1, 2147483647, base.shape, dtype=torch.int32, device='cuda')",
-#         "Ite": lambda args: f"torch.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
-#         "Lt": lambda args: f"torch.less({helper(args[0])}, {helper(args[1])})",
-#         "Le": lambda args: f"torch.less_equal({helper(args[0])}, {helper(args[1])})",
-#         "Gt": lambda args: f"torch.greater({helper(args[0])}, {helper(args[1])})",
-#         "Ge": lambda args: f"torch.greater_equal({helper(args[0])}, {helper(args[1])})",
-#         "Eq": lambda args: f"torch.eq({helper(args[0])}, {helper(args[1])})",
-#         # General for any of the frameworks
-#         "vec_scalar_sub": lambda args: f"{helper(args[1])} - {helper(args[0])}",
-#         "vec_scalar_div": lambda args: f"{helper(args[1])} / {helper(args[0])}",
-#         "vec_scalar_add": lambda args: f"{helper(args[1])} + {helper(args[0])}",
-#         "scalar_vec_sub": lambda args: f"{helper(args[0])} - {helper(args[1])}",
-#         # General for any python code
-#         "list_list_col_slice_with_length": lambda args: f"{helper(args[0])}[:, {helper(args[1])}:{helper(args[1])} + {args[2]}]",
-#         "list_slice_with_length": lambda args: f"{helper(args[0])}[{helper(args[1])}:{helper(args[1])} + {args[2]}]",
-#         "list_take": lambda args: f"{helper(args[0])}[:{helper(args[1])}]",
-#         "Div": lambda args: f"{helper(args[0])} / {helper(args[1])}"
-#         if mode == "Float"
-#         else f"{helper(args[0])} // {helper(args[1])}",
-#         "Mul": lambda args: f"{helper(args[0])} * {helper(args[1])}",
-#         "Sub": lambda args: f"{helper(args[0])} - {helper(args[1])}",
-#         "Add": lambda args: f"{helper(args[0])} + {helper(args[1])}",
-#         "Mod": lambda args: f"{helper(args[0])} % {helper(args[1])}",
-#         "And": lambda args: " and ".join(helper(a) for a in args),
-#         "Or": lambda args: " or ".join(helper(a) for a in args),
-#         "Not": lambda args: f"not {helper(args[0])}",
-#         "vec_map": {
-#             "integer_exp": lambda args: f"torch.exp({helper(args[0])})",
-#             "integer_sqrt": lambda args: f"torch.sqrt({helper(args[0])})",
-#         },
-#         "matrix_selection_two_args": lambda args: f"torch.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
-#     }
-#     vars_to_replace = {"int_x": "base", "int_y": "active"}
 
-#     def helper(expr):
-#         if isinstance(expr, Call):
-#             if expr.name() == "vec_map":
-#                 map_fn_name = all_synthesized_fns["map_int_to_int"].body().name()
-#                 return translations[expr.name()][map_fn_name]([expr.arguments()[0]])
-#             if expr.name() == "matrix_selection_two_args":
-#                 select_two_args_body = all_synthesized_fns["select_two_args"].body()
-#                 cond = select_two_args_body.c()
-#                 if_then = select_two_args_body.e1()
-#                 if_else = select_two_args_body.e2()
-#                 return translations[expr.name()]((cond, if_then, if_else))
-#         elif isinstance(expr, Lit):
-#             return f"{expr.val()}"
-#         elif expr.__class__.__name__ in translations.keys():
-#             return translations[expr.__class__.__name__](expr.args)
-#         else:
-#             name = "%s" % (expr)
-#             return vars_to_replace.get(name, name)
+class CType(Enum):
+    """C types"""
 
-#     return helper(ps_expr)
+    INT = "int"
+    FLOAT = "float"
+
+
+# TODO(jie): think of a better name
+class GaudiBodyType(CType):
+    """Gaudi types used in the body (inside the loops). All C types are supported in the Gaudi body."""
+
+    # 1 vector, with 256 8-bit integers
+    UCHAR256 = "uchar256"
+    # 1 vector, with 64 32-bit floats
+    FLOAT64 = "float64"
+    # 4 vectors, each with 64 32-bit integers
+    UINT256 = "uint256"
+    # 4 vectors, each with 64 32-bit floats
+    FLOAT256 = "float256"
+
+    @staticmethod
+    def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiBodyType":
+        if ir_type is Int:
+            if d_type == DataType.INT:
+                return CType.INT
+            else:
+                return CType.FLOAT
+        elif is_list_type(ir_type) or is_matrix_type(ir_type):
+            if d_type == DataType.INT:
+                return GaudiBodyType.UCHAR256
+            else:
+                return GaudiBodyType.FLOAT64
+        else:
+            raise Exception(
+                f"Unsupported Gaudi type for ir type {ir_type} and data type {d_type}"
+            )
+
+
+class GaudiHeaderType(CType):
+    """Types used Gaudi's function header."""
+
+    TENSOR = "tensor"
+
+    @staticmethod
+    def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiHeaderType":
+        if is_list_type(ir_type) or is_matrix_type(ir_type):
+            return GaudiHeaderType.TENSOR
+        elif (
+            ir_type is Int
+        ):  # TODO(jie): double check if you can compare types like this
+            if d_type == DataType.FLOAT:
+                return GaudiHeaderType.FLOAT
+            else:
+                return GaudiHeaderType.INT
+        else:
+            raise Exception(f"Unsupported Gaudi type {ty}")
+
+
+@dataclass(kw_only=True)
+class GaudiInstr:
+    dest_name: Optional[str]
+    dest_type: Optional[GaudiBodyType]
+    instr_str: str
 
 
 def gaudi_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Union[FnDecl, FnDeclRecursive]],
-    mode: str = "Float",  # TODO(jie): extract this as enum
+    override_arg_types: Dict[str, GaudiHeaderType] = {},
+    d_type: DataType = DataType.UINT8,
 ) -> str:
-    def expr_codegen(expr: Expr):
-        # TODO(jie): handle floats
+    def expr_codegen(
+        expr: Expr,
+        instructions: List[GaudiInstr],
+        scalar_override_type: Optional[
+            GaudiBodyType
+        ] = None,  # If we want to broadcast a scalar
+    ) -> None:
+        # Helper functions
+        def get_gaudi_body_type(ir_type: ObjectT) -> GaudiBodyType:
+            """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
+            if scalar_override_type is not None:
+                return scalar_override_type
+            else:
+                return GaudiBodyType.from_ir_and_data_type(ir_type, d_type)
+
+        def format_instruction(expr: str, gaudi_body_type: GaudiBodyType) -> str:
+            """Formats the instruction with the destination name and type."""
+            return f"{gaudi_body_type.value} v{len(instructions)} = {expr};"
+
+        def convert_arg(
+            arg_name: str,
+            arg_gaudi_type: GaudiBodyType,
+            expected_gaudi_type: GaudiBodyType,
+        ) -> GaudiInstr:
+            """Converts the argument to the expected type. Returns the metadata of the new argument. Additionally, adds the instruction to the list of instructions."""
+            convert_instr_name = (
+                f"convert_{arg_gaudi_type.value}_to_{expected_gaudi_type.value}"
+            )
+            convert_instr = format_instruction(
+                f"{convert_instr_name}({arg_name})", expected_gaudi_type
+            )
+            new_arg_name = f"v{len(instructions)}"
+            new_metadata = GaudiInstr(
+                dest_name=new_arg_name,
+                dest_type=expected_gaudi_type,
+                instr=convert_instr,
+            )
+            instructions.append(new_metadata)
+            return new_metadata
+
+        # Generate the instructions for the body
         if isinstance(expr, Var):
             if is_list_type(expr.type) or is_matrix_type(expr.type):
-                return f"v_u8_ld_tnsr_b(inputCoord, {expr.name()})"
-            else:
-                return expr.name()
-        elif isinstance(expr, Call):
-            if expr.name() == "matrix_elemwise_add":
-                first_arg, second_arg = expr.arguments()
-                return (
-                    f"v_u8_add_b({expr_codegen(first_arg)}, {expr_codegen(second_arg)})"
+                if d_type == DataType.FLOAT:
+                    instr_name = f"v_f32_ld_tnsr_b"
+                    instr_gaudi_type = GaudiBodyType.FLOAT64
+                else:
+                    instr_name = f"v_u8_ld_tnsr_b"
+                    instr_gaudi_type = GaudiBodyType.UCHAR256
+                instr = GaudiInstr(
+                    dest_name=f"v{len(instructions)}",
+                    dest_type=instr_gaudi_type,
+                    instr=format_instruction(
+                        f"{instr_name}(inputCoord, {expr.name()}", instr_gaudi_type
+                    ),
                 )
+                instructions.append(instr)
+                return
+            else:
+                instr_gaudi_type = get_gaudi_body_type(expr.type)
+                instr = GaudiInstr(
+                    dest_name=f"v{len(instructions)}",
+                    dest_type=instr_gaudi_type,
+                    instr=format_instruction(expr.name(), instr_gaudi_type),
+                )
+                instructions.append(instr)
+                return
+        elif isinstance(expr, Lit):
+            instr_gaudi_type = get_gaudi_body_type(expr.type)
+            instr = GaudiInstr(
+                dest_name=f"v{len(instructions)}",
+                dest_type=instr_gaudi_type,
+                instr=format_instruction(expr.name(), instr_gaudi_type),
+            )
+            instructions.append(instr)
+            return
+        elif isinstance(expr, Call):
+            fn_name = expr.name()
 
-    def type_codegen(ty: ObjectT) -> str:
-        if is_list_type(ty) or is_matrix_type(ty):
-            return "tensor"
-        else:
-            raise Exception(f"Unsupported Gaudi type {ty}")
+            # Group function names
+            add_fn_names = {
+                "matrix_elemwise_add",
+                "vec_elemwise_add",
+                "matrix_scalar_add",
+                "vec_scalar_add",
+            }
+            sub_fn_names = {
+                "matrix_elemwise_sub",
+                "vec_elemwise_sub",
+                "matrix_scalar_sub",
+                "vec_scalar_sub",
+                "scalar_matrix_sub",
+                "scalar_vec_sub",
+            }
+            mul_fn_names = {
+                "matrix_elemwise_mul",
+                "vec_elemwise_mul",
+                "matrix_scalar_mul",
+                "vec_scalar_mul",
+            }
+            div_fn_names = {
+                "matrix_elemwise_div",
+                "vec_elemwise_div",
+                "matrix_scalar_div",
+                "vec_scalar_div",
+                "scalar_matrix_div",
+                "scalar_vec_div",
+            }
+            if fn_name in div_fn_names:
+                if d_type == DataType.INT:
+                    if "scalar" in fn_name:
+                        # Since we need to convert everything to float anyways, we just broadcast
+                        # the scalar as a float from the beginning
+                        expr_codegen(
+                            expr.arguments()[0],
+                            instructions,
+                            scalar_override_type=GaudiBodyType.FLOAT64,
+                        )
+                        first_arg_metadata = instructions[-1]
+                        expr_codegen(expr.arguments()[1], instructions)
+                        second_arg_metadata = instructions[-1]
+                    else:
+                        expr_codegen(expr.arguments()[0], instructions)
+                        first_arg_metadata = instructions[-1]
+                        expr_codegen(expr.arguments()[1], instructions)
+                        second_arg_metadata = instructions[-1]
 
-    # First we generate the function header
-    # If the return value is a tensor, then we include it in the arguments.
-    # The return value is always the last argument to the fn decl
-    # If we just call returnT then it's always a bool, due to the way we define the ps function
-    if not is_list_type(ps_fn_decl.returnT()) and not is_matrix_type(
-        ps_fn_decl.returnT()
-    ):
-        # TODO(jie): do you need to order
-        ret_type_str = type_codegen(ps_fn_decl.returnT().type)
-        arguments = [
-            f"{type_codegen(arg.type)} {arg.name()}" for arg in ps_fn_decl.arguments()
-        ]
-        arguments_str = ", ".join(arguments)
-        header = f"{ret_type_str} main({arguments_str})"
-        body = None  # TODO(jie)
-    else:
-        rv_name = f"{ps_fn_decl.name()}_rv"
-        rv = create_object(ps_fn_decl.returnT(), rv_name).src
-        arguments = [
-            f"{type_codegen(arg.type)} {arg.name()}"
-            for arg in [*ps_fn_decl.arguments(), rv]
-        ]
-        arguments_str = ", ".join(arguments)
-        header = f"void main({arguments_str})"
-        # Generate the body
-        # Generate the return value
-        body = (
-            f"v_u8_st_tnsr(outputCoord, {rv_name}, {expr_codegen(ps_fn_decl.body())});"
-        )
+                    if fn_name.startswith("scalar"):
+                        first_arg_metadata, second_arg_metadata = (
+                            second_arg_metadata,
+                            first_arg_metadata,
+                        )
+
+                    # We need to convert all the uchar256/uint256 to float256
+                    if first_arg_metadata.dest_type != GaudiBodyType.FLOAT256:
+                        first_arg_metadata = convert_arg(
+                            first_arg_metadata.dest_name,
+                            first_arg_metadata.dest_type,
+                            GaudiBodyType.FLOAT256,
+                        )
+                    if second_arg_metadata.dest_type != GaudiBodyType.FLOAT256:
+                        second_arg_metadata = convert_arg(
+                            second_arg_metadata.dest_name,
+                            second_arg_metadata.dest_type,
+                            GaudiBodyType.FLOAT256,
+                        )
+
+                    # Now we both args are of type float256
+                    result_arg_name = f"v{len(instructions)}"
+                    declaration_instr_metadata = GaudiInstr(
+                        dest_name=result_arg_name,
+                        dest_type=GaudiBodyType.FLOAT256,
+                        instr=f"{GaudiBodyType.FLOAT256.value} {result_arg_name};",
+                    )
+                    instructions.append(declaration_instr_metadata)
+                    # TODO(jie): whether the variables here are actually used.
+                    first_arg_name = first_arg_metadata.dest_name
+                    second_arg_name = second_arg_metadata.dest_name
+                    v1_instr_metadata = GaudiInstr(
+                        dest_name=None,
+                        dest_type=None,
+                        instr=f"{result_arg_name}.v1 = v_f32_mul_b({first_arg_name}.v1, {second_arg_name}.v1);",
+                    )
+                    v2_instr_metadata = GaudiInstr(
+                        dest_name=None,
+                        dest_type=None,
+                        instr=f"{result_arg_name}.v2 = v_f32_mul_b({first_arg_name}.v2, {second_arg_name}.v2);",
+                    )
+                    v3_instr_metadata = GaudiInstr(
+                        dest_name=None,
+                        dest_type=None,
+                        instr=f"{result_arg_name}.v3 = v_f32_mul_b({first_arg_name}.v3, {second_arg_name}.v3);",
+                    )
+                    v4_instr_metadata = GaudiInstr(
+                        dest_name=None,
+                        dest_type=None,
+                        instr=f"{result_arg_name}.v4 = v_f32_mul_b({first_arg_name}.v4, {second_arg_name}.v4);",
+                    )
+                    instructions.extend(
+                        [
+                            v1_instr_metadata,
+                            v2_instr_metadata,
+                            v3_instr_metadata,
+                            v4_instr_metadata,
+                        ]
+                    )
+
+                    # Last, we convert this float256 to uchar256
+                    convert_arg(
+                        result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
+                    )
+                    return
+                else:
+                    # Data type is float.
+                    if "scalar" in fn_name:
+                        # If it's a scalar operation, then we need to broadcast the scalar
+                        expr_codegen(
+                            expr.arguments()[0],
+                            instructions,
+                            scalar_override_type=GaudiBodyType.FLOAT64,
+                        )
+                        first_arg_metadata = instructions[-1]
+                        expr_codegen(expr.arguments()[1], instructions)
+                        second_arg_metadata = instructions[-1]
+                    else:
+                        expr_codegen(expr.arguments()[0], instructions)
+                        first_arg_metadata = instructions[-1]
+                        expr_codegen(expr.arguments()[1], instructions)
+                        second_arg_metadata = instructions[-1]
+
+                    if fn_name.startswith("scalar"):
+                        first_arg_metadata, second_arg_metadata = (
+                            second_arg_metadata,
+                            first_arg_metadata,
+                        )
+
+                    # Convert arguments to the correct types
+                    if first_arg_metadata.dest_type != GaudiBodyType.FLOAT64:
+                        first_arg_metadata = convert_arg(
+                            first_arg_metadata.dest_name,
+                            first_arg_metadata.dest_type,
+                            GaudiBodyType.FLOAT64,
+                        )
+                    if second_arg_metadata.dest_type != GaudiBodyType.FLOAT64:
+                        second_arg_metadata = convert_arg(
+                            second_arg_metadata.dest_name,
+                            second_arg_metadata.dest_type,
+                            GaudiBodyType.FLOAT64,
+                        )
+
+                    reciprocal_instr_name = "v_reciprocal_fast_f32"
+                    reciprocal_instr = format_instruction(
+                        f"{reciprocal_instr_name}({second_arg_metadata.dest_name})",
+                        GaudiBodyType.FLOAT64,
+                    )
+                    reciprocal_arg_name = f"v{len(instructions)}"
+                    reciprocal_instr_metadata = GaudiInstr(
+                        dest_name=reciprocal_arg_name,
+                        dest_type=GaudiBodyType.FLOAT64,
+                        instr=reciprocal_instr,
+                    )
+                    instructions.append(reciprocal_instr_metadata)
+
+                    # Now we multiply the first arg by the reciprocal of the second arg
+                    reciprocal_mul_instr = GaudiInstr(
+                        dest_name=f"v{len(instructions)}",
+                        dest_type=GaudiBodyType.FLOAT64,
+                        instr=format_instruction(
+                            f"v_f32_mul_b({first_arg_metadata.dest_name}, {reciprocal_arg_name})",
+                            GaudiBodyType.FLOAT64,
+                        ),
+                    )
+                    instructions.append(reciprocal_mul_instr)
+                    return
+
+            if fn_name in {*add_fn_names, *sub_fn_names, *mul_fn_names}:
+                if d_type == DataType.INT:
+                    expected_arg_type = GaudiBodyType.UCHAR256
+                    if fn_name in add_fn_names:
+                        instr_name = f"v_u8_add_b"
+                        ret_gaudi_type = GaudiBodyType.UCHAR256
+                    elif fn_name in sub_fn_names:
+                        instr_name = f"v_u8_sub_b"
+                        ret_gaudi_type = GaudiBodyType.UCHAR256
+                    else:
+                        instr_name = f"v_u8_mul_b"
+                        ret_gaudi_type = GaudiBodyType.UINT256
+                else:
+                    expected_arg_type = GaudiBodyType.FLOAT64
+                    if fn_name in add_fn_names:
+                        instr_name = f"v_f32_add_b"
+                        ret_gaudi_type = GaudiBodyType.FLOAT64
+                    elif fn_name in sub_fn_names:
+                        instr_name = f"v_f32_sub_b"
+                        ret_gaudi_type = GaudiBodyType.FLOAT64
+                    else:
+                        instr_name = f"v_f32_mul_b"
+                        ret_gaudi_type = GaudiBodyType.FLOAT64
+
+                if "scalar" in fn_name:
+                    # If it's a scalar operation, then we need to broadcast the scalar
+                    expr_codegen(
+                        expr.arguments()[0],
+                        instructions,
+                        scalar_override_type=expected_arg_type,
+                    )
+                    first_arg_metadata = instructions[-1]
+                    expr_codegen(expr.arguments()[1], instructions)
+                    second_arg_metadata = instructions[-1]
+                else:
+                    expr_codegen(expr.arguments()[0], instructions)
+                    first_arg_metadata = instructions[-1]
+                    expr_codegen(expr.arguments()[1], instructions)
+                    second_arg_metadata = instructions[-1]
+
+                if fn_name.startswith("scalar"):
+                    first_arg_metadata, second_arg_metadata = (
+                        second_arg_metadata,
+                        first_arg_metadata,
+                    )
+
+                if first_arg_metadata.dest_type != expected_arg_type:
+                    first_arg_metadata = convert_arg(
+                        first_arg_metadata.dest_name,
+                        first_arg_metadata.dest_type,
+                        expected_arg_type,
+                    )
+                if second_arg_metadata.dest_type != expected_arg_type:
+                    second_arg_metadata = convert_arg(
+                        second_arg_metadata.dest_name,
+                        second_arg_metadata.dest_type,
+                        expected_arg_type,
+                    )
+
+                instr = GaudiInstr(
+                    dest_name=f"v{len(instructions)}",
+                    dest_type=ret_gaudi_type,
+                    instr=format_instruction(
+                        f"{instr_name}({first_arg_metadata.dest_name}, {second_arg_metadata.dest_name})",
+                        ret_gaudi_type,
+                    ),
+                )
+                instructions.append(instr)
+                return
+
+    ###############################
+    # Begins actual code generation
+    ###############################
+
+    # TPC-C only supports vec-vec/matrix-matrix element-wise or vec-scalar/matrix-scalar
+    # operations, which means the final return value has to either be a vector or a matrix.
+    is_return_type_vec = is_list_type(ps_fn_decl.returnT())
+    is_return_type_matrix = is_matrix_type(ps_fn_decl.returnT())
+    if not is_return_type_vec and not is_return_type_matrix:
+        raise Exception("Can only return a tensor from a TPC-C function!")
+
+    # First we generate the function header. We include the tensor to return in the arguments,
+    # and it should always be the last argument.
+    rv_name = f"{ps_fn_decl.name()}_rv"
+    rv = create_object(ps_fn_decl.returnT(), rv_name).src
+    arguments = [
+        f"{GaudiHeaderType.from_ir_and_data_type(arg.type, d_type).value} {arg.name()}"
+        for arg in [*ps_fn_decl.arguments(), rv]
+    ]
+    arguments_str = ", ".join(arguments)
+    header = f"void main({arguments_str})"
 
     # If mode is float, then we operate on 64 elements at a time, else 256
-    if mode == "Float":
+    if d_type == DataType.FLOAT:
         vec_len = 64
+        store_instr = "v_f32_st_tnsr"
     else:
         vec_len = 256
+        store_instr = "v_u8_st_tnsr"
 
-    main_body = f"""
-    int5 index_space_start = get_index_space_offset();
-    int5 index_space_end = index_space_start + get_index_space_size();
+    # Generate the returned expression
+    instructions: List[GaudiInstr] = []
+    expr_codegen(ps_fn_decl.body(), instructions)
+    instr_strs = "\n".join([instr.instr_str for instr in instructions])
 
-    int5 inputCoord = {{ 0 }};
-    int5 outputCoord = {{ 0 }};
+    # Assign the last variable to the return value
+    ret_expr = instructions[-1].dest_name
 
-    // We operate on a block of 256 char elements at a time.
-    // Our index space operates on the basis of vec_len of 256.
-    unsigned vec_len = {vec_len};
-    for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
-        #pragma loop_unroll(4)
-        for (int j = index_space_start[1]; j < index_space_end[1]; j++) {{
+    if is_return_type_vec:
+        body = f"""
+        int5 index_space_start = get_index_space_offset();
+        int5 index_space_end = index_space_start + get_index_space_size();
+
+        int5 inputCoord = {{ 0 }};
+        int5 outputCoord = {{ 0 }};
+
+        unsigned vec_len = {vec_len};
+
+        #pragma loop_unroll(8)
+        for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
             // index space mapping
-            // coordinate 0 is for dim0.
             inputCoord[0] = outputCoord[0] = (i * vec_len);
-            // coordinate 1 is for dim1.
-            inputCoord[1] = outputCoord[1] = j;
-
-            {body}
+            {instr_strs}
+            {store_instr}(outputCoord, {rv_name}, {ret_expr});
         }}
-    }}
-    """
+        """
+    else:
+        # matrix return type
+        body = f"""
+        int5 index_space_start = get_index_space_offset();
+        int5 index_space_end = index_space_start + get_index_space_size();
+
+        int5 inputCoord = {{ 0 }};
+        int5 outputCoord = {{ 0 }};
+
+        unsigned vec_len = {vec_len};
+
+        for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
+            #pragma loop_unroll(4)
+            for (int j = index_space_start[1]; j < index_space_end[1]; j++) {{
+                // index space mapping
+                // coordinate 0 is for dim0.
+                inputCoord[0] = outputCoord[0] = (i * vec_len);
+                // coordinate 1 is for dim1.
+                inputCoord[1] = outputCoord[1] = j;
+
+                {store_instr}(outputCoord, {rv_name}, {ret_expr});
+            }}
+        }}
+        """
 
     return f"""
     {header} {{
-        {main_body}
+        {body}
     }}
     """

@@ -13,8 +13,6 @@ from typing import TypeVar, Union, _GenericAlias, cast, get_args, get_origin
 
 from llvmlite.binding import TypeRef, ValueRef
 
-from metalift.types import FnT, PointerT, Type
-
 
 class PrintMode(Enum):
     SMT = 0
@@ -23,31 +21,6 @@ class PrintMode(Enum):
 
 ObjectT = typing.Type["Object"]
 T = TypeVar("T")
-
-# rst_to_smt_lst_fn_name = {
-#     "length": "list_length",
-#     "list-list-length": "list_list_length",
-#     "list-empty": "list_empty",
-#     "list-list-empty": "list-list-empty",
-#     "list-append": "list_append",
-#     "list-list-append": "list_list_append",
-#     "list-prepend": "list_prepend",
-#     "list-list-prepend": "list_list_prepend",
-#     "list-ref-noerr": "list_get",
-#     "list-list-ref-noerr": "list_list_get",
-#     "list-tail-noerr": "list_tail",
-#     "list-list-tail-noerr": "list_list_tail",
-#     "list-concat": "list_concat",
-#     "list-take-noerr": "list_take",
-#     "list-list-take-noerr": "list_list_take",
-#     "list-slice-noerr": "list_slice",
-#     "list-list-slice-noerr": "list_list_slice",
-#     "list-slice-with-length-noerr": "list_slice_with_length",
-#     "list-list-slice-with-length-noerr": "list_list_slice_with_length",
-#     "list-list-col-slice-noerr": "list_list_col_slice",
-#     "list-list-col-slice-with-length-noerr":" list_col_slice_with_length",
-#     "matrix-transpose-noerr": "matrix_transpose"
-# }
 
 
 # Helper functions
@@ -329,11 +302,7 @@ class Expr:
                 return False
             else:
                 for a1, a2 in zip(self.args, other.args):
-                    if isinstance(a1, Type) and isinstance(a2, Type):
-                        if a1 != a2:
-                            return False
-                        continue
-                    elif isinstance(a1, Expr) and isinstance(a2, Expr):
+                    if isinstance(a1, Expr) and isinstance(a2, Expr):
                         if not Expr.__eq__(a1, a2):
                             return False
                         continue
@@ -605,11 +574,8 @@ class Expr:
 ObjectContainedT = Union[ObjectT, _GenericAlias]
 
 
-def get_type_str(type: Union[Type, ObjectT]) -> str:
-    if isinstance(type, Type):
-        return str(type)
-    else:
-        return type.cls_str(get_args(type))  # type: ignore
+def get_type_str(type: Union[ObjectT]) -> str:
+    return type.cls_str(get_args(type))  # type: ignore
 
 
 def toRosetteType(t: ObjectT) -> str:
@@ -1623,7 +1589,7 @@ class Lit(Expr):
 
 
 class ObjectExpr(Expr):
-    def __init__(self, ty: Type) -> None:
+    def __init__(self, ty: ObjectT) -> None:
         Expr.__init__(self, ty, {})  # type: ignore
 
     def toRosette(
@@ -2759,7 +2725,7 @@ class FnDefine(Expr):
 
 
 class Lambda(Expr):
-    def __init__(self, returnT: Type, body: Expr, *args: Expr) -> None:
+    def __init__(self, returnT: ObjectT, body: Expr, *args: Expr) -> None:
         Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [body, *args])  # type: ignore
 
     def body(self) -> Expr:
