@@ -1,6 +1,7 @@
+import textwrap
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from metalift.ir import (
     Call,
@@ -16,6 +17,9 @@ from metalift.ir import (
     is_matrix_type,
 )
 from tenspiler.codegen.utils import DataType
+
+# Indentation is 4 spaces
+INDENTATION = " " * 4
 
 
 class CType(Enum):
@@ -106,7 +110,7 @@ def gaudi_codegen(
             else:
                 return GaudiBodyType.from_ir_and_data_type(ir_type, d_type)
 
-        def format_instruction(expr: str, gaudi_body_type: GaudiBodyType) -> str:
+        def format_instruction(expr: Any, gaudi_body_type: GaudiBodyType) -> str:
             """Formats the instruction with the destination name and type."""
             return f"{gaudi_body_type.value} v{len(instructions)} = {expr};"
 
@@ -477,12 +481,19 @@ def gaudi_codegen(
     # Generate the returned expression
     instructions: List[GaudiInstr] = []
     expr_codegen(ps_fn_decl.body(), instructions)
-    instr_strs = "\n".join([instr.instr_str for instr in instructions])
+    instr_strs = [instr.instr_str for instr in instructions]
 
     # Assign the last variable to the return value
     ret_expr = instructions[-1].dest_name
 
     if is_return_type_vec:
+        joined_instr_str = "\n".join(
+            [instr_strs[0]]
+            + [
+                textwrap.indent(instr_str, INDENTATION * 3)
+                for instr_str in instr_strs[1:]
+            ]
+        )
         body = f"""
         int5 index_space_start = get_index_space_offset();
         int5 index_space_end = index_space_start + get_index_space_size();
@@ -496,11 +507,19 @@ def gaudi_codegen(
         for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
             // index space mapping
             inputCoord[0] = outputCoord[0] = (i * vec_len);
-            {instr_strs}
+            {joined_instr_str}
             {store_instr}(outputCoord, {rv_name}, {ret_expr});
         }}
         """
+        body = textwrap.dedent(body)
     else:
+        joined_instr_str = "\n".join(
+            [instr_strs[0]]
+            + [
+                textwrap.indent(instr_str, INDENTATION * 4)
+                for instr_str in instr_strs[1:]
+            ]
+        )
         # matrix return type
         body = f"""
         int5 index_space_start = get_index_space_offset();
@@ -524,9 +543,13 @@ def gaudi_codegen(
             }}
         }}
         """
+        body = textwrap.dedent(body)
 
-    return f"""
+    header_and_body = f"""
     {header} {{
-        {body}
+        {textwrap.indent(body, INDENTATION * 2)}
     }}
     """
+    header_and_body = textwrap.dedent(header_and_body)
+
+    return header_and_body

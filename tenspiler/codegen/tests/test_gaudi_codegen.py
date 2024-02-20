@@ -1,6 +1,14 @@
 from metalift.ir import Int, Matrix, call, fn_decl_recursive
 from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 
+# def test():
+#     return f"""
+#         hello
+#             hi
+#     """
+# print(textwrap.dedent(test()))
+# exit(0)
+
 base = Matrix(Int, "base")
 active = Matrix(Int, "active")
 fn_decl = fn_decl_recursive(
@@ -16,3 +24,4 @@ fn_decl = fn_decl_recursive(
     active,
 )
 result = gaudi_codegen(fn_decl, [])
+print(result)
