@@ -26,7 +26,7 @@ class CType(Enum):
 
 
 # TODO(jie): think of a better name
-class GaudiBodyType(CType):
+class GaudiBodyType(CType, Enum):
     """Gaudi types used in the body (inside the loops). All C types are supported in the Gaudi body."""
 
     # 1 vector, with 256 8-bit integers
@@ -42,9 +42,9 @@ class GaudiBodyType(CType):
     def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiBodyType":
         if ir_type is Int:
             if d_type == DataType.INT:
-                return CType.INT
+                return GaudiBodyType.INT
             else:
-                return CType.FLOAT
+                return GaudiBodyType.FLOAT
         elif is_list_type(ir_type) or is_matrix_type(ir_type):
             if d_type == DataType.INT:
                 return GaudiBodyType.UCHAR256
@@ -56,7 +56,7 @@ class GaudiBodyType(CType):
             )
 
 
-class GaudiHeaderType(CType):
+class GaudiHeaderType(CType, Enum):
     """Types used Gaudi's function header."""
 
     TENSOR = "tensor"
@@ -73,10 +73,12 @@ class GaudiHeaderType(CType):
             else:
                 return GaudiHeaderType.INT
         else:
-            raise Exception(f"Unsupported Gaudi type {ty}")
+            raise Exception(
+                f"Cannot infer Gaudi type from ir type {ir_type} and data type {d_type}"
+            )
 
 
-@dataclass(kw_only=True)
+@dataclass
 class GaudiInstr:
     dest_name: Optional[str]
     dest_type: Optional[GaudiBodyType]
@@ -87,7 +89,7 @@ def gaudi_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Union[FnDecl, FnDeclRecursive]],
     override_arg_types: Dict[str, GaudiHeaderType] = {},
-    d_type: DataType = DataType.UINT8,
+    d_type: DataType = DataType.INT,
 ) -> str:
     def expr_codegen(
         expr: Expr,
@@ -114,17 +116,23 @@ def gaudi_codegen(
             expected_gaudi_type: GaudiBodyType,
         ) -> GaudiInstr:
             """Converts the argument to the expected type. Returns the metadata of the new argument. Additionally, adds the instruction to the list of instructions."""
+            non_default_switches = {
+                (GaudiBodyType.UINT256, GaudiBodyType.FLOAT256): "SW_LINEAR",
+                (GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256): "SW_RD",
+            }
             convert_instr_name = (
                 f"convert_{arg_gaudi_type.value}_to_{expected_gaudi_type.value}"
             )
+            # By default, we use the 0 switch
+            switch = non_default_switches.get((arg_gaudi_type, expected_gaudi_type), 0)
             convert_instr = format_instruction(
-                f"{convert_instr_name}({arg_name})", expected_gaudi_type
+                f"{convert_instr_name}({arg_name}, {switch})", expected_gaudi_type
             )
             new_arg_name = f"v{len(instructions)}"
             new_metadata = GaudiInstr(
                 dest_name=new_arg_name,
                 dest_type=expected_gaudi_type,
-                instr=convert_instr,
+                instr_str=convert_instr,
             )
             instructions.append(new_metadata)
             return new_metadata
@@ -141,8 +149,8 @@ def gaudi_codegen(
                 instr = GaudiInstr(
                     dest_name=f"v{len(instructions)}",
                     dest_type=instr_gaudi_type,
-                    instr=format_instruction(
-                        f"{instr_name}(inputCoord, {expr.name()}", instr_gaudi_type
+                    instr_str=format_instruction(
+                        f"{instr_name}(inputCoord, {expr.name()})", instr_gaudi_type
                     ),
                 )
                 instructions.append(instr)
@@ -152,7 +160,7 @@ def gaudi_codegen(
                 instr = GaudiInstr(
                     dest_name=f"v{len(instructions)}",
                     dest_type=instr_gaudi_type,
-                    instr=format_instruction(expr.name(), instr_gaudi_type),
+                    instr_str=format_instruction(expr.name(), instr_gaudi_type),
                 )
                 instructions.append(instr)
                 return
@@ -161,7 +169,7 @@ def gaudi_codegen(
             instr = GaudiInstr(
                 dest_name=f"v{len(instructions)}",
                 dest_type=instr_gaudi_type,
-                instr=format_instruction(expr.name(), instr_gaudi_type),
+                instr_str=format_instruction(expr.val(), instr_gaudi_type),
             )
             instructions.append(instr)
             return
@@ -210,72 +218,94 @@ def gaudi_codegen(
                         first_arg_metadata = instructions[-1]
                         expr_codegen(expr.arguments()[1], instructions)
                         second_arg_metadata = instructions[-1]
+                        if not fn_name.startswith("scalar"):
+                            first_arg_metadata, second_arg_metadata = (
+                                second_arg_metadata,
+                                first_arg_metadata,
+                            )
                     else:
                         expr_codegen(expr.arguments()[0], instructions)
                         first_arg_metadata = instructions[-1]
                         expr_codegen(expr.arguments()[1], instructions)
                         second_arg_metadata = instructions[-1]
 
-                    if fn_name.startswith("scalar"):
-                        first_arg_metadata, second_arg_metadata = (
-                            second_arg_metadata,
-                            first_arg_metadata,
-                        )
-
                     # We need to convert all the uchar256/uint256 to float256
-                    if first_arg_metadata.dest_type != GaudiBodyType.FLOAT256:
+                    # If they are of type float64, we don't need to convert them, instead during multiplication
+                    # we don't use the v1, v2, v3, v4 fields
+                    if first_arg_metadata.dest_type not in {
+                        GaudiBodyType.FLOAT256,
+                        GaudiBodyType.FLOAT64,
+                    }:
                         first_arg_metadata = convert_arg(
                             first_arg_metadata.dest_name,
                             first_arg_metadata.dest_type,
                             GaudiBodyType.FLOAT256,
                         )
-                    if second_arg_metadata.dest_type != GaudiBodyType.FLOAT256:
+                    if second_arg_metadata.dest_type not in {
+                        GaudiBodyType.FLOAT256,
+                        GaudiBodyType.FLOAT64,
+                    }:
                         second_arg_metadata = convert_arg(
                             second_arg_metadata.dest_name,
                             second_arg_metadata.dest_type,
                             GaudiBodyType.FLOAT256,
                         )
 
-                    # Now we both args are of type float256
+                    # Now get fields to multiply
+                    if first_arg_metadata.dest_type == GaudiBodyType.FLOAT64:
+                        first_arg_mult_lst = [first_arg_metadata.dest_name]
+                    else:
+                        first_arg_mult_lst = [
+                            f"{first_arg_metadata.dest_name}.v{i}" for i in range(1, 5)
+                        ]
+
+                    # Now get the reciprocal of the second argument
+                    if second_arg_metadata.dest_type == GaudiBodyType.FLOAT64:
+                        reciprocal_second_arg_name = f"v{len(instructions)}"
+                        reciprocal_instr = GaudiInstr(
+                            dest_name=reciprocal_second_arg_name,
+                            dest_type=GaudiBodyType.FLOAT64,
+                            instr_str=format_instruction(
+                                f"v_reciprocal_fast_f32({second_arg_metadata.dest_name})",
+                                GaudiBodyType.FLOAT64,
+                            ),
+                        )
+                        instructions.append(reciprocal_instr)
+                        second_arg_mult_lst = [reciprocal_second_arg_name]
+                    else:
+                        # second arg is of type float256. We need to call v_reciprocal_fast_f32
+                        # on each of the fields.
+                        second_arg_mult_lst = [
+                            f"v_reciprocal_fast_f32({second_arg_metadata.dest_name}.v{i})"
+                            for i in range(1, 5)
+                        ]
+
+                    # Now we both args are of type float256 or float65.
                     result_arg_name = f"v{len(instructions)}"
                     declaration_instr_metadata = GaudiInstr(
                         dest_name=result_arg_name,
                         dest_type=GaudiBodyType.FLOAT256,
-                        instr=f"{GaudiBodyType.FLOAT256.value} {result_arg_name};",
+                        instr_str=f"{GaudiBodyType.FLOAT256.value} {result_arg_name};",
                     )
                     instructions.append(declaration_instr_metadata)
-                    # TODO(jie): whether the variables here are actually used.
-                    first_arg_name = first_arg_metadata.dest_name
-                    second_arg_name = second_arg_metadata.dest_name
-                    v1_instr_metadata = GaudiInstr(
-                        dest_name=None,
-                        dest_type=None,
-                        instr=f"{result_arg_name}.v1 = v_f32_mul_b({first_arg_name}.v1, {second_arg_name}.v1);",
-                    )
-                    v2_instr_metadata = GaudiInstr(
-                        dest_name=None,
-                        dest_type=None,
-                        instr=f"{result_arg_name}.v2 = v_f32_mul_b({first_arg_name}.v2, {second_arg_name}.v2);",
-                    )
-                    v3_instr_metadata = GaudiInstr(
-                        dest_name=None,
-                        dest_type=None,
-                        instr=f"{result_arg_name}.v3 = v_f32_mul_b({first_arg_name}.v3, {second_arg_name}.v3);",
-                    )
-                    v4_instr_metadata = GaudiInstr(
-                        dest_name=None,
-                        dest_type=None,
-                        instr=f"{result_arg_name}.v4 = v_f32_mul_b({first_arg_name}.v4, {second_arg_name}.v4);",
-                    )
-                    instructions.extend(
-                        [
-                            v1_instr_metadata,
-                            v2_instr_metadata,
-                            v3_instr_metadata,
-                            v4_instr_metadata,
-                        ]
-                    )
 
+                    for i in range(1, 5):
+                        if len(first_arg_mult_lst) == 1:
+                            first_arg_mult = first_arg_mult_lst[0]
+                        else:
+                            first_arg_mult = first_arg_mult_lst[i - 1]
+
+                        if len(second_arg_mult_lst) == 1:
+                            second_arg_mult = second_arg_mult_lst[0]
+                        else:
+                            second_arg_mult = second_arg_mult_lst[i - 1]
+
+                        instr = GaudiInstr(
+                            dest_name=None,
+                            dest_type=None,
+                            instr_str=f"{result_arg_name}.v{i} = v_f32_mul_b({first_arg_mult}, {second_arg_mult});",
+                        )
+                        instructions.append(instr)
                     # Last, we convert this float256 to uchar256
                     convert_arg(
                         result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
@@ -328,7 +358,7 @@ def gaudi_codegen(
                     reciprocal_instr_metadata = GaudiInstr(
                         dest_name=reciprocal_arg_name,
                         dest_type=GaudiBodyType.FLOAT64,
-                        instr=reciprocal_instr,
+                        instr_str=reciprocal_instr,
                     )
                     instructions.append(reciprocal_instr_metadata)
 
@@ -336,7 +366,7 @@ def gaudi_codegen(
                     reciprocal_mul_instr = GaudiInstr(
                         dest_name=f"v{len(instructions)}",
                         dest_type=GaudiBodyType.FLOAT64,
-                        instr=format_instruction(
+                        instr_str=format_instruction(
                             f"v_f32_mul_b({first_arg_metadata.dest_name}, {reciprocal_arg_name})",
                             GaudiBodyType.FLOAT64,
                         ),
@@ -406,7 +436,7 @@ def gaudi_codegen(
                 instr = GaudiInstr(
                     dest_name=f"v{len(instructions)}",
                     dest_type=ret_gaudi_type,
-                    instr=format_instruction(
+                    instr_str=format_instruction(
                         f"{instr_name}({first_arg_metadata.dest_name}, {second_arg_metadata.dest_name})",
                         ret_gaudi_type,
                     ),
