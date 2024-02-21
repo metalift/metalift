@@ -4,13 +4,17 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 from metalift.ir import (
+    Add,
     Call,
+    Div,
     Expr,
     FnDecl,
     FnDeclRecursive,
     Int,
     Lit,
+    Mul,
     ObjectT,
+    Sub,
     Var,
     create_object,
     is_list_type,
@@ -25,7 +29,7 @@ INDENTATION = " " * 4
 class CType(Enum):
     """C types"""
 
-    INT = "int"
+    UINT8 = "uint8_t"
     FLOAT = "float"
 
 
@@ -46,7 +50,7 @@ class GaudiBodyType(CType, Enum):
     def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiBodyType":
         if ir_type is Int:
             if d_type == DataType.INT:
-                return GaudiBodyType.INT
+                return GaudiBodyType.UINT8
             else:
                 return GaudiBodyType.FLOAT
         elif is_list_type(ir_type) or is_matrix_type(ir_type):
@@ -75,7 +79,7 @@ class GaudiHeaderType(CType, Enum):
             if d_type == DataType.FLOAT:
                 return GaudiHeaderType.FLOAT
             else:
-                return GaudiHeaderType.INT
+                return GaudiHeaderType.UINT8
         else:
             raise Exception(
                 f"Cannot infer Gaudi type from ir type {ir_type} and data type {d_type}"
@@ -177,6 +181,34 @@ def gaudi_codegen(
             )
             instructions.append(instr)
             return
+        elif (
+            isinstance(expr, Sub)
+            or isinstance(expr, Add)
+            or isinstance(expr, Mul)
+            or isinstance(expr, Div)
+        ):
+            if isinstance(expr, Add):
+                op = "+"
+            elif isinstance(expr, Sub):
+                op = "-"
+            elif isinstance(expr, Mul):
+                op = "*"
+            else:
+                op = "/"
+            instr_gaudi_type = get_gaudi_body_type(expr.type)
+            expr_codegen(expr.args[0], instructions)
+            first_arg_metadata = instructions[-1]
+            expr_codegen(expr.args[1], instructions)
+            second_arg_metadata = instructions[-1]
+            instr = GaudiInstr(
+                dest_name=f"v{len(instructions)}",
+                dest_type=instr_gaudi_type,
+                instr_str=format_instruction(
+                    f"{first_arg_metadata.dest_name} {op} {second_arg_metadata.dest_name}",
+                    instr_gaudi_type,
+                ),
+            )
+            instructions.append(instr)
         elif isinstance(expr, Call):
             fn_name = expr.name()
 
