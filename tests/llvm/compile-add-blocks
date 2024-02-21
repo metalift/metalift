@@ -20,7 +20,9 @@ else
 fi
 
 #opt -lowerswitch -instnamer -S $clang_out > tmp.ll
-opt -load ../../llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
+# opt -load ../../llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
+
+opt -load /Users/colinc/Desktop/research/metalift/code/ml/object-frontend/metalift/llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
 
 mv tmp.ll $clang_out
 

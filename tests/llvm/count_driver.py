@@ -153,8 +153,8 @@ if __name__ == "__main__":
     driver = Driver()
     driver.fns_synths = fns_synths()
     test = driver.analyze(
-        llvm_filepath="tests/llvm/Count.ll",
-        loops_filepath="tests/llvm/Count.loops",
+        llvm_filepath="tests/llvm/count.ll",
+        loops_filepath="tests/llvm/count.loops",
         fn_name="test",
         target_lang_fn=target_lang,
         inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
@@ -165,6 +165,4 @@ if __name__ == "__main__":
 
     test(data)
 
-    driver.synthesize()
-
-    print("\n\ngenerated code:" + test.codegen(codegen))
+    driver.synthesize(filename="count", rounds_to_guess=0)
