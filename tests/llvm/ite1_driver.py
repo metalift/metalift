@@ -38,4 +38,4 @@ if __name__ == "__main__":
     driver.add_var_object(i)
     test(i)
 
-    driver.synthesize()
+    driver.synthesize(filename="ite1", rounds_to_guess=0)

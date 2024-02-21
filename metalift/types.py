@@ -2,42 +2,42 @@ class CVC5UnsupportedException(Exception):
     pass
 
 
-# class Type:
-#     def __init__(self, name: str, *args: "Type") -> None:
-#         self.name = name
-#         self.args = args
+class Type:
+    def __init__(self, name: str, *args: "Type") -> None:
+        self.name = name
+        self.args = args
 
-#     def toSMT(self) -> str:
-#         if (
-#             self.name == "Int"
-#             or self.name == "ClockInt"
-#             or self.name == "EnumInt"
-#             or self.name == "OpaqueInt"
-#             or self.name == "NodeIDInt"
-#         ):
-#             return "Int"
-#         elif self.name == "Bool":
-#             return "Bool"
-#         elif self.name == "String":
-#             return "String"
-#         elif self.name == "Tuple":
-#             args = " ".join(a.toSMT() for a in self.args)
-#             return "(Tuple%d %s)" % (len(self.args), args)
-#         elif self.name == "Map":
-#             raise CVC5UnsupportedException("Map")
-#         else:
-#             return "(%s %s)" % (
-#                 self.name,
-#                 " ".join(
-#                     [a.toSMT() if isinstance(a, Type) else str(a) for a in self.args]
-#                 ),
-#             )
+    def toSMT(self) -> str:
+        if (
+            self.name == "Int"
+            or self.name == "ClockInt"
+            or self.name == "EnumInt"
+            or self.name == "OpaqueInt"
+            or self.name == "NodeIDInt"
+        ):
+            return "Int"
+        elif self.name == "Bool":
+            return "Bool"
+        elif self.name == "String":
+            return "String"
+        elif self.name == "Tuple":
+            args = " ".join(a.toSMT() for a in self.args)
+            return "(Tuple%d %s)" % (len(self.args), args)
+        elif self.name == "Map":
+            raise CVC5UnsupportedException("Map")
+        else:
+            return "(%s %s)" % (
+                self.name,
+                " ".join(
+                    [a.toSMT() if isinstance(a, Type) else str(a) for a in self.args]
+                ),
+            )
 
-#     def __repr__(self) -> str:
-#         if len(self.args) == 0:
-#             return self.name
-#         else:
-#             return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
+    def __repr__(self) -> str:
+        if len(self.args) == 0:
+            return self.name
+        else:
+            return "(%s %s)" % (self.name, " ".join([str(a) for a in self.args]))
 
     # def erase(self) -> "Type":
     #     if (
@@ -100,28 +100,28 @@ class CVC5UnsupportedException(Exception):
 
 
 # for string literals
-# def String() -> Type:
-#     return Type("String")
+def String() -> Type:
+    return Type("String")
 
 
-# def PointerT(t: Type) -> Type:
-#     return Type("Pointer", t)
+def PointerT(t: Type) -> Type:
+    return Type("Pointer", t)
 
 
 # def ListT(contentT: Type) -> Type:
 #     return Type("MLList", contentT)
 
 
-# def FnT(retT: Type, *argT: Type) -> Type:
-#     return Type("Function", retT, *argT)
+def FnT(retT: Type, *argT: Type) -> Type:
+    return Type("Function", retT, *argT)
 
 
 # def SetT(contentT: Type) -> Type:
 #     return Type("Set", contentT)
 
 
-# def MapT(keyT: Type, valT: Type) -> Type:
-#     return Type("Map", keyT, valT)
+def MapT(keyT: Type, valT: Type) -> Type:
+    return Type("Map", keyT, valT)
 
 
 # # first type is not optional
