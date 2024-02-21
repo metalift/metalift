@@ -15,8 +15,8 @@ if __name__ == "__main__":
         fns_synths,
     ) = get_dissolve_holing_search_space(driver)
     dissolve_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/dexter/cpp/dissolve_blend_8.ll",
-        loops_filepath="tests/llvm/tenspiler/dexter/cpp/dissolve_blend_8.loops",
+        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/dissolve_blend_8.ll",
+        loops_filepath="tenspiler/dexter/cpp/for_synthesis/dissolve_blend_8.loops",
         fn_name="dissolve_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={
@@ -41,7 +41,10 @@ if __name__ == "__main__":
     dissolve_blend_8(base, active, opacity, rand_cons)
 
     start_time = time.time()
-    driver.synthesize(filename="dissolve_blend_8")
+    driver.synthesize(filename="dissolve_blend_8", noVerify=True)
+    import pdb
+
+    pdb.set_trace()
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + dissolve_blend_8.codegen(codegen))

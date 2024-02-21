@@ -1202,6 +1202,46 @@ class Matrix(List[T], Generic[T], Object):
     def len(self) -> Int:
         return Int(Call("list_list_length", Int, self.src))
 
+    def _check_type_for_numeric_op(self, other: Union["Matrix", Int, int]) -> None:
+        if not isinstance(other, Matrix):
+            raise TypeError(f"Cannot perform computation {self} and {other}")
+        if self.elemT is not Int or other.elemT is not Int:
+            raise TypeError(
+                f"Cannot perform computation matrices with non-integer element types"
+            )
+
+    def __radd__(self, other: Union["Matrix", Int]) -> "Matrix":  # type: ignore
+        self._check_type_for_numeric_op(other)
+        if isinstance(other, int):
+            other = Int(other)
+        if isinstance(other, Int):
+            return call("matrix_scalar_add", Matrix[Int], other, self)
+        return call("matrix_elemwise_add", Matrix[Int], other, self)
+
+    def __add__(self, other: Union["Matrix", Int]) -> "Matrix":  # type: ignore
+        self._check_type_for_numeric_op(other)
+        if isinstance(other, int):
+            other = Int(other)
+        if isinstance(other, Int):
+            return call("matrix_scalar_add", Matrix[Int], other, self)
+        return call("matrix_elemwise_add", Matrix[Int], self, other)
+
+    def __radd__(self, other: Union["Matrix", Int]) -> "Matrix":  # type: ignore
+        self._check_type_for_numeric_op(other)
+        if isinstance(other, int):
+            other = Int(other)
+        if isinstance(other, Int):
+            return call("matrix_scalar_add", Matrix[Int], other, self)
+        return call("matrix_elemwise_add", Matrix[Int], other, self)
+
+    def __sub__(self, other: "Matrix") -> "Matrix":  # type: ignore
+        self._check_type_for_numeric_op(other)
+        if isinstance(other, int):
+            other = Int(other)
+        if isinstance(other, Int):
+            return call("matrix_scalar_sub", Matrix[Int], other, self)
+        return call("matrix_elemwise_sub", Matrix[Int], self, other)
+
     def __setitem__(self, index: Union[Int, int], value: Object) -> None:
         if isinstance(index, int):
             index = Int(index)
