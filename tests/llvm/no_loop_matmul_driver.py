@@ -84,6 +84,6 @@ if __name__ == "__main__":
 
     test(a0, a1, b0, b1, x0, x1)
 
-    driver.synthesize()
+    driver.synthesize(filename="no_loop_matmul")
 
     print("\n\ngenerated code:" + test.codegen(codegen))

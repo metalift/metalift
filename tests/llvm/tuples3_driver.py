@@ -48,6 +48,5 @@ if __name__ == "__main__":
 
     test(x, y)
 
-    driver.synthesize()
-
+    driver.synthesize(filename="tuples3")
     print("\n\ngenerated code:" + test.codegen(codegen))

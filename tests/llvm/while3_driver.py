@@ -99,6 +99,6 @@ if __name__ == "__main__":
     driver.add_var_object(arg)
     test(arg)
 
-    driver.synthesize()
-
+    driver.synthesize(filename="while3")
     print("\n\ngenerated code:" + test.codegen(codegen))
+

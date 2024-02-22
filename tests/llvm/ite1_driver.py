@@ -38,4 +38,5 @@ if __name__ == "__main__":
     driver.add_var_object(i)
     test(i)
 
-    driver.synthesize(filename="ite1", rounds_to_guess=0)
+    driver.synthesize(filename="ite1")
+    print("\n\ngenerated code:" + test.codegen(codegen))

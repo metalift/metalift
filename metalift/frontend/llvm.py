@@ -27,6 +27,7 @@ from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Matrix, Object, ObjectT
 from metalift.ir import Set as mlSet
+from metalift.ir import Tuple as mlTuple
 from metalift.ir import (
     Synth,
     Var,
@@ -1271,6 +1272,7 @@ class VCVisitor:
             1
         )  # bug: ops[0] always return i32 1 regardless of type
         obj_type = parse_type_ref_to_obj(t)
+
         # TODO(jie): handle custom contained types
         default_val = obj_type.default_value()
 
@@ -1628,6 +1630,21 @@ class Driver:
                 if name not in [ip.name() for ip in inv_and_ps]:
                     continue
                 self.synthesized_fns[name] = f
+
+                #TODO: added back for codegen
+                m = re.match("(\w+)_ps", f.name())  # ignore the invariants
+                if m:
+                    name = m.groups()[0]
+                    if isinstance(f.body(), Eq):
+                        self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
+                        print(f"{name} synthesized: {self.fns[name].synthesized}")
+                    elif (
+                        isinstance(f.body(), Call)
+                        and cast(Call, f.body()).name() == "list_eq"
+                    ):
+                        self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
+                        print(f"{name} synthesized: {self.fns[name].synthesized}")
+                #TODO: figure out why was it commented out
                 # if isinstance(f.body(), Eq):
                 #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
                 #     print(f"{name} synthesized: {self.fns[name].synthesized}")

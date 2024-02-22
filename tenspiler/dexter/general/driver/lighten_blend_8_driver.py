@@ -26,8 +26,8 @@ if __name__ == "__main__":
         relaxed=parser_args.relaxed,
     )
     lighten_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/dexter/cpp/lighten_blend_8.ll",
-        loops_filepath="tests/llvm/tenspiler/dexter/cpp/lighten_blend_8.loops",
+        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/lighten_blend_8.ll",
+        loops_filepath="tenspiler/dexter/cpp/for_synthesis/lighten_blend_8.loops",
         fn_name="lighten_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={

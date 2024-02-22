@@ -17,8 +17,8 @@ if __name__ == "__main__":
         fns_synths,
     ) = get_matrix_select_holing_search_space(driver, darken_blend_8_hole_body)
     darken_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/dexter/cpp/darken_blend_8.ll",
-        loops_filepath="tests/llvm/tenspiler/dexter/cpp/darken_blend_8.loops",
+        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/darken_blend_8.ll",
+        loops_filepath="tenspiler/dexter/cpp/for_synthesis/darken_blend_8.loops",
         fn_name="darken_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={

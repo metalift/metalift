@@ -23,8 +23,8 @@ if __name__ == "__main__":
         depth=parser_args.depth, int_vars=[Int(0), Int(1)], relaxed=parser_args.relaxed
     )
     linear_dodge_8 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/dexter/cpp/linear_dodge_8.ll",
-        loops_filepath="tests/llvm/tenspiler/dexter/cpp/linear_dodge_8.loops",
+        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/linear_dodge_8.ll",
+        loops_filepath="tenspiler/dexter/cpp/for_synthesis/linear_dodge_8.loops",
         fn_name="linear_dodge_8",
         target_lang_fn=target_lang,
         inv_grammars={

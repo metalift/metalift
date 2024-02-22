@@ -1490,6 +1490,10 @@ class Tuple(Generic[TupleContainedT], Object):
                 containedT_str = contain.toSMTType()
             contained_str_list.append(containedT_str)
         return f"(Tuple{tuple_length} {' '.join(contained_str_list)})"  # this would call List.toSMTType(Int) for instance
+    
+    @property
+    def type(self) -> typing.Type["Tuple"]:  # type: ignore
+        return Tuple[typing.Tuple[self.containedT]]# type: ignore
 
     # TODO(jie): handle contained type
     @staticmethod

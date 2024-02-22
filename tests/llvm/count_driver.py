@@ -165,4 +165,6 @@ if __name__ == "__main__":
 
     test(data)
 
-    driver.synthesize(filename="count", rounds_to_guess=0)
+    driver.synthesize(filename="count")
+
+    print("\n\ngenerated code:" + test.codegen(codegen))

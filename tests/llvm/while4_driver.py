@@ -61,6 +61,5 @@ if __name__ == "__main__":
 
     test()
 
-    driver.synthesize()
-
+    driver.synthesize(filename="while4")
     print("\n\ngenerated code:" + test.codegen(codegen))
