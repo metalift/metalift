@@ -57,4 +57,6 @@ if __name__ == "__main__":
 
     test(base, arg1, base2, arg2)
 
-    driver.synthesize(filename="fma_dsl", rounds_to_guess=0)
+    driver.synthesize(filename="fma_dsl")
+
+    print("\n\ngenerated code:" + test.codegen(codegen))

@@ -171,8 +171,9 @@ if __name__ == "__main__":
     test_cblas_sgemv(alpha, a, x, beta, y)
 
     start_time = time.time()
-    driver.synthesize(noVerify=True)
+    driver.synthesize(filename="test_cblas_sgemv", noVerify=True)
     end_time = time.time()
 
-    print("\n\ngenerated code:" + test_cblas_sgemv.codegen(codegen))
     print(f"Synthesis took {end_time - start_time} seconds")
+
+    print("\n\ngenerated code:" + test_cblas_sgemv.codegen(codegen))

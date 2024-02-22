@@ -12,7 +12,7 @@ echo "output to:" $clang_out
 include_path="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
 
 #clang -g -I $include_path -c -emit-llvm -S $file -o $clang_out
-if [[ $file == *.c ]]
+if [[ $file == *.c ]]s
 then
   clang -O0 -I $include_path -I../../headers -c -emit-llvm -fno-discard-value-names -S $file -o $clang_out
 else
@@ -20,9 +20,7 @@ else
 fi
 
 #opt -lowerswitch -instnamer -S $clang_out > tmp.ll
-# opt -load ../../llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
-
-opt -load /Users/colinc/Desktop/research/metalift/code/ml/object-frontend/metalift/llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
+opt -load ../../llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S $clang_out > tmp.ll
 
 mv tmp.ll $clang_out
 

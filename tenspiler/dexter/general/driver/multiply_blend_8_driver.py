@@ -15,8 +15,8 @@ if __name__ == "__main__":
         fns_synths,
     ) = get_matrix_computation_general_search_space(depth=2, int_vars=[Int(32)])
     multiply_blend_8 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/dexter/cpp/multiply_blend_8.ll",
-        loops_filepath="tests/llvm/tenspiler/dexter/cpp/multiply_blend_8.loops",
+        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/multiply_blend_8.ll",
+        loops_filepath="tenspiler/dexter/cpp/for_synthesis/multiply_blend_8.loops",
         fn_name="multiply_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={

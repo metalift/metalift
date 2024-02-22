@@ -131,6 +131,5 @@ if __name__ == "__main__":
     driver.add_var_object(in_var)
     test(in_var)
 
-    driver.synthesize()
-
+    driver.synthesize(filename="vector1")
     print("\n\ngenerated code:" + test.codegen(codegen))
