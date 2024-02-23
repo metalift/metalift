@@ -19,6 +19,7 @@ from metalift.ir import (
 )
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
+    MAP_INT_TO_INT,
     MATRIX_ELEMWISE_ADD,
     MATRIX_ELEMWISE_DIV,
     MATRIX_ELEMWISE_MUL,
@@ -78,11 +79,62 @@ def mlx_codegen(
             SCALAR_VEC_DIV,
             SCALAR_MATRIX_DIV,
         }:
+            # TODO: what do we do with integer division?
             return f"torch.divide({processed_args[0]}, {processed_args[1]})"
         elif fn_name in {VEC_SCALAR_DIV, MATRIX_SCALAR_DIV}:
             return f"torch.divide({processed_args[1]}, {processed_args[0]})"
-        elif fn_name == "matrix_selection_two_args":
-            return f"torch.where({processed_args[0]}, {processed_args[1]}, {processed_args[2]})"
+        elif fn_name.endswith("matrix_selection_two_args"):
+            for name, fn in all_synthesized_fns.items():
+                if name.endswith("select_two_args"):
+                    select_two_args_body = fn.body()
+            if select_two_args_body is None:
+                raise ValueError("select_two_args not found")
+            cond = select_two_args_body.c()
+            if_then = select_two_args_body.e1()
+            if_else = select_two_args_body.e2()
+            return f"torch.where({helper(cond)}, {helper(if_then)}, {helper(if_else)})"
+        elif fn_name == "vec_map":
+            map_fn_name = all_synthesized_fns[MAP_INT_TO_INT].body().name()
+            if map_fn_name == "integer_sqrt":
+                return f"torch.sqrt({processed_args[0]})"
+            elif map_fn_name == "integer_exp":
+                return f"torch.exp({processed_args[0]})"
+            else:
+                raise ValueError(f"Unknown map function name: {map_fn_name}")
+        elif fn_name == "matrix_vec_mul":
+            return f"torch.matmul({processed_args[0]}, {processed_args[1]})"
+        # List access functions
+        elif fn_name in {"list_take", "list_list_take"}:
+            return f"{processed_args[0]}[:{processed_args[1]}]"
+        elif fn_name in {"list_slice_with_length", "list_list_slice_with_length"}:
+            return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]"
+        elif fn_name == "list_list_col_slice_with_length":
+            return f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]"
+        elif fn_name == "list_length":
+            return f"{processed_args[0]}.size(dim=0)"
+        # Matrix functions
+        elif fn_name == "matrix_transpose":
+            return f"torch.transpose({processed_args[0]}, 0, 1)"
+        # Reduce functions
+        elif fn_name == "reduce_max":
+            return f"torch.max({processed_args[0]})"
+        elif fn_name == "reduce_sum":
+            return f"torch.sum({processed_args[0]})"
+        elif fn_name == "reduce_mul":
+            return f"torch.prod({processed_args[0]})"
+        # Integer functions
+        elif fn_name == "integer_sqrt":
+            return f"torch.sqrt(torch.as_tensor({processed_args[0]}))"
+        elif fn_name == "integer_exp":
+            return f"torch.exp(torch.as_tensor({processed_args[0]}))"
+        elif fn_name == MAP_INT_TO_INT:
+            map_fn_name = all_synthesized_fns[MAP_INT_TO_INT].body().name()
+            if map_fn_name == "integer_sqrt":
+                return f"torch.sqrt(torch.as_tensor({processed_args[0]}))"
+            elif map_fn_name == "integer_exp":
+                return f"torch.exp(torch.as_tensor({processed_args[0]}))"
+            else:
+                raise ValueError(f"Unknown map function name: {map_fn_name}")
         raise Exception(f"Unknown function name: {fn_name}")
 
     def translate_non_fn_call(expr: Expr) -> str:
@@ -169,22 +221,6 @@ def mlx_codegen(
 
     def helper(expr):
         if isinstance(expr, Call):
-            if expr.name() == "vec_map":
-                map_fn_name = all_synthesized_fns["map_int_to_int"].body().name()
-                return translations[expr.name()][map_fn_name]([expr.arguments()[0]])
-            if expr.name().endswith("matrix_selection_two_args"):
-                select_two_args_body = None
-                for name, fn in all_synthesized_fns.items():
-                    if name.endswith("select_two_args"):
-                        select_two_args_body = fn.body()
-                if select_two_args_body is None:
-                    raise ValueError("select_two_args not found")
-                cond = select_two_args_body.c()
-                if_then = select_two_args_body.e1()
-                if_else = select_two_args_body.e2()
-                return translate_fn_call(
-                    "matrix_selection_two_args", cond, if_then, if_else
-                )
             return translate_fn_call(expr.name(), *expr.arguments())
         elif isinstance(expr, Expr):
             return translate_non_fn_call(expr)

@@ -5,12 +5,21 @@ from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
     DISSOLVE_SELECT_TWO_ARGS,
+    MAP_INT_TO_INT,
     MATRIX_SELECTION_TWO_ARGS,
     SELECT_TWO_ARGS,
     call_dissolve_matrix_selection_two_args,
+    call_integer_exp,
+    call_integer_sqrt,
+    call_map_int_to_int,
     call_matrix_selection_two_args,
+    call_matrix_vec_mul,
+    call_reduce_max,
+    call_reduce_sum,
+    call_vec_map,
     dissolve_matrix_selection_two_args_fn_decl,
     dissolve_select_two_args_fn_obj_arg,
+    map_int_to_int_fn_obj,
     matrix_selection_two_args_fn_decl,
     select_two_args_fn_obj_arg,
 )
@@ -133,7 +142,8 @@ def multiply_blend_8(codegen_func):
         base_matrix,
         active_matrix,
     )
-    return fn_decl, [fn_decl], DataType.INT
+    all_fn_decls = {"multiply_blend_8_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.INT
 
 
 @codegen
@@ -215,7 +225,8 @@ def screen_blend_8(codegen_func):
         base_matrix,
         active_matrix,
     )
-    return fn_decl, [fn_decl], DataType.INT
+    all_fn_decls = {"screen_blend_8_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.INT
 
 
 @codegen
@@ -227,7 +238,8 @@ def linear_dodge_8(codegen_func):
         base_matrix,
         active_matrix,
     )
-    return fn_decl, [fn_decl], DataType.INT
+    all_fn_decls = {"linear_dodge_8_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.INT
 
 
 @codegen
@@ -288,8 +300,225 @@ def overlay_blend_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
+# Llama benchmarks
+@codegen
+def softmax_part1(codegen_func):
+    input = List(Int, "input")
+    max_pos = Int("max_pos")
+    fn_decl = fn_decl_recursive(
+        "softmax_part1_ps", Int, call_reduce_max(input[:max_pos]), input, max_pos
+    )
+    all_fn_decls = {"softmax_part1_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def softmax_part2(codegen_func):
+    input = List(Int, "input")
+    max_pos = Int("max_pos")
+    max_val = Int("max_val")
+    fn_decl = fn_decl_recursive(
+        "softmax_part2_ps",
+        List[Int],
+        call_vec_map(List.sub(input[:max_pos], max_val), map_int_to_int_fn_obj),
+        input,
+        max_pos,
+        max_val,
+    )
+    int_x = Int("int_x")
+    map_int_to_int_fn_decl = fn_decl_recursive(
+        MAP_INT_TO_INT, Int, call_integer_exp(int_x), int_x
+    )
+    all_fn_decls = {MAP_INT_TO_INT: map_int_to_int_fn_decl, "softmax_part2_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def softmax_part3(codegen_func):
+    output = List(Int, "output")
+    max_pos = Int("max_pos")
+    fn_decl = fn_decl_recursive(
+        "softmax_part3_ps", Int, call_reduce_max(output[:max_pos]), output, max_pos
+    )
+    all_fn_decls = {"softmax_part3_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def softmax_part4(codegen_func):
+    unnormalized_output = List(Int, "unnormalized_output")
+    max_pos = Int("max_pos")
+    sum = Int("sum")
+    fn_decl = fn_decl_recursive(
+        "softmax_part4_ps",
+        List[Int],
+        List.div(unnormalized_output[:max_pos], sum),
+        unnormalized_output,
+        max_pos,
+        sum,
+    )
+    all_fn_decls = {"softmax_part4_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def rmsnorm_part1(codegen_func):
+    input = List(Int, "input")
+    weight = List(Int, "weight")
+    fn_decl = fn_decl_recursive(
+        "rmsnorm_part1_ps", Int, call_reduce_sum(List.mul(input, input)), input, weight
+    )
+    all_fn_decls = {"rmsnorm_part1_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def rmsnorm_part2(codegen_func):
+    input = List(Int, "input")
+    weight = List(Int, "weight")
+    ss = Int("ss")
+    cons = 1 // call_integer_sqrt(ss // input.len() + 1)
+    fn_decl = fn_decl_recursive(
+        "rmsnorm_part2_ps",
+        Int,
+        List.mul(cons, List.mul(input, weight)),
+        input,
+        weight,
+        ss,
+    )
+    all_fn_decls = {"rmsnorm_part2_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def matmul(codegen_func):
+    weight = Matrix(Int, "weight")
+    input = Matrix(Int, "input")
+    fn_decl = fn_decl_recursive(
+        "matmul_ps",
+        Matrix[Int],
+        call_matrix_vec_mul(weight, input),
+        weight,
+        input,
+    )
+    all_fn_decls = {"matmul_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def transformer_part1(codegen_func):
+    token_position = Int("token_position")
+    head = Int("head")
+    head_size = Int("head_size")
+    key_cache_layer = Matrix(Int, "key_cache_layer")
+    q = List(Int, "q")
+    computed_vec = call_matrix_vec_mul(
+        key_cache_layer[:token_position].col_slice_with_length(
+            head * head_size, head_size
+        ),
+        q.slice_with_length(head * head_size, head_size),
+    )
+    fn_decl = fn_decl_recursive(
+        "transformer_part1_ps",
+        List[Int],
+        List.div(computed_vec, call_map_int_to_int(head_size * 1)),
+        token_position,
+        head,
+        head_size,
+        key_cache_layer,
+        q,
+    )
+    map_int_to_int_fn_decl = fn_decl_recursive(
+        MAP_INT_TO_INT, Int, call_integer_sqrt(int_x), int_x
+    )
+    all_fn_decls = {
+        MAP_INT_TO_INT: map_int_to_int_fn_decl,
+        "transformer_part1_ps": fn_decl,
+    }
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def transformer_part2(codegen_func):
+    token_position = Int("token_position")
+    head = Int("head")
+    head_size = Int("head_size")
+    key_cache_layer = Matrix(Int, "key_cache_layer")
+    attention = List(Int, "attention")
+    computed_vec = call_matrix_vec_mul(
+        key_cache_layer[: token_position + 1]
+        .col_slice_with_length(head * head_size, head_size)
+        .transpose(),
+        attention[: token_position + 1],
+    )
+    fn_decl = fn_decl_recursive(
+        "transformer_part2_ps",
+        List[Int],
+        computed_vec,
+        token_position,
+        head,
+        head_size,
+        key_cache_layer,
+        attention,
+    )
+    all_fn_decls = {"transformer_part2_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def transformer_part3(codegen_func):
+    input = List(Int, "input")
+    hidden_dim = Int("hidden_dim")
+
+    fn_decl = fn_decl_recursive(
+        "transformer_part3_ps",
+        List[Int],
+        List.mul(
+            input[:hidden_dim],
+            List.div(
+                1,
+                List.add(
+                    1,
+                    call_vec_map(
+                        List.sub(0, input[:hidden_dim]), map_int_to_int_fn_obj
+                    ),
+                ),
+            ),
+        ),
+        input,
+        hidden_dim,
+    )
+    map_int_to_int_fn_decl = fn_decl_recursive(
+        MAP_INT_TO_INT, Int, call_integer_exp(int_x), int_x
+    )
+    all_fn_decls = {
+        MAP_INT_TO_INT: map_int_to_int_fn_decl,
+        "transformer_part3_ps": fn_decl,
+    }
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
+@codegen
+def transformer_part4(codegen_func):
+    input1 = List(Int, "input1")
+    input2 = List(Int, "input2")
+    hidden_dim = Int("hidden_dim")
+    fn_decl = fn_decl_recursive(
+        "transformer_part4_ps",
+        List[Int],
+        List.mul(input1[:hidden_dim], input2[:hidden_dim]),
+        input1,
+        input2,
+        hidden_dim,
+    )
+    all_fn_decls = {"transformer_part4_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
 codegen_funcs = [mlx_codegen, gaudi_codegen]
+
 for codegen_func in codegen_funcs[:1]:
+    # Dexter benchmarks
     normal_blend_8(codegen_func)
     normal_blend_f(codegen_func)
     dissolve_blend_8(codegen_func)
@@ -302,3 +531,16 @@ for codegen_func in codegen_funcs[:1]:
     linear_dodge_8(codegen_func)
     color_dodge_8(codegen_func)
     overlay_blend_8(codegen_func)
+
+    # Llama benchmarks
+    softmax_part1(codegen_func)
+    softmax_part2(codegen_func)
+    softmax_part3(codegen_func)
+    softmax_part4(codegen_func)
+    rmsnorm_part1(codegen_func)
+    rmsnorm_part2(codegen_func)
+    matmul(codegen_func)
+    transformer_part1(codegen_func)
+    transformer_part2(codegen_func)
+    transformer_part3(codegen_func)
+    transformer_part4(codegen_func)
