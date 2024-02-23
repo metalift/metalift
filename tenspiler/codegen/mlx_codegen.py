@@ -15,6 +15,7 @@ from metalift.ir import (
     Lt,
     Mod,
     Mul,
+    Not,
     Sub,
     Var,
 )
@@ -115,13 +116,35 @@ def mlx_codegen(
             elif fn_name == "matrix_vec_mul":
                 return f"torch.matmul({processed_args[0]}, {processed_args[1]})"
             # List access functions
+            elif fn_name == "list_eq":
+                return f"torch.all(torch.eq({processed_args[0]}, {processed_args[1]})).item()"
+            elif fn_name == "list_empty":
+                return f"torch.empty(0)"
+            elif fn_name == "list_list_empty":
+                return f"torch.empty(0, 0)"
+            elif fn_name in {"list_get", "list_list_get"}:
+                return f"{processed_args[0]}[{processed_args[1]}]"
+            elif fn_name in {"list_append", "list_list_append"}:
+                return f"torch.cat([{processed_args[0]}, {processed_args[1]}.unsqueeze(0)], dim=0)"
+            elif fn_name in {"list_prepend", "list_list_prepend"}:
+                return f"torch.cat([{processed_args[1].unsqueeze(0)}, {processed_args[0]}], dim=0)"
+            elif fn_name == "list_concat":
+                return f"torch.cat([{processed_args[0]}, {processed_args[1]}], dim=0)"
+            elif fn_name in {"list_tail", "list_list_tail"}:
+                return f"{processed_args[0]}[{processed_args[1]}:]"
             elif fn_name in {"list_take", "list_list_take"}:
                 return f"{processed_args[0]}[:{processed_args[1]}]"
+            elif fn_name in {"list_slice", "list_list_slice"}:
+                return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
             elif fn_name in {"list_slice_with_length", "list_list_slice_with_length"}:
                 return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]"
+            elif fn_name == "list_list_col_slice":
+                return (
+                    f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]"
+                )
             elif fn_name == "list_list_col_slice_with_length":
                 return f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]"
-            elif fn_name == "list_length":
+            elif fn_name in {"list_length", "list_list_length"}:
                 return f"{processed_args[0]}.size(dim=0)"
             # Matrix functions
             elif fn_name == "matrix_transpose":
@@ -162,7 +185,7 @@ def mlx_codegen(
         elif isinstance(expr, Mod):
             return f"torch.greater({processed_args[0]}, {processed_args[1]})"
 
-        # Comparison operations
+        # Relational operations
         elif isinstance(expr, Gt):
             return f"torch.greater({processed_args[0]}, {processed_args[1]})"
         elif isinstance(expr, Ge):
@@ -173,6 +196,10 @@ def mlx_codegen(
             return f"torch.less({processed_args[0]}, {processed_args[1]})"
         elif isinstance(expr, Le):
             return f"torch.less_equal({processed_args[0]}, {processed_args[1]})"
+        elif isinstance(expr, Not):
+            return f"torch.logical_not({processed_args[0]})"
+
+        # Other
         elif isinstance(expr, Lit):
             return f"{expr.val()}"
         elif isinstance(expr, Var):
