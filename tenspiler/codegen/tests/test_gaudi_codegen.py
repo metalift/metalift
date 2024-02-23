@@ -515,6 +515,21 @@ def transformer_part4(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
+@codegen
+def test_type(codegen_func):
+    input = List(Int, "input")
+    hidden_dim = Int("hidden_dim")
+    fn_decl = fn_decl_recursive(
+        "test_type_ps",
+        List[Int],
+        List.mul(input[:hidden_dim], input[:hidden_dim]),
+        input,
+        hidden_dim,
+    )
+    all_fn_decls = {"test_type_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.FLOAT
+
+
 codegen_funcs = [mlx_codegen, gaudi_codegen]
 
 for codegen_func in codegen_funcs[:1]:
