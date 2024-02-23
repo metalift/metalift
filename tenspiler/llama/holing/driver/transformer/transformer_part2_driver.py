@@ -159,8 +159,8 @@ if __name__ == "__main__":
 
     driver = Driver()
     transformer_part2 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/llama/cpp/transformer/transformer_part2.ll",
-        loops_filepath="tests/llvm/tenspiler/llama/cpp/transformer/transformer_part2.loops",
+        llvm_filepath="tenspiler/llama/cpp/rmsnorm/transformer/transformer_part2.ll",
+        loops_filepath="tenspiler/llama/cpp/rmsnorm/transformer/transformer_part2.loops",
         fn_name="transformer_part2",
         target_lang_fn=transformer_part2_target_lang,
         inv_grammars={

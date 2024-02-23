@@ -64,6 +64,5 @@ if __name__ == "__main__":
 
     test(s, add, value)
 
-    driver.synthesize()
-
+    driver.synthesize(filename="set1")
     print("\n\ngenerated code:" + test.codegen(codegen))

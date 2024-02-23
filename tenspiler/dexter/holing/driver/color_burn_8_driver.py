@@ -18,8 +18,8 @@ if __name__ == "__main__":
         fns_synths,
     ) = get_matrix_select_holing_search_space(driver, color_burn_8_hole_body)
     color_burn_8 = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/dexter/cpp/color_burn_8.ll",
-        loops_filepath="tests/llvm/tenspiler/dexter/cpp/color_burn_8.loops",
+        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/color_burn_8.ll",
+        loops_filepath="tenspiler/dexter/cpp/for_synthesis/color_burn_8.loops",
         fn_name="color_burn_8",
         target_lang_fn=target_lang,
         inv_grammars={

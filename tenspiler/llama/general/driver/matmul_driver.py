@@ -124,8 +124,8 @@ if __name__ == "__main__":
 
     driver = Driver()
     matmul = driver.analyze(
-        llvm_filepath="tests/llvm/tenspiler/llama/cpp/matmul.ll",
-        loops_filepath="tests/llvm/tenspiler/llama/cpp/matmul.loops",
+        llvm_filepath="tenspiler/llama/cpp/matmul.ll",
+        loops_filepath="tenspiler/llama/cpp/matmul.loops",
         fn_name="matmul",
         target_lang_fn=matmul_target_lang,
         inv_grammars={
