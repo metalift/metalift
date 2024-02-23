@@ -1,13 +1,127 @@
-from typing import Dict
+from typing import Any, Dict, Union
 
-from metalift.ir import Call, Expr, Lit
+from metalift.ir import (
+    Add,
+    Call,
+    Div,
+    Eq,
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    Ge,
+    Gt,
+    Le,
+    Lit,
+    Lt,
+    Mod,
+    Mul,
+    Sub,
+)
+from tenspiler.codegen.utils import DataType
+from tenspiler.tenspiler_common import (
+    MATRIX_ELEMWISE_ADD,
+    MATRIX_ELEMWISE_DIV,
+    MATRIX_ELEMWISE_MUL,
+    MATRIX_ELEMWISE_SUB,
+    MATRIX_SCALAR_ADD,
+    MATRIX_SCALAR_DIV,
+    MATRIX_SCALAR_MUL,
+    MATRIX_SCALAR_SUB,
+    SCALAR_MATRIX_DIV,
+    SCALAR_MATRIX_SUB,
+    SCALAR_VEC_DIV,
+    SCALAR_VEC_SUB,
+    VEC_ELEMWISE_ADD,
+    VEC_ELEMWISE_DIV,
+    VEC_ELEMWISE_MUL,
+    VEC_ELEMWISE_SUB,
+    VEC_SCALAR_ADD,
+    VEC_SCALAR_DIV,
+    VEC_SCALAR_MUL,
+    VEC_SCALAR_SUB,
+)
 
 
 def mlx_codegen(
-    ps_expr: Expr, all_synthesized_fns: Dict[str, Expr], mode: str = "Float"
+    ps_fn_decl: Union[FnDecl, FnDeclRecursive],
+    all_synthesized_fns: Dict[str, Expr],
+    d_type: DataType = DataType.FLOAT,
 ) -> str:
+    def translate_fn_call(fn_name: str, *args: Any) -> str:
+        processed_args = [helper(arg) for arg in args]
+        if fn_name in {
+            VEC_ELEMWISE_ADD,
+            MATRIX_ELEMWISE_ADD,
+            VEC_SCALAR_ADD,
+            MATRIX_SCALAR_ADD,
+        }:
+            return f"torch.add({processed_args[0]}, {processed_args[1]})"
+        elif fn_name in {
+            VEC_ELEMWISE_SUB,
+            MATRIX_ELEMWISE_SUB,
+            SCALAR_VEC_SUB,
+            SCALAR_MATRIX_SUB,
+        }:
+            return f"torch.sub({processed_args[0]}, {processed_args[1]})"
+        elif fn_name in {VEC_SCALAR_SUB, MATRIX_SCALAR_SUB}:
+            return f"torch.sub({processed_args[1]}, {processed_args[0]})"
+        elif fn_name in {
+            VEC_ELEMWISE_MUL,
+            MATRIX_ELEMWISE_MUL,
+            VEC_SCALAR_MUL,
+            MATRIX_SCALAR_MUL,
+        }:
+            return f"torch.multiply({processed_args[0]}, {processed_args[1]})"
+        elif fn_name in {
+            VEC_ELEMWISE_DIV,
+            MATRIX_ELEMWISE_DIV,
+            SCALAR_VEC_DIV,
+            SCALAR_MATRIX_DIV,
+        }:
+            return f"torch.divide({processed_args[0]}, {processed_args[1]})"
+        elif fn_name in {VEC_SCALAR_DIV, MATRIX_SCALAR_DIV}:
+            return f"torch.divide({processed_args[1]}, {processed_args[0]})"
+        elif fn_name == "matrix_selection_two_args":
+            return f"torch.where({processed_args[0]}, {processed_args[1]}, {processed_args[2]})"
+        raise Exception(f"Unknown function name: {fn_name}")
+
+    def translate_non_fn_call(expr: Expr) -> str:
+        processed_args = [helper(arg) for arg in expr.args]
+
+        # Arithmetic operations
+        if isinstance(expr, Add):
+            return f"({processed_args[0]} + {processed_args[1]})"
+        elif isinstance(expr, Sub):
+            return f"({processed_args[0]} - {processed_args[1]})"
+        elif isinstance(expr, Mul):
+            return f"({processed_args[0]} * {processed_args[1]})"
+        elif isinstance(expr, Div):
+            op = "/" if d_type == DataType.FLOAT else "//"
+            return f"({processed_args[0]} {op} {processed_args[1]})"
+        elif isinstance(expr, Mod):
+            return f"torch.greater({helper(expr.args[0])}, {helper(expr.args[1])})"
+
+        # Comparison operations
+        elif isinstance(expr, Gt):
+            return f"torch.greater({processed_args[0]}, {processed_args[1]})"
+        elif isinstance(expr, Ge):
+            return f"torch.greater_equal({processed_args[0]}, {processed_args[1]})"
+        elif isinstance(expr, Eq):
+            return f"torch.eq({processed_args[0]}, {processed_args[1]})"
+        elif isinstance(expr, Lt):
+            return f"torch.less({processed_args[0]}, {processed_args[1]})"
+        elif isinstance(expr, Le):
+            return f"torch.less_equal({processed_args[0]}, {processed_args[1]})"
+        elif isinstance(expr, Lit):
+            return f"{expr.val()}"
+        return str(expr)
+
     translations = {
+        "vec_elemwise_add": lambda args: f"torch.add({helper(args[1])}, {helper(args[0])})",
+        "vec_scalar_add": lambda args: f"torch.add({helper(args[1])}, {helper(args[0])})",
+        "vec_elemwise_sub": lambda args: f"torch.sub({helper(args[1])}, {helper(args[0])})",
         "vec_elemwise_mul": lambda args: f"torch.multiply({helper(args[1])}, {helper(args[0])})",
+        "vec_elemwise_div": lambda args: f"torch.divide({helper(args[1])}, {helper(args[0])})",
         "matrix_vec_mul": lambda args: f"torch.matmul({helper(args[0])}, {helper(args[1])})",
         "matrix_transpose": lambda args: f"torch.transpose({helper(args[0])}, 0, 1)",
         #### Which of the name is used for sqrt?
@@ -37,7 +151,7 @@ def mlx_codegen(
         "list_slice_with_length": lambda args: f"{helper(args[0])}[{helper(args[1])}:{helper(args[1])} + {args[2]}]",
         "list_take": lambda args: f"{helper(args[0])}[:{helper(args[1])}]",
         "Div": lambda args: f"{helper(args[0])} / {helper(args[1])}"
-        if mode == "Float"
+        if d_type == DataType.FLOAT
         else f"{helper(args[0])} // {helper(args[1])}",
         "Mul": lambda args: f"{helper(args[0])} * {helper(args[1])}",
         "Sub": lambda args: f"{helper(args[0])} - {helper(args[1])}",
@@ -50,7 +164,6 @@ def mlx_codegen(
             "integer_exp": lambda args: f"torch.exp({helper(args[0])})",
             "integer_sqrt": lambda args: f"torch.sqrt({helper(args[0])})",
         },
-        "matrix_selection_two_args": lambda args: f"torch.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
     }
     vars_to_replace = {"int_x": "base", "int_y": "active"}
 
@@ -59,18 +172,30 @@ def mlx_codegen(
             if expr.name() == "vec_map":
                 map_fn_name = all_synthesized_fns["map_int_to_int"].body().name()
                 return translations[expr.name()][map_fn_name]([expr.arguments()[0]])
-            if expr.name() == "matrix_selection_two_args":
-                select_two_args_body = all_synthesized_fns["select_two_args"].body()
+            if expr.name().endswith("matrix_selection_two_args"):
+                select_two_args_body = None
+                for name, fn in all_synthesized_fns.items():
+                    if name.endswith("select_two_args"):
+                        select_two_args_body = fn.body()
+                if select_two_args_body is None:
+                    raise ValueError("select_two_args not found")
                 cond = select_two_args_body.c()
                 if_then = select_two_args_body.e1()
                 if_else = select_two_args_body.e2()
-                return translations[expr.name()]((cond, if_then, if_else))
-        elif isinstance(expr, Lit):
-            return f"{expr.val()}"
-        elif expr.__class__.__name__ in translations.keys():
-            return translations[expr.__class__.__name__](expr.args)
+                return translate_fn_call(
+                    "matrix_selection_two_args", cond, if_then, if_else
+                )
+            return translate_fn_call(expr.name(), *expr.arguments())
+        elif isinstance(expr, Expr):
+            return translate_non_fn_call(expr)
         else:
-            name = "%s" % (expr)
-            return vars_to_replace.get(name, name)
+            return str(expr)
+        # elif isinstance(expr, Lit):
+        #     return f"{expr.val()}"
+        # elif expr.__class__.__name__ in translations.keys():
+        #     return translations[expr.__class__.__name__](expr.args)
+        # else:
+        #     name = "%s" % (expr)
+        #     return vars_to_replace.get(name, name)
 
-    return helper(ps_expr)
+    return helper(ps_fn_decl.body())

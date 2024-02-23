@@ -600,8 +600,8 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
         # TODO(colin): add generic type support
         # TODO(jie): retire struct.list and use STL?
         return List[Int]
-    elif re.match('%"class.std::__1::vector(\.\d+)?"*', ty_str):
-        # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::vector"*, llvmlite will turn it into %"class.std::__1::vector.0"*
+    elif re.match('%"class.std::__1::List(\.\d+)?"*', ty_str):
+        # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::List"*, llvmlite will turn it into %"class.std::__1::List.0"*
         return List[Int]
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
@@ -618,11 +618,11 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
 def parse_c_or_cpp_type_to_obj(ty_str: str) -> ObjectT:
     if ty_str == "int":
         return Int
-    if ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
+    if ty_str == "std::__1::List<int, std::__1::allocator<int> >":
         return List[Int]
     if (
         ty_str
-        == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
+        == "std::__1::List<std::__1::List<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::List<int, std::__1::allocator<int> > > >"
     ):
         return List[List[Int]]
     raise Exception(f"no type defined for {ty_str}")
@@ -899,6 +899,15 @@ class Int(Object):
             other = Int(other)
         if isinstance(other, Int):
             return Int(op(self.src, other.src))
+        if isinstance(other, Matrix) or isinstance(other, List):
+            if op == Add:
+                return other.__radd__(self)
+            elif op == Sub:
+                return other.__rsub__(self)
+            elif op == Mul:
+                return other.__rmul__(self)
+            elif op == Div:
+                return other.__rfloordiv__(self)
         raise TypeError(f"Cannot call {op} on Int {self} and {other}")
 
     # arithmetic operators
@@ -1145,7 +1154,83 @@ class List(Generic[T], Object):
 
     def __repr__(self) -> str:
         return f"{self.src}"
-    
+
+    def _check_type_for_numeric_op(
+        first: Union["List", Int, int], second: Union["List", Int, int]
+    ) -> None:
+        if not isinstance(first, List) and not isinstance(second, List):
+            raise TypeError("At least one of the operands must be a List")
+        if (isinstance(first, List) and first.containedT is not Int) or (
+            isinstance(second, List) and second.containedT is not Int
+        ):
+            raise TypeError(
+                f"Cannot perform computation on Lists with non-integer element types"
+            )
+        if (
+            not isinstance(first, List)
+            and not isinstance(first, int)
+            and not isinstance(first, Int)
+        ):
+            raise TypeError(f"Cannot perform list computation on {first} and {second}")
+        if (
+            not isinstance(second, List)
+            and not isinstance(second, int)
+            and not isinstance(second, Int)
+        ):
+            raise TypeError(f"Cannot perform list computation on {first} and {second}")
+
+    @staticmethod
+    def add(first: Union["List", Int, int], second: Union["List", Int, int]) -> "List":  # type: ignore
+        List._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("vec_scalar_add", List[Int], first, second)
+        if isinstance(second, Int):
+            return call("vec_scalar_add", List[Int], second, first)
+        return call("vec_elemwise_add", List[Int], first, second)
+
+    @staticmethod
+    def sub(first: Union["List", Int, int], second: Union["List", Int, int]) -> "List":  # type: ignore
+        List._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("scalar_vec_sub", List[Int], first, second)
+        if isinstance(second, Int):
+            return call("vec_scalar_sub", List[Int], second, first)
+        return call("vec_elemwise_sub", List[Int], first, second)
+
+    @staticmethod
+    def mul(first: Union["List", Int, int], second: Union["List", Int, int]) -> "List":  # type: ignore
+        List._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("vec_scalar_mul", List[Int], first, second)
+        if isinstance(second, Int):
+            return call("vec_scalar_mul", List[Int], second, first)
+        return call("vec_elemwise_mul", List[Int], first, second)
+
+    @staticmethod
+    def div(first: Union["List", Int, int], second: Union["List", Int, int]) -> "List":  # type: ignore
+        List._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("scalar_vec_div", List[Int], first, second)
+        if isinstance(second, Int):
+            return call("vec_scalar_div", List[Int], second, first)
+        return call("vec_elemwise_div", List[Int], first, second)
+
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type = type_args[0]
@@ -1202,45 +1287,85 @@ class Matrix(List[T], Generic[T], Object):
     def len(self) -> Int:
         return Int(Call("list_list_length", Int, self.src))
 
-    def _check_type_for_numeric_op(self, other: Union["Matrix", Int, int]) -> None:
-        if not isinstance(other, Matrix):
-            raise TypeError(f"Cannot perform computation {self} and {other}")
-        if self.elemT is not Int or other.elemT is not Int:
+    def _check_type_for_numeric_op(
+        first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]
+    ) -> None:
+        if not isinstance(first, Matrix) and not isinstance(second, Matrix):
+            raise TypeError("At least one of the operands must be a matrix")
+        if (isinstance(first, Matrix) and first.elemT is not Int) or (
+            isinstance(second, Matrix) and second.elemT is not Int
+        ):
             raise TypeError(
-                f"Cannot perform computation matrices with non-integer element types"
+                f"Cannot perform computation on matrices with non-integer element types"
+            )
+        if (
+            not isinstance(first, Matrix)
+            and not isinstance(first, int)
+            and not isinstance(first, Int)
+        ):
+            raise TypeError(
+                f"Cannot perform matrix computation on {first} and {second}"
+            )
+        if (
+            not isinstance(second, Matrix)
+            and not isinstance(second, int)
+            and not isinstance(second, Int)
+        ):
+            raise TypeError(
+                f"Cannot perform matrix computation on {first} and {second}"
             )
 
-    def __radd__(self, other: Union["Matrix", Int]) -> "Matrix":  # type: ignore
-        self._check_type_for_numeric_op(other)
-        if isinstance(other, int):
-            other = Int(other)
-        if isinstance(other, Int):
-            return call("matrix_scalar_add", Matrix[Int], other, self)
-        return call("matrix_elemwise_add", Matrix[Int], other, self)
+    @staticmethod
+    def add(first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]) -> "Matrix":  # type: ignore
+        Matrix._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("matrix_scalar_add", Matrix[Int], first, second)
+        if isinstance(second, Int):
+            return call("matrix_scalar_add", Matrix[Int], second, first)
+        return call("matrix_elemwise_add", Matrix[Int], first, second)
 
-    def __add__(self, other: Union["Matrix", Int]) -> "Matrix":  # type: ignore
-        self._check_type_for_numeric_op(other)
-        if isinstance(other, int):
-            other = Int(other)
-        if isinstance(other, Int):
-            return call("matrix_scalar_add", Matrix[Int], other, self)
-        return call("matrix_elemwise_add", Matrix[Int], self, other)
+    @staticmethod
+    def sub(first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]) -> "Matrix":  # type: ignore
+        Matrix._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("scalar_matrix_sub", Matrix[Int], first, second)
+        if isinstance(second, Int):
+            return call("matrix_scalar_sub", Matrix[Int], second, first)
+        return call("matrix_elemwise_sub", Matrix[Int], first, second)
 
-    def __radd__(self, other: Union["Matrix", Int]) -> "Matrix":  # type: ignore
-        self._check_type_for_numeric_op(other)
-        if isinstance(other, int):
-            other = Int(other)
-        if isinstance(other, Int):
-            return call("matrix_scalar_add", Matrix[Int], other, self)
-        return call("matrix_elemwise_add", Matrix[Int], other, self)
+    @staticmethod
+    def mul(first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]) -> "Matrix":  # type: ignore
+        Matrix._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("matrix_scalar_mul", Matrix[Int], first, second)
+        if isinstance(second, Int):
+            return call("matrix_scalar_mul", Matrix[Int], second, first)
+        return call("matrix_elemwise_mul", Matrix[Int], first, second)
 
-    def __sub__(self, other: "Matrix") -> "Matrix":  # type: ignore
-        self._check_type_for_numeric_op(other)
-        if isinstance(other, int):
-            other = Int(other)
-        if isinstance(other, Int):
-            return call("matrix_scalar_sub", Matrix[Int], other, self)
-        return call("matrix_elemwise_sub", Matrix[Int], self, other)
+    @staticmethod
+    def div(first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]) -> "Matrix":  # type: ignore
+        Matrix._check_type_for_numeric_op(first, second)
+        if isinstance(first, int):
+            first = Int(first)
+        if isinstance(second, int):
+            second = Int(second)
+        if isinstance(first, Int):
+            return call("scalar_matrix_div", Matrix[Int], first, second)
+        if isinstance(second, Int):
+            return call("matrix_scalar_div", Matrix[Int], second, first)
+        return call("matrix_elemwise_div", Matrix[Int], first, second)
 
     def __setitem__(self, index: Union[Int, int], value: Object) -> None:
         if isinstance(index, int):
