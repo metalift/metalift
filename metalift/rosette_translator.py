@@ -33,11 +33,11 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if v.type == Int:
-        decls.append("(define-symbolic %s integer?)" % v.toRosette())
+        decls.append("(define-symbolic %s integer?)" % v.to_rosette())
         vars_all.append(v.args[0])
 
     elif v.type == Bool:
-        decls.append("(define-symbolic %s boolean?)" % v.toRosette())
+        decls.append("(define-symbolic %s boolean?)" % v.to_rosette())
         vars_all.append(v.args[0])
 
     elif is_matrix_type(v.type):
@@ -146,7 +146,7 @@ def generateSynth(
     listvars = f"(list {' '.join(vars)})"
     if len(fn_defs_to_exclude) > 0:
         constraints = [
-            f"(assert (!(eq? {f.name()} {f.toRosette()})))" for f in fn_defs_to_exclude
+            f"(assert (!(eq? {f.name()} {f.to_rosette()})))" for f in fn_defs_to_exclude
         ]
         return f"""
         (define sol
@@ -211,7 +211,7 @@ def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
         )
         func_name = i.name if isinstance(i, CodeInfo) else i.args[0]
         arg_names = " ".join(
-            [a.name if isinstance(a, ValueRef) else a.toRosette() for a in all_args]
+            [a.name if isinstance(a, ValueRef) else a.to_rosette() for a in all_args]
         )
         decls += "(define (%s %s) (%s %s #:depth 10))\n" % (
             func_name,
@@ -262,7 +262,7 @@ def toRosette(
         ) and t.name() in uninterp_fns
         if t.args[1] is None and not is_uninterp_fn:
             continue
-        print("\n", t.toRosette(is_uninterp=is_uninterp_fn), "\n", file=f)
+        print("\n", t.to_rosette(is_uninterp=is_uninterp_fn), "\n", file=f)
     # print(generateInter(targetLang),file=f)
 
     # inv and ps grammar definition
@@ -271,7 +271,7 @@ def toRosette(
         if writeChoicesTo != None:
             writeChoicesTo[g.args[0]] = {}  # type: ignore
             writeTo = writeChoicesTo[g.args[0]]  # type: ignore
-        print(g.toRosette(writeTo), "\n", file=f)
+        print(g.to_rosette(writeTo), "\n", file=f)
 
     # inv and ps declaration
     print(generateInvPs(loopAndPsInfo), file=f)
@@ -297,7 +297,7 @@ def toRosette(
     else:
         print("(current-bitwidth %d)" % (6), file=f)
 
-    print("(define (assertions)\n (assert %s))\n" % vc.toRosette(), file=f)
+    print("(define (assertions)\n (assert %s))\n" % vc.to_rosette(), file=f)
 
     # synthesis function
     if not verifyMode:
