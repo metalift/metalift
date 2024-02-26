@@ -185,6 +185,28 @@ def vec_map(x, map_int_to_int):
     return [] if len(x) < 1 else [map_int_to_int(x[0]), *vec_map(x[1:], map_int_to_int)]
 
 
+def matrix_selection_two_args(matrix_x, matrix_y, select_two_args_arg):
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            selection_two_args(matrix_x[0], matrix_y[0], select_two_args_arg),
+            *matrix_selection_two_args(matrix_x[1:], matrix_y[1:], select_two_args_arg),
+        ]
+    )
+
+
+def selection_two_args(x, y, select_two_args_arg):
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [
+            select_two_args_arg(x[0], y[0]),
+            *selection_two_args(x[1:], y[1:], select_two_args_arg),
+        ]
+    )
+
+
 if __name__ == "__main__":
     x = [1, 2, 3]
     y = [4, 5, 6]
@@ -215,3 +237,7 @@ if __name__ == "__main__":
     print("scalar_matrix_sub", scalar_matrix_sub(scalar, matrix_x))
     print("scalar_matrix_div", scalar_matrix_div(scalar, matrix_x))
     print("vec_map", vec_map(x, lambda x: x + 1))
+    print(
+        "matrix_selection_two_args",
+        matrix_selection_two_args(matrix_x, matrix_x, lambda x, y: x + y),
+    )

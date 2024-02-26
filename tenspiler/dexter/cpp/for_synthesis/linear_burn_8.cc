@@ -9,7 +9,7 @@ vector<vector<int>> linear_burn_8(vector<vector<int>> base, vector<vector<int>> 
 	for (int row = 0; row < m; row++) {
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
-            int pixel = (base[row][col] + active[row][col]) - 32;
+            int pixel = (base[row][col] + active[row][col]) - 255;
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);
@@ -17,4 +17,4 @@ vector<vector<int>> linear_burn_8(vector<vector<int>> base, vector<vector<int>> 
 	return out;
 }
 // def linear_burn_8_ps(base active linear_burn_8_rv)
-// linear_burn_8_rv == matrix_scalar_sub(32, matrix_elemwise_add(base, active))
+// linear_burn_8_rv == matrix_scalar_sub(255, matrix_elemwise_add(base, active))
