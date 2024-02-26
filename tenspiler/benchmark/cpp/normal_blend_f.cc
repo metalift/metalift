@@ -17,6 +17,6 @@ vector<float> normal_blend_f(vector<float> base, vector<float> active, float opa
 }
 
 int main() {
-  vec_timer(&normal_blend_f);
+  vec_timer_float(&normal_blend_f);
   return 0;
 }

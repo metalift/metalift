@@ -7,15 +7,16 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<vector<uint8_t>> darken_blend_8(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active) {
-    vector<vector<uint8_t>> out;
+vector<vector<float>> dissolve_blend_8(vector<vector<float>> base, vector<vector<float>> active, float opacity) {
+    vector<vector<float>> out;
     int m = base.size();
     int n = base[0].size();
     for (int row = 0; row < m; row++) {
-        vector<uint8_t> row_vec;
+        vector<float> row_vec;
         for (int col = 0; col < n; col++) {
-            uint8_t pixel;
-            if (base[row][col] > active[row][col])
+            float pixel;
+            float rand_val = ((rand() % 100) + 1) / 100.0f;
+            if (opacity - rand_val >= 0.0f)
                 pixel = active[row][col];
             else
                 pixel = base[row][col];
@@ -27,6 +28,6 @@ vector<vector<uint8_t>> darken_blend_8(vector<vector<uint8_t>> base, vector<vect
 }
 
 int main() {
-    mat_timer(&darken_blend_8);
+    mat_timer_float(&dissolve_blend_8);
     return 0;
 }

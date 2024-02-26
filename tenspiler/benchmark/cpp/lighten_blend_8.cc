@@ -7,14 +7,14 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<vector<float>> lighten_blend_8(vector<vector<float>> base, vector<vector<float>> active) {
-    vector<vector<float>> out;
+vector<vector<uint8_t>> lighten_blend_8(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active) {
+    vector<vector<uint8_t>> out;
     int m = base.size();
     int n = base[0].size();
     for (int row = 0; row < m; row++) {
-        vector<float> row_vec;
+        vector<uint8_t> row_vec;
         for (int col = 0; col < n; col++) {
-            float pixel;
+            uint8_t pixel;
             if (base[row][col] < active[row][col])
                 pixel = active[row][col];
             else
