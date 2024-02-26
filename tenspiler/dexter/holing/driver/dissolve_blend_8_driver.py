@@ -42,9 +42,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
     driver.synthesize(filename="dissolve_blend_8", noVerify=True)
-    import pdb
 
-    pdb.set_trace()
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + dissolve_blend_8.codegen(codegen))
