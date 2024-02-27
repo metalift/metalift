@@ -1,0 +1,3 @@
+[
+    "Here is the rewrite of test function:\n\n```python\ndef linear_dodge_8(base, active):\n    return matrix_elemwise_add(base, active)\n```\nIn this rewrite, I've used the provided `matrix_elemwise_add` function which corresponds to the operation performed inside the nested loops of the original C++ test function for every element in the 'base' and 'active' matrices. This Python function now does the same job as the C++ function but in a much simplified way, thanks to the abstraction provided by the `matrix_elemwise_add` function."
+]

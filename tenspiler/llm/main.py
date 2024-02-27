@@ -11,11 +11,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # reading arguments from the command line
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str)
-parser.add_argument("--source_code", type=str)
-parser.add_argument("--dsl_code", type=str)
+parser.add_argument("--source-code", type=str)
+parser.add_argument("--dsl-code", type=str)
+parser.add_argument("--n-choices", type=int, default=10)
 args = parser.parse_args()
 
-dir = "./tenspiler"
+dir = f"./tenspiler/{args.n_choices}_choices"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()
@@ -43,7 +44,7 @@ outputs = client.chat.completions.create(
         {"role": "system", "content": TEMPLATE_SYS},
         {"role": "user", "content": TEMPLATE_TEXT},
     ],
-    n=10,  # number of candidates,
+    n=args.n_choices,  # number of candidates,
 )
 
 
