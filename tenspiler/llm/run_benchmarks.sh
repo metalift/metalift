@@ -19,7 +19,7 @@ benchmarks=(
 # Loop through each benchmark
 for benchmark in "${benchmarks[@]}"; do
     echo "Running benchmark: $benchmark"
-    python3 main.py --filename "$benchmark" --source_code "benchmarks/dexter/${benchmark}.cc" --dsl_code python_dsl.py
+    python3 main.py --filename "$benchmark" --source-code "benchmarks/dexter/${benchmark}.cc" --dsl-code python_dsl.py --n-choices 1
     echo "Benchmark $benchmark complete."
     echo
 done
