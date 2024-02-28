@@ -1,3 +1,0 @@
-[
-    "```\ndef darken_blend_8(base, active):\n    m = len(base)\n    n = len(base[0])\n    out = []\n    for row in range(m):\n        row_vec = []\n        for col in range(n):\n            pixel = reduce_max([active[row][col], base[row][col]])\n            row_vec.append(pixel)\n        out.append(row_vec)\n    return out\n\n```"
-]
