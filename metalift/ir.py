@@ -763,7 +763,7 @@ class Object:
         self.src = src
         self.__class__.__hash__ = Object.__hash__  # type: ignore
 
-    def toRosette(
+    def to_rosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return self.src.to_rosette(writeChoicesTo)
@@ -2258,10 +2258,10 @@ class Let(Expr):
             if isinstance(self.args[1], ValueRef) and self.args[1].name != ""
             else self.args[1]
             if isinstance(self.args[1], str)
-            else self.args[1].toRosette()
+            else self.args[1].to_rosette()
         )
 
-        return f"(let ([{self.args[0].toRosette()} {let_expr}]) {self.args[2].toRosette()})"
+        return f"(let ([{self.args[0].to_rosette()} {let_expr}]) {self.args[2].to_rosette()})"
 
     def toSMT(self) -> str:
         return "(let ((%s %s)) %s)" % (
@@ -2305,7 +2305,7 @@ class Call(Expr):
             ):
                 callStr = "( " + "%s " % (str(self.args[0]))
                 for a in self.args[1:]:
-                    callStr += a.toRosette() + " "
+                    callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and (
@@ -2323,7 +2323,7 @@ class Call(Expr):
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
                     else:
-                        callStr += a.toRosette() + " "
+                        callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             else:
@@ -2335,7 +2335,7 @@ class Call(Expr):
                             if isinstance(a, ValueRef) and a.name != ""
                             else a
                             if isinstance(a, str)
-                            else a.toRosette()
+                            else a.to_rosette()
                             for a in self.args
                         ]
                     )
@@ -2348,7 +2348,7 @@ class Call(Expr):
                     if isinstance(a, ValueRef) and a.name != ""
                     else str(a)
                     if isinstance(a, str)
-                    else a.toRosette()
+                    else a.to_rosette()
                     for a in self.args
                 ]
             )
@@ -2478,7 +2478,7 @@ class CallValue(Expr):
             ):
                 callStr = "( " + "%s " % (str(self.args[0]))
                 for a in self.args[1:]:
-                    callStr += a.toRosette() + " "
+                    callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and (
@@ -2489,7 +2489,7 @@ class CallValue(Expr):
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
                     else:
-                        callStr += a.toRosette() + " "
+                        callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             else:
@@ -2501,7 +2501,7 @@ class CallValue(Expr):
                             if isinstance(a, ValueRef) and a.name != ""
                             else a
                             if isinstance(a, str)
-                            else a.toRosette()
+                            else a.to_rosette()
                             for a in self.args
                         ]
                     )
@@ -2514,7 +2514,7 @@ class CallValue(Expr):
                     if isinstance(a, ValueRef) and a.name != ""
                     else str(a)
                     if isinstance(a, str)
-                    else a.toRosette()
+                    else a.to_rosette()
                     for a in self.args
                 ]
             )
@@ -2661,7 +2661,7 @@ class TupleGet(Expr):
     def to_rosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return "(tupleGet %s)" % " ".join(["%s" % arg.toRosette() for arg in self.args])
+        return "(tupleGet %s)" % " ".join(["%s" % arg.to_rosette() for arg in self.args])
 
     def toSMT(self) -> str:
         # example: generate (tuple2_get0 t)
@@ -2743,7 +2743,7 @@ class Synth(Expr):
             if isinstance(a, ValueRef)
             else str(a)
             if isinstance(a, str)
-            else a.toRosette()
+            else a.to_rosette()
             for a in self.args[2:]
         )
 
@@ -2850,7 +2850,7 @@ class Choose(Expr):
                 if isinstance(a, ValueRef) and a.name != ""
                 else str(a)
                 if isinstance(a, str)
-                else a.toRosette()
+                else a.to_rosette()
                 for a in self.args
             ]
         )
@@ -2928,7 +2928,7 @@ class FnDeclRecursive(Expr):
             return "(define-bounded (%s %s) \n%s)" % (
                 self.args[0],
                 args,
-                self.args[1].toRosette(),
+                self.args[1].to_rosette(),
             )
 
     def toSMT(self) -> str:
@@ -3026,7 +3026,7 @@ class Lambda(Expr):
 
         return "(lambda (%s) %s)" % (
             args,
-            self.args[0].toRosette(),
+            self.args[0].to_rosette(),
         )
 
     def toSMT(self) -> str:
@@ -3087,7 +3087,7 @@ class FnDecl(Expr):
             return "(define (%s %s) \n%s)" % (
                 self.args[0],
                 args,
-                self.args[1].toRosette(),
+                self.args[1].to_rosette(),
             )
 
     def toSMT(self) -> str:
