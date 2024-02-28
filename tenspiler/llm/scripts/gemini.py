@@ -44,7 +44,7 @@ completion = model.generate_content(
     generation_config=genai.types.GenerationConfig(
         # Only one candidate for now.
         max_output_tokens=5000,
-        temperature=0.0,
+        temperature=0.9,
         candidate_count=1,
     ),
 )
@@ -55,25 +55,22 @@ def extract(s):
     return [x for x in re.findall(r"```(?:python|assembly)?(.*)```", s, re.DOTALL)]
 
 
-choices = extract(completion.candidates[0].content.parts[0].text)
-
-# extract the code from the completions
-for idx, c in enumerate(choices):
-    print(f"{idx}")
-    print(c)
-    print("=====")
-
-
 if not os.path.exists(dir):
     os.makedirs(dir)
 
-# saving prompt and completions to a file
-with open(f"{dir}/{filename}.json", "w") as f:
-    print(completion.candidates)
-    import pdb
+# TODO(jie): extract this code
+for i in range(10):
+    choices = extract(completion.candidates[0].content.parts[0].text)
 
-    pdb.set_trace()
-    json.dump([completion.candidates[0].content.parts[0].text], f, indent=4)
+    # extract the code from the completions
+    for _, c in enumerate(choices):
+        print(f"{i}")
+        print(c)
+        print("=====")
 
-with open(f"{dir}/prompt_{filename}.txt", "w") as f:
-    f.write(TEMPLATE_TEXT)
+    # saving prompt and completions to a file
+    with open(f"{dir}/{filename}_try_{i}.json", "w") as f:
+        json.dump([completion.candidates[0].content.parts[0].text], f, indent=4)
+
+    with open(f"{dir}/prompt_{filename}_try_{i}.txt", "w") as f:
+        f.write(TEMPLATE_TEXT)
