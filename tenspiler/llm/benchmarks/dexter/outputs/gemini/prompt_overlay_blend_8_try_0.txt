@@ -1,5 +1,5 @@
 
-Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Do not use loops.
 ```
 #defined functions
 import math
@@ -216,7 +216,7 @@ def selection_two_args(x, y, select_two_args_arg):
 #include <vector>
 using namespace std;
 
-vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>> active)
+vector<vector<int>> overlay_blend_8(vector<vector<int>> base, vector<vector<int>> active)
 {
     vector<vector<int>> out;
     int m = base.size();
@@ -225,10 +225,10 @@ vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>>
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
 			int pixel;
-			if (base[row][col] > active[row][col])
-				pixel = active[row][col];
+			if (base[row][col] >= 128)
+                pixel = 2 * base[row][col] + base[row][col] - 2 * base[row][col] * base[row][col] / 255 - 255;
 			else
-				pixel = base[row][col];
+                pixel = 2 * base[row][col] * base[row][col] / 255;
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);

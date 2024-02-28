@@ -25,7 +25,7 @@ model = genai.GenerativeModel("gemini-pro")
 
 # prompt for guessing the post conditions of a function. dsl_code is the set of functions and constants that can be used to rewrite the function. source_code is the function to be rewritten.
 TEMPLATE_TEXT = f"""
-Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Do not use loops.
 ```
 #defined functions
 {dsl_code}
@@ -38,17 +38,6 @@ Your task is to rewrite the given `test` C++ Function. You need to use only the 
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 
-# call the completions endpoint to get the completions for the prompt
-completion = model.generate_content(
-    TEMPLATE_TEXT,
-    generation_config=genai.types.GenerationConfig(
-        # Only one candidate for now.
-        max_output_tokens=5000,
-        temperature=0.9,
-        candidate_count=1,
-    ),
-)
-
 
 # regex to extract the code from the completions
 def extract(s):
@@ -59,7 +48,17 @@ if not os.path.exists(dir):
     os.makedirs(dir)
 
 # TODO(jie): extract this code
-for i in range(10):
+for i in range(1):
+    # call the completions endpoint to get the completions for the prompt
+    completion = model.generate_content(
+        TEMPLATE_TEXT,
+        generation_config=genai.types.GenerationConfig(
+            # Only one candidate for now.
+            max_output_tokens=5000,
+            temperature=0.9,
+            candidate_count=1,
+        ),
+    )
     choices = extract(completion.candidates[0].content.parts[0].text)
 
     # extract the code from the completions
