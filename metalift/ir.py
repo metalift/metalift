@@ -723,6 +723,14 @@ def fn_decl_recursive(
     return fn_decl_recursive_expr
 
 
+def axiom(
+    e: Union["Object", Expr],
+    *vars: Union["Object", Expr],
+) -> "Axiom":
+    axiom_expr = Axiom(e.src, *get_object_exprs(*vars))
+    return axiom_expr
+
+
 def synth(fn_name: str, body: "Object", *object_args: "Object") -> "Synth":
     return Synth(fn_name, body.src, *get_object_exprs(*object_args))
 
@@ -2682,12 +2690,6 @@ class Axiom(Expr):
     def __init__(self, e: Expr, *vars: Expr) -> None:
         Expr.__init__(self, Bool, [e, *vars])
 
-    def name(self) -> str:
-        return self.args[0]
-    
-    def body(self) -> Union[Expr, str]:
-        return self.args[1]
-    
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
 
