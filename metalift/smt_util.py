@@ -92,11 +92,11 @@ def toSMT(
 ) -> None:
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
-        # out.write(resources.read_text(utils, "tuples.smt"))
+        out.write(resources.read_text(utils, "tuples.smt"))
         if not isSynthesis:
             out.write(resources.read_text(utils, "integer-fn-axioms.smt"))
             out.write(resources.read_text(utils, "list-axioms.smt"))
-            # out.write(resources.read_text(utils, "map-axioms.smt"))
+            out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
         synthesized_fn_names = set(fn.name() for fn in invAndPs)

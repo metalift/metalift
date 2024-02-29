@@ -12,7 +12,7 @@ echo "output to:" $clang_out
 include_path="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
 
 #clang -g -I $include_path -c -emit-llvm -S $file -o $clang_out
-if [[ $file == *.c ]]s
+if [[ $file == *.c ]]
 then
   clang -O0 -I $include_path -I../../headers -c -emit-llvm -fno-discard-value-names -S $file -o $clang_out
 else
