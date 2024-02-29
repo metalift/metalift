@@ -2680,6 +2680,12 @@ class Axiom(Expr):
     def __init__(self, e: Expr, *vars: Expr) -> None:
         Expr.__init__(self, Bool, [e, *vars])
 
+    def name(self) -> str:
+        return self.args[0]
+    
+    def body(self) -> Union[Expr, str]:
+        return self.args[1]
+    
     def e(self) -> Expr:
         return self.args[0]  # type: ignore
 
