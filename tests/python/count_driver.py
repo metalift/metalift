@@ -13,7 +13,6 @@ from metalift.ir import (
     fn_decl_recursive,
     implies,
     ite,
-    axiom
 )
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
@@ -94,7 +93,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
             call(LM_NAME, Int, mr_axiom_in_lst[mr_axiom_index]),
         ),
     ).src
-    map_reduce_axiom = axiom(implies_expr, mr_axiom_in_lst.src, mr_axiom_index.src)
+    map_reduce_axiom = Axiom(implies_expr, mr_axiom_in_lst.src, mr_axiom_index.src)
 
     return [map_fn, reduce_fn, map_reduce_axiom, mapper, reducer]
 
