@@ -20,11 +20,19 @@ def get_dependent_fn_names(
 
 
 def topological_sort(
-    fn_decls: List[Union[FnDecl, FnDeclRecursive]]
-) -> List[Union[FnDecl, FnDeclRecursive]]:
+    fn_decls_and_axioms: List[Union[FnDecl, FnDeclRecursive, Axiom]]
+) -> List[Union[FnDecl, FnDeclRecursive, Axiom]]:
     # First we construct a DAG
     graph = nx.DiGraph()
     edges: List[Tuple[str, str]] = []
+    axioms: List[Axiom] = []
+    fn_decls: List[Union[FnDecl, FnDeclRecursive]] = []
+    for f in fn_decls_and_axioms:
+        if isinstance(f, FnDeclRecursive) or isinstance(f, FnDecl):
+            fn_decls.append(f)
+        else:
+            axioms.append(f)
+
     all_fn_names = [fn_decl.name() for fn_decl in fn_decls]
     for fn_decl in fn_decls:
         dependent_fn_names: List[str] = []
@@ -45,7 +53,7 @@ def topological_sort(
     independent_fn_decls = [
         fn_name_to_decl[fn_name] for fn_name in independent_fn_names
     ]
-    return dependent_fn_decls + independent_fn_decls
+    return dependent_fn_decls + independent_fn_decls + axioms
 
 
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
@@ -205,9 +213,9 @@ def toSMT(
             )
         )
 
-        ##### ToDo write axioms using the construct
-        if "count" in outFile:
-            out.write(open("./utils/map_reduce_axioms.txt", "r").read())
+        ##### TODO: write axioms using the construct
+        # if "count" in outFile:
+        #     out.write(open("./utils/map_reduce_axioms.txt", "r").read())
 
         if isinstance(preds, str):
             out.write("%s\n\n" % preds)
