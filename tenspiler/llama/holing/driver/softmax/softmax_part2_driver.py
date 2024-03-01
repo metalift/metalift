@@ -51,8 +51,8 @@ if __name__ == "__main__":
     # Synthesize part 2
     driver = Driver()
     softmax_part2 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/rmsnorm/softmax/softmax_part2.ll",
-        loops_filepath="tenspiler/llama/cpp/rmsnorm/softmax/softmax_part2.loops",
+        llvm_filepath="tenspiler/llama/cpp/softmax/softmax_part2.ll",
+        loops_filepath="tenspiler/llama/cpp/softmax/softmax_part2.loops",
         fn_name="softmax_part2",
         target_lang_fn=softmax_part2_target_lang,
         inv_grammars={

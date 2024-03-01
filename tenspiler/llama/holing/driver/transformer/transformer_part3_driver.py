@@ -81,8 +81,8 @@ def transformer_part3_inv0_grammar(
 if __name__ == "__main__":
     driver = Driver()
     transformer_part3 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/rmsnorm/transformer/transformer_part3.ll",
-        loops_filepath="tenspiler/llama/cpp/rmsnorm/transformer/transformer_part3.loops",
+        llvm_filepath="tenspiler/llama/cpp/transformer/transformer_part3.ll",
+        loops_filepath="tenspiler/llama/cpp/transformer/transformer_part3.loops",
         fn_name="transformer_part3",
         target_lang_fn=transformer_part3_target_lang,
         inv_grammars={

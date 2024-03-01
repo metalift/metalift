@@ -44,7 +44,7 @@ if __name__ == "__main__":
     driver = Driver()
     rmsnorm_part1 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/rmsnorm/rmsnorm_part1.ll",
-        loops_filepath="tenspiler/llama/cpp/rmsnorm/rmsnorm/rmsnorm_part1.loops",
+        loops_filepath="tenspiler/llama/cpp/rmsnorm/rmsnorm_part1.loops",
         fn_name="rmsnorm_part1",
         target_lang_fn=rmsnorm_part1_target_lang,
         inv_grammars={
