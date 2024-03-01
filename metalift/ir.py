@@ -608,6 +608,10 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     elif re.match('%"class.std::__1::List(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::List"*, llvmlite will turn it into %"class.std::__1::List.0"*
         return List[Int]
+    
+    elif re.match('%"class.std::__1::vector"*', ty_str):
+        return List[List[Int]]
+
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
         return Set[Int]
@@ -623,13 +627,15 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
 def parse_c_or_cpp_type_to_obj(ty_str: str) -> ObjectT:
     if ty_str == "int":
         return Int
-    if ty_str == "std::__1::List<int, std::__1::allocator<int> >":
+    if ty_str == "std::__1::List<int, std::__1::allocator<int> >" or ty_str == "std::__1::vector<int, std::__1::allocator<int> >":
         return List[Int]
     if (
         ty_str
         == "std::__1::List<std::__1::List<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::List<int, std::__1::allocator<int> > > >"
+        or ty_str == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
     ):
         return List[List[Int]]
+
     raise Exception(f"no type defined for {ty_str}")
 
 

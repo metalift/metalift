@@ -228,8 +228,8 @@ if __name__ == "__main__":
 
     # Synthesize part 1
     transformer_part1 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/rmsnorm/transformer/transformer_part1.ll",
-        loops_filepath="tenspiler/llama/cpp/rmsnorm/transformer/transformer_part1.loops",
+        llvm_filepath="tenspiler/llama/cpp/transformer/transformer_part1.ll",
+        loops_filepath="tenspiler/llama/cpp/transformer/transformer_part1.loops",
         fn_name="transformer_part1",
         target_lang_fn=transformer_part1_target_lang,
         inv_grammars={
