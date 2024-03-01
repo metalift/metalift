@@ -48,14 +48,14 @@ if not os.path.exists(dir):
     os.makedirs(dir)
 
 # TODO(jie): extract this code
-for i in range(1):
+for temp, idx in enumerate([0.1, 0.3, 0.5, 0.7, 0.9]):
     # call the completions endpoint to get the completions for the prompt
     completion = model.generate_content(
         TEMPLATE_TEXT,
         generation_config=genai.types.GenerationConfig(
             # Only one candidate for now.
             max_output_tokens=5000,
-            temperature=0.9,
+            temperature=temp,
             candidate_count=1,
         ),
     )
@@ -63,13 +63,13 @@ for i in range(1):
 
     # extract the code from the completions
     for _, c in enumerate(choices):
-        print(f"{i}")
+        print(f"{idx} {temp}")
         print(c)
         print("=====")
 
     # saving prompt and completions to a file
-    with open(f"{dir}/{filename}_try_{i}.json", "w") as f:
+    with open(f"{dir}/{filename}_try_{idx}.json", "w") as f:
         json.dump([completion.candidates[0].content.parts[0].text], f, indent=4)
 
-    with open(f"{dir}/prompt_{filename}_try_{i}.txt", "w") as f:
+    with open(f"{dir}/prompt_{filename}_try_{idx}.txt", "w") as f:
         f.write(TEMPLATE_TEXT)
