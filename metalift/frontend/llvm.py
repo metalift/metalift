@@ -27,7 +27,6 @@ from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Matrix, Object, ObjectT
 from metalift.ir import Set as mlSet
-from metalift.ir import Tuple as mlTuple
 from metalift.ir import (
     Synth,
     Var,
@@ -198,6 +197,11 @@ def new_vector(
         )
 
     var_name: str = args[0].name
+    if var_name == "agg.result":
+        print("Var name", var_name)
+        import pdb
+
+        pdb.set_trace()
 
     contained_type = get_list_element_type(list_type)
 
@@ -1621,6 +1625,7 @@ class Driver:
                 cvcPath="cvc5",
                 # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
                 fns_to_guess=synths,
+                noVerify=True,  # TODO(jie): remove this
                 **synthesize_kwargs,
             )
             for f in synthesized:
@@ -1633,7 +1638,7 @@ class Driver:
                     continue
                 self.synthesized_fns[name] = f
 
-                #TODO: added back for codegen
+                # TODO: added back for codegen
                 m = re.match("(\w+)_ps", f.name())  # ignore the invariants
                 if m:
                     name = m.groups()[0]
@@ -1646,7 +1651,7 @@ class Driver:
                     ):
                         self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
                         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #TODO: figure out why was it commented out
+                # TODO: figure out why was it commented out
                 # if isinstance(f.body(), Eq):
                 #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
                 #     print(f"{name} synthesized: {self.fns[name].synthesized}")
@@ -1803,6 +1808,7 @@ class MetaliftFunc:
                     v.visit_llvm_block(b)
                     done = False
 
+        # TODO(jie): now we should update the return type
         ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
         self.driver.add_var_object(ret_val)
 

@@ -6,7 +6,6 @@ from tenspiler.tenspiler_common import (
     get_matrix_select_holing_search_space,
     lighten_blend_8_hole_body,
 )
-from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
     driver = Driver()
@@ -45,4 +44,3 @@ if __name__ == "__main__":
     driver.synthesize(filename="lighten_blend_8", rounds_to_guess=0)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + lighten_blend_8.codegen(codegen))

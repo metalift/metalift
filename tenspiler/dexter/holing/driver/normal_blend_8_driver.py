@@ -13,7 +13,6 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_add,
     vec_scalar_mul,
 )
-from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -25,7 +24,7 @@ def ps_grammar(
 ) -> Bool:
     base, active, opacity = reads
     out = writes[0]
-    cons = choose(Int(255))
+    cons = choose(Int(32))
     int_var = choose(opacity)
     vec_var = choose(base, active)
     return out == call_vec_elemwise_add(
@@ -41,7 +40,7 @@ def inv_grammar(
     out = writes[0]
     i = writes[1]
 
-    cons = choose(Int(255))
+    cons = choose(Int(32))
     int_var = choose(opacity)
     vec_var = choose(base[:i], active[:i])
     return and_objects(
@@ -76,7 +75,10 @@ if __name__ == "__main__":
     normal_blend_8(base_var, active_var, opacity_var)
 
     start_time = time.time()
+    import pdb
+
+    pdb.set_trace()
+    print(driver.var_tracker.all())
     driver.synthesize(filename="normal_blend_8")
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + normal_blend_8.codegen(codegen))
