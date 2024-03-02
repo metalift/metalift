@@ -1326,8 +1326,8 @@ def get_matrix_computation_holing_search_space(
     return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
 
 
-def get_matrix_select_search_space(
-    select_synth: Synth, relaxed: bool
+def get_matrix_select_general_search_space(
+    driver: Driver, depth: int, cons: Int, *, relaxed: bool
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1335,6 +1335,13 @@ def get_matrix_select_search_space(
     Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
     List[Synth],
 ]:
+    int_x, int_y = Int("int_x"), Int("int_y")
+    driver.add_var_objects([int_x, int_y])
+    int_var = choose(int_x, int_y, *cons)
+    select_synth = synth(
+        SELECT_TWO_ARGS, get_cond_expr_eq_or_below_depth(int_var, depth), int_x, int_y
+    )
+
     # Target language
     def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         return [
@@ -1373,14 +1380,10 @@ def get_matrix_select_search_space(
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
-            # row >= lower_bound.maybe_relaxed(relaxed),
-            # row <= upper_bound.maybe_relaxed(relaxed),
-            row >= 0,
-            row <= base.len(),
+            row >= lower_bound.maybe_relaxed(relaxed),
+            row <= upper_bound.maybe_relaxed(relaxed),
             out
-            == call_matrix_selection_two_args(
-                base[:row], active[:row], select_two_args_fn_obj
-            ),
+            == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
         )
 
     def inv1_grammar_fn(
@@ -1412,23 +1415,15 @@ def get_matrix_select_search_space(
         outer_loop_upper_bound = base.len()
         inner_loop_lower_bound = Int(0)
         inner_loop_upper_bound = base[0].len()
+
         return and_objects(
-            # row >= outer_loop_lower_bound.maybe_relaxed(relaxed),
-            # row <= outer_loop_upper_bound.maybe_relaxed(relaxed),
-            # col >= inner_loop_lower_bound.maybe_relaxed(relaxed),
-            # col <= inner_loop_upper_bound.maybe_relaxed(relaxed),
-            row >= 0,
-            row < base.len(),
-            col >= 0,
-            col <= base[0].len(),
-            row_vec
-            == call_selection_two_args(
-                base[row][:col], active[row][:col], select_two_args_fn_obj
-            ),
+            row >= outer_loop_lower_bound.maybe_relaxed(relaxed),
+            row <= outer_loop_upper_bound.maybe_relaxed(relaxed),
+            col >= inner_loop_lower_bound.maybe_relaxed(relaxed),
+            col <= inner_loop_upper_bound.maybe_relaxed(relaxed),
+            row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
             out
-            == call_matrix_selection_two_args(
-                base[:row], active[:row], select_two_args_fn_obj
-            ),
+            == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
         )
 
     def ps_grammar_fn(
@@ -1443,7 +1438,7 @@ def get_matrix_select_search_space(
         matrix = choose(matrix, matrix.transpose())
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         return ret_val == call_matrix_selection_two_args(
-            base, active, select_two_args_fn_obj
+            matrix, matrix, select_two_args_fn_obj
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
@@ -1461,38 +1456,109 @@ def get_matrix_select_holing_search_space(
     List[Synth],
 ]:
     select_synth = get_select_synth_from_hole(driver, hole_body)
-    return get_matrix_select_search_space(select_synth)
+    outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
+    (
+        outer_loop_index_first_fn_decl,
+        outer_loop_index_first_synth,
+        is_outer_loop_index_first,
+    ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
 
+    # Target language
+    def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+        return [
+            outer_loop_index_first_fn_decl,
+            select_two_args_fn_decl,
+            selection_two_args_fn_decl,
+            matrix_selection_two_args_fn_decl,
+        ]
 
-def get_matrix_select_holing_search_space(
-    driver: Driver, hole_body: Callable[[Int], Int]
-) -> Tuple[
-    InvGrammar,
-    InvGrammar,
-    Callable[[List[Object], List[Object], List[Object]], List[Object]],
-    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-    List[Synth],
-]:
-    select_synth = get_select_synth_from_hole(driver, hole_body)
-    return get_matrix_select_search_space(select_synth, False)
+    # Functions to synthesize
+    fns_synths = [select_synth, outer_loop_index_first_synth]
 
+    # inv0 grammar
+    def inv0_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        writes_by_name = {write_var.var_name(): write_var for write_var in writes}
+        out = writes_by_name["agg.result"]
+        col = writes_by_name["col"]
+        row = writes_by_name["row"]
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
 
-def get_matrix_select_general_search_space(
-    driver: Driver, depth: int, cons: Int, relaxed: bool
-) -> Tuple[
-    InvGrammar,
-    InvGrammar,
-    Callable[[List[Object], List[Object], List[Object]], List[Object]],
-    Callable[[], List[Union[FnDecl, FnDeclRecursive]]],
-    List[Synth],
-]:
-    int_x, int_y = Int("int_x"), Int("int_y")
-    driver.add_var_objects([int_x, int_y])
-    int_var = choose(int_x, int_y, *cons)
-    select_synth = synth(
-        SELECT_TWO_ARGS, get_cond_expr_eq_or_below_depth(int_var, depth), int_x, int_y
-    )
-    return get_matrix_select_search_space(select_synth, relaxed)
+        matrix = choose(base, active)
+        matrix = ite(
+            is_outer_loop_index_first(),  # Then outer loop has to be over row
+            matrix[:row],
+            matrix.col_slice(0, row),
+        )
+        matrix = choose(matrix, matrix.transpose())
+        return and_objects(
+            row >= 0,
+            row <= base.len(),
+            out
+            == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
+        )
+
+    def inv1_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        writes_by_name = {write_var.var_name(): write_var for write_var in writes}
+        col = writes_by_name["col"]
+        row_vec = writes_by_name["row_vec"]
+        in_scope_by_name = {
+            in_scope_var.var_name(): in_scope_var for in_scope_var in in_scope
+        }
+        out = in_scope_by_name["agg.result"]
+        row = in_scope_by_name["row"]
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+
+        matrix = choose(base, active)
+        outer_loop_matrix = ite(
+            is_outer_loop_index_first(),  # Then outer loop has to be over row
+            matrix[:row],
+            matrix.col_slice(0, row),
+        )
+        outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+        inner_loop_vec = ite(
+            is_outer_loop_index_first(),
+            matrix[row][:col],
+            matrix[:col].col_vec(row),
+        )
+        return and_objects(
+            row >= 0,
+            row <= base.len(),
+            col >= 0,
+            col <= base[0].len(),
+            row_vec
+            == call_selection_two_args(
+                inner_loop_vec, inner_loop_vec, select_two_args_fn_obj
+            ),
+            out
+            == call_matrix_selection_two_args(
+                outer_loop_matrix, outer_loop_matrix, select_two_args_fn_obj
+            ),
+        )
+
+    def ps_grammar_fn(
+        writes: List[Object], reads: List[Object], in_scope: List[Object]
+    ) -> Bool:
+        ret_val = writes[0]
+        reads_by_name = {read_var.var_name(): read_var for read_var in reads}
+        base = reads_by_name["base"]
+        active = reads_by_name["active"]
+        matrix = choose(base, active)
+        matrix = choose(matrix, matrix.transpose())
+        return ret_val == call_matrix_selection_two_args(
+            matrix, matrix, select_two_args_fn_obj
+        )
+
+    inv0_grammar = InvGrammar(inv0_grammar_fn, [])
+    inv1_grammar = InvGrammar(inv1_grammar_fn, ["row", "agg.result"])
+    return inv0_grammar, inv1_grammar, ps_grammar_fn, target_lang, fns_synths
 
 
 def get_dissolve_search_space(
@@ -1877,8 +1943,7 @@ def get_select_synth_from_hole(
 ) -> Synth:
     driver.add_var_objects([int_x, int_y])
     var = choose(int_x, int_y)
-    return synth(SELECT_TWO_ARGS, ite(int_x < int_y, int_x, int_y), int_x, int_y)
-    # return synth(SELECT_TWO_ARGS, hole_body(var), int_x, int_y)
+    return synth(SELECT_TWO_ARGS, hole_body(var), int_x, int_y)
 
 
 def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
