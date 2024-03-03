@@ -1,16 +1,15 @@
 #include <vector>
-#include <cstdint>
 using namespace std;
 
-vector<vector<uint8_t>> multiply_blend_8(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
+vector<vector<int>> multiply_blend_8(vector<vector<int>> base, vector<vector<int>> active)
 {
-    vector<vector<uint8_t>> out;
-    uint8_t m = base.size();
-    uint8_t n = base[0].size();
-	for (uint8_t row = 0; row < m; row++) {
-        vector<uint8_t> row_vec;
-		for (uint8_t col = 0; col < n; col++) {
-            uint8_t pixel = (base[row][col] * active[row][col]) / 32;
+    vector<vector<int>> out;
+    int m = base.size();
+    int n = base[0].size();
+	for (int row = 0; row < m; row++) {
+        vector<int> row_vec;
+		for (int col = 0; col < n; col++) {
+            int pixel = (base[row][col] * active[row][col]) / 32;
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);

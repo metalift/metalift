@@ -880,13 +880,13 @@ class Driver:
 
         synthesized: List[FnDeclRecursive] = run_synthesis(
             basename="test",
-            targetLang=target,
+            target_lang=target,
             vars=set(self.var_tracker.all()),
-            invAndPs=synths + self.fns_synths,
+            inv_and_ps=synths + self.fns_synths,
             preds=[],
             vc=vc,
-            loopAndPsInfo=synths,  # TODO: does this need fns synths
-            cvcPath="cvc5",
+            loop_and_ps_info=synths,  # TODO: does this need fns synths
+            cvc_path="cvc5",
             uninterp_fns=self.uninterp_fns,
         )
 
@@ -996,4 +996,3 @@ class MetaliftFunc:
             raise Exception(f"{self.name} is not synthesized yet")
         else:
             return codegen_fn(self.synthesized)
-

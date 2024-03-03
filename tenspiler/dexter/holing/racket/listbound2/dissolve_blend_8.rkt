@@ -33,10 +33,12 @@
 )
 
 (define-grammar (dissolve_select_two_args_gram int_x int_y opacity rand_cons)
- [rv (choose (if (>= (- (v0) (v0) ) (v2) ) (v0) (v0) ))]
-[v0 (choose (v1) (quotient-noerr (+ (remainder (v1) (v2) ) (v2) ) (v2) ))]
-[v1 (choose int_x int_y opacity rand_cons)]
-[v2 (choose 0 1 100)]
+ [rv (choose (v0))]
+[v0 (choose (v1) (+ (v1) (v1) ) (- (v1) (v1) ) (* (v1) (v1) ) (quotient-noerr (v1) (v1) ) (integer-exp-noerr (v1) ) (integer-sqrt-noerr (v1) ))]
+[v1 (choose (v2) (+ (v2) (v2) ) (- (v2) (v2) ) (* (v2) (v2) ) (quotient-noerr (v2) (v2) ) (integer-exp-noerr (v2) ) (integer-sqrt-noerr (v2) ))]
+[v2 (choose (v3) (+ (v3) (v3) ) (- (v3) (v3) ) (* (v3) (v3) ) (quotient-noerr (v3) (v3) ) (integer-exp-noerr (v3) ) (integer-sqrt-noerr (v3) ))]
+[v3 (choose (v4) (+ (v4) (v4) ) (- (v4) (v4) ) (* (v4) (v4) ) (quotient-noerr (v4) (v4) ) (integer-exp-noerr (v4) ) (integer-sqrt-noerr (v4) ))]
+[v4 (choose int_x int_y opacity rand_cons)]
 )
 
 (define-grammar (OUTER_LOOP_INDEX_FIRST_gram )
@@ -73,7 +75,9 @@
 (define-symbolic dissolve_blend_8_rv_BOUNDEDSET-len integer?)
 (define-symbolic dissolve_blend_8_rv_BOUNDEDSET-0 integer?)
 (define-symbolic dissolve_blend_8_rv_BOUNDEDSET-1 integer?)
-(define dissolve_blend_8_rv (take (list dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1) dissolve_blend_8_rv_BOUNDEDSET-len))
+(define-symbolic dissolve_blend_8_rv_BOUNDEDSET-2 integer?)
+(define-symbolic dissolve_blend_8_rv_BOUNDEDSET-3 integer?)
+(define dissolve_blend_8_rv (take (list (list dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1) (list dissolve_blend_8_rv_BOUNDEDSET-2 dissolve_blend_8_rv_BOUNDEDSET-3)) dissolve_blend_8_rv_BOUNDEDSET-len))
 (define-symbolic int_x integer?)
 (define-symbolic int_y integer?)
 (define-symbolic opacity integer?)
@@ -92,7 +96,7 @@
 
     (define sol0
         (synthesize
-            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col dissolve_blend_8_rv_BOUNDEDSET-len dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1 int_x int_y opacity pixel rand_cons rand_val row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
+            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col dissolve_blend_8_rv_BOUNDEDSET-len dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1 dissolve_blend_8_rv_BOUNDEDSET-2 dissolve_blend_8_rv_BOUNDEDSET-3 int_x int_y opacity pixel rand_cons rand_val row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
             #:guarantee (assertions)
         )
     )

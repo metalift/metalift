@@ -41,9 +41,6 @@ if __name__ == "__main__":
     darken_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, noVerify=True)
+    driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, no_verify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    ps_fn_decl = driver.get_ps_fn_decl()
-
-    print("\n\ngenerated code:" + gaudi_codegen(ps_fn_decl, driver.synthesized_fns))

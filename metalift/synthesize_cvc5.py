@@ -37,7 +37,7 @@ from metalift.smt_util import toSMT
 from metalift.synthesis_common import (
     SynthesisFailed,
     VerificationFailed,
-    generateTypes,
+    generate_types,
     verify_synth_result,
 )
 
@@ -255,9 +255,9 @@ def synthesize(
         new_vars: typing.Set[Var] = set()
         while True:
             expr_count: Dict[str, int] = {}
-            vc.countVariableUses(expr_count)
+            vc.count_variable_uses(expr_count)
 
-            vc = vc.optimizeUselessEquality(expr_count, new_vars)
+            vc = vc.optimize_useless_equality(expr_count, new_vars)
 
             if vc.toSMT() == prev_vc:
                 break  # run to fixpoint
@@ -306,7 +306,7 @@ def synthesize(
                     invAndPs, line, funName, returnType
                 )
             elif line.strip() == "(":
-                fnsType = generateTypes(targetLang)
+                fnsType = generate_types(targetLang)
 
                 resultVerify, verifyLogs = verify_synth_result(
                     basename,

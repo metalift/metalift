@@ -6,7 +6,7 @@ from llvmlite.binding import ValueRef
 
 from metalift.analysis import CodeInfo
 from metalift.ir import *
-from metalift.rosette_translator import toRosette
+from metalift.rosette_translator import to_rosette
 from metalift.smt_util import toSMT
 from tests.python.utils.utils import codegen
 
@@ -19,7 +19,7 @@ class VerificationFailed(Exception):
     pass
 
 
-def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, ObjectT]:
+def generate_types(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, ObjectT]:
     fnsType = {}
 
     for l in lang:
@@ -112,16 +112,16 @@ def verify_synth_result(
     candidateDict: Dict[str, Expr],
     fnsType: Dict[str, ObjectT],
     uid: int,
-    useRosette: bool = False,
+    use_rosette: bool = False,
 ) -> typing.Tuple[str, typing.List[str]]:
-    if useRosette:
+    if use_rosette:
         verifFile = synthDir + basename + f"_{uid}_verif" + ".rkt"
     else:
         # verifFile = synthDir + basename + f"_{uid}" + ".smt"
         verifFile = synthDir + basename + ".smt"
 
-    if useRosette:
-        toRosette(
+    if use_rosette:
+        to_rosette(
             verifFile,
             targetLang,
             vars,
@@ -131,8 +131,8 @@ def verify_synth_result(
             [],
             [],
             True,
-            listBound=4,  # TODO(shadaj): bench to find what this value should be
-            verifyMode=True,
+            list_bound=4,  # TODO(shadaj): bench to find what this value should be
+            verify_mode=True,
         )
     else:
         inCalls: typing.List[Any] = []
@@ -218,7 +218,7 @@ def verify_synth_result(
                 print(codegen(body))
             print("\n\n")
 
-    if useRosette:
+    if use_rosette:
         procVerify = subprocess.run(
             ["racket", verifFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )

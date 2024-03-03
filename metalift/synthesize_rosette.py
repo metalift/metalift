@@ -43,11 +43,11 @@ from metalift.ir import (
     get_fn_return_type,
     get_list_element_type,
 )
-from metalift.rosette_translator import toRosette
+from metalift.rosette_translator import to_rosette
 from metalift.synthesis_common import (
     SynthesisFailed,
     VerificationFailed,
-    generateTypes,
+    generate_types,
     verify_synth_result,
 )
 
@@ -58,7 +58,7 @@ from tests.python.utils.utils import codegen
 
 # utils for converting rosette output to IR
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
-def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
+def generate_ast(expr: str) -> Union[Any, pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     try:
@@ -68,7 +68,7 @@ def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
     return ast
 
 
-def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
+def parse_output(resultSynth: typing.List[str]) -> typing.List[str]:
     output = []
     for i in range(len(resultSynth)):
         s = ""
@@ -84,7 +84,7 @@ def parseOutput(resultSynth: typing.List[str]) -> typing.List[str]:
     return output
 
 
-def toExpr(
+def to_expr(
     ast: typing.List[Any],
     fnsType: Dict[Any, Any],
     varType: Dict[str, ObjectT],
@@ -109,19 +109,22 @@ def toExpr(
     expr_uni = {"!": Not}
     if isinstance(ast, list):
         if ast[0] == "define":
-            return toExpr(ast[2], fnsType, varType, choices)
+            return to_expr(ast[2], fnsType, varType, choices)
         elif ast[0] == "choose":
             # TODO(shadaj): now that we have chooseArbitrarily we could parse things properly
-            return toExpr(ast[1], fnsType, varType, choices)
+            return to_expr(ast[1], fnsType, varType, choices)
         elif ast[0] in expr_bi.keys():
             return expr_bi[ast[0]](
-                *[toExpr(ast[i], fnsType, varType, choices) for i in range(1, len(ast))]
+                *[
+                    to_expr(ast[i], fnsType, varType, choices)
+                    for i in range(1, len(ast))
+                ]
             )
         elif ast[0] in expr_uni.keys():
-            return expr_uni[ast[0]](toExpr(ast[1], fnsType, varType, choices))
+            return expr_uni[ast[0]](to_expr(ast[1], fnsType, varType, choices))
         elif ast[0] == "if":
-            v1 = toExpr(ast[2], fnsType, varType, choices)
-            v2 = toExpr(ast[3], fnsType, varType, choices)
+            v1 = to_expr(ast[2], fnsType, varType, choices)
+            v2 = to_expr(ast[3], fnsType, varType, choices)
 
             if v1.type == None:
                 v1.type = v2.type
@@ -129,28 +132,28 @@ def toExpr(
                 v2.type = v1.type
 
             return Ite(
-                toExpr(ast[1], fnsType, varType, choices),
+                to_expr(ast[1], fnsType, varType, choices),
                 v1,
                 v2,
             )
         elif ast[0] == "=":
             return Eq(
-                toExpr(ast[1], fnsType, varType, choices),
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[1], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "length":
-            return Call("list_length", Int, toExpr(ast[1], fnsType, varType, choices))
+            return Call("list_length", Int, to_expr(ast[1], fnsType, varType, choices))
         elif ast[0] == "list-list-length":
             return Call(
-                "list_list_length", Int, toExpr(ast[1], fnsType, varType, choices)
+                "list_list_length", Int, to_expr(ast[1], fnsType, varType, choices)
             )
         elif ast[0] == "list-empty":
             return Call("list_empty", mlList[Int])
         elif ast[0] == "list-list-empty":
             return Call("list_list_empty", mlList[mlList[Int]])
         elif ast[0] == "list-append":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
-            elem = toExpr(ast[2], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
+            elem = to_expr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_append",
                 list_expr.type,
@@ -158,8 +161,8 @@ def toExpr(
                 elem,
             )
         elif ast[0] == "list-list-append":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
-            elem = toExpr(ast[2], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
+            elem = to_expr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_list_append",
                 list_expr.type,
@@ -167,8 +170,8 @@ def toExpr(
                 elem,
             )
         elif ast[0] == "list-prepend":
-            elem = toExpr(ast[1], fnsType, varType, choices)
-            lst = toExpr(ast[2], fnsType, varType, choices)
+            elem = to_expr(ast[1], fnsType, varType, choices)
+            lst = to_expr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_prepend",
                 lst.type,
@@ -176,8 +179,8 @@ def toExpr(
                 lst,
             )
         elif ast[0] == "list-list-prepend":
-            elem = toExpr(ast[1], fnsType, varType, choices)
-            lst = toExpr(ast[2], fnsType, varType, choices)
+            elem = to_expr(ast[1], fnsType, varType, choices)
+            lst = to_expr(ast[2], fnsType, varType, choices)
             return Call(
                 "list_list_prepend",
                 lst.type,
@@ -185,165 +188,165 @@ def toExpr(
                 lst,
             )
         elif ast[0] == "list-ref-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_get",
                 get_list_element_type(list_expr.type),
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-ref-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_get",
                 get_list_element_type(list_expr.type),
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-tail-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_tail",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-tail-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_tail",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-concat":
-            lst1 = toExpr(ast[1], fnsType, varType, choices)
-            lst2 = toExpr(ast[2], fnsType, varType, choices)
+            lst1 = to_expr(ast[1], fnsType, varType, choices)
+            lst2 = to_expr(ast[2], fnsType, varType, choices)
             return Call("list_concat", lst1.type, lst1, lst2)
         elif ast[0] == "list-take-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_take",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-take-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_take",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-slice-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_slice",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
-                toExpr(ast[3], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
+                to_expr(ast[3], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-slice-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_slice",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
-                toExpr(ast[3], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
+                to_expr(ast[3], fnsType, varType, choices),
             )
         elif ast[0] == "list-slice-with-length-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_slice_with_length",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
-                toExpr(ast[3], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
+                to_expr(ast[3], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-slice-with-length-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_slice_with_length",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
-                toExpr(ast[3], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
+                to_expr(ast[3], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-col-slice-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_col_slice",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
-                toExpr(ast[3], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
+                to_expr(ast[3], fnsType, varType, choices),
             )
         elif ast[0] == "list-list-col-slice-with-length-noerr":
-            list_expr = toExpr(ast[1], fnsType, varType, choices)
+            list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
                 "list_list_col_slice_with_length",
                 list_expr.type,
                 list_expr,
-                toExpr(ast[2], fnsType, varType, choices),
-                toExpr(ast[3], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
+                to_expr(ast[3], fnsType, varType, choices),
             )
         elif ast[0] == "matrix-transpose-noerr":
-            matrix_expr = toExpr(ast[1], fnsType, varType, choices)
+            matrix_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call("matrix_transpose", matrix_expr.type, matrix_expr)
         elif ast[0] == "integer-sqrt-noerr":
-            int_expr = toExpr(ast[1], fnsType, varType, choices)
+            int_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call("integer_sqrt", Int, int_expr)
         elif ast[0] == "integer-exp-noerr":
-            int_expr = toExpr(ast[1], fnsType, varType, choices)
+            int_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call("integer_exp", Int, int_expr)
         elif ast[0] == "make-tuple":
             arg_eval = []
             for alen in range(1, len(ast)):
-                arg_eval.append(toExpr(ast[alen], fnsType, varType, choices))
+                arg_eval.append(to_expr(ast[alen], fnsType, varType, choices))
             return TupleExpr(*arg_eval)
         elif ast[0] == "tupleGet":
             return TupleGet(
-                toExpr(ast[1], fnsType, varType, choices),
-                toExpr(ast[2], fnsType, varType, choices),
+                to_expr(ast[1], fnsType, varType, choices),
+                to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "set-create":
             return Call(ast[0], mlSet[Int])
         elif ast[0] == "set-insert":
-            v = toExpr(ast[1], fnsType, varType, choices)
-            s1 = toExpr(ast[2], fnsType, varType, choices)
+            v = to_expr(ast[1], fnsType, varType, choices)
+            s1 = to_expr(ast[2], fnsType, varType, choices)
             return Call(ast[0], mlSet[v.type], v, s1)  # type: ignore
         elif ast[0] == "set-singleton":
-            v = toExpr(ast[1], fnsType, varType, choices)
+            v = to_expr(ast[1], fnsType, varType, choices)
             return Call(ast[0], mlSet[v.type], v)  # type: ignore
         elif ast[0] == "set-eq":
-            s1 = toExpr(ast[1], fnsType, varType, choices)
-            s2 = toExpr(ast[2], fnsType, varType, choices)
+            s1 = to_expr(ast[1], fnsType, varType, choices)
+            s2 = to_expr(ast[2], fnsType, varType, choices)
             return Eq(s1, s2)
         elif ast[0] == "set-union" or ast[0] == "set-minus":
-            s1 = toExpr(ast[1], fnsType, varType, choices)
-            s2 = toExpr(ast[2], fnsType, varType, choices)
+            s1 = to_expr(ast[1], fnsType, varType, choices)
+            s2 = to_expr(ast[2], fnsType, varType, choices)
             return Call(ast[0], s1.type, s1, s2)
         elif ast[0] == "set-subset":
-            s1 = toExpr(ast[1], fnsType, varType, choices)
-            s2 = toExpr(ast[2], fnsType, varType, choices)
+            s1 = to_expr(ast[1], fnsType, varType, choices)
+            s2 = to_expr(ast[2], fnsType, varType, choices)
             return Call(ast[0], Bool, s1, s2)
         elif ast[0] == "set-member":
-            v = toExpr(ast[1], fnsType, varType, choices)
-            s = toExpr(ast[2], fnsType, varType, choices)
+            v = to_expr(ast[1], fnsType, varType, choices)
+            s = to_expr(ast[2], fnsType, varType, choices)
             return Call(ast[0], Bool, v, s)
         elif ast[0] == "map-union":
-            m1 = toExpr(ast[1], fnsType, varType, choices)
-            m2 = toExpr(ast[2], fnsType, varType, choices)
+            m1 = to_expr(ast[1], fnsType, varType, choices)
+            m2 = to_expr(ast[2], fnsType, varType, choices)
 
             if m1.type == None:
                 m1.type = m2.type
             if m2.type == None:
                 m2.type = m1.type
 
-            uf = toExpr(
+            uf = to_expr(
                 ast[3],
                 fnsType,
                 varType,
@@ -353,18 +356,18 @@ def toExpr(
 
             return Call(ast[0], m1.type, m1, m2, uf)
         elif ast[0] == "map-values":
-            m = toExpr(ast[1], fnsType, varType, choices)
+            m = to_expr(ast[1], fnsType, varType, choices)
             return Call(ast[0], mlList[m.type.args[1]], m)  # type: ignore
         elif ast[0] == "map-singleton":
-            k = toExpr(ast[1], fnsType, varType, choices)
-            v = toExpr(ast[2], fnsType, varType, choices)
+            k = to_expr(ast[1], fnsType, varType, choices)
+            v = to_expr(ast[2], fnsType, varType, choices)
             return Call(ast[0], MapT(k.type, v.type), k, v)  # type: ignore
         elif ast[0] == "map-create":
             return Call(ast[0], MapT(None, None))  # type: ignore
         elif ast[0] == "map-get":
-            m = toExpr(ast[1], fnsType, varType, choices)
-            k = toExpr(ast[2], fnsType, varType, choices)
-            default = toExpr(ast[3], fnsType, varType, choices)
+            m = to_expr(ast[1], fnsType, varType, choices)
+            k = to_expr(ast[2], fnsType, varType, choices)
+            default = to_expr(ast[3], fnsType, varType, choices)
             return Call(ast[0], m.type.args[1], m, k, default)  # type: ignore
         elif ast[0] == "lambda":
             arg_list = [
@@ -375,45 +378,45 @@ def toExpr(
             for a in arg_list:
                 varTypeUpdated[a.args[0]] = a.type
 
-            body = toExpr(ast[2], fnsType, varTypeUpdated, choices)
+            body = to_expr(ast[2], fnsType, varTypeUpdated, choices)
             return Lambda(body.type, body, *arg_list)  # type: ignore
         elif ast[0] == "let":
-            var_value = toExpr(ast[1][0][1], fnsType, varType, choices)
+            var_value = to_expr(ast[1][0][1], fnsType, varType, choices)
             tmp_var_type = dict(varType)
             tmp_var_type[ast[1][0][0]] = var_value.type
             return Let(
                 Var(ast[1][0][0], var_value.type),
                 var_value,
-                toExpr(ast[2], fnsType, tmp_var_type, choices),
+                to_expr(ast[2], fnsType, tmp_var_type, choices),
             )
         elif ast[0] == "reduce_int":
-            data = toExpr(ast[1], fnsType, varType, choices)
-            fn = toExpr(
+            data = to_expr(ast[1], fnsType, varType, choices)
+            fn = to_expr(
                 ast[2],
                 fnsType,
                 varType,
                 choices,
                 typeHint=FnT(Int, data.type.args[0], Int),  # type: ignore
             )
-            initial = toExpr(ast[3], fnsType, varType, choices)
+            initial = to_expr(ast[3], fnsType, varType, choices)
             return Call("reduce_int", Int, data, fn, initial)
         elif ast[0] == "reduce_bool":
-            data = toExpr(ast[1], fnsType, varType, choices)
-            fn = toExpr(
+            data = to_expr(ast[1], fnsType, varType, choices)
+            fn = to_expr(
                 ast[2],
                 fnsType,
                 varType,
                 choices,
                 typeHint=FnT(Bool, data.type.args[0], Bool),  # type: ignore
             )
-            initial = toExpr(ast[3], fnsType, varType, choices)
+            initial = to_expr(ast[3], fnsType, varType, choices)
             return Call("reduce_bool", Bool, data, fn, initial)
         elif ast[0] in fnsType.keys():
             arg_eval = []
             ret_type = get_fn_return_type(fnsType[ast[0]])
             for alen in range(1, len(ast)):
                 arg_eval.append(
-                    toExpr(
+                    to_expr(
                         ast[alen],
                         fnsType,
                         varType,
@@ -454,7 +457,7 @@ def toExpr(
             return Var(ast, varType[ast])
 
 
-def toSynthesize(
+def to_synthesize(
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
     lang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
 ) -> typing.List[str]:
@@ -472,34 +475,34 @@ def toSynthesize(
 
 def synthesize(
     basename: str,
-    targetLang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
+    target_lang: typing.Sequence[Union[FnDeclRecursive, FnDecl, Axiom]],
     vars: typing.Set[Var],
-    invAndPs: typing.List[Synth],
+    inv_and_ps: typing.List[Synth],
     preds: typing.List[Expr],
     vc: Expr,
-    loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
-    cvcPath: str = "cvc5",
+    loop_and_ps_info: typing.Sequence[Union[CodeInfo, Expr]],
+    cvc_path: str = "cvc5",
     uid: int = 1,
-    noVerify: bool = False,
-    unboundedInts: bool = False,
+    no_verify: bool = False,
+    unbounded_ints: bool = False,
     optimize_vc_equality: bool = False,
-    listBound: int = 2,
+    list_bound: int = 2,
     log: bool = True,
     uninterp_fns: List[str] = [],
     rounds_to_guess: int = 0,
     fns_to_guess: List[FnDeclRecursive] = [],
     fn_defs_to_exclude: List[FnDeclRecursive] = [],
 ) -> typing.List[FnDeclRecursive]:
-    synthDir = "./synthesisLogs/"
-    if not os.path.exists(synthDir):
-        os.mkdir(synthDir)
+    synth_dir = "./synthesisLogs/"
+    if not os.path.exists(synth_dir):
+        os.mkdir(synth_dir)
     while True:
         # synthFile = synthDir + basename + f"_{uid}" + ".rkt"
-        synthFile = synthDir + basename + ".rkt"
+        synth_file = synth_dir + basename + ".rkt"
 
-        with open(synthDir + "utils.rkt", "w") as out:
+        with open(synth_dir + "utils.rkt", "w") as out:
             out.write(resources.read_text(utils, "utils.rkt"))
-        with open(synthDir + "bounded.rkt", "w") as out:
+        with open(synth_dir + "bounded.rkt", "w") as out:
             out.write(resources.read_text(utils, "bounded.rkt"))
 
         if optimize_vc_equality:
@@ -508,9 +511,9 @@ def synthesize(
             while True:
                 expr_count: Dict[str, int] = {}
 
-                vc.src.countVariableUses(expr_count)  # type: ignore
+                vc.src.count_variable_uses(expr_count)  # type: ignore
 
-                vc = vc.src.optimizeUselessEquality(expr_count, new_vars)  # type: ignore
+                vc = vc.src.optimize_useless_equality(expr_count, new_vars)  # type: ignore
 
                 if vc.toSMT() == prev_vc:
                     break  # run to fixpoint
@@ -526,80 +529,81 @@ def synthesize(
 
         ##### synthesis procedure #####
         choices: Dict[str, Dict[str, Expr]] = {}
-        toRosette(
-            filename=synthFile,
-            targetLang=targetLang,
+        to_rosette(
+            filename=synth_file,
+            target_lang=target_lang,
             vars=vars,
-            invAndPs=invAndPs,
+            inv_and_ps=inv_and_ps,
             preds=preds,
             vc=vc,
-            loopAndPsInfo=loopAndPsInfo,
+            loop_and_ps_info=loop_and_ps_info,
             rounds_to_guess=rounds_to_guess,
             fns_to_guess=fns_to_guess,
             fn_defs_to_exclude=fn_defs_to_exclude,
-            unboundedInts=unboundedInts,
-            listBound=listBound,
-            writeChoicesTo=choices,
+            unbounded_ints=unbounded_ints,
+            list_bound=list_bound,
+            write_choices_to=choices,
             uninterp_fns=uninterp_fns,
         )
 
-        synthNames = toSynthesize(loopAndPsInfo, targetLang)
-        procSynthesis = subprocess.Popen(
-            ["racket", synthFile], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        synth_names = to_synthesize(loop_and_ps_info, target_lang)
+        proc_synthesis = subprocess.Popen(
+            ["racket", synth_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        process_tracker.all_processes.append(procSynthesis)
+        process_tracker.all_processes.append(proc_synthesis)
 
         try:
-            resultSynth = [
+            result_synth = [
                 l.decode("utf-8").rstrip("\n")
-                for l in typing.cast(IO[bytes], procSynthesis.stdout).readlines()
+                for l in typing.cast(IO[bytes], proc_synthesis.stdout).readlines()
             ]
 
-            errSynth = [
+            err_synth = [
                 l.decode("utf-8").rstrip("\n")
-                for l in typing.cast(IO[bytes], procSynthesis.stderr).readlines()
+                for l in typing.cast(IO[bytes], proc_synthesis.stderr).readlines()
             ]
 
-            exitCode = procSynthesis.wait()
-            if exitCode != 0:
-                if len(resultSynth) > 0 and resultSynth[0] == "#f":
-                    raise SynthesisFailed(f"Synthesis failed: exit code {exitCode}")
+            exit_code = proc_synthesis.wait()
+            if exit_code != 0:
+                if len(result_synth) > 0 and result_synth[0] == "#f":
+                    raise SynthesisFailed(f"Synthesis failed: exit code {exit_code}")
                 else:
                     raise Exception(
-                        f"Rosette failed: exit code {exitCode}\n" + "\n".join(errSynth)
+                        f"Rosette failed: exit code {exit_code}\n"
+                        + "\n".join(err_synth)
                     )
 
             ##### End of Synthesis #####
 
             #####parsing output of rosette synthesis#####
-            varTypes = {}
-            for i in [*loopAndPsInfo, *invAndPs]:
+            var_types = {}
+            for i in [*loop_and_ps_info, *inv_and_ps]:
                 if isinstance(i, CodeInfo):
-                    varTypes[i.name] = generateTypes(
-                        i.modifiedVars + i.readVars + list(vars)
+                    var_types[i.name] = generate_types(
+                        i.modified_vars + i.read_vars + list(vars)
                     )
                 else:
-                    varTypes[i.args[0]] = generateTypes(i.args[2:])
-            for l_i in targetLang:
-                varTypes[l_i.args[0]] = generateTypes(l_i.args[2:])
+                    var_types[i.args[0]] = generate_types(i.args[2:])
+            for l_i in target_lang:
+                var_types[l_i.args[0]] = generate_types(l_i.args[2:])
 
-            if resultSynth[0] == "#t":
-                output = parseOutput(resultSynth[1:])
-                candidateDict = {}
-                fnsType = generateTypes(targetLang)
-                for synthFun in invAndPs:
-                    allVars = synthFun.args[2:]
-                    ceName = synthFun.args[0]
-                    fn_types = (synthFun.args[1].type, *[v.type for v in allVars])
-                    fnsType[ceName] = Fn[typing.Tuple[fn_types]]  # type: ignore
-                for n in synthNames:
+            if result_synth[0] == "#t":
+                output = parse_output(result_synth[1:])
+                candidate_dict = {}
+                fnsType = generate_types(target_lang)
+                for synth_fun in inv_and_ps:
+                    all_vars = synth_fun.args[2:]
+                    ce_name = synth_fun.args[0]
+                    fn_types = (synth_fun.args[1].type, *[v.type for v in all_vars])
+                    fnsType[ce_name] = Fn[typing.Tuple[fn_types]]  # type: ignore
+                for n in synth_names:
                     for r in output:
                         if "define (" + n + " " in r or "define (" + n + ")" in r:
-                            startIndex = r.find("(")
-                            candidateDict[n] = toExpr(
-                                generateAST(r[startIndex:])[0],
+                            start_index = r.find("(")
+                            candidate_dict[n] = to_expr(
+                                generate_ast(r[start_index:])[0],
                                 fnsType,
-                                varTypes[n],
+                                var_types[n],
                                 choices[n] if n in choices else {},
                             )
             else:
@@ -607,21 +611,21 @@ def synthesize(
             #####candidateDict --> definitions of all functions to be synthesized#####
 
             ##### generating function definitions of all the functions to be synthesized#####
-            candidatesSMT: List[FnDeclRecursive] = []
-            for synthFun in invAndPs:
-                allVars = synthFun.args[2:]
-                ceName = synthFun.args[0]
+            candidates_smt: List[FnDeclRecursive] = []
+            for synth_fun in inv_and_ps:
+                all_vars = synth_fun.args[2:]
+                ce_name = synth_fun.args[0]
 
-                if ceName not in candidateDict:
+                if ce_name not in candidate_dict:
                     # Rosette will not return a function if no choice needs to be made
-                    candidateDict[ceName] = synthFun.args[1].chooseArbitrarily()
+                    candidate_dict[ce_name] = synth_fun.args[1].chooseArbitrarily()
 
-                candidatesSMT.append(
+                candidates_smt.append(
                     FnDeclRecursive(
-                        ceName,
-                        synthFun.body().type,
-                        candidateDict[ceName],
-                        *allVars,
+                        ce_name,
+                        synth_fun.body().type,
+                        candidate_dict[ce_name],
+                        *all_vars,
                     )
                 )
 
@@ -629,60 +633,60 @@ def synthesize(
             if log:
                 print("====== verification")
 
-            verifyLogs: typing.List[str] = []
+            verify_logs: typing.List[str] = []
 
-            if noVerify:
+            if no_verify:
                 if log:
                     print("Not verifying solution")
-                resultVerify = "unsat"
+                result_verify = "unsat"
             else:
                 try:
-                    resultVerify, verifyLogs = verify_synth_result(
+                    result_verify, verify_logs = verify_synth_result(
                         basename,
-                        targetLang,
+                        target_lang,
                         vars,
                         preds,
                         vc,
-                        loopAndPsInfo,
-                        cvcPath,
-                        synthDir,
-                        candidatesSMT,
-                        candidateDict,
+                        loop_and_ps_info,
+                        cvc_path,
+                        synth_dir,
+                        candidates_smt,
+                        candidate_dict,
                         fnsType,
                         uid,
-                        useRosette=False,
+                        use_rosette=False,
                     )
                 except CVC5UnsupportedException:
                     print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
-                    resultVerify, verifyLogs = verify_synth_result(
+                    result_verify, verify_logs = verify_synth_result(
                         basename,
-                        targetLang,
+                        target_lang,
                         vars,
                         preds,
                         vc,
-                        loopAndPsInfo,
-                        cvcPath,
-                        synthDir,
-                        candidatesSMT,
-                        candidateDict,
+                        loop_and_ps_info,
+                        cvc_path,
+                        synth_dir,
+                        candidates_smt,
+                        candidate_dict,
                         fnsType,
                         uid,
-                        useRosette=True,
+                        use_rosette=True,
                     )
 
-            if not noVerify and log:
-                print("Verification Output:", resultVerify)
+            if not no_verify and log:
+                print("Verification Output:", result_verify)
 
-            if resultVerify == "unsat":
+            if result_verify == "unsat":
                 if log:
-                    if not noVerify:
+                    if not no_verify:
                         print(
                             "Verified PS and INV Candidates ",
-                            "\n\n".join([str(c) for c in candidatesSMT]),
+                            "\n\n".join([str(c) for c in candidates_smt]),
                         )
                     else:
                         print("Synthesized PS and INV Candidates\n")
-                        for candidate in candidatesSMT:
+                        for candidate in candidates_smt:
                             print(
                                 f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})"
                             )
@@ -692,17 +696,17 @@ def synthesize(
                             else:
                                 print(codegen(body))
                             print("\n\n")
-                return candidatesSMT
+                return candidates_smt
             else:
                 if log:
                     print(
                         "verification failed",
-                        "\n\n".join([str(c) for c in candidatesSMT]),
+                        "\n\n".join([str(c) for c in candidates_smt]),
                     )
-                    print("\n".join(verifyLogs))
+                    print("\n".join(verify_logs))
                     # inv_guess.append(resultSynth[1])
                     # print(inv_guess)
                 raise VerificationFailed("Verification failed")
         finally:
-            procSynthesis.terminate()
-            procSynthesis.wait()
+            proc_synthesis.terminate()
+            proc_synthesis.wait()

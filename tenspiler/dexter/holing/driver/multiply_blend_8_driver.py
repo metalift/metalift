@@ -2,7 +2,6 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.tenspiler_common import (
     get_matrix_computation_holing_search_space,
     multiply_blend_8_hole_body,
@@ -42,10 +41,6 @@ if __name__ == "__main__":
     multiply_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="multiply_blend_8", rounds_to_guess=0, noVerify=True)
+    driver.synthesize(filename="multiply_blend_8", rounds_to_guess=0, no_verify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-
-    ps_fn_decl = driver.get_actual_ps_fn_decl()
-
-    print("\n\ngenerated code:" + gaudi_codegen(ps_fn_decl, driver.synthesized_fns))
