@@ -75,9 +75,6 @@ if __name__ == "__main__":
     normal_blend_8(base_var, active_var, opacity_var)
 
     start_time = time.time()
-    import pdb
-
-    pdb.set_trace()
     print(driver.var_tracker.all())
     driver.synthesize(filename="normal_blend_8")
     end_time = time.time()

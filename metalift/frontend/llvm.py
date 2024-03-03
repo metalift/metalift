@@ -197,12 +197,6 @@ def new_vector(
         )
 
     var_name: str = args[0].name
-    if var_name == "agg.result":
-        print("Var name", var_name)
-        import pdb
-
-        pdb.set_trace()
-
     contained_type = get_list_element_type(list_type)
 
     if (
@@ -1428,6 +1422,7 @@ class VCVisitor:
 
         # Add postcondition
         return_arg = create_object(ret_val.type, f"{self.fn_name}_rv")
+        self.driver.add_var_object(return_arg)
         self.pred_tracker.postcondition(
             self.fn_name,
             [return_arg],  # TODO: I feel like this flow could be better
@@ -1808,6 +1803,18 @@ class MetaliftFunc:
                 ):
                     v.visit_llvm_block(b)
                     done = False
+
+        # TODO(jie): now we should update the return type
+        # if sret_obj is not None:
+        #     self.fn_ret_type = sret_obj.type
+        #     import pdb; pdb.set_trace()
+        # ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
+        # self.driver.add_var_object(ret_val)
+
+        # # TODO(jie) instead of constructin this call manually can we replace it with a method call.
+        # ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
+
+        # self.driver.postconditions.append(cast(Bool, ps))
 
         for block in self.fn_blocks.values():
             self.driver.asserts.extend(v.fn_blocks_states[block.name].asserts)
