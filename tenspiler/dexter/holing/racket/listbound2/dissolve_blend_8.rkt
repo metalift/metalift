@@ -33,12 +33,10 @@
 )
 
 (define-grammar (dissolve_select_two_args_gram int_x int_y opacity rand_cons)
- [rv (choose (v0))]
-[v0 (choose (v1) (+ (v1) (v1) ) (- (v1) (v1) ) (* (v1) (v1) ) (quotient-noerr (v1) (v1) ) (integer-exp-noerr (v1) ) (integer-sqrt-noerr (v1) ))]
-[v1 (choose (v2) (+ (v2) (v2) ) (- (v2) (v2) ) (* (v2) (v2) ) (quotient-noerr (v2) (v2) ) (integer-exp-noerr (v2) ) (integer-sqrt-noerr (v2) ))]
-[v2 (choose (v3) (+ (v3) (v3) ) (- (v3) (v3) ) (* (v3) (v3) ) (quotient-noerr (v3) (v3) ) (integer-exp-noerr (v3) ) (integer-sqrt-noerr (v3) ))]
-[v3 (choose (v4) (+ (v4) (v4) ) (- (v4) (v4) ) (* (v4) (v4) ) (quotient-noerr (v4) (v4) ) (integer-exp-noerr (v4) ) (integer-sqrt-noerr (v4) ))]
-[v4 (choose int_x int_y opacity rand_cons)]
+ [rv (choose (if (>= (- (v0) (v0) ) (v2) ) (v0) (v0) ))]
+[v0 (choose (v1) (quotient-noerr (+ (remainder (v1) (v2) ) (v2) ) (v2) ))]
+[v1 (choose int_x int_y opacity rand_cons)]
+[v2 (choose 0 1 100)]
 )
 
 (define-grammar (OUTER_LOOP_INDEX_FIRST_gram )
