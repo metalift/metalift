@@ -1322,7 +1322,7 @@ def get_matrix_computation_holing_search_space(
 
 
 def get_matrix_select_general_search_space(
-    driver: Driver, depth: int, cons: Int, *, relaxed: bool
+    driver: Driver, depth: int, cons: Int, relaxed: bool
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1700,7 +1700,7 @@ def get_dissolve_holing_search_space(
 
 
 def get_dissolve_general_search_space(
-    driver: Driver, *relaxed: bool
+    driver: Driver, depth: int, relaxed: bool
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1711,7 +1711,7 @@ def get_dissolve_general_search_space(
     int_var = choose(int_x, int_y, opacity, rand_cons)
     dissolve_select_synth = synth(
         DISSOLVE_SELECT_TWO_ARGS,
-        get_int_expr_eq_or_below_depth(var=int_var, depth=4),
+        get_int_expr_eq_or_below_depth(var=int_var, depth=depth),
         int_x,
         int_y,
         opacity,
@@ -1724,9 +1724,9 @@ def get_dissolve_general_search_space(
         return [
             matrix_vec_mul,
             reduce_sum,
-            select_two_args_fn_decl,
-            selection_two_args_fn_decl,
-            matrix_selection_two_args_fn_decl,
+            dissolve_select_two_args_fn_decl,
+            dissolve_selection_two_args_fn_decl,
+            dissolve_matrix_selection_two_args_fn_decl,
             *vec_to_vec_target_lang,
             *scalar_vec_to_vec_target_lang,
             *scalar_matrix_to_matrix_target_lang,

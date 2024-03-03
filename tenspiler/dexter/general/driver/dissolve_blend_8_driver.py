@@ -1,11 +1,16 @@
+import argparse
 import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tenspiler.tenspiler_common import get_dissolve_general_search_space
-from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int)
+    parser.add_argument("--relaxed", action="store_true")
+    parser_args = parser.parse_args()
+
     driver = Driver()
     base = Matrix(Int, "base")
     active = Matrix(Int, "active")
@@ -17,7 +22,11 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_dissolve_general_search_space(driver)
+    ) = get_dissolve_general_search_space(
+        driver=driver,
+        depth=parser_args.depth,
+        relaxed=parser_args.relaxed,
+    )
     dissolve_blend_8 = driver.analyze(
         llvm_filepath="tenspiler/dexter/cpp/for_synthesis/dissolve_blend_8.ll",
         loops_filepath="tenspiler/dexter/cpp/for_synthesis/dissolve_blend_8.loops",
@@ -45,7 +54,6 @@ if __name__ == "__main__":
     dissolve_blend_8(base, active, opacity, rand_cons)
 
     start_time = time.time()
-    driver.synthesize(rounds_to_guess=0)
+    driver.synthesize(filename="dissolve_blend_8", rounds_to_guess=0, no_verify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + dissolve_blend_8.codegen(codegen))
