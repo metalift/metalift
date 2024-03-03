@@ -1449,6 +1449,7 @@ class VCVisitor:
             blk_state.asserts.append(implies(and_objects(*blk_state.precond), ps))
         else:
             blk_state.asserts.append(ps)
+        self.driver.postconditions.append(ps)
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
@@ -1808,19 +1809,10 @@ class MetaliftFunc:
                     v.visit_llvm_block(b)
                     done = False
 
-        # TODO(jie): now we should update the return type
-        ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
-        self.driver.add_var_object(ret_val)
-
-        # TODO(jie) instead of constructin this call manually can we replace it with a method call.
-        ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
-
-        self.driver.postconditions.append(cast(Bool, ps))
-
         for block in self.fn_blocks.values():
             self.driver.asserts.extend(v.fn_blocks_states[block.name].asserts)
 
-        return ret_val
+        return
 
     T = TypeVar("T")
 
