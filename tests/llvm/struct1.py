@@ -13,9 +13,9 @@ def grammar(ci: CodeInfo):
     if name.startswith("inv"):
         raise Exception("no invariant")
     else:  # ps
-        r = ci.modifiedVars[0]
-        (x, y) = ci.readVars
-        return Synth(name, summary(r, x, y), *ci.modifiedVars, *ci.readVars)
+        r = ci.modified_vars[0]
+        (x, y) = ci.read_vars
+        return Synth(name, summary(r, x, y), *ci.modified_vars, *ci.read_vars)
 
 
 def targetLang():

@@ -55,10 +55,10 @@ class Transpiler:
             invAndPs = [
                 self.expand(
                     basename,
-                    ci.readVars,
-                    ci.modifiedVars,
+                    ci.read_vars,
+                    ci.modified_vars,
                     self.grammar(
-                        ci.readVars, ci.modifiedVars[0], ci.name.startswith("inv")
+                        ci.read_vars, ci.modified_vars[0], ci.name.startswith("inv")
                     ),
                 )
                 for ci in loopAndPsInfo
@@ -78,7 +78,7 @@ class Transpiler:
             vc,
             loopAndPsInfo,
             self.cvcPath,
-            noVerify=(self.cvcPath is None),
+            no_verify=(self.cvcPath is None),
         )
 
         if len(candidates) != 1:

@@ -72,7 +72,9 @@
 (define-symbolic color_dodge_8_rv_BOUNDEDSET-len integer?)
 (define-symbolic color_dodge_8_rv_BOUNDEDSET-0 integer?)
 (define-symbolic color_dodge_8_rv_BOUNDEDSET-1 integer?)
-(define color_dodge_8_rv (take (list color_dodge_8_rv_BOUNDEDSET-0 color_dodge_8_rv_BOUNDEDSET-1) color_dodge_8_rv_BOUNDEDSET-len))
+(define-symbolic color_dodge_8_rv_BOUNDEDSET-2 integer?)
+(define-symbolic color_dodge_8_rv_BOUNDEDSET-3 integer?)
+(define color_dodge_8_rv (take (list (list color_dodge_8_rv_BOUNDEDSET-0 color_dodge_8_rv_BOUNDEDSET-1) (list color_dodge_8_rv_BOUNDEDSET-2 color_dodge_8_rv_BOUNDEDSET-3)) color_dodge_8_rv_BOUNDEDSET-len))
 (define-symbolic int_x integer?)
 (define-symbolic int_y integer?)
 (define-symbolic pixel integer?)
@@ -88,7 +90,7 @@
 
     (define sol0
         (synthesize
-            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col color_dodge_8_rv_BOUNDEDSET-len color_dodge_8_rv_BOUNDEDSET-0 color_dodge_8_rv_BOUNDEDSET-1 int_x int_y pixel row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
+            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col color_dodge_8_rv_BOUNDEDSET-len color_dodge_8_rv_BOUNDEDSET-0 color_dodge_8_rv_BOUNDEDSET-1 color_dodge_8_rv_BOUNDEDSET-2 color_dodge_8_rv_BOUNDEDSET-3 int_x int_y pixel row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
             #:guarantee (assertions)
         )
     )

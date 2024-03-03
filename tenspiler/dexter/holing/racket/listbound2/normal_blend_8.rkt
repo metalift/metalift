@@ -18,14 +18,14 @@
  [rv (choose (&& (&& (>= i 0 ) (<= i (length base ) ) ) (equal? agg.result (vec_elemwise_add (vec_scalar_mul (v0) (v1)) (vec_scalar_mul (- (v2) (v0) ) (v1))) ) ))]
 [v0 (choose opacity)]
 [v1 (choose (list-take-noerr base i ) (list-take-noerr active i ))]
-[v2 (choose 255)]
+[v2 (choose 32)]
 )
 
 (define-grammar (normal_blend_8_ps_gram base active opacity normal_blend_8_rv)
  [rv (choose (equal? normal_blend_8_rv (vec_elemwise_add (vec_scalar_mul (v0) (v1)) (vec_scalar_mul (- (v2) (v0) ) (v1))) ))]
 [v0 (choose opacity)]
 [v1 (choose base active)]
-[v2 (choose 255)]
+[v2 (choose 32)]
 )
 
 (define (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) (normal_blend_8_inv0_gram active agg.result base i opacity ref.tmp #:depth 10))
@@ -44,20 +44,16 @@
 (define-symbolic base_BOUNDEDSET-1 integer?)
 (define base (take (list base_BOUNDEDSET-0 base_BOUNDEDSET-1) base_BOUNDEDSET-len))
 (define-symbolic i integer?)
-(define-symbolic normal_blend_8_rv_BOUNDEDSET-len integer?)
-(define-symbolic normal_blend_8_rv_BOUNDEDSET-0 integer?)
-(define-symbolic normal_blend_8_rv_BOUNDEDSET-1 integer?)
-(define normal_blend_8_rv (take (list normal_blend_8_rv_BOUNDEDSET-0 normal_blend_8_rv_BOUNDEDSET-1) normal_blend_8_rv_BOUNDEDSET-len))
 (define-symbolic opacity integer?)
 (define-symbolic ref.tmp integer?)
 (current-bitwidth 6)
 (define (assertions)
- (assert (&& (&& (=> (&& (equal? (length base ) (length active ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active (list-empty ) base 0 opacity 0) ) (=> (&& (&& (&& (< i (length base ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) (normal_blend_8_inv0 active (list-append agg.result (+ (* opacity (list-ref-noerr active i ) ) (* (- 255 opacity ) (list-ref-noerr base i ) ) ) ) base (+ i 1 ) opacity (+ (* opacity (list-ref-noerr active i ) ) (* (- 255 opacity ) (list-ref-noerr base i ) ) )) ) ) (=> (or (&& (&& (&& (! (< i (length base ) ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) (&& (&& (&& (&& (! true ) (! (< i (length base ) ) ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) ) (normal_blend_8_ps base active opacity agg.result) ) )))
+ (assert (&& (&& (=> (&& (equal? (length base ) (length active ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active (list-empty ) base 0 opacity 0) ) (=> (&& (&& (&& (< i (length base ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) (normal_blend_8_inv0 active (list-append agg.result (+ (* opacity (list-ref-noerr active i ) ) (* (- 32 opacity ) (list-ref-noerr base i ) ) ) ) base (+ i 1 ) opacity (+ (* opacity (list-ref-noerr active i ) ) (* (- 32 opacity ) (list-ref-noerr base i ) ) )) ) ) (=> (or (&& (&& (&& (! (< i (length base ) ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) (&& (&& (&& (&& (! true ) (! (< i (length base ) ) ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) ) (normal_blend_8_ps base active opacity agg.result) ) )))
 
 
     (define sol0
         (synthesize
-            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 i normal_blend_8_rv_BOUNDEDSET-len normal_blend_8_rv_BOUNDEDSET-0 normal_blend_8_rv_BOUNDEDSET-1 opacity ref.tmp)
+            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 i opacity ref.tmp)
             #:guarantee (assertions)
         )
     )

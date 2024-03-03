@@ -1612,16 +1612,15 @@ class Driver:
         for i in range(1):
             synthesized: List[FnDeclRecursive] = run_synthesis(
                 basename=filename,
-                targetLang=target,
+                target_lang=target,
                 vars=set(self.var_tracker.all()),
-                invAndPs=inv_and_ps,
+                inv_and_ps=inv_and_ps,
                 preds=[],
                 vc=vc,
-                loopAndPsInfo=synths,
-                cvcPath="cvc5",
+                loop_and_ps_info=synths,
+                cvc_path="cvc5",
                 # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
                 fns_to_guess=synths,
-                noVerify=True,  # TODO(jie): remove this
                 **synthesize_kwargs,
             )
             for f in synthesized:

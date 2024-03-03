@@ -232,8 +232,8 @@ class CodeInfo:
     ) -> None:
         self.name = name
         self.retT = retT
-        self.modifiedVars = modifiedVars
-        self.readVars = readVars
+        self.modified_vars = modifiedVars
+        self.read_vars = readVars
 
     def __repr__(self) -> str:
         return "name: %s\nret type: %s\nmod vars: %s\nread args: %s" % (
@@ -241,9 +241,9 @@ class CodeInfo:
             self.retT,
             [
                 v.name if isinstance(v, ValueRef) else v.args[0]
-                for v in self.modifiedVars
+                for v in self.modified_vars
             ],
-            [v.name if isinstance(v, ValueRef) else v.args[0] for v in self.readVars],
+            [v.name if isinstance(v, ValueRef) else v.args[0] for v in self.read_vars],
         )
 
 
