@@ -5,7 +5,6 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tenspiler.codegen.pytorch_codegen import pytorch_codegen
 from tenspiler.tenspiler_common import (
     call_integer_exp,
     call_scalar_vec_div,
@@ -81,8 +80,8 @@ def transformer_part3_inv0_grammar(
 if __name__ == "__main__":
     driver = Driver()
     transformer_part3 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/transformer/transformer_part3.ll",
-        loops_filepath="tenspiler/llama/cpp/transformer/transformer_part3.loops",
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part3.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part3.loops",
         fn_name="transformer_part3",
         target_lang_fn=transformer_part3_target_lang,
         inv_grammars={
@@ -103,6 +102,3 @@ if __name__ == "__main__":
     map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
     driver.synthesize(filename="transformer_part3", no_verify=True)
-    ps_expr = driver.get_ps_expr()
-
-    print("\n\ngenerated code:" + pytorch_codegen(ps_expr, driver.synthesized_fns))

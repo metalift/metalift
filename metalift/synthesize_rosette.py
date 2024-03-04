@@ -83,7 +83,7 @@ def parse_output(resultSynth: typing.List[str]) -> typing.List[str]:
     return output
 
 
-def convert_expr(expr: Expr) -> Expr:
+def convert_expr(expr: Any) -> Expr:
     if isinstance(expr, Call) and expr.name() == "list_eq":
         return Eq(expr.arguments()[0], expr.arguments()[1])
     return expr
@@ -622,12 +622,11 @@ def synthesize(
                 ce_name = synth_fun.args[0]
 
                 if ce_name not in candidate_dict:
-                    import pdb
-
-                    pdb.set_trace()
                     # Rosette will not return a function if no choice needs to be made
-                    candidate_dict[ce_name] = convert_expr(
-                        synth_fun.args[1].chooseArbitrarily()
+                    candidate_dict[ce_name] = (
+                        synth_fun.args[1]
+                        .chooseArbitrarily()
+                        .mapArgs(lambda expr: convert_expr(expr))
                     )
 
                 candidates_smt.append(

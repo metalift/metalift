@@ -2418,6 +2418,8 @@ class Call(Expr):
                 retVal.append("set.%s" % (str(a)[4:]))
             elif (str(a)).startswith("map-"):
                 retVal.append("map_%s" % (str(a)[4:]))
+            elif str(a) == "list_eq":
+                retVal.append("=")
             elif isinstance(a, str):
                 retVal.append(str(a))
             else:
