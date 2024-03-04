@@ -84,6 +84,12 @@ def parse_output(resultSynth: typing.List[str]) -> typing.List[str]:
     return output
 
 
+def convert_expr(expr: Expr) -> Expr:
+    if isinstance(expr, Call) and expr.name() == "list_eq":
+        return Eq(expr.arguments()[0], expr.arguments()[1])
+    return expr
+
+
 def to_expr(
     ast: typing.List[Any],
     fnsType: Dict[Any, Any],
@@ -617,8 +623,13 @@ def synthesize(
                 ce_name = synth_fun.args[0]
 
                 if ce_name not in candidate_dict:
+                    import pdb
+
+                    pdb.set_trace()
                     # Rosette will not return a function if no choice needs to be made
-                    candidate_dict[ce_name] = synth_fun.args[1].chooseArbitrarily()
+                    candidate_dict[ce_name] = convert_expr(
+                        synth_fun.args[1].chooseArbitrarily()
+                    )
 
                 candidates_smt.append(
                     FnDeclRecursive(
