@@ -41,7 +41,7 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<float>> k_matrix = k_weights[j]; 
+            vector<vector<float>> k_matrix = k_weights[j];
 
             int token_position = k_matrix.size() - 1;
             int num_head = 32;
@@ -49,8 +49,8 @@ int main() {
             int head_size = k_matrix.size() / num_head;
 
 
-            vector<float> q = flatten(q_weights[j]); 
-            
+            vector<float> q = flatten(q_weights[j]);
+
             transformer_part1_kernel(token_position, head, head_size, k_matrix, q);
             time += duration_cast<microseconds>(end_time - start_time).count();
         }

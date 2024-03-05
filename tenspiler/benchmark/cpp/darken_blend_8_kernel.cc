@@ -42,8 +42,8 @@ int main() {
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base = res[0]; 
-            vector<vector<uint8_t>> active = res[1]; 
+            vector<vector<uint8_t>> base = res[0];
+            vector<vector<uint8_t>> active = res[1];
 
             darken_blend_8_kernel(base, active);
 

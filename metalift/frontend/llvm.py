@@ -27,7 +27,6 @@ from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Matrix, Object, ObjectT
 from metalift.ir import Set as mlSet
-from metalift.ir import Tuple as mlTuple
 from metalift.ir import (
     Synth,
     Var,
@@ -1631,7 +1630,7 @@ class Driver:
                     continue
                 self.synthesized_fns[name] = f
 
-                #TODO: added back for codegen
+                # TODO: added back for codegen
                 m = re.match("(\w+)_ps", f.name())  # ignore the invariants
                 if m:
                     name = m.groups()[0]
@@ -1644,7 +1643,7 @@ class Driver:
                     ):
                         self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
                         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #TODO: figure out why was it commented out
+                # TODO: figure out why was it commented out
                 # if isinstance(f.body(), Eq):
                 #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
                 #     print(f"{name} synthesized: {self.fns[name].synthesized}")

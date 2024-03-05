@@ -26,7 +26,7 @@ float rmsnorm_part1(vector<float> input, vector<float> weight) {
     for (int i = 0; i < input.size(); i++)
         output.push_back(inv_ss * input[i] * weight[i]);
     end_time = high_resolution_clock::now();
-    
+
     return output;
 }
 
@@ -38,10 +38,10 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-             
-            vector<float> inp1 = flatten(weights[j]); 
-            
-            vector<float> inp2 = flatten(w_input[j]); 
+
+            vector<float> inp1 = flatten(weights[j]);
+
+            vector<float> inp2 = flatten(w_input[j]);
             float ss = rmsnorm_part1(inp2, inp1);
 
             rmsnorm_part2_kernel(inp2, inp1, ss);

@@ -996,4 +996,3 @@ class MetaliftFunc:
             raise Exception(f"{self.name} is not synthesized yet")
         else:
             return codegen_fn(self.synthesized)
-

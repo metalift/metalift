@@ -34,8 +34,8 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<float>> weight = attn_weights[j]; 
-            vector<float> inp1 = aw_input[j]; 
+            vector<vector<float>> weight = attn_weights[j];
+            vector<float> inp1 = aw_input[j];
             matmul_kernel(weight, inp1);
             time += duration_cast<microseconds>(end_time - start_time).count();
         }
