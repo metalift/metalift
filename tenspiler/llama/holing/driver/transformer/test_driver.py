@@ -736,7 +736,7 @@ if __name__ == "__main__":
     )
     int_x = Int("int_x")
     # map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
-    driver.synthesize(listBound=3, no_verify=True)
+    driver.synthesize(list_bound=3, no_verify=True)
 
     # driver = Driver()
     # multiquery_attention_part2 = driver.analyze(
@@ -832,4 +832,4 @@ if __name__ == "__main__":
     #     )
     # )
 
-    # driver.synthesize(listBound=3, no_verify=True)
+    # driver.synthesize(list_bound=3, no_verify=True)
