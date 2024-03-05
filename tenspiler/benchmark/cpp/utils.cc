@@ -89,7 +89,7 @@ vector<float> random_vector(int m) {
 
 std::array<vector<vector<uint8_t>>,2> get_base_active(int i) {
     IplImage* img_c = cvLoadImage(fn[i].c_str(), CV_LOAD_IMAGE_GRAYSCALE);
-    cv::Mat img(img_c, true); 
+    cv::Mat img(img_c, true);
     //assert dim 2
     assert(img.dims == 2);
     vector<vector<uint8_t> > base(img.rows, vector<uint8_t>(img.cols));
@@ -101,7 +101,7 @@ std::array<vector<vector<uint8_t>>,2> get_base_active(int i) {
     }
     cvReleaseImage(&img_c);
     vector<vector<uint8_t> > active = random_matrix_grayscale(img.rows, img.cols);
-    
+
     std::array<vector<vector<uint8_t>>,2> res;
     res[0] = base;
     res[1] = active;
@@ -138,8 +138,8 @@ void mat_timer(vector<vector<uint8_t>> (*func)(vector<vector<uint8_t>>, vector<v
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base = res[0]; 
-            vector<vector<uint8_t>> active = res[1]; 
+            vector<vector<uint8_t>> base = res[0];
+            vector<vector<uint8_t>> active = res[1];
             auto start_time = high_resolution_clock::now();
             func(base, active);
             auto end_time = high_resolution_clock::now();
@@ -161,8 +161,8 @@ void mat_timer_float(vector<vector<float>> (*func)(vector<vector<float>>, vector
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base_int = res[0]; 
-            vector<vector<uint8_t>> active_int = res[1]; 
+            vector<vector<uint8_t>> base_int = res[0];
+            vector<vector<uint8_t>> active_int = res[1];
 
             vector<vector<float>> base(base_int.size(), vector<float>());
 
@@ -198,15 +198,15 @@ void mat_timer_float(vector<vector<float>> (*func)(vector<vector<float>>, vector
 void vec_timer_float(vector<float> (*func)(vector<float>, vector<float>, float)) {
     srand(1);
     fn = glob("./data", ".*\\.jpeg$");
-    
+
     vector<long long> times;
     size_t count = fn.size();
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base_int = res[0]; 
-            vector<vector<uint8_t>> active_int = res[1]; 
+            vector<vector<uint8_t>> base_int = res[0];
+            vector<vector<uint8_t>> active_int = res[1];
             vector<vector<float>> base(base_int.size(), vector<float>());
 
             for (size_t i = 0; i < base_int.size(); ++i) {
@@ -225,8 +225,8 @@ void vec_timer_float(vector<float> (*func)(vector<float>, vector<float>, float))
                 }
             }
 
-            vector<float> base_f = flatten(base); 
-            vector<float> active_f = flatten(active); 
+            vector<float> base_f = flatten(base);
+            vector<float> active_f = flatten(active);
             float opacity = random_float();
             auto start_time = high_resolution_clock::now();
             func(base_f, active_f, opacity);
@@ -242,17 +242,17 @@ void vec_timer_float(vector<float> (*func)(vector<float>, vector<float>, float))
 void vec_timer_int(vector<uint8_t> (*func)(vector<uint8_t>, vector<uint8_t>, uint8_t)) {
     srand(1);
     fn = glob("./data", ".*\\.jpeg$");
-    
+
     vector<long long> times;
     size_t count = fn.size();
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base = res[0]; 
-            vector<uint8_t> base_f = flatten_int(base); 
-            vector<vector<uint8_t>> active = res[1]; 
-            vector<uint8_t> active_f = flatten_int(active); 
+            vector<vector<uint8_t>> base = res[0];
+            vector<uint8_t> base_f = flatten_int(base);
+            vector<vector<uint8_t>> active = res[1];
+            vector<uint8_t> active_f = flatten_int(active);
             uint8_t opacity = static_cast<uint8_t>(random_float());
             auto start_time = high_resolution_clock::now();
             func(base_f, active_f, opacity);

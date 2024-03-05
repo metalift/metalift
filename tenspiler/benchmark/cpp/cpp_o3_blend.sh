@@ -89,7 +89,3 @@ printf "%-50s\n" "normal_blend_f_O3"
 rm normal_blend_f_O3
 printf "=%.0s"  $(seq 1 63)
 printf "\n"
-
-
-
-

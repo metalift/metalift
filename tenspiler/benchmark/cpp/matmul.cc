@@ -29,8 +29,8 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<float>> weight = attn_weights[j]; 
-            vector<float> inp1 = aw_input[j]; 
+            vector<vector<float>> weight = attn_weights[j];
+            vector<float> inp1 = aw_input[j];
 
             auto start_time = high_resolution_clock::now();
             matmul(weight, inp1);

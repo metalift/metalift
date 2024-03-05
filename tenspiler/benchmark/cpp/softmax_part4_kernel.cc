@@ -56,13 +56,13 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            vector<float> inp1 = flatten(attn_weights[j]); 
+            vector<float> inp1 = flatten(attn_weights[j]);
             int max_pos = inp1.size();
 
             float max_val = softmax_part1(inp1, max_pos);
             vector<float> output = softmax_part2(inp1, max_pos, max_val);
             float sum = softmax_part3(output, max_pos);
-            
+
             softmax_part4_kernel(output, max_pos, sum);
             time += duration_cast<microseconds>(end_time - start_time).count();
         }
