@@ -26,8 +26,8 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            
-            vector<float> inp1 = flatten(weights[j]); 
+
+            vector<float> inp1 = flatten(weights[j]);
             int hidden_dim = inp1.size();
 
             auto start_time = high_resolution_clock::now();

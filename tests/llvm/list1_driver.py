@@ -134,7 +134,5 @@ if __name__ == "__main__":
     test(v1)
 
     driver.synthesize(filename="list1")
-    
+
     print("\n\ngenerated code:" + test.codegen(codegen))
-
-

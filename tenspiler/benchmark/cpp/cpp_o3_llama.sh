@@ -81,4 +81,3 @@ printf "%-50s\n" "softmax_part4_O3"
 rm softmax_part4_O3
 printf "=%.0s"  $(seq 1 63)
 printf "\n"
-

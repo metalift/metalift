@@ -1,19 +1,11 @@
-from typing import cast
-from collections import defaultdict
-from typing import List, Union
+from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (
-    Bool,
-    Expr,
-    FnDeclRecursive,
-    Int,
-)
+from metalift.ir import Bool, Expr, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, call, choose, fn_decl_recursive, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
-
 
 # We use test_abs instead of abs because abs is reserved in cvc5.
 TEST_ABS_FN_NAME = "test_abs"
@@ -27,12 +19,14 @@ def target_lang() -> List[FnDeclRecursive]:
         Int,
         ite(
             lst.len() >= 1,
-            ite(lst[0] < 0, Int(0) - lst[0], lst[0]) + call(LIST_ABS_SUM_FN_NAME, Int, lst[1:]),
+            ite(lst[0] < 0, Int(0) - lst[0], lst[0])
+            + call(LIST_ABS_SUM_FN_NAME, Int, lst[1:]),
             Int(0),
         ),
         lst,
     )
     return [list_abs_sum]
+
 
 def ps_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object]
@@ -65,7 +59,11 @@ def inv_grammar(
         choose_write <= lst_length,
         choose_write < lst_length,
     )
-    return  and_objects(index_lower_bound, index_upper_bound, choose(choose_write + lst_tail_sum == lst_sum, choose_write == lst_tail_sum)) 
+    return and_objects(
+        index_lower_bound,
+        index_upper_bound,
+        choose(choose_write + lst_tail_sum == lst_sum, choose_write == lst_tail_sum),
+    )
 
 
 if __name__ == "__main__":
