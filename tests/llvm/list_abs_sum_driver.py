@@ -83,4 +83,7 @@ if __name__ == "__main__":
 
     driver.synthesize(filename="list_abs_sum")
 
-    print("\n\ngenerated code:" + test.codegen(codegen))
+    print("====== summary in target language")
+
+    fn_def = process_candidate_func(candidates[1])
+    print(code_gen(fn_def))
