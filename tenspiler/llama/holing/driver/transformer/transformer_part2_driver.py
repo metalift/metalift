@@ -159,8 +159,8 @@ if __name__ == "__main__":
 
     driver = Driver()
     transformer_part2 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/transformer/transformer_part2.ll",
-        loops_filepath="tenspiler/llama/cpp/transformer/transformer_part2.loops",
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part2.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part2.loops",
         fn_name="transformer_part2",
         target_lang_fn=transformer_part2_target_lang,
         inv_grammars={
@@ -211,6 +211,6 @@ if __name__ == "__main__":
 
     driver.synthesize(
         filename=f"transformer_part2{rounds_to_guess_suffix}{list_bound_suffix}{relaxed_suffix}",
-        listBound=parser_args.list_bound,
+        list_bound=parser_args.list_bound,
         rounds_to_guess=parser_args.rounds_to_guess,
     )
