@@ -277,7 +277,7 @@ def overlay_blend_8(codegen_func):
         ite(
             int_x >= 128,
             2 * int_x + int_x - 2 * int_x * int_x // 255 - 255,
-            2 * int_x * int_y // 255,
+            2 * int_x * int_x // 255,
         ),
         int_x,
         int_y,
@@ -540,13 +540,13 @@ for codegen_func in codegen_funcs[1:]:
     # darken_blend_8(codegen_func)
     # multiply_blend_8(codegen_func)
     # linear_burn_8(codegen_func)
-    color_burn_8(codegen_func)
-    exit(0)
-    lighten_blend_8(codegen_func)
-    screen_blend_8(codegen_func)
-    linear_dodge_8(codegen_func)
-    color_dodge_8(codegen_func)
+    # color_burn_8(codegen_func)
+    # lighten_blend_8(codegen_func)
+    # screen_blend_8(codegen_func)
+    # linear_dodge_8(codegen_func)
+    # color_dodge_8(codegen_func)
     overlay_blend_8(codegen_func)
+    exit(0)
 
     # Llama benchmarks
     softmax_part1(codegen_func)
