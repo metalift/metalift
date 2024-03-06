@@ -11,9 +11,12 @@ from metalift.ir import (
     Expr,
     FnDecl,
     FnDeclRecursive,
+    Ge,
     Gt,
     Int,
+    Le,
     Lit,
+    Lt,
     Matrix,
     Mul,
     ObjectT,
@@ -238,9 +241,6 @@ def gaudi_codegen(
                 if isinstance(expr, Add):
                     fn_name = "matrix_elemwise_add"
                 elif isinstance(expr, Sub):
-                    import pdb
-
-                    pdb.set_trace()
                     fn_name = "matrix_elemwise_sub"
                 elif isinstance(expr, Mul):
                     fn_name = "matrix_elemwise_mul"
@@ -283,6 +283,21 @@ def gaudi_codegen(
                         cond_instr_name = "v_u8_sel_eq_u8_b"
                     else:
                         cond_instr_name = "v_f32_sel_eq_f32_b"
+                elif isinstance(cond, Lt):
+                    if d_type == DataType.INT:
+                        cond_instr_name = "v_u8_sel_less_u8_b"
+                    else:
+                        cond_instr_name = "v_f32_sel_less_f32_b"
+                elif isinstance(cond, Le):
+                    if d_type == DataType.INT:
+                        cond_instr_name = "v_u8_sel_leq_u8_b"
+                    else:
+                        cond_instr_name = "v_f32_sel_leq_f32_b"
+                elif isinstance(cond, Ge):
+                    if d_type == DataType.INT:
+                        cond_instr_name = "v_u8_sel_geq_u8_b"
+                    else:
+                        cond_instr_name = "v_f32_sel_geq_f32_b"
                 else:
                     raise Exception(f"Unsupported condition {cond} for select_two_args")
 
