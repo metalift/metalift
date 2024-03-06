@@ -2449,12 +2449,6 @@ class Call(Expr):
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
         elif self.name() in {"list_slice_with_length", "list_list_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"
-        elif self.name() == "list_list_col_slice":
-            return f"[row[{processed_args[1]}:{processed_args[2]}] for row in {processed_args[0]}]"
-        elif self.name() == "list_list_col_slice_with_length":
-            return f"[row[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}] for row in {processed_args[0]}]"
-        elif self.name() == "matrix_transpose":
-            return f"list(map(list, zip(*{processed_args[0]})))"
         elif self.name() == "reduce_max":
             return f"max({processed_args[0]})"
         elif self.name() == "reduce_sum":
@@ -3128,6 +3122,12 @@ class FnDecl(Expr):
                 return_type,
                 self.body() if isinstance(self.body(), str) else self.body().toSMT(),
             )
+
+    def to_python(self) -> str:
+        fn_declaration = f"def {self.name()}({', '.join([a.to_python() for a in self.arguments()])}):"
+        body = self.body().to_python()
+        full_fn = f"{fn_declaration}\n{TAB}return {body}"
+        return full_fn
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_FnDecl(self)
