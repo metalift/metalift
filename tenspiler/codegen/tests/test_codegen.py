@@ -1,6 +1,7 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
-from tenspiler.codegen.gaudi_codegen import gaudi_codegen
+# from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.mlx_codegen import mlx_codegen
+from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -338,7 +339,7 @@ def softmax_part3(codegen_func):
     output = List(Int, "output")
     max_pos = Int("max_pos")
     fn_decl = fn_decl_recursive(
-        "softmax_part3_ps", Int, call_reduce_max(output[:max_pos]), output, max_pos
+        "softmax_part3_ps", Int, call_reduce_sum(output[:max_pos]), output, max_pos
     )
     all_fn_decls = {"softmax_part3_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
@@ -530,33 +531,33 @@ def test_type(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-codegen_funcs = [mlx_codegen, gaudi_codegen]
+# codegen_funcs = [mlx_codegen, gaudi_codegen]
+codegen_funcs = [gemmini_codegen]
 
 for codegen_func in codegen_funcs[1:]:
     # Dexter benchmarks
-    # normal_blend_8(codegen_func)
-    # normal_blend_f(codegen_func)
-    # dissolve_blend_8(codegen_func)
-    # darken_blend_8(codegen_func)
-    # multiply_blend_8(codegen_func)
-    # linear_burn_8(codegen_func)
-    # color_burn_8(codegen_func)
-    # lighten_blend_8(codegen_func)
-    # screen_blend_8(codegen_func)
-    # linear_dodge_8(codegen_func)
-    # color_dodge_8(codegen_func)
-    overlay_blend_8(codegen_func)
-    exit(0)
+    normal_blend_8(codegen_func)
+    normal_blend_f(codegen_func)
+    # # dissolve_blend_8(codegen_func)
+    # # darken_blend_8(codegen_func)
+    # # multiply_blend_8(codegen_func)
+    linear_burn_8(codegen_func)
+    # # color_burn_8(codegen_func)
+    # # lighten_blend_8(codegen_func)
+    screen_blend_8(codegen_func)
+    linear_dodge_8(codegen_func)
+    # # color_dodge_8(codegen_func)
+    # # overlay_blend_8(codegen_func)
 
-    # Llama benchmarks
-    softmax_part1(codegen_func)
-    softmax_part2(codegen_func)
+    # # # Llama benchmarks
+    # # softmax_part1(codegen_func)
+    # # softmax_part2(codegen_func)
     softmax_part3(codegen_func)
-    softmax_part4(codegen_func)
-    rmsnorm_part1(codegen_func)
-    rmsnorm_part2(codegen_func)
+    # # softmax_part4(codegen_func)
+    # rmsnorm_part1(codegen_func)
+    # # rmsnorm_part2(codegen_func)
     matmul(codegen_func)
-    transformer_part1(codegen_func)
-    transformer_part2(codegen_func)
-    transformer_part3(codegen_func)
-    transformer_part4(codegen_func)
+    # # transformer_part1(codegen_func)
+    # # transformer_part2(codegen_func)
+    # # transformer_part3(codegen_func)
+    # # transformer_part4(codegen_func)
