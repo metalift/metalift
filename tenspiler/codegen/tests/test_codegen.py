@@ -532,15 +532,16 @@ def test_type(codegen_func):
 
 codegen_funcs = [mlx_codegen, gaudi_codegen]
 
-for codegen_func in codegen_funcs[:1]:
+for codegen_func in codegen_funcs[1:]:
     # Dexter benchmarks
-    normal_blend_8(codegen_func)
-    normal_blend_f(codegen_func)
-    dissolve_blend_8(codegen_func)
-    darken_blend_8(codegen_func)
-    multiply_blend_8(codegen_func)
-    linear_burn_8(codegen_func)
+    # normal_blend_8(codegen_func)
+    # normal_blend_f(codegen_func)
+    # dissolve_blend_8(codegen_func)
+    # darken_blend_8(codegen_func)
+    # multiply_blend_8(codegen_func)
+    # linear_burn_8(codegen_func)
     color_burn_8(codegen_func)
+    exit(0)
     lighten_blend_8(codegen_func)
     screen_blend_8(codegen_func)
     linear_dodge_8(codegen_func)
