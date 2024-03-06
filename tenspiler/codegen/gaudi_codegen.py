@@ -7,15 +7,19 @@ from metalift.ir import (
     Add,
     Call,
     Div,
+    Eq,
     Expr,
     FnDecl,
     FnDeclRecursive,
+    Gt,
     Int,
     Lit,
+    Matrix,
     Mul,
     ObjectT,
     Sub,
     Var,
+    call,
     create_object,
     is_list_type,
     is_matrix_type,
@@ -32,6 +36,10 @@ class CType(Enum):
     UINT8 = "uint8_t"
     FLOAT = "float"
 
+    @property
+    def is_primitive(self) -> bool:
+        return True
+
 
 # TODO(jie): think of a better name
 class GaudiBodyType(CType, Enum):
@@ -45,6 +53,10 @@ class GaudiBodyType(CType, Enum):
     UINT256 = "uint256"
     # 4 vectors, each with 64 32-bit floats
     FLOAT256 = "float256"
+
+    @property
+    def is_primitive(self) -> bool:
+        return self in {GaudiBodyType.UINT8, GaudiBodyType.FLOAT}
 
     @staticmethod
     def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiBodyType":
@@ -102,15 +114,15 @@ def gaudi_codegen(
     def expr_codegen(
         expr: Expr,
         instructions: List[GaudiInstr],
-        scalar_override_type: Optional[
-            GaudiBodyType
-        ] = None,  # If we want to broadcast a scalar
+        *,
+        override_type: Optional[GaudiBodyType] = None,  # Type to override
+        vars_to_replace: Dict[str, Expr] = {},
     ) -> None:
         # Helper functions
         def get_gaudi_body_type(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
-            if scalar_override_type is not None:
-                return scalar_override_type
+            if override_type is not None:
+                return override_type
             else:
                 return GaudiBodyType.from_ir_and_data_type(ir_type, d_type)
 
@@ -147,6 +159,12 @@ def gaudi_codegen(
 
         # Generate the instructions for the body
         if isinstance(expr, Var):
+            if expr.name() in vars_to_replace:
+                return expr_codegen(
+                    vars_to_replace[expr.name()],
+                    instructions,
+                    vars_to_replace=vars_to_replace,
+                )
             if is_list_type(expr.type) or is_matrix_type(expr.type):
                 if d_type == DataType.FLOAT:
                     instr_name = f"v_f32_ld_tnsr_b"
@@ -181,36 +199,138 @@ def gaudi_codegen(
             )
             instructions.append(instr)
             return
-        elif (
-            isinstance(expr, Sub)
-            or isinstance(expr, Add)
-            or isinstance(expr, Mul)
-            or isinstance(expr, Div)
-        ):
-            if isinstance(expr, Add):
-                op = "+"
-            elif isinstance(expr, Sub):
-                op = "-"
-            elif isinstance(expr, Mul):
-                op = "*"
-            else:
-                op = "/"
+        elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div]):
             instr_gaudi_type = get_gaudi_body_type(expr.type)
-            expr_codegen(expr.args[0], instructions)
-            first_arg_metadata = instructions[-1]
-            expr_codegen(expr.args[1], instructions)
-            second_arg_metadata = instructions[-1]
-            instr = GaudiInstr(
-                dest_name=f"v{len(instructions)}",
-                dest_type=instr_gaudi_type,
-                instr_str=format_instruction(
-                    f"{first_arg_metadata.dest_name} {op} {second_arg_metadata.dest_name}",
-                    instr_gaudi_type,
-                ),
-            )
-            instructions.append(instr)
+            if instr_gaudi_type.is_primitive:
+                if isinstance(expr, Add):
+                    op = "+"
+                elif isinstance(expr, Sub):
+                    op = "-"
+                elif isinstance(expr, Mul):
+                    op = "*"
+                else:
+                    op = "/"
+                expr_codegen(
+                    expr.args[0],
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                first_arg_metadata = instructions[-1]
+                expr_codegen(
+                    expr.args[1],
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                second_arg_metadata = instructions[-1]
+                instr = GaudiInstr(
+                    dest_name=f"v{len(instructions)}",
+                    dest_type=instr_gaudi_type,
+                    instr_str=format_instruction(
+                        f"{first_arg_metadata.dest_name} {op} {second_arg_metadata.dest_name}",
+                        instr_gaudi_type,
+                    ),
+                )
+                instructions.append(instr)
+                return
+            else:
+                if isinstance(expr, Add):
+                    fn_name = "matrix_elemwise_add"
+                elif isinstance(expr, Sub):
+                    import pdb
+
+                    pdb.set_trace()
+                    fn_name = "matrix_elemwise_sub"
+                elif isinstance(expr, Mul):
+                    fn_name = "matrix_elemwise_mul"
+                else:
+                    fn_name = "matrix_elemwise_div"
+                expr_codegen(
+                    call(fn_name, Matrix[Int], *expr.args).src,
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                return
+
         elif isinstance(expr, Call):
             fn_name = expr.name()
+
+            # Handle select function
+            if fn_name.endswith("matrix_selection_two_args"):
+                for name, fn in all_synthesized_fns.items():
+                    if name.endswith("select_two_args"):
+                        select_two_args_fn_decl = fn
+                if select_two_args_fn_decl is None:
+                    raise ValueError("select_two_args not found")
+                select_two_args_body = select_two_args_fn_decl.body()
+                cond = select_two_args_body.c()
+                if_then = select_two_args_body.e1()
+                if_else = select_two_args_body.e2()
+                select_args = select_two_args_fn_decl.arguments()[:2]
+                matrix_args = expr.arguments()[:2]
+                vars_to_replace: Dict[str, Expr] = {}
+                for i in range(2):
+                    vars_to_replace[select_args[i].name()] = matrix_args[i]
+                if isinstance(cond, Gt):
+                    if d_type == DataType.INT:
+                        cond_instr_name = "v_u8_sel_grt_u8_b"
+                    else:
+                        cond_instr_name = "v_f32_sel_grt_f32_b"
+                elif isinstance(cond, Eq):
+                    if d_type == DataType.INT:
+                        cond_instr_name = "v_u8_sel_eq_u8_b"
+                    else:
+                        cond_instr_name = "v_f32_sel_eq_f32_b"
+                else:
+                    raise Exception(f"Unsupported condition {cond} for select_two_args")
+
+                if d_type == DataType.INT:
+                    instr_gaudi_type = GaudiBodyType.UCHAR256
+                else:
+                    instr_gaudi_type = GaudiBodyType.FLOAT64
+
+                expr_codegen(
+                    cond.args[0],
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                cond_arg0_metadata = instructions[-1]
+                expr_codegen(
+                    cond.args[1],
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                cond_arg1_metadata = instructions[-1]
+                expr_codegen(
+                    if_then,
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                if_then_metadata = instructions[-1]
+                expr_codegen(
+                    if_else,
+                    instructions,
+                    override_type=instr_gaudi_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                if_else_metadata = instructions[-1]
+
+                select_instr_str = format_instruction(
+                    f"{cond_instr_name}({cond_arg0_metadata.dest_name}, {cond_arg1_metadata.dest_name}, {if_then_metadata.dest_name}, {if_else_metadata.dest_name})",
+                    instr_gaudi_type,
+                )
+                select_instr = GaudiInstr(
+                    dest_name=f"v{len(instructions)}",
+                    dest_type=instr_gaudi_type,
+                    instr_str=select_instr_str,
+                )
+                instructions.append(select_instr)
+                return
 
             # Group function names
             add_fn_names = {
@@ -243,27 +363,22 @@ def gaudi_codegen(
             }
             if fn_name in div_fn_names:
                 if d_type == DataType.INT:
-                    if "scalar" in fn_name:
-                        # Since we need to convert everything to float anyways, we just broadcast
-                        # the scalar as a float from the beginning
-                        expr_codegen(
-                            expr.arguments()[0],
-                            instructions,
-                            scalar_override_type=GaudiBodyType.FLOAT64,
-                        )
-                        first_arg_metadata = instructions[-1]
-                        expr_codegen(expr.arguments()[1], instructions)
-                        second_arg_metadata = instructions[-1]
-                        if not fn_name.startswith("scalar"):
-                            first_arg_metadata, second_arg_metadata = (
-                                second_arg_metadata,
-                                first_arg_metadata,
-                            )
-                    else:
-                        expr_codegen(expr.arguments()[0], instructions)
-                        first_arg_metadata = instructions[-1]
-                        expr_codegen(expr.arguments()[1], instructions)
-                        second_arg_metadata = instructions[-1]
+                    # Since we need to convert everything to float anyways, we just broadcast
+                    # the scalar as a float from the beginning
+                    expr_codegen(
+                        expr.arguments()[0],
+                        instructions,
+                        override_type=GaudiBodyType.FLOAT64,
+                        vars_to_replace=vars_to_replace,
+                    )
+                    first_arg_metadata = instructions[-1]
+                    expr_codegen(
+                        expr.arguments()[1],
+                        instructions,
+                        override_type=GaudiBodyType.FLOAT64,
+                        vars_to_replace=vars_to_replace,
+                    )
+                    second_arg_metadata = instructions[-1]
 
                     # We need to convert all the uchar256/uint256 to float256
                     # If they are of type float64, we don't need to convert them, instead during multiplication
@@ -349,21 +464,20 @@ def gaudi_codegen(
                     return
                 else:
                     # Data type is float.
-                    if "scalar" in fn_name:
-                        # If it's a scalar operation, then we need to broadcast the scalar
-                        expr_codegen(
-                            expr.arguments()[0],
-                            instructions,
-                            scalar_override_type=GaudiBodyType.FLOAT64,
-                        )
-                        first_arg_metadata = instructions[-1]
-                        expr_codegen(expr.arguments()[1], instructions)
-                        second_arg_metadata = instructions[-1]
-                    else:
-                        expr_codegen(expr.arguments()[0], instructions)
-                        first_arg_metadata = instructions[-1]
-                        expr_codegen(expr.arguments()[1], instructions)
-                        second_arg_metadata = instructions[-1]
+                    expr_codegen(
+                        expr.arguments()[0],
+                        instructions,
+                        override_type=GaudiBodyType.FLOAT64,
+                        vars_to_replace=vars_to_replace,
+                    )
+                    first_arg_metadata = instructions[-1]
+                    expr_codegen(
+                        expr.arguments()[1],
+                        instructions,
+                        override_type=GaudiBodyType.FLOAT64,
+                        vars_to_replace=vars_to_replace,
+                    )
+                    second_arg_metadata = instructions[-1]
 
                     if fn_name.startswith("scalar"):
                         first_arg_metadata, second_arg_metadata = (
@@ -434,21 +548,20 @@ def gaudi_codegen(
                         instr_name = f"v_f32_mul_b"
                         ret_gaudi_type = GaudiBodyType.FLOAT64
 
-                if "scalar" in fn_name:
-                    # If it's a scalar operation, then we need to broadcast the scalar
-                    expr_codegen(
-                        expr.arguments()[0],
-                        instructions,
-                        scalar_override_type=expected_arg_type,
-                    )
-                    first_arg_metadata = instructions[-1]
-                    expr_codegen(expr.arguments()[1], instructions)
-                    second_arg_metadata = instructions[-1]
-                else:
-                    expr_codegen(expr.arguments()[0], instructions)
-                    first_arg_metadata = instructions[-1]
-                    expr_codegen(expr.arguments()[1], instructions)
-                    second_arg_metadata = instructions[-1]
+                expr_codegen(
+                    expr.arguments()[0],
+                    instructions,
+                    override_type=expected_arg_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                first_arg_metadata = instructions[-1]
+                expr_codegen(
+                    expr.arguments()[1],
+                    instructions,
+                    override_type=expected_arg_type,
+                    vars_to_replace=vars_to_replace,
+                )
+                second_arg_metadata = instructions[-1]
 
                 if fn_name.startswith("scalar"):
                     first_arg_metadata, second_arg_metadata = (
@@ -456,6 +569,7 @@ def gaudi_codegen(
                         first_arg_metadata,
                     )
 
+                # TODO(jie): move convert to end of this function
                 if first_arg_metadata.dest_type != expected_arg_type:
                     first_arg_metadata = convert_arg(
                         first_arg_metadata.dest_name,
@@ -518,7 +632,7 @@ def gaudi_codegen(
     # Assign the last variable to the return value
     ret_expr = instructions[-1].dest_name
 
-    if is_return_type_vec:
+    if is_return_type_vec and not is_return_type_matrix:
         joined_instr_str = "\n".join(
             [instr_strs[0]]
             + [
@@ -570,6 +684,8 @@ def gaudi_codegen(
                 inputCoord[0] = outputCoord[0] = (i * vec_len);
                 // coordinate 1 is for dim1.
                 inputCoord[1] = outputCoord[1] = j;
+
+                {joined_instr_str}
 
                 {store_instr}(outputCoord, {rv_name}, {ret_expr});
             }}
