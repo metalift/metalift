@@ -1,77 +1,216 @@
 from typing import Dict
 
 from metalift.ir import Call, Expr, Lit
+from typing import Any, Dict, Tuple, Union
 
+from metalift.ir import (
+    Add,
+    Bool,
+    Call,
+    Div,
+    Eq,
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    Ge,
+    Gt,
+    Int,
+    Le,
+    Lit,
+    Lt,
+    Mod,
+    Mul,
+    Not,
+    ObjectT,
+    Sub,
+    Var,
+    And,
+    Or,
+    List as mlList
+)
+from tenspiler.codegen.utils import DataType
+from tenspiler.tenspiler_common import (
+    MAP_INT_TO_INT,
+    MATRIX_ELEMWISE_ADD,
+    MATRIX_ELEMWISE_DIV,
+    MATRIX_ELEMWISE_MUL,
+    MATRIX_ELEMWISE_SUB,
+    MATRIX_SCALAR_ADD,
+    MATRIX_SCALAR_DIV,
+    MATRIX_SCALAR_MUL,
+    MATRIX_SCALAR_SUB,
+    SCALAR_MATRIX_DIV,
+    SCALAR_MATRIX_SUB,
+    SCALAR_VEC_DIV,
+    SCALAR_VEC_SUB,
+    VEC_ELEMWISE_ADD,
+    VEC_ELEMWISE_DIV,
+    VEC_ELEMWISE_MUL,
+    VEC_ELEMWISE_SUB,
+    VEC_SCALAR_ADD,
+    VEC_SCALAR_DIV,
+    VEC_SCALAR_MUL,
+    VEC_SCALAR_SUB,
+)
+
+translations = {
+    VEC_ELEMWISE_ADD: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
+    MATRIX_ELEMWISE_ADD: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
+    VEC_SCALAR_ADD: lambda processed_args:  f"({processed_args[0]}) + ({processed_args[1]})",
+    MATRIX_SCALAR_ADD: lambda processed_args:  f"({processed_args[0]}) + ({processed_args[1]})",
+
+    VEC_ELEMWISE_SUB: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
+    MATRIX_ELEMWISE_SUB: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
+    SCALAR_VEC_SUB: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
+    SCALAR_MATRIX_SUB: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
+
+    VEC_SCALAR_SUB: lambda processed_args: f"({processed_args[1]}) - ({processed_args[0]})",
+    MATRIX_SCALAR_SUB: lambda processed_args: f"({processed_args[1]}) - ({processed_args[0]})",
+
+    VEC_ELEMWISE_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
+    MATRIX_ELEMWISE_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
+    VEC_SCALAR_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
+    MATRIX_SCALAR_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
+
+    VEC_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
+    MATRIX_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
+    SCALAR_VEC_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
+    SCALAR_MATRIX_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
+
+    VEC_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
+    MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
+
+    "matrix_vec_mul": lambda processed_args: f"tf.linalg.matvec({processed_args[0]}, {processed_args[1]})",
+    "list_eq": lambda processed_args: f"tf.equal({processed_args[0]}, {processed_args[1]})",
+
+    "list_empty": lambda processed_args: f"tf.zeros([0], dtype=tf.float32)",
+    "list_list_empty": lambda processed_args: f"tf.zeros([0, 0], dtype=tf.float32)",
+
+    "list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
+    "list_list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
+
+    "list_append": lambda processed_args: f"tf.concat([{processed_args[0]}, tf.expand_dims({processed_args[1]}, 0)], axis=0)", 
+    "list_list_append": lambda processed_args: f"tf.concat([{processed_args[0]}, tf.expand_dims({processed_args[1]}, 0)], axis=0)",
+
+    "list_prepend": lambda processed_args: f"tf.concat([tf.expand_dims({processed_args[1]}, 0), {processed_args[0]}], axis=0)", 
+    "list_list_prepend": lambda processed_args:  f"tf.concat([tf.expand_dims({processed_args[1]}, 0), {processed_args[0]}], axis=0)", 
+
+    "list_concat": lambda processed_args: f"tf.concat([{processed_args[0]}, {processed_args[1]}], dim=0)",
+
+    "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+    "list_list_tail" : lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
+
+    "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+    "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+
+    "list_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
+    "list_list_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
+
+    "list_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "list_list_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+
+    "list_list_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
+
+    "list_list_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+
+    "list_length": lambda processed_args, is_int=True: f"tf.size({processed_args[0]})" if is_int else f"tf.size({processed_args[0]}, tf.float32)",
+    "list_list_length": lambda processed_args, is_int=True: f"tf.size({processed_args[0]})" if is_int else f"tf.size({processed_args[0]}, tf.float32)",
+
+    "matrix_transpose": lambda processed_args: f"tf.transpose({processed_args[0]})",
+
+    "reduce_max": lambda processed_args: f"tf.reduce_max({processed_args[0]})",
+
+    "reduce_sum": lambda processed_args: f"tf.reduce_sum({processed_args[0]})",
+
+    "reduce_mul": lambda processed_args: f"tf.reduce_prod({processed_args[0]})",
+
+    "integer_sqrt": lambda processed_args, is_list=False: f"tf.sqrt({processed_args[0]})" if is_list else f"tf.sqrt(tf.cast({processed_args[0]}, tf.float32))",
+
+    "integer_exp": lambda processed_args, is_list=False: f"tf.exp({processed_args[0]})" if is_list else f"tf.exp(tf.cast({processed_args[0]}, tf.float32))", 
+
+    Add: lambda processed_args, is_int: f"({processed_args[0]}) + ({processed_args[1]})",
+    Sub: lambda processed_args, is_int: f"({processed_args[0]}) - ({processed_args[1]})",
+    Mul: lambda processed_args, is_int: f"({processed_args[0]}) * ({processed_args[1]})",
+    Div: lambda processed_args, is_int: f"({processed_args[0]}) // ({processed_args[1]})",
+    "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
+    Mod: lambda processed_args, is_int: f"({processed_args[0]}) % ({processed_args[1]})",
+
+    Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}" if is_int else f"tf.equal({processed_args[0]}, {processed_args[1]})",
+    Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}" if is_int else f"tf.greater({processed_args[0]}, {processed_args[1]})",
+    Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}" if is_int else f"tf.greater_equal({processed_args[0]}, {processed_args[1]})",
+    Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}" if is_int else f"tf.less({processed_args[0]}, {processed_args[1]})",
+    Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}" if is_int else f"tf.less_equal({processed_args[0]}, {processed_args[1]})",
+
+    Not: lambda processed_args, is_prim: f"not {processed_args[0]}" if is_prim else f"tf.logical_not({processed_args[0]})",
+    And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})" if is_prim else f"tf.logical_and({processed_args[0]}, {processed_args[1]})",
+    Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})" if is_prim else f"tf.logical_or({processed_args[0]}, {processed_args[1]})",
+}
 
 def tensorflow_codegen(
-    ps_expr: Expr, all_synthesized_fns: Dict[str, Expr], mode: str = "Float"
+    ps_fn_decl: Union[FnDecl, FnDeclRecursive],
+    all_synthesized_fns: Dict[str, Expr],
+    d_type: DataType = DataType.FLOAT,
 ) -> str:
-    translations = {
-        "vec_elemwise_mul": lambda args: f"tf.multiply({helper(args[1])}, {helper(args[0])})",
-        "matrix_vec_mul": lambda args: f"tf.linalg.matvec({helper(args[0])}, {helper(args[1])})",
-        "matrix_transpose": lambda args: f"tf.transpose({helper(args[0])})",
-        "test_sqrt": lambda args: f"tf.sqrt({helper(args[0])})",
-        #### Which of the name is used for sqrt?
-        "integer_sqrt": lambda args: f"torch.sqrt({helper(args[0])})",
-        "vec_map": lambda args: f"torch.sqrt(torch.as_tensor({helper(args[0])}))"
-        if helper(args[1]) == "integer_sqrt"
-        else f"torch.exp({helper(args[0])})",
-        "reduce_sum": lambda args: f"tf.reduce_sum({helper(args[0])})",
-        "reduce_max": lambda args: f"torch.max({helper(args[0])})",
-        "list_length": lambda args: f"{helper(args[0])}.size(dim=0)",
-        "vec_scalar_mul": lambda args: f"tf.multiply({helper(args[0])}, {helper(args[1])})",
-        "scalar_vec_div": lambda args: f"torch.divide({helper(args[0])}, {helper(args[1])})",
-        "rand": lambda args: "torch.randint(1, 2147483647, base.shape, dtype=torch.int32, device='cuda')",
-        "Ite": lambda args: f"torch.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
-        "Lt": lambda args: f"torch.less({helper(args[0])}, {helper(args[1])})",
-        "Le": lambda args: f"torch.less_equal({helper(args[0])}, {helper(args[1])})",
-        "Gt": lambda args: f"torch.greater({helper(args[0])}, {helper(args[1])})",
-        "Ge": lambda args: f"torch.greater_equal({helper(args[0])}, {helper(args[1])})",
-        "Eq": lambda args: f"torch.eq({helper(args[0])}, {helper(args[1])})",
-        # General for any of the frameworks
-        "vec_scalar_sub": lambda args: f"{helper(args[1])} - {helper(args[0])}",
-        "vec_scalar_div": lambda args: f"{helper(args[1])} / {helper(args[0])}",
-        "vec_scalar_add": lambda args: f"{helper(args[1])} + {helper(args[0])}",
-        "scalar_vec_sub": lambda args: f"{helper(args[0])} - {helper(args[1])}",
-        # General for any python code
-        "list_list_col_slice_with_length": lambda args: f"{helper(args[0])}[:, {helper(args[1])}:{helper(args[1])} + {args[2]}]",
-        "list_slice_with_length": lambda args: f"{helper(args[0])}[{helper(args[1])}:{helper(args[1])} + {args[2]}]",
-        "list_take": lambda args: f"{helper(args[0])}[:{helper(args[1])}]",
-        "Div": lambda args: f"{helper(args[0])} / {helper(args[1])}"
-        if mode == "Float"
-        else f"{helper(args[0])} // {helper(args[1])}",
-        "Mul": lambda args: f"{helper(args[0])} * {helper(args[1])}",
-        "Sub": lambda args: f"{helper(args[0])} - {helper(args[1])}",
-        "Add": lambda args: f"{helper(args[0])} + {helper(args[1])}",
-        "Mod": lambda args: f"{helper(args[0])} % {helper(args[1])}",
-        "And": lambda args: " and ".join(helper(a) for a in args),
-        "Or": lambda args: " or ".join(helper(a) for a in args),
-        "Not": lambda args: f"not {helper(args[0])}",
-        "vec_map": {
-            "integer_exp": lambda args: f"tf.exp({helper(args[0])})",
-            "integer_sqrt": lambda args: f"tf.sqrt({helper(args[0])})",
-        },
-        "matrix_selection_two_args": lambda args: f"tf.where({helper(args[0])}, {helper(args[1])}, {helper(args[2])})",
-    }
-    vars_to_replace = {"int_x": "base", "int_y": "active"}
-
-    def helper(expr):
+    def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
+        if not isinstance(expr, Expr):
+            return str(expr), None
         if isinstance(expr, Call):
-            if expr.name() == "vec_map":
-                map_fn_name = all_synthesized_fns["map_int_to_int"].body().name()
-                return translations[expr.name()][map_fn_name]([expr.arguments()[0]])
-            if expr.name() == "matrix_selection_two_args":
-                select_two_args_body = all_synthesized_fns["select_two_args"].body()
-                cond = select_two_args_body.c()
-                if_then = select_two_args_body.e1()
-                if_else = select_two_args_body.e2()
-                return translations[expr.name()]((cond, if_then, if_else))
-        elif isinstance(expr, Lit):
-            return f"{expr.val()}"
-        elif expr.__class__.__name__ in translations.keys():
-            return translations[expr.__class__.__name__](expr.args)
-        else:
-            name = "%s" % (expr)
-            return vars_to_replace.get(name, name)
+            processed_args = [helper(arg, vars_to_replace)[0] for arg in expr.arguments()]
+            fn_name = expr.name()
+            if fn_name.endswith("matrix_selection_two_args"):
+                for name, fn in all_synthesized_fns.items():
+                    if name.endswith("select_two_args"):
+                        select_two_args_fn_decl = fn
+                if select_two_args_fn_decl is None:
+                    raise ValueError("select_two_args not found")
+                select_two_args_body = select_two_args_fn_decl.body()
+                cond, if_then, if_else = select_two_args_body.c(), select_two_args_body.e1(), select_two_args_body.e2()
+                select_args = select_two_args_fn_decl.arguments()[:2]
+                matrix_args = expr.arguments()[:2]
+                vars_to_replace: Dict[str, Expr] = {}
+                for i in range(2):
+                    vars_to_replace[select_args[i].name()] = matrix_args[i]
+                return (f"tf.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})", expr.type,)
+            elif fn_name == MAP_INT_TO_INT or fn_name == "vec_map":
+                map_fn_name = all_synthesized_fns[MAP_INT_TO_INT].body().name()
+                if map_fn_name in {"integer_sqrt", "integer_exp"}:
+                    return translations[map_fn_name](processed_args, fn_name == "vec_map"), expr.type
+                else:
+                    raise ValueError(f"Unknown map function name: {map_fn_name}")
+            elif fn_name in translations.keys():
+                if fn_name in {VEC_ELEMWISE_DIV, MATRIX_ELEMWISE_DIV, SCALAR_VEC_DIV, SCALAR_MATRIX_DIV, VEC_SCALAR_DIV, MATRIX_SCALAR_DIV, "list_length", "list_list_length"}:
+                    return translations[fn_name](processed_args, d_type == DataType.INT), expr.type
+                return translations[fn_name](processed_args), expr.type
+            raise Exception(f"Unknown function name: {fn_name}")    
 
-    return helper(ps_expr)
+        # Arithmetic operations
+        processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
+        processed_args_types = [a[1] for a in processed_args]
+        processed_args = [a[0] for a in processed_args]
+        if any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div, Mod]):
+            is_arg_type_int = all([a_type is Int for a_type in processed_args_types])
+            ret_type = Int if is_arg_type_int else [a_type for a_type in processed_args_types if a_type is not Int and a_type is not None][0]
+            if isinstance(expr, Div) and d_type == DataType.FLOAT:
+                return translations["float_div"](processed_args), ret_type
+            return translations[type(expr)](processed_args, is_arg_type_int), ret_type
+
+        # Relational operations
+        elif any(isinstance(expr, cls) for cls in [Gt, Ge, Eq, Lt, Le]):
+            is_arg_type_int = all([a_type is Int for a_type in processed_args_types])
+            ret_type = Bool if is_arg_type_int else mlList[Bool]
+            return translations[type(expr)](processed_args, is_arg_type_int), ret_type
+        elif any(isinstance(expr, cls) for cls in [And, Or, Not]):
+            is_arg_type_prim = all([a_type is Int or a_type is Bool for a_type in processed_args_types])
+            ret_type = Bool if is_arg_type_prim else mlList[Bool]
+            return translations[type(expr)](processed_args, is_arg_type_prim), ret_type
+        
+        # Other
+        elif isinstance(expr, Lit):
+            return f"{expr.val()}", expr.type
+        elif isinstance(expr, Var):
+            if expr.name() in vars_to_replace:
+                return helper(vars_to_replace[expr.name()], vars_to_replace)
+            return expr.name(), expr.type
+        return str(expr)
+
+    return helper(ps_fn_decl.body())[0]

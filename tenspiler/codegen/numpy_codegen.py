@@ -77,22 +77,22 @@ translations = {
     VEC_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
     MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
 
-    "matrix_vec_mul": lambda processed_args: f"mx.matmul({processed_args[0]}, {processed_args[1]})",
-    "list_eq": lambda processed_args: f"mx.equal({processed_args[0]}, {processed_args[1]})",
+    "matrix_vec_mul": lambda processed_args: f"np.matmul({processed_args[0]}, {processed_args[1]})",
+    "list_eq": lambda processed_args: f"np.equal({processed_args[0]}, {processed_args[1]})",
 
-    "list_empty": lambda processed_args: f"mx.zeros((0))",
-    "list_list_empty": lambda processed_args: f"mx.zeros([0, 0])",
+    "list_empty": lambda processed_args: f"np.empty((0))",
+    "list_list_empty": lambda processed_args: f"np.empty((0, 0))",
 
     "list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
     "list_list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
 
-    "list_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
-    "list_list_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "list_list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
 
-    "list_prepend": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)", 
-    "list_list_prepend": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)", 
+    "list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)", 
+    "list_list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)", 
 
-    "list_concat": lambda processed_args: f"mx.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
+    "list_concat": lambda processed_args: f"np.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
 
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "list_list_tail" : lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
@@ -113,17 +113,17 @@ translations = {
     "list_length": lambda processed_args: f"{processed_args[0]}.size",
     "list_list_length": lambda processed_args: f"{processed_args[0]}.size",
 
-    "matrix_transpose": lambda processed_args: f"mx.transpose({processed_args[0]})",
+    "matrix_transpose": lambda processed_args: f"np.transpose({processed_args[0]})",
 
-    "reduce_max": lambda processed_args: f"mx.max({processed_args[0]})",
+    "reduce_max": lambda processed_args: f"np.max({processed_args[0]})",
 
-    "reduce_sum": lambda processed_args: f"mx.sum({processed_args[0]})",
+    "reduce_sum": lambda processed_args: f"np.sum({processed_args[0]})",
 
-    "reduce_mul": lambda processed_args: f"mx.prod({processed_args[0]})",
+    "reduce_mul": lambda processed_args: f"np.prod({processed_args[0]})",
 
-    "integer_sqrt": lambda processed_args, is_list=False: f"mx.sqrt({processed_args[0]})" if is_list else f"mx.sqrt(mx.array({processed_args[0]}))",
+    "integer_sqrt": lambda processed_args, is_list=False: f"np.sqrt({processed_args[0]})",
 
-    "integer_exp": lambda processed_args, is_list=False: f"mx.exp({processed_args[0]})" if is_list else f"mx.exp(mx.array({processed_args[0]}))",
+    "integer_exp": lambda processed_args, is_list=False: f"np.exp({processed_args[0]})",
 
     Add: lambda processed_args, is_int: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args, is_int: f"({processed_args[0]}) - ({processed_args[1]})",
@@ -132,18 +132,18 @@ translations = {
     "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
     Mod: lambda processed_args, is_int: f"({processed_args[0]}) % ({processed_args[1]})",
 
-    Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}" if is_int else f"mx.equal({processed_args[0]}, {processed_args[1]})",
-    Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}" if is_int else f"mx.greater({processed_args[0]}, {processed_args[1]})",
-    Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}" if is_int else f"mx.greater_equal({processed_args[0]}, {processed_args[1]})",
-    Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}" if is_int else f"mx.less({processed_args[0]}, {processed_args[1]})",
-    Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}" if is_int else f"mx.less_equal({processed_args[0]}, {processed_args[1]})",
+    Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}" if is_int else f"np.equal({processed_args[0]}, {processed_args[1]})",
+    Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}" if is_int else f"np.greater({processed_args[0]}, {processed_args[1]})",
+    Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}" if is_int else f"np.greater_equal({processed_args[0]}, {processed_args[1]})",
+    Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}" if is_int else f"np.less({processed_args[0]}, {processed_args[1]})",
+    Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}" if is_int else f"np.less_equal({processed_args[0]}, {processed_args[1]})",
 
-    Not: lambda processed_args, is_prim: f"not {processed_args[0]}" if is_prim else f"mx.logical_not({processed_args[0]})",
-    And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})" if is_prim else f"mx.logical_and({processed_args[0]}, {processed_args[1]})",
-    Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})" if is_prim else f"mx.logical_or({processed_args[0]}, {processed_args[1]})",
+    Not: lambda processed_args, is_prim: f"not {processed_args[0]}" if is_prim else f"np.logical_not({processed_args[0]})",
+    And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})" if is_prim else f"np.logical_and({processed_args[0]}, {processed_args[1]})",
+    Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})" if is_prim else f"np.logical_or({processed_args[0]}, {processed_args[1]})",
 }
 
-def mlx_codegen(
+def numpy_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
@@ -167,7 +167,7 @@ def mlx_codegen(
                 vars_to_replace: Dict[str, Expr] = {}
                 for i in range(2):
                     vars_to_replace[select_args[i].name()] = matrix_args[i]
-                return (f"mx.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})", expr.type,)
+                return (f"np.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})", expr.type,)
             elif fn_name == MAP_INT_TO_INT or fn_name == "vec_map":
                 map_fn_name = all_synthesized_fns[MAP_INT_TO_INT].body().name()
                 if map_fn_name in {"integer_sqrt", "integer_exp"}:
