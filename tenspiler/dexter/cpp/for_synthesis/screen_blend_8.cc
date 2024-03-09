@@ -16,5 +16,3 @@ vector<vector<int>> screen_blend_8(vector<vector<int>> base, vector<vector<int>>
 	}
 	return out;
 }
-// def screen_blend_8_ps(base active screen_blend_8_rv)
-// screen_blend_8_rv == matrix_elemwise_sub(matrix_elemwise_add(base, active), matrix_scalar_div(32, matrix_elemwise_mul(base, active)))

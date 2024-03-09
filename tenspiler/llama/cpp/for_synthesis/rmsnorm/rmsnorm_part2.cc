@@ -11,5 +11,3 @@ vector<int> rmsnorm_part2(vector<int> input, vector<int> weight, int ss) {
         output.push_back(inv_ss * input[i] * weight[i]);
     return output;
 }
-// def rmsnorm_part2_ps(input weight ss rmsnorm_part2_rv)
-// rmsnorm_part2_rv == vec_scalar_mul((1 / integer_sqrt(((ss / list_length(input)) + 1))), vec_elemwise_mul(input, weight))

@@ -20,8 +20,3 @@ vector<vector<int>> color_dodge_8(vector<vector<int>> base, vector<vector<int>> 
 	}
 	return out;
 }
-// def color_dodge_8_ps(base active color_dodge_8_rv)
-// color_dodge_8_rv == matrix_selection_two_args(active, base, select_two_args)
-
-// def select_two_args(int_x int_y)
-// 32 if int_x == 32 else (int_y / (32 - int_x))

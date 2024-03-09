@@ -1,6 +1,9 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.mlx_codegen import mlx_codegen
+from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
+from tenspiler.codegen.numpy_codegen import numpy_codegen
+from tenspiler.codegen.pytorch_codegen import pytorch_codegen
 from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
@@ -77,7 +80,7 @@ def normal_blend_f(codegen_func):
 @codegen
 def dissolve_blend_8(codegen_func):
     rand_cons = Int("rand_cons")
-    rand_val = (rand_cons % 100) // 100
+    rand_val = (rand_cons % 100 + 1) // 100
     select_two_args_fn_decl = fn_decl_recursive(
         DISSOLVE_SELECT_TWO_ARGS,
         Int,
@@ -192,7 +195,7 @@ def lighten_blend_8(codegen_func):
     select_two_args_fn_decl = fn_decl_recursive(
         SELECT_TWO_ARGS,
         Int,
-        ite(int_x > int_y, int_x, int_y),
+        ite(int_x < int_y, int_y, int_x),
         int_x,
         int_y,
     )
@@ -534,30 +537,72 @@ def test_type(codegen_func):
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
 codegen_funcs = [gemmini_codegen]
 
-for codegen_func in codegen_funcs[1:]:
-    # Dexter benchmarks
-    normal_blend_8(codegen_func)
-    normal_blend_f(codegen_func)
-    # # dissolve_blend_8(codegen_func)
-    # # darken_blend_8(codegen_func)
-    # # multiply_blend_8(codegen_func)
-    linear_burn_8(codegen_func)
-    # # color_burn_8(codegen_func)
-    # # lighten_blend_8(codegen_func)
-    screen_blend_8(codegen_func)
-    linear_dodge_8(codegen_func)
-    # # color_dodge_8(codegen_func)
-    # # overlay_blend_8(codegen_func)
-
-    # # # Llama benchmarks
-    # # softmax_part1(codegen_func)
-    # # softmax_part2(codegen_func)
-    softmax_part3(codegen_func)
-    # # softmax_part4(codegen_func)
+for codegen_func in codegen_funcs:
+    # darken_blend_8(codegen_func)
+    # print()
+    # color_burn_8(codegen_func)
+    # print()
+    # lighten_blend_8(codegen_func)
+    # print()
+    # color_dodge_8(codegen_func)
+    # print()
+    # overlay_blend_8(codegen_func)
+    # print()
+    # multiply_blend_8(codegen_func)
+    # print()
+    # linear_burn_8(codegen_func)
+    # print()
+    # screen_blend_8(codegen_func)
+    # print()
+    # linear_dodge_8(codegen_func)
+    # print()
+    # normal_blend_f(codegen_func)
+    # print()
+    # normal_blend_8(codegen_func)
+    # print()
+    # dissolve_blend_8(codegen_func)
+    # print()
+ 
+    
+    # softmax_part1(codegen_func)
+    # print()
+    # softmax_part2(codegen_func)
+    # print()
+    # softmax_part3(codegen_func)
+    # print()
+    # softmax_part4(codegen_func)
+    # print()
     # rmsnorm_part1(codegen_func)
-    # # rmsnorm_part2(codegen_func)
+    # print()
+    # rmsnorm_part2(codegen_func)
+    # print()
+    # matmul(codegen_func)
+    # print()
+    # transformer_part1(codegen_func)
+    # print()
+    # transformer_part2(codegen_func)
+    # print()
+    # transformer_part3(codegen_func)
+    # print()
+    # transformer_part4(codegen_func)
+    # print()
+
+    # Dexter benchmarks
+    # normal_blend_8(codegen_func) #PASS
+    # print()
+    # normal_blend_f(codegen_func) #PASS
+    # print()
+    linear_burn_8(codegen_func)
+    print()
+    screen_blend_8(codegen_func)
+    print()
+    # linear_dodge_8(codegen_func) #PASS
+    # print()
+
+    # Llama benchmarks
+    softmax_part3(codegen_func)
+    print()
+    rmsnorm_part1(codegen_func)
+    print()
     matmul(codegen_func)
-    # # transformer_part1(codegen_func)
-    # # transformer_part2(codegen_func)
-    # # transformer_part3(codegen_func)
-    # # transformer_part4(codegen_func)
+    print()
