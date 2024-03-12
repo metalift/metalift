@@ -24,15 +24,15 @@ vector<float> normal_blend_f_kernel(vector<float> base, vector<float> active, fl
 int main() {
     srand(1);
     fn = glob("./data", ".*\\.jpeg$");
-    
+
     vector<long long> times;
     size_t count = fn.size();
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base_int = res[0]; 
-            vector<vector<uint8_t>> active_int = res[1]; 
+            vector<vector<uint8_t>> base_int = res[0];
+            vector<vector<uint8_t>> active_int = res[1];
             vector<vector<float>> base(base_int.size(), vector<float>());
 
             for (size_t i = 0; i < base_int.size(); ++i) {
@@ -51,8 +51,8 @@ int main() {
                 }
             }
 
-            vector<float> base_f = flatten(base); 
-            vector<float> active_f = flatten(active); 
+            vector<float> base_f = flatten(base);
+            vector<float> active_f = flatten(active);
             float opacity = random_float();
 
             normal_blend_f_kernel(base_f, active_f, opacity);

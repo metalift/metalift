@@ -463,7 +463,7 @@ class Expr:
         else:
             return self
 
-    def countVariableUses(self, into: Dict[str, int]) -> None:
+    def count_variable_uses(self, into: Dict[str, int]) -> None:
         if isinstance(self, Var):
             if not (self.args[0] in into):
                 into[self.args[0]] = 0
@@ -471,7 +471,7 @@ class Expr:
         else:
             for a in self.args:
                 if isinstance(a, Expr):
-                    a.countVariableUses(into)
+                    a.count_variable_uses(into)
 
     def collectKnowledge(
         self,
@@ -514,7 +514,7 @@ class Expr:
                 lambda a: a.rewrite(mappings) if isinstance(a, Expr) else a
             )
 
-    def optimizeUselessEquality(
+    def optimize_useless_equality(
         self, counts: Dict[str, int], new_vars: typing.Set["Var"]
     ) -> "Expr":
         if isinstance(self, Eq):
@@ -530,7 +530,7 @@ class Expr:
                     return BoolLit(True)
         elif isinstance(self, Implies):
             local_counts: Dict[str, int] = {}
-            self.countVariableUses(local_counts)
+            self.count_variable_uses(local_counts)
 
             constrained_elsewhere = set(counts.keys())
             for key in local_counts.keys():
@@ -540,7 +540,7 @@ class Expr:
             self.args[0].collectKnowledge(constrained_elsewhere, rewrites, {})
 
             counts_rhs: Dict[str, int] = {}
-            self.args[1].countVariableUses(counts_rhs)
+            self.args[1].count_variable_uses(counts_rhs)
 
             for rewrite_var in list(rewrites.keys()):
                 if not (isinstance(rewrites[rewrite_var], Var)):
@@ -550,7 +550,7 @@ class Expr:
             self = self.rewrite(rewrites)
 
         return self.mapArgs(
-            lambda a: a.optimizeUselessEquality(counts, new_vars)
+            lambda a: a.optimize_useless_equality(counts, new_vars)
             if isinstance(a, Expr)
             else a
         ).simplify()
@@ -608,6 +608,10 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     elif re.match('%"class.std::__1::List(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::List"*, llvmlite will turn it into %"class.std::__1::List.0"*
         return List[Int]
+
+    elif re.match('%"class.std::__1::vector"*', ty_str):
+        return List[List[Int]]
+
     elif ty_str in {"%struct.set*"}:
         # TODO jie: how to support different contained types
         return Set[Int]
@@ -623,13 +627,19 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
 def parse_c_or_cpp_type_to_obj(ty_str: str) -> ObjectT:
     if ty_str == "int":
         return Int
-    if ty_str == "std::__1::List<int, std::__1::allocator<int> >":
+    if (
+        ty_str == "std::__1::List<int, std::__1::allocator<int> >"
+        or ty_str == "std::__1::vector<int, std::__1::allocator<int> >"
+    ):
         return List[Int]
     if (
         ty_str
         == "std::__1::List<std::__1::List<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::List<int, std::__1::allocator<int> > > >"
+        or ty_str
+        == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
     ):
         return List[List[Int]]
+
     raise Exception(f"no type defined for {ty_str}")
 
 
@@ -763,7 +773,7 @@ class Object:
         self.src = src
         self.__class__.__hash__ = Object.__hash__  # type: ignore
 
-    def toRosette(
+    def to_rosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
         return self.src.to_rosette(writeChoicesTo)
@@ -2258,10 +2268,10 @@ class Let(Expr):
             if isinstance(self.args[1], ValueRef) and self.args[1].name != ""
             else self.args[1]
             if isinstance(self.args[1], str)
-            else self.args[1].toRosette()
+            else self.args[1].to_rosette()
         )
 
-        return f"(let ([{self.args[0].toRosette()} {let_expr}]) {self.args[2].toRosette()})"
+        return f"(let ([{self.args[0].to_rosette()} {let_expr}]) {self.args[2].to_rosette()})"
 
     def toSMT(self) -> str:
         return "(let ((%s %s)) %s)" % (
@@ -2305,7 +2315,7 @@ class Call(Expr):
             ):
                 callStr = "( " + "%s " % (str(self.args[0]))
                 for a in self.args[1:]:
-                    callStr += a.toRosette() + " "
+                    callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and (
@@ -2323,7 +2333,7 @@ class Call(Expr):
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
                     else:
-                        callStr += a.toRosette() + " "
+                        callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             else:
@@ -2335,7 +2345,7 @@ class Call(Expr):
                             if isinstance(a, ValueRef) and a.name != ""
                             else a
                             if isinstance(a, str)
-                            else a.toRosette()
+                            else a.to_rosette()
                             for a in self.args
                         ]
                     )
@@ -2348,7 +2358,7 @@ class Call(Expr):
                     if isinstance(a, ValueRef) and a.name != ""
                     else str(a)
                     if isinstance(a, str)
-                    else a.toRosette()
+                    else a.to_rosette()
                     for a in self.args
                 ]
             )
@@ -2409,6 +2419,8 @@ class Call(Expr):
                 retVal.append("set.%s" % (str(a)[4:]))
             elif (str(a)).startswith("map-"):
                 retVal.append("map_%s" % (str(a)[4:]))
+            elif str(a) == "list_eq":
+                retVal.append("=")
             elif isinstance(a, str):
                 retVal.append(str(a))
             else:
@@ -2438,12 +2450,6 @@ class Call(Expr):
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
         elif self.name() in {"list_slice_with_length", "list_list_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"
-        elif self.name() == "list_list_col_slice":
-            return f"[row[{processed_args[1]}:{processed_args[2]}] for row in {processed_args[0]}]"
-        elif self.name() == "list_list_col_slice_with_length":
-            return f"[row[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}] for row in {processed_args[0]}]"
-        elif self.name() == "matrix_transpose":
-            return f"list(map(list, zip(*{processed_args[0]})))"
         elif self.name() == "reduce_max":
             return f"max({processed_args[0]})"
         elif self.name() == "reduce_sum":
@@ -2478,7 +2484,7 @@ class CallValue(Expr):
             ):
                 callStr = "( " + "%s " % (str(self.args[0]))
                 for a in self.args[1:]:
-                    callStr += a.toRosette() + " "
+                    callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             elif isinstance(self.args[0], str) and (
@@ -2489,7 +2495,7 @@ class CallValue(Expr):
                     if isinstance(a, ValueRef) and a.name != "":
                         callStr += "%s " % (a.name)
                     else:
-                        callStr += a.toRosette() + " "
+                        callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
             else:
@@ -2501,7 +2507,7 @@ class CallValue(Expr):
                             if isinstance(a, ValueRef) and a.name != ""
                             else a
                             if isinstance(a, str)
-                            else a.toRosette()
+                            else a.to_rosette()
                             for a in self.args
                         ]
                     )
@@ -2514,7 +2520,7 @@ class CallValue(Expr):
                     if isinstance(a, ValueRef) and a.name != ""
                     else str(a)
                     if isinstance(a, str)
-                    else a.toRosette()
+                    else a.to_rosette()
                     for a in self.args
                 ]
             )
@@ -2661,7 +2667,9 @@ class TupleGet(Expr):
     def to_rosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        return "(tupleGet %s)" % " ".join(["%s" % arg.toRosette() for arg in self.args])
+        return "(tupleGet %s)" % " ".join(
+            ["%s" % arg.to_rosette() for arg in self.args]
+        )
 
     def toSMT(self) -> str:
         # example: generate (tuple2_get0 t)
@@ -2743,7 +2751,7 @@ class Synth(Expr):
             if isinstance(a, ValueRef)
             else str(a)
             if isinstance(a, str)
-            else a.toRosette()
+            else a.to_rosette()
             for a in self.args[2:]
         )
 
@@ -2850,7 +2858,7 @@ class Choose(Expr):
                 if isinstance(a, ValueRef) and a.name != ""
                 else str(a)
                 if isinstance(a, str)
-                else a.toRosette()
+                else a.to_rosette()
                 for a in self.args
             ]
         )
@@ -2928,7 +2936,7 @@ class FnDeclRecursive(Expr):
             return "(define-bounded (%s %s) \n%s)" % (
                 self.args[0],
                 args,
-                self.args[1].toRosette(),
+                self.args[1].to_rosette(),
             )
 
     def toSMT(self) -> str:
@@ -3026,7 +3034,7 @@ class Lambda(Expr):
 
         return "(lambda (%s) %s)" % (
             args,
-            self.args[0].toRosette(),
+            self.args[0].to_rosette(),
         )
 
     def toSMT(self) -> str:
@@ -3087,7 +3095,7 @@ class FnDecl(Expr):
             return "(define (%s %s) \n%s)" % (
                 self.args[0],
                 args,
-                self.args[1].toRosette(),
+                self.args[1].to_rosette(),
             )
 
     def toSMT(self) -> str:
@@ -3117,6 +3125,12 @@ class FnDecl(Expr):
                 return_type,
                 self.body() if isinstance(self.body(), str) else self.body().toSMT(),
             )
+
+    def to_python(self) -> str:
+        fn_declaration = f"def {self.name()}({', '.join([a.to_python() for a in self.arguments()])}):"
+        body = self.body().to_python()
+        full_fn = f"{fn_declaration}\n{TAB}return {body}"
+        return full_fn
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_FnDecl(self)

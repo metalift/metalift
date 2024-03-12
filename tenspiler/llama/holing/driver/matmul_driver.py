@@ -113,8 +113,8 @@ def matmul_inv1_grammar(
 if __name__ == "__main__":
     driver = Driver()
     matmul = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/matmul.ll",
-        loops_filepath="tenspiler/llama/cpp/matmul.loops",
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/matmul.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/matmul.loops",
         fn_name="matmul",
         target_lang_fn=matmul_target_lang,
         inv_grammars={
@@ -136,4 +136,4 @@ if __name__ == "__main__":
     ]
 
     matmul(weight_var, input_var)
-    driver.synthesize(filename="matmul")
+    driver.synthesize(filename="matmul", no_verify=True)

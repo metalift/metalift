@@ -8,5 +8,3 @@ vector<int> softmax_part4(vector<int> unnormalized_output, int max_pos, int sum)
     }
     return output;
 }
-// def softmax_part4_ps(unnormalized_output max_pos sum softmax_part4_rv)
-// softmax_part4_rv == vec_scalar_div(sum, list_take(unnormalized_output, max_pos))

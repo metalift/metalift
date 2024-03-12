@@ -3,7 +3,6 @@ import time
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tenspiler.tenspiler_common import get_dissolve_holing_search_space
-from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
     driver = Driver()
@@ -45,4 +44,3 @@ if __name__ == "__main__":
 
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + dissolve_blend_8.codegen(codegen))

@@ -13,7 +13,6 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_add,
     vec_scalar_mul,
 )
-from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -79,4 +78,3 @@ if __name__ == "__main__":
     driver.synthesize(filename="normal_blend_f")
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + normal_blend_f.codegen(codegen))

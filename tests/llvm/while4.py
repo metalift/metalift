@@ -20,18 +20,18 @@ def grammar(ci: CodeInfo):
     name = ci.name
 
     if name.startswith("inv"):
-        e = Choose(*ci.modifiedVars)
+        e = Choose(*ci.modified_vars)
         f = Choose(IntLit(1), IntLit(2), IntLit(3))
         c = Eq(e, Call("sum_n", Int(), Sub(e, f)))
         d = And(Ge(e, f), Le(e, f))
         b = And(c, d)
-        return Synth(ci.name, b, *ci.modifiedVars, *ci.readVars)
+        return Synth(ci.name, b, *ci.modified_vars, *ci.read_vars)
 
     else:  # ps
-        rv = ci.modifiedVars[0]
+        rv = ci.modified_vars[0]
         choices = Choose(IntLit(1), IntLit(2))
         b = Eq(rv, Call("sum_n", Int(), choices))
-        return Synth(name, b, *ci.modifiedVars, *ci.readVars)
+        return Synth(name, b, *ci.modified_vars, *ci.read_vars)
 
 
 def targetLang():

@@ -14,5 +14,3 @@ vector<int> matmul(vector<vector<int>> weight, vector<int> input) {
     }
     return output;
 }
-// def matmul_ps(weight input matmul_rv)
-// list_eq(matmul_rv, matrix_vec_mul(weight, input))

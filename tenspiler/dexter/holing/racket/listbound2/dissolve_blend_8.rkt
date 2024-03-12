@@ -73,7 +73,9 @@
 (define-symbolic dissolve_blend_8_rv_BOUNDEDSET-len integer?)
 (define-symbolic dissolve_blend_8_rv_BOUNDEDSET-0 integer?)
 (define-symbolic dissolve_blend_8_rv_BOUNDEDSET-1 integer?)
-(define dissolve_blend_8_rv (take (list dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1) dissolve_blend_8_rv_BOUNDEDSET-len))
+(define-symbolic dissolve_blend_8_rv_BOUNDEDSET-2 integer?)
+(define-symbolic dissolve_blend_8_rv_BOUNDEDSET-3 integer?)
+(define dissolve_blend_8_rv (take (list (list dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1) (list dissolve_blend_8_rv_BOUNDEDSET-2 dissolve_blend_8_rv_BOUNDEDSET-3)) dissolve_blend_8_rv_BOUNDEDSET-len))
 (define-symbolic int_x integer?)
 (define-symbolic int_y integer?)
 (define-symbolic opacity integer?)
@@ -92,7 +94,7 @@
 
     (define sol0
         (synthesize
-            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col dissolve_blend_8_rv_BOUNDEDSET-len dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1 int_x int_y opacity pixel rand_cons rand_val row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
+            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col dissolve_blend_8_rv_BOUNDEDSET-len dissolve_blend_8_rv_BOUNDEDSET-0 dissolve_blend_8_rv_BOUNDEDSET-1 dissolve_blend_8_rv_BOUNDEDSET-2 dissolve_blend_8_rv_BOUNDEDSET-3 int_x int_y opacity pixel rand_cons rand_val row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
             #:guarantee (assertions)
         )
     )

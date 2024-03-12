@@ -73,7 +73,9 @@
 (define-symbolic lighten_blend_8_rv_BOUNDEDSET-len integer?)
 (define-symbolic lighten_blend_8_rv_BOUNDEDSET-0 integer?)
 (define-symbolic lighten_blend_8_rv_BOUNDEDSET-1 integer?)
-(define lighten_blend_8_rv (take (list lighten_blend_8_rv_BOUNDEDSET-0 lighten_blend_8_rv_BOUNDEDSET-1) lighten_blend_8_rv_BOUNDEDSET-len))
+(define-symbolic lighten_blend_8_rv_BOUNDEDSET-2 integer?)
+(define-symbolic lighten_blend_8_rv_BOUNDEDSET-3 integer?)
+(define lighten_blend_8_rv (take (list (list lighten_blend_8_rv_BOUNDEDSET-0 lighten_blend_8_rv_BOUNDEDSET-1) (list lighten_blend_8_rv_BOUNDEDSET-2 lighten_blend_8_rv_BOUNDEDSET-3)) lighten_blend_8_rv_BOUNDEDSET-len))
 (define-symbolic pixel integer?)
 (define-symbolic row integer?)
 (define-symbolic row_vec_BOUNDEDSET-len integer?)
@@ -87,7 +89,7 @@
 
     (define sol0
         (synthesize
-            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col int_x int_y lighten_blend_8_rv_BOUNDEDSET-len lighten_blend_8_rv_BOUNDEDSET-0 lighten_blend_8_rv_BOUNDEDSET-1 pixel row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
+            #:forall (list active_BOUNDEDSET-len active_BOUNDEDSET-0 active_BOUNDEDSET-1 active_BOUNDEDSET-2 active_BOUNDEDSET-3 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 agg.result_BOUNDEDSET-2 agg.result_BOUNDEDSET-3 base_BOUNDEDSET-len base_BOUNDEDSET-0 base_BOUNDEDSET-1 base_BOUNDEDSET-2 base_BOUNDEDSET-3 col int_x int_y lighten_blend_8_rv_BOUNDEDSET-len lighten_blend_8_rv_BOUNDEDSET-0 lighten_blend_8_rv_BOUNDEDSET-1 lighten_blend_8_rv_BOUNDEDSET-2 lighten_blend_8_rv_BOUNDEDSET-3 pixel row row_vec_BOUNDEDSET-len row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1)
             #:guarantee (assertions)
         )
     )

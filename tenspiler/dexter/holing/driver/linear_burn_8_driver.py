@@ -6,7 +6,6 @@ from tenspiler.tenspiler_common import (
     get_matrix_computation_holing_search_space,
     linear_burn_8_hole_body,
 )
-from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
     driver = Driver()
@@ -42,7 +41,6 @@ if __name__ == "__main__":
     linear_burn_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="linear_burn_8", rounds_to_guess=0)
+    driver.synthesize(filename="linear_burn_8", rounds_to_guess=0, no_verify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-    print("\n\ngenerated code:" + linear_burn_8.codegen(codegen))

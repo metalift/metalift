@@ -24,14 +24,14 @@ from metalift.ir import (
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
-def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
+def generate_ast(expr: str) -> Union[List[Any], pp.ParseResults]:
     s_expr = pp.nestedExpr(opener="(", closer=")")
     parser = pp.ZeroOrMore(s_expr)
     ast = parser.parseString(expr, parseAll=True).asList()
     return ast
 
 
-def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
+def gen_var(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if v.type == Int:
         decls.append("(define-symbolic %s integer?)" % v.to_rosette())
         vars_all.append(v.args[0])
@@ -42,14 +42,14 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
 
     elif is_matrix_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
+        gen_var(Var(len_name, ir.Int), decls, vars_all, listBound)
 
         tmp = [
             v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound * listBound)
         ]
         nested_element_type = get_matrix_element_type(v.type)
         for t in tmp:
-            genVar(Var(t, nested_element_type), decls, vars_all, listBound)
+            gen_var(Var(t, nested_element_type), decls, vars_all, listBound)
         nested_lsts: List[str] = [
             f"(list {' '.join(tmp[i : i + listBound])})"
             for i in range(0, len(tmp) - 1, listBound)
@@ -59,7 +59,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
 
     elif is_list_type(v.type) or is_set_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
+        gen_var(Var(len_name, ir.Int), decls, vars_all, listBound)
 
         is_nested_list = is_nested_list_type(v.type)
         if is_nested_list:
@@ -69,7 +69,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             ]
             nested_element_type = get_nested_list_element_type(v.type)
             for t in tmp:
-                genVar(Var(t, nested_element_type), decls, vars_all, listBound)
+                gen_var(Var(t, nested_element_type), decls, vars_all, listBound)
             nested_lsts: List[str] = [  # type: ignore
                 f"(list {' '.join(tmp[i : i + listBound])})"
                 for i in range(0, len(tmp) - 1, listBound)
@@ -82,7 +82,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
 
             for t in tmp:
-                genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
+                gen_var(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
 
             if is_set_type(v.type):
                 decls.append(
@@ -98,7 +98,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         elem_names = []
         for i, t in enumerate(typing.get_args(v.type)):
             elem_name = v.args[0] + "_TUPLE-" + str(i)
-            genVar(Var(elem_name, t), decls, vars_all, listBound)
+            gen_var(Var(elem_name, t), decls, vars_all, listBound)
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
@@ -108,13 +108,13 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
             # TODO: v.type no longer has args, find proper solution
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)  # type: ignore
+            gen_var(Var(t, v.type.args[0]), decls, vars_all, listBound)  # type: ignore
         for t in tmp_v:
             # TODO: v.type no longer has args, find proper solution
-            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
+            gen_var(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
 
         len_name = v.args[0] + "-len"
-        genVar(Var(len_name, Int), decls, vars_all, listBound)
+        gen_var(Var(len_name, Int), decls, vars_all, listBound)
 
         all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
 
@@ -126,18 +126,18 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         raise Exception(f"Unknown type: {v.type}")
 
 
-def generateVars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
+def generate_vars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
     decls: List[str] = []
     vars_all: List[str] = []
     sorted_vars = list(vars)
     sorted_vars.sort(key=lambda v: v.name())
     for v in sorted_vars:
-        genVar(v, decls, vars_all, listBound)
+        gen_var(v, decls, vars_all, listBound)
 
     return "\n".join(decls), vars_all
 
 
-def generateSynth(
+def generate_synth(
     vars: List[str],
     rounds_to_guess: int = 0,
     fns_to_guess: List[FnDeclRecursive] = [],
@@ -203,11 +203,11 @@ def generateSynth(
     return "\n".join(all_synth_funs)
 
 
-def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
+def generate_inv_ps(loop_and_ps_info: Sequence[Union[CodeInfo, Expr]]) -> str:
     decls = ""
-    for i in loopAndPsInfo:
+    for i in loop_and_ps_info:
         all_args = (
-            i.modifiedVars + i.readVars if isinstance(i, CodeInfo) else i.args[2:]
+            i.modified_vars + i.read_vars if isinstance(i, CodeInfo) else i.args[2:]
         )
         func_name = i.name if isinstance(i, CodeInfo) else i.args[0]
         arg_names = " ".join(
@@ -222,21 +222,21 @@ def generateInvPs(loopAndPsInfo: Sequence[Union[CodeInfo, Expr]]) -> str:
     return decls
 
 
-def toRosette(
+def to_rosette(
     filename: str,
-    targetLang: Sequence[Union[FnDeclRecursive, FnDecl, ir.Axiom]],
+    target_lang: Sequence[Union[FnDeclRecursive, FnDecl, ir.Axiom]],
     vars: Set[Var],
-    invAndPs: typing.Sequence[Union[FnDeclRecursive, ir.Synth]],
+    inv_and_ps: typing.Sequence[Union[FnDeclRecursive, ir.Synth]],
     preds: List[Expr],
     vc: Expr,
-    loopAndPsInfo: Sequence[Union[CodeInfo, Expr]],
+    loop_and_ps_info: Sequence[Union[CodeInfo, Expr]],
     rounds_to_guess: int,
     fns_to_guess: List[FnDeclRecursive],
     fn_defs_to_exclude: List[FnDeclRecursive],
-    unboundedInts: bool,
-    listBound: int,
-    writeChoicesTo: Optional[Dict[str, Dict[str, Expr]]] = None,
-    verifyMode: bool = False,
+    unbounded_ints: bool,
+    list_bound: int,
+    write_choices_to: Optional[Dict[str, Dict[str, Expr]]] = None,
+    verify_mode: bool = False,
     uninterp_fns: List[str] = [],
 ) -> None:
     f = open(filename, "w")
@@ -245,18 +245,17 @@ def toRosette(
         + '(require "./bounded.rkt")\n'
         + '(require "./utils.rkt")\n'
         + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n"
-        # + "(require rosette/solver/smt/bitwuzla)\n"
-        # + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n'
-        # + "(current-solver)\n"
-        # + "\n",
-        + "(require rosette/solver/smt/z3)\n"
-        + "(current-solver (z3 #:options (hash ':random-seed 0)))\n"
+        + "(require rosette/solver/smt/bitwuzla)\n"
+        + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n'
         + "\n",
+        # + "(require rosette/solver/smt/z3)\n"
+        # + "(current-solver (z3 #:options (hash ':random-seed 0)))\n"
+        # + "\n",
         file=f,
     )
 
     # struct declarations and function definition of target constructs
-    for t in targetLang:
+    for t in target_lang:
         is_uninterp_fn = (
             isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)
         ) and t.name() in uninterp_fns
@@ -266,18 +265,18 @@ def toRosette(
     # print(generateInter(targetLang),file=f)
 
     # inv and ps grammar definition
-    for g in invAndPs:
+    for g in inv_and_ps:
         writeTo = None
-        if writeChoicesTo != None:
-            writeChoicesTo[g.args[0]] = {}  # type: ignore
-            writeTo = writeChoicesTo[g.args[0]]  # type: ignore
+        if write_choices_to != None:
+            write_choices_to[g.args[0]] = {}  # type: ignore
+            writeTo = write_choices_to[g.args[0]]  # type: ignore
         print(g.to_rosette(writeTo), "\n", file=f)
 
     # inv and ps declaration
-    print(generateInvPs(loopAndPsInfo), file=f)
+    print(generate_inv_ps(loop_and_ps_info), file=f)
 
     fnsDecls = []
-    for t in targetLang:
+    for t in target_lang:
         if (
             (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive))
             and t.body() is None
@@ -285,14 +284,14 @@ def toRosette(
         ):
             fnsDecls.append(t)
     if fnsDecls:
-        print(generateInvPs(fnsDecls), file=f)
+        print(generate_inv_ps(fnsDecls), file=f)
 
     # vars declaration
-    varDecls, vars_all = generateVars(vars, listBound)
-    print(varDecls, file=f)
+    var_decls, vars_all = generate_vars(vars, list_bound)
+    print(var_decls, file=f)
 
     # Vc definition
-    if unboundedInts:
+    if unbounded_ints:
         print("(current-bitwidth #f)", file=f)
     else:
         print("(current-bitwidth %d)" % (6), file=f)
@@ -300,9 +299,9 @@ def toRosette(
     print("(define (assertions)\n (assert %s))\n" % vc.to_rosette(), file=f)
 
     # synthesis function
-    if not verifyMode:
+    if not verify_mode:
         print(
-            generateSynth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude),
+            generate_synth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude),
             file=f,
         )
     else:

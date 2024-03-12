@@ -52,8 +52,8 @@ if __name__ == "__main__":
     # Synthesize the second loop
     driver = Driver()
     rmsnorm_part2 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/rmsnorm/rmsnorm/rmsnorm_part2.ll",
-        loops_filepath="tenspiler/llama/cpp/rmsnorm/rmsnorm/rmsnorm_part2.loops",
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part2.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part2.loops",
         fn_name="rmsnorm_part2",
         target_lang_fn=rmsnorm_part2_target_lang,
         inv_grammars={

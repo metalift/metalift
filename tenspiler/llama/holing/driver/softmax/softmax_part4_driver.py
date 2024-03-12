@@ -26,7 +26,7 @@ def softmax_part4_inv0_grammar(
 ) -> Bool:
     unnormalized_output, max_pos, sum = reads
     out, i, _ = writes
-    vec = choose(unnormalized_output[:i])
+    vec = choose(unnormalized_output[:i], unnormalized_output[:1])
 
     return and_objects(i >= 0, i <= max_pos, out == call_vec_scalar_div(sum, vec))
 
@@ -35,8 +35,8 @@ if __name__ == "__main__":
     # Synthesize part 4
     driver = Driver()
     softmax_part4 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/rmsnorm/softmax/softmax_part4.ll",
-        loops_filepath="tenspiler/llama/cpp/rmsnorm/softmax/softmax_part4.loops",
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.loops",
         fn_name="softmax_part4",
         target_lang_fn=softmax_part4_target_lang,
         inv_grammars={

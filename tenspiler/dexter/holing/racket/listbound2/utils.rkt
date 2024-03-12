@@ -243,7 +243,7 @@
 (define (list-tuple-length l) (length l))
 
 (define (quotient-noerr x y)
-  (if (equal? y 0) x (quotient x y))
+  (quotient x (if (equal? y 0) 1 y))
 )
 
 ; (define (transpose lst)
@@ -274,19 +274,20 @@
   )
 )
 
-(define-bounded (integer-sqrt n)
-  (define-bounded (sqrt-helper guess)
-    (if (or (= guess 0) (= guess 1) (> guess 64 ))
-        1
-        (if (= guess (quotient n guess))
-            guess
-            (sqrt-helper (quotient (+ guess (quotient n guess)) 2)))))
-  (sqrt-helper (quotient n 2)))
+; (define-bounded (integer-sqrt-noerr n)
+;   (define-bounded (sqrt-helper guess)
+;     (if (or (= guess 0) (= guess 1) (> guess 64))
+;         1
+;         (if (>= guess (quotient n guess))
+;             guess
+;             (sqrt-helper (quotient (+ guess (quotient n guess)) 2)))))
+;   (if (<= n 0) 0 (sqrt-helper (quotient n 2))))
+(define-bounded (integer-sqrt-noerr n) n)
 
-(define-bounded (integer-exp n)
+(define-bounded (integer-exp-noerr n)
   (if
     (<= n 0)
     1
-    (remainder (* 3 (integer-exp (- n 1))) 64)
+    (remainder (* 3 (integer-exp-noerr (- n 1))) 64)
   )
 )

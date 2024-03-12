@@ -22,10 +22,10 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            
-            vector<float> inp1 = flatten(weights[j]); 
-            
-            vector<float> inp2 = flatten(w_input[j]); 
+
+            vector<float> inp1 = flatten(weights[j]);
+
+            vector<float> inp2 = flatten(w_input[j]);
 
             auto start_time = high_resolution_clock::now();
             auto res = rmsnorm_part1(inp2, inp1);

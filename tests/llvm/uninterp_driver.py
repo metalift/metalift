@@ -55,4 +55,3 @@ if __name__ == "__main__":
 
     driver.synthesize(filename="uninterp", uninterp_fns=[uninterp_fn_name])
     print("\n\ngenerated code:" + test.codegen(codegen))
-

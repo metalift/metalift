@@ -18,5 +18,3 @@ vector<int> transformer_part2(
     }
     return xb;
 }
-// def transformer_part2_ps(token_position head head_size key_cache_layer attention transformer_part2_rv)
-// list_eq(transformer_part2_rv, matrix_vec_mul(matrix_transpose(list_list_col_slice_with_length(list_take(key_cache_layer, token_position + 1), (head * head_size), head_size)), list_take(attention, token_position + 1)))

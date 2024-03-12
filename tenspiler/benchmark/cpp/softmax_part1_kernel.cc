@@ -30,7 +30,7 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         for (int j = 0; j < count; j++) {
-            vector<float> inp1 = flatten(attn_weights[j]); 
+            vector<float> inp1 = flatten(attn_weights[j]);
             int max_pos = inp1.size();
 
             auto res = softmax_part1(inp1, max_pos);

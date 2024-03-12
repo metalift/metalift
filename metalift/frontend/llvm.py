@@ -27,7 +27,6 @@ from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Matrix, Object, ObjectT
 from metalift.ir import Set as mlSet
-from metalift.ir import Tuple as mlTuple
 from metalift.ir import (
     Synth,
     Var,
@@ -197,7 +196,6 @@ def new_vector(
         )
 
     var_name: str = args[0].name
-
     contained_type = get_list_element_type(list_type)
 
     if (
@@ -1422,6 +1420,7 @@ class VCVisitor:
 
         # Add postcondition
         return_arg = create_object(ret_val.type, f"{self.fn_name}_rv")
+        self.driver.add_var_object(return_arg)
         self.pred_tracker.postcondition(
             self.fn_name,
             [return_arg],  # TODO: I feel like this flow could be better
@@ -1443,6 +1442,7 @@ class VCVisitor:
             blk_state.asserts.append(implies(and_objects(*blk_state.precond), ps))
         else:
             blk_state.asserts.append(ps)
+        self.driver.postconditions.append(ps)
         print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
@@ -1610,13 +1610,13 @@ class Driver:
         for i in range(1):
             synthesized: List[FnDeclRecursive] = run_synthesis(
                 basename=filename,
-                targetLang=target,
+                target_lang=target,
                 vars=set(self.var_tracker.all()),
-                invAndPs=inv_and_ps,
+                inv_and_ps=inv_and_ps,
                 preds=[],
                 vc=vc,
-                loopAndPsInfo=synths,
-                cvcPath="cvc5",
+                loop_and_ps_info=synths,
+                cvc_path="cvc5",
                 # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
                 fns_to_guess=synths,
                 **synthesize_kwargs,
@@ -1631,7 +1631,7 @@ class Driver:
                     continue
                 self.synthesized_fns[name] = f
 
-                #TODO: added back for codegen
+                # TODO: added back for codegen
                 m = re.match("(\w+)_ps", f.name())  # ignore the invariants
                 if m:
                     name = m.groups()[0]
@@ -1644,7 +1644,7 @@ class Driver:
                     ):
                         self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
                         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #TODO: figure out why was it commented out
+                # TODO: figure out why was it commented out
                 # if isinstance(f.body(), Eq):
                 #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
                 #     print(f"{name} synthesized: {self.fns[name].synthesized}")
@@ -1801,18 +1801,22 @@ class MetaliftFunc:
                     v.visit_llvm_block(b)
                     done = False
 
-        ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
-        self.driver.add_var_object(ret_val)
+        # TODO(jie): now we should update the return type
+        # if sret_obj is not None:
+        #     self.fn_ret_type = sret_obj.type
+        #     import pdb; pdb.set_trace()
+        # ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
+        # self.driver.add_var_object(ret_val)
 
-        # TODO(jie) instead of constructin this call manually can we replace it with a method call.
-        ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
+        # # TODO(jie) instead of constructin this call manually can we replace it with a method call.
+        # ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
 
-        self.driver.postconditions.append(cast(Bool, ps))
+        # self.driver.postconditions.append(cast(Bool, ps))
 
         for block in self.fn_blocks.values():
             self.driver.asserts.extend(v.fn_blocks_states[block.name].asserts)
 
-        return ret_val
+        return
 
     T = TypeVar("T")
 
