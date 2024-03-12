@@ -1,3 +1,10 @@
+
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+```
+#defined functions
+import math
+
+
 def reduce_max(x):
     return x[0] if len(x) <= 1 else (x[0] if x[0] > max(x[1:]) else max(x[1:]))
 
@@ -203,26 +210,18 @@ def selection_two_args(x, y, select_two_args_arg):
         ]
     )
 
+```
+```
+//test function
+#include <vector>
+using namespace std;
 
-def matrix_column_slice(matrix, start, end):
-    return (
-        []
-        if len(matrix) < 1
-        else [matrix[0][start:end], *matrix_column_slice(matrix[1:], start, end)]
-    )
+vector<int> transformer_part4(vector<int> input1, vector<int> input2, int hidden_dim) {
+    vector<int> output;
+    for (int i = 0; i < hidden_dim; i++) {
+        output.push_back(input1[i] * input2[i]);
+    }
+    return output;
+}
 
-
-def matrix_column_slice_with_length(matrix, start, lst_length):
-    return matrix_column_slice(matrix, start, start + lst_length)
-
-
-def firsts(matrix):
-    return [] if len(matrix) < 1 else [matrix[0][0], *firsts(matrix[1:])]
-
-
-def rests(matrix):
-    return [] if len(matrix) < 1 else matrix_column_slice(matrix, 1, len(matrix[0]))
-
-
-def matrix_transpose(matrix):
-    return [] if len(matrix) < 1 else [firsts(matrix), *matrix_transpose(rests(matrix))]
+```
