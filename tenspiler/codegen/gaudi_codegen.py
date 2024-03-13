@@ -316,6 +316,11 @@ def gaudi_codegen(
                 "scalar_vec_div",
             }
             if fn_name in div_fn_names:
+                if d_type == DataType.INT:
+                    expected_arg_type = GaudiBodyType.FLOAT256
+                else:
+                    expected_arg_type = GaudiBodyType.FLOAT64
+
                 if "scalar" in fn_name:
                     # Since we need to convert everything to float anyways, we just broadcast
                     # the scalar as a float from the beginning
@@ -327,12 +332,12 @@ def gaudi_codegen(
                 else:
                     first_arg_instr = expr_codegen(
                         expr.arguments()[0],
-                        override_type=default_expr_type,
+                        override_type=expected_arg_type,
                         vars_to_replace=vars_to_replace,
                     )
                     second_arg_instr = expr_codegen(
                         expr.arguments()[1],
-                        override_type=default_expr_type,
+                        override_type=expected_arg_type,
                         vars_to_replace=vars_to_replace,
                     )
                 if fn_name.startswith("scalar"):
@@ -341,117 +346,61 @@ def gaudi_codegen(
                         first_arg_instr,
                     )
 
-                if d_type == DataType.INT:
-                    # We need to convert all the uchar256/uint256 to float256
-                    # If they are of type float64, we don't need to convert them, instead during multiplication
-                    # we don't use the v1, v2, v3, v4 fields
-                    if first_arg_instr.dest_type not in {
-                        GaudiBodyType.FLOAT256,
-                        GaudiBodyType.FLOAT64,
-                    }:
-                        first_arg_instr = convert_arg(
-                            first_arg_instr.dest_name,
-                            first_arg_instr.dest_type,
-                            GaudiBodyType.FLOAT256,
-                        )
-                    if second_arg_instr.dest_type not in {
-                        GaudiBodyType.FLOAT256,
-                        GaudiBodyType.FLOAT64,
-                    }:
-                        second_arg_instr = convert_arg(
-                            second_arg_instr.dest_name,
-                            second_arg_instr.dest_type,
-                            GaudiBodyType.FLOAT256,
-                        )
-
-                    # Now get fields to multiply
-                    if first_arg_instr.dest_type == GaudiBodyType.FLOAT64:
-                        first_arg_mult_lst = [first_arg_instr.dest_name]
-                    else:
-                        first_arg_mult_lst = [
-                            f"{first_arg_instr.dest_name}.v{i}" for i in range(1, 5)
-                        ]
-
-                    # Now get the reciprocal of the second argument
-                    if second_arg_instr.dest_type == GaudiBodyType.FLOAT64:
-                        reciprocal_instr = format_gaudi_instr(
-                            f"v_reciprocal_fast_f32({second_arg_instr.dest_name})",
-                            GaudiBodyType.FLOAT64,
-                        )
-                        second_arg_mult_lst = [reciprocal_instr.dest_name]
-                    else:
-                        # second arg is of type float256. We need to call v_reciprocal_fast_f32
-                        # on each of the fields.
-                        second_arg_mult_lst = [
-                            f"v_reciprocal_fast_f32({second_arg_instr.dest_name}.v{i})"
-                            for i in range(1, 5)
-                        ]
-
-                    # Now we both args are of type float256 or float64.
-                    result_arg_name = format_gaudi_instr(
-                        expr_str=None, gaudi_body_type=GaudiBodyType.FLOAT256
-                    ).dest_name
-
-                    if len(first_arg_mult_lst) == 1 and len(second_arg_mult_lst) == 1:
-                        format_gaudi_instr(
-                            f"v_f32_mul_b({first_arg_mult_lst[0]}, {second_arg_mult_lst[0]})",
-                            GaudiBodyType.FLOAT64,
-                        )
-                    else:
-                        for i in range(1, 5):
-                            if len(first_arg_mult_lst) == 1:
-                                first_arg_mult = first_arg_mult_lst[0]
-                            else:
-                                first_arg_mult = first_arg_mult_lst[i - 1]
-
-                            if len(second_arg_mult_lst) == 1:
-                                second_arg_mult = second_arg_mult_lst[0]
-                            else:
-                                second_arg_mult = second_arg_mult_lst[i - 1]
-
-                            format_gaudi_instr(
-                                expr_str=f"{result_arg_name}.v{i} = v_f32_mul_b({first_arg_mult}, {second_arg_mult});",
-                                gaudi_body_type=GaudiBodyType.FLOAT64,
-                                ignore_dest=True,
-                            )
-                    # Last, we convert this float256 to uchar256
-                    convert_arg(
-                        result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
-                    )
-                    return
+                # Now get fields to multiply
+                if first_arg_instr.dest_type == GaudiBodyType.FLOAT64:
+                    first_arg_mult_lst = [first_arg_instr.dest_name]
                 else:
-                    # Data type is float.
-                    first_arg_instr = expr_codegen(
-                        expr.arguments()[0],
-                        override_type=GaudiBodyType.FLOAT64,
-                        vars_to_replace=vars_to_replace,
-                    )
-                    second_arg_instr = expr_codegen(
-                        expr.arguments()[1],
-                        override_type=GaudiBodyType.FLOAT64,
-                        vars_to_replace=vars_to_replace,
-                    )
+                    first_arg_mult_lst = [
+                        f"{first_arg_instr.dest_name}.v{i}" for i in range(1, 5)
+                    ]
 
-                    if fn_name.startswith("scalar"):
-                        first_arg_instr, second_arg_instr = (
-                            second_arg_instr,
-                            first_arg_instr,
-                        )
-
+                # Now get the reciprocal of the second argument
+                if second_arg_instr.dest_type == GaudiBodyType.FLOAT64:
                     reciprocal_instr = format_gaudi_instr(
                         f"v_reciprocal_fast_f32({second_arg_instr.dest_name})",
                         GaudiBodyType.FLOAT64,
                     )
+                    second_arg_mult_lst = [reciprocal_instr.dest_name]
+                else:
+                    # second arg is of type float256. We need to call v_reciprocal_fast_f32
+                    # on each of the fields.
+                    second_arg_mult_lst = [
+                        f"v_reciprocal_fast_f32({second_arg_instr.dest_name}.v{i})"
+                        for i in range(1, 5)
+                    ]
 
-                    # Now we multiply the first arg by the reciprocal of the second arg
-                    expr_instr = format_gaudi_instr(
-                        f"v_f32_mul_b({first_arg_instr.dest_name}, {reciprocal_instr.dest_name})",
+                # Now we both args are of type float256 or float64.
+                result_arg_name = format_gaudi_instr(
+                    expr_str=None, gaudi_body_type=GaudiBodyType.FLOAT256
+                ).dest_name
+
+                if len(first_arg_mult_lst) == 1 and len(second_arg_mult_lst) == 1:
+                    format_gaudi_instr(
+                        f"v_f32_mul_b({first_arg_mult_lst[0]}, {second_arg_mult_lst[0]})",
                         GaudiBodyType.FLOAT64,
                     )
-                    convert_arg(
-                        expr_instr.dest_name, GaudiBodyType.FLOAT64, final_expr_type
-                    )
-                    return
+                else:
+                    for i in range(1, 5):
+                        if len(first_arg_mult_lst) == 1:
+                            first_arg_mult = first_arg_mult_lst[0]
+                        else:
+                            first_arg_mult = first_arg_mult_lst[i - 1]
+
+                        if len(second_arg_mult_lst) == 1:
+                            second_arg_mult = second_arg_mult_lst[0]
+                        else:
+                            second_arg_mult = second_arg_mult_lst[i - 1]
+
+                        format_gaudi_instr(
+                            expr_str=f"{result_arg_name}.v{i} = v_f32_mul_b({first_arg_mult}, {second_arg_mult});",
+                            gaudi_body_type=GaudiBodyType.FLOAT64,
+                            ignore_dest=True,
+                        )
+                # Last, we convert this float256 to uchar256
+                convert_arg(
+                    result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
+                )
+                return
 
             if fn_name in {*add_fn_names, *sub_fn_names, *mul_fn_names}:
                 ret_gaudi_type = get_gaudi_body_type(expr.type)
