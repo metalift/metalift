@@ -412,9 +412,7 @@ def gaudi_codegen(
                 else:
                     instr_name = f"v_{fn_dtype}_mul_b"
                     if d_type == DataType.INT:
-                        ret_gaudi_type = (
-                            GaudiBodyType.UINT256
-                        )  # multiply is a little different
+                        ret_gaudi_type = GaudiBodyType.UINT256
 
                 first_arg_instr = expr_codegen(
                     expr.arguments()[0],
