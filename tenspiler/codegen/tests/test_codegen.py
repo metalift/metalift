@@ -540,6 +540,7 @@ for codegen_func in codegen_funcs:
     # print()
     color_burn_8(codegen_func)
     print()
+    exit(0)
     # lighten_blend_8(codegen_func)
     # print()
     # color_dodge_8(codegen_func)
