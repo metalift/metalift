@@ -105,6 +105,26 @@ class GaudiInstr:
     dest_type: Optional[GaudiBodyType]
     expr_str: Optional[str]
 
+    def __post_init__(self) -> None:
+        if self.dest_name is not None and self.dest_type is None:
+            raise ValueError("If dest_name is not None, dest_type cannot be None")
+        if self.dest_name is None and self.dest_type is not None:
+            import pdb
+
+            pdb.set_trace()
+            raise ValueError("If dest_type is not None, dest_name cannot be None")
+        if self.dest_name is None and self.expr_str is None:
+            raise ValueError("At least one of dest_name and expr_str must be non-None")
+
+    @property
+    def instr_str(self) -> str:
+        if self.dest_name is not None and self.expr_str is not None:
+            return f"{self.dest_type.value} {self.dest_name} = {self.expr_str};"
+        elif self.expr_str is None:
+            return f"{self.dest_type.value} {self.dest_name};"
+        else:
+            return self.expr_str
+
 
 def gaudi_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
@@ -129,7 +149,7 @@ def gaudi_codegen(
 
         def format_gaudi_instr(
             expr_str: Optional[str],
-            gaudi_body_type: GaudiBodyType,
+            gaudi_body_type: Optional[GaudiBodyType],
             ignore_dest: bool = False,
         ) -> GaudiInstr:
             # TODO(jie): change this description
@@ -148,8 +168,14 @@ def gaudi_codegen(
             expected_gaudi_type: GaudiBodyType,
         ) -> Optional[GaudiInstr]:
             """Converts the argument to the expected type. Returns the metadata of the new argument. Additionally, adds the instruction to the list of instructions."""
+            if not arg_gaudi_type.is_primitive and expected_gaudi_type.is_primitive:
+                raise Exception(
+                    f"Cannot convert to primitive type {expected_gaudi_type}"
+                )
             if arg_gaudi_type == expected_gaudi_type:
                 return None
+            if arg_gaudi_type.is_primitive:
+                return format_gaudi_instr(arg_name, expected_gaudi_type)
             non_default_switches = {
                 (GaudiBodyType.UINT256, GaudiBodyType.FLOAT256): "SW_LINEAR",
                 (GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256): "SW_RD",
@@ -187,13 +213,9 @@ def gaudi_codegen(
                 or expr_instr
             )
         elif isinstance(expr, Lit):
-            expr_instr = format_gaudi_instr(str(expr.val()), default_expr_type)
-            return (
-                convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
-                or expr_instr
-            )
+            return format_gaudi_instr(str(expr.val()), final_expr_type)
         elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div]):
-            if default_expr_type.is_primitive:
+            if final_expr_type.is_primitive:
                 if isinstance(expr, Add):
                     op = "+"
                 elif isinstance(expr, Sub):
@@ -231,7 +253,7 @@ def gaudi_codegen(
                     fn_name = "matrix_elemwise_div"
                 return expr_codegen(
                     call(fn_name, Matrix[Int], *expr.args).src,
-                    override_type=default_expr_type,
+                    override_type=final_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
 
@@ -346,11 +368,11 @@ def gaudi_codegen(
                         override_type=expected_arg_type,
                         vars_to_replace=vars_to_replace,
                     )
-                    second_arg_instr = expr_codegen(
-                        expr.arguments()[1],
-                        override_type=expected_arg_type,
-                        vars_to_replace=vars_to_replace,
-                    )
+                second_arg_instr = expr_codegen(
+                    expr.arguments()[1],
+                    override_type=expected_arg_type,
+                    vars_to_replace=vars_to_replace,
+                )
                 if fn_name.startswith("scalar"):
                     first_arg_instr, second_arg_instr = (
                         second_arg_instr,
@@ -405,7 +427,7 @@ def gaudi_codegen(
 
                         format_gaudi_instr(
                             expr_str=f"{result_arg_name}.v{i} = v_f32_mul_b({first_arg_mult}, {second_arg_mult});",
-                            gaudi_body_type=GaudiBodyType.FLOAT64,
+                            gaudi_body_type=None,
                             ignore_dest=True,
                         )
                 # Last, we convert this float256 to uchar256
@@ -486,11 +508,8 @@ def gaudi_codegen(
 
     # Generate the returned expression
     instructions: List[GaudiInstr] = []
-    expr_codegen(ps_fn_decl.body())
-    instr_strs = [instr.expr_str for instr in instructions]
-
-    # Assign the last variable to the return value
-    ret_expr = instructions[-1].dest_name
+    ret_dest_name = expr_codegen(ps_fn_decl.body()).dest_name
+    instr_strs = [instr.instr_str for instr in instructions]
 
     if is_return_type_vec and not is_return_type_matrix:
         joined_instr_str = "\n".join(
@@ -514,7 +533,7 @@ def gaudi_codegen(
             // index space mapping
             inputCoord[0] = outputCoord[0] = (i * vec_len);
             {joined_instr_str}
-            {store_instr}(outputCoord, {rv_name}, {ret_expr});
+            {store_instr}(outputCoord, {rv_name}, {ret_dest_name});
         }}
         """
         body = textwrap.dedent(body)
@@ -547,7 +566,7 @@ def gaudi_codegen(
 
                 {joined_instr_str}
 
-                {store_instr}(outputCoord, {rv_name}, {ret_expr});
+                {store_instr}(outputCoord, {rv_name}, {ret_dest_name});
             }}
         }}
         """
