@@ -109,9 +109,6 @@ class GaudiInstr:
         if self.dest_name is not None and self.dest_type is None:
             raise ValueError("If dest_name is not None, dest_type cannot be None")
         if self.dest_name is None and self.dest_type is not None:
-            import pdb
-
-            pdb.set_trace()
             raise ValueError("If dest_type is not None, dest_name cannot be None")
         if self.dest_name is None and self.expr_str is None:
             raise ValueError("At least one of dest_name and expr_str must be non-None")
@@ -383,7 +380,7 @@ def gaudi_codegen(
                     override_type=expected_arg_type,
                     vars_to_replace=vars_to_replace,
                 )
-                if fn_name.startswith("scalar"):
+                if "scalar" in fn_name and not fn_name.startswith("scalar"):
                     first_arg_instr, second_arg_instr = (
                         second_arg_instr,
                         first_arg_instr,
@@ -471,7 +468,7 @@ def gaudi_codegen(
                     vars_to_replace=vars_to_replace,
                 )
 
-                if fn_name.startswith("scalar"):
+                if "scalar" in fn_name and not fn_name.startswith("scalar"):
                     first_arg_instr, second_arg_instr = (
                         second_arg_instr,
                         first_arg_instr,
