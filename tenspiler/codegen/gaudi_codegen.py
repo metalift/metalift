@@ -121,7 +121,7 @@ def gaudi_codegen(
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
-            return override_type or get_gaudi_body_type(ir_type, d_type)
+            return override_type or get_gaudi_body_type(ir_type)
 
         def get_gaudi_body_type(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -182,12 +182,16 @@ def gaudi_codegen(
             else:
                 expr_str = expr.name()
             expr_instr = format_gaudi_instr(expr_str, default_expr_type)
-            convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
-            return
+            return (
+                convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
+                or expr_instr
+            )
         elif isinstance(expr, Lit):
             expr_instr = format_gaudi_instr(str(expr.val()), default_expr_type)
-            convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
-            return
+            return (
+                convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
+                or expr_instr
+            )
         elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div]):
             if default_expr_type.is_primitive:
                 if isinstance(expr, Add):
@@ -210,8 +214,12 @@ def gaudi_codegen(
                     f"{first_arg_instr.dest_name} {op} {second_arg_instr.dest_name}",
                     default_expr_type,
                 )
-                convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
-                return
+                return (
+                    convert_arg(
+                        expr_instr.dest_name, default_expr_type, final_expr_type
+                    )
+                    or expr_instr
+                )
             else:
                 if isinstance(expr, Add):
                     fn_name = "matrix_elemwise_add"
@@ -221,12 +229,11 @@ def gaudi_codegen(
                     fn_name = "matrix_elemwise_mul"
                 else:
                     fn_name = "matrix_elemwise_div"
-                expr_codegen(
+                return expr_codegen(
                     call(fn_name, Matrix[Int], *expr.args).src,
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                return
 
         elif isinstance(expr, Call):
             fn_name = expr.name()
@@ -283,8 +290,12 @@ def gaudi_codegen(
                 if_else_instr = instructions[-1]
                 expr_str = f"{cond_instr_name}({cond_arg0_instr.dest_name}, {cond_arg1_instr.dest_name}, {if_then_instr.dest_name}, {if_else_instr.dest_name})"
                 expr_instr = format_gaudi_instr(expr_str, default_expr_type)
-                convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
-                return
+                return (
+                    convert_arg(
+                        expr_instr.dest_name, default_expr_type, final_expr_type
+                    )
+                    or expr_instr
+                )
 
             # Group function names
             add_fn_names = {
@@ -370,9 +381,10 @@ def gaudi_codegen(
                     ]
 
                 # Now we both args are of type float256 or float64.
-                result_arg_name = format_gaudi_instr(
+                result_instr = format_gaudi_instr(
                     expr_str=None, gaudi_body_type=GaudiBodyType.FLOAT256
-                ).dest_name
+                )
+                result_arg_name = result_instr.dest_name
 
                 if len(first_arg_mult_lst) == 1 and len(second_arg_mult_lst) == 1:
                     format_gaudi_instr(
@@ -397,10 +409,12 @@ def gaudi_codegen(
                             ignore_dest=True,
                         )
                 # Last, we convert this float256 to uchar256
-                convert_arg(
-                    result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
+                return (
+                    convert_arg(
+                        result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
+                    )
+                    or result_instr
                 )
-                return
 
             if fn_name in {*add_fn_names, *sub_fn_names, *mul_fn_names}:
                 ret_gaudi_type = get_gaudi_body_type(expr.type)
@@ -435,8 +449,10 @@ def gaudi_codegen(
                     f"{instr_name}({first_arg_instr.dest_name}, {second_arg_instr.dest_name})",
                     ret_gaudi_type,
                 )
-                convert_arg(expr_instr.dest_name, ret_gaudi_type, final_expr_type)
-                return
+                return (
+                    convert_arg(expr_instr.dest_name, ret_gaudi_type, final_expr_type)
+                    or expr_instr
+                )
 
     ###############################
     # Begins actual code generation
