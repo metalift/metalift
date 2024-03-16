@@ -536,11 +536,10 @@ def test_type(codegen_func):
 codegen_funcs = [gaudi_codegen]
 
 for codegen_func in codegen_funcs:
-    darken_blend_8(codegen_func)
-    print()
-    exit(0)
-    # color_burn_8(codegen_func)
+    # darken_blend_8(codegen_func)
     # print()
+    color_burn_8(codegen_func)
+    print()
     # lighten_blend_8(codegen_func)
     # print()
     # color_dodge_8(codegen_func)
