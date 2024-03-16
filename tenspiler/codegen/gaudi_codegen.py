@@ -189,6 +189,10 @@ def gaudi_codegen(
                 f"{convert_instr_name}({arg_name}, {switch})", expected_gaudi_type
             )
 
+        # Use cache to avoid loading and assigning the same variables repeatedly
+        if expr in var_and_lit_cache:
+            return var_and_lit_cache[expr]
+
         fn_dtype = "f32" if d_type == DataType.FLOAT else "u8"
         default_expr_type = get_gaudi_body_type(expr.type)
         final_expr_type = get_gaudi_body_type_with_override(expr.type)
@@ -198,22 +202,28 @@ def gaudi_codegen(
         # Generate the instructions for the body
         if isinstance(expr, Var):
             if expr.name() in vars_to_replace:
-                return expr_codegen(
+                instr = expr_codegen(
                     vars_to_replace[expr.name()],
                     override_type=override_type,
                     vars_to_replace=vars_to_replace,
                 )
+                var_and_lit_cache[expr] = instr
+                return instr
             if is_list_type(expr.type) or is_matrix_type(expr.type):
                 expr_str = f"v_{fn_dtype}_ld_tnsr_b(inputCoord, {expr.name()})"
             else:
                 expr_str = expr.name()
             expr_instr = format_gaudi_instr(expr_str, default_expr_type)
-            return (
+            instr = (
                 convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
                 or expr_instr
             )
+            var_and_lit_cache[expr] = instr
+            return instr
         elif isinstance(expr, Lit):
-            return format_gaudi_instr(str(expr.val()), final_expr_type)
+            instr = format_gaudi_instr(str(expr.val()), final_expr_type)
+            var_and_lit_cache[expr] = instr
+            return instr
         elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div]):
             if final_expr_type.is_primitive:
                 if isinstance(expr, Add):
@@ -508,6 +518,7 @@ def gaudi_codegen(
 
     # Generate the returned expression
     instructions: List[GaudiInstr] = []
+    var_and_lit_cache: dict[Expr, GaudiInstr] = {}
     ret_dest_name = expr_codegen(ps_fn_decl.body()).dest_name
     instr_strs = [instr.instr_str for instr in instructions]
 
