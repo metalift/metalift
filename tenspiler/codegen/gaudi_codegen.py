@@ -18,6 +18,7 @@ from metalift.ir import (
     Lit,
     Lt,
     Matrix,
+    Mod,
     Mul,
     ObjectT,
     Sub,
@@ -135,6 +136,8 @@ def gaudi_codegen(
         override_type: Optional[GaudiBodyType] = None,  # Type to override
         vars_to_replace: Dict[str, Expr] = {},
     ) -> None:
+        print(expr)
+
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -198,6 +201,10 @@ def gaudi_codegen(
 
         # Generate the instructions for the body
         if isinstance(expr, Var):
+            if expr.name() == "rand_cons":
+                import pdb
+
+                pdb.set_trace()
             if expr.name() in vars_to_replace:
                 instr = expr_codegen(
                     vars_to_replace[expr.name()],
@@ -208,37 +215,47 @@ def gaudi_codegen(
                 return instr
             if is_list_type(expr.type) or is_matrix_type(expr.type):
                 expr_str = f"v_{fn_dtype}_ld_tnsr_b(inputCoord, {expr.name()})"
+                expr_instr = format_gaudi_instr(expr_str, default_expr_type)
+                instr = (
+                    convert_arg(
+                        expr_instr.dest_name, default_expr_type, final_expr_type
+                    )
+                    or expr_instr
+                )
+                var_and_lit_cache[expr] = instr
+                return instr
             else:
                 expr_str = expr.name()
-            expr_instr = format_gaudi_instr(expr_str, default_expr_type)
-            instr = (
-                convert_arg(expr_instr.dest_name, default_expr_type, final_expr_type)
-                or expr_instr
-            )
-            var_and_lit_cache[expr] = instr
-            return instr
+                instr = format_gaudi_instr(expr_str, final_expr_type)
+                var_and_lit_cache[expr] = instr
+                return instr
         elif isinstance(expr, Lit):
             instr = format_gaudi_instr(str(expr.val()), final_expr_type)
             var_and_lit_cache[expr] = instr
             return instr
-        elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div]):
-            if final_expr_type.is_primitive:
+        elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div, Mod]):
+            first_arg_instr = expr_codegen(
+                expr.args[0],
+                vars_to_replace=vars_to_replace,
+            )
+            second_arg_instr = expr_codegen(
+                expr.args[1],
+                vars_to_replace=vars_to_replace,
+            )
+            if (
+                first_arg_instr.dest_type.is_primitive
+                and second_arg_instr.dest_type.is_primitive
+            ):
                 if isinstance(expr, Add):
                     op = "+"
                 elif isinstance(expr, Sub):
                     op = "-"
                 elif isinstance(expr, Mul):
                     op = "*"
-                else:
+                elif isinstance(expr, Div):
                     op = "/"
-                first_arg_instr = expr_codegen(
-                    expr.args[0],
-                    vars_to_replace=vars_to_replace,
-                )
-                second_arg_instr = expr_codegen(
-                    expr.args[1],
-                    vars_to_replace=vars_to_replace,
-                )
+                else:
+                    op = "%"
                 expr_instr = format_gaudi_instr(
                     f"{first_arg_instr.dest_name} {op} {second_arg_instr.dest_name}",
                     default_expr_type,
@@ -250,16 +267,24 @@ def gaudi_codegen(
                     or expr_instr
                 )
             else:
-                if isinstance(expr, Add):
-                    fn_name = "matrix_elemwise_add"
-                elif isinstance(expr, Sub):
-                    fn_name = "matrix_elemwise_sub"
-                elif isinstance(expr, Mul):
-                    fn_name = "matrix_elemwise_mul"
+                if first_arg_instr.dest_type.is_primitive:
+                    fn_name_prefix = "scalar_matrix"
+                elif second_arg_instr.dest_type.is_primitive:
+                    fn_name_prefix = "matrix_scalar"
                 else:
-                    fn_name = "matrix_elemwise_div"
+                    fn_name_prefix = "matrix_elemwise"
+                if isinstance(expr, Add):
+                    fn_name_suffix = "_add"
+                elif isinstance(expr, Sub):
+                    fn_name_suffix = "_sub"
+                elif isinstance(expr, Mul):
+                    fn_name_suffix = "_mul"
+                else:
+                    fn_name_suffix = "_div"
                 return expr_codegen(
-                    call(fn_name, Matrix[Int], *expr.args).src,
+                    call(
+                        f"{fn_name_prefix}{fn_name_suffix}", Matrix[Int], *expr.args
+                    ).src,
                     override_type=final_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
@@ -370,6 +395,9 @@ def gaudi_codegen(
                         vars_to_replace=vars_to_replace,
                     )
                 else:
+                    import pdb
+
+                    pdb.set_trace()
                     first_arg_instr = expr_codegen(
                         expr.arguments()[0],
                         override_type=expected_arg_type,
@@ -473,11 +501,15 @@ def gaudi_codegen(
                         second_arg_instr,
                         first_arg_instr,
                     )
+                try:
+                    expr_instr = format_gaudi_instr(
+                        f"{instr_name}({first_arg_instr.dest_name}, {second_arg_instr.dest_name})",
+                        ret_gaudi_type,
+                    )
+                except:
+                    import pdb
 
-                expr_instr = format_gaudi_instr(
-                    f"{instr_name}({first_arg_instr.dest_name}, {second_arg_instr.dest_name})",
-                    ret_gaudi_type,
-                )
+                    pdb.set_trace()
                 return (
                     convert_arg(expr_instr.dest_name, ret_gaudi_type, final_expr_type)
                     or expr_instr
