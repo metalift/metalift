@@ -132,7 +132,6 @@ def gaudi_codegen(
 ) -> str:
     # First define some nonlocal variables to be used in this function and associated helper
     # functions
-    instructions: List[GaudiInstr] = []
     var_count = 0
     var_and_lit_cache: dict[Tuple[Expr, GaudiBodyType], GaudiInstr] = {}
 
@@ -281,14 +280,16 @@ def gaudi_codegen(
                     default_expr_type,
                     final_expr_type,
                 )
-                instructions.extend(first_arg_instrs)
-                instructions.extend(second_arg_instrs)
+                local_instructions.extend(first_arg_instrs)
+                local_instructions.extend(second_arg_instrs)
                 return local_instructions, expr_instr
             else:
+                first_arg, second_arg = expr.args[:2]
                 if first_arg_instr.dest_type.is_primitive:
                     fn_name_prefix = "scalar_matrix"
                 elif second_arg_instr.dest_type.is_primitive:
                     fn_name_prefix = "matrix_scalar"
+                    second_arg, first_arg = first_arg, second_arg
                 else:
                     fn_name_prefix = "matrix_elemwise"
                 if isinstance(expr, Add):
@@ -301,7 +302,10 @@ def gaudi_codegen(
                     fn_name_suffix = "_div"
                 return expr_codegen(
                     call(
-                        f"{fn_name_prefix}{fn_name_suffix}", Matrix[Int], *expr.args
+                        f"{fn_name_prefix}{fn_name_suffix}",
+                        Matrix[Int],
+                        first_arg,
+                        second_arg,
                     ).src,
                     vars_to_replace=vars_to_replace,
                 )
@@ -343,25 +347,25 @@ def gaudi_codegen(
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                instructions.extend(cond_arg0_instrs)
+                local_instructions.extend(cond_arg0_instrs)
                 cond_arg1_instrs, cond_arg1_instr = expr_codegen(
                     cond.args[1],
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                instructions.extend(cond_arg1_instrs)
+                local_instructions.extend(cond_arg1_instrs)
                 if_then_instrs, if_then_instr = expr_codegen(
                     if_then,
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                instructions.extend(if_then_instrs)
+                local_instructions.extend(if_then_instrs)
                 if_else_instrs, if_else_instr = expr_codegen(
                     if_else,
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                instructions.extend(if_else_instrs)
+                local_instructions.extend(if_else_instrs)
                 expr_str = f"{cond_instr_name}({cond_arg0_instr.dest_name}, {cond_arg1_instr.dest_name}, {if_then_instr.dest_name}, {if_else_instr.dest_name})"
                 expr_instr = format_gaudi_instr(
                     expr_str, default_expr_type, final_expr_type
@@ -374,6 +378,8 @@ def gaudi_codegen(
                 "vec_elemwise_add",
                 "matrix_scalar_add",
                 "vec_scalar_add",
+                "scalar_matrix_add",
+                "scalar_vec_add",
             }
             sub_fn_names = {
                 "matrix_elemwise_sub",
@@ -388,6 +394,8 @@ def gaudi_codegen(
                 "vec_elemwise_mul",
                 "matrix_scalar_mul",
                 "vec_scalar_mul",
+                "scalar_matrix_mul",
+                "scalar_vec_mul",
             }
             div_fn_names = {
                 "matrix_elemwise_div",
@@ -432,8 +440,8 @@ def gaudi_codegen(
                         first_arg_instrs,
                     )
 
-                instructions.extend(first_arg_instrs)
-                instructions.extend(second_arg_instrs)
+                local_instructions.extend(first_arg_instrs)
+                local_instructions.extend(second_arg_instrs)
 
                 # Now get fields to multiply
                 if first_arg_instr.dest_type == GaudiBodyType.FLOAT64:
@@ -511,6 +519,7 @@ def gaudi_codegen(
                     override_type=expected_arg_type,
                     vars_to_replace=vars_to_replace,
                 )
+
                 second_arg_instrs, second_arg_instr = expr_codegen(
                     expr.arguments()[1],
                     override_type=expected_arg_type,
@@ -526,8 +535,8 @@ def gaudi_codegen(
                         second_arg_instrs,
                         first_arg_instrs,
                     )
-                instructions.extend(first_arg_instrs)
-                instructions.extend(second_arg_instrs)
+                local_instructions.extend(first_arg_instrs)
+                local_instructions.extend(second_arg_instrs)
                 expr_instr = format_gaudi_instr(
                     f"{instr_name}({first_arg_instr.dest_name}, {second_arg_instr.dest_name})",
                     ret_gaudi_type,
@@ -566,9 +575,8 @@ def gaudi_codegen(
         store_instr = "v_u8_st_tnsr"
 
     # Generate the returned expression
-    ret_instrs, ret_instr = expr_codegen(ps_fn_decl.body())
+    instructions, ret_instr = expr_codegen(ps_fn_decl.body())
     ret_dest_name = ret_instr.dest_name
-    instructions.extend(ret_instrs)
 
     # Dedup instructions
     seen = set()
