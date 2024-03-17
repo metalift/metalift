@@ -100,7 +100,7 @@ class GaudiHeaderType(CType, Enum):
             )
 
 
-@dataclass
+@dataclass(frozen=True)
 class GaudiInstr:
     dest_name: Optional[str]
     dest_type: Optional[GaudiBodyType]
@@ -142,6 +142,9 @@ def gaudi_codegen(
         override_type: Optional[GaudiBodyType] = None,  # Type to override
         vars_to_replace: Dict[str, Expr] = {},
     ) -> Tuple[List[GaudiInstr], GaudiInstr]:
+        print(expr)
+        print()
+
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -228,7 +231,8 @@ def gaudi_codegen(
 
                 # Use cache
                 if (expr, expr_instr.dest_type) in var_and_lit_cache:
-                    return [], var_and_lit_cache[(expr, expr_instr.dest_type)]
+                    instr = var_and_lit_cache[(expr, expr_instr.dest_type)]
+                    return [instr], instr
 
                 # Set cache
                 var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
@@ -238,13 +242,15 @@ def gaudi_codegen(
                 expr_str = expr.name()
                 expr_instr = format_gaudi_instr(expr_str, final_expr_type)
                 if (expr, expr_instr.dest_type) in var_and_lit_cache:
-                    return [], var_and_lit_cache[(expr, expr_instr.dest_type)]
+                    instr = var_and_lit_cache[(expr, expr_instr.dest_type)]
+                    return [instr], instr
                 var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
                 return local_instructions, expr_instr
         elif isinstance(expr, Lit):
             expr_instr = format_gaudi_instr(str(expr.val()), final_expr_type)
             if (expr, expr_instr.dest_type) in var_and_lit_cache:
-                return [], var_and_lit_cache[(expr, expr_instr.dest_type)]
+                instr = var_and_lit_cache[(expr, expr_instr.dest_type)]
+                return [instr], instr
             var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
             return local_instructions, expr_instr
         elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div, Mod]):
@@ -297,7 +303,6 @@ def gaudi_codegen(
                     call(
                         f"{fn_name_prefix}{fn_name_suffix}", Matrix[Int], *expr.args
                     ).src,
-                    override_type=final_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
 
@@ -412,9 +417,6 @@ def gaudi_codegen(
                         override_type=expected_arg_type,
                         vars_to_replace=vars_to_replace,
                     )
-                import pdb
-
-                pdb.set_trace()
                 second_arg_instrs, second_arg_instr = expr_codegen(
                     expr.arguments()[1],
                     override_type=expected_arg_type,
@@ -567,14 +569,21 @@ def gaudi_codegen(
     ret_instrs, ret_instr = expr_codegen(ps_fn_decl.body())
     ret_dest_name = ret_instr.dest_name
     instructions.extend(ret_instrs)
-    instr_strs = [instr.instr_str for instr in instructions]
+
+    # Dedup instructions
+    seen = set()
+    seen_add = seen.add
+    deduped_instrs = [
+        instr for instr in instructions if not (instr in seen or seen_add(instr))
+    ]
+    deduped_instr_strs = [instr.instr_str for instr in deduped_instrs]
 
     if is_return_type_vec and not is_return_type_matrix:
         joined_instr_str = "\n".join(
-            [instr_strs[0]]
+            [deduped_instr_strs[0]]
             + [
                 textwrap.indent(instr_str, INDENTATION * 3)
-                for instr_str in instr_strs[1:]
+                for instr_str in deduped_instr_strs[1:]
             ]
         )
         body = f"""
@@ -597,10 +606,10 @@ def gaudi_codegen(
         body = textwrap.dedent(body)
     else:
         joined_instr_str = "\n".join(
-            [instr_strs[0]]
+            [deduped_instr_strs[0]]
             + [
                 textwrap.indent(instr_str, INDENTATION * 4)
-                for instr_str in instr_strs[1:]
+                for instr_str in deduped_instr_strs[1:]
             ]
         )
         # matrix return type
