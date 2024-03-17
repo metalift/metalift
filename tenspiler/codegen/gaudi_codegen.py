@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
 
+from pydash import pascal_case
+
 from metalift.ir import (
     Add,
     Call,
@@ -85,6 +87,10 @@ class GaudiHeaderType(CType, Enum):
 
     TENSOR = "tensor"
 
+    @property
+    def is_primitive(self) -> bool:
+        return self in {GaudiHeaderType.UINT8, GaudiHeaderType.FLOAT}
+
     @staticmethod
     def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiHeaderType":
         if is_list_type(ir_type) or is_matrix_type(ir_type):
@@ -122,6 +128,61 @@ class GaudiInstr:
             return f"{self.dest_type.value} {self.dest_name};"
         else:
             return self.expr_str
+
+
+def get_glue_code_hpp(fn_name: str, primitive_args: List[Tuple[str, GaudiHeaderType]]):
+    upper_case_fn_name = fn_name.upper()
+    pascal_case_fn_name = pascal_case(fn_name)
+
+    # We need to construct a struct that holds all scalar params, if they exist.
+    if len(primitive_args) == 0:
+        scalar_params_struct = ""
+    else:
+        scalar_params = [
+            f"{arg_type.value} {arg_name}" for arg_name, arg_type in primitive_args
+        ]
+        scalar_params_str = "\n".join(
+            [scalar_params[0]]
+            + [
+                textwrap.indent(param_str, INDENTATION * 3)
+                for param_str in scalar_params[1:]
+            ]
+        )
+        scalar_params_struct = f"""
+        struct {pascal_case_fn_name}Param {{
+            {scalar_params_str};
+        }};
+        """
+
+    hpp = f"""
+    #ifndef _{upper_case_fn_name}_GAUDI2_HPP
+    #define _{upper_case_fn_name}_GAUDI2_HPP
+
+    #include "gc_interface.h"
+
+    class {pascal_case_fn_name}Gaudi2
+    {{
+        public:
+            {pascal_case_fn_name}Gaudi2() {{}}
+            virtual ~{pascal_case_fn_name}Gaudi2() {{}}
+
+            virtual gcapi::GlueCodeReturn_t
+            GetGcDefinitions(gcapi::HabanaKernelParams_t* inDefs,
+                        gcapi::HabanaKernelInstantiation_t* outDefs);
+
+            virtual gcapi::GlueCodeReturn_t GetKernelName(
+                    char kernelName [gcapi::MAX_NODE_NAME]);
+
+            {scalar_params_struct}
+        private:
+            {pascal_case_fn_name}Gaudi2(const {pascal_case_fn_name}Gaudi2& other) = delete;
+            {pascal_case_fn_name}Gaudi2& operator=(const {pascal_case_fn_name}Gaudi2& other) = delete;
+    }};
+
+    #endif
+    """
+
+    return textwrap.dedent(hpp)
 
 
 def gaudi_codegen(
@@ -559,11 +620,25 @@ def gaudi_codegen(
     # and it should always be the last argument.
     rv_name = f"{ps_fn_decl.name()}_rv"
     rv = create_object(ps_fn_decl.returnT(), rv_name).src
-    arguments = [
-        f"{GaudiHeaderType.from_ir_and_data_type(arg.type, d_type).value} {arg.name()}"
+    arg_names_with_types = [
+        (arg.name(), GaudiHeaderType.from_ir_and_data_type(arg.type, d_type))
         for arg in [*ps_fn_decl.arguments(), rv]
     ]
-    arguments_str = ", ".join(arguments)
+    primitive_arg_names_with_types = [
+        (arg_name, arg_type)
+        for arg_name, arg_type in arg_names_with_types
+        if arg_type.is_primitive
+    ]
+    hpp_code = get_glue_code_hpp(ps_fn_decl.name(), primitive_arg_names_with_types)
+    print(hpp_code)
+    return
+
+    exit(0)
+    arg_str_lst = [
+        f"{arg_name_ty_tup[0].value} {arg_name_ty_tup[1]}"
+        for arg_name_ty_tup in arg_names_with_types
+    ]
+    arguments_str = ", ".join(arg_str_lst)
     header = f"void main({arguments_str})"
 
     # If mode is float, then we operate on 64 elements at a time, else 256
