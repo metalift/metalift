@@ -130,15 +130,18 @@ def gaudi_codegen(
     override_arg_types: Dict[str, GaudiHeaderType] = {},
     d_type: DataType = DataType.INT,
 ) -> str:
+    # First define some nonlocal variables to be used in this function and associated helper
+    # functions
+    instructions: List[GaudiInstr] = []
+    var_count = 0
+    var_and_lit_cache: dict[Tuple[Expr, GaudiBodyType], GaudiInstr] = {}
+
     def expr_codegen(
         expr: Expr,
         *,
         override_type: Optional[GaudiBodyType] = None,  # Type to override
         vars_to_replace: Dict[str, Expr] = {},
-    ) -> None:
-        print(expr)
-        print(var_and_lit_cache)
-
+    ) -> Tuple[List[GaudiInstr], GaudiInstr]:
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -151,16 +154,24 @@ def gaudi_codegen(
         def format_gaudi_instr(
             expr_str: Optional[str],
             gaudi_body_type: Optional[GaudiBodyType],
+            final_gaudi_body_type: Optional[GaudiBodyType] = None,
             ignore_dest: bool = False,
         ) -> GaudiInstr:
-            # TODO(jie): change this description
-            """Formats the instruction with the destination name and type."""
+            nonlocal var_count
             if ignore_dest:
                 dest_name = None
             else:
-                dest_name = f"v{len(instructions)}"
-            gaudi_instr = GaudiInstr(dest_name, gaudi_body_type, expr_str)
-            return gaudi_instr
+                dest_name = f"v{var_count}"
+            default_type_instr = GaudiInstr(dest_name, gaudi_body_type, expr_str)
+            local_instructions.append(default_type_instr)
+            var_count += 1
+            if final_gaudi_body_type:
+                convert_instr = convert_arg(
+                    default_type_instr.dest_name, gaudi_body_type, final_gaudi_body_type
+                )
+                if convert_instr is not None:
+                    return convert_instr
+            return default_type_instr
 
         def convert_arg(
             arg_name: str,
@@ -169,14 +180,13 @@ def gaudi_codegen(
         ) -> Optional[GaudiInstr]:
             """Converts the argument to the expected type. Returns the metadata of the new argument. Additionally, adds the instruction to the list of instructions."""
             if not arg_gaudi_type.is_primitive and expected_gaudi_type.is_primitive:
-                import pdb
-
-                pdb.set_trace()
                 raise Exception(
                     f"Cannot convert to primitive type {expected_gaudi_type}"
                 )
+            # Nothing to convert
             if arg_gaudi_type == expected_gaudi_type:
                 return None
+            # If we are casting from a primitive to a non-primitive, we need to broadcast
             if arg_gaudi_type.is_primitive:
                 return format_gaudi_instr(arg_name, expected_gaudi_type)
             non_default_switches = {
@@ -192,11 +202,15 @@ def gaudi_codegen(
                 f"{convert_instr_name}({arg_name}, {switch})", expected_gaudi_type
             )
 
-        fn_dtype = "f32" if d_type == DataType.FLOAT else "u8"
-        default_expr_type = get_gaudi_body_type(expr.type)
-        final_expr_type = get_gaudi_body_type_with_override(expr.type)
+        # Instructions local to this expression
+        local_instructions: List[GaudiInstr] = []
 
-        expr_instr: Optional[GaudiInstr] = None
+        fn_dtype = "f32" if d_type == DataType.FLOAT else "u8"
+
+        # If we don't have an override type, then we infer the type from the expression type.
+        default_expr_type = get_gaudi_body_type(expr.type)
+        # Otherwise, we use the override type
+        final_expr_type = get_gaudi_body_type_with_override(expr.type)
 
         # Generate the instructions for the body
         if isinstance(expr, Var):
@@ -208,44 +222,37 @@ def gaudi_codegen(
                 )
             if is_list_type(expr.type) or is_matrix_type(expr.type):
                 expr_str = f"v_{fn_dtype}_ld_tnsr_b(inputCoord, {expr.name()})"
-                expr_instr = format_gaudi_instr(expr_str, default_expr_type)
-                convert_instr = convert_arg(
-                    expr_instr.dest_name, default_expr_type, final_expr_type
+                expr_instr = format_gaudi_instr(
+                    expr_str, default_expr_type, final_expr_type
                 )
-                final_instr = expr_instr or convert_instr
 
                 # Use cache
-                if (expr, final_instr.dest_type) in var_and_lit_cache:
-                    return var_and_lit_cache[(expr, final_instr.dest_type)]
+                if (expr, expr_instr.dest_type) in var_and_lit_cache:
+                    return [], var_and_lit_cache[(expr, expr_instr.dest_type)]
 
-                # Append instructions
-                instructions.append(expr_instr)
-                if convert_instr:
-                    instructions.append(convert_instr)
                 # Set cache
-                var_and_lit_cache[(expr, final_instr.dest_type)] = final_instr
-                return final_instr
+                var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
+                return local_instructions, expr_instr
             else:
+                # We are dealing with a variable of a primitive type
                 expr_str = expr.name()
-                instr = format_gaudi_instr(expr_str, final_expr_type)
-                if (expr, instr.dest_type) in var_and_lit_cache:
-                    return var_and_lit_cache[(expr, instr.dest_type)]
-                instructions.append(instr)
-                var_and_lit_cache[(expr, instr.dest_type)] = instr
-                return instr
+                expr_instr = format_gaudi_instr(expr_str, final_expr_type)
+                if (expr, expr_instr.dest_type) in var_and_lit_cache:
+                    return [], var_and_lit_cache[(expr, expr_instr.dest_type)]
+                var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
+                return local_instructions, expr_instr
         elif isinstance(expr, Lit):
-            instr = format_gaudi_instr(str(expr.val()), final_expr_type)
-            if (expr, instr.dest_type) in var_and_lit_cache:
-                return var_and_lit_cache[(expr, instr.dest_type)]
-            instructions.append(instr)
-            var_and_lit_cache[(expr, instr.dest_type)] = instr
-            return instr
+            expr_instr = format_gaudi_instr(str(expr.val()), final_expr_type)
+            if (expr, expr_instr.dest_type) in var_and_lit_cache:
+                return [], var_and_lit_cache[(expr, expr_instr.dest_type)]
+            var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
+            return local_instructions, expr_instr
         elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div, Mod]):
-            first_arg_instr = expr_codegen(
+            first_arg_instrs, first_arg_instr = expr_codegen(
                 expr.args[0],
                 vars_to_replace=vars_to_replace,
             )
-            second_arg_instr = expr_codegen(
+            second_arg_instrs, second_arg_instr = expr_codegen(
                 expr.args[1],
                 vars_to_replace=vars_to_replace,
             )
@@ -266,24 +273,18 @@ def gaudi_codegen(
                 expr_instr = format_gaudi_instr(
                     f"{first_arg_instr.dest_name} {op} {second_arg_instr.dest_name}",
                     default_expr_type,
+                    final_expr_type,
                 )
-                instructions.append(expr_instr)
-                convert_instr = convert_arg(
-                    expr_instr.dest_name, default_expr_type, final_expr_type
-                )
-                if convert_instr:
-                    instructions.append(convert_instr)
-                return convert_instr or expr_instr
+                instructions.extend(first_arg_instrs)
+                instructions.extend(second_arg_instrs)
+                return local_instructions, expr_instr
             else:
                 if first_arg_instr.dest_type.is_primitive:
                     fn_name_prefix = "scalar_matrix"
-                    final_expr_type = second_arg_instr.dest_type
                 elif second_arg_instr.dest_type.is_primitive:
                     fn_name_prefix = "matrix_scalar"
-                    final_expr_type = first_arg_instr.dest_type
                 else:
                     fn_name_prefix = "matrix_elemwise"
-                    final_expr_type = first_arg_instr.dest_type
                 if isinstance(expr, Add):
                     fn_name_suffix = "_add"
                 elif isinstance(expr, Sub):
@@ -332,36 +333,35 @@ def gaudi_codegen(
                 else:
                     raise Exception(f"Unsupported condition {cond} for select_two_args")
 
-                cond_arg0_instr = expr_codegen(
+                cond_arg0_instrs, cond_arg0_instr = expr_codegen(
                     cond.args[0],
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                cond_arg1_instr = expr_codegen(
+                instructions.extend(cond_arg0_instrs)
+                cond_arg1_instrs, cond_arg1_instr = expr_codegen(
                     cond.args[1],
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                if_then_instr = expr_codegen(
+                instructions.extend(cond_arg1_instrs)
+                if_then_instrs, if_then_instr = expr_codegen(
                     if_then,
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                if_else_instr = expr_codegen(
+                instructions.extend(if_then_instrs)
+                if_else_instrs, if_else_instr = expr_codegen(
                     if_else,
                     override_type=default_expr_type,
                     vars_to_replace=vars_to_replace,
                 )
-                if_else_instr = instructions[-1]
+                instructions.extend(if_else_instrs)
                 expr_str = f"{cond_instr_name}({cond_arg0_instr.dest_name}, {cond_arg1_instr.dest_name}, {if_then_instr.dest_name}, {if_else_instr.dest_name})"
-                expr_instr = format_gaudi_instr(expr_str, default_expr_type)
-                convert_instr = convert_arg(
-                    expr_instr.dest_name, default_expr_type, final_expr_type
+                expr_instr = format_gaudi_instr(
+                    expr_str, default_expr_type, final_expr_type
                 )
-                instructions.append(expr_instr)
-                if convert_instr:
-                    instructions.append(convert_instr)
-                return convert_instr or expr_instr
+                return local_instructions, expr_instr
 
             # Group function names
             add_fn_names = {
@@ -401,18 +401,21 @@ def gaudi_codegen(
                 if "scalar" in fn_name:
                     # Since we need to convert everything to float anyways, we just broadcast
                     # the scalar as a float from the beginning
-                    first_arg_instr = expr_codegen(
+                    first_arg_instrs, first_arg_instr = expr_codegen(
                         expr.arguments()[0],
                         override_type=GaudiBodyType.FLOAT64,
                         vars_to_replace=vars_to_replace,
                     )
                 else:
-                    first_arg_instr = expr_codegen(
+                    first_arg_instrs, first_arg_instr = expr_codegen(
                         expr.arguments()[0],
                         override_type=expected_arg_type,
                         vars_to_replace=vars_to_replace,
                     )
-                second_arg_instr = expr_codegen(
+                import pdb
+
+                pdb.set_trace()
+                second_arg_instrs, second_arg_instr = expr_codegen(
                     expr.arguments()[1],
                     override_type=expected_arg_type,
                     vars_to_replace=vars_to_replace,
@@ -422,6 +425,13 @@ def gaudi_codegen(
                         second_arg_instr,
                         first_arg_instr,
                     )
+                    first_arg_instrs, second_arg_instrs = (
+                        second_arg_instrs,
+                        first_arg_instrs,
+                    )
+
+                instructions.extend(first_arg_instrs)
+                instructions.extend(second_arg_instrs)
 
                 # Now get fields to multiply
                 if first_arg_instr.dest_type == GaudiBodyType.FLOAT64:
@@ -437,7 +447,6 @@ def gaudi_codegen(
                         f"v_reciprocal_fast_f32({second_arg_instr.dest_name})",
                         GaudiBodyType.FLOAT64,
                     )
-                    instructions.append(reciprocal_instr)
                     second_arg_mult_lst = [reciprocal_instr.dest_name]
                 else:
                     # second arg is of type float256. We need to call v_reciprocal_fast_f32
@@ -447,20 +456,18 @@ def gaudi_codegen(
                         for i in range(1, 5)
                     ]
 
-                # Now we both args are of type float256 or float64.
-                result_instr = format_gaudi_instr(
-                    expr_str=None, gaudi_body_type=GaudiBodyType.FLOAT256
-                )
-                instructions.append(result_instr)
-                result_arg_name = result_instr.dest_name
-
                 if len(first_arg_mult_lst) == 1 and len(second_arg_mult_lst) == 1:
-                    format_gaudi_instr(
+                    result_instr = format_gaudi_instr(
                         f"v_f32_mul_b({first_arg_mult_lst[0]}, {second_arg_mult_lst[0]})",
                         GaudiBodyType.FLOAT64,
                     )
-                    instructions.append(result_instr)
+                    return local_instructions, result_instr
                 else:
+                    # Now we both args are of type float256 or float64.
+                    result_instr = format_gaudi_instr(
+                        expr_str=None, gaudi_body_type=GaudiBodyType.FLOAT256
+                    )
+                    result_arg_name = result_instr.dest_name
                     for i in range(1, 5):
                         if len(first_arg_mult_lst) == 1:
                             first_arg_mult = first_arg_mult_lst[0]
@@ -472,18 +479,18 @@ def gaudi_codegen(
                         else:
                             second_arg_mult = second_arg_mult_lst[i - 1]
 
-                        part_mul_instr = format_gaudi_instr(
+                        format_gaudi_instr(
                             expr_str=f"{result_arg_name}.v{i} = v_f32_mul_b({first_arg_mult}, {second_arg_mult});",
                             gaudi_body_type=None,
                             ignore_dest=True,
                         )
-                        instructions.append(part_mul_instr)
-                # Last, we convert this float256 to uchar256
-                convert_instr = convert_arg(
-                    result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
-                )
-                instructions.append(convert_instr)
-                return convert_instr
+
+                    # The fact that we are doing this multiplication in 4 go's means that we are
+                    # multiplying ints, so we need to convert back to uchar256
+                    convert_instr = convert_arg(
+                        result_arg_name, GaudiBodyType.FLOAT256, GaudiBodyType.UCHAR256
+                    )
+                    return local_instructions, convert_instr
 
             if fn_name in {*add_fn_names, *sub_fn_names, *mul_fn_names}:
                 ret_gaudi_type = get_gaudi_body_type(expr.type)
@@ -497,12 +504,12 @@ def gaudi_codegen(
                     if d_type == DataType.INT:
                         ret_gaudi_type = GaudiBodyType.UINT256
 
-                first_arg_instr = expr_codegen(
+                first_arg_instrs, first_arg_instr = expr_codegen(
                     expr.arguments()[0],
                     override_type=expected_arg_type,
                     vars_to_replace=vars_to_replace,
                 )
-                second_arg_instr = expr_codegen(
+                second_arg_instrs, second_arg_instr = expr_codegen(
                     expr.arguments()[1],
                     override_type=expected_arg_type,
                     vars_to_replace=vars_to_replace,
@@ -513,17 +520,18 @@ def gaudi_codegen(
                         second_arg_instr,
                         first_arg_instr,
                     )
+                    first_arg_instrs, second_arg_instrs = (
+                        second_arg_instrs,
+                        first_arg_instrs,
+                    )
+                instructions.extend(first_arg_instrs)
+                instructions.extend(second_arg_instrs)
                 expr_instr = format_gaudi_instr(
                     f"{instr_name}({first_arg_instr.dest_name}, {second_arg_instr.dest_name})",
                     ret_gaudi_type,
+                    final_expr_type,
                 )
-                instructions.append(expr_instr)
-                convert_instr = convert_arg(
-                    expr_instr.dest_name, ret_gaudi_type, final_expr_type
-                )
-                if convert_instr:
-                    instructions.append(convert_instr)
-                return convert_instr or expr_instr
+                return local_instructions, expr_instr
 
     ###############################
     # Begins actual code generation
@@ -556,9 +564,9 @@ def gaudi_codegen(
         store_instr = "v_u8_st_tnsr"
 
     # Generate the returned expression
-    instructions: List[GaudiInstr] = []
-    var_and_lit_cache: dict[Tuple[Expr, GaudiBodyType], GaudiInstr] = {}
-    ret_dest_name = expr_codegen(ps_fn_decl.body()).dest_name
+    ret_instrs, ret_instr = expr_codegen(ps_fn_decl.body())
+    ret_dest_name = ret_instr.dest_name
+    instructions.extend(ret_instrs)
     instr_strs = [instr.instr_str for instr in instructions]
 
     if is_return_type_vec and not is_return_type_matrix:
