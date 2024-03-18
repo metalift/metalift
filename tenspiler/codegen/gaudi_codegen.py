@@ -130,7 +130,91 @@ class GaudiInstr:
             return self.expr_str
 
 
-def get_glue_code_hpp(fn_name: str, primitive_args: List[Tuple[str, GaudiHeaderType]]):
+def get_glue_code_cpp(
+    fn_name: str, all_args: List[Tuple[Var, GaudiHeaderType]], d_type: DataType
+) -> str:
+    pascal_case_fn_name = pascal_case(fn_name)
+
+    # TODO(jie): ask Niranjan if there's any intelligence in picking the variable names
+    binary_start = f"_binary___{fn_name}_gaudi2_o_start"
+    binary_end = f"_binary___{fn_name}_gaudi2_o_end"
+    binary_loc_declarations = f"""
+    extern unsigned char {binary_start};
+    extern unsigned char {binary_end};
+    """
+
+    get_kernel_name_def = f"""
+    gcapi::GlueCodeReturn_t {pascal_case_fn_name}Gaudi2::GetKernelName(
+                char kernelName [gcapi::MAX_NODE_NAME])
+    {{
+        strcpy(kernelName,"custom_{fn_name}_gaudi2");
+        return gcapi::GLUE_SUCCESS;
+    }}
+    """
+
+    primitive_args_with_types = [
+        (arg, arg_type) for arg, arg_type in all_args if arg_type.is_primitive
+    ]
+    tensor_args_with_types = [
+        (arg, arg_type) for arg, arg_type in all_args if not arg_type.is_primitive
+    ]
+    num_input_tensors = len(tensor_args_with_types) - 1
+    if is_matrix_type(tensor_args_with_types[0][0].type):
+        num_dim = 2
+    else:
+        num_dim = 1
+
+    if d_type == DataType.INT:
+        gc_d_type = "gcapi::DATA_F32"
+    else:
+        gc_d_type = "gcapi::DATA_U8"
+
+    # If there are scalar params, we need to define
+    if len(primitive_args_with_types) > 0:
+        scalar_params_def = f"""
+        // Define scalar params
+        {pascal_case_fn_name}Param* paramDef = static_cast<{pascal_case_fn_name}Param*>(in_defs->NodeParams);
+        out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof({'float' if d_type == DataType.FLOAT else 'uint8_t'});
+        memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+        """
+    else:
+        scalar_params_def = ""
+
+    get_gc_def = f"""
+    gcapi::GlueCodeReturn_t {pascal_case_fn_name}Gaudi2::GetGcDefinitions(
+                gcapi::HabanaKernelParams_t* inDefs,
+                gcapi::HabanaKernelInstantiation_t* outDefs) {{
+        gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
+            inDefs,
+            outDefs,
+            {num_input_tensors},
+            {num_dim},
+            {gc_d_type}
+            &{binary_start},
+            &{binary_end},
+        );
+
+        {scalar_params_def}
+
+        return retVal;
+    }}
+    """
+
+    return f"""
+    #include <cstring>
+    // TODO: include your hpp file here
+
+    {binary_loc_declarations}
+
+    {get_kernel_name_def}
+
+    {get_gc_def}
+    """
+
+
+def get_glue_code_hpp(
+    fn_name: str, primitive_args: List[Tuple[Var, GaudiHeaderType]]
+) -> str:
     upper_case_fn_name = fn_name.upper()
     pascal_case_fn_name = pascal_case(fn_name)
 
@@ -139,7 +223,7 @@ def get_glue_code_hpp(fn_name: str, primitive_args: List[Tuple[str, GaudiHeaderT
         scalar_params_struct = ""
     else:
         scalar_params = [
-            f"{arg_type.value} {arg_name}" for arg_name, arg_type in primitive_args
+            f"{arg_type.value} {arg.name()}" for arg, arg_type in primitive_args
         ]
         scalar_params_str = "\n".join(
             [scalar_params[0]]
@@ -620,16 +704,14 @@ def gaudi_codegen(
     # and it should always be the last argument.
     rv_name = f"{ps_fn_decl.name()}_rv"
     rv = create_object(ps_fn_decl.returnT(), rv_name).src
-    arg_names_with_types = [
+    args_with_types = [
         (arg.name(), GaudiHeaderType.from_ir_and_data_type(arg.type, d_type))
         for arg in [*ps_fn_decl.arguments(), rv]
     ]
-    primitive_arg_names_with_types = [
-        (arg_name, arg_type)
-        for arg_name, arg_type in arg_names_with_types
-        if arg_type.is_primitive
+    primitive_args_with_types = [
+        (arg, arg_type) for arg, arg_type in args_with_types if arg_type.is_primitive
     ]
-    hpp_code = get_glue_code_hpp(ps_fn_decl.name(), primitive_arg_names_with_types)
+    hpp_code = get_glue_code_hpp(ps_fn_decl.name(), primitive_args_with_types)
     print(hpp_code)
     return
 
