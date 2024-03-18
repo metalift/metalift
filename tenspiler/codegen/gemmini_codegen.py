@@ -88,16 +88,16 @@ translations = {
 
     VEC_ELEMWISE_MUL: lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][1]}; i++) {{ \n \t {curr_var}[0][i] = {processed_args[0]}[0][i] * {processed_args[1]}[0][i]; \n }} \n",
     MATRIX_ELEMWISE_MUL: lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j] * {processed_args[1]}[i][j]; \n \t }} \n }} \n",
-    # VEC_SCALAR_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
-    # MATRIX_SCALAR_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
+    VEC_SCALAR_MUL: lambda processed_args: f"GEMMINI_ACC_SCALE({processed_args[0]}, {processed_args[1]})",
+    MATRIX_SCALAR_MUL: lambda processed_args: f"GEMMINI_ACC_SCALE({processed_args[0]}, {processed_args[1]})",
 
     # VEC_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
     # MATRIX_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
     # SCALAR_VEC_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
     # SCALAR_MATRIX_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
 
-    # VEC_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
-    # MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
+    VEC_SCALAR_DIV: lambda processed_args, is_floor: f"GEMMINI_ACC_SCALE({processed_args[0]}, 1/{processed_args[1]})",
+    MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"GEMMINI_ACC_SCALE({processed_args[0]}, 1/{processed_args[1]})",
 
     # "matrix_vec_mul": lambda processed_args: f"mx.matmul({processed_args[0]}, {processed_args[1]})",
 
