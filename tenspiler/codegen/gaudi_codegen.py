@@ -142,6 +142,7 @@ def get_glue_code_cpp(
     extern unsigned char {binary_start};
     extern unsigned char {binary_end};
     """
+    binary_loc_declarations = textwrap.dedent(binary_loc_declarations)
 
     get_kernel_name_def = f"""
     gcapi::GlueCodeReturn_t {pascal_case_fn_name}Gaudi2::GetKernelName(
@@ -151,6 +152,7 @@ def get_glue_code_cpp(
         return gcapi::GLUE_SUCCESS;
     }}
     """
+    get_kernel_name_def = textwrap.dedent(get_kernel_name_def)
 
     primitive_args_with_types = [
         (arg, arg_type) for arg, arg_type in all_args if arg_type.is_primitive
@@ -177,6 +179,7 @@ def get_glue_code_cpp(
         out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof({'float' if d_type == DataType.FLOAT else 'uint8_t'});
         memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
         """
+        scalar_params_def = textwrap.dedent(scalar_params_def)
     else:
         scalar_params_def = ""
 
@@ -193,23 +196,20 @@ def get_glue_code_cpp(
             &{binary_start},
             &{binary_end},
         );
-
-        {scalar_params_def}
-
+        {textwrap.indent(scalar_params_def, INDENTATION * 2)}
         return retVal;
     }}
     """
+    get_gc_def = textwrap.dedent(get_gc_def)
 
-    return f"""
+    all_cpp_code = f"""
     #include <cstring>
     // TODO: include your hpp file here
-
-    {binary_loc_declarations}
-
-    {get_kernel_name_def}
-
-    {get_gc_def}
+    {textwrap.indent(binary_loc_declarations, INDENTATION)}
+    {textwrap.indent(get_kernel_name_def, INDENTATION)}
+    {textwrap.indent(get_gc_def, INDENTATION)}
     """
+    return textwrap.dedent(all_cpp_code)
 
 
 def get_glue_code_hpp(
@@ -237,6 +237,7 @@ def get_glue_code_hpp(
             {scalar_params_str};
         }};
         """
+        scalar_params_struct = textwrap.dedent(scalar_params_struct)
 
     hpp = f"""
     #ifndef _{upper_case_fn_name}_GAUDI2_HPP
@@ -257,7 +258,7 @@ def get_glue_code_hpp(
             virtual gcapi::GlueCodeReturn_t GetKernelName(
                     char kernelName [gcapi::MAX_NODE_NAME]);
 
-            {scalar_params_struct}
+            {textwrap.indent(scalar_params_struct, INDENTATION * 3)}
         private:
             {pascal_case_fn_name}Gaudi2(const {pascal_case_fn_name}Gaudi2& other) = delete;
             {pascal_case_fn_name}Gaudi2& operator=(const {pascal_case_fn_name}Gaudi2& other) = delete;
@@ -286,9 +287,6 @@ def gaudi_codegen(
         override_type: Optional[GaudiBodyType] = None,  # Type to override
         vars_to_replace: Dict[str, Expr] = {},
     ) -> Tuple[List[GaudiInstr], GaudiInstr]:
-        print(expr)
-        print()
-
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -705,20 +703,28 @@ def gaudi_codegen(
     rv_name = f"{ps_fn_decl.name()}_rv"
     rv = create_object(ps_fn_decl.returnT(), rv_name).src
     args_with_types = [
-        (arg.name(), GaudiHeaderType.from_ir_and_data_type(arg.type, d_type))
+        (arg, GaudiHeaderType.from_ir_and_data_type(arg.type, d_type))
         for arg in [*ps_fn_decl.arguments(), rv]
     ]
     primitive_args_with_types = [
         (arg, arg_type) for arg, arg_type in args_with_types if arg_type.is_primitive
     ]
-    hpp_code = get_glue_code_hpp(ps_fn_decl.name(), primitive_args_with_types)
-    print(hpp_code)
-    return
 
-    exit(0)
+    # First, generate hpp glue code
+    hpp_glue_code = get_glue_code_hpp(ps_fn_decl.name(), primitive_args_with_types)
+    print("####### hpp glue code ########")
+    print(hpp_glue_code)
+    print()
+
+    # Then, generate cpp glue code
+    cpp_glue_code = get_glue_code_cpp(ps_fn_decl.name(), args_with_types, d_type)
+    print("####### cpp glue code ########")
+    print(cpp_glue_code)
+    print()
+
     arg_str_lst = [
-        f"{arg_name_ty_tup[0].value} {arg_name_ty_tup[1]}"
-        for arg_name_ty_tup in arg_names_with_types
+        f"{arg_name_ty_tup[1].value} {arg_name_ty_tup[0].name()}"
+        for arg_name_ty_tup in args_with_types
     ]
     arguments_str = ", ".join(arg_str_lst)
     header = f"void main({arguments_str})"
@@ -811,4 +817,6 @@ def gaudi_codegen(
     """
     header_and_body = textwrap.dedent(header_and_body)
 
-    return header_and_body
+    print("####### kernel code ########")
+    print(header_and_body)
+    print()
