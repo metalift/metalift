@@ -1,10 +1,7 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
+from tenspiler.codegen.gaudi_codegen import gaudi_codegen
+
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
-from tenspiler.codegen.mlx_codegen import mlx_codegen
-from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
-from tenspiler.codegen.numpy_codegen import numpy_codegen
-from tenspiler.codegen.pytorch_codegen import pytorch_codegen
-from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -101,6 +98,10 @@ def dissolve_blend_8(codegen_func):
             rand_cons,
             dissolve_select_two_args_fn_obj_arg,
         ),
+        base_matrix,
+        active_matrix,
+        opacity,
+        rand_cons,
     )
     all_fn_decls = {
         DISSOLVE_SELECT_TWO_ARGS: select_two_args_fn_decl,
@@ -535,35 +536,36 @@ def test_type(codegen_func):
 
 
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
-codegen_funcs = [gemmini_codegen]
+# codegen_funcs = [gemmini_codegen]
+codegen_funcs = [gaudi_codegen]
 
 for codegen_func in codegen_funcs:
-    # darken_blend_8(codegen_func)
-    # print()
-    # color_burn_8(codegen_func)
-    # print()
-    # lighten_blend_8(codegen_func)
-    # print()
-    # color_dodge_8(codegen_func)
-    # print()
-    # overlay_blend_8(codegen_func)
-    # print()
-    # multiply_blend_8(codegen_func)
-    # print()
-    # linear_burn_8(codegen_func)
-    # print()
-    # screen_blend_8(codegen_func)
-    # print()
-    # linear_dodge_8(codegen_func)
-    # print()
-    # normal_blend_f(codegen_func)
-    # print()
-    # normal_blend_8(codegen_func)
-    # print()
-    # dissolve_blend_8(codegen_func)
-    # print()
- 
-    
+    darken_blend_8(codegen_func)
+    print()
+    color_burn_8(codegen_func)
+    print()
+    lighten_blend_8(codegen_func)
+    print()
+    color_dodge_8(codegen_func)
+    print()
+    overlay_blend_8(codegen_func)
+    print()
+    multiply_blend_8(codegen_func)
+    print()
+    linear_burn_8(codegen_func)
+    print()
+    screen_blend_8(codegen_func)
+    print()
+    linear_dodge_8(codegen_func)
+    print()
+    normal_blend_f(codegen_func)
+    print()
+    normal_blend_8(codegen_func)
+    print()
+    dissolve_blend_8(codegen_func)
+    print()
+    exit(0)
+
     # softmax_part1(codegen_func)
     # print()
     # softmax_part2(codegen_func)
