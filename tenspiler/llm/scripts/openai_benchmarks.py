@@ -24,7 +24,44 @@ dsl_code = open(args.dsl_code).read()
 
 # prompt for guessing the post conditions of a function. dsl_code is the set of functions and constants that can be used to rewrite the function. source_code is the function to be rewritten.
 TEMPLATE_TEXT = f"""
-Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Example1 is provided to help you understand the task. Rewrite the `test` function in Example2.
+#Instructions
+# 1. Do not use for/while loops for rewriting the function.
+# 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+# 3. Inline all the expressions. Do not use intermediate variables.
+#Example1
+```
+#defined functions
+def vec_elemwise_add(x, y):
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] + y[0], *vec_elemwise_add(x[1:], y[1:])]
+    )
+
+
+def vec_elemwise_sub(x, y):
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
+    )
+```
+//test function
+Buffer<float,1> test (Buffer<float,1> base, Buffer<float,1> active, Buffer<float,1> out,  Buffer<float,1> opacity)
+{{
+	for (int pixel=0; pixel<out.width(); pixel++) {{
+		out(pixel) = active(pixel) + opacity(pixel) - base(pixel);
+	}}
+    return out;
+}}
+
+#rewritten function
+def test (base, active, out, opacity):
+    return vec_elemwise_sub(vec_elemwise_add(active, opacity), base)
+```
+
+#Example2
 ```
 #defined functions
 {dsl_code}
@@ -55,10 +92,14 @@ def extract(s):
 
 # extract the code from the completions
 for idx, c in enumerate(outputs.choices):
-    out = extract(c.message.content)
+    # out = extract(c.message.content)
+    out = c.message.content
+    # if not out:
+    #     import pdb; pdb.set_trace()
     if out:
         print(f"{idx}")
-        print(out[0])
+        # print(out[0])
+        print(c.message.content)
     print("=====")
 
 

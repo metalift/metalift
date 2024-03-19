@@ -1,0 +1,1117 @@
+Running benchmark: softmax_part1
+0
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+1
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+2
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+3
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+4
+Python
+def softmax_part1(input, max_pos):
+    sliced_input = input[:max_pos]
+    return reduce_max(sliced_input)
+
+=====
+5
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+6
+
+def softmax_part1(input, max_pos):
+    sub_list = input[0:max_pos]
+    return reduce_max(sub_list)
+
+=====
+7
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+8
+
+def softmax_part1(input, max_pos):
+    return reduce_max(input[:max_pos])
+
+=====
+9
+
+def softmax_part1(input, max_pos):
+    if len(input) < max_pos:
+        return None  # max_pos is out of bounds
+
+    sub_vector = input[:max_pos]
+    max_val = reduce_max(sub_vector)
+    return max_val
+
+=====
+Benchmark softmax_part1 complete.
+
+Running benchmark: softmax_part2
+0
+
+def integer_exp(x):
+    return x
+
+def softmax_part2(input, max_pos, max_val):
+    partial_input = input[:max_pos]
+    output = vec_map(partial_input, lambda x: integer_exp(x - max_val))
+    return output
+
+=====
+1
+
+def softmax_part2(input, max_pos, max_val):
+    def integer_exp(x):
+        return x
+
+    return vec_map(input[:max_pos], lambda x: integer_exp(x - max_val))
+
+=====
+2
+
+def test_func(input, max_pos, max_val):
+    def integer_exp(x):
+        return x
+    sub_vec = input[:max_pos]
+    def minus_max_val(x):
+        return x - max_val
+    output = vec_map(sub_vec, minus_max_val)
+    output = vec_map(output, integer_exp)
+    return output
+
+=====
+3
+
+# Python equivalent of the C++ softmax_part2 function
+def softmax_part2(input, max_pos, max_val):
+    def integer_exp(x):
+        return x
+
+    # Selecting only the elements upto max_pos
+    input = input[:max_pos]
+
+    # Performing element-wise subtraction and applying integer_exp
+    output = vec_map(vec_scalar_sub(max_val, input), integer_exp)
+
+    return output
+
+=====
+4
+
+from typing import List, Callable
+
+# define integer_exp because it's used in softmax_part2
+def integer_exp(x: int) -> int:
+    return x
+
+# rewritten softmax_part2 function
+def softmax_part2(input: List[int], max_pos:int, max_val:int) -> List[int]:
+    # Use list slicing to get first 'max_pos' elements from 'input'
+    input = input[:max_pos]
+    # Use vec_map to apply integer_exp on each element of input and subtract max_val from each element
+    output = vec_map(input, lambda x: integer_exp(x - max_val))
+    return output
+
+=====
+5
+
+def softmax_part2(input, max_pos, max_val):
+    def subtract_max_val(x):
+        return integer_exp(x - max_val)
+
+    input_slice = input[:max_pos]
+    return vec_map(input_slice, subtract_max_val)
+
+=====
+6
+
+def map_int_to_int(x):
+    return integer_exp(x)
+
+def softmax_part2(input, max_pos, max_val):
+    sliced_input = input[:max_pos]
+    max_value_vector = [max_val for _ in range(len(sliced_input))]
+    sub_vector = vec_elemwise_sub(sliced_input, max_value_vector)
+    output = vec_map(sub_vector, map_int_to_int)
+    return output
+
+def integer_exp(x):
+    return x
+
+=====
+7
+
+def softmax_part2(input, max_pos, max_val):
+    sliced_input = input[:max_pos]
+    output = vec_map(sliced_input, lambda x: integer_exp(x - max_val))
+    return output
+
+def integer_exp(x):
+    return x
+
+=====
+8
+Python
+def softmax_part2(input, max_pos, max_val):
+    vec_sub = vec_elemwise_sub(input[:max_pos], vec_scalar_add(max_val, [0]*max_pos))
+    return vec_map(vec_sub, integer_exp)
+
+=====
+9
+
+def softmax_part2(input: list, max_pos: int, max_val: int):
+    return vec_scalar_sub(max_val, input[:max_pos])
+
+=====
+Benchmark softmax_part2 complete.
+
+Running benchmark: softmax_part3
+0
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+1
+
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+
+=====
+2
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+3
+
+def softmax_part3(output, max_pos):
+    sliced_output = output[:max_pos]
+    return reduce_sum(sliced_output)
+
+=====
+4
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+5
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+6
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+7
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+8
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[0:max_pos])
+
+=====
+9
+
+def softmax_part3(output, max_pos):
+    return reduce_sum(output[:max_pos])
+
+=====
+Benchmark softmax_part3 complete.
+
+Running benchmark: softmax_part4
+0
+
+def softmax_part4(unnormalized_output, max_pos, _sum):
+    output = vec_elemwise_div(unnormalized_output[:max_pos], [sum]*max_pos)
+    return output
+
+=====
+1
+
+def softmax_part4(unnormalized_output, max_pos, sum):
+    output = vec_elemwise_div(unnormalized_output[0:max_pos], vec_scalar_mul(sum, [1]*max_pos))
+    return output
+
+=====
+2
+
+def softmax_part4(unnormalized_output, max_pos, sum_):
+    return vec_elemwise_div(unnormalized_output[0:max_pos], [sum_]*max_pos)
+```
+In the softmax_part4 function, the division operation with the vector `unnormalized_output` (from 0 to max_pos) and `sum_`, is performed element-wise. The `vec_elemwise_div` function performs element-wise division between two vectors.
+
+To use this function `vec_elemwise_div` for scalar `sum_` and vector `unnormalized_output`, I have created another vector of same size but with all elements as `sum_` to make the division operation compatible with the framework rules.
+
+The sub-list `unnormalized_output[0:max_pos]` in Python is equivalent to the C++ version `unnormalized_output[i]` where `i`= (0, max_pos). In Python, we have the ability to slice a list in one line, hence it doesn't require a loop for getting part of the vector like in C++.
+
+Therefore, the Python version of the function `softmax_part4` is more concise than the C++ version.
+
+Please note that if elements of `unnormalized_output` and `sum_` are floating point numbers then float division should be used in place of integer division.
+
+Also, the current code will work correctly provided that sum_ != 0. Add an additional check to avoid ZeroDivisionError:
+```python
+def softmax_part4(unnormalized_output, max_pos, sum_):
+    if sum_ == 0:
+        raise ValueError("Sum value cannot be zero")
+    return vec_elemwise_div(unnormalized_output[0:max_pos], [sum_]*max_pos)
+
+=====
+3
+Python
+def softmax_part4(unnormalized_output, max_pos, sum):
+    output = vec_elemwise_div(unnormalized_output[:max_pos], [sum]*max_pos)
+    return output
+
+=====
+4
+
+def softmax_part4(unnormalized_output, max_pos, sum):
+    return vec_elemwise_div(unnormalized_output[:max_pos], vec_scalar_mul(sum, [1]*max_pos))
+
+=====
+5
+
+def softmax_part4(unnormalized_output, max_pos, sum):
+    output = vec_elemwise_div(unnormalized_output[:max_pos], [sum]*max_pos)
+    return output
+
+
+=====
+6
+
+from typing import List
+
+def softmax_part4(unnormalized_output: List[int], max_pos: int, sum_: int) -> List[int]:
+    output = unnormalized_output[:max_pos]  # Select elements till max_pos
+    return vec_scalar_div(sum_, output)     # Divide each element by sum_
+
+=====
+7
+
+def softmax_part4(unnormalized_output, max_pos, sum):
+    result = vec_elemwise_div(unnormalized_output[:max_pos], [sum]*max_pos)
+    return result
+
+=====
+8
+
+def softmax_part4(unnormalized_output, max_pos, sum):
+    return vec_elemwise_div(unnormalized_output[:max_pos], [sum]*max_pos)
+
+=====
+9
+
+def softmax_part4(unnormalized_output, max_pos, sum):
+    output = vec_elemwise_div(unnormalized_output[:max_pos], [sum] * max_pos)
+    return output
+
+=====
+Benchmark softmax_part4 complete.
+
+Running benchmark: rmsnorm_part1
+0
+
+def rmsnorm_part1(input, weight):
+    ss_input = vec_elemwise_mul(input, input)
+    ss = reduce_sum(ss_input)
+    return ss
+
+=====
+1
+
+def rmsnorm_part1(input, weight):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+2
+
+def rmsnorm_part1(input, weight):
+    squared_input = vec_elemwise_mul(input, input)
+    ss = reduce_sum(squared_input)
+    return ss
+
+=====
+3
+
+
+def rmsnorm_part1(input, weight):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+4
+
+def rmsnorm_part1(input, weight):
+    # we square all the elements in the input list
+    squares = vec_elemwise_mul(input, input)
+    # then, we sum all the items in the squares list
+    ss = reduce_sum(squares)
+    return ss
+
+=====
+5
+
+def rmsnorm_part1(input, weight):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+6
+
+def rmsnorm_part1(input, weight):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+7
+
+def rmsnorm_part1(input, weight):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+8
+
+def rmsnorm_part1(input, weight):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+9
+
+def rmsnorm_part1(input):
+    return reduce_sum(vec_elemwise_mul(input, input))
+
+=====
+Benchmark rmsnorm_part1 complete.
+
+Running benchmark: rmsnorm_part2
+0
+
+def rmsnorm_part2(input, weight, ss):
+    inv_ss = 1 / (ss // len(input) + 1)**0.5
+    return vec_scalar_mul(inv_ss, vec_elemwise_mul(input, weight))
+
+=====
+1
+
+def rmsnorm_part2(input, weight, ss):
+    size = len(input)
+    inv_ss = 1 // integer_sqrt(ss // size + 1)
+    return vec_scalar_mul(inv_ss, vec_elemwise_mul(input, weight))
+
+def integer_sqrt(x):
+    return x
+
+=====
+2
+
+def map_int_to_int(x):
+    return integer_sqrt(x)
+
+def rmsnorm_part2(input, weight, ss):
+    size = len(input)
+    inv_ss = scalar_vec_div(integer_sqrt(scalar_vec_div(ss, [size])[0] + 1), [size])[0]
+    output = vec_elemwise_mul(vec_scalar_mul(inv_ss, input), weight)
+    return output
+
+=====
+3
+
+def integer_sqrt(x):
+    return x
+
+def rmsnorm_part2(input, weight, ss):
+    size = len(input)
+    inv_ss = 1 // integer_sqrt(ss // size + 1)
+    return vec_elemwise_mul(vec_scalar_mul(inv_ss, input), weight)
+
+=====
+4
+
+import math
+
+def rmsnorm_part2(input, weight, ss):
+    size = len(input)
+    inv_ss = 1 / math.isqrt(ss // size + 1)
+
+    output = vec_elemwise_mul(input, weight)
+    output = vec_scalar_mul(inv_ss, output)
+
+    return output
+
+=====
+5
+
+import math
+
+def rmsnorm_part2(input, weight, ss):
+    inv_ss = 1 / math.sqrt(ss / len(input) + 1)
+    output = vec_elemwise_mul(vec_scalar_mul(inv_ss, input), weight)
+    return output
+
+=====
+6
+Python
+def integer_sqrt(x): return x
+
+def rmsnorm_part2(input, weight, ss):
+    size = reduce_sum(input)  # Sum up all the elements in the list
+    inv_ss = scalar_vec_div(integer_sqrt(scalar_vec_div(ss, size) + 1), [1] * len(input))  # Calculate the scalar division by broadcasting list with scalar
+    return vec_elemwise_mul(inv_ss, vec_elemwise_mul(input, weight))  # The resulting list after element-wise multiplication of input and weights is multiplied with the inverse scalar.
+
+=====
+7
+
+from math import sqrt
+
+def integer_sqrt(x):
+    return x
+
+def rmsnorm_part2(input, weight, ss):
+    size = len(input)
+    inv_ss = 1 // integer_sqrt(ss // size + 1)
+    return vec_elemwise_mul(vec_scalar_mul(inv_ss, input), weight)
+
+=====
+8
+
+def rmsnorm_part2(input_array, weight_array, ss):
+    size = len(input_array)
+    inv_ss = 1 / ((ss / size) ** 0.5 + 1)
+    return vec_scalar_mul(inv_ss, vec_elemwise_mul(input_array, weight_array))
+```
+
+In this rewritten function, we calculate `inv_ss` directly using the given logic. We then use `vec_elemwise_mul` to perform element-wise multiplication of `input_array` and `weight_array`. Finally, we use `vec_scalar_mul` to multiply each element by `inv_ss`.
+
+Do note that I've made `integer_sqrt` a simple square root operation since this is a semantic representation, `** 0.5` is used for sqrt. The exact operations will depend on the implementation and context of `integer_sqrt` in your program.
+
+However, if `integer_sqrt` should return only integer part, please consider using `//` instead of `/` in the calculation, which will be like:
+
+```python
+inv_ss = 1 // ((ss // size + 1) ** 0.5)
+
+=====
+9
+
+import math
+
+def rmsnorm_part2(input, weight, ss):
+    size = len(input)
+    inv_ss = 1 / math.sqrt(ss / size + 1)  # replace integer_sqrt with math.sqrt
+    output = vec_elemwise_mul(input, weight)
+    return vec_scalar_mul(inv_ss, output)
+
+=====
+Benchmark rmsnorm_part2 complete.
+
+Running benchmark: matmul
+0
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+1
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+2
+Python
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+3
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+4
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+5
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+=====
+7
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+8
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+9
+
+def matmul(weight, input):
+    return matrix_vec_mul(weight, input)
+
+=====
+Benchmark matmul complete.
+
+Running benchmark: transformer_part1
+0
+
+import math
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    # Query is q[head * head_size: (head+1) * head_size]
+    query = q[head * head_size: (head+1) * head_size]
+    attention = []
+    for timestep in range(token_position):
+        # Key is key_cache_layer[timestep][head * head_size: (head+1) * head_size]
+        key = key_cache_layer[timestep][head * head_size: (head+1) * head_size]
+        score = reduce_sum(vec_elemwise_mul(query, key)) // math.isqrt(head_size)
+        attention.append(score)
+    return attention
+
+=====
+1
+
+import math
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    attention = []
+    for timestep in range(token_position):
+        mul_results = vec_elemwise_mul(q[head * head_size : (head + 1) * head_size], key_cache_layer[timestep][head * head_size : (head + 1) * head_size])
+        score = reduce_sum(mul_results) // math.isqrt(head_size)
+        attention.append(score)
+    return attention
+
+=====
+2
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    result = []
+
+    for timestep in range(token_position):
+        score_seq = vec_elemwise_mul(q[head * head_size : (head + 1) * head_size], key_cache_layer[timestep][head * head_size : (head + 1) * head_size])
+
+        score = reduce_sum(score_seq) // integer_sqrt(head_size * 1)
+        result.append(score)
+
+    return result
+
+def integer_sqrt(x):
+    return x
+
+=====
+3
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    return [
+        reduce_sum(
+            vec_elemwise_mul(
+                q[head * head_size : head * head_size + head_size],
+                key_cache_layer[timestep][head * head_size : head * head_size + head_size],
+            )
+        ) // integer_sqrt(head_size)
+        for timestep in range(token_position)
+    ]
+
+=====
+4
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    scores = []
+    for timestep in range(token_position):
+        individual_score = reduce_sum(
+            vec_elemwise_mul(
+                vec_scalar_div(
+                    q[head * head_size : (head + 1) * head_size],
+                    math.sqrt(head_size)
+                ),
+                key_cache_layer[timestep][head * head_size : (head + 1) * head_size]
+            )
+        )
+        scores.append(individual_score)
+    return scores
+
+=====
+5
+
+def transformer_part1(
+    token_position,
+    head,
+    head_size,
+    key_cache_layer,
+    q):
+    # Slice the Q vector and Key matrix for each head
+    q_head = q[head * head_size : (head+1) * head_size]
+    key_cache_layer_head = matrix_column_slice_with_length(key_cache_layer, head * head_size, head_size)
+
+    # Calculate products for each timestep
+    products = [vec_elemwise_mul(q_head, key_cache_layer_head[timestep]) for timestep in range(token_position)]
+
+    # Reduce each product by sum
+    sums = list(map(reduce_sum, products))
+
+    # Divide by sqrt of head_size
+    attention = scalar_vec_div(integer_sqrt(head_size), sums)
+
+    return attention
+
+=====
+6
+
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+
+    matrix = matrix_column_slice_with_length(key_cache_layer, 0, token_position)
+    q_sliced = q[head * head_size : (head + 1) * head_size]
+    product_results = matrix_vec_mul(matrix, q_sliced)
+
+    attention = vec_scalar_div(head_size, product_results)
+
+    return attention
+
+=====
+7
+
+def integer_sqrt(x):
+    return x
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    scores = []
+    for timestep in range(token_position):
+        q_chunk = q[head * head_size : (head + 1) * head_size]
+        key_cache_layer_chunk = key_cache_layer[timestep][head * head_size : (head + 1) * head_size]
+        score = reduce_sum(vec_elemwise_mul(q_chunk, key_cache_layer_chunk))
+        score //= integer_sqrt(head_size)
+        scores.append(score)
+    return scores
+
+=====
+8
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    def scorer(timestep):
+        q_slice = q[head * head_size : (head + 1) * head_size]
+        key_slice = key_cache_layer[timestep][head * head_size : (head + 1) * head_size]
+
+        # Equivalent to summing up the element-wise multiplication of two lists and dividing by sqrt(head_size)
+        return reduce_sum(
+                   vec_elemwise_mul(q_slice, key_slice)
+               ) // integer_sqrt(head_size)
+
+    # Equivalent to building the 'attention' list by iterating over 'token_position' and appending the result of 'scorer' function
+    attention = [scorer(timestep) for timestep in range(token_position)]
+
+    return attention
+
+=====
+9
+
+def transformer_part1(token_position, head, head_size, key_cache_layer, q):
+    attention = []
+    sub_q = q[head * head_size : (head + 1) * head_size]
+    for timestep in range(0, token_position):
+        sub_key_cache = key_cache_layer[timestep][head * head_size : (head + 1) * head_size]
+        score = reduce_sum(vec_elemwise_mul(sub_q, sub_key_cache))
+        score = vec_scalar_div(head_size, [score])[0]  # Assuming integer_sqrt(x) is equivalent to x / 1.
+        attention.append(score)
+    return attention
+
+=====
+Benchmark transformer_part1 complete.
+
+Running benchmark: transformer_part2
+0
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+    key_cache_layer_transposed = matrix_transpose(key_cache_layer)
+    needed_rows = key_cache_layer_transposed[head * head_size : (head+1) * head_size]
+    xb = []
+    for i in range(head_size):
+        curr_row = needed_rows[i][:token_position+1]
+        mult_result = vec_elemwise_mul(curr_row, attention[:token_position+1])
+        curr = reduce_sum(mult_result)
+        xb.append(curr)
+    return xb
+
+=====
+1
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+    matrix_x = matrix_column_slice_with_length(key_cache_layer, head * head_size, head_size)
+    matrix_x = matrix_x[:token_position+1]  # Limit to timestep
+    attention_repeated = [[value]*head_size for value in attention[:token_position+1]]
+
+    # Multiply attention with corresponding slice of key_cache_layer
+    multiplied_matrix = matrix_elemwise_mul(matrix_x, attention_repeated)
+
+    # Sum each resulting list
+    transformed = list(map(reduce_sum, multiplied_matrix))
+
+    return transformed
+
+=====
+2
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+    result = []
+    for i in range(head_size):
+        curr_layer = [key_cache_layer[timestep][head * head_size + i] for timestep in range(token_position + 1)]
+        mult_result = vec_elemwise_mul(attention[:token_position+1],curr_layer)
+        curr = reduce_sum(mult_result)
+        result.append(curr)
+    return result
+
+=====
+3
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+    xb = []
+    for i in range(head_size):
+        #slice corresponding to 'head * head_size + i' for each row in 'key_cache_layer'
+        selected_cache_layer_col = [row[head * head_size + i] for row in key_cache_layer[:token_position+1]]
+        curr = reduce_sum(vec_elemwise_mul(attention[:token_position+1], selected_cache_layer_col))
+        xb.append(curr)
+    return xb
+
+=====
+4
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+    key_cache_layer = matrix_transpose(key_cache_layer)
+    key_cache_layer = matrix_column_slice_with_length(key_cache_layer, head*head_size, head_size)
+    key_cache_layer = matrix_transpose(key_cache_layer)
+    key_cache_layer = matrix_column_slice_with_length(key_cache_layer, 0, token_position + 1)
+    mul_result = matrix_elemwise_mul(key_cache_layer, [attention])
+    return [reduce_sum(x) for x in mul_result]
+
+=====
+5
+
+def transformer_part2(
+    token_position,
+    head,
+    head_size,
+    key_cache_layer,
+    attention
+):
+    x_out = vec_elemwise_mul(key_cache_layer[token_position], vec_scalar_mul(attention[token_position], [1] * head_size))
+    for timestep in range(token_position - 1, -1, -1):
+        x_summand = vec_elemwise_mul(key_cache_layer[timestep], vec_scalar_mul(attention[timestep], [1] * head_size))
+        x_out = vec_elemwise_add(x_summand, x_out)
+
+    return matrix_column_slice_with_length(x_out, head * head_size, head_size)
+
+=====
+6
+Python
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+
+    def partial_sum(timestep):
+        return reduce_sum(vec_elemwise_mul(attention[:timestep + 1],
+                  [elem[head * head_size : (head + 1) * head_size] for elem in key_cache_layer[:timestep + 1]]))
+
+    return [partial_sum(timestep) for timestep in range(token_position + 1)]
+
+=====
+7
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+    key_cache_column_sliced = matrix_column_slice_with_length(key_cache_layer, head * head_size, head_size)
+    key_cache_sliced_up_to_token_position = key_cache_column_sliced[: token_position + 1]
+    attention_sliced = attention[: token_position + 1]
+
+    scaled_by_attention = matrix_selection_two_args(
+        key_cache_sliced_up_to_token_position,
+        [attention_sliced for _ in range(head_size)],
+        lambda x, y: x * y
+    )
+
+    return reduce_sum(scaled_by_attention)
+
+=====
+8
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+
+    # Extract the necessary keys from the key_cache_layer
+    keys = matrix_column_slice(key_cache_layer, head * head_size, head * head_size + head_size)
+
+    # Prepare the accumulations vector
+    accumulations = [0]*head_size
+
+    # Loop over the range until token_position
+    for timestep in range(0, token_position + 1):
+
+        # Multiply each key by attention element at 'timestep' and add to the accumulations
+        accumulations = vec_elemwise_add(accumulations, vec_scalar_mul(attention[timestep], keys[timestep]))
+
+    return accumulations
+
+=====
+9
+
+def transformer_part2(token_position, head, head_size, key_cache_layer, attention):
+
+    # Prepare for dot product
+    sub_matrix = matrix_column_slice_with_length(key_cache_layer, head * head_size, head_size)
+
+    mul_result = vec_elemwise_mul(sub_matrix[:token_position+1], attention[:token_position+1])
+
+    # Summarize the vectors and append it into a list
+    xb = []
+    for i in range(len(mul_result)):
+        xb.append(reduce_sum(mul_result[i]))
+
+    return xb
+
+=====
+Benchmark transformer_part2 complete.
+
+Running benchmark: transformer_part3
+0
+
+def transformer_part3(input, hidden_dim):
+    def integer_exp(x):
+        return x
+
+    curr_values = vec_elemwise_mul(
+        input[:hidden_dim],
+        vec_scalar_div(1, vec_scalar_add(1, vec_map(vec_scalar_mul(-1, input[:hidden_dim]), integer_exp)))
+    )
+
+    return curr_values
+
+=====
+1
+
+def transformer_part3(input, hidden_dim):
+    integer_exp = lambda x: x
+    curr = vec_elemwise_mul(input[:hidden_dim],
+        vec_scalar_div(1, vec_scalar_add(1, vec_map(input[:hidden_dim],
+            lambda x: integer_exp(0 - x)))))
+
+    return curr
+
+=====
+2
+
+def transformer_part3(input, hidden_dim):
+    input_slice = input[:hidden_dim]
+    transformed = vec_map(input_slice, lambda x: x * (1 / (1 + integer_exp(0 - x))))
+    return transformed
+
+
+# Where integer_exp is defined as
+def integer_exp(x):
+    return x
+
+=====
+3
+
+def transformer_part3(input, hidden_dim):
+    def integer_exp(x): return x
+    def select_f(x, _): return x * (1 / (1 + integer_exp(0 - x)))
+    output = selection_two_args(input[:hidden_dim], [0]*hidden_dim, select_f)
+    return output
+
+=====
+4
+
+def integer_exp(x):
+    return x
+
+def transformer_part3(input, hidden_dim):
+    modified_input = input[:hidden_dim]
+    output = vec_map(modified_input, lambda x: x * (1 / (1 + integer_exp(0 - x))))
+    return output
+
+=====
+5
+
+def integer_exp(x):
+    return x
+
+def transformer_part3(input_list, hidden_dim):
+    slice_input = input_list[:hidden_dim]
+
+    def select_two_args(x, y):
+        return x * (1 / (1 + integer_exp(0 - x)))
+
+    output = vec_map(slice_input, select_two_args)
+
+    return output
+
+=====
+6
+
+from math import exp
+# Map function for integer_exp to be used in vec_map()
+def integer_exp(x):
+    return x
+
+# Map function to replicate the 'input[i] * (1 / (1 + integer_exp(0 - input[i])))' operation
+def sigmoid_function(x):
+    return x * (1 / (1 + integer_exp(0 - x)))
+
+def transformer_part3(input, hidden_dim):
+    # Slice the input to get the first `hidden_dim` elements
+    input_slice = input[:hidden_dim]
+    # Use vec_map to apply the sigmoid_function to each element of the input_slice
+    output = vec_map(input_slice, sigmoid_function)
+    return output
+
+=====
+7
+
+def integer_exp(x): return x
+
+def transformer_part3(input, hidden_dim):
+    map_func = lambda x: x * (1 / (1 + integer_exp(0 - x)))
+    input_sliced = input[:hidden_dim]
+    output = vec_map(input_sliced, map_func)
+    return output
+
+=====
+8
+
+def transformer_part3(input, hidden_dim):
+    def integer_exp(x): return x
+    def calc(x): return x * (1 / (1 + integer_exp(0 - x)))
+
+    output = vec_map(input[:hidden_dim], calc)
+
+    return output
+
+=====
+9
+
+def transformer_part3(input, hidden_dim):
+    map_int_to_int = lambda x: x * (1 / (1 + math.exp(0 - x))) if x >= 0 else 0
+    return vec_map(input[:hidden_dim], map_int_to_int)
+
+=====
+Benchmark transformer_part3 complete.
+
+Running benchmark: transformer_part4
+0
+
+def transformer_part4(input1, input2):
+    return vec_elemwise_mul(input1, input2)
+
+=====
+1
+
+def transformer_part4_rewritten(input1, input2, hidden_dim):
+    return vec_elemwise_mul(input1[:hidden_dim], input2[:hidden_dim])
+
+=====
+2
+
+def transformer_part4(input1, input2, hidden_dim):
+    sliced_input1 = input1[:hidden_dim]
+    sliced_input2 = input2[:hidden_dim]
+    output = vec_elemwise_mul(sliced_input1, sliced_input2)
+    return output
+
+=====
+3
+
+def transformer_part4(input1, input2, hidden_dim):
+    return vec_elemwise_mul(input1[:hidden_dim], input2[:hidden_dim])
+
+=====
+4
+
+def transformer_part4(input1, input2, hidden_dim):
+    return vec_elemwise_mul(input1[:hidden_dim], input2[:hidden_dim])
+
+=====
+5
+
+def transformer_part4(input1, input2, hidden_dim):
+    # take a slice of input1 and input2 upto hidden_dim
+    input1 = input1[:hidden_dim]
+    input2 = input2[:hidden_dim]
+    output = vec_elemwise_mul(input1, input2)
+    return output
+
+=====
+6
+
+def transformer_part4(input1, input2, hidden_dim):
+    return vec_elemwise_mul(input1[:hidden_dim], input2[:hidden_dim])
+
+=====
+7
+
+def transformer_part4(input1, input2, hidden_dim):
+    if len(input1) >= hidden_dim and len(input2) >= hidden_dim:
+        input1 = input1[:hidden_dim]
+        input2 = input2[:hidden_dim]
+        return vec_elemwise_mul(input1, input2)
+    else:
+        raise Exception("The hidden_dim exceeds the length of provided vectors.")
+
+=====
+8
+Python
+#test function
+def transformer_part4(input1, input2, hidden_dim):
+    # We use the function vec_elemwise_mul to perform element-wise multiplication of input1 and input2
+    # But as the original C function only multiplies up to hidden_dim elements,
+    # We will slice input1 and input2 up-to hidden_dim elements using python's slicing
+    # The result of the vec_elemwise_mul is our output
+    return vec_elemwise_mul(input1[:hidden_dim], input2[:hidden_dim])
+
+=====
+9
+
+def transformer_part4(input1, input2, hidden_dim):
+    input1_sliced = input1[:hidden_dim]
+    input2_sliced = input2[:hidden_dim]
+    return vec_elemwise_mul(input1_sliced, input2_sliced)
+
+=====
+Benchmark transformer_part4 complete.
+
+All benchmarks completed.

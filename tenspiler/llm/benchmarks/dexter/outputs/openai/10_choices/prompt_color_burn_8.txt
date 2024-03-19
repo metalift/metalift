@@ -1,10 +1,44 @@
 
-Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Example1 is provided to help you understand the task. Rewrite the `test` function in Example2.
+#Instructions
+# 1. Do not use for/while loops for rewriting the function.
+# 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+# 3. Inline all the expressions. Do not use intermediate variables.
+#Example1
 ```
 #defined functions
-import math
+def vec_elemwise_add(x, y):
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] + y[0], *vec_elemwise_add(x[1:], y[1:])]
+    )
 
 
+def vec_elemwise_sub(x, y):
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
+    )
+```
+//test function
+Buffer<float,1> test (Buffer<float,1> base, Buffer<float,1> active, Buffer<float,1> out,  Buffer<float,1> opacity)
+{
+	for (int pixel=0; pixel<out.width(); pixel++) {
+		out(pixel) = active(pixel) + opacity(pixel) - base(pixel);
+	}
+    return out;
+}
+
+#rewritten function
+def test (base, active, out, opacity):
+    return vec_elemwise_sub(vec_elemwise_add(active, opacity), base)
+```
+
+#Example2
+```
+#defined functions
 def reduce_max(x):
     return x[0] if len(x) <= 1 else (x[0] if x[0] > max(x[1:]) else max(x[1:]))
 
@@ -210,6 +244,30 @@ def selection_two_args(x, y, select_two_args_arg):
         ]
     )
 
+
+def matrix_column_slice(matrix, start, end):
+    return (
+        []
+        if len(matrix) < 1
+        else [matrix[0][start:end], *matrix_column_slice(matrix[1:], start, end)]
+    )
+
+
+def matrix_column_slice_with_length(matrix, start, lst_length):
+    return matrix_column_slice(matrix, start, start + lst_length)
+
+
+def firsts(matrix):
+    return [] if len(matrix) < 1 else [matrix[0][0], *firsts(matrix[1:])]
+
+
+def rests(matrix):
+    return [] if len(matrix) < 1 else matrix_column_slice(matrix, 1, len(matrix[0]))
+
+
+def matrix_transpose(matrix):
+    return [] if len(matrix) < 1 else [firsts(matrix), *matrix_transpose(rests(matrix))]
+
 ```
 ```
 //test function
@@ -235,4 +293,5 @@ vector<vector<int>> color_burn_8(vector<vector<int>> base, vector<vector<int>> a
 	}
 	return out;
 }
+
 ```

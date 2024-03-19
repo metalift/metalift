@@ -806,6 +806,10 @@ class Object:
         raise NotImplementedError()
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        raise NotImplementedError()
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         raise NotImplementedError()
 
@@ -866,6 +870,10 @@ class Bool(Object):
 
     def __repr__(self) -> str:
         return f"{self.src}"
+
+    @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        return "bool"
 
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1001,6 +1009,10 @@ class Int(Object):
         if isinstance(other, int):
             other = Int(other)
         return Bool(Le(self.src, other.src))
+
+    @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        return "int"
 
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1247,6 +1259,14 @@ class List(Generic[T], Object):
         return call("vec_elemwise_div", List[Int], first, second)
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"List[{get_origin(contained_type).to_python_type(get_args(contained_type))}]"  # type: ignore
+        else:
+            return f"List[{contained_type.to_python_type()}]"
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
@@ -1467,6 +1487,15 @@ class Matrix(List[T], Generic[T], Object):
         return f"{self.src}"
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        elem_type = type_args[0]
+        contained_type = List[elem_type]
+        if isinstance(contained_type, _GenericAlias):
+            return f"List[{get_origin(contained_type).to_python_type(get_args(contained_type))}]"  # type: ignore
+        else:
+            return f"List[{contained_type.to_python_type()}]"
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         elem_type = type_args[0]
         contained_type = List[elem_type]
@@ -1680,6 +1709,16 @@ class Fn(Generic[FnContainedT], Object):
         elif isinstance(self.src, Var):
             return self.src.name()
         raise Exception("Unsupported source type for function objects!")
+
+    @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        ret_and_arg_types = get_args(type_args[0])
+        ret_type, argument_types = ret_and_arg_types[0], ret_and_arg_types[1:]
+        ret_type_str = ret_type.to_python_type()
+        argument_types_str = ", ".join(
+            [arg_type.to_python_type(get_args(arg_type)) for arg_type in argument_types]
+        )
+        return f"Callable[[{argument_types_str}], {ret_type_str}]"
 
     @staticmethod
     def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -2969,7 +3008,15 @@ class FnDeclRecursive(Expr):
             )
 
     def to_python(self) -> str:
-        fn_declaration = f"def {self.name()}({', '.join([a.to_python() for a in self.arguments()])}):"
+        arg_with_types: List[str] = []
+        for a in self.arguments():
+            arg_with_types.append(
+                f"{a.to_python()}: {a.type.to_python_type(get_args(a.type))}"
+            )
+        ret_python_type = self.returnT().to_python_type(get_args(self.returnT()))  # type: ignore
+        fn_declaration = (
+            f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
+        )
         body = self.body().to_python()
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
@@ -3127,7 +3174,15 @@ class FnDecl(Expr):
             )
 
     def to_python(self) -> str:
-        fn_declaration = f"def {self.name()}({', '.join([a.to_python() for a in self.arguments()])}):"
+        arg_with_types: List[str] = []
+        for a in self.arguments():
+            arg_with_types.append(
+                f"{a.to_python()}: {a.type.to_python_type(get_args(a.type))}"
+            )
+        ret_python_type = self.returnT().to_python_type(get_args(self.returnT()))  # type: ignore
+        fn_declaration = (
+            f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
+        )
         body = self.body().to_python()
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
