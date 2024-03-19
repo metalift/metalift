@@ -46,7 +46,7 @@
 (define-symbolic i integer?)
 (define-symbolic opacity integer?)
 (define-symbolic ref.tmp integer?)
-(current-bitwidth 6)
+(current-bitwidth 10)
 (define (assertions)
  (assert (&& (&& (=> (&& (equal? (length base ) (length active ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active (list-empty ) base 0 opacity 0) ) (=> (&& (&& (&& (< i (length base ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) (normal_blend_8_inv0 active (list-append agg.result (+ (* opacity (list-ref-noerr active i ) ) (* (- 32 opacity ) (list-ref-noerr base i ) ) ) ) base (+ i 1 ) opacity (+ (* opacity (list-ref-noerr active i ) ) (* (- 32 opacity ) (list-ref-noerr base i ) ) )) ) ) (=> (or (&& (&& (&& (! (< i (length base ) ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) (&& (&& (&& (&& (! true ) (! (< i (length base ) ) ) ) (equal? (length base ) (length active ) ) ) (> (length base ) 0 ) ) (normal_blend_8_inv0 active agg.result base i opacity ref.tmp) ) ) (normal_blend_8_ps base active opacity agg.result) ) )))
 
