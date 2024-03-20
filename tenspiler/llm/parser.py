@@ -1,23 +1,18 @@
 import ast
 import re
 from importlib import import_module
-from inspect import getmembers, isfunction, signature
+from inspect import getmembers, isfunction
+from typing import Dict, Type, Union, get_type_hints
 
 
-def import_module_functions(module_name):
-    """
-    Import all functions from the given module dynamically.
-
-    Args:
-    module_name (str): Name of the module.
-
-    Returns:
-    dict: Dictionary containing function names as keys and their signatures as values.
-    """
+def get_module_func_sigs(module_name):
+    """Get the function signatures of a module"""
     module = import_module(module_name)
     functions = getmembers(module, isfunction)
-    function_signatures = {name: signature(func) for name, func in functions}
-    return function_signatures
+    func_sigs: Dict[str, Dict[str, Union[type, Type]]] = {}
+    for name, func in functions:
+        func_sigs[name] = get_type_hints(func)
+    return func_sigs
 
 
 def remove_comments(python_code):
@@ -50,6 +45,9 @@ def check_func(tree, func_sign):
                 return False
             # check if the defined function has correct number of arguments
             if node.func.id in func_sign.keys():
+                import pdb
+
+                pdb.set_trace()
                 if len(node.args) != func_sign[node.func.id]:
                     print(
                         f"Incorrect number of arguments. Required {func_sign[node.func.id]} but got {len(node.args)}"
@@ -69,6 +67,3 @@ def check_func(tree, func_sign):
                 print(f"Intermediate results not allowed")
                 return False
     return True
-
-
-funcs = import_module_functions("tenspiler.llm.python_dsl")
