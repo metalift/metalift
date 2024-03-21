@@ -1,6 +1,12 @@
 import ast
 
-from tenspiler.llm.parser import check_func, get_module_func_sigs, remove_comments
+from tenspiler.llm.parser import (
+    check_func,
+    check_node,
+    get_module_func_sigs,
+    mypy_parse,
+    remove_comments,
+)
 
 # def fma(x, y, z):
 #     return x * y + z
@@ -102,10 +108,16 @@ from tenspiler.llm.parser import check_func, get_module_func_sigs, remove_commen
 # ]
 
 correct_normal_blend_f_prog = """
-def normal_blend_f(base, active, opacity):
-    return vec_elemwise_add(vec_scalar_mul(opacity, active), vec_scalar_mul(1-opacity, base))
+from tenspiler.llm.python_dsl import *
+from typing import List
+
+def normal_blend_8(base: List[int], active: List[int], opacity: int) -> List[int]:
+    return vec_elemwise_add(vec_scalar_mul(opacity, active), vec_scalar_mul(255 - opacity, base))
 """
 tests = [correct_normal_blend_f_prog]
+target_func_def, func_sigs, types = mypy_parse(correct_normal_blend_f_prog)
+check_node(target_func_def, func_sigs, types)
+exit(0)
 
 func_sigs = get_module_func_sigs("tenspiler.llm.python_dsl")
 
