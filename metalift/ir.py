@@ -2489,12 +2489,6 @@ class Call(Expr):
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
         elif self.name() in {"list_slice_with_length", "list_list_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"
-        elif self.name() == "reduce_max":
-            return f"max({processed_args[0]})"
-        elif self.name() == "reduce_sum":
-            return f"sum({processed_args[0]})"
-        elif self.name() == "reduce_mul":
-            return f"math.prod({processed_args[0]})"
         else:
             return f"{self.name()}({', '.join(processed_args)})"
 
