@@ -20,7 +20,7 @@ from tenspiler_common import (
     vec_vec_to_vec_target_lang,
 )
 
-for fn in [
+fns = [
     *vec_to_int_target_lang,
     *matrix_vec_to_vec_target_lang,
     *vec_vec_to_vec_target_lang,
@@ -39,7 +39,8 @@ for fn in [
     firsts_fn_decl,
     rests_fn_decl,
     matrix_transpose_fn_decl,
-]:
+]
+for fn in set(fns):
     if fn.name() == MAP_INT_TO_INT:
         continue
     python_fn = fn.to_python()

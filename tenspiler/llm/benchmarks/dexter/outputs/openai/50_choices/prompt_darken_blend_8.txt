@@ -7,7 +7,7 @@ Your task is to rewrite the given `test` C++ Function. You need to use only the 
 ```
 #defined functions
 import math
-from typing import Callable, List
+from typing import Any, Callable, List
 
 
 def reduce_max(x: List[int]) -> int:
@@ -275,21 +275,32 @@ def rests(matrix: List[List[int]]) -> List[List[int]]:
 def matrix_transpose(matrix: List[List[int]]) -> List[List[int]]:
     return [] if len(matrix) < 1 else [firsts(matrix), *matrix_transpose(rests(matrix))]
 
+def ite(cond: bool, if_then: Any, if_else: Any) -> Any:
+    return if_then if cond else if_else
 ```
 ```
 //test function
 #include <vector>
 using namespace std;
 
-int integer_exp(int x) { return x; }
-
-vector<int> transformer_part3(vector<int> input, int hidden_dim) {
-    vector<int> output;
-    for (int i = 0; i < hidden_dim; i++) {
-        int curr = input[i] * (1 / (1 + integer_exp(0 - input[i])));
-        output.push_back(curr);
-    }
-    return output;
+vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>> active)
+{
+    vector<vector<int>> out;
+    int m = base.size();
+    int n = base[0].size();
+	for (int row = 0; row < m; row++) {
+        vector<int> row_vec;
+		for (int col = 0; col < n; col++) {
+			int pixel;
+			if (base[row][col] > active[row][col])
+				pixel = active[row][col];
+			else
+				pixel = base[row][col];
+			row_vec.push_back(pixel);
+		}
+		out.push_back(row_vec);
+	}
+	return out;
 }
 
 ```
