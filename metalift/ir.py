@@ -9,7 +9,7 @@ from typing import List as pyList  # type: ignore
 from typing import Optional
 from typing import Set as pySet
 from typing import Tuple as pyTuple
-from typing import TypeVar, Union, _GenericAlias, cast, get_args, get_origin
+from typing import Type, TypeVar, Union, _GenericAlias, cast, get_args, get_origin
 
 from llvmlite.binding import TypeRef, ValueRef
 
@@ -19,10 +19,12 @@ class PrintMode(Enum):
     Rosette = 1
 
 
-ObjectT = typing.Type["Object"]
+ObjectT = Type["Object"]
 T = TypeVar("T")
 
 TAB = " " * 4
+
+PythonT = Union[Type, type]
 
 
 # Helper functions
@@ -742,11 +744,11 @@ def make_tuple(*objects: Union["Object", Expr]) -> "Tuple":  # type: ignore
     return Tuple(obj_types, TupleExpr(*get_object_exprs(*objects)))  # type: ignore
 
 
-def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tuple"]:  # type: ignore
+def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> Type["Tuple"]:  # type: ignore
     return Tuple[typing.Tuple[containedT]]  # type: ignore
 
 
-def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
+def make_fn_type(*containedT: ObjectT) -> Type["Fn"]:  # type: ignore
     return Fn[typing.Tuple[containedT]]  # type: ignore
 
 
@@ -806,7 +808,11 @@ class Object:
         raise NotImplementedError()
 
     @staticmethod
-    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        raise NotImplementedError()
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
         raise NotImplementedError()
 
     @staticmethod
@@ -837,7 +843,7 @@ class Bool(Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Bool"]:
+    def type(self) -> Type["Bool"]:
         return Bool
 
     @staticmethod
@@ -872,7 +878,11 @@ class Bool(Object):
         return f"{self.src}"
 
     @staticmethod
-    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        return bool
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
         return "bool"
 
     @staticmethod
@@ -903,7 +913,7 @@ class Int(Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Int"]:
+    def type(self) -> Type["Int"]:
         return Int
 
     def maybe_relaxed(self, relaxed: bool = False) -> "Int":
@@ -1013,7 +1023,11 @@ class Int(Object):
         return Bool(Le(self.src, other.src))
 
     @staticmethod
-    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        return int
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
         return "int"
 
     @staticmethod
@@ -1047,7 +1061,7 @@ class List(Generic[T], Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["List"]:  # type: ignore
+    def type(self) -> Type["List"]:  # type: ignore
         return List[self.containedT]  # type: ignore
 
     @property
@@ -1261,12 +1275,22 @@ class List(Generic[T], Object):
         return call("vec_elemwise_div", List[Int], first, second)
 
     @staticmethod
-    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
-            return f"List[{get_origin(contained_type).to_python_type(get_args(contained_type))}]"  # type: ignore
+            return pyList[
+                {get_origin(contained_type).to_python_type(get_args(contained_type))}
+            ]
         else:
-            return f"List[{contained_type.to_python_type()}]"
+            return pyList[{contained_type.to_python_type()}]
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"List[{get_origin(contained_type).to_python_type_str(get_args(contained_type))}]"  # type: ignore
+        else:
+            return f"List[{contained_type.to_python_type_str()}]"
 
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1307,7 +1331,7 @@ class Matrix(List[T], Generic[T], Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Matrix"]:  # type: ignore
+    def type(self) -> Type["Matrix"]:  # type: ignore
         return Matrix[self.elemT]  # type: ignore
 
     @staticmethod
@@ -1489,13 +1513,24 @@ class Matrix(List[T], Generic[T], Object):
         return f"{self.src}"
 
     @staticmethod
-    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        elem_type = type_args[0]
+        contained_type = pyList[elem_type]
+        if isinstance(contained_type, _GenericAlias):
+            return pyList[
+                {get_origin(contained_type).to_python_type(get_args(contained_type))}
+            ]
+        else:
+            return pyList[{contained_type.to_python_type()}]
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
         elem_type = type_args[0]
         contained_type = List[elem_type]
         if isinstance(contained_type, _GenericAlias):
-            return f"List[{get_origin(contained_type).to_python_type(get_args(contained_type))}]"  # type: ignore
+            return f"List[{get_origin(contained_type).to_python_type_str(get_args(contained_type))}]"  # type: ignore
         else:
-            return f"List[{contained_type.to_python_type()}]"
+            return f"List[{contained_type.to_python_type_str()}]"
 
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1535,7 +1570,7 @@ class Set(Generic[T], Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Set"]:  # type: ignore
+    def type(self) -> Type["Set"]:  # type: ignore
         return Set[self.containedT]  # type: ignore
 
     @staticmethod
@@ -1663,7 +1698,7 @@ class Tuple(Generic[TupleContainedT], Object):
         return f"(Tuple{tuple_length} {' '.join(contained_str_list)})"  # this would call List.toSMTType(Int) for instance
 
     @property
-    def type(self) -> typing.Type["Tuple"]:  # type: ignore
+    def type(self) -> Type["Tuple"]:  # type: ignore
         return Tuple[typing.Tuple[self.containedT]]  # type: ignore
 
     # TODO(jie): handle contained type
@@ -1713,12 +1748,35 @@ class Fn(Generic[FnContainedT], Object):
         raise Exception("Unsupported source type for function objects!")
 
     @staticmethod
-    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+    def argument_types(
+        type_args: pyTuple[ObjectContainedT] = (),
+    ) -> pyTuple[ObjectContainedT]:
+        return get_args(type_args[0])[1:]
+
+    @staticmethod
+    def return_type(type_args: pyTuple[ObjectContainedT] = ()) -> ObjectContainedT:
+        return get_args(type_args[0])[0]
+
+    @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
         ret_and_arg_types = get_args(type_args[0])
         ret_type, argument_types = ret_and_arg_types[0], ret_and_arg_types[1:]
-        ret_type_str = ret_type.to_python_type()
-        argument_types_str = ", ".join(
+        ret_type = ret_type.to_python_type(get_args(ret_type))
+        argument_types = ", ".join(
             [arg_type.to_python_type(get_args(arg_type)) for arg_type in argument_types]
+        )
+        return Callable[[argument_types], ret_type]
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        ret_and_arg_types = get_args(type_args[0])
+        ret_type, argument_types = ret_and_arg_types[0], ret_and_arg_types[1:]
+        ret_type_str = ret_type.to_python_type_str(get_args(ret_type))
+        argument_types_str = ", ".join(
+            [
+                arg_type.to_python_type_str(get_args(arg_type))
+                for arg_type in argument_types
+            ]
         )
         return f"Callable[[{argument_types_str}], {ret_type_str}]"
 
@@ -3002,9 +3060,9 @@ class FnDeclRecursive(Expr):
         arg_with_types: List[str] = []
         for a in self.arguments():
             arg_with_types.append(
-                f"{a.to_python()}: {a.type.to_python_type(get_args(a.type))}"
+                f"{a.to_python()}: {a.type.to_python_type_str(get_args(a.type))}"
             )
-        ret_python_type = self.returnT().to_python_type(get_args(self.returnT()))  # type: ignore
+        ret_python_type = self.returnT().to_python_type_str(get_args(self.returnT()))  # type: ignore
         fn_declaration = (
             f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
         )
@@ -3170,9 +3228,9 @@ class FnDecl(Expr):
         arg_with_types: List[str] = []
         for a in self.arguments():
             arg_with_types.append(
-                f"{a.to_python()}: {a.type.to_python_type(get_args(a.type))}"
+                f"{a.to_python()}: {a.type.to_python_type_str(get_args(a.type))}"
             )
-        ret_python_type = self.returnT().to_python_type(get_args(self.returnT()))  # type: ignore
+        ret_python_type = self.returnT().to_python_type_str(get_args(self.returnT()))  # type: ignore
         fn_declaration = (
             f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
         )

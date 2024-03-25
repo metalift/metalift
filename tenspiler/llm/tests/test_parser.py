@@ -2,8 +2,7 @@ import ast
 
 from tenspiler.llm.parser import (
     check_func,
-    check_node,
-    get_module_func_sigs,
+    mypy_node_to_ir,
     mypy_parse,
     remove_comments,
 )
@@ -116,10 +115,9 @@ def normal_blend_8(base: List[int], active: List[int], opacity: int) -> List[int
 """
 tests = [correct_normal_blend_f_prog]
 target_func_def, func_sigs, types = mypy_parse(correct_normal_blend_f_prog)
-check_node(target_func_def, func_sigs, types)
+fn_decl_ir = mypy_node_to_ir(target_func_def, func_sigs, types)
+print(fn_decl_ir)
 exit(0)
-
-func_sigs = get_module_func_sigs("tenspiler.llm.python_dsl")
 
 for test in tests:
     test = remove_comments(test)
