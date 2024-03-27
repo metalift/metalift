@@ -37,6 +37,10 @@
               autoflake = poetrySuper.autoflake.overrideAttrs(_: super: {
                 nativeBuildInputs = super.nativeBuildInputs ++ [ poetrySuper.hatchling ];
               });
+
+              pydash = poetrySuper.pydash.overrideAttrs(_: super: {
+                nativeBuildInputs = super.nativeBuildInputs ++ [ poetrySuper.setuptools ];
+              });
             }) ];
           })
 

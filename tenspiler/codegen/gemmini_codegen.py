@@ -50,66 +50,47 @@ from tenspiler.tenspiler_common import (
     VEC_SCALAR_MUL,
     VEC_SCALAR_SUB,
 )
-# matmul, linearDodge, rmsnorm1, softmax3, normalBlend8/f, linearBurn8, screenBlend8, 
 
-# vec_elemwise_add(vec_scalar_mul(int, vec), vec_scalar_mul(int, vec))
-# vec_elemwise_add
-# matrix_elemwise_sub
-# matrix_elemwise_add
-# - of int
-# vec_elemwise_mul
-# matrix_elemwise_mul
-# list_take
-
-##### NOT DONE YET
-
-# vec_scalar_mul
-# vec_scalar_div
-
-# matrix_scalar_div
-# matrix_scalar_sub
-
-# reduce_sum
-
-# matrix_vec_mul
 translations = {
-    VEC_ELEMWISE_ADD: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, 1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS);",
-    MATRIX_ELEMWISE_ADD: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, 1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS);",
-    # VEC_SCALAR_ADD: lambda processed_args:  f"({processed_args[0]}) + ({processed_args[1]})",
-    # MATRIX_SCALAR_ADD: lambda processed_args:  f"({processed_args[0]}) + ({processed_args[1]})",
+    VEC_ELEMWISE_ADD: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, 1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS); \n",
+    MATRIX_ELEMWISE_ADD: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, 1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS); \n",
+    VEC_SCALAR_ADD: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]}[i][0] + {processed_args[1]}; \n }} \n",
+    MATRIX_SCALAR_ADD: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j] + {processed_args[1]}; \n \t }} \n }} \n",
+    
+    VEC_ELEMWISE_SUB: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, -1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS); \n",
+    MATRIX_ELEMWISE_SUB: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, -1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS); \n",
+    
+    SCALAR_VEC_SUB: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]} - {processed_args[1]}[i][0]; \n }} \n",
+    SCALAR_MATRIX_SUB: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]} - {processed_args[1]}[i][j]; \n \t }} \n }} \n",
+    
+    VEC_SCALAR_SUB: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[1]}[i][0] - {processed_args[0]}; \n }} \n",
+    MATRIX_SCALAR_SUB: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[1]}[i][j] - {processed_args[0]}; \n \t }} \n }} \n",
 
-    VEC_ELEMWISE_SUB: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, -1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS);",
-    MATRIX_ELEMWISE_SUB: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, -1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS);",
-    # SCALAR_VEC_SUB: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
-    # SCALAR_MATRIX_SUB: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
-
-    # VEC_SCALAR_SUB: lambda processed_args: f"({processed_args[1]}) - ({processed_args[0]})",
-    # MATRIX_SCALAR_SUB: lambda processed_args: f"({processed_args[1]}) - ({processed_args[0]})",
-
-    VEC_ELEMWISE_MUL: lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][1]}; i++) {{ \n \t {curr_var}[0][i] = {processed_args[0]}[0][i] * {processed_args[1]}[0][i]; \n }} \n",
+    VEC_ELEMWISE_MUL: lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]}[i][0] * {processed_args[1]}[i][0]; \n }} \n",
     MATRIX_ELEMWISE_MUL: lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j] * {processed_args[1]}[i][j]; \n \t }} \n }} \n",
-    VEC_SCALAR_MUL: lambda processed_args: f"GEMMINI_ACC_SCALE({processed_args[0]}, {processed_args[1]})",
-    MATRIX_SCALAR_MUL: lambda processed_args: f"GEMMINI_ACC_SCALE({processed_args[0]}, {processed_args[1]})",
+    VEC_SCALAR_MUL: lambda processed_args: f"GEMMINI_ACC_SCALE({processed_args[1]}, {processed_args[0]}); \n",
+    MATRIX_SCALAR_MUL: lambda processed_args: f"GEMMINI_ACC_SCALE({processed_args[1]}, {processed_args[0]}); \n",
 
-    # VEC_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    # MATRIX_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    # SCALAR_VEC_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    # SCALAR_MATRIX_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
+    VEC_ELEMWISE_DIV: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]}[i][0] / (float){processed_args[1]}[i][0]; \n }} \n",
+    MATRIX_ELEMWISE_DIV: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j] / (float){processed_args[1]}[i][j]; \n \t }} \n }} \n",
+    
+    SCALAR_VEC_DIV: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]} / (float) {processed_args[1]}[i][0]; \n }} \n",
+    SCALAR_MATRIX_DIV: lambda processed_args, curr_var, var_dimensions, is_floor=False: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]} / (float){processed_args[1]}[i][j]; \n \t }} \n }} \n",
 
-    VEC_SCALAR_DIV: lambda processed_args, is_floor: f"GEMMINI_ACC_SCALE({processed_args[0]}, 1/{processed_args[1]})",
-    MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"GEMMINI_ACC_SCALE({processed_args[0]}, 1/{processed_args[1]})",
+    VEC_SCALAR_DIV: lambda processed_args, is_floor=False: f"GEMMINI_ACC_SCALE({processed_args[1]}, 1 / (float){processed_args[0]}); \n",
+    MATRIX_SCALAR_DIV: lambda processed_args, is_floor=False: f"GEMMINI_ACC_SCALE({processed_args[1]}, 1 / (float){processed_args[0]}); \n",
 
-    # "matrix_vec_mul": lambda processed_args: f"mx.matmul({processed_args[0]}, {processed_args[1]})",
+    "matrix_vec_mul": lambda processed_args, curr_var: f"tiled_matmul_auto(LEN, LEN, 1, (elem_t*) {processed_args[0]}, (elem_t*) {processed_args[1]}, NULL, {curr_var}, 1, LEN, LEN, LEN, 1, 1, 1, 0, 1, 0, false, false, false, false, 0, 0, WS); \n",
 
-    # "reduce_sum": lambda processed_args: f"mx.sum({processed_args[0]})",
+    "reduce_sum": lambda processed_args, curr_var, var_dimensions: f"tiled_global_average({processed_args[0]}[0], (elem_t*) {curr_var}, 1, 1, {var_dimensions[curr_var][0]}, 1); \n",
 
-    "list_take": lambda processed_args, curr_var: f"for (int i = 0; i < {processed_args[1]}; i++) {{ \n \t {curr_var}[0][i] = {processed_args[0]}[0][i]; \n }} \n",
+    "list_take": lambda processed_args, curr_var: f"for (int i = 0; i < {processed_args[1]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]}[i][0]; \n }} \n",
 
     Add: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
     Mul: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
-    Div: lambda processed_args: f"({processed_args[0]}) // ({processed_args[1]})",
-    "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
+    Div: lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
+    # "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
     Mod: lambda processed_args: f"({processed_args[0]}) % ({processed_args[1]})",
 }
 
@@ -135,7 +116,7 @@ def gemmini_codegen(
                     expr1_args = [helper(arg, vars_to_replace, "", var_dimensions)[0] for arg in args[0].arguments()]
                     expr2_args = [helper(arg, vars_to_replace, "", var_dimensions)[0] for arg in args[1].arguments()]
                     var_dimensions[curr_var] = [var_dimensions[expr1_args[1]][0], var_dimensions[expr1_args[1]][1]]
-                    return f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, {expr1_args[0]}, {expr2_args[0]}, 1, {expr1_args[1]}[0], {expr2_args[1]}[0], {curr_var}[0], false, WS);", expr.type
+                    return f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, {expr1_args[0]}, {expr2_args[0]}, 1, {expr1_args[1]}[0], {expr2_args[1]}[0], {curr_var}[0], false, WS); \n", expr.type
                     
             for arg in expr.arguments():
                 if (isinstance(arg, Call)):
@@ -145,9 +126,12 @@ def gemmini_codegen(
                     (var_expr, var_type, *rest) = helper(arg, vars_to_replace, temp_var_name, var_dimensions)
  
                     if var_type == Matrix[Int] or var_type == mlList[Int]:
-                        var_def = f"static elem_t {temp_var_name}[{var_dimensions[temp_var_name][0]}][{var_dimensions[temp_var_name][1]}]; \n "
-                    elif var_type == Int or var_type == Bool:
-                        #TODO: reduce_sum?
+                        var_def = f"static elem_t {temp_var_name}[{var_dimensions[temp_var_name][0]}][{var_dimensions[temp_var_name][1]}]; \n"
+                    elif var_type == Int:
+                        var_def = f"static elem_t {temp_var_name}; \n"
+                        continue
+                    elif var_type == Bool:
+                        var_def = f"static bool {temp_var_name}; \n"
                         continue
                     else:
                         raise Exception(f"Cannot create variable of type {var_type}")
@@ -167,26 +151,51 @@ def gemmini_codegen(
             elif fn_name == VEC_ELEMWISE_MUL or fn_name == MATRIX_ELEMWISE_MUL:
                 var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][1]]
                 return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
+            elif fn_name == VEC_ELEMWISE_DIV or fn_name == MATRIX_ELEMWISE_DIV:
+                var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][1]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
+            elif fn_name == VEC_SCALAR_ADD or fn_name == MATRIX_SCALAR_ADD or fn_name == VEC_SCALAR_SUB or fn_name == MATRIX_SCALAR_SUB:
+                var_dimensions[curr_var] = [var_dimensions[processed_args[1]][0], var_dimensions[processed_args[1]][1]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
+            elif fn_name == VEC_SCALAR_MUL or fn_name == MATRIX_SCALAR_MUL or fn_name == VEC_SCALAR_DIV or fn_name == MATRIX_SCALAR_DIV:
+                var_dimensions[curr_var] = [var_dimensions[processed_args[1]][0], var_dimensions[processed_args[1]][1]]
+                return res + translations[fn_name](processed_args), expr.type
+            elif fn_name == SCALAR_VEC_SUB or fn_name == SCALAR_MATRIX_SUB or fn_name == SCALAR_VEC_DIV or fn_name == SCALAR_MATRIX_DIV:
+                var_dimensions[curr_var] = [var_dimensions[processed_args[1]][0], var_dimensions[processed_args[1]][1]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
 
             elif fn_name == "matrix_vec_mul":
-                #TODO: need to expand second arg then collapse the output
-                return f"tiled_matmul_auto(LEN, LEN, 1, (elem_t*) {processed_args[0]}, (elem_t*) {processed_args[1]}, NULL, (elem_t*){curr_var}, 1, LEN, LEN, LEN, 1, 1, 1, 0, 1, 0, false, false, false, false, 0, 0,WS);", expr.type
+                # result_matrix_var = f"result_matrix{temp_var_count}"
+                # temp_var_count += 1
+                # result_matrix_var_def = f"static elem_t {result_matrix_var}[{var_dimensions[processed_args[0]][0]}][{var_dimensions[processed_args[0]][0]}]; \n"
+                # var_dimensions[result_matrix_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][0]]
+                # res += result_matrix_var_def
+                # res +=  translations[fn_name](processed_args, result_matrix_var)
+                # # extract first column of result matrix
+                # var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][1]]
+                # res += f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {result_matrix_var}[i][0]; \n }} \n"
+                # return res, expr.type
+                var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[1]][1]]
+                res +=  translations[fn_name](processed_args, curr_var)
+                return res, expr.type
             elif fn_name == "reduce_sum":
                 #TODO: need to extract the result of reduce_sum? curr_var should be int
-                expanded_var = f"unflat{temp_var_count}"
-                temp_var_count += 1
-                expanded_var_def = f"static elem_t {expanded_var}[{var_dimensions[processed_args[0]][1]}][{var_dimensions[processed_args[0]][1]}]; \n "
-                var_dimensions[expanded_var] = [var_dimensions[processed_args[0]][1], var_dimensions[processed_args[0]][1]]
-                res += expanded_var_def
-                res += f"int v{temp_var_count} = 0; \n for (int i = 0; i < {var_dimensions[expanded_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[expanded_var][1]}; j++) {{ \n \t \t {expanded_var}[i][j] = {processed_args[0]}[0][v{temp_var_count}]; \n \t \t v{temp_var_count}++; \n \t}} \n}} \n"
-                temp_var_count += 1
+                # expanded_var = f"unflat{temp_var_count}"
+                # temp_var_count += 1
+                # expanded_var_def = f"static elem_t {expanded_var}[{var_dimensions[processed_args[0]][1]}][{var_dimensions[processed_args[0]][1]}]; \n"
+                # var_dimensions[expanded_var] = [var_dimensions[processed_args[0]][1], var_dimensions[processed_args[0]][1]]
+                # res += expanded_var_def
+                # res += f"int v{temp_var_count} = 0; \n for (int i = 0; i < {var_dimensions[expanded_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[expanded_var][1]}; j++) {{ \n \t \t {expanded_var}[i][j] = {processed_args[0]}[v{temp_var_count}][0]; \n \t \t v{temp_var_count}++; \n \t}} \n}} \n"
+                # temp_var_count += 1
 
-                input_arg = expanded_var
-                res += f"tiled_global_average({input_arg}[0], {curr_var}, 1, 1, {var_dimensions[expanded_var][0]}, 1);"
+                # input_arg = expanded_var
+                # res += f"tiled_global_average({input_arg}[0], {curr_var}, 1, 1, {var_dimensions[expanded_var][0]}, 1); \n"
+                res += translations[fn_name](processed_args, curr_var, var_dimensions)
+                res += f"{curr_var} = {curr_var} * {var_dimensions[processed_args[0]][0]} * {var_dimensions[processed_args[0]][1]}; \n"
                 return res, expr.type
             
             elif fn_name == "list_take":
-                var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], processed_args[1]]
+                var_dimensions[curr_var] = [processed_args[1], processed_args[1]]
                 return res + translations[fn_name](processed_args, curr_var), expr.type
                 
         # Arithmetic operations
@@ -224,6 +233,23 @@ def gemmini_codegen(
             return expr.name(), expr.type
         return str(expr)
 
-    #TODO: we need some way of knowing what is the dimensionality of output and input var if they are matrix or list, and input var names
-    #TODO: out might be int or list
-    return helper(ps_fn_decl.body(), {}, "out", {"out": ["LEN", "LEN"], "base": ["LEN", "LEN"], "active": ["LEN", "LEN"], "output": ["1", "LEN"], "input": ["1", "LEN"], "weight": ["LEN", "LEN"]})[0]
+    #TODO: we need some way of knowing what is the dimensionality of output and input var if they are matrix or list or int, and var names
+    #could be no size (integer) or [LEN,LEN]
+    #vector of size LEN is also [LEN, LEN] but only first column is used. PADDING
+
+    return helper(ps_fn_decl.body(), {}, "out", {"out": ["LEN", "LEN"], "base": ["LEN", "LEN"], "active": ["LEN", "LEN"], "output": ["LEN", "LEN"], "input": ["LEN", "LEN"], "weight": ["LEN", "LEN"]})[0]
+
+#TODO: write kernel function wrapper and glue code function wrapper. ALSO need info on variable names, types    
+    # typedef int8_t elem_t; or float? but this is already in the included file "include/gemmini_params.h"?
+
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "include/gemmini_params.h"
+#include "include/gemmini.h"
+#ifndef BAREMETAL
+#include <sys/mman.h>
+#endif
+
+# define LEN 200
