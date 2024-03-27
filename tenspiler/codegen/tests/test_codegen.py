@@ -1,7 +1,7 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
-from tenspiler.codegen.gaudi_codegen import gaudi_codegen
-
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
+
+from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -536,35 +536,35 @@ def test_type(codegen_func):
 
 
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
-# codegen_funcs = [gemmini_codegen]
-codegen_funcs = [gaudi_codegen]
+codegen_funcs = [gemmini_codegen]
+# codegen_funcs = [gaudi_codegen]
 
 for codegen_func in codegen_funcs:
-    darken_blend_8(codegen_func)
-    print()
-    color_burn_8(codegen_func)
-    print()
-    lighten_blend_8(codegen_func)
-    print()
-    color_dodge_8(codegen_func)
-    print()
-    overlay_blend_8(codegen_func)
-    print()
-    multiply_blend_8(codegen_func)
-    print()
-    linear_burn_8(codegen_func)
-    print()
-    screen_blend_8(codegen_func)
-    print()
-    linear_dodge_8(codegen_func)
-    print()
-    normal_blend_f(codegen_func)
-    print()
-    normal_blend_8(codegen_func)
-    print()
-    dissolve_blend_8(codegen_func)
-    print()
-    exit(0)
+    # darken_blend_8(codegen_func)
+    # print()
+    # color_burn_8(codegen_func)
+    # print()
+    # lighten_blend_8(codegen_func)
+    # print()
+    # color_dodge_8(codegen_func)
+    # print()
+    # overlay_blend_8(codegen_func)
+    # print()
+    # multiply_blend_8(codegen_func)
+    # print()
+    # linear_burn_8(codegen_func)
+    # print()
+    # screen_blend_8(codegen_func)
+    # print()
+    # linear_dodge_8(codegen_func)
+    # print()
+    # normal_blend_f(codegen_func)
+    # print()
+    # normal_blend_8(codegen_func)
+    # print()
+    # dissolve_blend_8(codegen_func)
+    # print()
+    # exit(0)
 
     # softmax_part1(codegen_func)
     # print()
@@ -590,16 +590,16 @@ for codegen_func in codegen_funcs:
     # print()
 
     # Dexter benchmarks
-    # normal_blend_8(codegen_func) #PASS
-    # print()
-    # normal_blend_f(codegen_func) #PASS
-    # print()
-    linear_burn_8(codegen_func)
+    normal_blend_8(codegen_func) #PASS
     print()
-    screen_blend_8(codegen_func)
+    normal_blend_f(codegen_func) #PASS
     print()
-    # linear_dodge_8(codegen_func) #PASS
-    # print()
+    linear_burn_8(codegen_func) #PASS
+    print()
+    screen_blend_8(codegen_func) #PASS
+    print()
+    linear_dodge_8(codegen_func) #PASS
+    print()
 
     # Llama benchmarks
     softmax_part3(codegen_func)
