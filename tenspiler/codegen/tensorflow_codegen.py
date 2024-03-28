@@ -1,4 +1,5 @@
 from typing import Dict
+import textwrap
 
 from metalift.ir import Call, Expr, Lit
 from typing import Any, Dict, Tuple, Union
@@ -26,7 +27,8 @@ from metalift.ir import (
     Var,
     And,
     Or,
-    List as mlList
+    List as mlList,
+    Matrix
 )
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
@@ -52,6 +54,9 @@ from tenspiler.tenspiler_common import (
     VEC_SCALAR_MUL,
     VEC_SCALAR_SUB,
 )
+
+# Indentation is 4 spaces
+INDENTATION = " " * 4
 
 translations = {
     VEC_ELEMWISE_ADD: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
@@ -213,4 +218,41 @@ def tensorflow_codegen(
             return expr.name(), expr.type
         return str(expr)
 
-    return helper(ps_fn_decl.body())[0]
+    ###############################
+    # Begins actual code generation
+    ###############################
+    print("####### import statements ########\n")
+    print("import tensorflow as tf\n")
+    
+    fn_name = f"{ps_fn_decl.name()[:-3]}"
+    arguments = [arg.name() for arg in ps_fn_decl.arguments()]
+    arguments_str = ", ".join(arguments)
+    kernel_name = f"{fn_name}_tf"
+    print("####### kernel code ########")
+    kernel_fn = f"""
+    def {kernel_name}({arguments_str}):
+        return {helper(ps_fn_decl.body())[0]}
+    """
+    kernel_fn = textwrap.dedent(kernel_fn)
+    print(kernel_fn)
+
+    print("####### glued code ########")
+    glued_name = f"{fn_name}_tf_glued"
+    argument_types = [arg.type for arg in ps_fn_decl.arguments()]
+
+    conversions = []
+    for i in range(len(arguments)):
+        if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
+            lib_dtype = "tf.uint8" if d_type == DataType.INT else "tf.float32"
+            conversions.append(f"{arguments[i]} = tf.convert_to_tensor({arguments[i]}, dtype={lib_dtype})")
+
+    arg_processing = f"\n{INDENTATION * 2}".join(conversions)
+    glued_fn = f"""
+    def {glued_name}({arguments_str}):
+        {arg_processing}
+        return {kernel_name}({arguments_str})
+    """
+    glued_fn = textwrap.dedent(glued_fn)
+    print(glued_fn)
+
+    return 
