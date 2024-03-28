@@ -1,7 +1,10 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
-
 from tenspiler.codegen.gemmini_codegen import gemmini_codegen
+from tenspiler.codegen.mlx_codegen import mlx_codegen
+from tenspiler.codegen.numpy_codegen import numpy_codegen
+from tenspiler.codegen.pytorch_codegen import pytorch_codegen
+from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -398,10 +401,10 @@ def rmsnorm_part2(codegen_func):
 @codegen
 def matmul(codegen_func):
     weight = Matrix(Int, "weight")
-    input = Matrix(Int, "input")
+    input = List(Int, "input")
     fn_decl = fn_decl_recursive(
         "matmul_ps",
-        Matrix[Int],
+        List[Int],
         call_matrix_vec_mul(weight, input),
         weight,
         input,
@@ -589,7 +592,7 @@ for codegen_func in codegen_funcs:
     # transformer_part4(codegen_func)
     # print()
 
-    # Dexter benchmarks
+    # # Dexter benchmarks
     normal_blend_8(codegen_func) #PASS
     print()
     normal_blend_f(codegen_func) #PASS

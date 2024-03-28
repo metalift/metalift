@@ -1,4 +1,5 @@
 from typing import Any, Dict, Tuple, Union, List
+import textwrap
 
 from metalift.ir import (
     Add,
@@ -51,6 +52,9 @@ from tenspiler.tenspiler_common import (
     VEC_SCALAR_SUB,
 )
 
+# Indentation is 4 spaces
+INDENTATION = " " * 4
+
 translations = {
     VEC_ELEMWISE_ADD: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, 1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS); \n",
     MATRIX_ELEMWISE_ADD: lambda processed_args, curr_var, var_dimensions: f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, 1, 1, 1, {processed_args[0]}[0], {processed_args[1]}[0], {curr_var}[0], false, WS); \n",
@@ -93,6 +97,49 @@ translations = {
     # "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
     Mod: lambda processed_args: f"({processed_args[0]}) % ({processed_args[1]})",
 }
+
+glue_var_count = 0
+
+def gemmini_type_helper(var_type, var_name, var_dimensions):
+    if var_type == Matrix[Int] or var_type == mlList[Int]:
+        var_dimensions[var_name] = ["LEN", "LEN"]
+        return f"elem_t {var_name}[LEN][LEN]"
+    elif var_type == Int:
+        var_dimensions[var_name] = ["1", "1"]
+        return f"elem_t {var_name}"
+    elif var_type == Bool:
+        var_dimensions[var_name] = ["1", "1"]
+        return f"bool {var_name}"
+    else:
+        raise Exception(f"unsupported input type {var_type}")
+    
+def c_type_helper(var_type, var_name, d_type):
+    if var_type == Matrix[Int]:
+        return f"{d_type} {var_name}[LEN][LEN]"
+    elif var_type == mlList[Int]:
+        return f"{d_type} {var_name}[LEN]"
+    elif var_type == Int:
+        return f"{d_type} {var_name}"
+    elif var_type == Bool:
+        return f"bool {var_name}"
+    else:
+        raise Exception(f"unsupported input type {var_type}")
+    
+def c_argument_convert_helper(var_type, var_name, d_type, conversions, converted_arguments):
+    global glue_var_count
+    if var_type == mlList[Int]:
+        glue_var_name = f"glued_{glue_var_count}"
+        glue_var_count += 1
+        conversions.append(f"static {d_type} {glue_var_name}[LEN][LEN];")
+        conversions.append(f"""
+        for (int i = 0; i < LEN; i++) {{ 
+            {glue_var_name}[i][0] = {var_name}[i];
+        }}
+        """)
+        converted_arguments.append(glue_var_name) 
+    else:
+        converted_arguments.append(var_name)
+
 
 def gemmini_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
@@ -165,31 +212,10 @@ def gemmini_codegen(
                 return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
 
             elif fn_name == "matrix_vec_mul":
-                # result_matrix_var = f"result_matrix{temp_var_count}"
-                # temp_var_count += 1
-                # result_matrix_var_def = f"static elem_t {result_matrix_var}[{var_dimensions[processed_args[0]][0]}][{var_dimensions[processed_args[0]][0]}]; \n"
-                # var_dimensions[result_matrix_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][0]]
-                # res += result_matrix_var_def
-                # res +=  translations[fn_name](processed_args, result_matrix_var)
-                # # extract first column of result matrix
-                # var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][1]]
-                # res += f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t {curr_var}[i][0] = {result_matrix_var}[i][0]; \n }} \n"
-                # return res, expr.type
                 var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[1]][1]]
                 res +=  translations[fn_name](processed_args, curr_var)
                 return res, expr.type
             elif fn_name == "reduce_sum":
-                #TODO: need to extract the result of reduce_sum? curr_var should be int
-                # expanded_var = f"unflat{temp_var_count}"
-                # temp_var_count += 1
-                # expanded_var_def = f"static elem_t {expanded_var}[{var_dimensions[processed_args[0]][1]}][{var_dimensions[processed_args[0]][1]}]; \n"
-                # var_dimensions[expanded_var] = [var_dimensions[processed_args[0]][1], var_dimensions[processed_args[0]][1]]
-                # res += expanded_var_def
-                # res += f"int v{temp_var_count} = 0; \n for (int i = 0; i < {var_dimensions[expanded_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[expanded_var][1]}; j++) {{ \n \t \t {expanded_var}[i][j] = {processed_args[0]}[v{temp_var_count}][0]; \n \t \t v{temp_var_count}++; \n \t}} \n}} \n"
-                # temp_var_count += 1
-
-                # input_arg = expanded_var
-                # res += f"tiled_global_average({input_arg}[0], {curr_var}, 1, 1, {var_dimensions[expanded_var][0]}, 1); \n"
                 res += translations[fn_name](processed_args, curr_var, var_dimensions)
                 res += f"{curr_var} = {curr_var} * {var_dimensions[processed_args[0]][0]} * {var_dimensions[processed_args[0]][1]}; \n"
                 return res, expr.type
@@ -233,23 +259,118 @@ def gemmini_codegen(
             return expr.name(), expr.type
         return str(expr)
 
-    #TODO: we need some way of knowing what is the dimensionality of output and input var if they are matrix or list or int, and var names
-    #could be no size (integer) or [LEN,LEN]
-    #vector of size LEN is also [LEN, LEN] but only first column is used. PADDING
 
-    return helper(ps_fn_decl.body(), {}, "out", {"out": ["LEN", "LEN"], "base": ["LEN", "LEN"], "active": ["LEN", "LEN"], "output": ["LEN", "LEN"], "input": ["LEN", "LEN"], "weight": ["LEN", "LEN"]})[0]
+    ###############################
+    # Begins actual code generation
+    ###############################
+    
+    print("####### include statements ########\n")
+    print("include \"include/gemmini_params.h\" \ninclude \"include/gemmini.h\"\n")
+    print("define LEN 200 //change as needed\n")
+    print("//note elem_t is defined in gemmini_params.h and is defaulted to int8_t\n")
+    
+    result_var = "out"
 
-#TODO: write kernel function wrapper and glue code function wrapper. ALSO need info on variable names, types    
-    # typedef int8_t elem_t; or float? but this is already in the included file "include/gemmini_params.h"?
+    fn_name = f"{ps_fn_decl.name()[:-3]}"
+    arguments = [arg.name() for arg in ps_fn_decl.arguments()]
+    argument_types = [arg.type for arg in ps_fn_decl.arguments()]
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "include/gemmini_params.h"
-#include "include/gemmini.h"
-#ifndef BAREMETAL
-#include <sys/mman.h>
-#endif
+    var_str = []
+    var_dimensions = {}
+    for i in range(len(arguments)):
+        var_str.append(gemmini_type_helper(argument_types[i], arguments[i], var_dimensions))
 
-# define LEN 200
+    if ps_fn_decl.returnT() == Matrix[Int] or ps_fn_decl.returnT() == mlList[Int]:
+        var_dimensions[result_var] = ["LEN", "LEN"]
+        var_str.append(f"elem_t {result_var}[LEN][LEN]")
+    elif ps_fn_decl.returnT() == Int or ps_fn_decl.returnT() == Bool:
+        var_dimensions[result_var] = ["1", "1"]
+        var_str.append(f"elem_t* {result_var}")
+    else:
+        raise Exception(f"Unsupported return type {ps_fn_decl.returnT()}")
+    
+    arguments_str = ", ".join(var_str)
+
+    kernel_name = f"{fn_name}_gemmini"
+    print("####### kernel code ########")
+    kernel_fn = f"""
+    void {kernel_name}({arguments_str}){{
+{textwrap.indent(helper(ps_fn_decl.body(), {}, result_var, var_dimensions)[0], INDENTATION * 2)}
+    }}
+    """
+    kernel_fn = textwrap.dedent(kernel_fn)
+    print(kernel_fn)
+
+    print("####### glued code ########")
+    glued_name = f"{fn_name}_gemmini_glued "
+
+    #C glue function parameters
+    lib_dtype = "int8_t" if d_type == DataType.INT else "float"
+    var_str_c = []
+    for i in range(len(arguments)):
+        var_str_c.append(c_type_helper(argument_types[i], arguments[i], lib_dtype))
+    arguments_str_c = ", ".join(var_str_c)
+
+    #C glue code preprocessing
+    conversions = []
+    converted_arguments = []
+    for i in range(len(arguments)):
+        c_argument_convert_helper(argument_types[i], arguments[i], "elem_t", conversions, converted_arguments)
+
+    #C glue code. out variable initialization
+    if ps_fn_decl.returnT() == Int or ps_fn_decl.returnT() == Bool:
+        converted_arguments.append(f"&{result_var}")
+    else:
+        converted_arguments.append(result_var)
+
+    if ps_fn_decl.returnT() == Matrix[Int] or ps_fn_decl.returnT() == mlList[Int]:
+        conversions.append(f"static {lib_dtype} {result_var} [LEN][LEN];")
+    elif ps_fn_decl.returnT() == Int:
+        conversions.append(f"elem_t {result_var};")
+    elif ps_fn_decl.returnT() == Bool:
+        conversions.append(f"bool {result_var};")
+
+    #C glue code. out variable post processing if necessary
+    rv = result_var
+    postprocess = []
+    if ps_fn_decl.returnT() == mlList[Int]:
+        old_rv = rv
+        rv = "out_postprocess"
+        postprocess.append(f"static {lib_dtype} {rv} [LEN]; \n")
+        postprocess.append(f"""
+        for (int i = 0; i < LEN; i++) {{
+            {rv}[i] = {old_rv}[i][0];
+        }}
+        """)
+
+
+    #C glue code. function definition return value
+    ret_type_c = ""
+    if ps_fn_decl.returnT() in [Matrix[Int], mlList[Int]]:
+        ret_type_c = f"{lib_dtype}*" 
+    elif ps_fn_decl.returnT() == Int:
+        ret_type_c = f"{lib_dtype}" 
+    elif ps_fn_decl.returnT() == Bool:
+        ret_type_c = "bool" 
+    elif ps_fn_decl.returnT() == None:
+        ret_type_c = "void"
+    else:
+        raise Exception(f"Unsupported return type {ps_fn_decl.returnT()}")
+    
+
+    arg_processing = f"\n{INDENTATION * 2}".join(conversions)
+    rv_postprocessing = f"\n{INDENTATION * 2}".join(postprocess)
+    glued_fn = f"""
+    {ret_type_c} {glued_name}({arguments_str_c}){{
+        {arg_processing}
+        {kernel_name}({", ".join(converted_arguments)});
+        {rv_postprocessing}
+        return {rv};
+    }}    
+    """
+    glued_fn = textwrap.dedent(glued_fn)
+    print(glued_fn)
+
+    return 
+
+
