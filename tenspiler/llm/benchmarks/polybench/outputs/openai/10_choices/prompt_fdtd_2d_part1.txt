@@ -1,3 +1,11 @@
+
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+#Instructions
+# 1. Do not use for/while loops for rewriting the function.
+# 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+# 3. Inline all the expressions. Do not use intermediate variables.
+```
+#defined functions
 from typing import Any, Callable, List
 
 
@@ -229,7 +237,9 @@ def matrix_slice_with_length(
     return matrix[start : start + lst_length]
 
 
-def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
+def matrix_col_slice(
+    matrix: List[List[int]], start: int, end: int
+) -> List[List[int]]:
     return (
         []
         if len(matrix) < 1
@@ -263,13 +273,11 @@ def matrix_elemwise_mul(
         ]
     )
 
-
 def dot_1d(input: List[int], kernel: List[int]) -> int:
     if not kernel:
         return 0
 
     return input[0] * kernel[0] + dot_1d(input[1:], kernel[1:])
-
 
 def dot_2d(input: List[List[int]], kernel: List[List[int]]) -> int:
     if not kernel:
@@ -277,15 +285,11 @@ def dot_2d(input: List[List[int]], kernel: List[List[int]]) -> int:
 
     return dot_1d(input[0], kernel[0]) + dot_2d(input[1:], kernel[1:])
 
-
-def conv_inner(
-    inp: List[List[int]], kernel: List[List[int]], i: int, j: int
-) -> List[int]:
+def conv_inner(inp: List[List[int]], kernel: List[List[int]], i: int, j: int) -> List[int]:
     if j >= len(inp[i]):
         return []
 
     return [dot_2d(inp[i:], kernel)] + conv_inner(inp, kernel, i, j + 1)
-
 
 def conv2d(inp: List[List[int]], kernel: List[List[int]]) -> List[List[int]]:
     def conv2d_helper(inp, kernel, i, j):
@@ -296,5 +300,29 @@ def conv2d(inp: List[List[int]], kernel: List[List[int]]) -> List[List[int]]:
 
     return conv2d_helper(inp, kernel, 0, 0)
 
-
 constants = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+```
+```
+//test function
+#include <vector>
+using namespace std;
+
+vector<vector<int>> fdtd_2d_part1(
+    int nx,
+    int ny,
+    vector<vector<int>> ey,
+    vector<vector<int>> hz
+) {
+    vector<vector<int>> out;
+    for (int i = 0; i < nx; i++) {
+        vector<int> row_vec;
+        for (int j = 1; j < ny; j++) {
+            int curr = 2 * (hz[i][j] - hz[i][j - 1]);
+            row_vec.push_back(curr);
+        }
+        out.push_back(row_vec);
+    }
+    return out;
+}
+
+```

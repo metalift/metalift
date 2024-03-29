@@ -65,9 +65,18 @@ for benchmark in "${benchmarks[@]}"; do
     source_file=$(find "benchmarks/${benchmark_suite}/source" -type f -name "${benchmark}.cc" -print -quit)
 
     if [ "$backend" == "gemini" ]; then
-        python3 scripts/gemini_benchmarks.py --filename "$benchmark" --source-code "${source_file}" --dsl-code python_dsl.py
+        python3 scripts/gemini_benchmarks.py \
+            --benchmark-suite "$benchmark_suite" \
+            --filename "$benchmark" \
+            --source-code "${source_file}" \
+            --dsl-code python_dsl.py
     elif [ "$backend" == "openai" ]; then
-        python3 scripts/openai_benchmarks.py --filename "$benchmark" --source-code "${source_file}" --dsl-code python_dsl.py --n-choices=${n_choices}
+        python3 scripts/openai_benchmarks.py \
+            --benchmark-suite "$benchmark_suite" \
+            --filename "$benchmark" \
+            --source-code "${source_file}" \
+            --dsl-code python_dsl.py \
+            --n-choices=${n_choices}
     else
         echo "Invalid backend specified. Please choose 'gemini' or 'openai'."
         exit 1
