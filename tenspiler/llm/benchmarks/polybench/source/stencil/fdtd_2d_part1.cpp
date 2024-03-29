@@ -4,7 +4,6 @@ using namespace std;
 vector<vector<int>> fdtd_2d_part1(
     int nx,
     int ny,
-    vector<vector<int>> ey,
     vector<vector<int>> hz
 ) {
     vector<vector<int>> out;
