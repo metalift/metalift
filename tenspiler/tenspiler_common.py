@@ -935,7 +935,7 @@ vec_scalar_add = fn_decl_recursive(
 )
 matrix_scalar_add = fn_decl_recursive(
     MATRIX_SCALAR_ADD,
-    mlList[Int],
+    Matrix[Int],
     scalar_body(
         scalar=a,
         vec_or_matrix=matrix_x,
@@ -962,7 +962,7 @@ vec_scalar_mul = fn_decl_recursive(
 )
 matrix_scalar_mul = fn_decl_recursive(
     MATRIX_SCALAR_MUL,
-    mlList[Int],
+    Matrix[Int],
     scalar_body(
         scalar=a,
         vec_or_matrix=matrix_x,

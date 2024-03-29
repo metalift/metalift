@@ -2989,6 +2989,9 @@ class FnDeclRecursive(Expr):
         fn_type = make_fn_type(returnT, *arg_types)
         Expr.__init__(self, fn_type, [name, body, *args])
 
+    def set_name(self, name: str) -> None:
+        self.args[0] = name
+
     def name(self) -> str:
         return self.args[0]  # type: ignore
 

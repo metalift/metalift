@@ -1,5 +1,6 @@
 import ast
 import re
+import uuid
 from typing import Dict
 from typing import List as pyList
 from typing import Optional
@@ -12,8 +13,12 @@ from mypy.modulefinder import BuildSource
 from mypy.nodes import (
     Block,
     CallExpr,
+    ComparisonExpr,
+    ConditionalExpr,
     FuncDef,
     IntExpr,
+    LambdaExpr,
+    ListExpr,
     MemberExpr,
     MypyFile,
     NameExpr,
@@ -22,21 +27,29 @@ from mypy.nodes import (
     ReturnStmt,
 )
 from mypy.options import Options
-from mypy.types import AnyType, Instance
+from mypy.types import AnyType, CallableType, Instance
 from mypy.types import Type as MypyType
 from mypy.types import TypeList, UnboundType
 
 from metalift.ir import (
     Bool,
+    Eq,
     Expr,
     Fn,
+    FnDeclRecursive,
+    Ge,
+    Gt,
     Int,
+    Le,
     List,
+    Lt,
     Object,
     ObjectT,
     call,
     create_object,
     fn_decl_recursive,
+    is_fn_decl_type,
+    ite,
 )
 
 
@@ -65,6 +78,10 @@ def mypy_type_to_ir_type(mypy_type: MypyType) -> Optional[ObjectT]:
             return Int
         elif mypy_type.type.fullname == "builtins.list":
             return List[mypy_type_to_ir_type(mypy_type.args[0])]
+    elif isinstance(mypy_type, CallableType):
+        arg_types = (mypy_type_to_ir_type(arg) for arg in mypy_type.arg_types)
+        ret_type = mypy_type_to_ir_type(mypy_type.ret_type)
+        return Fn[pyTuple[(ret_type, *arg_types)]]
     elif isinstance(mypy_type, AnyType):
         return None
     raise Exception(f"Unsupported type {mypy_type}")
@@ -85,6 +102,10 @@ def _get_func_def_ir_type(func_def: FuncDef) -> Type[Fn]:
     ]
     ret_type = mypy_type_to_ir_type(func_def.type.ret_type)
     return Fn[pyTuple[(ret_type, *arg_types)]]
+
+
+def _get_func_def_arg_names(func_def: FuncDef) -> pyList[str]:
+    return [arg.variable.name for arg in func_def.arguments]
 
 
 # TODO(jie): add return type
@@ -124,7 +145,10 @@ def mypy_parse(
     ]
 
     func_sign = {
-        func_def.name: _get_func_def_ir_type(func_def)
+        func_def.name: (
+            _get_func_def_ir_type(func_def),
+            _get_func_def_arg_names(func_def),
+        )
         for func_def in [target_func_def, *dsl_func_defs]
     }
 
@@ -153,93 +177,157 @@ def remove_comments(python_code):
 
 def mypy_node_to_ir(
     node: Node,
-    func_sign: Dict[str, List[Union[Type, type]]],
+    func_sign: Dict[str, pyList[Union[Type, type]]],
     types: Dict[Node, MypyType],
+    fn_decls: pyList[FnDeclRecursive],
+    in_calls: pyList[pyTuple[str, str]],
 ) -> Expr:
-    if isinstance(node, FuncDef):
-        func_ir_type = func_sign[node.name]
-        arg_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
-        ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
-        # Create one variable for each argument
-        variables: pyList[Object] = []
-        for arg, ir_type in zip(node.arguments, arg_ir_types):
-            variables.append(create_object(ir_type, arg.variable.name))
-        # Because we are not sure if the function is recursive, we opt to always use the recursive definition
-        return fn_decl_recursive(
-            node.name,
-            ret_ir_type,
-            mypy_node_to_ir(node.body, func_sign, types),
-            *variables,
-        )
-    elif isinstance(node, Block):
-        if len(node.body) > 1:
-            raise Exception("Block with more than one statement not supported")
-        return mypy_node_to_ir(node.body[0], func_sign, types)
-    elif isinstance(node, ReturnStmt):
-        return mypy_node_to_ir(node.expr, func_sign, types)
-    elif isinstance(node, CallExpr):
-        if isinstance(node.callee, MemberExpr):
-            # TODO(jie): here we need to identify the list append calls, etc
-            raise Exception("Method calls not supported")
-            # mypy_node_to_ir(node.callee, func_sign, types)
-        elif isinstance(node.callee, NameExpr):
-            func_name = cast(NameExpr, node.callee).name
-            func_ir_type = func_sign[func_name]
-            ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
-            arguments_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
-
-            # Check number of arguments
-            if len(node.args) != len(arguments_ir_types):
-                raise Exception(
-                    f"Incorrect number of arguments. Required {len(func_sign[func_name])} but got {len(node.args)}"
-                )
-
-            # Check argument types and make argument objects
-            arg_exprs: List[Expr] = []
-            for idx, (arg, expected_ir_type) in enumerate(
-                zip(node.args, arguments_ir_types)
-            ):
-                arg_expr = mypy_node_to_ir(arg, func_sign, types)
-                if arg_expr.type != expected_ir_type:
-                    raise Exception(
-                        f"Expected type {expected_ir_type} but got {arg_expr.type} for {idx}th argument of {func_name}"
-                    )
-                arg_exprs.append(arg_expr)
-
-            # Check return type
-            actual_ret_ir_type = mypy_type_to_ir_type(types.get(node))
-            if actual_ret_ir_type != ret_ir_type:
-                raise Exception(
-                    f"Expected return type {ret_ir_type} but got {actual_ret_ir_type} for {func_name}"
-                )
-            return call(func_name, ret_ir_type, *arg_exprs)
-    elif isinstance(node, NameExpr):
-        # Nothing can go wrong with a name expression (which are basically variables)
-        ir_type = mypy_type_to_ir_type(types[node])
-        return create_object(ir_type, node.name)
-    elif isinstance(node, OpExpr):
-        left = mypy_node_to_ir(node.left, func_sign, types)
-        right = mypy_node_to_ir(node.right, func_sign, types)
-        op = node.op
-        if left.type is Int and right.type is Int:
-            if op == "+":
-                return left + right
-            elif op == "-":
-                return left - right
-            elif op == "*":
-                return left * right
-            elif op == "//":
-                return left // right
+    def parse_node(node: Node) -> Expr:
+        if isinstance(node, FuncDef) or isinstance(node, LambdaExpr):
+            if isinstance(node, FuncDef):
+                func_ir_type, _ = func_sign[node.name]
             else:
-                raise Exception(f"Unsupported operator {op} on integers")
-        else:
-            raise Exception(
-                f"Unsupported binary operations {op} on types {left.type} and {right.type}"
+                func_ir_type = mypy_type_to_ir_type(types[node])
+            arg_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
+            ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
+            # Create one variable for each argument
+            variables: pyList[Object] = []
+            for arg, ir_type in zip(node.arguments, arg_ir_types):
+                variables.append(create_object(ir_type, arg.variable.name))
+            # Because we are not sure if the function is recursive, we opt to always use the recursive definition
+            # If the function is expressed as a lambda expression, then the name will be "<lambda>"
+            return fn_decl_recursive(
+                node.name,
+                ret_ir_type,
+                parse_node(node.body),
+                *variables,
             )
-    elif isinstance(node, IntExpr):
-        return create_object(Int, node.value)
-    else:
-        raise Exception(f"Unsupported node {node}")
+        elif isinstance(node, Block):
+            if len(node.body) > 1:
+                raise Exception("Block with more than one statement not supported")
+            return parse_node(node.body[0])
+        elif isinstance(node, ReturnStmt):
+            return parse_node(node.expr)
+        elif isinstance(node, CallExpr):
+            if isinstance(node.callee, MemberExpr):
+                # TODO(jie): here we need to identify the list append calls, etc
+                raise Exception("Method calls not supported")
+                # mypy_node_to_ir(node.callee, func_sign, types)
+            elif isinstance(node.callee, NameExpr):
+                func_name = cast(NameExpr, node.callee).name
+
+                # First we check if this function is a python built-in function
+                if func_name == "len":
+                    if len(node.args) != 1:
+                        raise Exception("len() takes exactly one argument")
+                    arg_expr = parse_node(node.args[0])
+                    if arg_expr.type.is_nested:
+                        list_func_name = "list_list_length"
+                    else:
+                        list_func_name = "list_length"
+                    return call(list_func_name, Int, arg_expr)
+
+                # Then check if this functino is in our DSL.
+                if func_name not in func_sign.keys():
+                    raise Exception(f"Unknown function {func_name}")
+
+                func_ir_type, arg_names = func_sign[func_name]
+                ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
+                arguments_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
+
+                # Check number of arguments
+                if len(node.args) != len(arguments_ir_types):
+                    raise Exception(
+                        f"Incorrect number of arguments. Required {len(func_sign[func_name])} but got {len(node.args)}"
+                    )
+
+                # Check argument types and make argument objects
+                arg_exprs: List[Expr] = []
+                for idx, (arg, expected_ir_type) in enumerate(
+                    zip(node.args, arguments_ir_types)
+                ):
+                    arg_expr = parse_node(arg)
+                    if arg_expr.type != expected_ir_type:
+                        raise Exception(
+                            f"Expected type {expected_ir_type} but got {arg_expr.type} for {idx}th argument of {func_name}"
+                        )
+
+                    # If the argument is a function, then we need to define another function for it
+                    if is_fn_decl_type(arg_expr.type):
+                        lambda_fn_name = f"{arg_names[idx]}_{str(uuid.uuid4())[:8]}"
+                        arg_expr.set_name(lambda_fn_name)
+                        fn_decls.append(arg_expr)
+                        in_calls.append((func_name, lambda_fn_name))
+                    arg_exprs.append(arg_expr)
+
+                # Check return type
+                actual_ret_ir_type = mypy_type_to_ir_type(types.get(node))
+                if actual_ret_ir_type != ret_ir_type:
+                    raise Exception(
+                        f"Expected return type {ret_ir_type} but got {actual_ret_ir_type} for {func_name}"
+                    )
+                return call(func_name, ret_ir_type, *arg_exprs)
+        elif isinstance(node, NameExpr):
+            # Nothing can go wrong with a name expression (which are basically variables)
+            ir_type = mypy_type_to_ir_type(types[node])
+            return create_object(ir_type, node.name)
+        elif isinstance(node, OpExpr):
+            left = parse_node(node.left)
+            right = parse_node(node.right)
+            op = node.op
+            if left.type is Int and right.type is Int:
+                if op == "+":
+                    return left + right
+                elif op == "-":
+                    return left - right
+                elif op == "*":
+                    return left * right
+                elif op == "//":
+                    return left // right
+                else:
+                    raise Exception(f"Unsupported operator {op} on integers")
+            else:
+                raise Exception(
+                    f"Unsupported binary operations {op} on types {left.type} and {right.type}"
+                )
+        elif isinstance(node, IntExpr):
+            return create_object(Int, node.value)
+        elif isinstance(node, ListExpr):
+            node_type = mypy_type_to_ir_type(types[node])
+            return node_type.empty(get_args(node_type)[0])
+        elif isinstance(node, ConditionalExpr):
+            return ite(
+                parse_node(node.cond),
+                parse_node(node.if_expr),
+                parse_node(node.else_expr),
+            ).src
+        elif isinstance(node, ComparisonExpr):
+            if len(node.operators) != 1:
+                raise Exception("Multiple operators not supported")
+            if len(node.operands) != 2:
+                raise Exception("Operation must be performed on exactly two operands")
+            op = node.operators[0]
+            left_expr = parse_node(node.operands[0])
+            right_expr = parse_node(node.operands[1])
+            if left_expr.type is not Int or right_expr.type is not Int:
+                raise Exception("Comparison only supported on integers")
+            if op == ">":
+                return Gt(left_expr, right_expr)
+            elif op == "<":
+                return Lt(left_expr, right_expr)
+            elif op == "==":
+                return Eq(left_expr, right_expr)
+            elif op == ">=":
+                return Ge(left_expr, right_expr)
+            elif op == "<=":
+                return Le(left_expr, right_expr)
+            else:
+                raise Exception(f"Unsupported operator {op}")
+        else:
+            raise Exception(f"Unsupported node {node}")
+
+    ps_fn_decl = parse_node(node)
+    fn_decls.append(ps_fn_decl)
 
 
 # TODO(jie): add types

@@ -41,6 +41,6 @@ if __name__ == "__main__":
     darken_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, no_verify=True)
+    driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, no_verify=False)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
