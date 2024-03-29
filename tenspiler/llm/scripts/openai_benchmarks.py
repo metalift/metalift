@@ -67,8 +67,8 @@ for idx, c in enumerate(outputs.choices):
     #     import pdb; pdb.set_trace()
     if out:
         print(f"{idx}")
-        print(out[0])
-        # print(c.message.content)
+        # print(out[0])
+        print(c.message.content)
     print("=====")
 
 
