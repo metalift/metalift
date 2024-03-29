@@ -98,6 +98,9 @@ def toSMT(
     fnCalls: typing.List[Any],
     isSynthesis: bool = False,
 ) -> None:
+    import pdb
+
+    pdb.set_trace()
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
     with open(outFile, mode="w") as out:
         out.write(resources.read_text(utils, "tuples.smt"))

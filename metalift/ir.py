@@ -2986,6 +2986,9 @@ class FnDeclRecursive(Expr):
     ) -> None:
         Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])  # type: ignore
 
+    def set_name(self, name: str) -> None:
+        self.args[0] = name
+
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
