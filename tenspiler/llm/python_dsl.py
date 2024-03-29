@@ -215,18 +215,8 @@ def list_slice(lst: List[int], start: int, end: int) -> List[int]:
     return lst[:end][:start]
 
 
-def list_slice_with_length(lst: List[int], start: int, lst_length: int) -> List[int]:
-    return lst[start : start + lst_length]
-
-
 def matrix_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
     return matrix[:end][:start]
-
-
-def matrix_slice_with_length(
-    matrix: List[List[int]], start: int, lst_length: int
-) -> List[List[int]]:
-    return matrix[start : start + lst_length]
 
 
 def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
@@ -235,12 +225,6 @@ def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List
         if len(matrix) < 1
         else [matrix[0][start:end], *matrix_col_slice(matrix[1:], start, end)]
     )
-
-
-def matrix_col_slice_with_length(
-    matrix: List[List[int]], start: int, lst_length: int
-) -> List[List[int]]:
-    return matrix_col_slice(matrix, start, start + lst_length)
 
 
 def firsts(matrix: List[List[int]]) -> List[int]:
