@@ -138,14 +138,14 @@ def to_expr(
             )
         elif ast[0] == "length":
             return Call("list_length", Int, to_expr(ast[1], fnsType, varType, choices))
-        elif ast[0] == "list-list-length":
+        elif ast[0] == "matrix-length":
             return Call(
-                "list_list_length", Int, to_expr(ast[1], fnsType, varType, choices)
+                "matrix_length", Int, to_expr(ast[1], fnsType, varType, choices)
             )
         elif ast[0] == "list-empty":
             return Call("list_empty", mlList[Int])
-        elif ast[0] == "list-list-empty":
-            return Call("list_list_empty", mlList[mlList[Int]])
+        elif ast[0] == "matrix-empty":
+            return Call("matrix_empty", mlList[mlList[Int]])
         elif ast[0] == "list-append":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             elem = to_expr(ast[2], fnsType, varType, choices)
@@ -155,11 +155,11 @@ def to_expr(
                 toExpr(ast[1], fnsType, varType, choices),
                 elem,
             )
-        elif ast[0] == "list-list-append":
+        elif ast[0] == "matrix-append":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             elem = to_expr(ast[2], fnsType, varType, choices)
             return Call(
-                "list_list_append",
+                "matrix_append",
                 list_expr.type,
                 list_expr,
                 elem,
@@ -173,11 +173,11 @@ def to_expr(
                 elem,
                 lst,
             )
-        elif ast[0] == "list-list-prepend":
+        elif ast[0] == "matrix-prepend":
             elem = to_expr(ast[1], fnsType, varType, choices)
             lst = to_expr(ast[2], fnsType, varType, choices)
             return Call(
-                "list_list_prepend",
+                "matrix_prepend",
                 lst.type,
                 elem,
                 lst,
@@ -190,10 +190,10 @@ def to_expr(
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-ref-noerr":
+        elif ast[0] == "matrix-ref-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_get",
+                "matrix_get",
                 get_list_element_type(list_expr.type),
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
@@ -206,10 +206,10 @@ def to_expr(
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-tail-noerr":
+        elif ast[0] == "matrix-tail-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_tail",
+                "matrix_tail",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
@@ -226,10 +226,10 @@ def to_expr(
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-take-noerr":
+        elif ast[0] == "matrix-take-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_take",
+                "matrix_take",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
@@ -243,10 +243,10 @@ def to_expr(
                 to_expr(ast[2], fnsType, varType, choices),
                 to_expr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-slice-noerr":
+        elif ast[0] == "matrix-slice-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_slice",
+                "matrix_slice",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
@@ -261,28 +261,28 @@ def to_expr(
                 to_expr(ast[2], fnsType, varType, choices),
                 to_expr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-slice-with-length-noerr":
+        elif ast[0] == "matrix-slice-with-length-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_slice_with_length",
+                "matrix_slice_with_length",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
                 to_expr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-col-slice-noerr":
+        elif ast[0] == "matrix-col-slice-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_col_slice",
+                "matrix_col_slice",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
                 to_expr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] == "list-list-col-slice-with-length-noerr":
+        elif ast[0] == "matrix-col-slice-with-length-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_list_col_slice_with_length",
+                "matrix_col_slice_with_length",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),

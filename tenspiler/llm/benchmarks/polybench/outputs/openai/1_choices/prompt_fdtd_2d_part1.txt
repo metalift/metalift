@@ -227,30 +227,30 @@ def list_slice_with_length(lst: List[int], start: int, lst_length: int) -> List[
     return lst[start : start + lst_length]
 
 
-def list_list_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
+def matrix_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
     return matrix[:end][:start]
 
 
-def list_list_slice_with_length(
+def matrix_slice_with_length(
     matrix: List[List[int]], start: int, lst_length: int
 ) -> List[List[int]]:
     return matrix[start : start + lst_length]
 
 
-def list_list_col_slice(
+def matrix_col_slice(
     matrix: List[List[int]], start: int, end: int
 ) -> List[List[int]]:
     return (
         []
         if len(matrix) < 1
-        else [matrix[0][start:end], *list_list_col_slice(matrix[1:], start, end)]
+        else [matrix[0][start:end], *matrix_col_slice(matrix[1:], start, end)]
     )
 
 
-def list_list_col_slice_with_length(
+def matrix_col_slice_with_length(
     matrix: List[List[int]], start: int, lst_length: int
 ) -> List[List[int]]:
-    return list_list_col_slice(matrix, start, start + lst_length)
+    return matrix_col_slice(matrix, start, start + lst_length)
 
 
 def firsts(matrix: List[List[int]]) -> List[int]:
@@ -258,7 +258,7 @@ def firsts(matrix: List[List[int]]) -> List[int]:
 
 
 def rests(matrix: List[List[int]]) -> List[List[int]]:
-    return [] if len(matrix) < 1 else list_list_col_slice(matrix, 1, len(matrix[0]))
+    return [] if len(matrix) < 1 else matrix_col_slice(matrix, 1, len(matrix[0]))
 
 
 def matrix_elemwise_mul(

@@ -122,66 +122,66 @@
 
 ; list of lists definition
 
-(declare-fun list_list_length ( (MLList (MLList Int) ) ) Int)
-(assert (= (list_list_length (as nil (MLList (MLList Int) ))) 0))
+(declare-fun matrix_length ( (MLList (MLList Int) ) ) Int)
+(assert (= (matrix_length (as nil (MLList (MLList Int) ))) 0))
 (assert (forall ( (val (MLList Int) ) (l (MLList (MLList Int) )) )
-                (= (list_list_length (cons val l)) (+ 1 (list_list_length l)))))
+                (= (matrix_length (cons val l)) (+ 1 (matrix_length l)))))
 (assert (forall ( (l (MLList (MLList Int) )) )
-                (<= 0 (list_list_length l))))
+                (<= 0 (matrix_length l))))
 
 ;end of list length
 
-(define-fun list_list_prepend ( (val (MLList Int) ) (l (MLList (MLList Int) ) )) (MLList (MLList Int) ) (cons val l))
+(define-fun matrix_prepend ( (val (MLList Int) ) (l (MLList (MLList Int) ) )) (MLList (MLList Int) ) (cons val l))
 ; end of list prepend
 
 
-(declare-fun list_list_append ( (MLList (MLList Int)  ) (MLList Int) ) (MLList (MLList Int) ))
+(declare-fun matrix_append ( (MLList (MLList Int)  ) (MLList Int) ) (MLList (MLList Int) ))
 (assert (forall ( (val (MLList Int)) )
-                (= (list_list_append (as nil (MLList (MLList Int))) val) (cons val (as nil (MLList (MLList Int)))))))
+                (= (matrix_append (as nil (MLList (MLList Int))) val) (cons val (as nil (MLList (MLList Int)))))))
 (assert (forall ( (h (MLList Int)) (t (MLList (MLList Int))) (val (MLList Int)) )
-                (= (list_list_append (cons h t) val) (cons h (list_list_append t val)))))
+                (= (matrix_append (cons h t) val) (cons h (matrix_append t val)))))
 ;end of list append
 
-(declare-fun list_list_get_helper ( (MLList (MLList Int) ) Int ) (MLList Int) )
-(define-fun list_list_get ( (l (MLList (MLList Int) )) (i Int) ) (MLList Int) (list_list_get_helper l i))
+(declare-fun matrix_get_helper ( (MLList (MLList Int) ) Int ) (MLList Int) )
+(define-fun matrix_get ( (l (MLList (MLList Int) )) (i Int) ) (MLList Int) (matrix_get_helper l i))
 (assert (forall ( (h (MLList Int) ) (t (MLList (MLList Int) )) (i Int) )
                 (ite (<= i 0)
-                     (= (list_list_get_helper (cons h t) i) h)
-                     (= (list_list_get_helper (cons h t) i) (list_list_get_helper t (- i 1))))))
+                     (= (matrix_get_helper (cons h t) i) h)
+                     (= (matrix_get_helper (cons h t) i) (matrix_get_helper t (- i 1))))))
 ;end of list get
 
-(define-fun list_list_empty ( ) (MLList (MLList Int)) (as nil (MLList (MLList Int) )))
+(define-fun matrix_empty ( ) (MLList (MLList Int)) (as nil (MLList (MLList Int) )))
 ;end of empty list
 
 
 
-(define-fun-rec list_list_tail ((l (MLList (MLList Int) ) ) (n Int)) (MLList (MLList Int) )
-  (ite (<= n 0)  l (list_list_tail (tail l) (- n 1))))
+(define-fun-rec matrix_tail ((l (MLList (MLList Int) ) ) (n Int)) (MLList (MLList Int) )
+  (ite (<= n 0)  l (matrix_tail (tail l) (- n 1))))
 (assert (forall ( (start Int) (h (MLList Int) ) (t (MLList (MLList Int) )) )
                 (ite (<= start 0)
-                     (= (list_list_tail (cons h t) start) (cons h t))
-                     (= (list_list_tail (cons h t) start) (list_list_tail t (- start 1))))))
+                     (= (matrix_tail (cons h t) start) (cons h t))
+                     (= (matrix_tail (cons h t) start) (matrix_tail t (- start 1))))))
 (assert (forall ( (start Int) )
-                (= (list_list_tail (as nil (MLList (MLList Int) )) start) (as nil (MLList (MLList Int)) ))))
+                (= (matrix_tail (as nil (MLList (MLList Int) )) start) (as nil (MLList (MLList Int)) ))))
 (assert (forall ( (start Int) (l (MLList (MLList Int) )) )
-                (=> (>= start (list_list_length l))
-                    (= (list_list_tail l start) (as nil (MLList (MLList Int) ))))))
+                (=> (>= start (matrix_length l))
+                    (= (matrix_tail l start) (as nil (MLList (MLList Int) ))))))
 
 ; end of list tail
 
-(declare-fun list_list_take ( (MLList (MLList Int)) Int ) (MLList (MLList Int)))
+(declare-fun matrix_take ( (MLList (MLList Int)) Int ) (MLList (MLList Int)))
 
 (assert (forall ( (end Int) (h (MLList Int)) (t (MLList (MLList Int))) )
                 (ite (<= end 0)
-                     (= (list_list_take (cons h t) end) (as nil (MLList (MLList Int))))
-                     (= (list_list_take (cons h t) end) (cons h (list_list_take t (- end 1)))))))
+                     (= (matrix_take (cons h t) end) (as nil (MLList (MLList Int))))
+                     (= (matrix_take (cons h t) end) (cons h (matrix_take t (- end 1)))))))
 (assert (forall ( (end Int) )
-                (= (list_list_take (as nil (MLList (MLList Int))) end) (as nil (MLList (MLList Int))))))
+                (= (matrix_take (as nil (MLList (MLList Int))) end) (as nil (MLList (MLList Int))))))
 (assert (forall ( (end Int) (l (MLList (MLList Int))) )
-                (=> (>= end (list_list_length l))
-                    (= (list_list_take l end) l))))
+                (=> (>= end (matrix_length l))
+                    (= (matrix_take l end) l))))
 
-(assert (forall ( (l (MLList (MLList Int))) ) (= (list_list_take l 0) (as nil (MLList (MLList Int))))))
+(assert (forall ( (l (MLList (MLList Int))) ) (= (matrix_take l 0) (as nil (MLList (MLList Int))))))
 ; end of list take
 
 ; end of list of lists definition
@@ -192,26 +192,26 @@
 (define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
 (list_slice lst start (+ start lst_length)))
 
-(define-fun list_list_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(list_list_take (list_list_take matrix end) start))
+(define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(matrix_take (matrix_take matrix end) start))
 
-(define-fun list_list_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(list_list_slice matrix start (+ start lst_length)))
+(define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(matrix_slice matrix start (+ start lst_length)))
 
-(define-fun-rec list_list_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (list_slice (list_list_get matrix 0) start end) (list_list_col_slice (list_list_tail matrix 1) start end))))
+(define-fun-rec matrix_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (list_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
 
-(define-fun-rec list_list_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(list_list_col_slice matrix start (+ start lst_length)))
+(define-fun-rec matrix_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(matrix_col_slice matrix start (+ start lst_length)))
 
 (define-fun-rec firsts ((matrix (MLList (MLList Int)))) (MLList Int)
-(ite (< (list_list_length matrix) 1) list_empty (list_prepend (list_get (list_list_get matrix 0) 0) (firsts (list_list_tail matrix 1)))))
+(ite (< (matrix_length matrix) 1) list_empty (list_prepend (list_get (matrix_get matrix 0) 0) (firsts (matrix_tail matrix 1)))))
 
 (define-fun-rec rests ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (< (list_list_length matrix) 1) list_list_empty (list_list_col_slice matrix 1 (list_length (list_list_get matrix 0)))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_col_slice matrix 1 (list_length (matrix_get matrix 0)))))
 
 (define-fun-rec matrix_transpose ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (firsts matrix) (matrix_transpose (rests matrix)))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (firsts matrix) (matrix_transpose (rests matrix)))))
 
 (define-fun-rec reduce_sum ((x (MLList Int))) Int
 (ite (< (list_length x) 1) 0 (+ (list_get x 0) (reduce_sum (list_tail x 1)))))
@@ -220,7 +220,7 @@
 (ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (* (list_get x 0) (list_get y 0)) (vec_elemwise_mul (list_tail x 1) (list_tail y 1)))))
 
 (define-fun-rec matrix_vec_mul ((matrix_x (MLList (MLList Int))) (x (MLList Int))) (MLList Int)
-(ite (or (or (< (list_list_length matrix_x) 1) (< (list_length (list_list_get matrix_x 0)) 1)) (not (= (list_length (list_list_get matrix_x 0)) (list_length x)))) list_empty (list_prepend (reduce_sum (vec_elemwise_mul (list_list_get matrix_x 0) x)) (matrix_vec_mul (list_list_tail matrix_x 1) x))))
+(ite (or (or (< (matrix_length matrix_x) 1) (< (list_length (matrix_get matrix_x 0)) 1)) (not (= (list_length (matrix_get matrix_x 0)) (list_length x)))) list_empty (list_prepend (reduce_sum (vec_elemwise_mul (matrix_get matrix_x 0) x)) (matrix_vec_mul (matrix_tail matrix_x 1) x))))
 
 (define-fun-rec vec_scalar_mul ((a Int) (x (MLList Int))) (MLList Int)
 (ite (< (list_length x) 1) list_empty (list_prepend (* a (list_get x 0)) (vec_scalar_mul a (list_tail x 1)))))
@@ -236,17 +236,17 @@ false)
 
 
 (define-fun-rec matmul_inv0 ((agg.result (MLList Int)) (col Int) (curr Int) (input (MLList Int)) (row Int) (weight (MLList (MLList Int)))) Bool
-(and (and (>= row 0) (<= row (list_list_length weight))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_list_take weight row) (list_list_col_slice (list_list_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
+(and (and (>= row 0) (<= row (matrix_length weight))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_take weight row) (matrix_col_slice (matrix_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
 
 
 
 (define-fun-rec matmul_inv1 ((col Int) (curr Int) (input (MLList Int)) (weight (MLList (MLList Int))) (agg.result (MLList Int)) (row Int)) Bool
-(and (and (and (and (and (>= row 0) (< row (list_list_length weight))) (>= col 0)) (<= col (list_length input))) (= curr (reduce_sum (ite VECTOR_OUTER_LOOP_INDEX (vec_scalar_mul (list_get input row) (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (list_list_get weight row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take weight col) row 1)) 0))) (vec_elemwise_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (list_list_get weight row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take weight col) row 1)) 0)) (list_take input col)))))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_list_take weight row) (list_list_col_slice (list_list_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
+(and (and (and (and (and (>= row 0) (< row (matrix_length weight))) (>= col 0)) (<= col (list_length input))) (= curr (reduce_sum (ite VECTOR_OUTER_LOOP_INDEX (vec_scalar_mul (list_get input row) (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (matrix_get weight row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take weight col) row 1)) 0))) (vec_elemwise_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (matrix_get weight row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take weight col) row 1)) 0)) (list_take input col)))))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_take weight row) (matrix_col_slice (matrix_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
 
 
 
 (define-fun-rec matmul_ps ((weight (MLList (MLList Int))) (input (MLList Int)) (matmul_rv (MLList Int))) Bool
-(= matmul_rv (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST weight (list_list_col_slice (list_list_slice weight 0 (list_length input)) 0 (list_list_length weight))) (ite VECTOR_OUTER_LOOP_INDEX (list_take input (list_list_length weight)) input))))
+(= matmul_rv (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST weight (matrix_col_slice (matrix_slice weight 0 (list_length input)) 0 (matrix_length weight))) (ite VECTOR_OUTER_LOOP_INDEX (list_take input (matrix_length weight)) input))))
 
 (declare-const input (MLList Int))
 (declare-const agg.result (MLList Int))
@@ -258,7 +258,7 @@ false)
 
 
 
-(assert (not (and (and (and (and (=> (and (and (> (list_list_length weight) 0) (> (list_length (list_list_get weight 0)) 0)) (= (list_length (list_list_get weight 0)) (list_length input))) (matmul_inv0 list_empty 0 0 input 0 weight)) (=> (and (and (and (and (< row (list_list_length weight)) (> (list_list_length weight) 0)) (> (list_length (list_list_get weight 0)) 0)) (= (list_length (list_list_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (matmul_inv1 0 0 input weight agg.result row))) (=> (and (and (and (and (and (and (< col (list_length input)) (< row (list_list_length weight))) (> (list_list_length weight) 0)) (> (list_length (list_list_get weight 0)) 0)) (= (list_length (list_list_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (matmul_inv1 col curr input weight agg.result row)) (matmul_inv1 (+ col 1) (+ curr (* (list_get (list_list_get weight row) col) (list_get input col))) input weight agg.result row))) (=> (and (and (and (and (and (and (not (< col (list_length input))) (< row (list_list_length weight))) (> (list_list_length weight) 0)) (> (list_length (list_list_get weight 0)) 0)) (= (list_length (list_list_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (matmul_inv1 col curr input weight agg.result row)) (matmul_inv0 (list_append agg.result curr) col curr input (+ row 1) weight))) (=> (or (and (and (and (and (not (< row (list_list_length weight))) (> (list_list_length weight) 0)) (> (list_length (list_list_get weight 0)) 0)) (= (list_length (list_list_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (and (and (and (and (and (not true) (not (< row (list_list_length weight)))) (> (list_list_length weight) 0)) (> (list_length (list_list_get weight 0)) 0)) (= (list_length (list_list_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight))) (matmul_ps weight input agg.result)))))
+(assert (not (and (and (and (and (=> (and (and (> (matrix_length weight) 0) (> (list_length (matrix_get weight 0)) 0)) (= (list_length (matrix_get weight 0)) (list_length input))) (matmul_inv0 list_empty 0 0 input 0 weight)) (=> (and (and (and (and (< row (matrix_length weight)) (> (matrix_length weight) 0)) (> (list_length (matrix_get weight 0)) 0)) (= (list_length (matrix_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (matmul_inv1 0 0 input weight agg.result row))) (=> (and (and (and (and (and (and (< col (list_length input)) (< row (matrix_length weight))) (> (matrix_length weight) 0)) (> (list_length (matrix_get weight 0)) 0)) (= (list_length (matrix_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (matmul_inv1 col curr input weight agg.result row)) (matmul_inv1 (+ col 1) (+ curr (* (list_get (matrix_get weight row) col) (list_get input col))) input weight agg.result row))) (=> (and (and (and (and (and (and (not (< col (list_length input))) (< row (matrix_length weight))) (> (matrix_length weight) 0)) (> (list_length (matrix_get weight 0)) 0)) (= (list_length (matrix_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (matmul_inv1 col curr input weight agg.result row)) (matmul_inv0 (list_append agg.result curr) col curr input (+ row 1) weight))) (=> (or (and (and (and (and (not (< row (matrix_length weight))) (> (matrix_length weight) 0)) (> (list_length (matrix_get weight 0)) 0)) (= (list_length (matrix_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight)) (and (and (and (and (and (not true) (not (< row (matrix_length weight)))) (> (matrix_length weight) 0)) (> (list_length (matrix_get weight 0)) 0)) (= (list_length (matrix_get weight 0)) (list_length input))) (matmul_inv0 agg.result col curr input row weight))) (matmul_ps weight input agg.result)))))
 
 (check-sat)
 (get-model)

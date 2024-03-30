@@ -373,40 +373,40 @@ class Expr:
             fn_name = expr.value()  # type: ignore
         if fn_name == "list_get":
             return "list-ref-noerr"
-        elif fn_name == "list_list_get":
-            return "list-list-ref-noerr"
+        elif fn_name == "matrix_get":
+            return "matrix-ref-noerr"
         elif fn_name == "list_append":
             return "list-append"
-        elif fn_name == "list_list_append":
-            return "list-list-append"
+        elif fn_name == "matrix_append":
+            return "matrix-append"
         elif fn_name == "list_empty":
             return "list-empty"
-        elif fn_name == "list_list_empty":
-            return "list-list-empty"
+        elif fn_name == "matrix_empty":
+            return "matrix-empty"
         elif fn_name == "list_tail":
             return "list-tail-noerr"
-        elif fn_name == "list_list_tail":
-            return "list-list-tail-noerr"
+        elif fn_name == "matrix_tail":
+            return "matrix-tail-noerr"
         elif fn_name == "list_length":
             return "length"
-        elif fn_name == "list_list_length":
-            return "list-list-length"
+        elif fn_name == "matrix_length":
+            return "matrix-length"
         elif fn_name == "list_take":
             return "list-take-noerr"
-        elif fn_name == "list_list_take":
-            return "list-list-take-noerr"
+        elif fn_name == "matrix_take":
+            return "matrix-take-noerr"
         elif fn_name == "list_slice":
             return "list-slice-noerr"
-        elif fn_name == "list_list_slice":
-            return "list-list-slice-noerr"
+        elif fn_name == "matrix_slice":
+            return "matrix-slice-noerr"
         elif fn_name == "list_slice_with_length":
             return "list-slice-with-length-noerr"
-        elif fn_name == "list_list_slice_with_length":
-            return "list-list-slice-with-length-noerr"
-        elif fn_name == "list_list_col_slice":
-            return "list-list-col-slice-noerr"
-        elif fn_name == "list_list_col_slice_with_length":
-            return "list-list-col-slice-with-length-noerr"
+        elif fn_name == "matrix_slice_with_length":
+            return "matrix-slice-with-length-noerr"
+        elif fn_name == "matrix_col_slice":
+            return "matrix-col-slice-noerr"
+        elif fn_name == "matrix_col_slice_with_length":
+            return "matrix-col-slice-with-length-noerr"
         elif fn_name == "matrix_transpose":
             list_type = expr.arguments()[0].type
             if is_nested_list_type(list_type) or is_matrix_type(list_type):
@@ -417,8 +417,8 @@ class Expr:
                 )
         elif fn_name == "list_prepend":
             return "list-prepend"
-        elif fn_name == "list_list_prepend":
-            return "list-list-prepend"
+        elif fn_name == "matrix_prepend":
+            return "matrix-prepend"
         elif fn_name == "list_eq":
             return "equal?"
         elif fn_name == "list_concat":
@@ -1073,7 +1073,7 @@ class List(Generic[T], Object):
         if is_primitive_type(containedT):
             fn_name = "list_empty"
         else:
-            fn_name = "list_list_empty"
+            fn_name = "matrix_empty"
         return List(containedT, Call(fn_name, List[containedT]))  # type: ignore
 
     @staticmethod
@@ -1085,7 +1085,7 @@ class List(Generic[T], Object):
 
     def len(self) -> Int:
         if self.is_nested:
-            fn_name = "list_list_length"
+            fn_name = "matrix_length"
         else:
             fn_name = "list_length"
         return Int(Call(fn_name, Int, self.src))
@@ -1099,7 +1099,7 @@ class List(Generic[T], Object):
                 if isinstance(start, int):
                     start = Int(start)
                 if self.is_nested:
-                    fn_name = "list_list_tail"
+                    fn_name = "matrix_tail"
                 else:
                     fn_name = "list_tail"
                 return call(fn_name, self.type, self, start)  # type: ignore
@@ -1107,7 +1107,7 @@ class List(Generic[T], Object):
                 if isinstance(stop, int):
                     stop = Int(stop)
                 if self.is_nested:
-                    fn_name = "list_list_take"
+                    fn_name = "matrix_take"
                 else:
                     fn_name = "list_take"
                 return call(fn_name, self.type, self, stop)  # type: ignore
@@ -1117,7 +1117,7 @@ class List(Generic[T], Object):
                 if isinstance(stop, int):
                     stop = Int(stop)
                 if self.is_nested:
-                    fn_name = "list_list_slice"
+                    fn_name = "matrix_slice"
                 else:
                     fn_name = "list_slice"
                 return call(fn_name, self.type, self, start, stop)
@@ -1126,7 +1126,7 @@ class List(Generic[T], Object):
                     f"Slices with both start and stop indices specified are not implemented: {index}"
                 )
         if self.is_nested:
-            fn_name = "list_list_get"
+            fn_name = "matrix_get"
         else:
             fn_name = "list_get"
         return call(fn_name, self.containedT, self, index)
@@ -1147,7 +1147,7 @@ class List(Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
         if self.is_nested:
-            fn_name = "list_list_append"
+            fn_name = "matrix_append"
         else:
             fn_name = "list_append"
         self.src = call(fn_name, self.type, self, value).src
@@ -1160,7 +1160,7 @@ class List(Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
         if self.is_nested:
-            fn_name = "list_list_prepend"
+            fn_name = "matrix_prepend"
         else:
             fn_name = "list_prepend"
         self.src = call(fn_name, self.type, value, self).src
@@ -1174,7 +1174,7 @@ class List(Generic[T], Object):
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
         if self.is_nested:
-            fn_name = "list_list_slice_with_length"
+            fn_name = "matrix_slice_with_length"
         else:
             fn_name = "list_slice_with_length"
         return call(fn_name, self.type, self, start, lst_length)
@@ -1336,7 +1336,7 @@ class Matrix(List[T], Generic[T], Object):
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
-        return Matrix(containedT, Call("list_list_empty", Matrix[containedT]))  # type: ignore
+        return Matrix(containedT, Call("matrix_empty", Matrix[containedT]))  # type: ignore
 
     @staticmethod
     def default_value() -> "Matrix[Int]":
@@ -1346,7 +1346,7 @@ class Matrix(List[T], Generic[T], Object):
         raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
-        return Int(Call("list_list_length", Int, self.src))
+        return Int(Call("matrix_length", Int, self.src))
 
     def _check_type_for_numeric_op(
         first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]
@@ -1435,7 +1435,7 @@ class Matrix(List[T], Generic[T], Object):
             raise TypeError(
                 f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
             )
-        self.src = Call("list_list_set", self.type, self.src, index.src, value.src)
+        self.src = Call("matrix_set", self.type, self.src, index.src, value.src)
 
     # in place append
     def append(self, value: Object) -> "Matrix":  # type: ignore
@@ -1444,7 +1444,7 @@ class Matrix(List[T], Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
 
-        self.src = call("list_list_append", self.type, self, value).src
+        self.src = call("matrix_append", self.type, self, value).src
         return self
 
     # in place prepend
@@ -1454,7 +1454,7 @@ class Matrix(List[T], Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
 
-        self.src = call("list_list_prepend", self.type, value, self).src
+        self.src = call("matrix_prepend", self.type, value, self).src
         return self
 
     def col_slice(self, start: Union[int, Int], stop: Union[int, Int]) -> "Matrix":
@@ -1462,7 +1462,7 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(stop, int):
             stop = Int(stop)
-        return call("list_list_col_slice", self.type, self, start, stop)
+        return call("matrix_col_slice", self.type, self, start, stop)
 
     def col_slice_with_length(
         self, start: Union[int, Int], lst_length: Union[int, Int]
@@ -1471,15 +1471,13 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        return call(
-            "list_list_col_slice_with_length", self.type, self, start, lst_length
-        )
+        return call("matrix_col_slice_with_length", self.type, self, start, lst_length)
 
     def col_vec(self, col_index: Union[int, Int]) -> List[Int]:
         if isinstance(col_index, int):
             col_index = Int(col_index)
         return call(
-            "list_list_col_slice_with_length", self.type, self, col_index, Int(1)
+            "matrix_col_slice_with_length", self.type, self, col_index, Int(1)
         ).transpose()[0]
 
     def slice_with_length(
@@ -1489,7 +1487,7 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        return call("list_list_slice_with_length", self.type, self, start, lst_length)
+        return call("matrix_slice_with_length", self.type, self, start, lst_length)
 
     def transpose(self) -> "Matrix":
         # return self
@@ -1924,7 +1922,7 @@ class Add(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return " + ".join([arg.to_python() for arg in self.args])
+        return f"{' + '.join([arg.to_python() for arg in self.args])}"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Add(self)
@@ -1952,7 +1950,7 @@ class Sub(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return f"{self.args[0].to_python()} - {self.args[1].to_python()}"
+        return f"({self.args[0].to_python()} - {self.args[1].to_python()})"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Sub(self)
@@ -1980,7 +1978,7 @@ class Mul(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return " * ".join([arg.to_python() for arg in self.args])
+        return f"{' * '.join([arg.to_python() for arg in self.args])}"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mul(self)
@@ -2006,7 +2004,7 @@ class Div(Expr):
         return Expr.toRosetteSimple(self, self.RosetteName)
 
     def to_python(self) -> str:
-        return f"{self.args[0].to_python()} // {self.args[1].to_python()}"
+        return f"({self.args[0].to_python()} // {self.args[1].to_python()})"
 
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
@@ -2038,7 +2036,7 @@ class Mod(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return f"{self.args[0].to_python()} % {self.args[1].to_python()}"
+        return f"({self.args[0].to_python()} % {self.args[1].to_python()})"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mod(self)
@@ -2530,23 +2528,23 @@ class Call(Expr):
 
     def to_python(self) -> str:
         processed_args = [arg.to_python() for arg in self.arguments()]
-        if self.name() in {"list_length", "list_list_length"}:
+        if self.name() in {"list_length", "matrix_length"}:
             return f"len({processed_args[0]})"
-        elif self.name() in {"list_get", "list_list_get"}:
+        elif self.name() in {"list_get", "matrix_get"}:
             return f"{processed_args[0]}[{processed_args[1]}]"
-        elif self.name() in {"list_prepend", "list_list_prepend"}:
+        elif self.name() in {"list_prepend", "matrix_prepend"}:
             return f"[{processed_args[0]}, *{processed_args[1]}]"
-        elif self.name() in {"list_append", "list_list_append"}:
+        elif self.name() in {"list_append", "matrix_append"}:
             return f"[*{processed_args[0]}, {processed_args[1]}]"
-        elif self.name() in {"list_empty", "list_list_empty"}:
+        elif self.name() in {"list_empty", "matrix_empty"}:
             return "[]"
-        elif self.name() in {"list_tail", "list_list_tail"}:
+        elif self.name() in {"list_tail", "matrix_tail"}:
             return f"{processed_args[0]}[{processed_args[1]}:]"
-        elif self.name() in {"list_take", "list_list_take"}:
+        elif self.name() in {"list_take", "matrix_take"}:
             return f"{processed_args[0]}[:{processed_args[1]}]"
-        elif self.name() in {"list_slice", "list_list_slice"}:
+        elif self.name() in {"list_slice", "matrix_slice"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
-        elif self.name() in {"list_slice_with_length", "list_list_slice_with_length"}:
+        elif self.name() in {"list_slice_with_length", "matrix_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"
         else:
             return f"{self.name()}({', '.join(processed_args)})"

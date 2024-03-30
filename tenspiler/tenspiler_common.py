@@ -1130,6 +1130,36 @@ matrix_vec_to_vec_target_lang = [matrix_vec_mul, vec_elemwise_mul, reduce_sum]
 vec_to_vec_target_lang = [vec_map, map_int_to_int]
 
 
+n = Int("n")
+integer_exp_fn_name = "integer_exp"
+integer_exp_body = ite(n <= 0, Int(1), (call(integer_exp_fn_name, Int, n - 1) * 3) % 64)
+integer_exp_fn_decl = fn_decl_recursive(integer_exp_fn_name, Int, integer_exp_body, n)
+
+guess = Int("guess")
+integer_sqrt_helper_fn_name = "integer_sqrt_helper"
+integer_sqrt_helper_body = ite(
+    or_objects(guess == 0, guess == 1, guess > 64),
+    Int(1),
+    ite(
+        guess == n // guess,
+        guess,
+        call(integer_sqrt_helper_fn_name, Int, n, (guess + n // guess) // 2),
+    ),
+)
+integer_sqrt_helper_fn_decl = fn_decl_recursive(
+    integer_sqrt_helper_fn_name,
+    Int,
+    integer_sqrt_helper_body,
+    n,
+    guess,
+)
+
+integer_sqrt_fn_name = "integer_sqrt"
+integer_sqrt_fn_decl = fn_decl(
+    integer_sqrt_fn_name, Int, call(integer_sqrt_helper_fn_name, Int, n // 2, n), n
+)
+
+
 def get_matrix_computation_general_search_space(
     depth: int, int_vars: List[Int], relaxed: bool
 ) -> Tuple[
@@ -2215,14 +2245,12 @@ start = Int("start")
 end = Int("end")
 lst_length = Int("lst_length")
 
-# list_slice
-list_slice_fn_decl = fn_decl(
-    "list_slice", mlList[Int], lst[:end][:start:], lst, start, end
+vec_slice_fn_decl = fn_decl(
+    "vec_slice", mlList[Int], lst[:end][:start:], lst, start, end
 )
 
-# list_slice_with_length
-list_slice_with_length_fn_decl = fn_decl(
-    "list_slice_with_length",
+vec_slice_with_length_fn_decl = fn_decl(
+    "vec_slice_with_length",
     mlList[Int],
     lst[start : start + lst_length],
     lst,
@@ -2230,14 +2258,14 @@ list_slice_with_length_fn_decl = fn_decl(
     lst_length,
 )
 
-# list_list_slice
-list_list_slice_fn_decl = fn_decl(
-    "list_list_slice", Matrix[Int], matrix[:end][:start:], matrix, start, end
+# matrix_row_slice
+matrix_row_slice_fn_decl = fn_decl(
+    "matrix_row_slice", Matrix[Int], matrix[:end][:start:], matrix, start, end
 )
 
-# list_slice_with_length
-list_list_slice_with_length_fn_decl = fn_decl(
-    "list_list_slice_with_length",
+# matrix_row_slice_with_length
+matrix_row_slice_with_length_fn_decl = fn_decl(
+    "matrix_row_slice_with_length",
     Matrix[Int],
     matrix[start : start + lst_length],
     matrix,
@@ -2245,18 +2273,18 @@ list_list_slice_with_length_fn_decl = fn_decl(
     lst_length,
 )
 
-# list_list_col_slice
-list_list_col_slice_body = ite(
+# matrix_col_slice
+matrix_col_slice_body = ite(
     matrix.len() < 1,
     Matrix.empty(Int),
     matrix[1:].col_slice(start, end).prepend(matrix[0][start:end]),
 )
-list_list_col_slice_fn_decl = fn_decl_recursive(
-    "list_list_col_slice", Matrix[Int], list_list_col_slice_body, matrix, start, end
+matrix_col_slice_fn_decl = fn_decl_recursive(
+    "matrix_col_slice", Matrix[Int], matrix_col_slice_body, matrix, start, end
 )
-# list_list_col_slice_with_length
-list_list_col_slice_with_length_fn_decl = fn_decl_recursive(
-    "list_list_col_slice_with_length",
+# matrix_col_slice_with_length
+matrix_col_slice_with_length_fn_decl = fn_decl_recursive(
+    "matrix_col_slice_with_length",
     Matrix[Int],
     matrix.col_slice(start, start + lst_length),
     matrix,
