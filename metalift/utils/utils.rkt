@@ -115,12 +115,12 @@
   (equal? s1 s2))
 
 (define (getIdx m k)
-    (if (equal? (length m) 0) 0 (if (equal? (tupleGet (list-list-ref-noerr m 0) 0) k) 0
+    (if (equal? (length m) 0) 0 (if (equal? (tupleGet (matrix-ref-noerr m 0) 0) k) 0
         (+ 1 (getIdx (list-tail-noerr m 1) k)))))
 
 (define (map-contains m k)
     (if (equal? (length m) 0) 0
-        (if (equal? (tupleGet (list-list-ref-noerr m 0) 0) k) 1
+        (if (equal? (tupleGet (matrix-ref-noerr m 0) 0) k) 1
             (map-contains (list-tail-noerr m 1) k))))
 
 (define (map-insert m k v)
@@ -129,7 +129,7 @@
     (list-set m (getIdx m k) (make-tuple k v))))
 
 (define (map-get m k)
-    (if (equal? (length m) 0) 0 (if (equal? (tupleGet (list-list-ref-noerr m 0) 0) k) (tupleGet (list-list-ref-noerr m 0) 1)
+    (if (equal? (length m) 0) 0 (if (equal? (tupleGet (matrix-ref-noerr m 0) 0) k) (tupleGet (matrix-ref-noerr m 0) 1)
         (map-get (list-tail-noerr m 1) k))))
 
 ; (define (map-union as bs value-merge)
@@ -179,51 +179,51 @@
 ; (define (map-values m)
 ;   (map (lambda (a) (cdr a)) m))
 
-(define (list-list-ref-noerr l i)
+(define (matrix-ref-noerr l i)
   (if (&&  (>= i 0) (< i (length l))) (list-ref l i)
       (list)))
 
-(define (list-list-tail-noerr l i)
+(define (matrix-tail-noerr l i)
   (if (&& (>= i 0) (<= i (length l))) (list-tail l i)
       (list)))
 
-(define (list-list-slice-noerr l start end)
-  (list-list-tail-noerr (list-list-take-noerr l end) start)
+(define (matrix-slice-noerr l start end)
+  (matrix-tail-noerr (matrix-take-noerr l end) start)
 )
 
-(define (list-list-slice-with-length-noerr l start lst_length)
-  (list-list-slice-noerr l start (+ start lst_length))
+(define (matrix-slice-with-length-noerr l start lst_length)
+  (matrix-slice-noerr l start (+ start lst_length))
 )
 
-(define (list-list-col-slice-noerr l start end)
+(define (matrix-col-slice-noerr l start end)
   (if
-    (< (list-list-length l) 1)
+    (< (matrix-length l) 1)
     (list)
-    (list-list-prepend
-      (list-slice-noerr (list-list-ref-noerr l 0) start end)
-      (list-list-col-slice-noerr (list-list-tail-noerr l 1) start end)
+    (matrix-prepend
+      (list-slice-noerr (matrix-ref-noerr l 0) start end)
+      (matrix-col-slice-noerr (matrix-tail-noerr l 1) start end)
     )
   )
 )
 
-(define (list-list-col-slice-with-length-noerr l start lst_length)
-  (list-list-col-slice-noerr l start (+ start lst_length))
+(define (matrix-col-slice-with-length-noerr l start lst_length)
+  (matrix-col-slice-noerr l start (+ start lst_length))
 )
 
-(define (list-list-prepend i l)
+(define (matrix-prepend i l)
   (if (list? i)
     (if (> (length i ) 0)
     (append (list i) l) (append l i)) (append (list i) l) ))
 
-(define (list-list-take-noerr l i)
+(define (matrix-take-noerr l i)
   (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
 
-(define (list-list-length l) (length l))
+(define (matrix-length l) (length l))
 
-(define (list-list-append l i)
+(define (matrix-append l i)
 (append l (list i)))
 
-(define (list-list-empty)
+(define (matrix-empty)
   (list))
 
 (define (list-tuple-ref-noerr l i)
@@ -251,26 +251,26 @@
 ; )
 
 (define-bounded (firsts matrix)
-  (if (< (list-list-length matrix) 1)
+  (if (< (matrix-length matrix) 1)
       (list-empty)
       (list-prepend
-        (list-ref-noerr (list-list-ref-noerr matrix 0) 0)
+        (list-ref-noerr (matrix-ref-noerr matrix 0) 0)
         (firsts (list-tail-noerr matrix 1))
       )
   )
 )
 
 (define (rests matrix)
-  (if (< (list-list-length matrix) 1)
-    (list-list-empty)
-    (list-list-col-slice-noerr matrix 1 (length (list-list-ref-noerr matrix 0)))
+  (if (< (matrix-length matrix) 1)
+    (matrix-empty)
+    (matrix-col-slice-noerr matrix 1 (length (matrix-ref-noerr matrix 0)))
   )
 )
 
 (define-bounded (matrix-transpose-noerr matrix)
-  (if (< (list-list-length matrix) 1)
-    (list-list-empty)
-    (list-list-prepend (firsts matrix) (matrix-transpose-noerr (rests matrix)))
+  (if (< (matrix-length matrix) 1)
+    (matrix-empty)
+    (matrix-prepend (firsts matrix) (matrix-transpose-noerr (rests matrix)))
   )
 )
 

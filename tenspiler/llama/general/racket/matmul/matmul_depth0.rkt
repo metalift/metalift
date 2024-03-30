@@ -64,34 +64,34 @@
 
 
  (define-bounded (matrix_vec_mul matrix_x x)
-(if (or (or (< (list-list-length matrix_x ) 1 ) (< (length (list-list-ref-noerr matrix_x 0 ) ) 1 ) ) (! (equal? (length (list-list-ref-noerr matrix_x 0 ) ) (length x ) ) ) ) (list-empty ) (list-prepend (reduce_sum (vec_elemwise_mul (list-list-ref-noerr matrix_x 0 ) x)) (matrix_vec_mul (list-list-tail-noerr matrix_x 1 ) x ) ) ))
+(if (or (or (< (matrix-length matrix_x ) 1 ) (< (length (matrix-ref-noerr matrix_x 0 ) ) 1 ) ) (! (equal? (length (matrix-ref-noerr matrix_x 0 ) ) (length x ) ) ) ) (list-empty ) (list-prepend (reduce_sum (vec_elemwise_mul (matrix-ref-noerr matrix_x 0 ) x)) (matrix_vec_mul (matrix-tail-noerr matrix_x 1 ) x ) ) ))
 
 (define-grammar (matmul_inv0_gram agg.result col curr input row weight)
- [rv (choose (&& (&& (>= row 0 ) (<= row (list-list-length weight ) ) ) (equal? agg.result (v0) ) ))]
+ [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length weight ) ) ) (equal? agg.result (v0) ) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (list-list-ref-noerr (v4) (v2) ))]
+[v1 (choose (list-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v4) (v2) ))]
 [v2 (choose (v3))]
-[v3 (choose 0 row (list-list-length weight ) (length input ))]
-[v4 (choose (list-list-col-slice-noerr (list-list-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
+[v3 (choose 0 row (matrix-length weight ) (length input ))]
+[v4 (choose (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
 )
 
 (define-grammar (matmul_inv1_gram col curr input weight agg.result row)
- [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (< row (list-list-length weight ) ) ) (>= col 0 ) ) (<= col (length input ) ) ) (equal? curr (v0) ) ) (equal? agg.result (v1) ) ))]
+ [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (< row (matrix-length weight ) ) ) (>= col 0 ) ) (<= col (length input ) ) ) (equal? curr (v0) ) ) (equal? agg.result (v1) ) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (v2))]
-[v2 (choose (list-slice-noerr input (v3) (v3) ) (list-list-ref-noerr (v5) (v3) ))]
+[v2 (choose (list-slice-noerr input (v3) (v3) ) (matrix-ref-noerr (v5) (v3) ))]
 [v3 (choose (v4))]
-[v4 (choose 0 row (list-list-length weight ) (length input ))]
-[v5 (choose (list-list-col-slice-noerr (list-list-slice-noerr weight (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr weight (v3) (v3) ) (v3) (v3) ) ))]
+[v4 (choose 0 row (matrix-length weight ) (length input ))]
+[v5 (choose (matrix-col-slice-noerr (matrix-slice-noerr weight (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr weight (v3) (v3) ) (v3) (v3) ) ))]
 )
 
 (define-grammar (matmul_ps_gram weight input matmul_rv)
  [rv (choose (equal? matmul_rv (v0) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (list-list-ref-noerr (v4) (v2) ))]
+[v1 (choose (list-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v4) (v2) ))]
 [v2 (choose (v3))]
-[v3 (choose 0 (list-list-length weight ) (length input ))]
-[v4 (choose (list-list-col-slice-noerr (list-list-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
+[v3 (choose 0 (matrix-length weight ) (length input ))]
+[v4 (choose (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
@@ -128,7 +128,7 @@
 (define weight (take (list (list weight_BOUNDEDSET-0 weight_BOUNDEDSET-1) (list weight_BOUNDEDSET-2 weight_BOUNDEDSET-3)) weight_BOUNDEDSET-len))
 (current-bitwidth 6)
 (define (assertions)
- (assert (&& (&& (&& (&& (=> (&& (&& (> (list-list-length weight ) 0 ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 (list-empty ) 0 0 input 0 weight) ) (=> (&& (&& (&& (&& (< row (list-list-length weight ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 0 0 input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (< col (length input ) ) (< row (list-list-length weight ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv1 (+ col 1 ) (+ curr (* (list-ref-noerr (list-list-ref-noerr weight row ) col ) (list-ref-noerr input col ) ) ) input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (! (< col (length input ) ) ) (< row (list-list-length weight ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv0 (list-append agg.result curr ) col curr input (+ row 1 ) weight) ) ) (=> (or (&& (&& (&& (&& (! (< row (list-list-length weight ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (&& (&& (&& (&& (&& (! true ) (! (< row (list-list-length weight ) ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) ) (matmul_ps weight input agg.result) ) )))
+ (assert (&& (&& (&& (&& (=> (&& (&& (> (matrix-length weight ) 0 ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 (list-empty ) 0 0 input 0 weight) ) (=> (&& (&& (&& (&& (< row (matrix-length weight ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 0 0 input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (< col (length input ) ) (< row (matrix-length weight ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv1 (+ col 1 ) (+ curr (* (list-ref-noerr (matrix-ref-noerr weight row ) col ) (list-ref-noerr input col ) ) ) input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (! (< col (length input ) ) ) (< row (matrix-length weight ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv0 (list-append agg.result curr ) col curr input (+ row 1 ) weight) ) ) (=> (or (&& (&& (&& (&& (! (< row (matrix-length weight ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (&& (&& (&& (&& (&& (! true ) (! (< row (matrix-length weight ) ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) ) (matmul_ps weight input agg.result) ) )))
 
 
     (define sol0

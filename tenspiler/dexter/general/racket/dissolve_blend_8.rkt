@@ -8,7 +8,7 @@
 
 
  (define-bounded (matrix_vec_mul matrix_x x)
-(if (or (or (< (list-list-length matrix_x ) 1 ) (< (length (list-list-ref-noerr matrix_x 0 ) ) 1 ) ) (! (equal? (length (list-list-ref-noerr matrix_x 0 ) ) (length x ) ) ) ) (list-empty ) (list-prepend (reduce_sum (vec_elemwise_mul (list-list-ref-noerr matrix_x 0 ) x)) (matrix_vec_mul (list-list-tail-noerr matrix_x 1 ) x ) ) ))
+(if (or (or (< (matrix-length matrix_x ) 1 ) (< (length (matrix-ref-noerr matrix_x 0 ) ) 1 ) ) (! (equal? (length (matrix-ref-noerr matrix_x 0 ) ) (length x ) ) ) ) (list-empty ) (list-prepend (reduce_sum (vec_elemwise_mul (matrix-ref-noerr matrix_x 0 ) x)) (matrix_vec_mul (matrix-tail-noerr matrix_x 1 ) x ) ) ))
 
 
  (define-bounded (reduce_sum x)
@@ -20,7 +20,7 @@
 
 
  (define-bounded (dissolve_matrix_selection_two_args matrix_x matrix_y opacity rand_cons dissolve_select_two_args_arg)
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (dissolve_selection_two_args (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 ) opacity rand_cons dissolve_select_two_args_arg) (dissolve_matrix_selection_two_args (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) opacity rand_cons dissolve_select_two_args_arg) ) ))
+(if (or (< (matrix-length matrix_x ) 1 ) (! (equal? (matrix-length matrix_x ) (matrix-length matrix_y ) ) ) ) (matrix-empty ) (matrix-prepend (dissolve_selection_two_args (matrix-ref-noerr matrix_x 0 ) (matrix-ref-noerr matrix_y 0 ) opacity rand_cons dissolve_select_two_args_arg) (dissolve_matrix_selection_two_args (matrix-tail-noerr matrix_x 1 ) (matrix-tail-noerr matrix_y 1 ) opacity rand_cons dissolve_select_two_args_arg) ) ))
 
 
  (define-bounded (vec_map x map_int_to_int)
@@ -52,27 +52,27 @@
 
 
  (define-bounded (matrix_scalar_add a matrix_x)
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_add a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_add a (list-list-tail-noerr matrix_x 1 ) ) ) ))
+(if (< (matrix-length matrix_x ) 1 ) (matrix-empty ) (matrix-prepend (vec_scalar_add a (matrix-ref-noerr matrix_x 0 )) (matrix_scalar_add a (matrix-tail-noerr matrix_x 1 ) ) ) ))
 
 
  (define-bounded (matrix_scalar_sub a matrix_x)
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_sub a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_sub a (list-list-tail-noerr matrix_x 1 ) ) ) ))
+(if (< (matrix-length matrix_x ) 1 ) (matrix-empty ) (matrix-prepend (vec_scalar_sub a (matrix-ref-noerr matrix_x 0 )) (matrix_scalar_sub a (matrix-tail-noerr matrix_x 1 ) ) ) ))
 
 
  (define-bounded (matrix_scalar_mul a matrix_x)
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_mul a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_mul a (list-list-tail-noerr matrix_x 1 ) ) ) ))
+(if (< (matrix-length matrix_x ) 1 ) (matrix-empty ) (matrix-prepend (vec_scalar_mul a (matrix-ref-noerr matrix_x 0 )) (matrix_scalar_mul a (matrix-tail-noerr matrix_x 1 ) ) ) ))
 
 
  (define-bounded (matrix_scalar_div a matrix_x)
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (vec_scalar_div a (list-list-ref-noerr matrix_x 0 )) (matrix_scalar_div a (list-list-tail-noerr matrix_x 1 ) ) ) ))
+(if (< (matrix-length matrix_x ) 1 ) (matrix-empty ) (matrix-prepend (vec_scalar_div a (matrix-ref-noerr matrix_x 0 )) (matrix_scalar_div a (matrix-tail-noerr matrix_x 1 ) ) ) ))
 
 
  (define-bounded (scalar_matrix_sub a matrix_x)
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (scalar_vec_sub a (list-list-ref-noerr matrix_x 0 )) (scalar_matrix_sub a (list-list-tail-noerr matrix_x 1 )) ) ))
+(if (< (matrix-length matrix_x ) 1 ) (matrix-empty ) (matrix-prepend (scalar_vec_sub a (matrix-ref-noerr matrix_x 0 )) (scalar_matrix_sub a (matrix-tail-noerr matrix_x 1 )) ) ))
 
 
  (define-bounded (scalar_matrix_div a matrix_x)
-(if (< (list-list-length matrix_x ) 1 ) (list-list-empty ) (list-list-prepend (scalar_vec_div a (list-list-ref-noerr matrix_x 0 )) (scalar_matrix_div a (list-list-tail-noerr matrix_x 1 )) ) ))
+(if (< (matrix-length matrix_x ) 1 ) (matrix-empty ) (matrix-prepend (scalar_vec_div a (matrix-ref-noerr matrix_x 0 )) (scalar_matrix_div a (matrix-tail-noerr matrix_x 1 )) ) ))
 
 
  (define-bounded (vec_elemwise_add x y)
@@ -92,39 +92,39 @@
 
 
  (define-bounded (matrix_elemwise_add matrix_x matrix_y)
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_add (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_add (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
+(if (or (< (matrix-length matrix_x ) 1 ) (! (equal? (matrix-length matrix_x ) (matrix-length matrix_y ) ) ) ) (matrix-empty ) (matrix-prepend (vec_elemwise_add (matrix-ref-noerr matrix_x 0 ) (matrix-ref-noerr matrix_y 0 )) (matrix_elemwise_add (matrix-tail-noerr matrix_x 1 ) (matrix-tail-noerr matrix_y 1 ) ) ) ))
 
 
  (define-bounded (matrix_elemwise_sub matrix_x matrix_y)
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_sub (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_sub (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
+(if (or (< (matrix-length matrix_x ) 1 ) (! (equal? (matrix-length matrix_x ) (matrix-length matrix_y ) ) ) ) (matrix-empty ) (matrix-prepend (vec_elemwise_sub (matrix-ref-noerr matrix_x 0 ) (matrix-ref-noerr matrix_y 0 )) (matrix_elemwise_sub (matrix-tail-noerr matrix_x 1 ) (matrix-tail-noerr matrix_y 1 ) ) ) ))
 
 
  (define-bounded (matrix_elemwise_mul matrix_x matrix_y)
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_mul (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_mul (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
+(if (or (< (matrix-length matrix_x ) 1 ) (! (equal? (matrix-length matrix_x ) (matrix-length matrix_y ) ) ) ) (matrix-empty ) (matrix-prepend (vec_elemwise_mul (matrix-ref-noerr matrix_x 0 ) (matrix-ref-noerr matrix_y 0 )) (matrix_elemwise_mul (matrix-tail-noerr matrix_x 1 ) (matrix-tail-noerr matrix_y 1 ) ) ) ))
 
 
  (define-bounded (matrix_elemwise_div matrix_x matrix_y)
-(if (or (< (list-list-length matrix_x ) 1 ) (! (equal? (list-list-length matrix_x ) (list-list-length matrix_y ) ) ) ) (list-list-empty ) (list-list-prepend (vec_elemwise_div (list-list-ref-noerr matrix_x 0 ) (list-list-ref-noerr matrix_y 0 )) (matrix_elemwise_div (list-list-tail-noerr matrix_x 1 ) (list-list-tail-noerr matrix_y 1 ) ) ) ))
+(if (or (< (matrix-length matrix_x ) 1 ) (! (equal? (matrix-length matrix_x ) (matrix-length matrix_y ) ) ) ) (matrix-empty ) (matrix-prepend (vec_elemwise_div (matrix-ref-noerr matrix_x 0 ) (matrix-ref-noerr matrix_y 0 )) (matrix_elemwise_div (matrix-tail-noerr matrix_x 1 ) (matrix-tail-noerr matrix_y 1 ) ) ) ))
 
 (define-grammar (dissolve_blend_8_inv0_gram active agg.result base col opacity pixel rand_cons rand_val row row_vec)
- [rv (choose (&& (&& (>= row 0 ) (<= row (list-list-length base ) ) ) (equal? agg.result (dissolve_matrix_selection_two_args (v0) (v0) opacity rand_cons dissolve_select_two_args) ) ))]
-[v0 (choose (list-list-col-slice-noerr (list-list-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
+ [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (equal? agg.result (dissolve_matrix_selection_two_args (v0) (v0) opacity rand_cons dissolve_select_two_args) ) ))]
+[v0 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
 [v1 (choose base active)]
-[v2 (choose 0 (list-list-length base ) row)]
+[v2 (choose 0 (matrix-length base ) row)]
 )
 
 (define-grammar (dissolve_blend_8_inv1_gram active base col opacity pixel rand_cons rand_val row_vec agg.result row)
- [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (list-list-length base ) ) ) (>= col 0 ) ) (<= col (length (list-list-ref-noerr base 0 ) ) ) ) (equal? row_vec (dissolve_selection_two_args (list-list-ref-noerr (v0) (v2) ) (list-list-ref-noerr (v0) (v2) ) opacity rand_cons dissolve_select_two_args) ) ) (equal? agg.result (dissolve_matrix_selection_two_args (v0) (v0) opacity rand_cons dissolve_select_two_args) ) ))]
-[v0 (choose (list-list-col-slice-noerr (list-list-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
+ [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (>= col 0 ) ) (<= col (length (matrix-ref-noerr base 0 ) ) ) ) (equal? row_vec (dissolve_selection_two_args (matrix-ref-noerr (v0) (v2) ) (matrix-ref-noerr (v0) (v2) ) opacity rand_cons dissolve_select_two_args) ) ) (equal? agg.result (dissolve_matrix_selection_two_args (v0) (v0) opacity rand_cons dissolve_select_two_args) ) ))]
+[v0 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
 [v1 (choose base active)]
-[v2 (choose 0 (list-list-length base ) (length (list-list-ref-noerr base 0 ) ) row col)]
+[v2 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) row col)]
 )
 
 (define-grammar (dissolve_blend_8_ps_gram base active opacity rand_cons dissolve_blend_8_rv)
- [rv (choose (equal? dissolve_blend_8_rv (dissolve_matrix_selection_two_args (list-list-col-slice-noerr (list-list-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) (list-list-col-slice-noerr (list-list-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) opacity rand_cons dissolve_select_two_args) ))]
+ [rv (choose (equal? dissolve_blend_8_rv (dissolve_matrix_selection_two_args (matrix-col-slice-noerr (matrix-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) (matrix-col-slice-noerr (matrix-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) opacity rand_cons dissolve_select_two_args) ))]
 [v0 (choose (v1) (matrix-transpose-noerr (v1) ))]
 [v1 (choose base active)]
-[v2 (choose 0 (list-list-length base ) (length (list-list-ref-noerr base 0 ) ))]
+[v2 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ))]
 )
 
 (define-grammar (dissolve_select_two_args_gram int_x int_y opacity rand_cons)
@@ -186,7 +186,7 @@
 (define row_vec (take (list row_vec_BOUNDEDSET-0 row_vec_BOUNDEDSET-1) row_vec_BOUNDEDSET-len))
 (current-bitwidth 6)
 (define (assertions)
- (assert (&& (&& (&& (&& (=> (&& (&& (> (list-list-length base ) 1 ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active (list-list-empty ) base 0 opacity 0 rand_cons 0 0 (list-empty )) ) (=> (&& (&& (&& (&& (< row (list-list-length base ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base 0 opacity pixel rand_cons rand_val (list-empty ) agg.result row) ) ) (=> (or (&& (&& (&& (&& (&& (&& (&& (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) (< col (length (list-list-ref-noerr base 0 ) ) ) ) (< row (list-list-length base ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (&& (&& (&& (&& (&& (&& (&& (! (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) ) (< col (length (list-list-ref-noerr base 0 ) ) ) ) (< row (list-list-length base ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) ) (dissolve_blend_8_inv1 active base (+ col 1 ) opacity (if (&& (&& (&& (&& (&& (&& (&& (! (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) ) (< col (length (list-list-ref-noerr base 0 ) ) ) ) (< row (list-list-length base ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (list-ref-noerr (list-list-ref-noerr base row ) col ) (list-ref-noerr (list-list-ref-noerr active row ) col ) ) rand_cons (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) (list-append row_vec (if (&& (&& (&& (&& (&& (&& (&& (! (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) ) (< col (length (list-list-ref-noerr base 0 ) ) ) ) (< row (list-list-length base ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (list-ref-noerr (list-list-ref-noerr base row ) col ) (list-ref-noerr (list-list-ref-noerr active row ) col ) ) ) agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (! (< col (length (list-list-ref-noerr base 0 ) ) ) ) (< row (list-list-length base ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (dissolve_blend_8_inv0 active (list-list-append agg.result row_vec ) base col opacity pixel rand_cons rand_val (+ row 1 ) row_vec) ) ) (=> (or (&& (&& (&& (&& (! (< row (list-list-length base ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (&& (&& (&& (&& (&& (! true ) (! (< row (list-list-length base ) ) ) ) (> (list-list-length base ) 1 ) ) (equal? (list-list-length base ) (list-list-length active ) ) ) (equal? (length (list-list-ref-noerr base 0 ) ) (length (list-list-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) ) (dissolve_blend_8_ps base active opacity rand_cons agg.result) ) )))
+ (assert (&& (&& (&& (&& (=> (&& (&& (> (matrix-length base ) 1 ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active (matrix-empty ) base 0 opacity 0 rand_cons 0 0 (list-empty )) ) (=> (&& (&& (&& (&& (< row (matrix-length base ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base 0 opacity pixel rand_cons rand_val (list-empty ) agg.result row) ) ) (=> (or (&& (&& (&& (&& (&& (&& (&& (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) (< col (length (matrix-ref-noerr base 0 ) ) ) ) (< row (matrix-length base ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (&& (&& (&& (&& (&& (&& (&& (! (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) ) (< col (length (matrix-ref-noerr base 0 ) ) ) ) (< row (matrix-length base ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) ) (dissolve_blend_8_inv1 active base (+ col 1 ) opacity (if (&& (&& (&& (&& (&& (&& (&& (! (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) ) (< col (length (matrix-ref-noerr base 0 ) ) ) ) (< row (matrix-length base ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (list-ref-noerr (matrix-ref-noerr base row ) col ) (list-ref-noerr (matrix-ref-noerr active row ) col ) ) rand_cons (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) (list-append row_vec (if (&& (&& (&& (&& (&& (&& (&& (! (>= (- opacity (quotient-noerr (+ (remainder rand_cons 100 ) 1 ) 100 ) ) 0 ) ) (< col (length (matrix-ref-noerr base 0 ) ) ) ) (< row (matrix-length base ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (list-ref-noerr (matrix-ref-noerr base row ) col ) (list-ref-noerr (matrix-ref-noerr active row ) col ) ) ) agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (! (< col (length (matrix-ref-noerr base 0 ) ) ) ) (< row (matrix-length base ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (dissolve_blend_8_inv1 active base col opacity pixel rand_cons rand_val row_vec agg.result row) ) (dissolve_blend_8_inv0 active (matrix-append agg.result row_vec ) base col opacity pixel rand_cons rand_val (+ row 1 ) row_vec) ) ) (=> (or (&& (&& (&& (&& (! (< row (matrix-length base ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) (&& (&& (&& (&& (&& (! true ) (! (< row (matrix-length base ) ) ) ) (> (matrix-length base ) 1 ) ) (equal? (matrix-length base ) (matrix-length active ) ) ) (equal? (length (matrix-ref-noerr base 0 ) ) (length (matrix-ref-noerr active 0 ) ) ) ) (dissolve_blend_8_inv0 active agg.result base col opacity pixel rand_cons rand_val row row_vec) ) ) (dissolve_blend_8_ps base active opacity rand_cons agg.result) ) )))
 
 
     (define sol0

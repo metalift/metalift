@@ -110,66 +110,66 @@
 
 ; list of lists definition
 
-(declare-fun list_list_length ( (MLList (MLList Int) ) ) Int)
-(assert (= (list_list_length (as nil (MLList (MLList Int) ))) 0))
+(declare-fun matrix_length ( (MLList (MLList Int) ) ) Int)
+(assert (= (matrix_length (as nil (MLList (MLList Int) ))) 0))
 (assert (forall ( (val (MLList Int) ) (l (MLList (MLList Int) )) )
-                (= (list_list_length (cons val l)) (+ 1 (list_list_length l)))))
+                (= (matrix_length (cons val l)) (+ 1 (matrix_length l)))))
 (assert (forall ( (l (MLList (MLList Int) )) )
-                (<= 0 (list_list_length l))))
+                (<= 0 (matrix_length l))))
 
 ;end of list length
 
-(define-fun list_list_prepend ( (val (MLList Int) ) (l (MLList (MLList Int) ) )) (MLList (MLList Int) ) (cons val l))
+(define-fun matrix_prepend ( (val (MLList Int) ) (l (MLList (MLList Int) ) )) (MLList (MLList Int) ) (cons val l))
 ; end of list prepend
 
 
-(declare-fun list_list_append ( (MLList (MLList Int)  ) (MLList Int) ) (MLList (MLList Int) ))
+(declare-fun matrix_append ( (MLList (MLList Int)  ) (MLList Int) ) (MLList (MLList Int) ))
 (assert (forall ( (val (MLList Int)) )
-                (= (list_list_append (as nil (MLList (MLList Int))) val) (cons val (as nil (MLList (MLList Int)))))))
+                (= (matrix_append (as nil (MLList (MLList Int))) val) (cons val (as nil (MLList (MLList Int)))))))
 (assert (forall ( (h (MLList Int)) (t (MLList (MLList Int))) (val (MLList Int)) )
-                (= (list_list_append (cons h t) val) (cons h (list_list_append t val)))))
+                (= (matrix_append (cons h t) val) (cons h (matrix_append t val)))))
 ;end of list append
 
-(declare-fun list_list_get_helper ( (MLList (MLList Int) ) Int ) (MLList Int) )
-(define-fun list_list_get ( (l (MLList (MLList Int) )) (i Int) ) (MLList Int) (list_list_get_helper l i))
+(declare-fun matrix_get_helper ( (MLList (MLList Int) ) Int ) (MLList Int) )
+(define-fun matrix_get ( (l (MLList (MLList Int) )) (i Int) ) (MLList Int) (matrix_get_helper l i))
 (assert (forall ( (h (MLList Int) ) (t (MLList (MLList Int) )) (i Int) )
                 (ite (<= i 0)
-                     (= (list_list_get_helper (cons h t) i) h)
-                     (= (list_list_get_helper (cons h t) i) (list_list_get_helper t (- i 1))))))
+                     (= (matrix_get_helper (cons h t) i) h)
+                     (= (matrix_get_helper (cons h t) i) (matrix_get_helper t (- i 1))))))
 ;end of list get
 
-(define-fun list_list_empty ( ) (MLList (MLList Int)) (as nil (MLList (MLList Int) )))
+(define-fun matrix_empty ( ) (MLList (MLList Int)) (as nil (MLList (MLList Int) )))
 ;end of empty list
 
 
 
-(define-fun-rec list_list_tail ((l (MLList (MLList Int) ) ) (n Int)) (MLList (MLList Int) )
-  (ite (<= n 0)  l (list_list_tail (tail l) (- n 1))))
+(define-fun-rec matrix_tail ((l (MLList (MLList Int) ) ) (n Int)) (MLList (MLList Int) )
+  (ite (<= n 0)  l (matrix_tail (tail l) (- n 1))))
 (assert (forall ( (start Int) (h (MLList Int) ) (t (MLList (MLList Int) )) )
                 (ite (<= start 0)
-                     (= (list_list_tail (cons h t) start) (cons h t))
-                     (= (list_list_tail (cons h t) start) (list_list_tail t (- start 1))))))
+                     (= (matrix_tail (cons h t) start) (cons h t))
+                     (= (matrix_tail (cons h t) start) (matrix_tail t (- start 1))))))
 (assert (forall ( (start Int) )
-                (= (list_list_tail (as nil (MLList (MLList Int) )) start) (as nil (MLList (MLList Int)) ))))
+                (= (matrix_tail (as nil (MLList (MLList Int) )) start) (as nil (MLList (MLList Int)) ))))
 (assert (forall ( (start Int) (l (MLList (MLList Int) )) )
-                (=> (>= start (list_list_length l))
-                    (= (list_list_tail l start) (as nil (MLList (MLList Int) ))))))
+                (=> (>= start (matrix_length l))
+                    (= (matrix_tail l start) (as nil (MLList (MLList Int) ))))))
 
 ; end of list tail
 
-(declare-fun list_list_take ( (MLList (MLList Int)) Int ) (MLList (MLList Int)))
+(declare-fun matrix_take ( (MLList (MLList Int)) Int ) (MLList (MLList Int)))
 
 (assert (forall ( (end Int) (h (MLList Int)) (t (MLList (MLList Int))) )
                 (ite (<= end 0)
-                     (= (list_list_take (cons h t) end) (as nil (MLList (MLList Int))))
-                     (= (list_list_take (cons h t) end) (cons h (list_list_take t (- end 1)))))))
+                     (= (matrix_take (cons h t) end) (as nil (MLList (MLList Int))))
+                     (= (matrix_take (cons h t) end) (cons h (matrix_take t (- end 1)))))))
 (assert (forall ( (end Int) )
-                (= (list_list_take (as nil (MLList (MLList Int))) end) (as nil (MLList (MLList Int))))))
+                (= (matrix_take (as nil (MLList (MLList Int))) end) (as nil (MLList (MLList Int))))))
 (assert (forall ( (end Int) (l (MLList (MLList Int))) )
-                (=> (>= end (list_list_length l))
-                    (= (list_list_take l end) l))))
+                (=> (>= end (matrix_length l))
+                    (= (matrix_take l end) l))))
 
-(assert (forall ( (l (MLList (MLList Int))) ) (= (list_list_take l 0) (as nil (MLList (MLList Int))))))
+(assert (forall ( (l (MLList (MLList Int))) ) (= (matrix_take l 0) (as nil (MLList (MLList Int))))))
 ; end of list take
 
 ; end of list of lists definition
@@ -180,26 +180,26 @@
 (define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
 (list_slice lst start (+ start lst_length)))
 
-(define-fun list_list_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(list_list_take (list_list_take matrix end) start))
+(define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(matrix_take (matrix_take matrix end) start))
 
-(define-fun list_list_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(list_list_slice matrix start (+ start lst_length)))
+(define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(matrix_slice matrix start (+ start lst_length)))
 
-(define-fun-rec list_list_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (list_slice (list_list_get matrix 0) start end) (list_list_col_slice (list_list_tail matrix 1) start end))))
+(define-fun-rec matrix_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (list_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
 
-(define-fun-rec list_list_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(list_list_col_slice matrix start (+ start lst_length)))
+(define-fun-rec matrix_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(matrix_col_slice matrix start (+ start lst_length)))
 
 (define-fun-rec firsts ((matrix (MLList (MLList Int)))) (MLList Int)
-(ite (< (list_list_length matrix) 1) list_empty (list_prepend (list_get (list_list_get matrix 0) 0) (firsts (list_list_tail matrix 1)))))
+(ite (< (matrix_length matrix) 1) list_empty (list_prepend (list_get (matrix_get matrix 0) 0) (firsts (matrix_tail matrix 1)))))
 
 (define-fun-rec rests ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (< (list_list_length matrix) 1) list_list_empty (list_list_col_slice matrix 1 (list_length (list_list_get matrix 0)))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_col_slice matrix 1 (list_length (matrix_get matrix 0)))))
 
 (define-fun-rec matrix_transpose ((matrix (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (< (list_list_length matrix) 1) list_list_empty (list_list_prepend (firsts matrix) (matrix_transpose (rests matrix)))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (firsts matrix) (matrix_transpose (rests matrix)))))
 
 (define-fun-rec vec_scalar_add ((a Int) (x (MLList Int))) (MLList Int)
 (ite (< (list_length x) 1) list_empty (list_prepend (+ a (list_get x 0)) (vec_scalar_add a (list_tail x 1)))))
@@ -220,7 +220,7 @@
 (ite (< (list_length x) 1) list_empty (list_prepend (div a (list_get x 0)) (scalar_vec_div a (list_tail x 1)))))
 
 (define-fun-rec matrix_scalar_sub ((a Int) (matrix_x (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (< (list_list_length matrix_x) 1) list_list_empty (list_list_prepend (vec_scalar_sub a (list_list_get matrix_x 0)) (matrix_scalar_sub a (list_list_tail matrix_x 1)))))
+(ite (< (matrix_length matrix_x) 1) matrix_empty (matrix_prepend (vec_scalar_sub a (matrix_get matrix_x 0)) (matrix_scalar_sub a (matrix_tail matrix_x 1)))))
 
 (define-fun-rec vec_elemwise_add ((x (MLList Int)) (y (MLList Int))) (MLList Int)
 (ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (+ (list_get x 0) (list_get y 0)) (vec_elemwise_add (list_tail x 1) (list_tail y 1)))))
@@ -235,7 +235,7 @@
 (ite (or (< (list_length x) 1) (not (= (list_length x) (list_length y)))) list_empty (list_prepend (div (list_get x 0) (list_get y 0)) (vec_elemwise_div (list_tail x 1) (list_tail y 1)))))
 
 (define-fun-rec matrix_elemwise_add ((matrix_x (MLList (MLList Int))) (matrix_y (MLList (MLList Int)))) (MLList (MLList Int))
-(ite (or (< (list_list_length matrix_x) 1) (not (= (list_list_length matrix_x) (list_list_length matrix_y)))) list_list_empty (list_list_prepend (vec_elemwise_add (list_list_get matrix_x 0) (list_list_get matrix_y 0)) (matrix_elemwise_add (list_list_tail matrix_x 1) (list_list_tail matrix_y 1)))))
+(ite (or (< (matrix_length matrix_x) 1) (not (= (matrix_length matrix_x) (matrix_length matrix_y)))) matrix_empty (matrix_prepend (vec_elemwise_add (matrix_get matrix_x 0) (matrix_get matrix_y 0)) (matrix_elemwise_add (matrix_tail matrix_x 1) (matrix_tail matrix_y 1)))))
 
 (define-fun-rec OUTER_LOOP_INDEX_FIRST () Bool
 true)
@@ -243,12 +243,12 @@ true)
 
 
 (define-fun-rec linear_burn_8_inv0 ((active (MLList (MLList Int))) (agg.result (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row Int) (row_vec (MLList Int))) Bool
-(and (and (>= row 0) (<= row (list_list_length base))) (= agg.result (matrix_scalar_sub 32 (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice base 0 row)))))))
+(and (and (>= row 0) (<= row (matrix_length base))) (= agg.result (matrix_scalar_sub 32 (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (matrix_take base row) (matrix_col_slice base 0 row)) (ite OUTER_LOOP_INDEX_FIRST (matrix_take active row) (matrix_col_slice base 0 row)))))))
 
 
 
 (define-fun-rec linear_burn_8_inv1 ((active (MLList (MLList Int))) (base (MLList (MLList Int))) (col Int) (pixel Int) (row_vec (MLList Int)) (agg.result (MLList (MLList Int))) (row Int)) Bool
-(and (and (and (and (and (>= row 0) (<= row (list_list_length base))) (>= col 0)) (<= col (list_length (list_list_get base 0)))) (= row_vec (vec_scalar_sub 32 (vec_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get base row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take active col) row 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (list_list_get active row) col) (list_list_get (matrix_transpose (list_list_col_slice_with_length (list_list_take active col) row 1)) 0)))))) (= agg.result (matrix_scalar_sub 32 (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_list_take base row) (list_list_col_slice active 0 row)) (ite OUTER_LOOP_INDEX_FIRST (list_list_take active row) (list_list_col_slice active 0 row)))))))
+(and (and (and (and (and (>= row 0) (<= row (matrix_length base))) (>= col 0)) (<= col (list_length (matrix_get base 0)))) (= row_vec (vec_scalar_sub 32 (vec_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (list_take (matrix_get base row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take active col) row 1)) 0)) (ite OUTER_LOOP_INDEX_FIRST (list_take (matrix_get active row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take active col) row 1)) 0)))))) (= agg.result (matrix_scalar_sub 32 (matrix_elemwise_add (ite OUTER_LOOP_INDEX_FIRST (matrix_take base row) (matrix_col_slice active 0 row)) (ite OUTER_LOOP_INDEX_FIRST (matrix_take active row) (matrix_col_slice active 0 row)))))))
 
 
 
@@ -266,7 +266,7 @@ true)
 
 
 
-(assert (not (and (and (and (and (=> (and (and (> (list_list_length base) 1) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active list_list_empty base 0 0 0 list_empty)) (=> (and (and (and (and (< row (list_list_length base)) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base 0 pixel list_empty agg.result row))) (=> (and (and (and (and (and (and (< col (list_length (list_list_get base 0))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base col pixel row_vec agg.result row)) (linear_burn_8_inv1 active base (+ col 1) (- (+ (list_get (list_list_get base row) col) (list_get (list_list_get active row) col)) 32) (list_append row_vec (- (+ (list_get (list_list_get base row) col) (list_get (list_list_get active row) col)) 32)) agg.result row))) (=> (and (and (and (and (and (and (not (< col (list_length (list_list_get base 0)))) (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base col pixel row_vec agg.result row)) (linear_burn_8_inv0 active (list_list_append agg.result row_vec) base col pixel (+ row 1) row_vec))) (=> (or (and (and (and (and (not (< row (list_list_length base))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (and (and (and (and (and (not true) (not (< row (list_list_length base)))) (> (list_list_length base) 1)) (= (list_list_length base) (list_list_length active))) (= (list_length (list_list_get base 0)) (list_length (list_list_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec))) (linear_burn_8_ps base active agg.result)))))
+(assert (not (and (and (and (and (=> (and (and (> (matrix_length base) 1) (= (matrix_length base) (matrix_length active))) (= (list_length (matrix_get base 0)) (list_length (matrix_get active 0)))) (linear_burn_8_inv0 active matrix_empty base 0 0 0 list_empty)) (=> (and (and (and (and (< row (matrix_length base)) (> (matrix_length base) 1)) (= (matrix_length base) (matrix_length active))) (= (list_length (matrix_get base 0)) (list_length (matrix_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base 0 pixel list_empty agg.result row))) (=> (and (and (and (and (and (and (< col (list_length (matrix_get base 0))) (< row (matrix_length base))) (> (matrix_length base) 1)) (= (matrix_length base) (matrix_length active))) (= (list_length (matrix_get base 0)) (list_length (matrix_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base col pixel row_vec agg.result row)) (linear_burn_8_inv1 active base (+ col 1) (- (+ (list_get (matrix_get base row) col) (list_get (matrix_get active row) col)) 32) (list_append row_vec (- (+ (list_get (matrix_get base row) col) (list_get (matrix_get active row) col)) 32)) agg.result row))) (=> (and (and (and (and (and (and (not (< col (list_length (matrix_get base 0)))) (< row (matrix_length base))) (> (matrix_length base) 1)) (= (matrix_length base) (matrix_length active))) (= (list_length (matrix_get base 0)) (list_length (matrix_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (linear_burn_8_inv1 active base col pixel row_vec agg.result row)) (linear_burn_8_inv0 active (matrix_append agg.result row_vec) base col pixel (+ row 1) row_vec))) (=> (or (and (and (and (and (not (< row (matrix_length base))) (> (matrix_length base) 1)) (= (matrix_length base) (matrix_length active))) (= (list_length (matrix_get base 0)) (list_length (matrix_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec)) (and (and (and (and (and (not true) (not (< row (matrix_length base)))) (> (matrix_length base) 1)) (= (matrix_length base) (matrix_length active))) (= (list_length (matrix_get base 0)) (list_length (matrix_get active 0)))) (linear_burn_8_inv0 active agg.result base col pixel row row_vec))) (linear_burn_8_ps base active agg.result)))))
 
 (check-sat)
 (get-model)

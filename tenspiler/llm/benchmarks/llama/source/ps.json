@@ -1,0 +1,5 @@
+{
+    "softmax_part1": "reduce_max(list_take(input, max_pos))",
+    "softmax_part2": "vec_map(vec_scalar_sub(max_val, list_take(input, max_pos)), lambda x: exp(x))",
+    "rmsnorm_part1": "reduce_sum(vec_elemwise_mul(input, input))"
+}

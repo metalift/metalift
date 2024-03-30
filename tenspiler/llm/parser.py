@@ -221,7 +221,7 @@ def mypy_node_to_ir(
                         raise Exception("len() takes exactly one argument")
                     arg_expr = parse_node(node.args[0])
                     if arg_expr.type.is_nested:
-                        list_func_name = "list_list_length"
+                        list_func_name = "matrix_length"
                     else:
                         list_func_name = "list_length"
                     return call(list_func_name, Int, arg_expr)
