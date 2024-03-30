@@ -1,4 +1,3 @@
-import ast
 import re
 import uuid
 from typing import Dict
@@ -328,35 +327,3 @@ def mypy_node_to_ir(
 
     ps_fn_decl = parse_node(node)
     fn_decls.append(ps_fn_decl)
-
-
-# TODO(jie): add types
-def check_func(tree, func_sign):
-    assignments = 0
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            # if attribute is present, then it is a method call
-            if isinstance(node.func, ast.Attribute):
-                print(f"Undefined function {node.func.value.id}.{node.func.attr}")
-                return False
-            # check if the defined function has correct number of arguments
-            if node.func.id in func_sign.keys():
-                if len(node.args) != func_sign[node.func.id]:
-                    print(
-                        f"Incorrect number of arguments. Required {func_sign[node.func.id]} but got {len(node.args)}"
-                    )
-                    return False
-            if node.func.id not in func_sign.keys():
-                print(f"Undefined function {node.func.id}")
-                return False
-        # reject if else block
-        if isinstance(node, ast.If):
-            print(f"if else block not allowed")
-            return False
-        # accept only if count of assignments is 1
-        if isinstance(node, ast.Assign):
-            assignments += 1
-            if assignments > 1:
-                print(f"Intermediate results not allowed")
-                return False
-    return True
