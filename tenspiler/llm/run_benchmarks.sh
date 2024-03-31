@@ -15,6 +15,10 @@ while [[ $# -gt 0 ]]; do
             shift
             backend=$1
             ;;
+        --inv-ps)
+            shift
+            inv_ps=$1
+            ;;
         *)
             echo "Invalid option: $1"
             exit 1
@@ -65,14 +69,17 @@ for benchmark in "${benchmarks[@]}"; do
     source_file=$(find "benchmarks/${benchmark_suite}/source" -type f -name "${benchmark}.cc" -print -quit)
 
     if [ "$backend" == "gemini" ]; then
-        python3 scripts/gemini_benchmarks.py \
-            --benchmark-suite "$benchmark_suite" \
+        python3 scripts/gemini_ps.py \
             --filename "$benchmark" \
             --source-code "${source_file}" \
             --dsl-code python_dsl.py
     elif [ "$backend" == "openai" ]; then
-        python3 scripts/openai_benchmarks.py \
-            --benchmark-suite "$benchmark_suite" \
+        if [ "$inv_ps" == "inv" ]; then
+            script_to_run="openai_inv.py"
+        else
+            script_to_run="openai_ps.py"
+        fi
+        python3 scripts/$script_to_run \
             --filename "$benchmark" \
             --source-code "${source_file}" \
             --dsl-code python_dsl.py \

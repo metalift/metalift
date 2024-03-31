@@ -2246,7 +2246,7 @@ end = Int("end")
 lst_length = Int("lst_length")
 
 vec_slice_fn_decl = fn_decl(
-    "vec_slice", mlList[Int], lst[:end][:start:], lst, start, end
+    "vec_slice", mlList[Int], lst[:end][start:], lst, start, end
 )
 
 vec_slice_with_length_fn_decl = fn_decl(
@@ -2260,7 +2260,7 @@ vec_slice_with_length_fn_decl = fn_decl(
 
 # matrix_row_slice
 matrix_row_slice_fn_decl = fn_decl(
-    "matrix_row_slice", Matrix[Int], matrix[:end][:start:], matrix, start, end
+    "matrix_row_slice", Matrix[Int], matrix[:end][start:], matrix, start, end
 )
 
 # matrix_row_slice_with_length

@@ -2,10 +2,45 @@ import argparse
 import json
 import os
 import re
+from dataclasses import dataclass
+from typing import List
 
 from openai import OpenAI
 
-client = OpenAI(api_key="key")
+
+@dataclass
+class SingleLoopInfo:
+    loop_var: str
+    read_vars: List[str]
+    modified_vars: List[str]
+
+
+@dataclass
+class OuterLoopInfo:
+    outer_loop_var: str
+    inner_loop_var: str
+    outer_loop_read_vars: List[str]
+    inner_loop_read_vars: List[str]
+    outer_loop_modified_vars: List[str]
+    inner_loop_modified_vars: List[str]
+
+
+loop_info_map = {
+    "softmax_part1": SingleLoopInfo(
+        outer_loop_var="i", outer_loop_modified_vars=["max_val"]
+    ),
+    "softmax_part2": SingleLoopInfo(
+        outer_loop_var="i", outer_loop_modified_vars=["cur", "output"]
+    ),
+    "softmax_part3": SingleLoopInfo(
+        outer_loop_var="i", outer_loop_modified_vars=["sum"]
+    ),
+    "softmax_part4": SingleLoopInfo(
+        outer_loop_var="i", outer_loop_modified_vars=["unnormalized_output"]
+    ),
+}
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # reading arguments from the command line
 parser = argparse.ArgumentParser()
@@ -18,14 +53,13 @@ args = parser.parse_args()
 
 # dir = f"./benchmarks/dexter/outputs_invariants_constraints_pythonic_structure_nodefine/openai/{args.n_choices}_choices"
 # TODO(jie)
-dir = f"./benchmarks/{args.n_choices}/"
+dir = f"./benchmarks/llama/outputs/inv/{args.n_choices}/"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()
 
 # reading post-conditions
-# TODO(jie): name to postcondition
-file = "./solutions.json"
+file = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/source/ps.json"
 post_conds = json.load(open(file))
 
 
@@ -48,9 +82,12 @@ source_code = "\n".join(lines)
 TEMPLATE_TEXT = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
 #Instructions:
-1. You need to use only the defined functions to write the loop invariant. Do not use for/while loops for rewriting the function.
-2. Generate separate loop invariants for each loop in the test function.
-3. invariant structure
+1. You need to use only the defined functions to write the loop invariant.
+2. Do not use for/while loops for rewriting the function.
+3. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+4. Inline all the expressions. Do not use intermediate variables.
+5. Generate separate loop invariants for each loop in the test function.
+6. invariant structure
 ```
 def invariant1(row, col, base, active, row_vec, out):
     return row op expr() and row op expr() and col op expr() and col op expr() and row_vec = operation over defined functions and out = operation over defined functions
