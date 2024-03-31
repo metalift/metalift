@@ -182,6 +182,7 @@ def mypy_node_to_ir(
     in_calls: pyList[pyTuple[str, str]],
 ) -> Expr:
     def parse_node(node: Node) -> Expr:
+        # TODO(jie): add support for non-lambda inline functions
         if isinstance(node, FuncDef) or isinstance(node, LambdaExpr):
             if isinstance(node, FuncDef):
                 func_ir_type, _ = func_sign[node.name]
