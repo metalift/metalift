@@ -175,13 +175,13 @@
 ; end of list of lists definition
 
 (define-fun list_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
-(list_take (list_take lst end) start))
+(list_tail (list_take lst end) start))
 
 (define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
 (list_slice lst start (+ start lst_length)))
 
 (define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(matrix_take (matrix_take matrix end) start))
+(list_tail (list_take matrix end) start))
 
 (define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
 (matrix_slice matrix start (+ start lst_length)))

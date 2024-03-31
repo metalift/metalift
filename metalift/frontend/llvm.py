@@ -1816,6 +1816,10 @@ class MetaliftFunc:
         for block in self.fn_blocks.values():
             self.driver.asserts.extend(v.fn_blocks_states[block.name].asserts)
 
+        predicates = v.pred_tracker.predicates
+        import pdb
+
+        pdb.set_trace()
         return
 
     T = TypeVar("T")
