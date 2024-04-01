@@ -49,6 +49,7 @@ from metalift.ir import (
     Le,
     List,
     Lt,
+    Mod,
     Mul,
     Object,
     ObjectT,
@@ -327,6 +328,8 @@ def mypy_node_to_ir(
                     return Mul(left, right)
                 elif op == "//":
                     return Div(left, right)
+                elif op == "%":
+                    return Mod(left, right)
                 else:
                     raise Exception(f"Unsupported operator {op} on integers")
             elif (
@@ -448,6 +451,6 @@ def check_solutions(json_filename: str):
 
 
 if __name__ == "__main__":
-    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/darken_blend_8_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
+    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
     check_solutions(solutions_filename)
