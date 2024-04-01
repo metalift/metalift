@@ -194,7 +194,6 @@ parser.add_argument("--n-choices", type=int, default=10)
 args = parser.parse_args()
 
 # dir = f"./benchmarks/dexter/outputs_invariants_constraints_pythonic_structure_nodefine/openai/{args.n_choices}_choices"
-# TODO(jie)
 dir = f"./benchmarks/llama/outputs/inv/{args.n_choices}/"
 filename = args.filename
 source_code = open(args.source_code).read()
@@ -269,13 +268,22 @@ Example2:
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 
+# sol = f"""
+# # Loop invariant for the inner loop
+# def invariant2(token_position, head, head_size, key_cache_layer, q, score, timestep, i):
+#     return (i >= 0 and i <= head_size and timestep >= 0 and timestep <= token_position and
+#             score == reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, head * head_size + i),
+#             vec_slice(matrix_row_slice(key_cache_layer, timestep, timestep + 1)[0], head * head_size, head * head_size + i))) / integer_sqrt(head_size * 1))
+# """
+
 outputs = client.chat.completions.create(
     model="gpt-4",  # model to use
     messages=[
         {"role": "system", "content": TEMPLATE_SYS},
-        {"role": "user", "content": TEMPLATE_TEXT},
+        # {"role": "user", "content": TEMPLATE_TEXT},
+        # {"role": "assistant", "content": sol},
+        # {"role": "user", "content": "This invariant is incorrect, generate another one."}
     ],
-    # TODO(jie): 10 and 100
     n=args.n_choices,  # number of candidates,
     temperature=0.7,
 )
