@@ -186,6 +186,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # reading arguments from the command line
 parser = argparse.ArgumentParser()
+parser.add_argument("--benchmark-suite", type=str)
 parser.add_argument("--filename", type=str)
 parser.add_argument("--source-code", type=str)
 parser.add_argument("--dsl-code", type=str)
@@ -193,8 +194,7 @@ parser.add_argument("--n-choices", type=int, default=10)
 # parser.add_argument("--post-cond", type=str)
 args = parser.parse_args()
 
-# dir = f"./benchmarks/dexter/outputs_invariants_constraints_pythonic_structure_nodefine/openai/{args.n_choices}_choices"
-dir = f"./benchmarks/llama/outputs/inv/{args.n_choices}/"
+dir = f"./benchmarks/{args.benchmark_suite}/outputs/openai/inv/{args.n_choices}_choices"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()
