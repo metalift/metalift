@@ -58,7 +58,7 @@ outputs = client.chat.completions.create(
 # regex to extract the code from the completions
 def extract(s):
     return [
-        x for x in re.findall(r"```(?:Python|python|assembly)?(.*)```", s, re.DOTALL)
+        x for x in re.findall(r"```(?:Python|python|assembly)?(.*?)```", s, re.DOTALL)
     ]
 
 

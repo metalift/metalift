@@ -280,7 +280,7 @@ outputs = client.chat.completions.create(
     model="gpt-4",  # model to use
     messages=[
         {"role": "system", "content": TEMPLATE_SYS},
-        # {"role": "user", "content": TEMPLATE_TEXT},
+        {"role": "user", "content": TEMPLATE_TEXT},
         # {"role": "assistant", "content": sol},
         # {"role": "user", "content": "This invariant is incorrect, generate another one."}
     ],
@@ -290,25 +290,27 @@ outputs = client.chat.completions.create(
 
 
 def extract(s):
-    return [x for x in re.findall(r"```(?:python|Python)?(.*)```", s, re.DOTALL)]
+    return [x for x in re.findall(r"```(?:python|Python)?(.*?)```", s, re.DOTALL)]
 
 
-raw_response_filename = f"{dir}/{filename}_inv_raw_response.txt"
-raw_response_file = open(raw_response_filename, "a")
+raw_response_filename = f"{dir}/{filename}_ps_raw_response_before_extraction.json"
+raw_response_file = open(raw_response_filename, "w")
+responses_before_extraction: List[str] = []
+json_response_file = open(f"{dir}/{filename}_ps_raw_response.json", "w")
+responses: List[str] = []
 
 # extract the code from the completions
 for idx, c in enumerate(outputs.choices):
     out = extract(c.message.content)
-    # out = c.message.content
-    # if not out:
-    #     import pdb; pdb.set_trace()
     if out:
-        print(f"{idx}")
-        print(c.message.content, file=raw_response_file)
-        print(out[0])
+        responses_before_extraction.append(c.message.content)
+        responses.append("\n\n".join(out))
         # print(c.message.content)
     print("=====")
 
+json.dump({filename: responses}, json_response_file)
+json.dump({filename: responses_before_extraction}, raw_response_file)
+exit(0)
 
 if not os.path.exists(dir):
     os.makedirs(dir)
