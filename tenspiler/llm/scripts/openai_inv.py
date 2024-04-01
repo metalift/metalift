@@ -2,8 +2,9 @@ import argparse
 import json
 import os
 import re
+import textwrap
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 from openai import OpenAI
 
@@ -16,7 +17,7 @@ class SingleLoopInfo:
 
 
 @dataclass
-class OuterLoopInfo:
+class DoubleLoopInfo:
     outer_loop_var: str
     inner_loop_var: str
     outer_loop_read_vars: List[str]
@@ -27,18 +28,159 @@ class OuterLoopInfo:
 
 loop_info_map = {
     "softmax_part1": SingleLoopInfo(
-        outer_loop_var="i", outer_loop_modified_vars=["max_val"]
+        loop_var="i", modified_vars=["max_val"], read_vars=["input", "max_pos"]
     ),
     "softmax_part2": SingleLoopInfo(
-        outer_loop_var="i", outer_loop_modified_vars=["cur", "output"]
+        loop_var="i",
+        modified_vars=["cur", "output"],
+        read_vars=["input", "max_pos", "max_val"],
     ),
     "softmax_part3": SingleLoopInfo(
-        outer_loop_var="i", outer_loop_modified_vars=["sum"]
+        loop_var="i", modified_vars=["sum"], read_vars=["output", "max_pos"]
     ),
     "softmax_part4": SingleLoopInfo(
-        outer_loop_var="i", outer_loop_modified_vars=["unnormalized_output"]
+        loop_var="i",
+        modified_vars=["unnormalized_output"],
+        read_vars=["unnormalized_output", "max_pos", "sum"],
+    ),
+    "rmsnorm_part1": SingleLoopInfo(
+        loop_var="i", read_vars=["input", "weight"], modified_vars=["ss"]
+    ),
+    "rmsnorm_part2": SingleLoopInfo(
+        loop_var="i", read_vars=["input", "weight", "ss"], modified_vars=["output"]
+    ),
+    "matmul": DoubleLoopInfo(
+        outer_loop_var="row",
+        inner_loop_var="col",
+        outer_loop_read_vars=["weight", "input"],
+        inner_loop_read_vars=["weight", "input", "output", "row"],
+        outer_loop_modified_vars=["output", "curr"],
+        inner_loop_modified_vars=["curr"],
+    ),
+    "transformer_part1": DoubleLoopInfo(
+        outer_loop_var="timestep",
+        inner_loop_var="i",
+        outer_loop_read_vars=[
+            "token_position",
+            "head",
+            "head_size",
+            "q",
+            "key_cache_layer",
+        ],
+        inner_loop_read_vars=[
+            "token_position",
+            "head",
+            "head_size",
+            "q",
+            "key_cache_layer",
+            "timestep",
+        ],
+        outer_loop_modified_vars=["attention", "score"],
+        inner_loop_modified_vars=["score"],
+    ),
+    "transformer_part2": DoubleLoopInfo(
+        outer_loop_var="i",
+        inner_loop_var="timestep",
+        outer_loop_read_vars=[
+            "token_position",
+            "head",
+            "head_size",
+            "key_cache_layer",
+            "attention",
+        ],
+        inner_loop_read_vars=[
+            "token_position",
+            "head",
+            "head_size",
+            "key_cache_layer",
+            "attention",
+        ],
+        outer_loop_modified_vars=["xb", "curr"],
+        inner_loop_modified_vars=["curr"],
+    ),
+    "transformer_part3": SingleLoopInfo(
+        loop_var="i",
+        read_vars=["input", "hidden_dim"],
+        modified_vars=["output", "curr"],
+    ),
+    "transformer_part4": SingleLoopInfo(
+        loop_var="i", read_vars=["input1", "input2"], modified_vars=["output"]
     ),
 }
+
+
+def generate_invariant_template(
+    loop_info: Union[SingleLoopInfo, DoubleLoopInfo]
+) -> str:
+    if isinstance(loop_info, SingleLoopInfo):
+        arguments = sorted(
+            list(
+                set(
+                    loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var]
+                )
+            )
+        )
+        loop_var = loop_info.loop_var
+        modified_vars_cond = " and ".join(
+            [
+                f"{var} == operation over defined functions"
+                for var in loop_info.modified_vars
+            ]
+        )
+        return textwrap.dedent(
+            f"""
+            def invariant({', '.join(arguments)}):
+                return {loop_var} op expr() and {loop_var} op expr() and {modified_vars_cond}
+            """
+        )
+    else:
+        outer_inv_args = sorted(
+            list(
+                set(
+                    loop_info.outer_loop_read_vars
+                    + loop_info.outer_loop_modified_vars
+                    + [loop_info.outer_loop_var]
+                )
+            )
+        )
+        inner_inv_args = sorted(
+            list(
+                set(
+                    loop_info.inner_loop_read_vars
+                    + loop_info.inner_loop_modified_vars
+                    + [loop_info.inner_loop_var]
+                )
+            )
+        )
+        outer_loop_var = loop_info.outer_loop_var
+        inner_loop_var = loop_info.inner_loop_var
+        outer_modified_vars_cond = " and ".join(
+            [
+                f"{var} == operation over defined functions"
+                for var in loop_info.outer_loop_modified_vars
+            ]
+        )
+        inner_modified_vars_cond = " and ".join(
+            [
+                f"{var} == operation over defined functions"
+                for var in loop_info.inner_loop_modified_vars
+            ]
+        )
+        outer_loop_var_cond = (
+            f"{outer_loop_var} op expr() and {outer_loop_var} op expr()"
+        )
+        inner_loop_var_cond = f"{inner_loop_var} op expr() and {inner_loop_var} op expr() and {outer_loop_var_cond}"
+
+        return textwrap.dedent(
+            f"""
+            def invariant1({', '.join(outer_inv_args)}):
+                return {outer_loop_var_cond} and {outer_modified_vars_cond}
+
+            def invariant2({', '.join(inner_inv_args)}):
+                return {inner_loop_var_cond} and {inner_modified_vars_cond}
+            """
+        )
+
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -89,13 +231,9 @@ TEMPLATE_TEXT = f"""Your task is to prove that `assertion` is true in the `test`
 5. Generate separate loop invariants for each loop in the test function.
 6. invariant structure
 ```
-def invariant1(row, col, base, active, row_vec, out):
-    return row op expr() and row op expr() and col op expr() and col op expr() and row_vec = operation over defined functions and out = operation over defined functions
+{generate_invariant_template(loop_info_map[filename])}
 ```
-```
-def invariant2(row, active, base, out):
-    return row op expr() and row op expr() and out = operation over defined_functions
-```
+
 Example1:
 ```
 #defined functions
@@ -118,6 +256,7 @@ def test(data: List[int]):
 def invariant(data: List[int], count: int, i:int):
     return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
 ```
+
 Example2:
 ```
 #defined functions

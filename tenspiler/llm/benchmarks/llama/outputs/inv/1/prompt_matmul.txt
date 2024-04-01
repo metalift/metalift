@@ -1,16 +1,20 @@
 Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
 #Instructions:
-1. You need to use only the defined functions to write the loop invariant. Do not use for/while loops for rewriting the function.
-2. Generate separate loop invariants for each loop in the test function.
-3. invariant structure
+1. You need to use only the defined functions to write the loop invariant.
+2. Do not use for/while loops for rewriting the function.
+3. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+4. Inline all the expressions. Do not use intermediate variables.
+5. Generate separate loop invariants for each loop in the test function.
+6. invariant structure
 ```
-def invariant1(row, col, base, active, row_vec, out):
-    return row op expr() and row op expr() and col op expr() and col op expr() and row_vec = operation over defined functions and out = operation over defined functions
-```
-```
-def invariant2(row, active, base, out):
-    return row op expr() and row op expr() and out = operation over defined_functions
+
+def invariant1(curr, input, output, row, weight):
+    return row op expr() and row op expr() and output = operation over defined functions and curr = operation over defined functions
+
+def invariant2(col, curr, input, output, row, weight):
+    return col op expr() and col op expr() and row op expr() and row op expr() and curr = operation over defined functions
+
 ```
 Example1:
 ```

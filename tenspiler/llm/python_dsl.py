@@ -78,7 +78,7 @@ def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
 
 
 def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
-    return matrix[:end][:start]
+    return matrix[:end][start:]
 
 
 def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:

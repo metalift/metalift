@@ -8,13 +8,12 @@ Your task is to prove that `assertion` is true in the `test` function. The asser
 5. Generate separate loop invariants for each loop in the test function.
 6. invariant structure
 ```
-def invariant1(row, col, base, active, row_vec, out):
-    return row op expr() and row op expr() and col op expr() and col op expr() and row_vec = operation over defined functions and out = operation over defined functions
+
+def invariant(cur, i, input, max_pos, max_val, output):
+    return i op expr() and i op expr() and cur == operation over defined functions and output == operation over defined functions
+
 ```
-```
-def invariant2(row, active, base, out):
-    return row op expr() and row op expr() and out = operation over defined_functions
-```
+
 Example1:
 ```
 #defined functions
@@ -37,6 +36,7 @@ def test(data: List[int]):
 def invariant(data: List[int], count: int, i:int):
     return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
 ```
+
 Example2:
 ```
 #defined functions
@@ -120,7 +120,7 @@ def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
 
 
 def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
-    return matrix[:end][:start]
+    return matrix[:end][start:]
 
 
 def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
@@ -310,7 +310,7 @@ def integer_sqrt(n: int) -> int:
 #include <vector>
 using namespace std;
 
-assert x; } == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, max_pos)), lambda x: integer_exp(x))
+assert x; } == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, max_pos)), lambda x: integer_exp(x))
 
 vector<int> softmax_part2(vector<int> input, int max_pos, int max_val) {
     vector<int> output;
