@@ -9,8 +9,11 @@ Your task is to prove that `assertion` is true in the `test` function. The asser
 6. invariant structure
 ```
 
-def invariant(i, input, output, ss, weight):
-    return i op expr() and i op expr() and output == operation over defined functions
+def invariant1(attention, head, head_size, key_cache_layer, q, score, timestep, token_position):
+    return timestep op expr() and timestep op expr() and attention == operation over defined functions and score == operation over defined functions
+
+def invariant2(head, head_size, i, key_cache_layer, q, score, timestep, token_position):
+    return i op expr() and i op expr() and timestep op expr() and timestep op expr() and score == operation over defined functions
 
 ```
 Example1:
@@ -308,15 +311,25 @@ def integer_sqrt(n: int) -> int:
 #include <vector>
 using namespace std;
 
-assert x; } == vec_scalar_mul((1 // integer_sqrt(((ss // list_length(input)) + 1))), vec_elemwise_mul(input, weight))
+assert x; } == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
 
-vector<int> rmsnorm_part2(vector<int> input, vector<int> weight, int ss) {
-    vector<int> output;
-    int size = input.size();
-    int inv_ss = 1 / integer_sqrt(ss / size + 1);
-    for (int i = 0; i < input.size(); i++)
-        output.push_back(inv_ss * input[i] * weight[i]);
-    return output;
+vector<int> transformer_part1(
+    int token_position,
+    int head,
+    int head_size,
+    vector<vector<int>> key_cache_layer,
+    vector<int> q
+) {
+    vector<int> attention;
+    for (int timestep = 0; timestep < token_position; timestep++) {
+        int score = 0;
+        for (int i = 0; i < head_size; ++i) {
+            score += q[head * head_size + i] * key_cache_layer[timestep][head * head_size + i];
+        }
+        score /= integer_sqrt(head_size * 1);
+        attention.push_back(score);
+    }
+    return attention;
 }
 
 ```

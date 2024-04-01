@@ -9,8 +9,8 @@ Your task is to prove that `assertion` is true in the `test` function. The asser
 6. invariant structure
 ```
 
-def invariant(i, input, output, ss, weight):
-    return i op expr() and i op expr() and output == operation over defined functions
+def invariant(cur, i, input, max_pos, max_val, output):
+    return i op expr() and i op expr() and cur = operation over defined functions and output = operation over defined functions
 
 ```
 Example1:
@@ -308,14 +308,14 @@ def integer_sqrt(n: int) -> int:
 #include <vector>
 using namespace std;
 
-assert x; } == vec_scalar_mul((1 // integer_sqrt(((ss // list_length(input)) + 1))), vec_elemwise_mul(input, weight))
+assert x; } == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, max_pos)), lambda x: integer_exp(x))
 
-vector<int> rmsnorm_part2(vector<int> input, vector<int> weight, int ss) {
+vector<int> softmax_part2(vector<int> input, int max_pos, int max_val) {
     vector<int> output;
-    int size = input.size();
-    int inv_ss = 1 / integer_sqrt(ss / size + 1);
-    for (int i = 0; i < input.size(); i++)
-        output.push_back(inv_ss * input[i] * weight[i]);
+    for (int i = 0; i < max_pos; i++) {
+        int cur = integer_exp(input[i] - max_val);
+        output.push_back(cur);
+    }
     return output;
 }
 

@@ -8,35 +8,54 @@ Your task is to prove that `assertion` is true in the `test` function. The asser
 5. Generate separate loop invariants for each loop in the test function.
 6. invariant structure
 ```
-def invariant1(row, col, base, active, row_vec, out):
-    return row op expr() and row op expr() and col op expr() and col op expr() and row_vec = operation over defined functions and out = operation over defined functions
+
+def invariant(i, input, max_pos, max_val):
+    return i op expr() and i op expr() and max_val == operation over defined functions
+
 ```
-```
-def invariant2(row, active, base, out):
-    return row op expr() and row op expr() and out = operation over defined_functions
-```
+
 Example1:
 ```
 #defined functions
-def map(data: List[int] , f: func):
-    return [f(x) for x in data]
-def reduce(data: List[int] , f: func):
-    if len(data) == 0:
-        return 0
-    else:
-        return f(data[0], reduce(data[1:], f))
-def add(a: int , b: int):
-    return a + b
-constants = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-#test function
-def test(data: List[int]):
-    count = 0
-    for i in range(len(data)):
-        count += 1
-    assert count == reduce(map(data, lambda x: 1), add)
-def invariant(data: List[int], count: int, i:int):
-    return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
+
+def vec_elemwise_sub(x: list[int], y: list[int]) -> list[int]:
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
+    )
+def matrix_elemwise_sub(matrix_x,: list[list[int]], matrix_y: list[list[int]]) -> list[list[int]]:
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            vec_elemwise_sub(matrix_x[0], matrix_y[0]),
+            *matrix_elemwise_sub(matrix_x[1:], matrix_y[1:]),
+        ]
+    )
+//test function
+vector<vector<uint8_t>> multiply_blend_8(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
+{
+    vector<vector<uint8_t>> out;
+    uint8_t m = base.size();
+    uint8_t n = base[0].size();
+	for (uint8_t row = 0; row < m; row++) {
+        vector<uint8_t> row_vec;
+		for (uint8_t col = 0; col < n; col++) {
+            uint8_t pixel = base[row][col] - active[row][col] ;
+			row_vec.push_back(pixel);
+
+		}
+		out.push_back(row_vec);
+	}
+	assert out == matrix_elemwise_sub(base, active);
+}
+def invariant1(row, outer_loop_vars):
+    return row >= 0 and row <= m and out == matrix_elemwise_sub(base[:row], active[:row])
+def invariant2(row, col, inner_loop_vars, outer_loop_vars):
+    return row >= 0 and row < m and col >= 0 and col <= n and row_vec == vec_elemwise_sub(base[row][:col], active[row][:col]) and out == matrix_elemwise_sub(base[:row], active[:row])
 ```
+
 Example2:
 ```
 #defined functions
@@ -120,7 +139,7 @@ def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
 
 
 def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
-    return matrix[:end][:start]
+    return matrix[:end][start:]
 
 
 def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
@@ -315,7 +334,7 @@ int softmax_part1(vector<int> input, int max_pos) {
     for (int i = 1; i < max_pos; i++)
         if (input[i] > max_val)
             max_val = input[i];
-assert max_val == reduce_max(list_slice(input, 0, max_pos))
+assert max_val == reduce_max(vec_slice(input, 0, max_pos))
 }
 
 ```
