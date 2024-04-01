@@ -36,7 +36,9 @@ from mypy.types import Type as MypyType
 from mypy.types import TypeList, UnboundType
 
 from metalift.ir import (
+    Add,
     Bool,
+    Div,
     Eq,
     Expr,
     Fn,
@@ -47,8 +49,10 @@ from metalift.ir import (
     Le,
     List,
     Lt,
+    Mul,
     Object,
     ObjectT,
+    Sub,
     call,
     create_object,
     fn_decl_recursive,
@@ -316,13 +320,13 @@ def mypy_node_to_ir(
             op = node.op
             if left.type is Int and right.type is Int:
                 if op == "+":
-                    return left + right
+                    return Add(left, right)
                 elif op == "-":
-                    return left - right
+                    return Sub(left, right)
                 elif op == "*":
-                    return left * right
+                    return Mul(left, right)
                 elif op == "//":
-                    return left // right
+                    return Div(left, right)
                 else:
                     raise Exception(f"Unsupported operator {op} on integers")
             elif (
@@ -445,5 +449,5 @@ def check_solutions(json_filename: str):
 
 if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/darken_blend_8_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/softmax_part1_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
     check_solutions(solutions_filename)
