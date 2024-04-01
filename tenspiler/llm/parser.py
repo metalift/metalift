@@ -73,8 +73,10 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
         elif mypy_type.name == "List" and len(mypy_type.args) == 1:
             return List[mypy_type_to_ir_type(mypy_type.args[0])]
         elif mypy_type.name == "Callable":
-            assert len(mypy_type.args) == 2
-            assert isinstance(mypy_type.args[0], TypeList)
+            if len(mypy_type.args) != 2:
+                raise Exception("Callable type must have two arguments")
+            if not isinstance(mypy_type.args[0], TypeList):
+                raise Exception("First argument of Callable type must be a list")
             ret_type = mypy_type_to_ir_type(mypy_type.args[1])
             arg_types = (mypy_type_to_ir_type(arg) for arg in mypy_type.args[0].items)
             return Fn[pyTuple[(ret_type, *arg_types)]]
@@ -140,7 +142,8 @@ def mypy_parse(
     target_func_defs = [
         func_def for func_def in target_tree.defs if isinstance(func_def, FuncDef)
     ]
-    assert len(target_func_defs) == 1
+    if len(target_func_defs) != 1:
+        raise Exception("Exactly one function definition expected")
     target_func_def = target_func_defs[0]
     assert isinstance(target_func_def, FuncDef)
 
@@ -261,10 +264,17 @@ def mypy_node_to_ir(
 
                     # If the argument is a function, then we need to define another function for it
                     if is_fn_decl_type(arg_expr.type):
-                        lambda_fn_name = f"{arg_names[idx]}_{str(uuid.uuid4())[:8]}"
-                        arg_expr.set_name(lambda_fn_name)
+                        if isinstance(arg, LambdaExpr):
+                            arg_fn_name = f"{arg_names[idx]}_{str(uuid.uuid4())[:8]}"
+                            arg_expr.set_name(arg_fn_name)
+                        elif isinstance(arg, NameExpr):
+                            arg_fn_name = cast(NameExpr, arg).name
+                        else:
+                            raise Exception(
+                                "Function argument must be a lambda expression or a function name"
+                            )
                         fn_decls.append(arg_expr)
-                        in_calls.append((func_name, lambda_fn_name))
+                        in_calls.append((func_name, arg_fn_name))
                     arg_exprs.append(arg_expr)
 
                 # Check return type
@@ -395,10 +405,10 @@ def check_solutions(json_filename: str):
     for benchmark_name, solutions in all_solutions.items():
         solutions_seen = set()
         for idx, solution in enumerate(solutions):
+            if idx not in {7}:
+                continue
             if solution in solutions_seen:
                 print(f"Duplicate solution {idx} for {benchmark_name}")
-                continue
-            if idx not in {4, 7}:
                 continue
             print(f"Solution {idx} for {benchmark_name}")
             print(solution)
@@ -415,5 +425,5 @@ def check_solutions(json_filename: str):
 
 if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/darken_blend_8_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part2_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/softmax_part2_ps_raw_response.json"
     check_solutions(solutions_filename)

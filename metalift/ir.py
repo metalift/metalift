@@ -651,7 +651,13 @@ def create_object(
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
         contained_types = get_args(object_type)
-        return object_cls(*contained_types, value)  # type: ignore
+        if len(contained_types) != 1:
+            raise Exception("NYI: multiple contained types")
+
+        if object_cls is Fn:
+            return object_cls(get_args(contained_types[0]), value)  # type: ignore
+        else:
+            return object_cls(*contained_types, value)  # type: ignore
     else:
         return object_type(cast(Expr, value))
 
@@ -1723,8 +1729,6 @@ class Fn(Generic[FnContainedT], Object):
         value: Optional[Union["FnDeclRecursive", "FnDecl", str]] = None,
     ) -> None:
         full_type = Fn[typing.Tuple[containedT]]  # type: ignore
-        self.return_type = containedT[0]
-        self.argument_types = containedT[1:]
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
