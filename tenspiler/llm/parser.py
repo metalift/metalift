@@ -1,5 +1,7 @@
+import json
 import re
 import uuid
+from textwrap import dedent
 from typing import Dict
 from typing import List as pyList
 from typing import Optional
@@ -15,6 +17,7 @@ from mypy.nodes import (
     ComparisonExpr,
     ConditionalExpr,
     FuncDef,
+    IndexExpr,
     IntExpr,
     LambdaExpr,
     ListExpr,
@@ -24,6 +27,7 @@ from mypy.nodes import (
     Node,
     OpExpr,
     ReturnStmt,
+    SliceExpr,
 )
 from mypy.options import Options
 from mypy.types import AnyType, CallableType, Instance
@@ -48,11 +52,13 @@ from metalift.ir import (
     create_object,
     fn_decl_recursive,
     is_fn_decl_type,
+    is_list_type,
+    is_nested_list_type,
     ite,
 )
 
 
-def mypy_type_to_ir_type(mypy_type: MypyType) -> Optional[ObjectT]:
+def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
     """Convert mypy type to python type"""
     if isinstance(mypy_type, UnboundType):
         if mypy_type.optional:
@@ -143,6 +149,7 @@ def mypy_parse(
         func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
     ]
 
+    # TODO(jie): right now we are rejecting functions that don't have type information in the signature
     func_sign = {
         func_def.name: (
             _get_func_def_ir_type(func_def),
@@ -225,7 +232,7 @@ def mypy_node_to_ir(
                         list_func_name = "matrix_length"
                     else:
                         list_func_name = "list_length"
-                    return call(list_func_name, Int, arg_expr)
+                    return call(list_func_name, Int, arg_expr).src
 
                 # Then check if this functino is in our DSL.
                 if func_name not in func_sign.keys():
@@ -266,11 +273,11 @@ def mypy_node_to_ir(
                     raise Exception(
                         f"Expected return type {ret_ir_type} but got {actual_ret_ir_type} for {func_name}"
                     )
-                return call(func_name, ret_ir_type, *arg_exprs)
+                return call(func_name, ret_ir_type, *arg_exprs).src
         elif isinstance(node, NameExpr):
             # Nothing can go wrong with a name expression (which are basically variables)
             ir_type = mypy_type_to_ir_type(types[node])
-            return create_object(ir_type, node.name)
+            return create_object(ir_type, node.name).src
         elif isinstance(node, OpExpr):
             left = parse_node(node.left)
             right = parse_node(node.right)
@@ -286,15 +293,27 @@ def mypy_node_to_ir(
                     return left // right
                 else:
                     raise Exception(f"Unsupported operator {op} on integers")
+            elif (
+                is_list_type(left.type)
+                and not is_nested_list_type(left.type)
+                and is_list_type(right.type)
+                and not is_nested_list_type(right.type)
+            ):
+                if op == "+":
+                    return call("list_concat", List[Int], left, right)
+                else:
+                    raise Exception(
+                        f"Unsupported binary operation {op} on types {left.type} and {right.type}"
+                    )
             else:
                 raise Exception(
-                    f"Unsupported binary operations {op} on types {left.type} and {right.type}"
+                    f"Unsupported binary operation {op} on types {left.type} and {right.type}"
                 )
         elif isinstance(node, IntExpr):
-            return create_object(Int, node.value)
+            return create_object(Int, node.value).src
         elif isinstance(node, ListExpr):
             node_type = mypy_type_to_ir_type(types[node])
-            return node_type.empty(get_args(node_type)[0])
+            return node_type.empty(get_args(node_type)[0]).src
         elif isinstance(node, ConditionalExpr):
             return ite(
                 parse_node(node.cond),
@@ -323,8 +342,78 @@ def mypy_node_to_ir(
                 return Le(left_expr, right_expr)
             else:
                 raise Exception(f"Unsupported operator {op}")
+        elif isinstance(node, IndexExpr):
+            base_expr = parse_node(node.base)
+            base_object = create_object(base_expr.type, base_expr)
+            if isinstance(node.index, SliceExpr):
+                # Parse begin index
+                if node.index.begin_index is None:
+                    begin_index = None
+                else:
+                    begin_index = parse_node(node.index.begin_index)
+
+                # Parse end index
+                if node.index.end_index is None:
+                    end_index = None
+                else:
+                    end_index = parse_node(node.index.end_index)
+
+                if begin_index is None and end_index is not None:
+                    return base_object[:end_index].src
+                elif begin_index is not None and end_index is None:
+                    return base_object[begin_index:].src
+                elif begin_index is not None and end_index is not None:
+                    return base_object[begin_index:end_index].src
+                else:
+                    raise Exception(f"Unsupported slice {node.index}")
+            else:
+                index_expr = parse_node(node.index)
+                return base_object[index_expr].src
         else:
             raise Exception(f"Unsupported node {node}")
 
     ps_fn_decl = parse_node(node)
     fn_decls.append(ps_fn_decl)
+
+
+def check_solution(solution: str) -> None:
+    universal_imports = f"""
+    from tenspiler.llm.python_dsl import *
+    from typing import Any, Callable, List
+    """
+    full_prog = dedent(remove_comments(dedent(universal_imports) + dedent(solution)))
+    target_func_def, func_sigs, types = mypy_parse(full_prog)
+    fn_decls: pyList[FnDeclRecursive] = []
+    in_calls: pyList[pyTuple[str, str]] = []
+    mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
+    return fn_decls, in_calls
+
+
+def check_solutions(json_filename: str):
+    with open(json_filename, "r") as f:
+        all_solutions = json.load(f)
+    for benchmark_name, solutions in all_solutions.items():
+        solutions_seen = set()
+        for idx, solution in enumerate(solutions):
+            if solution in solutions_seen:
+                print(f"Duplicate solution {idx} for {benchmark_name}")
+                continue
+            if idx not in {4, 7}:
+                continue
+            print(f"Solution {idx} for {benchmark_name}")
+            print(solution)
+            try:
+                check_solution(solution)
+            except Exception as e:
+                import pdb
+
+                pdb.set_trace()
+                print("haha")
+            print("\n")
+            solutions_seen.add(solution)
+
+
+if __name__ == "__main__":
+    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/darken_blend_8_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part2_ps_raw_response.json"
+    check_solutions(solutions_filename)

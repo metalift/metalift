@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+from typing import List
 
 from openai import OpenAI
 
@@ -56,20 +57,29 @@ outputs = client.chat.completions.create(
 
 # regex to extract the code from the completions
 def extract(s):
-    return [x for x in re.findall(r"```(?:Python|assembly)?(.*)```", s, re.DOTALL)]
+    return [
+        x for x in re.findall(r"```(?:Python|python|assembly)?(.*)```", s, re.DOTALL)
+    ]
+
+
+raw_response_filename = f"{dir}/{filename}_ps_raw_response.txt"
+raw_response_file = open(raw_response_filename, "a")
+
+json_response_file = open(f"{dir}/{filename}_ps_raw_response.json", "w")
+responses: List[str] = []
 
 
 # extract the code from the completions
 for idx, c in enumerate(outputs.choices):
     out = extract(c.message.content)
-    # out = c.message.content
-    # if not out:
-    #     import pdb; pdb.set_trace()
     if out:
         print(f"{idx}")
-        # print(out[0])
-        print(c.message.content)
+        print(c.message.content, file=raw_response_file)
+        print(out[0])
+        responses.append(out[0])
     print("=====")
+
+json.dump({filename: responses}, json_response_file)
 
 
 if not os.path.exists(dir):

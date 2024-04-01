@@ -1064,7 +1064,6 @@ class List(Generic[T], Object):
     def type(self) -> Type["List"]:  # type: ignore
         return List[self.containedT]  # type: ignore
 
-    @property
     def is_nested(self) -> bool:
         return is_nested_list_type(self.type) or is_matrix_type(self.type)
 
