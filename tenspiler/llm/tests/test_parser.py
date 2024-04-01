@@ -1,11 +1,6 @@
-from textwrap import dedent
-from typing import List as pyList
-from typing import Tuple as pyTuple
-
 import pytest
 
-from metalift.ir import FnDeclRecursive, Int, List, call, fn_decl_recursive
-from tenspiler.llm.parser import mypy_node_to_ir, mypy_parse, remove_comments
+from metalift.ir import Int, List, call, fn_decl_recursive
 
 # def fma(x, y, z):
 #     return x * y + z
@@ -105,19 +100,6 @@ from tenspiler.llm.parser import mypy_node_to_ir, mypy_parse, remove_comments
 #     python_program8,
 #     python_program9,
 # ]
-
-
-def _test_prog(prog: str) -> None:
-    universal_imports = f"""
-    from tenspiler.llm.python_dsl import *
-    from typing import Any, Callable, List
-    """
-    full_prog = dedent(remove_comments(universal_imports + prog))
-    target_func_def, func_sigs, types = mypy_parse(full_prog)
-    fn_decls: pyList[FnDeclRecursive] = []
-    in_calls: pyList[pyTuple[str, str]] = []
-    mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
-    return fn_decls, in_calls
 
 
 def test_correct_normal_blend_f():

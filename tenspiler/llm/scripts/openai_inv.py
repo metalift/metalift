@@ -293,6 +293,9 @@ def extract(s):
     return [x for x in re.findall(r"```(?:python|Python)?(.*)```", s, re.DOTALL)]
 
 
+raw_response_filename = f"{dir}/{filename}_inv_raw_response.txt"
+raw_response_file = open(raw_response_filename, "a")
+
 # extract the code from the completions
 for idx, c in enumerate(outputs.choices):
     out = extract(c.message.content)
@@ -301,6 +304,7 @@ for idx, c in enumerate(outputs.choices):
     #     import pdb; pdb.set_trace()
     if out:
         print(f"{idx}")
+        print(c.message.content, file=raw_response_file)
         print(out[0])
         # print(c.message.content)
     print("=====")
