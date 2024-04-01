@@ -18,7 +18,7 @@ parser.add_argument("--dsl-code", type=str)
 parser.add_argument("--n-choices", type=int, default=10)
 args = parser.parse_args()
 
-dir = f"./benchmarks/{args.benchmark_suite}/outputs/openai/{args.n_choices}_choices"
+dir = f"./benchmarks/{args.benchmark_suite}/outputs/openai/ps/{args.n_choices}_choices"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()
