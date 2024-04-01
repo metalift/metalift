@@ -37,6 +37,7 @@ from mypy.types import TypeList, UnboundType
 
 from metalift.ir import (
     Add,
+    And,
     Bool,
     Div,
     Eq,
@@ -53,6 +54,7 @@ from metalift.ir import (
     Mul,
     Object,
     ObjectT,
+    Or,
     Sub,
     call,
     create_object,
@@ -89,6 +91,8 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
     elif isinstance(mypy_type, Instance):
         if mypy_type.type.fullname == "builtins.int":
             return Int
+        elif mypy_type.type.fullname == "builtins.bool":
+            return Bool
         elif mypy_type.type.fullname == "builtins.list":
             return List[mypy_type_to_ir_type(mypy_type.args[0])]
     elif isinstance(mypy_type, CallableType):
@@ -123,8 +127,8 @@ def _get_func_def_arg_names(func_def: FuncDef) -> pyList[str]:
 
 # TODO(jie): add return type
 def mypy_parse(
-    code: str,
-) -> pyTuple[FuncDef, Dict[str, List[ObjectT]], Dict[Node, MypyType]]:
+    code: str, expected_num_funcs: int = 1
+) -> pyTuple[pyList[FuncDef], Dict[str, pyList[ObjectT]], Dict[Node, MypyType]]:
     options = Options()
     options.incremental = False  # turn off caching of previously typed results
     # options.export_types = True
@@ -148,10 +152,10 @@ def mypy_parse(
     target_func_defs = [
         func_def for func_def in target_tree.defs if isinstance(func_def, FuncDef)
     ]
-    if len(target_func_defs) != 1:
-        raise Exception("Exactly one function definition expected")
-    target_func_def = target_func_defs[0]
-    assert isinstance(target_func_def, FuncDef)
+    if len(target_func_defs) != expected_num_funcs:
+        raise Exception(
+            f"{expected_num_funcs} function definition expected but found {len(target_func_defs)}"
+        )
 
     # Get function signatures of the python dsl module
     dsl_func_defs = [
@@ -164,10 +168,10 @@ def mypy_parse(
             _get_func_def_ir_type(func_def),
             _get_func_def_arg_names(func_def),
         )
-        for func_def in [target_func_def, *dsl_func_defs]
+        for func_def in [*target_func_defs, *dsl_func_defs]
     }
 
-    return target_func_def, func_sign, mypy_build.types
+    return target_func_defs, func_sign, mypy_build.types
 
 
 def remove_comments(python_code):
@@ -315,6 +319,7 @@ def mypy_node_to_ir(
             # Nothing can go wrong with a name expression (which are basically variables)
             ir_type = mypy_type_to_ir_type(types[node])
             return create_object(ir_type, node.name).src
+        # TODO(jie): check not
         elif isinstance(node, OpExpr):
             left = parse_node(node.left)
             right = parse_node(node.right)
@@ -344,6 +349,13 @@ def mypy_node_to_ir(
                     raise Exception(
                         f"Unsupported binary operation {op} on types {left.type} and {right.type}"
                     )
+            elif left.type is Bool and right.type is Bool:
+                if op == "and":
+                    return And(left, right)
+                elif op == "or":
+                    return Or(left, right)
+                else:
+                    raise Exception(f"Unsupported operator {op} on booleans")
             else:
                 raise Exception(
                     f"Unsupported binary operation {op} on types {left.type} and {right.type}"
@@ -415,32 +427,35 @@ def mypy_node_to_ir(
     fn_decls.append(ps_fn_decl)
 
 
-def check_solution(solution: str) -> None:
+def check_solution(solution: str, expected_num_funcs: int) -> None:
     universal_imports = f"""
     from tenspiler.llm.python_dsl import *
     from typing import Any, Callable, List
     """
     full_prog = dedent(remove_comments(dedent(universal_imports) + dedent(solution)))
-    target_func_def, func_sigs, types = mypy_parse(full_prog)
+    target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
     fn_decls: pyList[FnDeclRecursive] = []
     in_calls: pyList[pyTuple[str, str]] = []
-    mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
+    for target_func_def in target_func_defs:
+        mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
     return fn_decls, in_calls
 
 
-def check_solutions(json_filename: str):
+def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
     with open(json_filename, "r") as f:
         all_solutions = json.load(f)
-    for benchmark_name, solutions in all_solutions.items():
+
+    for benchmark_name, benchmark_solutions in all_solutions.items():
         solutions_seen = set()
-        for idx, solution in enumerate(solutions):
+        for idx, solution in enumerate(benchmark_solutions):
             if solution in solutions_seen:
-                print(f"Duplicate solution {idx} for {benchmark_name}")
+                print(
+                    f"Duplicate solution {idx} for {benchmark_name} for round {round}"
+                )
                 continue
-            print(f"Solution {idx} for {benchmark_name}")
             print(solution)
             try:
-                check_solution(solution)
+                check_solution(solution, expected_num_funcs)
             except Exception as e:
                 import pdb
 
@@ -452,5 +467,6 @@ def check_solutions(json_filename: str):
 
 if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
-    check_solutions(solutions_filename)
+    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
+    check_solutions(solutions_filename, 2)

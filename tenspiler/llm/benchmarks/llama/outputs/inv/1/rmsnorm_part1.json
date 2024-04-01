@@ -1,3 +1,0 @@
-[
-    "Based on your provided test function, here's the loop invariant:\n\n```python\ndef invariant(input: List[int], weight: List[int], ss: int, i:int):\n    return i >= 0 and i <= len(input) and ss == reduce_sum(vec_elemwise_mul(input[:i], input[:i]))\n```\nThis loop invariant checks that for any iteration `i`, the value of `ss` is equal to the sum of the element-wise multiplication of elements in `input` up to the `i-th` index. If the invariant holds true before and after every loop iteration, then it guarantees that the final assertion `ss == reduce_sum(vec_elemwise_mul(input, input))` holds true after the loop completes."
-]
