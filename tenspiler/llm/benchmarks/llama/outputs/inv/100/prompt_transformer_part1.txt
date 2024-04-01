@@ -16,6 +16,7 @@ def invariant2(head, head_size, i, key_cache_layer, q, score, timestep, token_po
     return i op expr() and i op expr() and timestep op expr() and timestep op expr() and score == operation over defined functions
 
 ```
+
 Example1:
 ```
 #defined functions
@@ -38,6 +39,7 @@ def test(data: List[int]):
 def invariant(data: List[int], count: int, i:int):
     return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
 ```
+
 Example2:
 ```
 #defined functions
