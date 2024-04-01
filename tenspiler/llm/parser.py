@@ -12,6 +12,7 @@ from mypy import build
 from mypy.defaults import PYTHON3_VERSION
 from mypy.modulefinder import BuildSource
 from mypy.nodes import (
+    AssignmentStmt,
     Block,
     CallExpr,
     ComparisonExpr,
@@ -213,9 +214,30 @@ def mypy_node_to_ir(
                 *variables,
             )
         elif isinstance(node, Block):
-            if len(node.body) > 1:
-                raise Exception("Block with more than one statement not supported")
-            return parse_node(node.body[0])
+            if len(node.body) == 2:
+                if not isinstance(node.body[0], AssignmentStmt):
+                    raise Exception(
+                        "If there are two statements, the statement must be an assignment"
+                    )
+                if not isinstance(node.body[1], ReturnStmt):
+                    raise Exception(
+                        "If there are two statements, the second statement must be a return statement"
+                    )
+
+                first_stmt = cast(AssignmentStmt, node.body[0])
+                second_stmt = cast(ReturnStmt, node.body[1])
+                if len(first_stmt.lvalues) != 1:
+                    raise Exception("Only one lvalue supported")
+                if first_stmt.lvalues[0].name != second_stmt.expr.name:
+                    raise Exception(
+                        "Return variable must be the same as the variable assigned"
+                    )
+
+                return parse_node(first_stmt.rvalue)
+            elif len(node.body) == 1:
+                return parse_node(node.body[0])
+            else:
+                raise Exception("Only one or two statements supported")
         elif isinstance(node, ReturnStmt):
             return parse_node(node.expr)
         elif isinstance(node, CallExpr):
@@ -405,8 +427,6 @@ def check_solutions(json_filename: str):
     for benchmark_name, solutions in all_solutions.items():
         solutions_seen = set()
         for idx, solution in enumerate(solutions):
-            if idx not in {7}:
-                continue
             if solution in solutions_seen:
                 print(f"Duplicate solution {idx} for {benchmark_name}")
                 continue
@@ -425,5 +445,5 @@ def check_solutions(json_filename: str):
 
 if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/darken_blend_8_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/softmax_part2_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/softmax_part1_ps_raw_response.json"
     check_solutions(solutions_filename)
