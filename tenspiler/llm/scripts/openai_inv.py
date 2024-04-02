@@ -4,107 +4,129 @@ import os
 import re
 import textwrap
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List as pyList
+from typing import Union, get_args
 
 from openai import OpenAI
+
+from metalift.ir import Int, List, Var
 
 
 @dataclass
 class SingleLoopInfo:
-    loop_var: str
-    read_vars: List[str]
-    modified_vars: List[str]
+    loop_var: Var
+    read_vars: pyList[Var]
+    modified_vars: pyList[Var]
 
 
 @dataclass
 class DoubleLoopInfo:
-    outer_loop_var: str
-    inner_loop_var: str
-    outer_loop_read_vars: List[str]
-    inner_loop_read_vars: List[str]
-    outer_loop_modified_vars: List[str]
-    inner_loop_modified_vars: List[str]
+    outer_loop_var: Var
+    inner_loop_var: Var
+    outer_loop_read_vars: pyList[Var]
+    inner_loop_read_vars: pyList[Var]
+    outer_loop_modified_vars: pyList[Var]
+    inner_loop_modified_vars: pyList[Var]
 
 
 loop_info_map = {
     "softmax_part1": SingleLoopInfo(
-        loop_var="i", modified_vars=["max_val"], read_vars=["input", "max_pos"]
+        loop_var=Int("i").src,
+        modified_vars=[Int("max_val").src],
+        read_vars=[List(Int, "input").src, Int("max_pos").src],
     ),
     "softmax_part2": SingleLoopInfo(
-        loop_var="i",
-        modified_vars=["cur", "output"],
-        read_vars=["input", "max_pos", "max_val"],
+        loop_var=Int("i").src,
+        modified_vars=[Int("cur").src, Int("output").src],
+        read_vars=[List(Int, "input").src, Int("max_pos").src, Int("max_val").src],
     ),
     "softmax_part3": SingleLoopInfo(
-        loop_var="i", modified_vars=["sum"], read_vars=["output", "max_pos"]
+        loop_var=Int("i").src,
+        modified_vars=[Int("sum").src],
+        read_vars=[List(Int, "output").src, Int("max_pos").src],
     ),
     "softmax_part4": SingleLoopInfo(
-        loop_var="i",
-        modified_vars=["unnormalized_output"],
-        read_vars=["unnormalized_output", "max_pos", "sum"],
+        loop_var=Int("i").src,
+        modified_vars=[List(Int, "unnormalized_output").src],
+        read_vars=[
+            List(Int, "unnormalized_output").src,
+            Int("max_pos").src,
+            Int("sum").src,
+        ],
     ),
     "rmsnorm_part1": SingleLoopInfo(
-        loop_var="i", read_vars=["input", "weight"], modified_vars=["ss"]
+        loop_var=Int("i").src,
+        read_vars=[List(Int, "input").src, List(Int, "weight").src],
+        modified_vars=[Int("ss").src],
     ),
     "rmsnorm_part2": SingleLoopInfo(
-        loop_var="i", read_vars=["input", "weight", "ss"], modified_vars=["output"]
+        loop_var=Int("i").src,
+        read_vars=[List(Int, "input").src, List(Int, "weight").src, Int("ss").src],
+        modified_vars=[List(Int, "output").src],
     ),
     "matmul": DoubleLoopInfo(
-        outer_loop_var="row",
-        inner_loop_var="col",
-        outer_loop_read_vars=["weight", "input"],
-        inner_loop_read_vars=["weight", "input", "output", "row"],
-        outer_loop_modified_vars=["output", "curr"],
-        inner_loop_modified_vars=["curr"],
+        outer_loop_var=Int("row").src,
+        inner_loop_var=Int("col").src,
+        outer_loop_read_vars=[List(Int, "weight").src, List(Int, "input").src],
+        inner_loop_read_vars=[
+            List(Int, "weight").src,
+            List(Int, "input").src,
+            List(Int, "output").src,
+            Int("row").src,
+        ],
+        outer_loop_modified_vars=[List(Int, "output").src, Int("curr").src],
+        inner_loop_modified_vars=[Int("curr").src],
     ),
     "transformer_part1": DoubleLoopInfo(
-        outer_loop_var="timestep",
-        inner_loop_var="i",
+        outer_loop_var=Int("timestep").src,
+        inner_loop_var=Int("i").src,
         outer_loop_read_vars=[
-            "token_position",
-            "head",
-            "head_size",
-            "q",
-            "key_cache_layer",
+            Int("token_position").src,
+            Int("head").src,
+            Int("head_size").src,
+            List(Int, "q").src,
+            List(List[Int], "key_cache_layer").src,
         ],
         inner_loop_read_vars=[
-            "token_position",
-            "head",
-            "head_size",
-            "q",
-            "key_cache_layer",
-            "timestep",
+            Int("token_position").src,
+            Int("head").src,
+            Int("head_size").src,
+            List(Int, "q").src,
+            List(List[Int], "key_cache_layer").src,
+            Int("timestep").src,
         ],
-        outer_loop_modified_vars=["attention", "score"],
-        inner_loop_modified_vars=["score"],
+        outer_loop_modified_vars=[List(Int, "attention").src, Int("score").src],
+        inner_loop_modified_vars=[Int("score").src],
     ),
     "transformer_part2": DoubleLoopInfo(
-        outer_loop_var="i",
-        inner_loop_var="timestep",
+        outer_loop_var=Int("i").src,
+        inner_loop_var=Int("timestep").src,
         outer_loop_read_vars=[
-            "token_position",
-            "head",
-            "head_size",
-            "key_cache_layer",
-            "attention",
+            Int("token_position").src,
+            Int("head").src,
+            Int("head_size").src,
+            List(List[Int], "key_cache_layer").src,
+            List(Int, "attention").src,
         ],
         inner_loop_read_vars=[
-            "token_position",
-            "head",
-            "head_size",
-            "key_cache_layer",
-            "attention",
+            Int("token_position").src,
+            Int("head").src,
+            Int("head_size").src,
+            List(List[Int], "key_cache_layer").src,
+            List(Int, "attention").src,
         ],
-        outer_loop_modified_vars=["xb", "curr"],
-        inner_loop_modified_vars=["curr"],
+        outer_loop_modified_vars=[List(Int, "xb").src, Int("curr").src],
+        inner_loop_modified_vars=[Int("curr").src],
     ),
     "transformer_part3": SingleLoopInfo(
-        loop_var="i",
-        read_vars=["input", "hidden_dim"],
-        modified_vars=["output", "curr"],
+        loop_var=Int("i").src,
+        read_vars=[List(Int, "input").src, Int("hidden_dim").src],
+        modified_vars=[List(Int, "output").src, Int("curr").src],
     ),
     "transformer_part4": SingleLoopInfo(
-        loop_var="i", read_vars=["input1", "input2"], modified_vars=["output"]
+        loop_var=Int("i").src,
+        read_vars=[List(Int, "input1").src, List(Int, "input2").src],
+        modified_vars=[List(Int, "output").src],
     ),
 }
 
@@ -118,9 +140,16 @@ def generate_invariant_template(
                 set(
                     loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var]
                 )
-            )
+            ),
+            key=lambda x: x.name(),
         )
-        loop_var = loop_info.loop_var
+        args_with_types = ", ".join(
+            [
+                f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
+                for arg in arguments
+            ]
+        )
+        loop_var = loop_info.loop_var.name()
         modified_vars_cond = " and ".join(
             [
                 f"{var} == operation over defined functions"
@@ -129,7 +158,7 @@ def generate_invariant_template(
         )
         return textwrap.dedent(
             f"""
-            def invariant({', '.join(arguments)}):
+            def invariant({args_with_types}) -> bool:
                 return {loop_var} op expr() and {loop_var} op expr() and {modified_vars_cond}
             """
         )
@@ -141,7 +170,14 @@ def generate_invariant_template(
                     + loop_info.outer_loop_modified_vars
                     + [loop_info.outer_loop_var]
                 )
-            )
+            ),
+            key=lambda x: x.name(),
+        )
+        outer_inv_args_with_types = ", ".join(
+            [
+                f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
+                for arg in outer_inv_args
+            ]
         )
         inner_inv_args = sorted(
             list(
@@ -150,10 +186,17 @@ def generate_invariant_template(
                     + loop_info.inner_loop_modified_vars
                     + [loop_info.inner_loop_var]
                 )
-            )
+            ),
+            key=lambda x: x.name(),
         )
-        outer_loop_var = loop_info.outer_loop_var
-        inner_loop_var = loop_info.inner_loop_var
+        inner_inv_args_with_types = ", ".join(
+            [
+                f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
+                for arg in inner_inv_args
+            ]
+        )
+        outer_loop_var = loop_info.outer_loop_var.name()
+        inner_loop_var = loop_info.inner_loop_var.name()
         outer_modified_vars_cond = " and ".join(
             [
                 f"{var} == operation over defined functions"
@@ -173,10 +216,10 @@ def generate_invariant_template(
 
         return textwrap.dedent(
             f"""
-            def invariant1({', '.join(outer_inv_args)}):
+            def invariant1({outer_inv_args_with_types}) -> bool:
                 return {outer_loop_var_cond} and {outer_modified_vars_cond}
 
-            def invariant2({', '.join(inner_inv_args)}):
+            def invariant2({inner_inv_args_with_types}) -> bool:
                 return {inner_loop_var_cond} and {inner_modified_vars_cond}
             """
         )
@@ -236,9 +279,9 @@ TEMPLATE_TEXT = f"""Your task is to prove that `assertion` is true in the `test`
 Example1:
 ```
 #defined functions
-def map(data: List[int] , f: func):
+def map(data: pyList[int] , f: func):
     return [f(x) for x in data]
-def reduce(data: List[int] , f: func):
+def reduce(data: pyList[int] , f: func):
     if len(data) == 0:
         return 0
     else:
@@ -247,12 +290,12 @@ def add(a: int , b: int):
     return a + b
 constants = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 #test function
-def test(data: List[int]):
+def test(data: pyList[int]):
     count = 0
     for i in range(len(data)):
         count += 1
     assert count == reduce(map(data, lambda x: 1), add)
-def invariant(data: List[int], count: int, i:int):
+def invariant(data: pyList[int], count: int, i:int):
     return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
 ```
 
@@ -295,15 +338,17 @@ def extract(s):
 
 raw_response_filename = f"{dir}/{filename}_ps_raw_response_before_extraction.json"
 raw_response_file = open(raw_response_filename, "w")
-responses_before_extraction: List[str] = []
+responses_before_extraction: pyList[str] = []
 json_response_file = open(f"{dir}/{filename}_ps_raw_response.json", "w")
-responses: List[str] = []
+responses: pyList[str] = []
 
 # extract the code from the completions
 for idx, c in enumerate(outputs.choices):
     out = extract(c.message.content)
     if out:
         responses_before_extraction.append(c.message.content)
+        print(idx)
+        print("\n\n".join(out))
         responses.append("\n\n".join(out))
         # print(c.message.content)
     print("=====")

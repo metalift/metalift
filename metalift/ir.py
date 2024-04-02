@@ -1285,7 +1285,7 @@ class List(Generic[T], Object):
                 {get_origin(contained_type).to_python_type(get_args(contained_type))}
             ]
         else:
-            return pyList[{contained_type.to_python_type()}]
+            return pyList[contained_type.to_python_type()]
 
     @staticmethod
     def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
