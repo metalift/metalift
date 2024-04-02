@@ -43,7 +43,7 @@ cd ../..
 We use [pre-commit](https://pre-commit.com/) to enforce code style and formatting. To install the pre-commit hooks, run `pre-commit install`.
 
 ## Running Benchmarks
-We have evaluated Tenspiler on two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the [`tenspiler/benchmarks/blend/`](./tenspiler/benchmarks/blend/) and the [`tenspiler/benchmarks/llama/`](./tenspiler/benchmarks/llama/) directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/{blend or llama}/holing/driver/` directories can be run using the following commands:
+We have evaluated Tenspiler on two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the [`tenspiler/blend/`](./tenspiler/blend/) and the [`tenspiler/llama/`](./tenspiler/llama/) directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/{blend or llama}/holing/driver/` directories can be run using the following commands:
 
 ```bash
 python3 tenspiler/{blend or llama}/holing/driver/{benchmark_name}_driver.py
