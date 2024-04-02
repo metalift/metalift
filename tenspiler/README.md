@@ -42,3 +42,7 @@ cd ../..
 
 #### Install Pre-commit Hooks
 We use [pre-commit](https://pre-commit.com/) to enforce code style and formatting. To install the pre-commit hooks, run `pre-commit install`.
+
+
+## Adding a new backend
+To add a new backend to Tenspiler, you simply need to add a code generation file named `{your backend name}_codegen.py` in the `tenspiler/codegen/` directory. You should only need to write simple syntax-driven translation rules to translate `tensIR` program into the target backend. Follow [the MLX code generation file](tenspiler/codegen/mlx_codegen.py) as an example!
