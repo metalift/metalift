@@ -1,5 +1,4 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
-from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.utils import DataType
@@ -537,7 +536,8 @@ def test_type(codegen_func):
 
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
 # codegen_funcs = [gemmini_codegen]
-codegen_funcs = [gaudi_codegen]
+# codegen_funcs = [gaudi_codegen]
+codegen_funcs = []
 
 for codegen_func in codegen_funcs:
     darken_blend_8(codegen_func)
@@ -564,47 +564,26 @@ for codegen_func in codegen_funcs:
     print()
     dissolve_blend_8(codegen_func)
     print()
-    exit(0)
 
-    # softmax_part1(codegen_func)
-    # print()
-    # softmax_part2(codegen_func)
-    # print()
-    # softmax_part3(codegen_func)
-    # print()
-    # softmax_part4(codegen_func)
-    # print()
-    # rmsnorm_part1(codegen_func)
-    # print()
-    # rmsnorm_part2(codegen_func)
-    # print()
-    # matmul(codegen_func)
-    # print()
-    # transformer_part1(codegen_func)
-    # print()
-    # transformer_part2(codegen_func)
-    # print()
-    # transformer_part3(codegen_func)
-    # print()
-    # transformer_part4(codegen_func)
-    # print()
-
-    # blend benchmarks
-    # normal_blend_8(codegen_func) #PASS
-    # print()
-    # normal_blend_f(codegen_func) #PASS
-    # print()
-    linear_burn_8(codegen_func)
+    softmax_part1(codegen_func)
     print()
-    screen_blend_8(codegen_func)
+    softmax_part2(codegen_func)
     print()
-    # linear_dodge_8(codegen_func) #PASS
-    # print()
-
-    # Llama benchmarks
     softmax_part3(codegen_func)
+    print()
+    softmax_part4(codegen_func)
     print()
     rmsnorm_part1(codegen_func)
     print()
+    rmsnorm_part2(codegen_func)
+    print()
     matmul(codegen_func)
+    print()
+    transformer_part1(codegen_func)
+    print()
+    transformer_part2(codegen_func)
+    print()
+    transformer_part3(codegen_func)
+    print()
+    transformer_part4(codegen_func)
     print()
