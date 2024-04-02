@@ -43,6 +43,17 @@ cd ../..
 #### Install Pre-commit Hooks
 We use [pre-commit](https://pre-commit.com/) to enforce code style and formatting. To install the pre-commit hooks, run `pre-commit install`.
 
+## Running Benchmarks
+We have evaluated Tenspiler on two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the `tenspiler/benchmarks/blend/` and the `tenspiler/benchmarks/llama/` directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/{blend or llama}/holing/driver/` directories can be run using the following commands:
+
+```bash
+python3 tenspiler/benchmarks/{blend or llama}/holing/driver/{benchmark_name}_driver.py
+```
+
+To invoke code generation for your synthesized and verified solutions, simply import and invoke your desired code generation functions. For example, to generate code for the `blend` benchmarks, you can run the following command:
+
+```bash
+```
 
 ## Adding a new backend
 To add a new backend to Tenspiler, you simply need to add a code generation file named `{your backend name}_codegen.py` in the `tenspiler/codegen/` directory. You should only need to write simple syntax-driven translation rules to translate `tensIR` program into the target backend. Follow [the MLX code generation file](tenspiler/codegen/mlx_codegen.py) as an example!
