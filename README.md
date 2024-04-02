@@ -58,7 +58,7 @@ mlx_codegen(driver.get_actual_ps_fn_decl(), driver.synthesized_fns)
 ## TensIR
 Tenspiler is able to lift whatever is expressible in TensIR, Tenspiler's native intermediate language that captures many tensor operations. The full grammar can be found in the figure below.
 
-![TensIR grammar](tensir-grammar.png)
+![TensIR grammar](./tenspiler/tensir.png)
 
 ## Adding a new backend
 To add a new backend to Tenspiler, you simply need to add a code generation file named `{your backend name}_codegen.py` in the `tenspiler/codegen/` directory. You should only need to write simple syntax-driven translation rules to translate `tensIR` program into the target backend. Follow [the MLX code generation file](tenspiler/codegen/mlx_codegen.py) as an example! You can use the test cases present in [`tenspiler/tests/test_codegen.py`](./tenspiler/tests/test_codegen.py) to test your code generation logic.
