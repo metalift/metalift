@@ -379,20 +379,27 @@ def mypy_node_to_ir(
             op = node.operators[0]
             left_expr = parse_node(node.operands[0])
             right_expr = parse_node(node.operands[1])
-            if left_expr.type is not Int or right_expr.type is not Int:
-                raise Exception("Comparison only supported on integers")
-            if op == ">":
-                return Gt(left_expr, right_expr)
-            elif op == "<":
-                return Lt(left_expr, right_expr)
-            elif op == "==":
+            if op == "==":
+                if left_expr.type != right_expr.type:
+                    raise Exception(
+                        f"Comparison operator {op} only supported on objects of the same type"
+                    )
                 return Eq(left_expr, right_expr)
-            elif op == ">=":
-                return Ge(left_expr, right_expr)
-            elif op == "<=":
-                return Le(left_expr, right_expr)
             else:
-                raise Exception(f"Unsupported operator {op}")
+                if left_expr.type is not Int or right_expr.type is not Int:
+                    raise Exception(
+                        f"Comparison operator {op} only supported on integers"
+                    )
+                if op == ">":
+                    return Gt(left_expr, right_expr)
+                elif op == "<":
+                    return Lt(left_expr, right_expr)
+                elif op == ">=":
+                    return Ge(left_expr, right_expr)
+                elif op == "<=":
+                    return Le(left_expr, right_expr)
+                else:
+                    raise Exception(f"Unsupported operator {op}")
         elif isinstance(node, IndexExpr):
             base_expr = parse_node(node.base)
             base_object = create_object(base_expr.type, base_expr)
@@ -449,9 +456,7 @@ def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
         solutions_seen = set()
         for idx, solution in enumerate(benchmark_solutions):
             if solution in solutions_seen:
-                print(
-                    f"Duplicate solution {idx} for {benchmark_name} for round {round}"
-                )
+                print(f"Duplicate solution {idx} for {benchmark_name}")
                 continue
             print(solution)
             try:
@@ -468,5 +473,6 @@ def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
 if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
+    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
+    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
     check_solutions(solutions_filename, 2)
