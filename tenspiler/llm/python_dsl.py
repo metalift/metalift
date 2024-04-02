@@ -262,3 +262,6 @@ def reduce_sum(x: List[int]) -> int:
 
 def integer_sqrt(n: int) -> int:
     return integer_sqrt_helper((n // 2), n)
+
+def ite(cond: bool, a: int, b: int) -> int:
+    return a if cond else b
