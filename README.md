@@ -7,7 +7,6 @@ Gaudi processor), and Gemmini (an open-source neural network accelerator generat
 ## Getting started
 
 ### Installation
-Let's get started by installing Metalift and its dependencies!
 
 #### Get the Metalift source code
 First, clone the Tenspiler repository:
@@ -44,21 +43,23 @@ cd ../..
 We use [pre-commit](https://pre-commit.com/) to enforce code style and formatting. To install the pre-commit hooks, run `pre-commit install`.
 
 ## Running Benchmarks
-We have evaluated Tenspiler on two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the `tenspiler/benchmarks/blend/` and the `tenspiler/benchmarks/llama/` directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/{blend or llama}/holing/driver/` directories can be run using the following commands:
+We have evaluated Tenspiler on two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the [`tenspiler/benchmarks/blend/`](./tenspiler/benchmarks/blend/) and the [`tenspiler/benchmarks/llama/`](./tenspiler/benchmarks/llama/) directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/{blend or llama}/holing/driver/` directories can be run using the following commands:
 
 ```bash
 python3 tenspiler/{blend or llama}/holing/driver/{benchmark_name}_driver.py
 ```
 
-To invoke code generation for your synthesized and verified solutions, simply import and invoke your desired code generation functions. For example, to generate MLX code for the `darken_blend_8` benchmark, you can add the following to the end of `tenspiler/blend/holing/driver/darken_blend_8_driver.py`
+To invoke code generation for your synthesized and verified solutions, simply import and invoke your desired code generation functions. For example, to generate MLX code for the `darken_blend_8` benchmark, you can add the following to the end of [`tenspiler/blend/holing/driver/darken_blend_8_driver.py`](./tenspiler/blend/holing/driver/darken_blend_8_driver.py)
 
 ```bash
 mlx_codegen(driver.get_actual_ps_fn_decl(), driver.synthesized_fns)
 ```
 
 ## TensIR
-Tenspiler is able to lift whatever is expressible in TensIR, an intermediate language that captures many tensor operations. The full grammar can be found in the figure below.
+Tenspiler is able to lift whatever is expressible in TensIR, Tenspiler's native intermediate language that captures many tensor operations. The full grammar can be found in the figure below.
+
+![TensIR grammar](tensir-grammar.png)
 
 
 ## Adding a new backend
-To add a new backend to Tenspiler, you simply need to add a code generation file named `{your backend name}_codegen.py` in the `tenspiler/codegen/` directory. You should only need to write simple syntax-driven translation rules to translate `tensIR` program into the target backend. Follow [the MLX code generation file](tenspiler/codegen/mlx_codegen.py) as an example!
+To add a new backend to Tenspiler, you simply need to add a code generation file named `{your backend name}_codegen.py` in the `tenspiler/codegen/` directory. You should only need to write simple syntax-driven translation rules to translate `tensIR` program into the target backend. Follow [the MLX code generation file](tenspiler/codegen/mlx_codegen.py) as an example! You can use the test cases present in [`tenspiler/tests/test_codegen.py`](./tenspiler/tests/test_codegen.py) to test your code generation logic.
