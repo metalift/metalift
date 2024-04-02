@@ -26,8 +26,8 @@ if __name__ == "__main__":
         relaxed=parser_args.relaxed,
     )
     color_burn_8 = driver.analyze(
-        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/color_burn_8.ll",
-        loops_filepath="tenspiler/dexter/cpp/for_synthesis/color_burn_8.loops",
+        llvm_filepath="tenspiler/blend/cpp/for_synthesis/color_burn_8.ll",
+        loops_filepath="tenspiler/blend/cpp/for_synthesis/color_burn_8.loops",
         fn_name="color_burn_8",
         target_lang_fn=target_lang,
         inv_grammars={

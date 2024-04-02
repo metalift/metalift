@@ -17,8 +17,8 @@ if __name__ == "__main__":
         driver=driver, depth=4, cons=[Int(2), Int(16), Int(32)]
     )
     overlay_blend_8 = driver.analyze(
-        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/overlay_blend_8.ll",
-        loops_filepath="tenspiler/dexter/cpp/for_synthesis/overlay_blend_8.loops",
+        llvm_filepath="tenspiler/blend/cpp/for_synthesis/overlay_blend_8.ll",
+        loops_filepath="tenspiler/blend/cpp/for_synthesis/overlay_blend_8.loops",
         fn_name="overlay_blend_8",
         target_lang_fn=target_lang,
         inv_grammars={

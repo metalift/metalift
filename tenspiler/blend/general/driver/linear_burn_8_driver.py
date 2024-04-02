@@ -21,8 +21,8 @@ if __name__ == "__main__":
         fns_synths,
     ) = get_matrix_computation_general_search_space(depth=parser_args.depth, int_vars=[Int(32)], relaxed=parser_args.relaxed)
     linear_burn_8 = driver.analyze(
-        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/linear_burn_8.ll",
-        loops_filepath="tenspiler/dexter/cpp/for_synthesis/linear_burn_8.loops",
+        llvm_filepath="tenspiler/blend/cpp/for_synthesis/linear_burn_8.ll",
+        loops_filepath="tenspiler/blend/cpp/for_synthesis/linear_burn_8.loops",
         fn_name="linear_burn_8",
         target_lang_fn=target_lang,
         inv_grammars={

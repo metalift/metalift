@@ -591,8 +591,8 @@ for codegen_func in codegen_funcs:
     # transformer_part4(codegen_func)
     # print()
 
-    # # Gemmini
-    # normal_blend_8(codegen_func)
+    # blend benchmarks
+    # normal_blend_8(codegen_func) #PASS
     # print()
     # normal_blend_f(codegen_func)
     # print()

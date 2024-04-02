@@ -57,8 +57,8 @@ def inv_grammar(
 if __name__ == "__main__":
     driver = Driver()
     normal_blend_8 = driver.analyze(
-        "tenspiler/dexter/cpp/for_synthesis/normal_blend_8.ll",
-        "tenspiler/dexter/cpp/for_synthesis/normal_blend_8.loops",
+        "tenspiler/blend/cpp/for_synthesis/normal_blend_8.ll",
+        "tenspiler/blend/cpp/for_synthesis/normal_blend_8.loops",
         "normal_blend_8",
         target_lang,
         defaultdict(lambda: InvGrammar(inv_grammar, [])),

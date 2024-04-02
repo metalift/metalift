@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-if [ "$benchmark_suite" == "dexter" ]; then
+if [ "$benchmark_suite" == "blend" ]; then
     benchmarks=(
         "normal_blend_f"
         "normal_blend_8"
@@ -58,7 +58,7 @@ elif [ "$benchmark_suite" == "llama" ]; then
         "transformer_part4"
     )
 else
-    echo "Invalid benchmark suite specified. Please choose 'dexter' or 'llama'."
+    echo "Invalid benchmark suite specified. Please choose 'blend' or 'llama'."
     exit 1
 fi
 
