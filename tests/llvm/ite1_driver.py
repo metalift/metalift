@@ -4,6 +4,8 @@ from typing import List
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, Int, Object, ite
 
+from tests.python.utils.utils import codegen
+
 
 def target_lang() -> List[FnDecl]:
     return []

@@ -18,7 +18,7 @@ process_file() {
     then
       clang -O0 -I "$include_path" -I../../headers -c -emit-llvm -fno-discard-value-names -S "$file" -o "$clang_out"
     else
-      clang++ -std=c++17 -O0 -I "$include_path" -I../../headers -c -emit-llvm -fno-discard-value-names -S "$file" -o "$clang_out"
+      clang++ -stdlib=libc++ -O0 -I "$include_path" -I../../headers -c -emit-llvm -fno-discard-value-names -S "$file" -o "$clang_out"
     fi
 
     opt -load ../../../../llvm-pass/build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -lowerinvoke --unreachableblockelim -instnamer -S "$clang_out" > "$dir/tmp.ll"
