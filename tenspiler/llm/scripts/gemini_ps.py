@@ -15,7 +15,7 @@ parser.add_argument("--source-code", type=str)
 parser.add_argument("--dsl-code", type=str)
 args = parser.parse_args()
 
-dir = f"./benchmarks/dexter/outputs/gemini/"
+dir = f"./benchmarks/blend/outputs/gemini/"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()

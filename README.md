@@ -1,58 +1,64 @@
-<p align="center"><img width="800" src="https://github.com/metalift/metalift/raw/main/logo.png"/></p>
-<p align="center"><i>A program synthesis framework for verified lifting applications</i></p>
+# Tenspiler
+Tenspiler is a verified lifting-based compiler that translates sequential programs written in C++ into tensor operations to leverage high performance tensor processing infrastructures such as deep learning frameworks and specialized hardware accelerators. Currently, Tenspiler supports six distinct software or backend backends including NumPy, TensorFlow, PyTorch, MLX (an ML framework on Apple silicon), TPC-C (C-based programming language for Intel’s
+Gaudi processor), and Gemmini (an open-source neural network accelerator generator).
 
-# Get Started at [metalift.pages.dev](https://metalift.pages.dev)
 
-See [tests](https://github.com/metalift/metalift/tree/main/tests) folder for test cases.
-Check out any of the python files in that folder to see how to define
-your target language and build your own lifting based compiler.
-Do not use `main.py`.
 
-We currently support [Rosette](https://emina.github.io/rosette/) (and [cvc5](https://cvc5.github.io/) but cvc5 has been flaky) as the synthesis backend, and [Z3](https://github.com/Z3Prover/z3) as the verifier.
+## Getting started
 
-### LLVM instructions
+### Installation
+Let's get started by installing Metalift and its dependencies!
 
-**We currently support LLVM 11**
+#### Get the Metalift source code
+First, clone the Tenspiler repository:
+<!-- TODO(jie): fix the naming -->
+```bash
+git clone https://github.com/tenspiler/tenspiler.git
+cd tenspiler
+```
 
-Run the following to build the LLVM pass for processing branch instructions (works for LLVM 11):
-````angular2
+#### Install the dependencies
+- [Racket](https://racket-lang.org) as the underlying language for the synthesis engine
+- [Rosette](https://github.com/emina/rosette), the synthesis engine that Tenspiler uses
+  - For maximum performance on Apple Silicon machines, you may want to replace the built-in Intel binary for Z3 with a native build
+- [CVC5](https://cvc5.github.io/), the theorem prover that Metalift uses to check candidate solutions
+- [Clang/LLVM 11](https://llvm.org), to compile input programs to LLVM IR for analysis
+- [CMake](https://cmake.org/), to build the custom LLVM pass
+
+#### Install Python Dependencies
+We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
+
+#### Build the custom LLVM pass
+Metalift makes use of a custom LLVM pass to organize the basic blocks in a way that is easier to analyze. To build the pass, we'll use CMake:
+
+```bash
 cd llvm-pass
 mkdir build
 cd build
 cmake ..
 make
-cd ..
-````
-Then run it with:
-````angular2
-opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll name>
-````
-This pass is called in `tests/compile-add-blocks`.
-
-### Deprecated instructions from earlier version
-
-To run synthesis, build [CVC5](https://github.com/cvc5/cvc5) from source, run `configure` with `debug` and then build.
-
-Then run metalift from `main.py`.
-
-Example synthesis usage: `main.py tests/while4.ll tests/while4-grammar.sl tests/out.smt test tests/while4.loops <path to cvc5>`
-
-Example verification usage (using pre-generated answer): `main.py tests/while4.ll tests/while4-ans.smt tests/out.smt test tests/while4.loops`
-This prints the verification file to out.smt that can be run using an external solver (e.g., z3)
-
-## Set up with Nix
-To get a development environment up and running, one option is to use [Nix](https://nixos.org/), which can automatically pull and build the necessary dependencies. First, you'll need to [install Nix](https://nixos.org/download.html). Note that this _will_ require temporary root access as Nix sets up a daemon to handle builds, and will set up a separate volume for storing build artifacts if on macOS.
-
-Once you've got Nix installed, you'll need to enable [flakes](https://nixos.wiki/wiki/Flakes).
-
-Then, all you have to do is navigate to the Metalift directory and run the following command:
-```bash
-$ nix develop
+cd ../..
 ```
 
-This will build all of Metalift's dependencies and drop you into a temporary shell with all the dependencies available.
+#### Install Pre-commit Hooks
+We use [pre-commit](https://pre-commit.com/) to enforce code style and formatting. To install the pre-commit hooks, run `pre-commit install`.
 
-**Note**: you still will need to install Racket and Rosette separately. There _is_ a solution for doing this through Nix, but it requires [nix-ld](https://github.com/Mic92/nix-ld) to be installed and is generally not recommended unless you run NixOS.
+## Running Benchmarks
+We have evaluated Tenspiler on two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the `tenspiler/benchmarks/blend/` and the `tenspiler/benchmarks/llama/` directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/{blend or llama}/holing/driver/` directories can be run using the following commands:
 
-## Install Python Dependencies
-We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
+```bash
+python3 tenspiler/{blend or llama}/holing/driver/{benchmark_name}_driver.py
+```
+
+To invoke code generation for your synthesized and verified solutions, simply import and invoke your desired code generation functions. For example, to generate MLX code for the `darken_blend_8` benchmark, you can add the following to the end of `tenspiler/blend/holing/driver/darken_blend_8_driver.py`
+
+```bash
+mlx_codegen(driver.get_actual_ps_fn_decl(), driver.synthesized_fns)
+```
+
+## TensIR
+Tenspiler is able to lift whatever is expressible in TensIR, an intermediate language that captures many tensor operations. The full grammar can be found in the figure below.
+
+
+## Adding a new backend
+To add a new backend to Tenspiler, you simply need to add a code generation file named `{your backend name}_codegen.py` in the `tenspiler/codegen/` directory. You should only need to write simple syntax-driven translation rules to translate `tensIR` program into the target backend. Follow [the MLX code generation file](tenspiler/codegen/mlx_codegen.py) as an example!

@@ -30,7 +30,7 @@ While we are still building out Metalift, our goal is to use it to reproduce the
 
 - [QBS (Java to SQL)](https://casper.uwplse.org/)
 - [STNG (Fortran to Halide)](http://stng.uwplse.org/)
-- [Dexter (C++ to Halide)](http://dexter.uwplse.org/)
+- [blend (C++ to Halide)](http://blend.uwplse.org/)
 - [Domino (C to a programmable switch ISA)](http://web.mit.edu/domino/)
 - [Rake (Halide to Hexagon DSP)](https://github.com/uwplse/rake/)
 - [Katara (sequential data types to CRDTs)](https://github.com/hydro-project/katara)

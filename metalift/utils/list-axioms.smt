@@ -181,7 +181,7 @@
 (list_slice lst start (+ start lst_length)))
 
 (define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(list_tail (list_take matrix end) start))
+(matrix_tail (matrix_take matrix end) start))
 
 (define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
 (matrix_slice matrix start (+ start lst_length)))

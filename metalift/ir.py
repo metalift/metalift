@@ -713,7 +713,7 @@ def call(
 
 def call_value(fn_decl: "Fn", *object_args: "Object") -> "Object":  # type: ignore
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
-    ret_type = fn_decl.return_type
+    ret_type = fn_decl.type.return_type(get_args(fn_decl.type))
     return create_object(ret_type, call_value_expr)
 
 
@@ -1068,6 +1068,7 @@ class List(Generic[T], Object):
     def type(self) -> Type["List"]:  # type: ignore
         return List[self.containedT]  # type: ignore
 
+    @property
     def is_nested(self) -> bool:
         return is_nested_list_type(self.type) or is_matrix_type(self.type)
 
@@ -1726,14 +1727,14 @@ class Fn(Generic[FnContainedT], Object):
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union["FnDeclRecursive", "FnDecl", str]] = None,
     ) -> None:
-        full_type = Fn[typing.Tuple[containedT]]  # type: ignore
+        self._full_type = Fn[typing.Tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
-            src = Var("v", full_type)
+            src = Var("v", self._full_type)
         elif isinstance(value, FnDecl) or isinstance(value, FnDeclRecursive):
             src = value
         elif isinstance(value, str):
-            src = Var(value, full_type)
+            src = Var(value, self._full_type)
         else:
             raise TypeError(f"Cannot create Fn from {value}")
         Object.__init__(self, src)
@@ -1745,6 +1746,10 @@ class Fn(Generic[FnContainedT], Object):
         elif isinstance(self.src, Var):
             return self.src.name()
         raise Exception("Unsupported source type for function objects!")
+
+    @property
+    def type(self) -> ObjectT:
+        return self._full_type
 
     @staticmethod
     def argument_types(

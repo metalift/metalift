@@ -15,8 +15,8 @@ if __name__ == "__main__":
         fns_synths,
     ) = get_matrix_select_general_search_space(driver=driver, depth=2, cons=[Int(32)])
     color_dodge_8 = driver.analyze(
-        llvm_filepath="tenspiler/dexter/cpp/for_synthesis/color_dodge_8.ll",
-        loops_filepath="tenspiler/dexter/cpp/for_synthesis/color_dodge_8.loops",
+        llvm_filepath="tenspiler/blend/cpp/for_synthesis/color_dodge_8.ll",
+        loops_filepath="tenspiler/blend/cpp/for_synthesis/color_dodge_8.loops",
         fn_name="color_dodge_8",
         target_lang_fn=target_lang,
         inv_grammars={

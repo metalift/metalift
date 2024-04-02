@@ -459,20 +459,14 @@ def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
                 print(f"Duplicate solution {idx} for {benchmark_name}")
                 continue
             print(solution)
-            try:
-                check_solution(solution, expected_num_funcs)
-            except Exception as e:
-                import pdb
-
-                pdb.set_trace()
-                print("haha")
+            check_solution(solution, expected_num_funcs)
             print("\n")
             solutions_seen.add(solution)
 
 
 if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
-    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/dexter/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
+    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
     solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
     check_solutions(solutions_filename, 2)
