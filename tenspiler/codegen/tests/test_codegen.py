@@ -539,7 +539,7 @@ def test_type(codegen_func):
 
 
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
-codegen_funcs = [gemmini_codegen]
+codegen_funcs = [numpy_codegen]
 # codegen_funcs = [gaudi_codegen]
 
 for codegen_func in codegen_funcs:
@@ -565,9 +565,8 @@ for codegen_func in codegen_funcs:
     # print()
     # normal_blend_8(codegen_func)
     # print()
-    # dissolve_blend_8(codegen_func)
-    # print()
-    # exit(0)
+    dissolve_blend_8(codegen_func)
+    print()
 
     # softmax_part1(codegen_func)
     # print()
@@ -592,22 +591,20 @@ for codegen_func in codegen_funcs:
     # transformer_part4(codegen_func)
     # print()
 
-    # # Dexter benchmarks
-    normal_blend_8(codegen_func) #PASS
-    print()
-    normal_blend_f(codegen_func) #PASS
-    print()
-    linear_burn_8(codegen_func) #PASS
-    print()
-    screen_blend_8(codegen_func) #PASS
-    print()
-    linear_dodge_8(codegen_func) #PASS
-    print()
-
-    # Llama benchmarks
-    softmax_part3(codegen_func)
-    print()
-    rmsnorm_part1(codegen_func)
-    print()
-    matmul(codegen_func)
-    print()
+    # # Gemmini
+    # normal_blend_8(codegen_func)
+    # print()
+    # normal_blend_f(codegen_func)
+    # print()
+    # linear_burn_8(codegen_func)
+    # print()
+    # screen_blend_8(codegen_func)
+    # print()
+    # linear_dodge_8(codegen_func)
+    # print()
+    # softmax_part3(codegen_func)
+    # print()
+    # rmsnorm_part1(codegen_func)
+    # print()
+    # matmul(codegen_func)
+    # print()
