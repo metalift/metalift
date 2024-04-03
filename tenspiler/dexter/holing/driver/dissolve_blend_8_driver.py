@@ -41,6 +41,6 @@ if __name__ == "__main__":
 
     start_time = time.time()
     driver.synthesize(filename="dissolve_blend_8", rounds_to_guess=0, no_verify=True)
-
     end_time = time.time()
+
     print(f"Synthesis took {end_time - start_time} seconds")

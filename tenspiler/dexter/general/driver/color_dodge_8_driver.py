@@ -1,4 +1,5 @@
 import time
+import argparse
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
@@ -6,6 +7,11 @@ from tenspiler.tenspiler_common import get_matrix_select_general_search_space
 from tests.python.utils.utils import codegen
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--depth", type=int, default=2)
+    parser.add_argument("--relaxed", action="store_true", default=False)
+    parser_args = parser.parse_args()
+
     driver = Driver()
     (
         inv0_grammar,
@@ -13,7 +19,12 @@ if __name__ == "__main__":
         ps_grammar_fn,
         target_lang,
         fns_synths,
-    ) = get_matrix_select_general_search_space(driver=driver, depth=2, cons=[Int(32)])
+    ) = get_matrix_select_general_search_space(
+        driver=driver, 
+        depth=parser_args.depth, 
+        cons=[Int(32)],
+        relaxed=parser_args.relaxed,
+    )
     color_dodge_8 = driver.analyze(
         llvm_filepath="tenspiler/dexter/cpp/for_synthesis/color_dodge_8.ll",
         loops_filepath="tenspiler/dexter/cpp/for_synthesis/color_dodge_8.loops",
@@ -37,9 +48,12 @@ if __name__ == "__main__":
 
     driver.fns_synths = fns_synths
     color_dodge_8(base, active)
+    
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
 
     start_time = time.time()
-    driver.synthesize(rounds_to_guess=0)
+    driver.synthesize(filename=f"color_dodge_8{depth_suffix}{relaxed_suffix}", rounds_to_guess=0)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + color_dodge_8.codegen(codegen))

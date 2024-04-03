@@ -9,7 +9,7 @@ from tests.python.utils.utils import codegen
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int)
-    parser.add_argument("--relaxed", action="store_true")
+    parser.add_argument("--relaxed", action="store_true", default=False)
     parser_args = parser.parse_args()
 
     driver = Driver()
