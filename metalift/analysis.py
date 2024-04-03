@@ -455,3 +455,89 @@ def analyze(
     )
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)
+
+def format_with_index(a: str, idx: int) -> str:
+    if idx == 0:
+        return a
+    else:
+        return f"{a}_{idx}"
+
+class VariableTracker(object):
+    groups: Dict[str, int]
+    existing: Dict[str, int]
+    var_to_type: Dict[str, ObjectT]
+
+    def __init__(self) -> None:
+        self.groups = {}
+        self.existing = {}
+        self.var_to_type = {}
+        return
+
+    def group(self, name: str) -> "VariableGroup":
+        if name in self.groups:
+            self.groups[name] += 1
+        else:
+            self.groups[name] = 0
+        return VariableGroup(self, format_with_index(name, self.groups[name]))
+
+    def variable(self, name: str, type: ObjectT) -> Var:
+        self.var_to_type[name] = type
+        return Var(name, type)
+
+    def all(self) -> List[Var]:
+        return [Var(name, self.var_to_type[name]) for name in self.var_to_type]
+
+
+class VariableGroup(object):
+    def __init__(self, tracker: VariableTracker, name: str):
+        self.tracker = tracker
+        self.name = name
+
+    def existing_variable(self, name: str, type: ObjectT) -> Var:
+        my_name = f"{self.name}_{name}"
+
+        if my_name not in self.tracker.existing:
+            raise Exception(f"Variable {my_name} does not exist")
+        else:
+            if self.tracker.existing[my_name] > 0:
+                raise Exception(f"There are multiple instances of variable {my_name}")
+
+        assert (
+            self.tracker.var_to_type[
+                format_with_index(my_name, self.tracker.existing[my_name])
+            ]
+            == type
+        )
+        return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
+
+    def variable_or_existing(self, name: str, type: ObjectT) -> Var:
+        my_name = f"{self.name}_{name}"
+        if my_name not in self.tracker.existing:
+            self.tracker.existing[my_name] = 0
+            self.tracker.var_to_type[
+                format_with_index(my_name, self.tracker.existing[my_name])
+            ] = type
+        else:
+            if self.tracker.existing[my_name] > 0:
+                raise Exception(f"There are multiple instances of variable {my_name}")
+
+        assert (
+            self.tracker.var_to_type[
+                format_with_index(my_name, self.tracker.existing[my_name])
+            ]
+            == type
+        )
+        return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
+
+    def variable(self, name: str, type: ObjectT) -> Var:
+        my_name = f"{self.name}_{name}"
+        if my_name in self.tracker.existing:
+            self.tracker.existing[my_name] += 1
+        else:
+            self.tracker.existing[my_name] = 0
+
+        self.tracker.var_to_type[
+            format_with_index(my_name, self.tracker.existing[my_name])
+        ] = type
+        return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
+
