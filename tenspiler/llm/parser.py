@@ -63,6 +63,7 @@ from metalift.ir import (
     is_list_type,
     is_nested_list_type,
     ite,
+    Not
 )
 
 
@@ -398,6 +399,8 @@ def mypy_node_to_ir(
                     return Ge(left_expr, right_expr)
                 elif op == "<=":
                     return Le(left_expr, right_expr)
+                elif op == "!=":
+                    return Not(Eq(left_expr, right_expr))
                 else:
                     raise Exception(f"Unsupported operator {op}")
         elif isinstance(node, IndexExpr):
