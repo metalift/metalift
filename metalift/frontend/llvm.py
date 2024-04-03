@@ -20,8 +20,7 @@ from typing import (
 from llvmlite import binding as llvm
 from llvmlite.binding import TypeRef, ValueRef
 
-from metalift.analysis import setupBlocks
-from metalift.analysis_new import VariableTracker
+from metalift.analysis import setupBlocks, VariableTracker
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList

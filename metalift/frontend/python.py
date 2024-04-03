@@ -52,7 +52,7 @@ from mypy.types import Type as MypyType
 from mypy.types import UnboundType
 from mypy.visitor import ExpressionVisitor, StatementVisitor
 
-from metalift.analysis_new import VariableTracker
+from metalift.analysis import VariableTracker
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import Bool, Eq, Expr, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
