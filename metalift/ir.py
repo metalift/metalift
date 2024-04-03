@@ -908,7 +908,7 @@ class Int(Object):
         return Int(0)
 
     def binary_op(
-        self, other: Union["Int", int], op: Callable[[Expr, Expr], Expr]
+        self, other: Union["Int", int, "List", "Matrix"], op: Callable[[Expr, Expr], Expr]
     ) -> "Int":
         if isinstance(other, int):
             other = Int(other)

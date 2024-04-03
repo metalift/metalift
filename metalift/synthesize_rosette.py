@@ -51,8 +51,7 @@ from metalift.synthesis_common import (
     verify_synth_result,
 )
 
-# TODO: remove after proper replacement
-from metalift.types import CVC5UnsupportedException
+from metalift.exceptions import CVC5UnsupportedException
 from tests.python.utils.utils import codegen
 
 

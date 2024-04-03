@@ -17,13 +17,11 @@ from metalift.ir import (
     parse_type_ref_to_obj,
 )
 
-
 def format_with_index(a: str, idx: int) -> str:
     if idx == 0:
         return a
     else:
         return f"{a}_{idx}"
-
 
 class VariableTracker(object):
     groups: Dict[str, int]
