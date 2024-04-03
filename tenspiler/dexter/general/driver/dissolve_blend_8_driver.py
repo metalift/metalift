@@ -8,7 +8,7 @@ from tenspiler.tenspiler_common import get_dissolve_general_search_space
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int)
-    parser.add_argument("--relaxed", action="store_true")
+    parser.add_argument("--relaxed", action="store_true", default=False)
     parser_args = parser.parse_args()
 
     driver = Driver()
@@ -53,7 +53,10 @@ if __name__ == "__main__":
     driver.fns_synths = fns_synths
     dissolve_blend_8(base, active, opacity, rand_cons)
 
+    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
+    depth_suffix = f"_depth{parser_args.depth}"
+
     start_time = time.time()
-    driver.synthesize(filename="dissolve_blend_8", rounds_to_guess=0, no_verify=True)
+    driver.synthesize(filename=f"dissolve_blend_8{depth_suffix}{relaxed_suffix}", rounds_to_guess=0, no_verify=True)
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
