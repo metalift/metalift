@@ -237,17 +237,17 @@ parser.add_argument("--n-choices", type=int, default=10)
 # parser.add_argument("--post-cond", type=str)
 args = parser.parse_args()
 
-dir = f"./benchmarks/{args.benchmark_suite}/outputs/openai/inv/{args.n_choices}_choices"
+dir = f"/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/{args.benchmark_suite}/outputs/openai/inv_ps/{args.n_choices}_choices"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()
 
 # prompt for generating invariants of a function.
-TEMPLATE_TEXT = f"""Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. In addition, your task is to prove that rewritten function is equivalent to the `test` function. We can prove this by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula. 
+TEMPLATE_TEXT = f"""Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. In addition, your task is to prove that rewritten function is equivalent to the `test` function. We can prove this by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 #Instructions Rewriting
 # 1. Do not use for/while loops for rewriting the function.
 # 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
-# 3. Inline all the expressions. Do not use intermediate variables. 
+# 3. Inline all the expressions. Do not use intermediate variables.
 #Instructions Invariants:
 # 1. You need to use only the defined functions to write the loop invariant.
 # 2. Do not use for/while loops for rewriting the function.
@@ -288,11 +288,11 @@ vector<vector<uint8_t>> test(vector<vector<uint8_t>> base, vector<vector<uint8_t
 		for (uint8_t col = 0; col < n; col++) {{
             uint8_t pixel = base[row][col] - active[row][col] ;
 			row_vec.push_back(pixel);
-            
+
 		}}
 		out.push_back(row_vec);
 	}}
-	return out 
+	return out
 }}
 def test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
     return out = matrix_elemwise_sub(base, active)
@@ -340,9 +340,7 @@ def extract(s):
 
 
 raw_response_filename = f"{dir}/{filename}_ps_raw_response_before_extraction.json"
-raw_response_file = open(raw_response_filename, "w")
 responses_before_extraction: pyList[str] = []
-json_response_file = open(f"{dir}/{filename}_ps_raw_response.json", "w")
 responses: pyList[str] = []
 
 # extract the code from the completions
@@ -356,12 +354,13 @@ for idx, c in enumerate(outputs.choices):
         # print(c.message.content)
     print("=====")
 
-json.dump({filename: responses}, json_response_file)
-json.dump({filename: responses_before_extraction}, raw_response_file)
-exit(0)
-
 if not os.path.exists(dir):
     os.makedirs(dir)
+
+json_response_file = open(f"{dir}/{filename}_ps_raw_response.json", "w")
+json.dump({filename: responses}, json_response_file)
+raw_response_file = open(raw_response_filename, "w")
+json.dump({filename: responses_before_extraction}, raw_response_file)
 
 # saving prompt and completions to a file
 with open(f"{dir}/{filename}.json", "w") as f:
