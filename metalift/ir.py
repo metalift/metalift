@@ -1123,7 +1123,7 @@ class List(Generic[T], Object):
                 if self.is_nested:
                     fn_name = "matrix_slice"
                 else:
-                    fn_name = "list_slice"
+                    fn_name = "vec_slice"
                 return call(fn_name, self.type, self, start, stop)
             else:
                 raise NotImplementedError(

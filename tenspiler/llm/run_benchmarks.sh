@@ -45,12 +45,12 @@ if [ "$benchmark_suite" == "blend" ]; then
     )
 elif [ "$benchmark_suite" == "llama" ]; then
     benchmarks=(
-        "softmax_part1"
-        "softmax_part2"
-        "softmax_part3"
-        "softmax_part4"
-        "rmsnorm_part1"
-        "rmsnorm_part2"
+        # "softmax_part1"
+        # "softmax_part2"
+        # "softmax_part3"
+        # "softmax_part4"
+        # "rmsnorm_part1"
+        # "rmsnorm_part2"
         "matmul"
         "transformer_part1"
         "transformer_part2"
@@ -76,8 +76,10 @@ for benchmark in "${benchmarks[@]}"; do
     elif [ "$backend" == "openai" ]; then
         if [ "$inv_ps" == "inv" ]; then
             script_to_run="openai_inv.py"
-        else
+        elif [ "$inv_ps" == "ps" ]; then
             script_to_run="openai_ps.py"
+        else
+            script_to_run="openai_inv_ps.py"
         fi
         python3 scripts/$script_to_run \
             --filename "$benchmark" \
