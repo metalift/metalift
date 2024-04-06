@@ -52,14 +52,14 @@
 
 (define-grammar (softmax_part4_inv0_gram agg.result i max_pos ref.tmp sum unnormalized_output)
  [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? agg.result (v0) ) ))]
-[v0 (choose (list-slice-noerr unnormalized_output (v1) (v1) ))]
+[v0 (choose (vec-slice-noerr unnormalized_output (v1) (v1) ))]
 [v1 (choose (v2))]
 [v2 (choose 0 max_pos i sum)]
 )
 
 (define-grammar (softmax_part4_ps_gram unnormalized_output max_pos sum softmax_part4_rv)
  [rv (choose (equal? softmax_part4_rv (v0) ))]
-[v0 (choose (list-slice-noerr unnormalized_output (v1) (v1) ))]
+[v0 (choose (vec-slice-noerr unnormalized_output (v1) (v1) ))]
 [v1 (choose (v2))]
 [v2 (choose 0 max_pos sum)]
 )

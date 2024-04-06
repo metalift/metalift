@@ -52,13 +52,13 @@
 
 (define-grammar (softmax_part2_inv0_gram agg.result cur i input max_pos max_val)
  [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? agg.result (v0) ) ))]
-[v0 (choose (list-slice-noerr input (v1) (v1) ))]
+[v0 (choose (vec-slice-noerr input (v1) (v1) ))]
 [v1 (choose 0 max_pos i max_val)]
 )
 
 (define-grammar (softmax_part2_ps_gram input max_pos max_val softmax_part2_rv)
  [rv (choose (equal? softmax_part2_rv (v0) ))]
-[v0 (choose (list-slice-noerr input (v1) (v1) ))]
+[v0 (choose (vec-slice-noerr input (v1) (v1) ))]
 [v1 (choose 0 max_pos max_val)]
 )
 

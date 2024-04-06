@@ -69,29 +69,29 @@
 (define-grammar (matmul_inv0_gram agg.result col curr input row weight)
  [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length weight ) ) ) (equal? agg.result (v0) ) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v4) (v2) ))]
+[v1 (choose (vec-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v4) (v2) ))]
 [v2 (choose (v3))]
 [v3 (choose 0 row (matrix-length weight ) (length input ))]
-[v4 (choose (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
+[v4 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
 )
 
 (define-grammar (matmul_inv1_gram col curr input weight agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (< row (matrix-length weight ) ) ) (>= col 0 ) ) (<= col (length input ) ) ) (equal? curr (v0) ) ) (equal? agg.result (v1) ) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (v2))]
-[v2 (choose (list-slice-noerr input (v3) (v3) ) (matrix-ref-noerr (v5) (v3) ))]
+[v2 (choose (vec-slice-noerr input (v3) (v3) ) (matrix-ref-noerr (v5) (v3) ))]
 [v3 (choose (v4))]
 [v4 (choose 0 row (matrix-length weight ) (length input ))]
-[v5 (choose (matrix-col-slice-noerr (matrix-slice-noerr weight (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr weight (v3) (v3) ) (v3) (v3) ) ))]
+[v5 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v3) (v3) ) (v3) (v3) ) ))]
 )
 
 (define-grammar (matmul_ps_gram weight input matmul_rv)
  [rv (choose (equal? matmul_rv (v0) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v4) (v2) ))]
+[v1 (choose (vec-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v4) (v2) ))]
 [v2 (choose (v3))]
 [v3 (choose 0 (matrix-length weight ) (length input ))]
-[v4 (choose (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
+[v4 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
 )
 
 (define-grammar (map_int_to_int_gram int_x)

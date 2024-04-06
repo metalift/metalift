@@ -11,4 +11,4 @@ int mse_array(vector<int> a, int n)
     return sum;
 }
 
-// reduce_sum(vec_elemwise_mul(vec_slice(a, n), vec_slice(a, n)))
+// reduce_sum(vec_elemwise_mul(vec_slice(a, 0, n), vec_slice(a, 0, n)))

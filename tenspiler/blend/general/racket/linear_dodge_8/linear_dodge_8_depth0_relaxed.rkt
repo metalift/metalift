@@ -91,7 +91,7 @@
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
 [v1 (choose (matrix-length base ) (- (matrix-length base ) 1 ) (+ (matrix-length base ) 1 ))]
 [v2 (choose (v3))]
-[v3 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v4) (v5) (v5) ) (v5) (v5) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v4) (v5) (v5) ) (v5) (v5) ) ))]
+[v3 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v4) (v5) (v5) ) (v5) (v5) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v4) (v5) (v5) ) (v5) (v5) ) ))]
 [v4 (choose base active)]
 [v5 (choose (v6) (- (v6) 1 ) (+ (v6) 1 ))]
 [v6 (choose 0 (matrix-length base ) row 0 1)]
@@ -100,7 +100,7 @@
 (define-grammar (linear_dodge_8_inv1_gram active base col pixel row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (>= col 0 ) ) (<= col (length (matrix-ref-noerr base 0 ) ) ) ) (equal? row_vec (v0) ) ) (equal? agg.result (v5) ) ))]
 [v0 (choose (matrix-ref-noerr (v1) (v3) ))]
-[v1 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
+[v1 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
 [v2 (choose base active)]
 [v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
 [v4 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) row col 0 1)]
@@ -110,7 +110,7 @@
 (define-grammar (linear_dodge_8_ps_gram base active linear_dodge_8_rv)
  [rv (choose (equal? linear_dodge_8_rv (v0) ))]
 [v0 (choose (v1))]
-[v1 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
+[v1 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
 [v2 (choose base active)]
 [v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
 [v4 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) 0 1)]

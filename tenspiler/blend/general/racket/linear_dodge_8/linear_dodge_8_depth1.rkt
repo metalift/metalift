@@ -101,7 +101,7 @@
 (define-grammar (linear_dodge_8_inv0_gram active agg.result base col pixel row row_vec)
  [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (equal? agg.result (v0) ) ))]
 [v0 (choose (v1) (v4))]
-[v1 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
+[v1 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
 [v2 (choose base active)]
 [v3 (choose 0 (matrix-length base ) row 0 1)]
 [v4 (choose (matrix_elemwise_add (v1) (v1) ) (matrix_elemwise_sub (v1) (v1) ) (matrix_elemwise_mul (v1) (v1) ) (matrix_elemwise_div (v1) (v1) ) (matrix_scalar_add (v5) (v1) ) (matrix_scalar_sub (v5) (v1) ) (matrix_scalar_mul (v5) (v1) ) (matrix_scalar_div (v5) (v1) ) (scalar_matrix_sub (v5) (v1)) (scalar_matrix_div (v5) (v1)))]
@@ -111,7 +111,7 @@
 (define-grammar (linear_dodge_8_inv1_gram active base col pixel row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (>= col 0 ) ) (<= col (length (matrix-ref-noerr base 0 ) ) ) ) (equal? row_vec (v0) ) ) (equal? agg.result (v7) ) ))]
 [v0 (choose (matrix-ref-noerr (v1) (v3) ) (v4))]
-[v1 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
+[v1 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
 [v2 (choose base active)]
 [v3 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) row col 0 1)]
 [v4 (choose (v5) (vec_elemwise_add (matrix-ref-noerr (v1) (v3) ) (matrix-ref-noerr (v1) (v3) )) (vec_elemwise_sub (matrix-ref-noerr (v1) (v3) ) (matrix-ref-noerr (v1) (v3) )) (vec_elemwise_mul (matrix-ref-noerr (v1) (v3) ) (matrix-ref-noerr (v1) (v3) )) (vec_elemwise_div (matrix-ref-noerr (v1) (v3) ) (matrix-ref-noerr (v1) (v3) )) (vec_scalar_add (v6) (matrix-ref-noerr (v1) (v3) )) (vec_scalar_sub (v6) (matrix-ref-noerr (v1) (v3) )) (vec_scalar_mul (v6) (matrix-ref-noerr (v1) (v3) )) (vec_scalar_div (v6) (matrix-ref-noerr (v1) (v3) )) (scalar_vec_sub (v6) (matrix-ref-noerr (v1) (v3) )) (scalar_vec_div (v6) (matrix-ref-noerr (v1) (v3) )) (matrix_vec_mul (v1) (matrix-ref-noerr (v1) (v3) ) ))]
@@ -124,7 +124,7 @@
 (define-grammar (linear_dodge_8_ps_gram base active linear_dodge_8_rv)
  [rv (choose (equal? linear_dodge_8_rv (v0) ))]
 [v0 (choose (v1) (v4))]
-[v1 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
+[v1 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v2) (v3) (v3) ) (v3) (v3) ) ))]
 [v2 (choose base active)]
 [v3 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) 0 1)]
 [v4 (choose (matrix_elemwise_add (v1) (v1) ) (matrix_elemwise_sub (v1) (v1) ) (matrix_elemwise_mul (v1) (v1) ) (matrix_elemwise_div (v1) (v1) ) (matrix_scalar_add (v5) (v1) ) (matrix_scalar_sub (v5) (v1) ) (matrix_scalar_mul (v5) (v1) ) (matrix_scalar_div (v5) (v1) ) (scalar_matrix_sub (v5) (v1)) (scalar_matrix_div (v5) (v1)))]

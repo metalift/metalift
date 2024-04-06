@@ -108,20 +108,20 @@
 
 (define-grammar (color_burn_8_inv0_gram active agg.result base col pixel row row_vec)
  [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (equal? agg.result (matrix_selection_two_args (v0) (v0) select_two_args ) ) ))]
-[v0 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
+[v0 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
 [v1 (choose base active)]
 [v2 (choose 0 (matrix-length base ) row)]
 )
 
 (define-grammar (color_burn_8_inv1_gram active base col pixel row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (>= col 0 ) ) (<= col (length (matrix-ref-noerr base 0 ) ) ) ) (equal? row_vec (selection_two_args (matrix-ref-noerr (v0) (v2) ) (matrix-ref-noerr (v0) (v2) ) select_two_args) ) ) (equal? agg.result (matrix_selection_two_args (v0) (v0) select_two_args ) ) ))]
-[v0 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
+[v0 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
 [v1 (choose base active)]
 [v2 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) row col)]
 )
 
 (define-grammar (color_burn_8_ps_gram base active color_burn_8_rv)
- [rv (choose (equal? color_burn_8_rv (matrix_selection_two_args (matrix-col-slice-noerr (matrix-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) (matrix-col-slice-noerr (matrix-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) select_two_args ) ))]
+ [rv (choose (equal? color_burn_8_rv (matrix_selection_two_args (matrix-col-slice-noerr (matrix-row-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) (matrix-col-slice-noerr (matrix-row-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) select_two_args ) ))]
 [v0 (choose (v1) (matrix-transpose-noerr (v1) ))]
 [v1 (choose base active)]
 [v2 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ))]

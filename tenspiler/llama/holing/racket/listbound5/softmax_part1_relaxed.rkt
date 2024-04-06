@@ -11,13 +11,13 @@
 (if (<= (length x ) 1 ) (list-ref-noerr x 0 ) (if (> (list-ref-noerr x 0 ) (reduce_max (list-tail-noerr x 1 )) ) (list-ref-noerr x 0 ) (reduce_max (list-tail-noerr x 1 )) ) ))
 
 (define-grammar (softmax_part1_inv0_gram i input max_pos max_val)
- [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? max_val (reduce_max (list-slice-noerr input (v0) i )) ) ))]
+ [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? max_val (reduce_max (vec-slice-noerr input (v0) i )) ) ))]
 [v0 (choose 0 1 2)]
 [v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
 )
 
 (define-grammar (softmax_part1_ps_gram input max_pos softmax_part1_rv)
- [rv (choose (equal? softmax_part1_rv (reduce_max (list-slice-noerr input (v0) (v1) )) ))]
+ [rv (choose (equal? softmax_part1_rv (reduce_max (vec-slice-noerr input (v0) (v1) )) ))]
 [v0 (choose 0 1 2)]
 [v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
 )

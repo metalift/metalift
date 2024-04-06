@@ -186,20 +186,20 @@
 
 ; end of list of lists definition
 
-(define-fun list_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
+(define-fun vec_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
 (list_take (list_take lst end) start))
 
 (define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
-(list_slice lst start (+ start lst_length)))
+(vec_slice lst start (+ start lst_length)))
 
-(define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(define-fun matrix_row_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
 (matrix_take (matrix_take matrix end) start))
 
 (define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(matrix_slice matrix start (+ start lst_length)))
+(matrix_row_slice matrix start (+ start lst_length)))
 
 (define-fun-rec matrix_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (list_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (vec_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
 
 (define-fun-rec matrix_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
 (matrix_col_slice matrix start (+ start lst_length)))
@@ -241,17 +241,17 @@ false)
 
 
 (define-fun-rec transformer_part2_inv0 ((agg.result (MLList Int)) (attention (MLList Int)) (curr Int) (head Int) (head_size Int) (i Int) (key_cache_layer (MLList (MLList Int))) (timestep Int) (token_position Int)) Bool
-(and (and (>= i 0) (<= i head_size)) (= agg.result (matrix_vec_mul (matrix_transpose (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_col_slice (matrix_slice key_cache_layer 0 i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) token_position) 1)) (matrix_col_slice (matrix_slice key_cache_layer 0 (+ token_position 1)) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i)))) (ite VECTOR_OUTER_LOOP_INDEX (list_slice attention 0 i) (list_slice attention 0 (+ token_position 1)))))))
+(and (and (>= i 0) (<= i head_size)) (= agg.result (matrix_vec_mul (matrix_transpose (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_col_slice (matrix_row_slice key_cache_layer 0 i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) token_position) 1)) (matrix_col_slice (matrix_row_slice key_cache_layer 0 (+ token_position 1)) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i)))) (ite VECTOR_OUTER_LOOP_INDEX (vec_slice attention 0 i) (vec_slice attention 0 (+ token_position 1)))))))
 
 
 
 (define-fun-rec transformer_part2_inv1 ((attention (MLList Int)) (curr Int) (head Int) (head_size Int) (key_cache_layer (MLList (MLList Int))) (timestep Int) (token_position Int) (agg.result (MLList Int)) (i Int)) Bool
-(and (and (and (and (and (>= i 0) (< i head_size)) (>= timestep 0)) (<= timestep (+ token_position 1))) (= curr (reduce_sum (ite VECTOR_OUTER_LOOP_INDEX (vec_scalar_mul (list_get attention i) (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_slice (matrix_get key_cache_layer i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) timestep)) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_slice key_cache_layer 0 timestep) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i) 1)) 0))) (vec_elemwise_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_slice (matrix_get key_cache_layer i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) timestep)) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_slice key_cache_layer 0 timestep) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i) 1)) 0)) (list_slice attention 0 timestep)))))) (= agg.result (matrix_vec_mul (matrix_transpose (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_col_slice (matrix_slice key_cache_layer 0 i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) token_position) 1)) (matrix_col_slice (matrix_slice key_cache_layer 0 (+ token_position 1)) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i)))) (ite VECTOR_OUTER_LOOP_INDEX (list_slice attention 0 i) (list_slice attention 0 (+ token_position 1)))))))
+(and (and (and (and (and (>= i 0) (< i head_size)) (>= timestep 0)) (<= timestep (+ token_position 1))) (= curr (reduce_sum (ite VECTOR_OUTER_LOOP_INDEX (vec_scalar_mul (list_get attention i) (ite MATRIX_OUTER_LOOP_INDEX_FIRST (vec_slice (matrix_get key_cache_layer i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) timestep)) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_row_slice key_cache_layer 0 timestep) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i) 1)) 0))) (vec_elemwise_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (vec_slice (matrix_get key_cache_layer i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) timestep)) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_row_slice key_cache_layer 0 timestep) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i) 1)) 0)) (vec_slice attention 0 timestep)))))) (= agg.result (matrix_vec_mul (matrix_transpose (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_col_slice (matrix_row_slice key_cache_layer 0 i) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) token_position) 1)) (matrix_col_slice (matrix_row_slice key_cache_layer 0 (+ token_position 1)) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) i)))) (ite VECTOR_OUTER_LOOP_INDEX (vec_slice attention 0 i) (vec_slice attention 0 (+ token_position 1)))))))
 
 
 
 (define-fun-rec transformer_part2_ps ((token_position Int) (head Int) (head_size Int) (key_cache_layer (MLList (MLList Int))) (attention (MLList Int)) (transformer_part2_rv (MLList Int))) Bool
-(= transformer_part2_rv (matrix_vec_mul (matrix_transpose (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_col_slice (matrix_slice key_cache_layer 0 head_size) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) token_position) 1)) (matrix_col_slice (matrix_slice key_cache_layer 0 (+ token_position 1)) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) head_size)))) (ite VECTOR_OUTER_LOOP_INDEX (list_slice attention 0 head_size) (list_slice attention 0 (+ token_position 1))))))
+(= transformer_part2_rv (matrix_vec_mul (matrix_transpose (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_col_slice (matrix_row_slice key_cache_layer 0 head_size) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) token_position) 1)) (matrix_col_slice (matrix_row_slice key_cache_layer 0 (+ token_position 1)) (MATRIX_COMPOSED_INDEX_FN token_position head head_size) (+ (MATRIX_COMPOSED_INDEX_FN token_position head head_size) head_size)))) (ite VECTOR_OUTER_LOOP_INDEX (vec_slice attention 0 head_size) (vec_slice attention 0 (+ token_position 1))))))
 
 (declare-const token_position Int)
 (declare-const attention (MLList Int))

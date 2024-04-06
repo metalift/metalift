@@ -10,5 +10,4 @@ int mag_array(vector<int> a, int n) {
     return sum;
 }
 
-
-// reduce_sum(vec_slice(a, 0, n), vec_slice(a, 0, n))
+// reduce_sum(vec_elemwise_mul(vec_slice(a, 0, n), vec_slice(a, 0, n)))

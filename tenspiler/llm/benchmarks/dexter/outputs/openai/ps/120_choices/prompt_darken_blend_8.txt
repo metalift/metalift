@@ -45,13 +45,13 @@ def matrix_selection_two_args(matrix_x: List[List[int]], matrix_y: List[List[int
 def selection_two_args(x: List[int], y: List[int], select_two_args_arg: Callable[[int, int], int]) -> List[int]:
     return ([] if len(x) < 1 or not len(x) == len(y) else [select_two_args_arg(x[0], y[0]), *selection_two_args(x[1:], y[1:], select_two_args_arg)])
 
-def list_slice(lst: List[int], start: int, end: int) -> List[int]:
+def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
     return lst[:end][:start]
 
 def list_slice_with_length(lst: List[int], start: int, lst_length: int) -> List[int]:
     return lst[start:start + lst_length]
 
-def matrix_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
+def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
     return matrix[:end][:start]
 
 def matrix_scalar_add(a: int, matrix_x: List[List[int]]) -> List[int]:
