@@ -54,7 +54,7 @@
  [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? agg.result (v2) ) ))]
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
 [v1 (choose max_pos (- max_pos 1 ) (+ max_pos 1 ))]
-[v2 (choose (list-slice-noerr unnormalized_output (v3) (v3) ))]
+[v2 (choose (vec-slice-noerr unnormalized_output (v3) (v3) ))]
 [v3 (choose (v4))]
 [v4 (choose (v5) (- (v5) 1 ) (+ (v5) 1 ))]
 [v5 (choose 0 max_pos i sum)]
@@ -62,7 +62,7 @@
 
 (define-grammar (softmax_part4_ps_gram unnormalized_output max_pos sum softmax_part4_rv)
  [rv (choose (equal? softmax_part4_rv (v0) ))]
-[v0 (choose (list-slice-noerr unnormalized_output (v1) (v1) ))]
+[v0 (choose (vec-slice-noerr unnormalized_output (v1) (v1) ))]
 [v1 (choose (v2))]
 [v2 (choose (v3) (- (v3) 1 ) (+ (v3) 1 ))]
 [v3 (choose 0 max_pos sum)]

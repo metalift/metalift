@@ -17,7 +17,7 @@
 (define-grammar (rmsnorm_part2_inv0_gram agg.result i input ref.tmp ss weight)
  [rv (choose (&& (&& (>= i 0 ) (<= i (length input ) ) ) (equal? agg.result (v0) ) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (list-slice-noerr weight (v2) (v2) ))]
+[v1 (choose (vec-slice-noerr input (v2) (v2) ) (vec-slice-noerr weight (v2) (v2) ))]
 [v2 (choose (v3))]
 [v3 (choose 0 (length input ) i 1 ss)]
 )
@@ -25,7 +25,7 @@
 (define-grammar (rmsnorm_part2_ps_gram input weight ss rmsnorm_part2_rv)
  [rv (choose (equal? rmsnorm_part2_rv (v0) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (list-slice-noerr weight (v2) (v2) ))]
+[v1 (choose (vec-slice-noerr input (v2) (v2) ) (vec-slice-noerr weight (v2) (v2) ))]
 [v2 (choose (v3))]
 [v3 (choose 0 (length input ) 1 ss)]
 )

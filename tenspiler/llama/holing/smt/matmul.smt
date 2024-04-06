@@ -186,20 +186,20 @@
 
 ; end of list of lists definition
 
-(define-fun list_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
+(define-fun vec_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
 (list_take (list_take lst end) start))
 
 (define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
-(list_slice lst start (+ start lst_length)))
+(vec_slice lst start (+ start lst_length)))
 
-(define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(define-fun matrix_row_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
 (matrix_take (matrix_take matrix end) start))
 
 (define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(matrix_slice matrix start (+ start lst_length)))
+(matrix_row_slice matrix start (+ start lst_length)))
 
 (define-fun-rec matrix_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (list_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (vec_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
 
 (define-fun-rec matrix_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
 (matrix_col_slice matrix start (+ start lst_length)))
@@ -236,17 +236,17 @@ false)
 
 
 (define-fun-rec matmul_inv0 ((agg.result (MLList Int)) (col Int) (curr Int) (input (MLList Int)) (row Int) (weight (MLList (MLList Int)))) Bool
-(and (and (>= row 0) (<= row (matrix_length weight))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_take weight row) (matrix_col_slice (matrix_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
+(and (and (>= row 0) (<= row (matrix_length weight))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_take weight row) (matrix_col_slice (matrix_row_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
 
 
 
 (define-fun-rec matmul_inv1 ((col Int) (curr Int) (input (MLList Int)) (weight (MLList (MLList Int))) (agg.result (MLList Int)) (row Int)) Bool
-(and (and (and (and (and (>= row 0) (< row (matrix_length weight))) (>= col 0)) (<= col (list_length input))) (= curr (reduce_sum (ite VECTOR_OUTER_LOOP_INDEX (vec_scalar_mul (list_get input row) (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (matrix_get weight row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take weight col) row 1)) 0))) (vec_elemwise_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (matrix_get weight row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take weight col) row 1)) 0)) (list_take input col)))))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_take weight row) (matrix_col_slice (matrix_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
+(and (and (and (and (and (>= row 0) (< row (matrix_length weight))) (>= col 0)) (<= col (list_length input))) (= curr (reduce_sum (ite VECTOR_OUTER_LOOP_INDEX (vec_scalar_mul (list_get input row) (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (matrix_get weight row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take weight col) row 1)) 0))) (vec_elemwise_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (list_take (matrix_get weight row) col) (matrix_get (matrix_transpose (matrix_col_slice_with_length (matrix_take weight col) row 1)) 0)) (list_take input col)))))) (= agg.result (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST (matrix_take weight row) (matrix_col_slice (matrix_row_slice weight 0 (list_length input)) 0 row)) (ite VECTOR_OUTER_LOOP_INDEX (list_take input row) input)))))
 
 
 
 (define-fun-rec matmul_ps ((weight (MLList (MLList Int))) (input (MLList Int)) (matmul_rv (MLList Int))) Bool
-(= matmul_rv (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST weight (matrix_col_slice (matrix_slice weight 0 (list_length input)) 0 (matrix_length weight))) (ite VECTOR_OUTER_LOOP_INDEX (list_take input (matrix_length weight)) input))))
+(= matmul_rv (matrix_vec_mul (ite MATRIX_OUTER_LOOP_INDEX_FIRST weight (matrix_col_slice (matrix_row_slice weight 0 (list_length input)) 0 (matrix_length weight))) (ite VECTOR_OUTER_LOOP_INDEX (list_take input (matrix_length weight)) input))))
 
 (declare-const input (MLList Int))
 (declare-const agg.result (MLList Int))

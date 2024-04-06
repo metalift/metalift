@@ -55,7 +55,7 @@
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
 [v1 (choose (length input ) (- (length input ) 1 ) (+ (length input ) 1 ))]
 [v2 (choose (v3) (v8))]
-[v3 (choose (list-slice-noerr input (v4) (v4) ) (list-slice-noerr weight (v4) (v4) ))]
+[v3 (choose (vec-slice-noerr input (v4) (v4) ) (vec-slice-noerr weight (v4) (v4) ))]
 [v4 (choose (v5) (v7))]
 [v5 (choose (v6) (- (v6) 1 ) (+ (v6) 1 ))]
 [v6 (choose 0 (length input ) i 1 ss)]
@@ -68,7 +68,7 @@
 (define-grammar (rmsnorm_part2_ps_gram input weight ss rmsnorm_part2_rv)
  [rv (choose (equal? rmsnorm_part2_rv (v0) ))]
 [v0 (choose (v1) (v6))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (list-slice-noerr weight (v2) (v2) ))]
+[v1 (choose (vec-slice-noerr input (v2) (v2) ) (vec-slice-noerr weight (v2) (v2) ))]
 [v2 (choose (v3) (v5))]
 [v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
 [v4 (choose 0 (length input ) 1 ss)]

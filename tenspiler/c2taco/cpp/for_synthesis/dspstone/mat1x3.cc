@@ -2,6 +2,7 @@
 using namespace std;
 
 vector<int> mat1x3(int N, vector<vector<int>> h, vector<int> x) {
+    vector<int> y;
     for (int i = 0; i < N; i++) {
         int sum = 0;
         for (int f = 0; f < N; f++) {

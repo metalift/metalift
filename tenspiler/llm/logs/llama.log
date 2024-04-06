@@ -50,7 +50,7 @@ def invariant(input: List[int], max_val: int, i:int):
 8
 
 def invariant(input: List[int], max_val: int, max_pos: int):
-    return max_pos >= 0 and max_pos <= len(input) and max_val == reduce_max(list_slice(input, 0, max_pos))
+    return max_pos >= 0 and max_pos <= len(input) and max_val == reduce_max(vec_slice(input, 0, max_pos))
 
 =====
 9
@@ -65,55 +65,55 @@ Running benchmark: softmax_part2
 0
 
 def invariant(input: List[int], max_val: int, max_pos: int, output: List[int], i: int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), lambda x: integer_exp(x))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 
 =====
 1
 
 def invariant(input: List[int], output: List[int], i:int, max_val:int, max_pos:int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), lambda x: integer_exp(x))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 
 =====
 2
 
 def invariant(input: List[int], output: List[int], i: int, max_pos: int, max_val: int) -> bool:
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), integer_exp)
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), integer_exp)
 
 =====
 3
 
 def invariant(input: List[int], max_pos: int, max_val: int, output: List[int], i: int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), lambda x: integer_exp(x))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 
 =====
 4
 
 def invariant(input: List[int], output: List[int], i: int, max_pos: int, max_val: int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), integer_exp)
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), integer_exp)
 
 =====
 5
 
 def invariant(input: List[int], max_pos: int, max_val: int, output: List[int], i: int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), lambda x: integer_exp(x))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 
 =====
 6
 
 def invariant(input: List[int], max_pos: int, max_val: int, i: int, output: List[int]) -> bool:
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), integer_exp)
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), integer_exp)
 
 =====
 7
 
 def invariant(input: List[int], max_pos: int, max_val: int, output: List[int], i: int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), lambda x: integer_exp(x))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 
 =====
 8
 
 def invariant(input: List[int], max_pos: int, max_val: int, output: List[int], i: int):
-    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, list_slice(input, 0, i)), lambda x: integer_exp(x))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 
 =====
 9
@@ -128,13 +128,13 @@ Running benchmark: softmax_part3
 0
 
 def invariant(output: List[int], sum: int, i: int):
-    return i >= 0 and i <= len(output) and sum == reduce_sum(list_slice(output, 0, i))
+    return i >= 0 and i <= len(output) and sum == reduce_sum(vec_slice(output, 0, i))
 
 =====
 1
 
 def invariant(output: List[int], sum:int, i:int):
-    return i >= 0 and i <= len(output) and sum == reduce_sum(list_slice(output, 0, i))
+    return i >= 0 and i <= len(output) and sum == reduce_sum(vec_slice(output, 0, i))
 
 =====
 2
@@ -170,7 +170,7 @@ def invariant(output: List[int], sum: int, max_pos: int, i:int):
 7
 
 def invariant(output: List[int], sum: int, i: int):
-    return i >= 0 and i <= len(output) and sum == reduce_sum(list_slice(output, 0, i))
+    return i >= 0 and i <= len(output) and sum == reduce_sum(vec_slice(output, 0, i))
 
 =====
 8
@@ -182,7 +182,7 @@ def invariant(output: List[int], sum: int, i:int):
 9
 
 def invariant(output: List[int], sum: int, max_pos:int, i: int):
-    return i >= 0 and i <= max_pos and sum == reduce_sum(list_slice(output, 0, i))
+    return i >= 0 and i <= max_pos and sum == reduce_sum(vec_slice(output, 0, i))
 
 =====
 Benchmark softmax_part3 complete.
@@ -197,13 +197,13 @@ def invariant(unnormalized_output: List[int], output: List[int], max_pos:int, i:
 1
 
 def invariant(unnormalized_output: List[int], max_pos: int, sum: int, output: List[int], i: int):
-    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, list_slice(unnormalized_output, 0, i))
+    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, vec_slice(unnormalized_output, 0, i))
 
 =====
 2
 
 def invariant(unnormalized_output: List[int], max_pos: int, sum: int, output: List[int], i: int) -> bool:
-    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, list_slice(unnormalized_output, 0, i))
+    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, vec_slice(unnormalized_output, 0, i))
 
 =====
 3
@@ -245,7 +245,7 @@ def invariant(unnormalized_output: List[int], output: List[int], max_pos: int, i
 9
 
 def invariant1(unnormalized_output: List[int], output: List[int], i: int, max_pos: int, sum: int) -> bool:
-    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, list_slice(unnormalized_output, 0, i))
+    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, vec_slice(unnormalized_output, 0, i))
 
 =====
 Benchmark softmax_part4 complete.
@@ -509,7 +509,7 @@ Running benchmark: transformer_part1
 0
 
 def invariant1(timestep, token_position, head, head_size, key_cache_layer, q, attention):
-    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
+    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
 ```
 
 This invariant checks the condition of the first loop (timestep from 0 to token_position) and ensures that the attention vector is correctly calculated at each timestep.
@@ -557,7 +557,7 @@ def invariant2(i: int, head: int, head_size: int, timestep: int, key_cache_layer
 2
 
 def invariant1(timestep, head, head_size, key_cache_layer, q, attention):
-    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
+    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
 
 =====
 3
@@ -566,7 +566,7 @@ def invariant1(token_position, head, head_size, key_cache_layer, q, timestep, at
     return (
         timestep >= 0
         and timestep <= token_position
-        and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
+        and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
     )
 
 def invariant2(head, head_size, i, score, key_cache_layer, q):
@@ -580,7 +580,7 @@ def invariant2(head, head_size, i, score, key_cache_layer, q):
 4
 
 def outer_loop_invariant(timestep: int, token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int], attention: List[int]) -> bool:
-    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size), matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
+    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size), matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
 
 def inner_loop_invariant(i: int, head_size: int, head: int, timestep:int, key_cache_layer: List[List[int]], q: List[int], score: int) -> bool:
     return i >= 0 and i <= head_size and score == reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, head * head_size + i), vec_slice(key_cache_layer[timestep], head * head_size, head * head_size + i)))
@@ -589,7 +589,7 @@ def inner_loop_invariant(i: int, head_size: int, head: int, timestep:int, key_ca
 5
 
 def invariant1(token_position, head, head_size, key_cache_layer, q, timestep, attention):
-    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
+    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
 
 =====
 6
@@ -601,7 +601,7 @@ def invariant1(token_position, timestep, head, head_size, key_cache_layer, q, at
 7
 
 def outer_loop_invariant(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int], attention: List[int], timestep: int) -> bool:
-    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
+    return timestep >= 0 and timestep <= token_position and attention == vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep), head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size)))
 ```
 
 The loop invariant for the inner loop can be written as:
@@ -614,7 +614,7 @@ def inner_loop_invariant(token_position: int, head: int, head_size: int, key_cac
 
 def invariant1(token_position, head, head_size, key_cache_layer, q, timestep, attention):
     return timestep >= 0 and timestep <= token_position and \
-           attention == vec_scalar_div(integer_sqrt(head_size * 1), vec_scalar_div(integer_sqrt(head_size * 1),matrix_vec_mul(matrix_col_slice(list_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size))))
+           attention == vec_scalar_div(integer_sqrt(head_size * 1), vec_scalar_div(integer_sqrt(head_size * 1),matrix_vec_mul(matrix_col_slice(vec_slice(key_cache_layer, 0, timestep),head * head_size, head * head_size + head_size), vec_slice(q, head * head_size, head * head_size + head_size))))
 
 =====
 9
@@ -629,28 +629,28 @@ Running benchmark: transformer_part2
 0
 
 def invariant1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int], timestep: int, curr: int):
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep + 1), list_slice(key_cache_layer[timestep], head * head_size, head * head_size + timestep + 1)))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep + 1), vec_slice(key_cache_layer[timestep], head * head_size, head * head_size + timestep + 1)))
 
 def invariant2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int], i: int, xb: List[int]):
-    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, token_position + 1), head * head_size, head * head_size + i)), list_slice(attention, 0, token_position + 1))
+    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, token_position + 1), head * head_size, head * head_size + i)), vec_slice(attention, 0, token_position + 1))
 
 =====
 1
 
 def invariant1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int], timestep: int, curr: int):
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep + 1), vec_slice(matrix_col_slice(list_slice(key_cache_layer, timestep + 1), head * head_size, head * head_size + head_size)[0], 0, timestep + 1)))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep + 1), vec_slice(matrix_col_slice(vec_slice(key_cache_layer, timestep + 1), head * head_size, head * head_size + head_size)[0], 0, timestep + 1)))
 
 def invariant2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int], i: int, xb: List[int]):
-    return i >= 0 and i < head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, i + 1), head * head_size, head * head_size + head_size)), list_slice(attention, 0, i + 1))
+    return i >= 0 and i < head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, i + 1), head * head_size, head * head_size + head_size)), vec_slice(attention, 0, i + 1))
 
 =====
 2
 
 def invariant1(token_position, head, head_size, key_cache_layer, attention, timestep, curr):
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep + 1), firsts(list_slice(key_cache_layer, 0, timestep + 1)[head * head_size: head * head_size + head_size])))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep + 1), firsts(vec_slice(key_cache_layer, 0, timestep + 1)[head * head_size: head * head_size + head_size])))
 
 def invariant2(token_position, head, head_size, key_cache_layer, attention, i, xb):
-    return i >= 0 and i < head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + i)), list_slice(attention, 0, token_position + 1))
+    return i >= 0 and i < head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + i)), vec_slice(attention, 0, token_position + 1))
 
 =====
 3
@@ -661,10 +661,10 @@ def invariant1(token_position, head, head_size, key_cache_layer, attention, i, c
         i < head_size and
         curr == reduce_sum(
             vec_elemwise_mul(
-                list_slice(attention, 0, token_position + 1),
-                list_slice(
+                vec_slice(attention, 0, token_position + 1),
+                vec_slice(
                     matrix_col_slice(
-                        list_slice(key_cache_layer, token_position + 1),
+                        vec_slice(key_cache_layer, token_position + 1),
                         head * head_size,
                         head * head_size + head_size
                     )[0],
@@ -676,12 +676,12 @@ def invariant1(token_position, head, head_size, key_cache_layer, attention, i, c
         xb == matrix_vec_mul(
             matrix_transpose(
                 matrix_col_slice(
-                    list_slice(key_cache_layer, token_position + 1),
+                    vec_slice(key_cache_layer, token_position + 1),
                     head * head_size,
                     head * head_size + head_size
                 )[:i]
             ),
-            list_slice(attention, 0, token_position + 1)
+            vec_slice(attention, 0, token_position + 1)
         )
     )
 
@@ -692,7 +692,7 @@ def invariant1(token_position, head, head_size, key_cache_layer, attention, time
     return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(attention[:timestep], [key_cache_layer[j][head * head_size + i] for j in range(timestep)]))
 
 def invariant2(token_position, head, head_size, key_cache_layer, attention, i, xb):
-    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, token_position + 1), head * head_size, head * head_size + head_size)), list_slice(attention, 0, token_position + 1))[:i]
+    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, token_position + 1), head * head_size, head * head_size + head_size)), vec_slice(attention, 0, token_position + 1))[:i]
 
 =====
 5
@@ -701,52 +701,52 @@ def invariant1(token_position, head, head_size, key_cache_layer, attention, i, c
     return (
         i >= 0 and
         i <= head_size and
-        curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, token_position + 1), list_slice(key_cache_layer[i], head * head_size, head * head_size + head_size))) and
-        xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, 0, i), head * head_size, head * head_size + head_size)), list_slice(attention, 0, token_position + 1))
+        curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, token_position + 1), vec_slice(key_cache_layer[i], head * head_size, head * head_size + head_size))) and
+        xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, 0, i), head * head_size, head * head_size + head_size)), vec_slice(attention, 0, token_position + 1))
     )
 ```
 
-Here, `list_slice` is a function for slicing a list, similar to Python's list slicing:
+Here, `vec_slice` is a function for slicing a list, similar to Python's list slicing:
 
 ```
-def list_slice(lst: List[int], start: int, end: int) -> List[int]:
+def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
     return lst[start:end]
 
 =====
 6
 
 def invariant1(token_position: int, i: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int], xb: List[int]) -> bool:
-    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, token_position + 1), head * head_size, head * head_size + i)), list_slice(attention, 0, token_position + 1))
+    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, token_position + 1), head * head_size, head * head_size + i)), vec_slice(attention, 0, token_position + 1))
 
 def invariant2(token_position: int, timestep: int, head: int, head_size: int, i: int, key_cache_layer: List[List[int]], attention: List[int], curr: int) -> bool:
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep + 1), list_slice(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, timestep + 1), head * head_size, head * head_size + i)), 0, timestep + 1)))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep + 1), vec_slice(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, timestep + 1), head * head_size, head * head_size + i)), 0, timestep + 1)))
 
 =====
 7
 
 def invariant1(token_position, head, head_size, key_cache_layer, attention, timestep, curr):
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep + 1), firsts(list_slice(key_cache_layer, 0, timestep + 1)[head * head_size:head * head_size + head_size])))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep + 1), firsts(vec_slice(key_cache_layer, 0, timestep + 1)[head * head_size:head * head_size + head_size])))
 
 def invariant2(token_position, head, head_size, key_cache_layer, attention, i, xb):
-    return i >= 0 and i < head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size)), list_slice(attention, 0, token_position + 1))
+    return i >= 0 and i < head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size)), vec_slice(attention, 0, token_position + 1))
 
 =====
 8
 
 def invariant1(token_position, head, head_size, key_cache_layer, attention, i, curr):
-    return i >= 0 and i <= head_size and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, i), firsts(list_slice(key_cache_layer, 0, i))))
+    return i >= 0 and i <= head_size and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, i), firsts(vec_slice(key_cache_layer, 0, i))))
 
 def invariant2(token_position, head, head_size, key_cache_layer, attention, timestep, curr):
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep+1), firsts(list_slice(key_cache_layer, 0, timestep+1))))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep+1), firsts(vec_slice(key_cache_layer, 0, timestep+1))))
 
 =====
 9
 
 def invariant1(token_position, head, head_size, key_cache_layer, attention, timestep, curr):
-    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(list_slice(attention, 0, timestep+1), firsts(list_slice(key_cache_layer, 0, timestep+1))))
+    return timestep >= 0 and timestep <= token_position and curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep+1), firsts(vec_slice(key_cache_layer, 0, timestep+1))))
 
 def invariant2(token_position, head, head_size, key_cache_layer, attention, i, xb):
-    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(list_slice(key_cache_layer, i + 1), head * head_size, head * head_size + head_size)), list_slice(attention, 0, i + 1))
+    return i >= 0 and i <= head_size and xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(vec_slice(key_cache_layer, i + 1), head * head_size, head * head_size + head_size)), vec_slice(attention, 0, i + 1))
 
 =====
 Benchmark transformer_part2 complete.
@@ -755,13 +755,13 @@ Running benchmark: transformer_part3
 0
 
 def invariant(input: List[int], output: List[int], i:int, hidden_dim:int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,list_slice(input, 0, i)),lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,vec_slice(input, 0, i)),lambda x: integer_exp(x)))))
 
 =====
 1
 
 def invariant(input: List[int], output: List[int], i: int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, list_slice(input, 0, i)), integer_exp))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), integer_exp))))
 ```
 
 Explanation:
@@ -778,55 +778,55 @@ The invariant here asserts that for each i from 0 to hidden_dim, the first i ele
 
 This operation is expressed in python as:
 ```python
-vec_elemwise_mul(list_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, list_slice(input, 0, i)), integer_exp))))
+vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), integer_exp))))
 
 =====
 2
 
 def invariant(input: List[int], output: List[int], i: int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,list_slice(input, 0, i)),lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,vec_slice(input, 0, i)),lambda x: integer_exp(x)))))
 
 =====
 3
 
 def invariant(input: List[int], output: List[int], i:int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, list_slice(input, 0, i)), lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), lambda x: integer_exp(x)))))
 
 =====
 4
 
 def invariant(input: List[int], output: List[int], i:int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,list_slice(input, 0, i)), lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,vec_slice(input, 0, i)), lambda x: integer_exp(x)))))
 
 =====
 5
 
 def invariant(input: List[int], output: List[int], i: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,list_slice(input, 0, i)),lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,vec_slice(input, 0, i)),lambda x: integer_exp(x)))))
 
 =====
 6
 
 def invariant(input: List[int], output: List[int], i:int, hidden_dim:int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, list_slice(input, 0, i)), integer_exp))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), integer_exp))))
 
 =====
 7
 
 def invariant(input: List[int], output: List[int], i:int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,list_slice(input, 0, i)),lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i),scalar_vec_div(1,vec_scalar_add(1,vec_map(scalar_vec_sub(0,vec_slice(input, 0, i)),lambda x: integer_exp(x)))))
 
 =====
 8
 
 def invariant(input: List[int], output: List[int], i: int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, list_slice(input, 0, i)), integer_exp))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), integer_exp))))
 
 =====
 9
 
 def invariant(input: List[int], output: List[int], i: int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, list_slice(input, 0, i)), lambda x: integer_exp(x)))))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), lambda x: integer_exp(x)))))
 
 =====
 Benchmark transformer_part3 complete.
@@ -835,61 +835,61 @@ Running benchmark: transformer_part4
 0
 
 def invariant(input1: List[int], input2: List[int], hidden_dim: int, i: int, output: List[int]) -> bool:
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 1
 
 def invariant(i: int, input1: List[int], input2: List[int], output: List[int], hidden_dim: int) -> bool:
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 2
 
 def invariant(input1: List[int], input2: List[int], hidden_dim: int, output: List[int], i: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 3
 
 def invariant(input1: List[int], input2: List[int], hidden_dim: int, output: List[int], i: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 4
 
 def invariant(input1: List[int], input2: List[int], output: List[int], hidden_dim: int, i: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 5
 
 def invariant(input1: List[int], input2: List[int], hidden_dim: int, output: List[int], i: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 6
 
 def invariant(input1: List[int], input2: List[int], output: List[int], i:int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 7
 
 def invariant(input1: List[int], input2: List[int], output: List[int], i: int, hidden_dim: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input1, 0, i), list_slice(input2, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input1, 0, i), vec_slice(input2, 0, i))
 
 =====
 8
 
 def invariant(input1: List[int], input2: List[int], hidden_dim: int, output: List[int], i: int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 9
 
 def invariant(input1: List[int], input2: List[int], output: List[int], i:int, hidden_dim:int):
-    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(list_slice(input2, 0, i), list_slice(input1, 0, i))
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
 
 =====
 Benchmark transformer_part4 complete.

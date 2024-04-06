@@ -53,7 +53,7 @@
 (define-grammar (transformer_part4_inv0_gram agg.result hidden_dim i input1 input2 ref.tmp)
  [rv (choose (&& (&& (>= i 0 ) (<= i hidden_dim ) ) (equal? agg.result (v0) ) ))]
 [v0 (choose (v1) (v5))]
-[v1 (choose (list-slice-noerr input1 (v2) (v2) ) (list-slice-noerr input2 (v2) (v2) ))]
+[v1 (choose (vec-slice-noerr input1 (v2) (v2) ) (vec-slice-noerr input2 (v2) (v2) ))]
 [v2 (choose (v3) (v4))]
 [v3 (choose 0 hidden_dim i 1)]
 [v4 (choose (integer-sqrt-noerr (v3) ) (integer-exp-noerr (v3) ) (+ (v3) (v3) ) (- (v3) (v3) ) (* (v3) (v3) ) (quotient-noerr (v3) (v3) ))]
@@ -65,7 +65,7 @@
 (define-grammar (transformer_part4_ps_gram input1 input2 hidden_dim transformer_part4_rv)
  [rv (choose (equal? transformer_part4_rv (v0) ))]
 [v0 (choose (v1) (v5))]
-[v1 (choose (list-slice-noerr input1 (v2) (v2) ) (list-slice-noerr input2 (v2) (v2) ))]
+[v1 (choose (vec-slice-noerr input1 (v2) (v2) ) (vec-slice-noerr input2 (v2) (v2) ))]
 [v2 (choose (v3) (v4))]
 [v3 (choose 0 hidden_dim 1)]
 [v4 (choose (integer-sqrt-noerr (v3) ) (integer-exp-noerr (v3) ) (+ (v3) (v3) ) (- (v3) (v3) ) (* (v3) (v3) ) (quotient-noerr (v3) (v3) ))]

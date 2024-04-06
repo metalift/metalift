@@ -395,10 +395,10 @@ class Expr:
             return "list-take-noerr"
         elif fn_name == "matrix_take":
             return "matrix-take-noerr"
-        elif fn_name == "list_slice":
-            return "list-slice-noerr"
-        elif fn_name == "matrix_slice":
-            return "matrix-slice-noerr"
+        elif fn_name == "vec_slice":
+            return "vec-slice-noerr"
+        elif fn_name == "matrix_row_slice":
+            return "matrix-row-slice-noerr"
         elif fn_name == "list_slice_with_length":
             return "list-slice-with-length-noerr"
         elif fn_name == "matrix_slice_with_length":
@@ -1123,7 +1123,7 @@ class List(Generic[T], Object):
                 if isinstance(stop, int):
                     stop = Int(stop)
                 if self.is_nested:
-                    fn_name = "matrix_slice"
+                    fn_name = "matrix_row_slice"
                 else:
                     fn_name = "vec_slice"
                 return call(fn_name, self.type, self, start, stop)
@@ -2550,7 +2550,7 @@ class Call(Expr):
             return f"{processed_args[0]}[{processed_args[1]}:]"
         elif self.name() in {"list_take", "matrix_take"}:
             return f"{processed_args[0]}[:{processed_args[1]}]"
-        elif self.name() in {"list_slice", "matrix_slice"}:
+        elif self.name() in {"vec_slice", "matrix_row_slice"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
         elif self.name() in {"list_slice_with_length", "matrix_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"

@@ -108,20 +108,20 @@
 
 (define-grammar (dissolve_blend_8_inv0_gram active agg.result base col opacity pixel rand_cons rand_val row row_vec)
  [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (equal? agg.result (dissolve_matrix_selection_two_args (v0) (v0) opacity rand_cons dissolve_select_two_args) ) ))]
-[v0 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
+[v0 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
 [v1 (choose base active)]
 [v2 (choose 0 (matrix-length base ) row)]
 )
 
 (define-grammar (dissolve_blend_8_inv1_gram active base col opacity pixel rand_cons rand_val row_vec agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (<= row (matrix-length base ) ) ) (>= col 0 ) ) (<= col (length (matrix-ref-noerr base 0 ) ) ) ) (equal? row_vec (dissolve_selection_two_args (matrix-ref-noerr (v0) (v2) ) (matrix-ref-noerr (v0) (v2) ) opacity rand_cons dissolve_select_two_args) ) ) (equal? agg.result (dissolve_matrix_selection_two_args (v0) (v0) opacity rand_cons dissolve_select_two_args) ) ))]
-[v0 (choose (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
+[v0 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr (v1) (v2) (v2) ) (v2) (v2) ) ))]
 [v1 (choose base active)]
 [v2 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ) row col)]
 )
 
 (define-grammar (dissolve_blend_8_ps_gram base active opacity rand_cons dissolve_blend_8_rv)
- [rv (choose (equal? dissolve_blend_8_rv (dissolve_matrix_selection_two_args (matrix-col-slice-noerr (matrix-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) (matrix-col-slice-noerr (matrix-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) opacity rand_cons dissolve_select_two_args) ))]
+ [rv (choose (equal? dissolve_blend_8_rv (dissolve_matrix_selection_two_args (matrix-col-slice-noerr (matrix-row-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) (matrix-col-slice-noerr (matrix-row-slice-noerr (v0) (v2) (v2) ) (v2) (v2) ) opacity rand_cons dissolve_select_two_args) ))]
 [v0 (choose (v1) (matrix-transpose-noerr (v1) ))]
 [v1 (choose base active)]
 [v2 (choose 0 (matrix-length base ) (length (matrix-ref-noerr base 0 ) ))]

@@ -24,17 +24,17 @@
 
 (define-grammar (matmul_inv0_gram agg.result col curr input row weight)
  [rv (choose (&& (&& (>= row 0 ) (<= row (matrix-length weight ) ) ) (equal? agg.result (matrix_vec_mul (v0) (if (VECTOR_OUTER_LOOP_INDEX) (list-take-noerr input row ) input ) ) ) ))]
-[v0 (choose (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-slice-noerr weight 0 (length input ) ) 0 row ) ) (matrix-transpose-noerr (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-slice-noerr weight 0 (length input ) ) 0 row ) ) ))]
+[v0 (choose (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-row-slice-noerr weight 0 (length input ) ) 0 row ) ) (matrix-transpose-noerr (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-row-slice-noerr weight 0 (length input ) ) 0 row ) ) ))]
 )
 
 (define-grammar (matmul_inv1_gram col curr input weight agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row 0 ) (< row (matrix-length weight ) ) ) (>= col 0 ) ) (<= col (length input ) ) ) (equal? curr (reduce_sum (if (VECTOR_OUTER_LOOP_INDEX) (vec_scalar_mul (list-ref-noerr input row ) (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (list-take-noerr (matrix-ref-noerr weight row ) col ) (matrix-ref-noerr (matrix-transpose-noerr (matrix-col-slice-with-length-noerr (matrix-take-noerr weight col ) row 1 ) ) 0 ) )) (vec_elemwise_mul (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (list-take-noerr (matrix-ref-noerr weight row ) col ) (matrix-ref-noerr (matrix-transpose-noerr (matrix-col-slice-with-length-noerr (matrix-take-noerr weight col ) row 1 ) ) 0 ) ) (list-take-noerr input col )) )) ) ) (equal? agg.result (matrix_vec_mul (v0) (if (VECTOR_OUTER_LOOP_INDEX) (list-take-noerr input row ) input ) ) ) ))]
-[v0 (choose (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-slice-noerr weight 0 (length input ) ) 0 row ) ) (matrix-transpose-noerr (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-slice-noerr weight 0 (length input ) ) 0 row ) ) ))]
+[v0 (choose (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-row-slice-noerr weight 0 (length input ) ) 0 row ) ) (matrix-transpose-noerr (if (MATRIX_OUTER_LOOP_INDEX_FIRST) (matrix-take-noerr weight row ) (matrix-col-slice-noerr (matrix-row-slice-noerr weight 0 (length input ) ) 0 row ) ) ))]
 )
 
 (define-grammar (matmul_ps_gram weight input matmul_rv)
  [rv (choose (equal? matmul_rv (matrix_vec_mul (v0) (if (VECTOR_OUTER_LOOP_INDEX) (list-take-noerr input (matrix-length weight ) ) input ) ) ))]
-[v0 (choose (if (MATRIX_OUTER_LOOP_INDEX_FIRST) weight (matrix-col-slice-noerr (matrix-slice-noerr weight 0 (length input ) ) 0 (matrix-length weight ) ) ) (matrix-transpose-noerr (if (MATRIX_OUTER_LOOP_INDEX_FIRST) weight (matrix-col-slice-noerr (matrix-slice-noerr weight 0 (length input ) ) 0 (matrix-length weight ) ) ) ))]
+[v0 (choose (if (MATRIX_OUTER_LOOP_INDEX_FIRST) weight (matrix-col-slice-noerr (matrix-row-slice-noerr weight 0 (length input ) ) 0 (matrix-length weight ) ) ) (matrix-transpose-noerr (if (MATRIX_OUTER_LOOP_INDEX_FIRST) weight (matrix-col-slice-noerr (matrix-row-slice-noerr weight 0 (length input ) ) 0 (matrix-length weight ) ) ) ))]
 )
 
 (define-grammar (MATRIX_OUTER_LOOP_INDEX_FIRST_gram )

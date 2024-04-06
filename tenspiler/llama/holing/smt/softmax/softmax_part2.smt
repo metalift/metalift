@@ -187,20 +187,20 @@
 
 ; end of list of lists definition
 
-(define-fun list_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
+(define-fun vec_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
 (list_take (list_take lst end) start))
 
 (define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
-(list_slice lst start (+ start lst_length)))
+(vec_slice lst start (+ start lst_length)))
 
-(define-fun matrix_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
+(define-fun matrix_row_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
 (matrix_take (matrix_take matrix end) start))
 
 (define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
-(matrix_slice matrix start (+ start lst_length)))
+(matrix_row_slice matrix start (+ start lst_length)))
 
 (define-fun-rec matrix_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
-(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (list_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
+(ite (< (matrix_length matrix) 1) matrix_empty (matrix_prepend (vec_slice (matrix_get matrix 0) start end) (matrix_col_slice (matrix_tail matrix 1) start end))))
 
 (define-fun-rec matrix_col_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
 (matrix_col_slice matrix start (+ start lst_length)))

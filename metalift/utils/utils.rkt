@@ -27,12 +27,12 @@
 (define (list-take-noerr l i)
   (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
 
-(define (list-slice-noerr l start end)
+(define (vec-slice-noerr l start end)
   (list-tail-noerr (list-take-noerr l end) start)
 )
 
 (define (list-slice-with-length-noerr l start lst_length)
-  (list-slice-noerr l start (+ start lst_length))
+  (vec-slice-noerr l start (+ start lst_length))
 )
 
 (define (list-concat l1 l2)
@@ -187,12 +187,12 @@
   (if (&& (>= i 0) (<= i (length l))) (list-tail l i)
       (list)))
 
-(define (matrix-slice-noerr l start end)
+(define (matrix-row-slice-noerr l start end)
   (matrix-tail-noerr (matrix-take-noerr l end) start)
 )
 
 (define (matrix-slice-with-length-noerr l start lst_length)
-  (matrix-slice-noerr l start (+ start lst_length))
+  (matrix-row-slice-noerr l start (+ start lst_length))
 )
 
 (define (matrix-col-slice-noerr l start end)
@@ -200,7 +200,7 @@
     (< (matrix-length l) 1)
     (list)
     (matrix-prepend
-      (list-slice-noerr (matrix-ref-noerr l 0) start end)
+      (vec-slice-noerr (matrix-ref-noerr l 0) start end)
       (matrix-col-slice-noerr (matrix-tail-noerr l 1) start end)
     )
   )
