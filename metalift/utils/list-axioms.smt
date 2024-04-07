@@ -177,13 +177,13 @@
 (define-fun vec_slice ((lst (MLList Int)) (start Int) (end Int)) (MLList Int)
 (list_tail (list_take lst end) start))
 
-(define-fun list_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
+(define-fun vec_slice_with_length ((lst (MLList Int)) (start Int) (lst_length Int)) (MLList Int)
 (vec_slice lst start (+ start lst_length)))
 
 (define-fun matrix_row_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))
 (matrix_tail (matrix_take matrix end) start))
 
-(define-fun matrix_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
+(define-fun matrix_row_slice_with_length ((matrix (MLList (MLList Int))) (start Int) (lst_length Int)) (MLList (MLList Int))
 (matrix_row_slice matrix start (+ start lst_length)))
 
 (define-fun-rec matrix_col_slice ((matrix (MLList (MLList Int))) (start Int) (end Int)) (MLList (MLList Int))

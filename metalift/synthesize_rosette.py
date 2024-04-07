@@ -252,19 +252,19 @@ def to_expr(
                 to_expr(ast[2], fnsType, varType, choices),
                 to_expr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] == "list-slice-with-length-noerr":
+        elif ast[0] == "vec-slice-with-length-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "list_slice_with_length",
+                "vec_slice_with_length",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
                 to_expr(ast[3], fnsType, varType, choices),
             )
-        elif ast[0] == "matrix-slice-with-length-noerr":
+        elif ast[0] == "matrix-row-slice-with-length-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
-                "matrix_slice_with_length",
+                "matrix_row_slice_with_length",
                 list_expr.type,
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
