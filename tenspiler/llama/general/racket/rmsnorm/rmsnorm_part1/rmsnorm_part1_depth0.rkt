@@ -66,7 +66,7 @@
  [rv (choose (&& (&& (>= i 0 ) (<= i (length input ) ) ) (equal? ss (v0) ) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (v2))]
-[v2 (choose (list-slice-noerr input (v3) (v3) ) (list-slice-noerr weight (v3) (v3) ))]
+[v2 (choose (vec-slice-noerr input (v3) (v3) ) (vec-slice-noerr weight (v3) (v3) ))]
 [v3 (choose (v4))]
 [v4 (choose 0 (length input ) i)]
 )
@@ -75,7 +75,7 @@
  [rv (choose (equal? rmsnorm_part1_rv (v0) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (v2))]
-[v2 (choose (list-slice-noerr input (v3) (v3) ) (list-slice-noerr weight (v3) (v3) ))]
+[v2 (choose (vec-slice-noerr input (v3) (v3) ) (vec-slice-noerr weight (v3) (v3) ))]
 [v3 (choose (v4))]
 [v4 (choose 0 (length input ))]
 )

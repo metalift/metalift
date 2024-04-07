@@ -54,4 +54,7 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
+    inv0 = driver.pred_tracker.predicates["softmax_part4_inv0"]
+    print(inv0.reads, inv0.writes)
+    exit(0)
     driver.synthesize(filename="softmax_part4")

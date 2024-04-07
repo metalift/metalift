@@ -20,8 +20,8 @@
 (define-bounded (nested_selection_two_args nested_x nested_y select_two_args_arg)
                 (if (or (< (length nested_x) 1) (! (equal? (length nested_x) (length nested_y))))
                     (list-empty)
-                    (list-prepend (selection_two_args (list-list-ref-noerr nested_x 0)
-                                                      (list-list-ref-noerr nested_y 0)
+                    (list-prepend (selection_two_args (matrix-ref-noerr nested_x 0)
+                                                      (matrix-ref-noerr nested_y 0)
                                                       select_two_args_arg)
                                   (nested_selection_two_args (list-tail-noerr nested_x 1)
                                                              (list-tail-noerr nested_y 1)
@@ -37,9 +37,9 @@
  [v2 (choose (<= row (v3)))]
  [v3
   (choose (length base)
-          (length (list-list-ref-noerr base 0))
+          (length (matrix-ref-noerr base 0))
           (length active)
-          (length (list-list-ref-noerr active 0)))]
+          (length (matrix-ref-noerr active 0)))]
  [v4
   (choose base
           (list-take-noerr base row)
@@ -59,20 +59,20 @@
  [v2 (choose (< row (v3)))]
  [v3
   (choose (length base)
-          (length (list-list-ref-noerr base 0))
+          (length (matrix-ref-noerr base 0))
           (length active)
-          (length (list-list-ref-noerr active 0)))]
+          (length (matrix-ref-noerr active 0)))]
  [v4 (choose (>= col (v1)))]
  [v5 (choose (<= col (v3)))]
  [v6
-  (choose (list-take-noerr (list-list-ref-noerr base 0) col)
-          (list-take-noerr (list-list-ref-noerr base row) col)
-          (list-take-noerr (list-list-ref-noerr base col) row)
-          (list-take-noerr (list-list-ref-noerr base 0) row)
-          (list-take-noerr (list-list-ref-noerr active 0) col)
-          (list-take-noerr (list-list-ref-noerr active row) col)
-          (list-take-noerr (list-list-ref-noerr active col) row)
-          (list-take-noerr (list-list-ref-noerr active 0) row))]
+  (choose (list-take-noerr (matrix-ref-noerr base 0) col)
+          (list-take-noerr (matrix-ref-noerr base row) col)
+          (list-take-noerr (matrix-ref-noerr base col) row)
+          (list-take-noerr (matrix-ref-noerr base 0) row)
+          (list-take-noerr (matrix-ref-noerr active 0) col)
+          (list-take-noerr (matrix-ref-noerr active row) col)
+          (list-take-noerr (matrix-ref-noerr active col) row)
+          (list-take-noerr (matrix-ref-noerr active 0) row))]
  [v7
   (choose base
           (list-take-noerr base row)
@@ -181,96 +181,96 @@
      (&&
       (&&
        (=> (&& (&& (> (length base) 1) (equal? (length base) (length active)))
-               (equal? (length (list-list-ref-noerr base 0)) (length (list-list-ref-noerr active 0))))
+               (equal? (length (matrix-ref-noerr base 0)) (length (matrix-ref-noerr active 0))))
            (overlay_blend_8_inv0 active (list-empty) base 0 0 0 0 0 (list-empty)))
        (=> (&& (&& (&& (&& (< row (length base)) (> (length base) 1))
                        (equal? (length base) (length active)))
-                   (equal? (length (list-list-ref-noerr base 0))
-                           (length (list-list-ref-noerr active 0))))
+                   (equal? (length (matrix-ref-noerr base 0))
+                           (length (matrix-ref-noerr active 0))))
                (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
            (overlay_blend_8_inv1 active base 0 div32 double_base pixel (list-empty) agg.result row)))
       (=>
        (or
-        (&& (&& (&& (&& (&& (&& (&& (>= (list-ref-noerr (list-list-ref-noerr base row) col) 16)
-                                    (< col (length (list-list-ref-noerr base 0))))
+        (&& (&& (&& (&& (&& (&& (&& (>= (list-ref-noerr (matrix-ref-noerr base row) col) 16)
+                                    (< col (length (matrix-ref-noerr base 0))))
                                 (< row (length base)))
                             (> (length base) 1))
                         (equal? (length base) (length active)))
-                    (equal? (length (list-list-ref-noerr base 0))
-                            (length (list-list-ref-noerr active 0))))
+                    (equal? (length (matrix-ref-noerr base 0))
+                            (length (matrix-ref-noerr active 0))))
                 (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
             (overlay_blend_8_inv1 active base col div32 double_base pixel row_vec agg.result row))
-        (&& (&& (&& (&& (&& (&& (&& (! (>= (list-ref-noerr (list-list-ref-noerr base row) col) 16))
-                                    (< col (length (list-list-ref-noerr base 0))))
+        (&& (&& (&& (&& (&& (&& (&& (! (>= (list-ref-noerr (matrix-ref-noerr base row) col) 16))
+                                    (< col (length (matrix-ref-noerr base 0))))
                                 (< row (length base)))
                             (> (length base) 1))
                         (equal? (length base) (length active)))
-                    (equal? (length (list-list-ref-noerr base 0))
-                            (length (list-list-ref-noerr active 0))))
+                    (equal? (length (matrix-ref-noerr base 0))
+                            (length (matrix-ref-noerr active 0))))
                 (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
             (overlay_blend_8_inv1 active base col div32 double_base pixel row_vec agg.result row)))
        (overlay_blend_8_inv1
         active
         base
         (+ col 1)
-        (quotient-noerr (* (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                           (list-ref-noerr (list-list-ref-noerr base row) col))
+        (quotient-noerr (* (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                           (list-ref-noerr (matrix-ref-noerr base row) col))
                         32)
-        (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
+        (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
         (if (&&
              (&&
-              (&& (&& (&& (&& (&& (! (>= (list-ref-noerr (list-list-ref-noerr base row) col) 16))
-                                  (< col (length (list-list-ref-noerr base 0))))
+              (&& (&& (&& (&& (&& (! (>= (list-ref-noerr (matrix-ref-noerr base row) col) 16))
+                                  (< col (length (matrix-ref-noerr base 0))))
                               (< row (length base)))
                           (> (length base) 1))
                       (equal? (length base) (length active)))
-                  (equal? (length (list-list-ref-noerr base 0))
-                          (length (list-list-ref-noerr active 0))))
+                  (equal? (length (matrix-ref-noerr base 0))
+                          (length (matrix-ref-noerr active 0))))
               (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
              (overlay_blend_8_inv1 active base col div32 double_base pixel row_vec agg.result row))
-            (quotient-noerr (* (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                               (list-ref-noerr (list-list-ref-noerr base row) col))
+            (quotient-noerr (* (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                               (list-ref-noerr (matrix-ref-noerr base row) col))
                             32)
-            (- (- (+ (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                     (list-ref-noerr (list-list-ref-noerr base row) col))
-                  (quotient-noerr (* (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                                     (list-ref-noerr (list-list-ref-noerr base row) col))
+            (- (- (+ (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                     (list-ref-noerr (matrix-ref-noerr base row) col))
+                  (quotient-noerr (* (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                                     (list-ref-noerr (matrix-ref-noerr base row) col))
                                   32))
                32))
-        (list-list-append
+        (matrix-append
          row_vec
          (if (&&
               (&&
-               (&& (&& (&& (&& (&& (! (>= (list-ref-noerr (list-list-ref-noerr base row) col) 16))
-                                   (< col (length (list-list-ref-noerr base 0))))
+               (&& (&& (&& (&& (&& (! (>= (list-ref-noerr (matrix-ref-noerr base row) col) 16))
+                                   (< col (length (matrix-ref-noerr base 0))))
                                (< row (length base)))
                            (> (length base) 1))
                        (equal? (length base) (length active)))
-                   (equal? (length (list-list-ref-noerr base 0))
-                           (length (list-list-ref-noerr active 0))))
+                   (equal? (length (matrix-ref-noerr base 0))
+                           (length (matrix-ref-noerr active 0))))
                (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
               (overlay_blend_8_inv1 active base col div32 double_base pixel row_vec agg.result row))
-             (quotient-noerr (* (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                                (list-ref-noerr (list-list-ref-noerr base row) col))
+             (quotient-noerr (* (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                                (list-ref-noerr (matrix-ref-noerr base row) col))
                              32)
-             (- (- (+ (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                      (list-ref-noerr (list-list-ref-noerr base row) col))
-                   (quotient-noerr (* (* 2 (list-ref-noerr (list-list-ref-noerr base row) col))
-                                      (list-ref-noerr (list-list-ref-noerr base row) col))
+             (- (- (+ (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                      (list-ref-noerr (matrix-ref-noerr base row) col))
+                   (quotient-noerr (* (* 2 (list-ref-noerr (matrix-ref-noerr base row) col))
+                                      (list-ref-noerr (matrix-ref-noerr base row) col))
                                    32))
                 32)))
         agg.result
         row)))
      (=>
-      (&& (&& (&& (&& (&& (&& (! (< col (length (list-list-ref-noerr base 0)))) (< row (length base)))
+      (&& (&& (&& (&& (&& (&& (! (< col (length (matrix-ref-noerr base 0)))) (< row (length base)))
                           (> (length base) 1))
                       (equal? (length base) (length active)))
-                  (equal? (length (list-list-ref-noerr base 0))
-                          (length (list-list-ref-noerr active 0))))
+                  (equal? (length (matrix-ref-noerr base 0))
+                          (length (matrix-ref-noerr active 0))))
               (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
           (overlay_blend_8_inv1 active base col div32 double_base pixel row_vec agg.result row))
       (overlay_blend_8_inv0 active
-                            (list-list-append agg.result row_vec)
+                            (matrix-append agg.result row_vec)
                             base
                             col
                             div32
@@ -282,11 +282,11 @@
      (or
       (&& (&& (&& (&& (! (< row (length base))) (> (length base) 1))
                   (equal? (length base) (length active)))
-              (equal? (length (list-list-ref-noerr base 0)) (length (list-list-ref-noerr active 0))))
+              (equal? (length (matrix-ref-noerr base 0)) (length (matrix-ref-noerr active 0))))
           (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec))
       (&& (&& (&& (&& (&& (! true) (! (< row (length base)))) (> (length base) 1))
                   (equal? (length base) (length active)))
-              (equal? (length (list-list-ref-noerr base 0)) (length (list-list-ref-noerr active 0))))
+              (equal? (length (matrix-ref-noerr base 0)) (length (matrix-ref-noerr active 0))))
           (overlay_blend_8_inv0 active agg.result base col div32 double_base pixel row row_vec)))
      (overlay_blend_8_ps base active agg.result)))))
 

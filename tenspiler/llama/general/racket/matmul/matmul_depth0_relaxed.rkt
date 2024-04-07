@@ -64,42 +64,42 @@
 
 
  (define-bounded (matrix_vec_mul matrix_x x)
-(if (or (or (< (list-list-length matrix_x ) 1 ) (< (length (list-list-ref-noerr matrix_x 0 ) ) 1 ) ) (! (equal? (length (list-list-ref-noerr matrix_x 0 ) ) (length x ) ) ) ) (list-empty ) (list-prepend (reduce_sum (vec_elemwise_mul (list-list-ref-noerr matrix_x 0 ) x)) (matrix_vec_mul (list-list-tail-noerr matrix_x 1 ) x ) ) ))
+(if (or (or (< (matrix-length matrix_x ) 1 ) (< (length (matrix-ref-noerr matrix_x 0 ) ) 1 ) ) (! (equal? (length (matrix-ref-noerr matrix_x 0 ) ) (length x ) ) ) ) (list-empty ) (list-prepend (reduce_sum (vec_elemwise_mul (matrix-ref-noerr matrix_x 0 ) x)) (matrix_vec_mul (matrix-tail-noerr matrix_x 1 ) x ) ) ))
 
 (define-grammar (matmul_inv0_gram agg.result col curr input row weight)
  [rv (choose (&& (&& (>= row (v0) ) (<= row (v1) ) ) (equal? agg.result (v2) ) ))]
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
-[v1 (choose (list-list-length weight ) (- (list-list-length weight ) 1 ) (+ (list-list-length weight ) 1 ))]
+[v1 (choose (matrix-length weight ) (- (matrix-length weight ) 1 ) (+ (matrix-length weight ) 1 ))]
 [v2 (choose (v3))]
-[v3 (choose (list-slice-noerr input (v4) (v4) ) (list-list-ref-noerr (v7) (v4) ))]
+[v3 (choose (vec-slice-noerr input (v4) (v4) ) (matrix-ref-noerr (v7) (v4) ))]
 [v4 (choose (v5))]
 [v5 (choose (v6) (- (v6) 1 ) (+ (v6) 1 ))]
-[v6 (choose 0 row (list-list-length weight ) (length input ))]
-[v7 (choose (list-list-col-slice-noerr (list-list-slice-noerr weight (v4) (v4) ) (v4) (v4) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr weight (v4) (v4) ) (v4) (v4) ) ))]
+[v6 (choose 0 row (matrix-length weight ) (length input ))]
+[v7 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v4) (v4) ) (v4) (v4) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v4) (v4) ) (v4) (v4) ) ))]
 )
 
 (define-grammar (matmul_inv1_gram col curr input weight agg.result row)
  [rv (choose (&& (&& (&& (&& (&& (>= row (v0) ) (< row (v1) ) ) (>= col (v0) ) ) (<= col (v2) ) ) (equal? curr (v3) ) ) (equal? agg.result (v4) ) ))]
 [v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
-[v1 (choose (list-list-length weight ) (- (list-list-length weight ) 1 ) (+ (list-list-length weight ) 1 ))]
+[v1 (choose (matrix-length weight ) (- (matrix-length weight ) 1 ) (+ (matrix-length weight ) 1 ))]
 [v2 (choose (length input ) (- (length input ) 1 ) (+ (length input ) 1 ))]
 [v3 (choose (reduce_sum (v4)) (reduce_mul (v4)) (reduce_max (v4)))]
 [v4 (choose (v5))]
-[v5 (choose (list-slice-noerr input (v6) (v6) ) (list-list-ref-noerr (v9) (v6) ))]
+[v5 (choose (vec-slice-noerr input (v6) (v6) ) (matrix-ref-noerr (v9) (v6) ))]
 [v6 (choose (v7))]
 [v7 (choose (v8) (- (v8) 1 ) (+ (v8) 1 ))]
-[v8 (choose 0 row (list-list-length weight ) (length input ))]
-[v9 (choose (list-list-col-slice-noerr (list-list-slice-noerr weight (v6) (v6) ) (v6) (v6) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr weight (v6) (v6) ) (v6) (v6) ) ))]
+[v8 (choose 0 row (matrix-length weight ) (length input ))]
+[v9 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v6) (v6) ) (v6) (v6) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v6) (v6) ) (v6) (v6) ) ))]
 )
 
 (define-grammar (matmul_ps_gram weight input matmul_rv)
  [rv (choose (equal? matmul_rv (v0) ))]
 [v0 (choose (v1))]
-[v1 (choose (list-slice-noerr input (v2) (v2) ) (list-list-ref-noerr (v5) (v2) ))]
+[v1 (choose (vec-slice-noerr input (v2) (v2) ) (matrix-ref-noerr (v5) (v2) ))]
 [v2 (choose (v3))]
 [v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
-[v4 (choose 0 (list-list-length weight ) (length input ))]
-[v5 (choose (list-list-col-slice-noerr (list-list-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (list-list-col-slice-noerr (list-list-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
+[v4 (choose 0 (matrix-length weight ) (length input ))]
+[v5 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v2) (v2) ) (v2) (v2) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr weight (v2) (v2) ) (v2) (v2) ) ))]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
@@ -136,7 +136,7 @@
 (define weight (take (list (list weight_BOUNDEDSET-0 weight_BOUNDEDSET-1) (list weight_BOUNDEDSET-2 weight_BOUNDEDSET-3)) weight_BOUNDEDSET-len))
 (current-bitwidth 6)
 (define (assertions)
- (assert (&& (&& (&& (&& (=> (&& (&& (> (list-list-length weight ) 0 ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 (list-empty ) 0 0 input 0 weight) ) (=> (&& (&& (&& (&& (< row (list-list-length weight ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 0 0 input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (< col (length input ) ) (< row (list-list-length weight ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv1 (+ col 1 ) (+ curr (* (list-ref-noerr (list-list-ref-noerr weight row ) col ) (list-ref-noerr input col ) ) ) input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (! (< col (length input ) ) ) (< row (list-list-length weight ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv0 (list-append agg.result curr ) col curr input (+ row 1 ) weight) ) ) (=> (or (&& (&& (&& (&& (! (< row (list-list-length weight ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (&& (&& (&& (&& (&& (! true ) (! (< row (list-list-length weight ) ) ) ) (> (list-list-length weight ) 0 ) ) (> (length (list-list-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (list-list-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) ) (matmul_ps weight input agg.result) ) )))
+ (assert (&& (&& (&& (&& (=> (&& (&& (> (matrix-length weight ) 0 ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 (list-empty ) 0 0 input 0 weight) ) (=> (&& (&& (&& (&& (< row (matrix-length weight ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 0 0 input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (< col (length input ) ) (< row (matrix-length weight ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv1 (+ col 1 ) (+ curr (* (list-ref-noerr (matrix-ref-noerr weight row ) col ) (list-ref-noerr input col ) ) ) input weight agg.result row) ) ) (=> (&& (&& (&& (&& (&& (&& (! (< col (length input ) ) ) (< row (matrix-length weight ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (matmul_inv1 col curr input weight agg.result row) ) (matmul_inv0 (list-append agg.result curr ) col curr input (+ row 1 ) weight) ) ) (=> (or (&& (&& (&& (&& (! (< row (matrix-length weight ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) (&& (&& (&& (&& (&& (! true ) (! (< row (matrix-length weight ) ) ) ) (> (matrix-length weight ) 0 ) ) (> (length (matrix-ref-noerr weight 0 ) ) 0 ) ) (equal? (length (matrix-ref-noerr weight 0 ) ) (length input ) ) ) (matmul_inv0 agg.result col curr input row weight) ) ) (matmul_ps weight input agg.result) ) )))
 
 
     (define sol0

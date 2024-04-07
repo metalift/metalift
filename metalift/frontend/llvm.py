@@ -20,7 +20,7 @@ from typing import (
 from llvmlite import binding as llvm
 from llvmlite.binding import TypeRef, ValueRef
 
-from metalift.analysis import setupBlocks, VariableTracker
+from metalift.analysis import VariableTracker, setupBlocks
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList
@@ -221,7 +221,7 @@ def vector_append(
     value = state.read_or_load_operand(args[1])
 
     if lst.is_nested:
-        fn_name = "list_list_append"
+        fn_name = "matrix_append"
     else:
         fn_name = "list_append"
 

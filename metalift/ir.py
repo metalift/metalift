@@ -1,15 +1,13 @@
 import re
 import typing
-from abc import abstractmethod
 from collections import Counter
 from enum import Enum
 from inspect import isclass
 from typing import Any, Callable, Dict, Generic
 from typing import List as pyList  # type: ignore
 from typing import Optional
-from typing import Set as pySet
 from typing import Tuple as pyTuple
-from typing import TypeVar, Union, _GenericAlias, cast, get_args, get_origin
+from typing import Type, TypeVar, Union, _GenericAlias, cast, get_args, get_origin
 
 from llvmlite.binding import TypeRef, ValueRef
 
@@ -19,10 +17,12 @@ class PrintMode(Enum):
     Rosette = 1
 
 
-ObjectT = typing.Type["Object"]
+ObjectT = Type["Object"]
 T = TypeVar("T")
 
 TAB = " " * 4
+
+PythonT = Union[Type, type]
 
 
 # Helper functions
@@ -371,40 +371,40 @@ class Expr:
             fn_name = expr.value()  # type: ignore
         if fn_name == "list_get":
             return "list-ref-noerr"
-        elif fn_name == "list_list_get":
-            return "list-list-ref-noerr"
+        elif fn_name == "matrix_get":
+            return "matrix-ref-noerr"
         elif fn_name == "list_append":
             return "list-append"
-        elif fn_name == "list_list_append":
-            return "list-list-append"
+        elif fn_name == "matrix_append":
+            return "matrix-append"
         elif fn_name == "list_empty":
             return "list-empty"
-        elif fn_name == "list_list_empty":
-            return "list-list-empty"
+        elif fn_name == "matrix_empty":
+            return "matrix-empty"
         elif fn_name == "list_tail":
             return "list-tail-noerr"
-        elif fn_name == "list_list_tail":
-            return "list-list-tail-noerr"
+        elif fn_name == "matrix_tail":
+            return "matrix-tail-noerr"
         elif fn_name == "list_length":
             return "length"
-        elif fn_name == "list_list_length":
-            return "list-list-length"
+        elif fn_name == "matrix_length":
+            return "matrix-length"
         elif fn_name == "list_take":
             return "list-take-noerr"
-        elif fn_name == "list_list_take":
-            return "list-list-take-noerr"
-        elif fn_name == "list_slice":
-            return "list-slice-noerr"
-        elif fn_name == "list_list_slice":
-            return "list-list-slice-noerr"
+        elif fn_name == "matrix_take":
+            return "matrix-take-noerr"
+        elif fn_name == "vec_slice":
+            return "vec-slice-noerr"
+        elif fn_name == "matrix_row_slice":
+            return "matrix-row-slice-noerr"
         elif fn_name == "list_slice_with_length":
             return "list-slice-with-length-noerr"
-        elif fn_name == "list_list_slice_with_length":
-            return "list-list-slice-with-length-noerr"
-        elif fn_name == "list_list_col_slice":
-            return "list-list-col-slice-noerr"
-        elif fn_name == "list_list_col_slice_with_length":
-            return "list-list-col-slice-with-length-noerr"
+        elif fn_name == "matrix_slice_with_length":
+            return "matrix-slice-with-length-noerr"
+        elif fn_name == "matrix_col_slice":
+            return "matrix-col-slice-noerr"
+        elif fn_name == "matrix_col_slice_with_length":
+            return "matrix-col-slice-with-length-noerr"
         elif fn_name == "matrix_transpose":
             list_type = expr.arguments()[0].type
             if is_nested_list_type(list_type) or is_matrix_type(list_type):
@@ -415,8 +415,8 @@ class Expr:
                 )
         elif fn_name == "list_prepend":
             return "list-prepend"
-        elif fn_name == "list_list_prepend":
-            return "list-list-prepend"
+        elif fn_name == "matrix_prepend":
+            return "matrix-prepend"
         elif fn_name == "list_eq":
             return "equal?"
         elif fn_name == "list_concat":
@@ -649,7 +649,13 @@ def create_object(
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
         contained_types = get_args(object_type)
-        return object_cls(*contained_types, value)  # type: ignore
+        if len(contained_types) != 1:
+            raise Exception("NYI: multiple contained types")
+
+        if object_cls is Fn:
+            return object_cls(get_args(contained_types[0]), value)  # type: ignore
+        else:
+            return object_cls(*contained_types, value)  # type: ignore
     else:
         return object_type(cast(Expr, value))
 
@@ -705,7 +711,7 @@ def call(
 
 def call_value(fn_decl: "Fn", *object_args: "Object") -> "Object":  # type: ignore
     call_value_expr = CallValue(fn_decl.src, *get_object_exprs(*object_args))
-    ret_type = fn_decl.return_type
+    ret_type = fn_decl.type.return_type(get_args(fn_decl.type))
     return create_object(ret_type, call_value_expr)
 
 
@@ -742,11 +748,11 @@ def make_tuple(*objects: Union["Object", Expr]) -> "Tuple":  # type: ignore
     return Tuple(obj_types, TupleExpr(*get_object_exprs(*objects)))  # type: ignore
 
 
-def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tuple"]:  # type: ignore
+def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> Type["Tuple"]:  # type: ignore
     return Tuple[typing.Tuple[containedT]]  # type: ignore
 
 
-def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
+def make_fn_type(*containedT: ObjectT) -> Type["Fn"]:  # type: ignore
     return Fn[typing.Tuple[containedT]]  # type: ignore
 
 
@@ -806,6 +812,14 @@ class Object:
         raise NotImplementedError()
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        raise NotImplementedError()
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        raise NotImplementedError()
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         raise NotImplementedError()
 
@@ -833,7 +847,7 @@ class Bool(Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Bool"]:
+    def type(self) -> Type["Bool"]:
         return Bool
 
     @staticmethod
@@ -868,6 +882,14 @@ class Bool(Object):
         return f"{self.src}"
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        return bool
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        return "bool"
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         return "Bool"
 
@@ -895,7 +917,7 @@ class Int(Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Int"]:
+    def type(self) -> Type["Int"]:
         return Int
 
     def maybe_relaxed(self, relaxed: bool = False) -> "Int":
@@ -908,7 +930,9 @@ class Int(Object):
         return Int(0)
 
     def binary_op(
-        self, other: Union["Int", int, "List", "Matrix"], op: Callable[[Expr, Expr], Expr]
+        self,
+        other: Union["Int", int, "List", "Matrix"],
+        op: Callable[[Expr, Expr], Expr],
     ) -> "Int":
         if isinstance(other, int):
             other = Int(other)
@@ -1003,6 +1027,14 @@ class Int(Object):
         return Bool(Le(self.src, other.src))
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        return int
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        return "int"
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         return "Int"
 
@@ -1033,7 +1065,7 @@ class List(Generic[T], Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["List"]:  # type: ignore
+    def type(self) -> Type["List"]:  # type: ignore
         return List[self.containedT]  # type: ignore
 
     @property
@@ -1045,7 +1077,7 @@ class List(Generic[T], Object):
         if is_primitive_type(containedT):
             fn_name = "list_empty"
         else:
-            fn_name = "list_list_empty"
+            fn_name = "matrix_empty"
         return List(containedT, Call(fn_name, List[containedT]))  # type: ignore
 
     @staticmethod
@@ -1057,7 +1089,7 @@ class List(Generic[T], Object):
 
     def len(self) -> Int:
         if self.is_nested:
-            fn_name = "list_list_length"
+            fn_name = "matrix_length"
         else:
             fn_name = "list_length"
         return Int(Call(fn_name, Int, self.src))
@@ -1071,7 +1103,7 @@ class List(Generic[T], Object):
                 if isinstance(start, int):
                     start = Int(start)
                 if self.is_nested:
-                    fn_name = "list_list_tail"
+                    fn_name = "matrix_tail"
                 else:
                     fn_name = "list_tail"
                 return call(fn_name, self.type, self, start)  # type: ignore
@@ -1079,7 +1111,7 @@ class List(Generic[T], Object):
                 if isinstance(stop, int):
                     stop = Int(stop)
                 if self.is_nested:
-                    fn_name = "list_list_take"
+                    fn_name = "matrix_take"
                 else:
                     fn_name = "list_take"
                 return call(fn_name, self.type, self, stop)  # type: ignore
@@ -1089,16 +1121,16 @@ class List(Generic[T], Object):
                 if isinstance(stop, int):
                     stop = Int(stop)
                 if self.is_nested:
-                    fn_name = "list_list_slice"
+                    fn_name = "matrix_row_slice"
                 else:
-                    fn_name = "list_slice"
+                    fn_name = "vec_slice"
                 return call(fn_name, self.type, self, start, stop)
             else:
                 raise NotImplementedError(
                     f"Slices with both start and stop indices specified are not implemented: {index}"
                 )
         if self.is_nested:
-            fn_name = "list_list_get"
+            fn_name = "matrix_get"
         else:
             fn_name = "list_get"
         return call(fn_name, self.containedT, self, index)
@@ -1119,7 +1151,7 @@ class List(Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
         if self.is_nested:
-            fn_name = "list_list_append"
+            fn_name = "matrix_append"
         else:
             fn_name = "list_append"
         self.src = call(fn_name, self.type, self, value).src
@@ -1132,7 +1164,7 @@ class List(Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
         if self.is_nested:
-            fn_name = "list_list_prepend"
+            fn_name = "matrix_prepend"
         else:
             fn_name = "list_prepend"
         self.src = call(fn_name, self.type, value, self).src
@@ -1146,7 +1178,7 @@ class List(Generic[T], Object):
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
         if self.is_nested:
-            fn_name = "list_list_slice_with_length"
+            fn_name = "matrix_slice_with_length"
         else:
             fn_name = "list_slice_with_length"
         return call(fn_name, self.type, self, start, lst_length)
@@ -1247,6 +1279,24 @@ class List(Generic[T], Object):
         return call("vec_elemwise_div", List[Int], first, second)
 
     @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return pyList[
+                {get_origin(contained_type).to_python_type(get_args(contained_type))}
+            ]
+        else:
+            return pyList[contained_type.to_python_type()]
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        contained_type = type_args[0]
+        if isinstance(contained_type, _GenericAlias):
+            return f"List[{get_origin(contained_type).to_python_type_str(get_args(contained_type))}]"  # type: ignore
+        else:
+            return f"List[{contained_type.to_python_type_str()}]"
+
+    @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
@@ -1285,12 +1335,12 @@ class Matrix(List[T], Generic[T], Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Matrix"]:  # type: ignore
+    def type(self) -> Type["Matrix"]:  # type: ignore
         return Matrix[self.elemT]  # type: ignore
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
-        return Matrix(containedT, Call("list_list_empty", Matrix[containedT]))  # type: ignore
+        return Matrix(containedT, Call("matrix_empty", Matrix[containedT]))  # type: ignore
 
     @staticmethod
     def default_value() -> "Matrix[Int]":
@@ -1300,7 +1350,7 @@ class Matrix(List[T], Generic[T], Object):
         raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
-        return Int(Call("list_list_length", Int, self.src))
+        return Int(Call("matrix_length", Int, self.src))
 
     def _check_type_for_numeric_op(
         first: Union["Matrix", Int, int], second: Union["Matrix", Int, int]
@@ -1389,7 +1439,7 @@ class Matrix(List[T], Generic[T], Object):
             raise TypeError(
                 f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
             )
-        self.src = Call("list_list_set", self.type, self.src, index.src, value.src)
+        self.src = Call("matrix_set", self.type, self.src, index.src, value.src)
 
     # in place append
     def append(self, value: Object) -> "Matrix":  # type: ignore
@@ -1398,7 +1448,7 @@ class Matrix(List[T], Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
 
-        self.src = call("list_list_append", self.type, self, value).src
+        self.src = call("matrix_append", self.type, self, value).src
         return self
 
     # in place prepend
@@ -1408,7 +1458,7 @@ class Matrix(List[T], Generic[T], Object):
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
 
-        self.src = call("list_list_prepend", self.type, value, self).src
+        self.src = call("matrix_prepend", self.type, value, self).src
         return self
 
     def col_slice(self, start: Union[int, Int], stop: Union[int, Int]) -> "Matrix":
@@ -1416,7 +1466,7 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(stop, int):
             stop = Int(stop)
-        return call("list_list_col_slice", self.type, self, start, stop)
+        return call("matrix_col_slice", self.type, self, start, stop)
 
     def col_slice_with_length(
         self, start: Union[int, Int], lst_length: Union[int, Int]
@@ -1425,15 +1475,13 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        return call(
-            "list_list_col_slice_with_length", self.type, self, start, lst_length
-        )
+        return call("matrix_col_slice_with_length", self.type, self, start, lst_length)
 
     def col_vec(self, col_index: Union[int, Int]) -> List[Int]:
         if isinstance(col_index, int):
             col_index = Int(col_index)
         return call(
-            "list_list_col_slice_with_length", self.type, self, col_index, Int(1)
+            "matrix_col_slice_with_length", self.type, self, col_index, Int(1)
         ).transpose()[0]
 
     def slice_with_length(
@@ -1443,7 +1491,7 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        return call("list_list_slice_with_length", self.type, self, start, lst_length)
+        return call("matrix_slice_with_length", self.type, self, start, lst_length)
 
     def transpose(self) -> "Matrix":
         # return self
@@ -1465,6 +1513,26 @@ class Matrix(List[T], Generic[T], Object):
 
     def __repr__(self) -> str:
         return f"{self.src}"
+
+    @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        elem_type = type_args[0]
+        contained_type = pyList[elem_type]
+        if isinstance(contained_type, _GenericAlias):
+            return pyList[
+                {get_origin(contained_type).to_python_type(get_args(contained_type))}
+            ]
+        else:
+            return pyList[{contained_type.to_python_type()}]
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        elem_type = type_args[0]
+        contained_type = List[elem_type]
+        if isinstance(contained_type, _GenericAlias):
+            return f"List[{get_origin(contained_type).to_python_type_str(get_args(contained_type))}]"  # type: ignore
+        else:
+            return f"List[{contained_type.to_python_type_str()}]"
 
     @staticmethod
     def toSMTType(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1504,7 +1572,7 @@ class Set(Generic[T], Object):
         Object.__init__(self, src)
 
     @property
-    def type(self) -> typing.Type["Set"]:  # type: ignore
+    def type(self) -> Type["Set"]:  # type: ignore
         return Set[self.containedT]  # type: ignore
 
     @staticmethod
@@ -1632,7 +1700,7 @@ class Tuple(Generic[TupleContainedT], Object):
         return f"(Tuple{tuple_length} {' '.join(contained_str_list)})"  # this would call List.toSMTType(Int) for instance
 
     @property
-    def type(self) -> typing.Type["Tuple"]:  # type: ignore
+    def type(self) -> Type["Tuple"]:  # type: ignore
         return Tuple[typing.Tuple[self.containedT]]  # type: ignore
 
     # TODO(jie): handle contained type
@@ -1659,16 +1727,14 @@ class Fn(Generic[FnContainedT], Object):
         containedT: typing.Tuple[Union[type, _GenericAlias]],
         value: Optional[Union["FnDeclRecursive", "FnDecl", str]] = None,
     ) -> None:
-        full_type = Fn[typing.Tuple[containedT]]  # type: ignore
-        self.return_type = containedT[0]
-        self.argument_types = containedT[1:]
+        self._full_type = Fn[typing.Tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
-            src = Var("v", full_type)
+            src = Var("v", self._full_type)
         elif isinstance(value, FnDecl) or isinstance(value, FnDeclRecursive):
             src = value
         elif isinstance(value, str):
-            src = Var(value, full_type)
+            src = Var(value, self._full_type)
         else:
             raise TypeError(f"Cannot create Fn from {value}")
         Object.__init__(self, src)
@@ -1680,6 +1746,43 @@ class Fn(Generic[FnContainedT], Object):
         elif isinstance(self.src, Var):
             return self.src.name()
         raise Exception("Unsupported source type for function objects!")
+
+    @property
+    def type(self) -> ObjectT:
+        return self._full_type
+
+    @staticmethod
+    def argument_types(
+        type_args: pyTuple[ObjectContainedT] = (),
+    ) -> pyTuple[ObjectContainedT]:
+        return get_args(type_args[0])[1:]
+
+    @staticmethod
+    def return_type(type_args: pyTuple[ObjectContainedT] = ()) -> ObjectContainedT:
+        return get_args(type_args[0])[0]
+
+    @staticmethod
+    def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
+        ret_and_arg_types = get_args(type_args[0])
+        ret_type, argument_types = ret_and_arg_types[0], ret_and_arg_types[1:]
+        ret_type = ret_type.to_python_type(get_args(ret_type))
+        argument_types = ", ".join(
+            [arg_type.to_python_type(get_args(arg_type)) for arg_type in argument_types]
+        )
+        return Callable[[argument_types], ret_type]
+
+    @staticmethod
+    def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
+        ret_and_arg_types = get_args(type_args[0])
+        ret_type, argument_types = ret_and_arg_types[0], ret_and_arg_types[1:]
+        ret_type_str = ret_type.to_python_type_str(get_args(ret_type))
+        argument_types_str = ", ".join(
+            [
+                arg_type.to_python_type_str(get_args(arg_type))
+                for arg_type in argument_types
+            ]
+        )
+        return f"Callable[[{argument_types_str}], {ret_type_str}]"
 
     @staticmethod
     def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
@@ -1826,7 +1929,7 @@ class Add(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return " + ".join([arg.to_python() for arg in self.args])
+        return f"{' + '.join([arg.to_python() for arg in self.args])}"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Add(self)
@@ -1854,7 +1957,7 @@ class Sub(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return f"{self.args[0].to_python()} - {self.args[1].to_python()}"
+        return f"({self.args[0].to_python()} - {self.args[1].to_python()})"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Sub(self)
@@ -1882,7 +1985,7 @@ class Mul(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return " * ".join([arg.to_python() for arg in self.args])
+        return f"{' * '.join([arg.to_python() for arg in self.args])}"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mul(self)
@@ -1908,7 +2011,7 @@ class Div(Expr):
         return Expr.toRosetteSimple(self, self.RosetteName)
 
     def to_python(self) -> str:
-        return f"{self.args[0].to_python()} // {self.args[1].to_python()}"
+        return f"({self.args[0].to_python()} // {self.args[1].to_python()})"
 
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
@@ -1940,7 +2043,7 @@ class Mod(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        return f"{self.args[0].to_python()} % {self.args[1].to_python()}"
+        return f"({self.args[0].to_python()} % {self.args[1].to_python()})"
 
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Mod(self)
@@ -2432,30 +2535,24 @@ class Call(Expr):
 
     def to_python(self) -> str:
         processed_args = [arg.to_python() for arg in self.arguments()]
-        if self.name() in {"list_length", "list_list_length"}:
+        if self.name() in {"list_length", "matrix_length"}:
             return f"len({processed_args[0]})"
-        elif self.name() in {"list_get", "list_list_get"}:
+        elif self.name() in {"list_get", "matrix_get"}:
             return f"{processed_args[0]}[{processed_args[1]}]"
-        elif self.name() in {"list_prepend", "list_list_prepend"}:
+        elif self.name() in {"list_prepend", "matrix_prepend"}:
             return f"[{processed_args[0]}, *{processed_args[1]}]"
-        elif self.name() in {"list_append", "list_list_append"}:
+        elif self.name() in {"list_append", "matrix_append"}:
             return f"[*{processed_args[0]}, {processed_args[1]}]"
-        elif self.name() in {"list_empty", "list_list_empty"}:
+        elif self.name() in {"list_empty", "matrix_empty"}:
             return "[]"
-        elif self.name() in {"list_tail", "list_list_tail"}:
+        elif self.name() in {"list_tail", "matrix_tail"}:
             return f"{processed_args[0]}[{processed_args[1]}:]"
-        elif self.name() in {"list_take", "list_list_take"}:
+        elif self.name() in {"list_take", "matrix_take"}:
             return f"{processed_args[0]}[:{processed_args[1]}]"
-        elif self.name() in {"list_slice", "list_list_slice"}:
+        elif self.name() in {"vec_slice", "matrix_row_slice"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
-        elif self.name() in {"list_slice_with_length", "list_list_slice_with_length"}:
+        elif self.name() in {"list_slice_with_length", "matrix_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"
-        elif self.name() == "reduce_max":
-            return f"max({processed_args[0]})"
-        elif self.name() == "reduce_sum":
-            return f"sum({processed_args[0]})"
-        elif self.name() == "reduce_mul":
-            return f"math.prod({processed_args[0]})"
         else:
             return f"{self.name()}({', '.join(processed_args)})"
 
@@ -2898,6 +2995,9 @@ class FnDeclRecursive(Expr):
         fn_type = make_fn_type(returnT, *arg_types)
         Expr.__init__(self, fn_type, [name, body, *args])
 
+    def set_name(self, name: str) -> None:
+        self.args[0] = name
+
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
@@ -2969,7 +3069,15 @@ class FnDeclRecursive(Expr):
             )
 
     def to_python(self) -> str:
-        fn_declaration = f"def {self.name()}({', '.join([a.to_python() for a in self.arguments()])}):"
+        arg_with_types: List[str] = []
+        for a in self.arguments():
+            arg_with_types.append(
+                f"{a.to_python()}: {a.type.to_python_type_str(get_args(a.type))}"
+            )
+        ret_python_type = self.returnT().to_python_type_str(get_args(self.returnT()))  # type: ignore
+        fn_declaration = (
+            f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
+        )
         body = self.body().to_python()
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
@@ -3127,7 +3235,15 @@ class FnDecl(Expr):
             )
 
     def to_python(self) -> str:
-        fn_declaration = f"def {self.name()}({', '.join([a.to_python() for a in self.arguments()])}):"
+        arg_with_types: List[str] = []
+        for a in self.arguments():
+            arg_with_types.append(
+                f"{a.to_python()}: {a.type.to_python_type_str(get_args(a.type))}"
+            )
+        ret_python_type = self.returnT().to_python_type_str(get_args(self.returnT()))  # type: ignore
+        fn_declaration = (
+            f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
+        )
         body = self.body().to_python()
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
