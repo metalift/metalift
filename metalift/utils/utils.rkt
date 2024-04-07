@@ -31,7 +31,7 @@
   (list-tail-noerr (list-take-noerr l end) start)
 )
 
-(define (list-slice-with-length-noerr l start lst_length)
+(define (vec-slice-with-length-noerr l start lst_length)
   (vec-slice-noerr l start (+ start lst_length))
 )
 
@@ -191,7 +191,7 @@
   (matrix-tail-noerr (matrix-take-noerr l end) start)
 )
 
-(define (matrix-slice-with-length-noerr l start lst_length)
+(define (matrix-row-slice-with-length-noerr l start lst_length)
   (matrix-row-slice-noerr l start (+ start lst_length))
 )
 

@@ -397,10 +397,10 @@ class Expr:
             return "vec-slice-noerr"
         elif fn_name == "matrix_row_slice":
             return "matrix-row-slice-noerr"
-        elif fn_name == "list_slice_with_length":
-            return "list-slice-with-length-noerr"
-        elif fn_name == "matrix_slice_with_length":
-            return "matrix-slice-with-length-noerr"
+        elif fn_name == "vec_slice_with_length":
+            return "vec-slice-with-length-noerr"
+        elif fn_name == "matrix_row_slice_with_length":
+            return "matrix-row-slice-with-length-noerr"
         elif fn_name == "matrix_col_slice":
             return "matrix-col-slice-noerr"
         elif fn_name == "matrix_col_slice_with_length":
@@ -1178,9 +1178,9 @@ class List(Generic[T], Object):
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
         if self.is_nested:
-            fn_name = "matrix_slice_with_length"
+            fn_name = "matrix_row_slice_with_length"
         else:
-            fn_name = "list_slice_with_length"
+            fn_name = "vec_slice_with_length"
         return call(fn_name, self.type, self, start, lst_length)
 
     # list concat that returns a new list
@@ -1491,7 +1491,7 @@ class Matrix(List[T], Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        return call("matrix_slice_with_length", self.type, self, start, lst_length)
+        return call("matrix_row_slice_with_length", self.type, self, start, lst_length)
 
     def transpose(self) -> "Matrix":
         # return self
@@ -2551,7 +2551,7 @@ class Call(Expr):
             return f"{processed_args[0]}[:{processed_args[1]}]"
         elif self.name() in {"vec_slice", "matrix_row_slice"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]"
-        elif self.name() in {"list_slice_with_length", "matrix_slice_with_length"}:
+        elif self.name() in {"vec_slice_with_length", "matrix_row_slice_with_length"}:
             return f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]}+{processed_args[2]}]"
         else:
             return f"{self.name()}({', '.join(processed_args)})"
