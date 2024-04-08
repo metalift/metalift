@@ -344,8 +344,8 @@ class Expr:
     def to_python(self) -> str:
         raise NotImplementedError
 
-    def accept(self, v: "Visitor[T]") -> T:
-        raise NotImplementedError("not implemented")
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     raise NotImplementedError("not implemented")
 
     @staticmethod
     def toSMTSimple(e: "Expr", name: str) -> str:
@@ -1841,8 +1841,8 @@ class Var(Expr):
     def to_python(self) -> str:
         return self.name()
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Var(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Var(self)
 
 
 # used in defining grammars
@@ -1856,8 +1856,8 @@ class NonTerm(Var):
         Var.__init__(self, name, t)
         self.isStart = isStart
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_NonTerm(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_NonTerm(self)
 
 
 class Pointer(Expr):
@@ -1893,8 +1893,8 @@ class Lit(Expr):
     def to_python(self) -> str:
         return str(self.val())
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Lit(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Lit(self)
 
 
 class ObjectExpr(Expr):
@@ -1909,8 +1909,8 @@ class ObjectExpr(Expr):
     def toSMT(self) -> str:
         raise Exception("NYI")
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Object(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Object(self)
 
 
 def IntLit(val: int) -> Expr:
@@ -1949,8 +1949,8 @@ class Add(Expr):
     def to_python(self) -> str:
         return f"{' + '.join([arg.to_python() for arg in self.args])}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Add(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Add(self)
 
 
 class Sub(Expr):
@@ -1977,8 +1977,8 @@ class Sub(Expr):
     def to_python(self) -> str:
         return f"({self.args[0].to_python()} - {self.args[1].to_python()})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Sub(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Sub(self)
 
 
 class Mul(Expr):
@@ -2005,8 +2005,8 @@ class Mul(Expr):
     def to_python(self) -> str:
         return f"{' * '.join([arg.to_python() for arg in self.args])}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Mul(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Mul(self)
 
 
 class Div(Expr):
@@ -2034,8 +2034,8 @@ class Div(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Div(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Div(self)
 
 
 class Mod(Expr):
@@ -2063,8 +2063,8 @@ class Mod(Expr):
     def to_python(self) -> str:
         return f"({self.args[0].to_python()} % {self.args[1].to_python()})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Mod(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Mod(self)
 
 
 class Eq(Expr):
@@ -2100,8 +2100,8 @@ class Eq(Expr):
         # TODO(jie): might need more handling for lists
         return f"{self.e1().to_python()} == {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Eq(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Eq(self)
 
 
 class Lt(Expr):
@@ -2131,8 +2131,8 @@ class Lt(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} < {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Lt(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Lt(self)
 
 
 class Le(Expr):
@@ -2162,8 +2162,8 @@ class Le(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} <= {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Le(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Le(self)
 
 
 class Gt(Expr):
@@ -2193,8 +2193,8 @@ class Gt(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} > {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Gt(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Gt(self)
 
 
 class Ge(Expr):
@@ -2224,8 +2224,8 @@ class Ge(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} >= {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Ge(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Ge(self)
 
 
 class And(Expr):
@@ -2251,8 +2251,8 @@ class And(Expr):
     def to_python(self) -> str:
         return " and ".join([arg.to_python() for arg in self.args])
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_And(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_And(self)
 
 
 class Or(Expr):
@@ -2279,8 +2279,8 @@ class Or(Expr):
     def to_python(self) -> str:
         return " or ".join([arg.to_python() for arg in self.args])
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Or(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Or(self)
 
 
 class Not(Expr):
@@ -2303,8 +2303,8 @@ class Not(Expr):
     def to_python(self) -> str:
         return f"not {self.args[0].to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Not(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Not(self)
 
 
 class Implies(Expr):
@@ -2325,8 +2325,8 @@ class Implies(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Implies(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Implies(self)
 
 
 class Ite(Expr):
@@ -2364,8 +2364,8 @@ class Ite(Expr):
     def to_python(self) -> str:
         return f"({self.e1().to_python()} if {self.c().to_python()} else {self.e2().to_python()})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Ite(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Ite(self)
 
 
 class Let(Expr):
@@ -2401,8 +2401,8 @@ class Let(Expr):
             self.args[2].toSMT(),
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Let(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Let(self)
 
 
 class Call(Expr):
@@ -2577,8 +2577,8 @@ class Call(Expr):
         else:
             return f"{self.name()}({', '.join(processed_args)})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Call(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Call(self)
 
 
 class CallValue(Expr):
@@ -2692,8 +2692,8 @@ class CallValue(Expr):
     def to_python(self) -> str:
         return f"{self.value().to_python()}({', '.join([arg.to_python() for arg in self.arguments()])})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_CallValue(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_CallValue(self)
 
 
 class Assert(Expr):
@@ -2716,8 +2716,8 @@ class Assert(Expr):
     def to_python(self) -> str:
         return f"assert {self.e().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Assert(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Assert(self)
 
 
 class Constraint(Expr):
@@ -2737,8 +2737,8 @@ class Constraint(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Constraint(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Constraint(self)
 
 
 ## tuple functions
@@ -2766,8 +2766,8 @@ class TupleExpr(Expr):
     def to_python(self) -> str:
         return f"({', '.join([arg.to_python() for arg in self.args])})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TupleExpr(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_TupleExpr(self)
 
 
 class TupleGet(Expr):
@@ -2799,8 +2799,8 @@ class TupleGet(Expr):
     def to_python(self) -> str:
         return f"{self.t().to_python()}[{self.i().to_python()}]"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TupleGet(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_TupleGet(self)
 
 
 class Axiom(Expr):
@@ -2827,8 +2827,8 @@ class Axiom(Expr):
         ]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Axiom(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Axiom(self)
 
 
 # the body of a synth-fun
@@ -2950,8 +2950,8 @@ class Synth(Expr):
             body,
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Synth(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Synth(self)
 
 
 class Choose(Expr):
@@ -2998,8 +2998,8 @@ class Choose(Expr):
     def chooseArbitrarily(self) -> "Expr":
         return self.args[0]  # type: ignore
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Choose(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Choose(self)
 
 
 class FnDeclRecursive(Expr):
@@ -3099,8 +3099,8 @@ class FnDeclRecursive(Expr):
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_FnDeclRecursive(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_FnDeclRecursive(self)
 
 
 class FnDefine(Expr):
@@ -3131,8 +3131,8 @@ class FnDefine(Expr):
             parse_type_ref_to_obj(self.type),
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_FnDefine(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_FnDefine(self)
 
 
 class Lambda(Expr):
@@ -3166,8 +3166,8 @@ class Lambda(Expr):
         # TODO(shadaj): extract during filtering assuming no captures
         raise Exception("Lambda not supported")
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Lambda(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Lambda(self)
 
 
 class FnDecl(Expr):
@@ -3270,8 +3270,8 @@ class FnDecl(Expr):
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_FnDecl(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_FnDecl(self)
 
 
 class TargetCall(Call):
@@ -3290,8 +3290,8 @@ class TargetCall(Call):
     def codegen(self) -> str:
         return self._codegen(*self.args[1:])  # type: ignore
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TargetCall(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_TargetCall(self)
 
 
 class Target(FnDecl):
@@ -3319,8 +3319,8 @@ class Target(FnDecl):
     def call(self, *args: Expr) -> Call:
         return TargetCall(self.name(), self.returnT(), self._codegen, *args)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Target(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Target(self)
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis
