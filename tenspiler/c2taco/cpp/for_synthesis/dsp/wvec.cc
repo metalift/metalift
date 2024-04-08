@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-vector<int> w_vec(vector<int> a, vector<int> b, int m, int n) {
+vector<int> wvec(vector<int> a, vector<int> b, int m, int n) {
     vector<int> out;
     for (int i = 0; i < n; ++i) {
         out.push_back(m * a[i] + b[i]);
