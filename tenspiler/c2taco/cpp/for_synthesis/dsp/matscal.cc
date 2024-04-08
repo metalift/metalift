@@ -13,5 +13,4 @@ vector<vector<int>> matscal(vector<vector<int>> mat, int val, int m, int n) {
     return out;
 }
 
-
 // matrix_scalar_mul(val, matrix_col_slice(matrix_row_slice(mat, 0, m), 0, n))
