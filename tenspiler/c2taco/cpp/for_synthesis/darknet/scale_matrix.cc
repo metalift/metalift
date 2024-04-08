@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-vector<vector<int>> scale_matrix_int(vector<vector<int>> m, int scale) {
+vector<vector<int>> scale_matrix(vector<vector<int>> m, int scale) {
     int i,j;
     vector<vector<int>> out;
     for (i = 0; i < m.size(); ++i) {
