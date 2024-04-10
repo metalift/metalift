@@ -10,6 +10,7 @@ vector<vector<int>> matmul_sca(vector<vector<int>> matA, int val, int m, int n) 
         }
         out.push_back(row_vec);
     }
+    return out;
 }
 
 // matrix_scalar_mul(val, matrix_col_slice(matrix_row_slice(0, m), 0, n))
