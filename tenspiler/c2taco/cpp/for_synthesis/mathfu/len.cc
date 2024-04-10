@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-int len_sq(vector<int> arr, int n) {
+int len(vector<int> arr, int n) {
     int l = 0;
     for (int i = 0; i < n; ++i) {
         l += arr[i] * arr[i];
