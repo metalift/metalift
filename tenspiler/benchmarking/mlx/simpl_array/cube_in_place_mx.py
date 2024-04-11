@@ -41,7 +41,7 @@ for _ in range(runs):
         b = mx.array(b, mx.int32)
         n, = b.shape
         start_time = time.perf_counter()
-        cube_in_place_mx(b, n)
+        mx.eval(cube_in_place_mx(b, n))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

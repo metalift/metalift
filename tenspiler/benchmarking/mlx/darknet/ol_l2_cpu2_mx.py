@@ -45,7 +45,7 @@ for _ in range(runs):
         n, = b.shape
 
         start_time = time.perf_counter()
-        ol_l2_cpu2_mx(n, b, a)
+        mx.eval(ol_l2_cpu2_mx(n, b, a))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

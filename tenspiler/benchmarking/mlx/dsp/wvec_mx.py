@@ -46,7 +46,7 @@ for _ in range(runs):
         v = int(rng.integers(low=0, high=np.iinfo(np.int32).max + 1))
 
         start_time = time.perf_counter()
-        wvec_mx(b, a, v, n)
+        mx.eval(wvec_mx(b, a, v, n))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

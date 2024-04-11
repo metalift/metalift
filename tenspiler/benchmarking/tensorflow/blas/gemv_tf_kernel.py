@@ -32,5 +32,32 @@ for _file in img_files:
     bases.append(img)
     actives.append(rnd)
 
+####### runner. need to manually update for each file ########  
+runs = 10
+times = []
+for _ in range(runs):
+    total_time = 0
+    for i in range(len(bases)):
+        a = actives[i].flatten().astype(np.int32)
+        b = bases[i].astype(np.int32)
+        
+        with tf.device('/GPU:0'):
+            b = tf.convert_to_tensor(b, np.int32)
+            a = tf.convert_to_tensor(a, np.int32)
+            
+            m, n = b.shape
+            a = a[:n]
+
+            start_time = time.perf_counter()
+            
+            res = gemv_tf(m, n, b, a)
+            end_time = time.perf_counter()
+
+        total_time += (end_time - start_time) * 1000
+
+    times.append(total_time)
+
+times = np.array(times)   
+
 print("gemv_tf_kernel")
 print(f"{np.average(times)} {np.std(times)}") 

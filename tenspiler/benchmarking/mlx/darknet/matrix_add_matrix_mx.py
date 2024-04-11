@@ -43,7 +43,7 @@ for _ in range(runs):
         b = mx.array(b, mx.int32)
         a = mx.array(a, mx.int32)
         start_time = time.perf_counter()
-        matrix_add_matrix_mx(b, a)
+        mx.eval(matrix_add_matrix_mx(b, a))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

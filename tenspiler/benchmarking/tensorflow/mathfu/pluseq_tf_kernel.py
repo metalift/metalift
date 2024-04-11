@@ -32,5 +32,31 @@ for _file in img_files:
     bases.append(img)
     actives.append(rnd)
 
+####### runner. need to manually update for each file ########  
+runs = 10
+times = []
+for _ in range(runs):
+    total_time = 0
+    for i in range(len(bases)):
+        b = bases[i].flatten().astype(np.int32)
+        a = actives[i].flatten().astype(np.int32)
+        
+        with tf.device('/GPU:0'):
+            b = tf.convert_to_tensor(b, np.int32)
+            a = tf.convert_to_tensor(a, np.int32)
+            
+            n, = b.shape
+            
+            start_time = time.perf_counter()
+            pluseq_tf(b, a, n)
+            
+            end_time = time.perf_counter()
+
+        total_time += (end_time - start_time) * 1000
+
+    times.append(total_time)
+
+times = np.array(times)   
+
 print("pluseq_tf_kernel")
 print(f"{np.average(times)} {np.std(times)}") 

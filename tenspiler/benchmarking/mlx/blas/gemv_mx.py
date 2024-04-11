@@ -45,7 +45,7 @@ for _ in range(runs):
         a = mx.array(a, mx.int32)
 
         start_time = time.perf_counter()
-        gemv_mx(M, N, b, a)
+        mx.eval(gemv_mx(M, N, b, a))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

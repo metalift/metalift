@@ -41,7 +41,7 @@ for _ in range(runs):
         b = mx.array(b, mx.int32)
         s = int(rng.integers(0, high=np.iinfo(np.int32).max + 1).astype(np.int32))
         start_time = time.perf_counter()
-        scale_matrix_mx(b, s)
+        mx.eval(scale_matrix_mx(b, s))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

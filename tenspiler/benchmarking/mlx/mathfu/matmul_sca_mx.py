@@ -43,7 +43,7 @@ for _ in range(runs):
         v = int(rng.integers(low=0, high=np.iinfo(np.int32).max + 1))
         
         start_time = time.perf_counter()
-        matmul_sca_mx(b, v, m, n)
+        mx.eval(matmul_sca_mx(b, v, m, n))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
