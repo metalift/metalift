@@ -45,7 +45,7 @@ for _ in range(runs):
         n, = b.shape
 
         start_time = time.perf_counter()
-        lmsfir1_mx(n, b, a)
+        mx.eval(lmsfir1_mx(n, b, a))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

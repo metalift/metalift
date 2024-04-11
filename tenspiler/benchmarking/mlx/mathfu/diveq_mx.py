@@ -46,7 +46,7 @@ for _ in range(runs):
         n, = b.shape
 
         start_time = time.perf_counter()
-        diveq_mx(b, a, n)
+        mx.eval(diveq_mx(b, a, n))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

@@ -47,7 +47,7 @@ for _ in range(runs):
             n = m
         
         start_time = time.perf_counter()
-        mat1x3_mx(n, b, a)
+        mx.eval(mat1x3_mx(n, b, a))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

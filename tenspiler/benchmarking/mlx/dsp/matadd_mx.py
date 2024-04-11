@@ -45,7 +45,7 @@ for _ in range(runs):
         m, n = b.shape
 
         start_time = time.perf_counter()
-        matadd_mx(b, a, m, n)
+        mx.eval(matadd_mx(b, a, m, n))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

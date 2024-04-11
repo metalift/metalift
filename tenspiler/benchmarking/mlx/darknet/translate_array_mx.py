@@ -42,7 +42,7 @@ for _ in range(runs):
         s = int(rng.integers(low=0, high=np.iinfo(np.int32).max + 1).astype(np.int32))
         n, = b.shape
         start_time = time.perf_counter()
-        translate_array_mx(b, n, s)
+        mx.eval(translate_array_mx(b, n, s))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

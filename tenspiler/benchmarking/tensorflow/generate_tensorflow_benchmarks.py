@@ -94,7 +94,7 @@ for _ in range(runs):
         rand_f = rng.integers(low=0, high=np.iinfo(np.int32).max + 1, size=b.shape, dtype=np.int32)
         s = rng.integers(low=0, high=np.iinfo(np.int32).max + 1).astype(np.int32)
 
-        with tf.device('/CPU:0'):
+        with tf.device('/GPU:0'):
             b = tf.convert_to_tensor(b, np.int32)
             a = tf.convert_to_tensor(a, np.int32)
             rand_f = tf.convert_to_tensor(rand_f, np.int32)
@@ -102,15 +102,9 @@ for _ in range(runs):
             n, = b.shape
             m, n = b.shape
 
-        with tf.device('/GPU:0'):
             start_time = time.perf_counter()
-
-            b = tf.identity(b)
-            a = tf.identity(a)
-            rand_f = tf.identity(rand_f)
-
-        with tf.device('/CPU:0'):
-            res = tf.identity(res)
+            
+            
             end_time = time.perf_counter()
 
         total_time += (end_time - start_time) * 1000
@@ -120,7 +114,7 @@ for _ in range(runs):
 times = np.array(times)   
 """
 
-    tensorflow_code_timing_kernel = tensorflow_code + setup_code + f"""
+    tensorflow_code_timing_kernel = tensorflow_code_timing + f"""
 print("{kernel_fn_name}")
 print(f"{{np.average(times)}} {{np.std(times)}}") 
 """
@@ -145,8 +139,8 @@ print(f"{{np.average(times)}} {{np.std(times)}}")
     with kernel_filepath.open('w') as file:
         file.write(tensorflow_code_timing_kernel)
 
-    with e2e_filepath.open('w') as file:
-        file.write(tensorflow_code_e2e_timing)    
+    # with e2e_filepath.open('w') as file:
+    #     file.write(tensorflow_code_e2e_timing)    
 
 
 

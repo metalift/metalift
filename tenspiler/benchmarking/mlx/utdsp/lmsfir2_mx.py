@@ -46,7 +46,7 @@ for _ in range(runs):
         v = int(rng.integers(low=0, high=np.iinfo(np.int32).max + 1))
 
         start_time = time.perf_counter()
-        lmsfir2_mx(n, b, a, v)
+        mx.eval(lmsfir2_mx(n, b, a, v))
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
