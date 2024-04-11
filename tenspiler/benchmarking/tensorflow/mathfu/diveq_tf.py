@@ -40,6 +40,7 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
+        a[a==0]=1
         
         with tf.device('/CPU:0'):
             b = tf.convert_to_tensor(b, np.int32)

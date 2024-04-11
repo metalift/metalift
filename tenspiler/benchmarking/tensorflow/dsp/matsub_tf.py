@@ -38,8 +38,8 @@ times = []
 for _ in range(runs):
     total_time = 0
     for i in range(len(bases)):
-        b = bases[i].flatten().astype(np.int32)
-        a = actives[i].flatten().astype(np.int32)
+        b = bases[i].astype(np.int32)
+        a = actives[i].astype(np.int32)
         
         with tf.device('/CPU:0'):
             b = tf.convert_to_tensor(b, np.int32)
