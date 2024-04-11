@@ -15,6 +15,7 @@ from metalift.ir import (
     Gt,
     Int,
     Le,
+    Ite,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -95,11 +96,11 @@ translations = {
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "vec_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
-    "list_list_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
+    "matrix_row_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_list_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
-    "list_list_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
+    "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size",
     "matrix_length": lambda processed_args: f"{processed_args[0]}.size",
     "matrix_transpose": lambda processed_args: f"np.transpose({processed_args[0]})",
@@ -140,15 +141,19 @@ translations = {
     else f"np.logical_or({processed_args[0]}, {processed_args[1]})",
 }
 
-
 def numpy_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
 ) -> str:
+    # print()
+    # print(all_synthesized_fns.values())
+    # exit(0)
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
+
         if not isinstance(expr, Expr):
             return str(expr), None
+        
         if isinstance(expr, Call):
             processed_args = [
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
@@ -198,7 +203,21 @@ def numpy_codegen(
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body())
+                
             raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants  
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+            
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace)
+            else:
+                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -238,18 +257,23 @@ def numpy_codegen(
             if expr.name() in vars_to_replace:
                 return helper(vars_to_replace[expr.name()], vars_to_replace)
             return expr.name(), expr.type
+
         return str(expr)
 
     ###############################
     # Begins actual code generation
     ###############################
-    print("####### import statements ########\n")
-    print("import numpy as np\n")
-    
+    import_stmt = """
+####### import statements ########
+import numpy as np
+"""
+    print(import_stmt)
+
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
     arguments_str = ", ".join(arguments)
     kernel_name = f"{fn_name}_np"
+
     print("####### kernel code ########")
     kernel_fn = f"""
     def {kernel_name} ({arguments_str}):
@@ -277,4 +301,7 @@ def numpy_codegen(
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
 
-    return 
+    return import_stmt + kernel_fn + glued_fn
+
+
+# numpy_codegen(driver.get_actual_ps_fn_decl(), driver.synthesized_fns)

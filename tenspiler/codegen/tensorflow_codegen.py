@@ -14,6 +14,7 @@ from metalift.ir import (
     Gt,
     Int,
     Le,
+    Ite,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -207,7 +208,21 @@ def tensorflow_codegen(
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body())
+                
             raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants  
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+            
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace)
+            else:
+                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -249,4 +264,46 @@ def tensorflow_codegen(
             return expr.name(), expr.type
         return str(expr)
 
-    return helper(ps_fn_decl.body())[0]
+    ###############################
+    # Begins actual code generation
+    ###############################
+    import_stmt = """
+####### import statements ########
+import tensorflow as tf
+"""
+    print(import_stmt)
+
+    fn_name = f"{ps_fn_decl.name()[:-3]}"
+    arguments = [arg.name() for arg in ps_fn_decl.arguments()]
+    arguments_str = ", ".join(arguments)
+    kernel_name = f"{fn_name}_tf"
+    print("####### kernel code ########")
+    kernel_fn = f"""
+    def {kernel_name}({arguments_str}):
+        return {helper(ps_fn_decl.body())[0]}
+    """
+    kernel_fn = textwrap.dedent(kernel_fn)
+    print(kernel_fn)
+
+    print("####### glued code ########")
+    glued_name = f"{fn_name}_tf_glued"
+    argument_types = [arg.type for arg in ps_fn_decl.arguments()]
+
+    conversions = []
+    for i in range(len(arguments)):
+        if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
+            lib_dtype = "tf.uint8" if d_type == DataType.INT else "tf.float32"
+            conversions.append(
+                f"{arguments[i]} = tf.convert_to_tensor({arguments[i]}, dtype={lib_dtype})"
+            )
+
+    arg_processing = f"\n{INDENTATION * 2}".join(conversions)
+    glued_fn = f"""
+    def {glued_name}({arguments_str}):
+        {arg_processing}
+        return {kernel_name}({arguments_str})
+    """
+    glued_fn = textwrap.dedent(glued_fn)
+    print(glued_fn)
+
+    return import_stmt + kernel_fn + glued_fn
