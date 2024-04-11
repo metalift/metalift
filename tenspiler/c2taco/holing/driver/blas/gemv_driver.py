@@ -50,11 +50,16 @@ def gemv_ps_grammar(
 ) -> Bool:
     y = writes[0]
     M, N, A, x = reads
-    matrix = ite(
-        is_matrix_outer_loop_index_first(), A[:M].col_slice(0, N), A[:N].col_slice(0, M)
+    matrix = choose(
+        ite(
+            is_matrix_outer_loop_index_first(),
+            A[:M].col_slice(0, N),
+            A[:N].col_slice(0, M),
+        )
     )
+
     matrix = choose(matrix, matrix.transpose())
-    vec = ite(is_vector_outer_loop_index(), x[:M], x[:N])
+    vec = choose(ite(is_vector_outer_loop_index(), x[:M], x[:N]))
     return y == call_matrix_vec_mul(matrix, vec)
 
 
@@ -63,10 +68,12 @@ def gemv_inv0_grammar(
 ) -> Bool:
     M, N, A, x = reads
     y, i, j, sum = writes
-    matrix = ite(
-        is_matrix_outer_loop_index_first(),
-        A[:i].col_slice(0, N),
-        A[:N].col_slice(0, i),
+    matrix = choose(
+        ite(
+            is_matrix_outer_loop_index_first(),
+            A[:i].col_slice(0, N),
+            A[:N].col_slice(0, i),
+        )
     )
     matrix = choose(matrix, matrix.transpose())
     vec = ite(is_vector_outer_loop_index(), x[:i], x[:N])
@@ -80,21 +87,27 @@ def gemv_inv1_grammar(
     j, sum = writes
     M, N, A, x = reads
     y, i = in_scope
-    outer_loop_matrix = ite(
-        is_matrix_outer_loop_index_first(),
-        A[:i].col_slice(0, N),
-        A[:N].col_slice(0, i),
+    outer_loop_matrix = choose(
+        ite(
+            is_matrix_outer_loop_index_first(),
+            A[:i].col_slice(0, N),
+            A[:N].col_slice(0, i),
+        )
     )
-    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
-    outer_loop_vec = ite(is_vector_outer_loop_index(), x[:i], x[:N])
 
-    inner_loop_A_vec = ite(
-        is_matrix_outer_loop_index_first(), A[i][:j], A[:j].col_vec(i)
+    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+    outer_loop_vec = choose(ite(is_vector_outer_loop_index(), x[:i], x[:N]))
+
+    inner_loop_A_vec = choose(
+        ite(is_matrix_outer_loop_index_first(), A[i][:j], A[:j].col_vec(i))
     )
-    inner_loop_vec_to_reduce = ite(
-        is_vector_outer_loop_index(),
-        call_vec_scalar_mul(x[i], inner_loop_A_vec),
-        call_vec_elemwise_mul(inner_loop_A_vec, x[:j]),
+
+    inner_loop_vec_to_reduce = choose(
+        ite(
+            is_vector_outer_loop_index(),
+            call_vec_scalar_mul(x[i], inner_loop_A_vec),
+            call_vec_elemwise_mul(inner_loop_A_vec, x[:j]),
+        )
     )
 
     return and_objects(
