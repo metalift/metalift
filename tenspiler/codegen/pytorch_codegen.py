@@ -15,6 +15,7 @@ from metalift.ir import (
     Gt,
     Int,
     Le,
+    Ite,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -115,11 +116,11 @@ translations = {
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "vec_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
-    "list_list_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
+    "matrix_row_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_list_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
-    "list_list_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
+    "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size(dim=0)",
     "list_list_length": lambda processed_args: f"{processed_args[0]}.size(dim=0)",
     "matrix_transpose": lambda processed_args: f"torch.transpose({processed_args[0]}, 0, 1)",
@@ -222,7 +223,21 @@ def pytorch_codegen(
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body())
+                
             raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants  
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+            
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace)
+            else:
+                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -267,8 +282,11 @@ def pytorch_codegen(
     ###############################
     # Begins actual code generation
     ###############################
-    print("####### import statements ########\n")
-    print("import torch\n")
+    import_stmt = """
+####### import statements ########
+import torch
+"""
+    print(import_stmt)
 
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
@@ -303,4 +321,4 @@ def pytorch_codegen(
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
 
-    return
+    return import_stmt + kernel_fn + glued_fn

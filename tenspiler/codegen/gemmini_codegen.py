@@ -25,7 +25,8 @@ from metalift.ir import (
     List as mlList,
     And,
     Or,
-    Matrix
+    Matrix,
+    Ite,
 )
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
@@ -223,6 +224,22 @@ def gemmini_codegen(
             elif fn_name == "list_take":
                 var_dimensions[curr_var] = [processed_args[1], processed_args[1]]
                 return res + translations[fn_name](processed_args, curr_var), expr.type
+
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body(), vars_to_replace, curr_var, var_dimensions)
+                
+            raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants  
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+            
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace, curr_var, var_dimensions)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace, curr_var, var_dimensions)
+            else:
+                return f"{helper(expr.e1(), vars_to_replace, curr_var, var_dimensions)[0]} if {cond} else {helper(expr.e2(), vars_to_replace, curr_var, var_dimensions)[0]}", expr.e1().type                
                 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace, "", var_dimensions) for arg in expr.args]
@@ -263,11 +280,14 @@ def gemmini_codegen(
     ###############################
     # Begins actual code generation
     ###############################
-    
-    print("####### include statements ########\n")
-    print("include \"include/gemmini_params.h\" \ninclude \"include/gemmini.h\"\n")
-    print("define LEN 200 //change as needed\n")
-    print("//note elem_t is defined in gemmini_params.h and is defaulted to int8_t\n")
+    import_stmt = """
+####### include statements ########
+include \"include/gemmini_params.h\" 
+include \"include/gemmini.h\"
+define LEN 200 //change as needed
+//note elem_t is defined in gemmini_params.h and is defaulted to int8_t
+"""
+    print(import_stmt)
     
     result_var = "out"
 
@@ -371,6 +391,6 @@ def gemmini_codegen(
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
 
-    return 
+    return import_stmt + kernel_fn + glued_fn
 
 
