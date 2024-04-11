@@ -204,7 +204,7 @@ def tensorflow_codegen(
                     "matrix_length",
                 }:
                     return (
-                        translations[fn_name](processed_args, d_type == DataType.INT),
+                        translations[fn_name](processed_args, d_type != DataType.FLOAT),
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
@@ -292,7 +292,13 @@ import tensorflow as tf
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "tf.uint8" if d_type == DataType.INT else "tf.float32"
+            lib_dtype = "tf.uint8" 
+            if d_type == DataType.FLOAT:
+                lib_dtype = "tf.float32"
+
+            if d_type == DataType.FULL_INT:
+                lib_dtype = "tf.int32"     
+
             conversions.append(
                 f"{arguments[i]} = tf.convert_to_tensor({arguments[i]}, dtype={lib_dtype})"
             )

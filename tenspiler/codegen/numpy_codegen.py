@@ -89,16 +89,16 @@ translations = {
     "list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
     "matrix_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
     "list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
-    "matrix_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "matrix_prepand": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
     "list_concat": lambda processed_args: f"np.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "matrix_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
-    "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+    "matrix_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "vec_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "matrix_row_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_row_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
     "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size",
@@ -146,9 +146,6 @@ def numpy_codegen(
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
 ) -> str:
-    # print()
-    # print(all_synthesized_fns.values())
-    # exit(0)
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
 
         if not isinstance(expr, Expr):
@@ -199,7 +196,7 @@ def numpy_codegen(
                     MATRIX_SCALAR_DIV,
                 }:
                     return (
-                        translations[fn_name](processed_args, d_type == DataType.INT),
+                        translations[fn_name](processed_args, d_type != DataType.FLOAT),
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
@@ -289,8 +286,16 @@ import numpy as np
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "np.uint8" if d_type == DataType.INT else "np.float32"
-            conversions.append(f"{arguments[i]} = np.array({arguments[i]}).astype({lib_dtype})")
+            lib_dtype = "np.uint8" 
+            if d_type == DataType.FLOAT:
+                lib_dtype = "np.float32"
+
+            if d_type == DataType.FULL_INT:
+                lib_dtype = "np.int32"    
+            
+            conversions.append(
+                f"{arguments[i]} = np.array({arguments[i]}).astype({lib_dtype})"
+            )
 
     arg_processing = f"\n{INDENTATION * 2}".join(conversions)
     glued_fn = f"""

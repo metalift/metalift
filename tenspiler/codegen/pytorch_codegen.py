@@ -109,16 +109,16 @@ translations = {
     "list_append": lambda processed_args: f"torch.cat([{processed_args[0]}, {processed_args[1]}.unsqueeze(0)], dim=0)",
     "matrix_append": lambda processed_args: f"torch.cat([{processed_args[0]}, {processed_args[1]}.unsqueeze(0)], dim=0)",
     "list_prepend": lambda processed_args: f"torch.cat([{processed_args[1].unsqueeze(0)}, {processed_args[0]}], dim=0)",
-    "matrix_prepend": lambda processed_args: f"torch.cat([{processed_args[1].unsqueeze(0)}, {processed_args[0]}], dim=0)",
+    "matrix_prepand": lambda processed_args: f"torch.cat([{processed_args[1].unsqueeze(0)}, {processed_args[0]}], dim=0)",
     "list_concat": lambda processed_args: f"torch.cat([{processed_args[0]}, {processed_args[1]}], dim=0)",
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "matrix_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
-    "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+    "matrix_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "vec_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "matrix_row_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_row_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
     "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size(dim=0)",
@@ -171,7 +171,9 @@ def pytorch_codegen(
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
 ) -> str:
+    has_matmul=False
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
+        nonlocal has_matmul
         if not isinstance(expr, Expr):
             return str(expr), None
         if isinstance(expr, Call):
@@ -179,6 +181,10 @@ def pytorch_codegen(
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
             ]
             fn_name = expr.name()
+
+            if fn_name == "matrix_vec_mul":
+                has_matmul = True
+                
             if fn_name.endswith("matrix_selection_two_args"):
                 for name, fn in all_synthesized_fns.items():
                     if name.endswith("select_two_args"):
@@ -219,7 +225,7 @@ def pytorch_codegen(
                     MATRIX_SCALAR_DIV,
                 }:
                     return (
-                        translations[fn_name](processed_args, d_type == DataType.INT),
+                        translations[fn_name](processed_args, d_type != DataType.FLOAT),
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
@@ -307,8 +313,20 @@ import torch
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "torch.uint8" if d_type == DataType.INT else "torch.float32"
-            conversions.append(f"{arguments[i]} = torch.tensor({arguments[i]}, dtype={lib_dtype})")
+            lib_dtype = "torch.uint8" 
+            if d_type == DataType.FLOAT:
+                lib_dtype = "torch.float32"
+
+            if d_type == DataType.FULL_INT:
+                lib_dtype = "torch.int32"     
+
+            # matmul require float
+            if has_matmul:
+                lib_dtype = "torch.float32"
+
+            conversions.append(
+                f"{arguments[i]} = torch.tensor({arguments[i]}, dtype={lib_dtype})"
+            )
 
     arg_processing = f"\n{INDENTATION * 2}".join(conversions)
     glued_fn = f"""

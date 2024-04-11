@@ -250,7 +250,7 @@ def gemmini_codegen(
             ret_type = Int if is_arg_type_int else [a_type for a_type in processed_args_types if a_type is not Int and a_type is not None][0]
             if ret_type != Int:
                 raise Exception(f"Arithmatic of non-integer type")
-            if isinstance(expr, Div) and d_type == DataType.FLOAT:
+            if isinstance(expr, Div) and d_type != DataType.FLOAT:
                 return translations["float_div"](processed_args), ret_type
             return translations[type(expr)](processed_args), ret_type 
         # Relational operations
@@ -325,7 +325,14 @@ define LEN 200 //change as needed
     glued_name = f"{fn_name}_gemmini_glued "
 
     #C glue function parameters
-    lib_dtype = "int8_t" if d_type == DataType.INT else "float"
+    lib_dtype = "int8_t" 
+
+    if d_type == DataType.FLOAT:
+        lib_dtype = "float"
+
+    if d_type == DataType.FULL_INT:
+        lib_dtype = "int"     
+
     var_str_c = []
     for i in range(len(arguments)):
         var_str_c.append(c_type_helper(argument_types[i], arguments[i], lib_dtype))
