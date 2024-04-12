@@ -61,24 +61,20 @@
  (define-bounded (reduce_mul x)
 (if (< (length x ) 1 ) 1 (* (list-ref-noerr x 0 ) (reduce_mul (list-tail-noerr x 1 )) ) ))
 
-(define-grammar (array_sum_inv0_gram arr i n sum)
- [rv (choose (&& (&& (>= i (v0) ) (<= i (v1) ) ) (equal? sum (v2) ) ))]
-[v0 (choose 0 (- 0 1 ) (+ 0 1 ))]
-[v1 (choose n (- n 1 ) (+ n 1 ))]
-[v2 (choose (reduce_sum (v3)) (reduce_mul (v3)) (reduce_max (v3)))]
-[v3 (choose (vec-slice-noerr arr (v4) (v4) ))]
-[v4 (choose (v5))]
-[v5 (choose (v6) (- (v6) 1 ) (+ (v6) 1 ))]
-[v6 (choose 0 n i)]
-)
-
-(define-grammar (array_sum_ps_gram arr n array_sum_rv)
- [rv (choose (equal? array_sum_rv (v0) ))]
+(define-grammar (sum_elts_inv0_gram arr i n sum)
+ [rv (choose (&& (&& (>= i 0 ) (<= i n ) ) (equal? sum (v0) ) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (vec-slice-noerr arr (v2) (v2) ))]
 [v2 (choose (v3))]
-[v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
-[v4 (choose 0 n)]
+[v3 (choose 0 n i)]
+)
+
+(define-grammar (sum_elts_ps_gram arr n sum_elts_rv)
+ [rv (choose (equal? sum_elts_rv (v0) ))]
+[v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
+[v1 (choose (vec-slice-noerr arr (v2) (v2) ))]
+[v2 (choose (v3))]
+[v3 (choose 0 n)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
@@ -86,8 +82,8 @@
 [v0 (choose (integer-exp-noerr int_x ) (integer-sqrt-noerr int_x ))]
 )
 
-(define (array_sum_inv0 arr i n sum) (array_sum_inv0_gram arr i n sum #:depth 10))
-(define (array_sum_ps arr n array_sum_rv) (array_sum_ps_gram arr n array_sum_rv #:depth 10))
+(define (sum_elts_inv0 arr i n sum) (sum_elts_inv0_gram arr i n sum #:depth 10))
+(define (sum_elts_ps arr n sum_elts_rv) (sum_elts_ps_gram arr n sum_elts_rv #:depth 10))
 
 (define (map_int_to_int int_x) (map_int_to_int_gram int_x #:depth 10))
 
@@ -96,18 +92,18 @@
 (define-symbolic arr_BOUNDEDSET-1 integer?)
 (define-symbolic arr_BOUNDEDSET-2 integer?)
 (define arr (take (list arr_BOUNDEDSET-0 arr_BOUNDEDSET-1 arr_BOUNDEDSET-2) arr_BOUNDEDSET-len))
-(define-symbolic array_sum_rv integer?)
 (define-symbolic i integer?)
 (define-symbolic n integer?)
 (define-symbolic sum integer?)
+(define-symbolic sum_elts_rv integer?)
 (current-bitwidth 6)
 (define (assertions)
- (assert (&& (&& (=> (&& (&& (>= n 1 ) (> (length arr ) 0 ) ) (>= (length arr ) n ) ) (array_sum_inv0 arr 0 n 0) ) (=> (&& (&& (&& (&& (< i n ) (>= n 1 ) ) (> (length arr ) 0 ) ) (>= (length arr ) n ) ) (array_sum_inv0 arr i n sum) ) (array_sum_inv0 arr (+ i 1 ) n (+ sum (list-ref-noerr arr i ) )) ) ) (=> (&& (&& (&& (&& (! (< i n ) ) (>= n 1 ) ) (> (length arr ) 0 ) ) (>= (length arr ) n ) ) (array_sum_inv0 arr i n sum) ) (array_sum_ps arr n sum) ) )))
+ (assert (&& (&& (=> (&& (&& (>= n 1 ) (> (length arr ) 0 ) ) (>= (length arr ) n ) ) (sum_elts_inv0 arr 0 n 0) ) (=> (&& (&& (&& (&& (< i n ) (>= n 1 ) ) (> (length arr ) 0 ) ) (>= (length arr ) n ) ) (sum_elts_inv0 arr i n sum) ) (sum_elts_inv0 arr (+ i 1 ) n (+ sum (list-ref-noerr arr i ) )) ) ) (=> (&& (&& (&& (&& (! (< i n ) ) (>= n 1 ) ) (> (length arr ) 0 ) ) (>= (length arr ) n ) ) (sum_elts_inv0 arr i n sum) ) (sum_elts_ps arr n sum) ) )))
 
 
     (define sol0
         (synthesize
-            #:forall (list arr_BOUNDEDSET-len arr_BOUNDEDSET-0 arr_BOUNDEDSET-1 arr_BOUNDEDSET-2 array_sum_rv i n sum)
+            #:forall (list arr_BOUNDEDSET-len arr_BOUNDEDSET-0 arr_BOUNDEDSET-1 arr_BOUNDEDSET-2 i n sum sum_elts_rv)
             #:guarantee (assertions)
         )
     )
