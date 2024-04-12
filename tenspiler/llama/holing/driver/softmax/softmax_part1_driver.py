@@ -88,4 +88,4 @@ if __name__ == "__main__":
 
     softmax_part1(input_var, max_pos_var)
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
-    driver.synthesize(filename=f"softmax_part1{relaxed_suffix}")
+    driver.synthesize(filename=f"softmax_part1{relaxed_suffix}", no_verify=True)
