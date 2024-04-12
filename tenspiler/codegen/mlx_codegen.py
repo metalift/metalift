@@ -15,6 +15,7 @@ from metalift.ir import (
     Gt,
     Int,
     Le,
+    Ite,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -82,26 +83,26 @@ translations = {
     "matrix_vec_mul": lambda processed_args: f"mx.matmul({processed_args[0]}, {processed_args[1]})",
     "list_eq": lambda processed_args: f"mx.equal({processed_args[0]}, {processed_args[1]})",
     "list_empty": lambda processed_args: f"mx.zeros((0))",
-    "list_list_empty": lambda processed_args: f"mx.zeros([0, 0])",
+    "matrix_empty": lambda processed_args: f"mx.zeros([0, 0])",
     "list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
-    "list_list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
+    "matrix_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
     "list_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
-    "list_list_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "matrix_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
     "list_prepend": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
-    "list_list_prepend": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "matrix_prepand": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
     "list_concat": lambda processed_args: f"mx.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
-    "list_list_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
+    "matrix_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
-    "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+    "matrix_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "vec_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
-    "list_list_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
+    "matrix_row_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_list_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
-    "list_list_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_row_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
+    "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size",
-    "list_list_length": lambda processed_args: f"{processed_args[0]}.size",
+    "matrix_length": lambda processed_args: f"{processed_args[0]}.size",
     "matrix_transpose": lambda processed_args: f"mx.transpose({processed_args[0]})",
     "reduce_max": lambda processed_args: f"mx.max({processed_args[0]})",
     "reduce_sum": lambda processed_args: f"mx.sum({processed_args[0]})",
@@ -198,11 +199,25 @@ def mlx_codegen(
                     MATRIX_SCALAR_DIV,
                 }:
                     return (
-                        translations[fn_name](processed_args, d_type == DataType.INT),
+                        translations[fn_name](processed_args, d_type != DataType.INT),
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body())
+                
             raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants  
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+            
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace)
+            else:
+                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -247,8 +262,11 @@ def mlx_codegen(
     ###############################
     # Begins actual code generation
     ###############################
-    print("####### import statements ########\n")
-    print("import mlx.core as mx\n")
+    import_stmt = """
+####### import statements ########
+import mlx.core as mx
+"""
+    print(import_stmt)
 
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
@@ -269,7 +287,13 @@ def mlx_codegen(
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "mx.uint8" if d_type == DataType.INT else "mx.float32"
+            lib_dtype = "mx.uint8" 
+            if d_type == DataType.FLOAT:
+                lib_dtype = "mx.float32"
+
+            if d_type == DataType.FULL_INT:
+                lib_dtype = "mx.int32"     
+
             conversions.append(
                 f"{arguments[i]} = mx.array({arguments[i]}, {lib_dtype})"
             )
@@ -283,4 +307,4 @@ def mlx_codegen(
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
 
-    return
+    return import_stmt + kernel_fn + glued_fn
