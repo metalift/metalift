@@ -9,6 +9,7 @@ from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
+    get_int_expr_eq_or_below_depth,
     get_map_int_to_int_synth,
     get_matrix_or_vec_expr_eq_or_below_depth,
     scalar_vec_to_vec_target_lang,
@@ -36,10 +37,11 @@ def ps_grammar(
     a, b, n = reads
     sum = writes[0]
     vec = choose(a, b)
-    slice_index = choose(Int(0), Int(1), n).maybe_relaxed(parser_args.relaxed)
+    int_var = choose(Int(0), n).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = choose(vec[slice_index:slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
-        matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+        matrix_or_vec_var=vec, int_var=int_var, depth=parser_args.depth
     )
     return sum == vec_to_int(vec)
 
@@ -50,10 +52,11 @@ def inv_grammar(
     a, b, n = reads
     i, sum = writes
     vec = choose(a, b)
-    slice_index = choose(Int(0), Int(1), n, i).maybe_relaxed(parser_args.relaxed)
+    int_var = choose(Int(0), n, i).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
     vec = choose(vec[slice_index:slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
-        matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+        matrix_or_vec_var=vec, int_var=int_var, depth=parser_args.depth
     )
     lower_bound, upper_bound = Int(0), n
     return and_objects(

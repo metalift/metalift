@@ -35,15 +35,15 @@ def gemv_ps_grammar(
 ) -> Bool:
     y = writes[0]
     M, N, A, x = reads
-    slice_index = choose(Int(0), Int(1), M, N).maybe_relaxed(parser_args.relaxed)
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
+    int_var = choose(Int(0), M, N).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
 
     matrix = choose(A[slice_index:slice_index].col_slice(slice_index, slice_index))
     matrix = choose(matrix, matrix.transpose())
     vec = choose(x[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
-        int_vars=[Int(0), Int(1)],
+        int_var=int_var,
         depth=parser_args.depth,
         additional_matrix=matrix,
     )
@@ -60,14 +60,14 @@ def gemv_inv0_grammar(
     outer_loop_upper_bound = M
 
     int_var = choose(Int(0), M, N, i).maybe_relaxed(parser_args.relaxed)
-    int_expr = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
 
-    matrix = choose(A[int_expr:int_expr].col_slice(int_expr, int_expr))
+    matrix = choose(A[slice_index:slice_index].col_slice(slice_index, slice_index))
     matrix = choose(matrix, matrix.transpose())
-    vec = choose(x[int_expr:int_expr], matrix[int_expr])
+    vec = choose(x[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
-        int_vars=int_var,
+        int_var=int_var,
         depth=parser_args.depth,
         additional_matrix=matrix,
     )
@@ -90,15 +90,15 @@ def gemv_inv1_grammar(
     inner_loop_lower_bound = Int(0)
     inner_loop_upper_bound = N
 
-    slice_index = choose(Int(0), M, N, i, j).maybe_relaxed(parser_args.relaxed)
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
+    int_var = choose(Int(0), M, N, i, j).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
 
     matrix = A[slice_index:slice_index].col_slice(slice_index, slice_index)
     matrix = choose(matrix, matrix.transpose())
     vec = choose(x[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
-        int_vars=[Int(0), Int(1)],
+        int_var=int_var,
         depth=parser_args.depth,
         additional_matrix=matrix,
     )

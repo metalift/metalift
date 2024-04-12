@@ -8,35 +8,35 @@
 
 
  (define-bounded (vec_elemwise_add x y)
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
 
 
  (define-bounded (vec_elemwise_sub x y)
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_sub (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_sub (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
 
 
  (define-bounded (vec_elemwise_mul x y)
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
 
 
  (define-bounded (vec_elemwise_div x y)
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_div (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_div (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
 
 
  (define-bounded (vec_scalar_add a x)
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (+ a (list-ref-noerr x 0 ) ) (vec_scalar_add a (list-tail-noerr x 1 )) ) ))
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (+ a (list-ref-noerr x 0 ) ) (vec_scalar_add a (list-tail-noerr x 1 ) ) ) ))
 
 
  (define-bounded (vec_scalar_sub a x)
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) a ) (vec_scalar_sub a (list-tail-noerr x 1 )) ) ))
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) a ) (vec_scalar_sub a (list-tail-noerr x 1 ) ) ) ))
 
 
  (define-bounded (vec_scalar_mul a x)
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 )) ) ))
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 ) ) ) ))
 
 
  (define-bounded (vec_scalar_div a x)
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) a ) (vec_scalar_div a (list-tail-noerr x 1 )) ) ))
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) a ) (vec_scalar_div a (list-tail-noerr x 1 ) ) ) ))
 
 
  (define-bounded (scalar_vec_sub a x)
@@ -60,7 +60,7 @@
 
 
  (define-bounded (vec_map x map_int_to_int)
-(if (< (length x ) 1 ) (list-empty ) (list-prepend (map_int_to_int (list-ref-noerr x 0 )) (vec_map (list-tail-noerr x 1 ) map_int_to_int) ) ))
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (map_int_to_int (list-ref-noerr x 0 )) (vec_map (list-tail-noerr x 1 ) map_int_to_int ) ) ))
 
 
  (define (vec_slice lst start end)
@@ -72,20 +72,22 @@
 [v1 (choose n (- n 1 ) (+ n 1 ))]
 [v2 (choose (reduce_sum (v3)) (reduce_mul (v3)) (reduce_max (v3)))]
 [v3 (choose (v4))]
-[v4 (choose (vec_slice (v5) (v6) (v6)))]
+[v4 (choose (vec-slice-noerr (v5) (v6) (v6) ))]
 [v5 (choose a b)]
-[v6 (choose (v7) (- (v7) 1 ) (+ (v7) 1 ))]
-[v7 (choose 0 1 n i)]
+[v6 (choose (v7))]
+[v7 (choose (v8) (- (v8) 1 ) (+ (v8) 1 ))]
+[v8 (choose 0 n i)]
 )
 
 (define-grammar (dot_ps_gram a b n dot_rv)
  [rv (choose (equal? dot_rv (v0) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
 [v1 (choose (v2))]
-[v2 (choose (vec_slice (v3) (v4) (v4)))]
+[v2 (choose (vec-slice-noerr (v3) (v4) (v4) ))]
 [v3 (choose a b)]
-[v4 (choose (v5) (- (v5) 1 ) (+ (v5) 1 ))]
-[v5 (choose 0 1 n)]
+[v4 (choose (v5))]
+[v5 (choose (v6) (- (v6) 1 ) (+ (v6) 1 ))]
+[v6 (choose 0 n)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
