@@ -1191,9 +1191,10 @@ def get_matrix_computation_general_search_space(
         base, active = reads
         lower_bound = Int(0)
         upper_bound = base.len()
-        slice_index = choose(lower_bound, upper_bound, row, *int_vars).maybe_relaxed(
+        int_var = choose(lower_bound, upper_bound, row, *int_vars).maybe_relaxed(
             relaxed
         )
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = choose(base, active)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
@@ -1202,7 +1203,7 @@ def get_matrix_computation_general_search_space(
             row <= upper_bound.maybe_relaxed(relaxed),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
+                matrix_or_vec_var=matrix, int_var=int_var, depth=depth
             ),
         )
 
@@ -1216,9 +1217,10 @@ def get_matrix_computation_general_search_space(
         outer_loop_upper_bound = base.len()
         inner_loop_lower_bound = Int(0)
         inner_loop_upper_bound = base[0].len()
-        slice_index = choose(
+        int_var = choose(
             Int(0), base.len(), base[0].len(), row, col, *int_vars
         ).maybe_relaxed(relaxed)
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = choose(base, active)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
@@ -1231,13 +1233,13 @@ def get_matrix_computation_general_search_space(
             row_vec
             == get_matrix_or_vec_expr_eq_or_below_depth(
                 matrix_or_vec_var=vec,
-                int_vars=int_vars,
+                int_var=int_var,
                 depth=depth,
                 additional_matrix=matrix,
             ),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
+                matrix_or_vec_var=matrix, int_var=int_var, depth=depth
             ),
         )
 
@@ -1247,13 +1249,14 @@ def get_matrix_computation_general_search_space(
         ret_val = writes[0]
         base, active = reads
         matrix = choose(base, active)
-        slice_index = choose(
-            Int(0), base.len(), base[0].len(), *int_vars
-        ).maybe_relaxed(relaxed)
+        int_var = choose(Int(0), base.len(), base[0].len(), *int_vars).maybe_relaxed(
+            relaxed
+        )
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
-            matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
+            matrix_or_vec_var=matrix, int_var=int_var, depth=depth
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
@@ -1868,7 +1871,7 @@ def get_dissolve_general_search_space(
 
 def get_matrix_or_vec_expr_with_depth(
     matrix_or_vec_var: MatrixOrVecT,
-    int_vars: List[Int],
+    int_var: Int,
     depth: int,
     depth_to_expr: Dict[int, Any],
     additional_matrix: Optional[Matrix[Int]] = None,
@@ -1881,7 +1884,7 @@ def get_matrix_or_vec_expr_with_depth(
     expr_choices: List[Any] = []
     depth_minus_one_expr = get_matrix_or_vec_expr_with_depth(
         matrix_or_vec_var=matrix_or_vec_var,
-        int_vars=int_vars,
+        int_var=int_var,
         depth=depth - 1,
         depth_to_expr=depth_to_expr,
         additional_matrix=additional_matrix,
@@ -1891,7 +1894,7 @@ def get_matrix_or_vec_expr_with_depth(
     for other_depth in range(depth):
         other_expr = get_matrix_or_vec_expr_with_depth(
             matrix_or_vec_var=matrix_or_vec_var,
-            int_vars=int_vars,
+            int_var=int_var,
             depth=other_depth,
             depth_to_expr=depth_to_expr,
             additional_matrix=additional_matrix,
@@ -1900,14 +1903,14 @@ def get_matrix_or_vec_expr_with_depth(
         expr_choices.append(call_elemwise_sub(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_mul(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_div(depth_minus_one_expr, other_expr))
-        if len(int_vars) > 0:
-            scalar = get_int_expr_with_depth(choose(*int_vars), other_depth, {})
-            expr_choices.append(call_scalar_add(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_sub(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_mul(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_div(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_rsub(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_rdiv(scalar, depth_minus_one_expr))
+
+        scalar = get_int_expr_with_depth(int_var, other_depth, {})
+        expr_choices.append(call_scalar_add(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_sub(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_mul(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_div(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_rsub(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_rdiv(scalar, depth_minus_one_expr))
         if additional_matrix is not None and not matrix_or_vec_var.is_nested:
             expr_choices.append(
                 call_matrix_vec_mul(additional_matrix, depth_minus_one_expr)
@@ -1916,7 +1919,7 @@ def get_matrix_or_vec_expr_with_depth(
         if other_depth != depth - 1:
             expr_choices.append(call_elemwise_sub(other_expr, depth_minus_one_expr))
             expr_choices.append(call_elemwise_div(other_expr, depth_minus_one_expr))
-            scalar = get_int_expr_with_depth(choose(*int_vars), depth - 1, {})
+            scalar = get_int_expr_with_depth(int_var, depth - 1, {})
             expr_choices.append(call_scalar_add(scalar, other_expr))
             expr_choices.append(call_scalar_sub(scalar, other_expr))
             expr_choices.append(call_scalar_mul(scalar, other_expr))
@@ -1929,14 +1932,14 @@ def get_matrix_or_vec_expr_with_depth(
 
 def get_matrix_or_vec_expr_eq_or_below_depth(
     matrix_or_vec_var: MatrixOrVecT,
-    int_vars: List[Int],
+    int_var: Int,
     depth: int,
     additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
     if depth >= 3:
         return get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
             matrix_or_vec_var=matrix_or_vec_var,
-            int_vars=int_vars,
+            int_var=int_var,
             depth=depth,
             additional_matrix=additional_matrix,
         )
@@ -1944,7 +1947,7 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
     for curr_depth in range(0, depth + 1):
         get_matrix_or_vec_expr_with_depth(
             matrix_or_vec_var=matrix_or_vec_var,
-            int_vars=int_vars,
+            int_var=int_var,
             depth=curr_depth,
             depth_to_expr=depth_to_expr,
             additional_matrix=additional_matrix,
@@ -1955,11 +1958,11 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
 
 def get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
     matrix_or_vec_var: MatrixOrVecT,
-    int_vars: List[Int],
+    int_var: Int,
     depth: int,
     additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
-    scalar = choose(*int_vars)
+    scalar = int_var
     matrix_or_vec = matrix_or_vec_var
     for _ in range(depth):
         scalar = choose(
