@@ -36,7 +36,7 @@ def mse_array_ps_grammar(
     sum = writes[0]
     int_var = choose(Int(0), n).maybe_relaxed(parser_args.relaxed)
     slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
-    vec = choose(a[slice_index:slice_index])
+    vec = a[slice_index:slice_index]
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         vec, int_var=int_var, depth=parser_args.depth
     )
@@ -52,7 +52,10 @@ def mse_array_inv0_grammar(
     upper_bound = n
     int_var = choose(lower_bound, upper_bound, i).maybe_relaxed(parser_args.relaxed)
     slice_index = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
-    vec = choose(a[slice_index:slice_index])
+    vec = a[slice_index:slice_index]
+    vec = get_matrix_or_vec_expr_eq_or_below_depth(
+        vec, int_var=int_var, depth=parser_args.depth
+    )
 
     return and_objects(
         i >= lower_bound.maybe_relaxed(parser_args.relaxed),
