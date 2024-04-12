@@ -2441,10 +2441,15 @@ class Call(Expr):
                 return callStr
             elif isinstance(self.args[0], str) and (
                 self.args[0].startswith("list")
+                or self.args[0].startswith("vec")
                 or self.args[0].startswith("matrix")
                 or self.args[0].startswith("integer")
             ):
-                if self.args[0].startswith("list") or self.args[0].startswith("matrix"):
+                if (
+                    self.args[0].startswith("list")
+                    or self.args[0].startswith("matrix")
+                    or self.args[0].startswith("vec")
+                ):
                     callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 elif self.args[0].startswith("integer"):
                     callStr = f"({Expr.get_integer_fn(self) or self.args[0]} "
