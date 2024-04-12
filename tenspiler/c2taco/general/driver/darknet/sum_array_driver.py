@@ -20,7 +20,7 @@ from tenspiler.tenspiler_common import (
 )
 
 
-def mag_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+def sum_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         *vec_vec_to_vec_target_lang,
         *scalar_vec_to_vec_target_lang,
@@ -29,7 +29,7 @@ def mag_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     ]
 
 
-def mag_array_ps_grammar(
+def sum_array_ps_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object]
 ) -> Bool:
     a, n = reads
@@ -43,7 +43,7 @@ def mag_array_ps_grammar(
     return sum == vec_to_int(vec)
 
 
-def mag_array_inv0_grammar(
+def sum_array_inv0_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object]
 ) -> Bool:
     a, n = reads
@@ -71,13 +71,13 @@ if __name__ == "__main__":
     parser_args = parser.parse_args()
 
     driver = Driver()
-    mag_array = driver.analyze(
-        "tenspiler/c2taco/cpp/for_synthesis/darknet/mag_array.ll",
-        "tenspiler/c2taco/cpp/for_synthesis/darknet/mag_array.loops",
-        "mag_array",
-        mag_array_target_lang,
-        defaultdict(lambda: InvGrammar(mag_array_inv0_grammar, [])),
-        mag_array_ps_grammar,
+    sum_array = driver.analyze(
+        "tenspiler/c2taco/cpp/for_synthesis/darknet/sum_array.ll",
+        "tenspiler/c2taco/cpp/for_synthesis/darknet/sum_array.loops",
+        "sum_array",
+        sum_array_target_lang,
+        defaultdict(lambda: InvGrammar(sum_array_inv0_grammar, [])),
+        sum_array_ps_grammar,
     )
 
     a = mlList(Int, "a")
@@ -92,12 +92,12 @@ if __name__ == "__main__":
         map_int_to_int_synth,
     ]
 
-    mag_array(a, n)
+    sum_array(a, n)
 
     start_time = time.time()
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
     depth_suffix = f"_depth{parser_args.depth}"
-    driver.synthesize(filename=f"mag_array{depth_suffix}{relaxed_suffix}", list_bound=3)
+    driver.synthesize(filename=f"sum_array{depth_suffix}{relaxed_suffix}", list_bound=3)
     end_time = time.time()
 
     print(f"Synthesis took {end_time - start_time} seconds")
