@@ -72,10 +72,9 @@
 (define-grammar (mag_array_ps_gram a n mag_array_rv)
  [rv (choose (equal? mag_array_rv (v0) ))]
 [v0 (choose (reduce_sum (v1)) (reduce_mul (v1)) (reduce_max (v1)))]
-[v1 (choose (v2))]
-[v2 (choose (vec-slice-noerr a (v3) (v3) ))]
-[v3 (choose (v4))]
-[v4 (choose 0 n)]
+[v1 (choose (vec-slice-noerr a (v2) (v2) ))]
+[v2 (choose (v3))]
+[v3 (choose 0 n)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
