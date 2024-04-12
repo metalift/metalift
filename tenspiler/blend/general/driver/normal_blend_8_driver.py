@@ -27,7 +27,7 @@ def ps_grammar(
     cons = choose(Int(255))
     vec_var = choose(base, active)
     return out == get_matrix_or_vec_expr_eq_or_below_depth(
-        matrix_or_vec_var=vec_var, int_vars=[opacity, Int(255)], depth=3
+        matrix_or_vec_var=vec_var, int_var=choose(opacity, Int(255)), depth=3
     )
 
 
@@ -45,7 +45,7 @@ def inv_grammar(
         i <= base.len(),
         out
         == get_matrix_or_vec_expr_eq_or_below_depth(
-            matrix_or_vec_var=vec_var, int_vars=[opacity, Int(255)], depth=3
+            matrix_or_vec_var=vec_var, int_var=choose(opacity, Int(255)), depth=3
         ),
     )
 
