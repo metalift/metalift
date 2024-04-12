@@ -99,7 +99,7 @@
 [v1 (choose (vec-slice-noerr x (v2) (v2) ) (matrix-ref-noerr (v5) (v2) ))]
 [v2 (choose (v3))]
 [v3 (choose (v4) (- (v4) 1 ) (+ (v4) 1 ))]
-[v4 (choose 0 1 M N)]
+[v4 (choose 0 M N)]
 [v5 (choose (v6) (matrix-transpose-noerr (v6) ))]
 [v6 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr A (v2) (v2) ) (v2) (v2) ))]
 )

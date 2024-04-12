@@ -75,9 +75,8 @@
 [v4 (choose (integer-sqrt-noerr (v3) ) (integer-exp-noerr (v3) ) (+ (v3) (v3) ) (- (v3) (v3) ) (* (v3) (v3) ) (quotient-noerr (v3) (v3) ))]
 [v5 (choose (v6) (matrix-transpose-noerr (v6) ))]
 [v6 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr A (v2) (v2) ) (v2) (v2) ))]
-[v7 (choose (v8) (vec_elemwise_add (v1) (v1) ) (vec_elemwise_sub (v1) (v1) ) (vec_elemwise_mul (v1) (v1) ) (vec_elemwise_div (v1) (v1) ) (vec_scalar_add (v9) (v1) ) (vec_scalar_sub (v9) (v1) ) (vec_scalar_mul (v9) (v1) ) (vec_scalar_div (v9) (v1) ) (scalar_vec_sub (v9) (v1)) (scalar_vec_div (v9) (v1)) (matrix_vec_mul (v5) (v1) ))]
+[v7 (choose (v8) (vec_elemwise_add (v1) (v1) ) (vec_elemwise_sub (v1) (v1) ) (vec_elemwise_mul (v1) (v1) ) (vec_elemwise_div (v1) (v1) ) (vec_scalar_add (v3) (v1) ) (vec_scalar_sub (v3) (v1) ) (vec_scalar_mul (v3) (v1) ) (vec_scalar_div (v3) (v1) ) (scalar_vec_sub (v3) (v1)) (scalar_vec_div (v3) (v1)) (matrix_vec_mul (v5) (v1) ))]
 [v8 (choose (vec_map (v1) map_int_to_int ))]
-[v9 (choose 0 1)]
 )
 
 (define-grammar (gemv_inv1_gram A M N j sum x agg.result i)
@@ -89,9 +88,8 @@
 [v4 (choose 0 M N i j)]
 [v5 (choose (integer-sqrt-noerr (v4) ) (integer-exp-noerr (v4) ) (+ (v4) (v4) ) (- (v4) (v4) ) (* (v4) (v4) ) (quotient-noerr (v4) (v4) ))]
 [v6 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr A (v3) (v3) ) (v3) (v3) ) (matrix-transpose-noerr (matrix-col-slice-noerr (matrix-row-slice-noerr A (v3) (v3) ) (v3) (v3) ) ))]
-[v7 (choose (v8) (vec_elemwise_add (v2) (v2) ) (vec_elemwise_sub (v2) (v2) ) (vec_elemwise_mul (v2) (v2) ) (vec_elemwise_div (v2) (v2) ) (vec_scalar_add (v9) (v2) ) (vec_scalar_sub (v9) (v2) ) (vec_scalar_mul (v9) (v2) ) (vec_scalar_div (v9) (v2) ) (scalar_vec_sub (v9) (v2)) (scalar_vec_div (v9) (v2)) (matrix_vec_mul (v6) (v2) ))]
+[v7 (choose (v8) (vec_elemwise_add (v2) (v2) ) (vec_elemwise_sub (v2) (v2) ) (vec_elemwise_mul (v2) (v2) ) (vec_elemwise_div (v2) (v2) ) (vec_scalar_add (v4) (v2) ) (vec_scalar_sub (v4) (v2) ) (vec_scalar_mul (v4) (v2) ) (vec_scalar_div (v4) (v2) ) (scalar_vec_sub (v4) (v2)) (scalar_vec_div (v4) (v2)) (matrix_vec_mul (v6) (v2) ))]
 [v8 (choose (vec_map (v2) map_int_to_int ))]
-[v9 (choose 0 1)]
 )
 
 (define-grammar (gemv_ps_gram M N A x gemv_rv)
@@ -99,13 +97,12 @@
 [v0 (choose (v1) (v7))]
 [v1 (choose (vec-slice-noerr x (v2) (v2) ) (matrix-ref-noerr (v5) (v2) ))]
 [v2 (choose (v3) (v4))]
-[v3 (choose 0 1 M N)]
+[v3 (choose 0 M N)]
 [v4 (choose (integer-sqrt-noerr (v3) ) (integer-exp-noerr (v3) ) (+ (v3) (v3) ) (- (v3) (v3) ) (* (v3) (v3) ) (quotient-noerr (v3) (v3) ))]
 [v5 (choose (v6) (matrix-transpose-noerr (v6) ))]
 [v6 (choose (matrix-col-slice-noerr (matrix-row-slice-noerr A (v2) (v2) ) (v2) (v2) ))]
-[v7 (choose (v8) (vec_elemwise_add (v1) (v1) ) (vec_elemwise_sub (v1) (v1) ) (vec_elemwise_mul (v1) (v1) ) (vec_elemwise_div (v1) (v1) ) (vec_scalar_add (v9) (v1) ) (vec_scalar_sub (v9) (v1) ) (vec_scalar_mul (v9) (v1) ) (vec_scalar_div (v9) (v1) ) (scalar_vec_sub (v9) (v1)) (scalar_vec_div (v9) (v1)) (matrix_vec_mul (v5) (v1) ))]
+[v7 (choose (v8) (vec_elemwise_add (v1) (v1) ) (vec_elemwise_sub (v1) (v1) ) (vec_elemwise_mul (v1) (v1) ) (vec_elemwise_div (v1) (v1) ) (vec_scalar_add (v3) (v1) ) (vec_scalar_sub (v3) (v1) ) (vec_scalar_mul (v3) (v1) ) (vec_scalar_div (v3) (v1) ) (scalar_vec_sub (v3) (v1)) (scalar_vec_div (v3) (v1)) (matrix_vec_mul (v5) (v1) ))]
 [v8 (choose (vec_map (v1) map_int_to_int ))]
-[v9 (choose 0 1)]
 )
 
 (define-grammar (map_int_to_int_gram int_x)
