@@ -19,7 +19,7 @@ from tenspiler.tenspiler_common import (
 )
 
 
-def scale_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+def translate_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
         *vec_vec_to_vec_target_lang,
         *scalar_vec_to_vec_target_lang,
@@ -28,7 +28,7 @@ def scale_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     ]
 
 
-def scale_array_ps_grammar(
+def translate_array_ps_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object]
 ) -> Bool:
     a, n, s = reads
@@ -42,7 +42,7 @@ def scale_array_ps_grammar(
     return out == vec
 
 
-def scale_array_inv0_grammar(
+def translate_array_inv0_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object]
 ) -> Bool:
     a, n, s = reads
@@ -70,13 +70,13 @@ if __name__ == "__main__":
     parser_args = parser.parse_args()
 
     driver = Driver()
-    scale_array = driver.analyze(
-        "tenspiler/c2taco/cpp/for_synthesis/darknet/scale_array.ll",
-        "tenspiler/c2taco/cpp/for_synthesis/darknet/scale_array.loops",
-        "scale_array",
-        scale_array_target_lang,
-        defaultdict(lambda: InvGrammar(scale_array_inv0_grammar, [])),
-        scale_array_ps_grammar,
+    translate_array = driver.analyze(
+        "tenspiler/c2taco/cpp/for_synthesis/darknet/translate_array.ll",
+        "tenspiler/c2taco/cpp/for_synthesis/darknet/translate_array.loops",
+        "translate_array",
+        translate_array_target_lang,
+        defaultdict(lambda: InvGrammar(translate_array_inv0_grammar, [])),
+        translate_array_ps_grammar,
     )
 
     a = mlList(Int, "a")
@@ -92,12 +92,12 @@ if __name__ == "__main__":
         map_int_to_int_synth,
     ]
 
-    scale_array(a, n, s)
+    translate_array(a, n, s)
 
     start_time = time.time()
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
     depth_suffix = f"_depth{parser_args.depth}"
-    driver.synthesize(filename=f"scale_array{depth_suffix}{relaxed_suffix}")
+    driver.synthesize(filename=f"translate_array{depth_suffix}{relaxed_suffix}")
     end_time = time.time()
 
     print(f"Synthesis took {end_time - start_time} seconds")
