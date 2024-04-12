@@ -40,7 +40,7 @@ def gemv_ps_grammar(
 
     matrix = choose(A[slice_index:slice_index].col_slice(slice_index, slice_index))
     matrix = choose(matrix, matrix.transpose())
-    vec = choose(x[slice_index:slice_index], A[slice_index])
+    vec = choose(x[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
         int_vars=[Int(0), Int(1)],
@@ -59,15 +59,15 @@ def gemv_inv0_grammar(
     outer_loop_lower_bound = Int(0)
     outer_loop_upper_bound = M
 
-    slice_index = choose(Int(0), M, N, i).maybe_relaxed(parser_args.relaxed)
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, parser_args.depth)
+    int_var = choose(Int(0), M, N, i).maybe_relaxed(parser_args.relaxed)
+    int_expr = get_int_expr_eq_or_below_depth(int_var, parser_args.depth)
 
-    matrix = choose(A[slice_index:slice_index].col_slice(slice_index, slice_index))
+    matrix = choose(A[int_expr:int_expr].col_slice(int_expr, int_expr))
     matrix = choose(matrix, matrix.transpose())
-    vec = choose(x[slice_index:slice_index], matrix[slice_index])
+    vec = choose(x[int_expr:int_expr], matrix[int_expr])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
-        int_vars=[Int(0), Int(1)],
+        int_vars=int_var,
         depth=parser_args.depth,
         additional_matrix=matrix,
     )
@@ -120,8 +120,8 @@ if __name__ == "__main__":
 
     driver = Driver()
     gemv = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/for_synthesis/gemv.ll",
-        loops_filepath="tenspiler/llama/cpp/for_synthesis/gemv.loops",
+        llvm_filepath="tenspiler/c2taco/cpp/for_synthesis/blas/gemv.ll",
+        loops_filepath="tenspiler/c2taco/cpp/for_synthesis/blas/gemv.loops",
         fn_name="gemv",
         target_lang_fn=gemv_target_lang,
         inv_grammars={
