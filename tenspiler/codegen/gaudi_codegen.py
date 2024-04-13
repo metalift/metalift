@@ -279,7 +279,9 @@ def gaudi_codegen(
     # First define some nonlocal variables to be used in this function and associated helper
     # functions
     var_count = 0
-    var_and_lit_cache: dict[Tuple[Expr, GaudiBodyType], GaudiInstr] = {}
+    var_and_lit_cache: dict[
+        Tuple[Expr, GaudiBodyType], Tuple[List[GaudiInstr], GaudiInstr]
+    ] = {}
 
     def expr_codegen(
         expr: Expr,
@@ -287,8 +289,6 @@ def gaudi_codegen(
         override_type: Optional[GaudiBodyType] = None,  # Type to override
         vars_to_replace: Dict[str, Expr] = {},
     ) -> Tuple[List[GaudiInstr], GaudiInstr]:
-        print("EXPR IS", expr)
-
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -309,6 +309,8 @@ def gaudi_codegen(
                 dest_name = None
             else:
                 dest_name = f"v{var_count}"
+            if var_count == 15:
+                print("VAR COUNT IS 15")
             default_type_instr = GaudiInstr(dest_name, gaudi_body_type, expr_str)
             local_instructions.append(default_type_instr)
             var_count += 1
@@ -372,30 +374,35 @@ def gaudi_codegen(
                 expr_instr = format_gaudi_instr(
                     expr_str, default_expr_type, final_expr_type
                 )
-
                 # Use cache
                 if (expr, expr_instr.dest_type) in var_and_lit_cache:
-                    instr = var_and_lit_cache[(expr, expr_instr.dest_type)]
-                    return [instr], instr
+                    return var_and_lit_cache[(expr, expr_instr.dest_type)]
 
                 # Set cache
-                var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
+                var_and_lit_cache[(expr, expr_instr.dest_type)] = (
+                    local_instructions,
+                    expr_instr,
+                )
                 return local_instructions, expr_instr
             else:
                 # We are dealing with a variable of a primitive type
                 expr_str = expr.name()
                 expr_instr = format_gaudi_instr(expr_str, final_expr_type)
                 if (expr, expr_instr.dest_type) in var_and_lit_cache:
-                    instr = var_and_lit_cache[(expr, expr_instr.dest_type)]
-                    return [instr], instr
-                var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
+                    return var_and_lit_cache[(expr, expr_instr.dest_type)]
+                var_and_lit_cache[(expr, expr_instr.dest_type)] = (
+                    local_instructions,
+                    expr_instr,
+                )
                 return local_instructions, expr_instr
         elif isinstance(expr, Lit):
             expr_instr = format_gaudi_instr(str(expr.val()), final_expr_type)
             if (expr, expr_instr.dest_type) in var_and_lit_cache:
-                instr = var_and_lit_cache[(expr, expr_instr.dest_type)]
-                return [instr], instr
-            var_and_lit_cache[(expr, expr_instr.dest_type)] = expr_instr
+                return var_and_lit_cache[(expr, expr_instr.dest_type)]
+            var_and_lit_cache[(expr, expr_instr.dest_type)] = (
+                local_instructions,
+                expr_instr,
+            )
             return local_instructions, expr_instr
         elif any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div, Mod]):
             first_arg_instrs, first_arg_instr = expr_codegen(
