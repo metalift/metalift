@@ -102,6 +102,8 @@ if __name__ == "__main__":
     start_time = time.time()
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
     depth_suffix = f"_depth{parser_args.depth}"
-    driver.synthesize(filename=f"dot{depth_suffix}{relaxed_suffix}", no_verify=True)
+    driver.synthesize(
+        filename=f"dot{depth_suffix}{relaxed_suffix}", no_verify=True, rounds_to_guess=9
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

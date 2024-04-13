@@ -287,6 +287,8 @@ def gaudi_codegen(
         override_type: Optional[GaudiBodyType] = None,  # Type to override
         vars_to_replace: Dict[str, Expr] = {},
     ) -> Tuple[List[GaudiInstr], GaudiInstr]:
+        print("EXPR IS", expr)
+
         # Helper functions
         def get_gaudi_body_type_with_override(ir_type: ObjectT) -> GaudiBodyType:
             """Given the IR type, and the data type, returns the Gaudi type used in the body. Namely, when data type is float, all integers are converted to float."""
@@ -418,13 +420,13 @@ def gaudi_codegen(
                     op = "/"
                 else:
                     op = "%"
+                local_instructions.extend(first_arg_instrs)
+                local_instructions.extend(second_arg_instrs)
                 expr_instr = format_gaudi_instr(
                     f"{first_arg_instr.dest_name} {op} {second_arg_instr.dest_name}",
                     default_expr_type,
                     final_expr_type,
                 )
-                local_instructions.extend(first_arg_instrs)
-                local_instructions.extend(second_arg_instrs)
                 return local_instructions, expr_instr
             else:
                 first_arg, second_arg = expr.args[:2]
@@ -743,9 +745,8 @@ def gaudi_codegen(
 
     # Dedup instructions
     seen = set()
-    seen_add = seen.add
     deduped_instrs = [
-        instr for instr in instructions if not (instr in seen or seen_add(instr))
+        instr for instr in instructions if not (instr in seen or seen.add(instr))
     ]
     deduped_instr_strs = [instr.instr_str for instr in deduped_instrs]
 
