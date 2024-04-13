@@ -538,7 +538,7 @@ def test_type(codegen_func):
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
 # codegen_funcs = [numpy_codegen]
 codegen_funcs = [gaudi_codegen]
-normal_blend_f(gaudi_codegen)
+color_burn_8(gaudi_codegen)
 exit(0)
 
 for codegen_func in codegen_funcs:
