@@ -108,7 +108,7 @@ def dissolve_blend_8(codegen_func):
         DISSOLVE_MATRIX_SELECTION_TWO_ARGS: dissolve_matrix_selection_two_args_fn_decl,
         "dissolve_blend_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
+    return fn_decl, all_fn_decls, DataType.FLOAT
 
 
 @codegen
@@ -538,8 +538,6 @@ def test_type(codegen_func):
 # codegen_funcs = [mlx_codegen, gaudi_codegen]
 # codegen_funcs = [numpy_codegen]
 codegen_funcs = [gaudi_codegen]
-color_burn_8(gaudi_codegen)
-exit(0)
 
 for codegen_func in codegen_funcs:
     darken_blend_8(codegen_func)

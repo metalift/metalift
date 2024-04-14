@@ -6,16 +6,55 @@
 (current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash ':seed 0)))
 
 
+ (define-bounded (vec_elemwise_add x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (+ (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_add (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
+
+
+ (define-bounded (vec_elemwise_sub x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_sub (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
+
 
  (define-bounded (vec_elemwise_mul x y)
-(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 )) ) ))
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (* (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_mul (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
+
+
+ (define-bounded (vec_elemwise_div x y)
+(if (or (< (length x ) 1 ) (! (equal? (length x ) (length y ) ) ) ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) (list-ref-noerr y 0 ) ) (vec_elemwise_div (list-tail-noerr x 1 ) (list-tail-noerr y 1 ) ) ) ))
+
+
+ (define-bounded (vec_scalar_add a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (+ a (list-ref-noerr x 0 ) ) (vec_scalar_add a (list-tail-noerr x 1 ) ) ) ))
+
+
+ (define-bounded (vec_scalar_sub a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- (list-ref-noerr x 0 ) a ) (vec_scalar_sub a (list-tail-noerr x 1 ) ) ) ))
+
+
+ (define-bounded (vec_scalar_mul a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (* a (list-ref-noerr x 0 ) ) (vec_scalar_mul a (list-tail-noerr x 1 ) ) ) ))
+
+
+ (define-bounded (vec_scalar_div a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr (list-ref-noerr x 0 ) a ) (vec_scalar_div a (list-tail-noerr x 1 ) ) ) ))
+
+
+ (define-bounded (scalar_vec_sub a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (- a (list-ref-noerr x 0 ) ) (scalar_vec_sub a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (scalar_vec_div a x)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (quotient-noerr a (list-ref-noerr x 0 ) ) (scalar_vec_div a (list-tail-noerr x 1 )) ) ))
+
+
+ (define-bounded (vec_map x map_int_to_int)
+(if (< (length x ) 1 ) (list-empty ) (list-prepend (map_int_to_int (list-ref-noerr x 0 )) (vec_map (list-tail-noerr x 1 ) map_int_to_int ) ) ))
 
 (define-grammar (transformer_part4_inv0_gram agg.result hidden_dim i input1 input2 ref.tmp)
  [rv (choose (&& (&& (>= i 0 ) (<= i hidden_dim ) ) (equal? agg.result (v0) ) ))]
 [v0 (choose (v1))]
 [v1 (choose (vec-slice-noerr input1 (v2) (v2) ) (vec-slice-noerr input2 (v2) (v2) ))]
 [v2 (choose (v3))]
-[v3 (choose 0 hidden_dim i 1)]
+[v3 (choose 0 hidden_dim i)]
 )
 
 (define-grammar (transformer_part4_ps_gram input1 input2 hidden_dim transformer_part4_rv)
@@ -23,11 +62,18 @@
 [v0 (choose (v1))]
 [v1 (choose (vec-slice-noerr input1 (v2) (v2) ) (vec-slice-noerr input2 (v2) (v2) ))]
 [v2 (choose (v3))]
-[v3 (choose 0 hidden_dim 1)]
+[v3 (choose 0 hidden_dim)]
+)
+
+(define-grammar (map_int_to_int_gram int_x)
+ [rv (choose (v0))]
+[v0 (choose (integer-exp-noerr int_x ) (integer-sqrt-noerr int_x ))]
 )
 
 (define (transformer_part4_inv0 agg.result hidden_dim i input1 input2 ref.tmp) (transformer_part4_inv0_gram agg.result hidden_dim i input1 input2 ref.tmp #:depth 10))
 (define (transformer_part4_ps input1 input2 hidden_dim transformer_part4_rv) (transformer_part4_ps_gram input1 input2 hidden_dim transformer_part4_rv #:depth 10))
+
+(define (map_int_to_int int_x) (map_int_to_int_gram int_x #:depth 10))
 
 (define-symbolic agg.result_BOUNDEDSET-len integer?)
 (define-symbolic agg.result_BOUNDEDSET-0 integer?)
