@@ -99,6 +99,4 @@ if __name__ == "__main__":
 
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
     depth_suffix = f"_depth{parser_args.depth}"
-    driver.synthesize(
-        filename=f"transformer_part4{depth_suffix}{relaxed_suffix}", rounds_to_guess=9
-    )
+    driver.synthesize(filename=f"transformer_part4{depth_suffix}{relaxed_suffix}")
