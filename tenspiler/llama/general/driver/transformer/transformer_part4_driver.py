@@ -31,16 +31,14 @@ def transformer_part4_ps_grammar(
     input1, input2, hidden_dim = reads
     lower_bound = Int(0)
     upper_bound = hidden_dim
-    slice_index = choose(lower_bound, upper_bound, Int(1)).maybe_relaxed(
-        parser_args.relaxed
-    )
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    int_var = choose(lower_bound, upper_bound).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = choose(
         input1[slice_index:slice_index],
         input2[slice_index:slice_index],
     )
     return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
-        matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+        matrix_or_vec_var=vec, int_var=int_var, depth=parser_args.depth
     )
 
 
@@ -51,10 +49,8 @@ def transformer_part4_inv0_grammar(
     out, i, _ = writes
     lower_bound = Int(0)
     upper_bound = hidden_dim
-    slice_index = choose(lower_bound, upper_bound, i, Int(1)).maybe_relaxed(
-        parser_args.relaxed
-    )
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    int_var = choose(lower_bound, upper_bound, i).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = choose(
         input1[slice_index:slice_index],
         input2[slice_index:slice_index],
@@ -65,7 +61,7 @@ def transformer_part4_inv0_grammar(
         i <= upper_bound.maybe_relaxed(parser_args.relaxed),
         out
         == get_matrix_or_vec_expr_eq_or_below_depth(
-            matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+            matrix_or_vec_var=vec, int_var=int_var, depth=parser_args.depth
         ),
     )
 
@@ -103,4 +99,6 @@ if __name__ == "__main__":
 
     relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
     depth_suffix = f"_depth{parser_args.depth}"
-    driver.synthesize(filename=f"transformer_part4{depth_suffix}{relaxed_suffix}")
+    driver.synthesize(
+        filename=f"transformer_part4{depth_suffix}{relaxed_suffix}", rounds_to_guess=9
+    )

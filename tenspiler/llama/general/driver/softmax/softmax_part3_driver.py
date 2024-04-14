@@ -6,11 +6,11 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tenspiler.tenspiler_common import call_reduce_sum, reduce_sum
+from tenspiler.tenspiler_common import vec_to_int, vec_to_int_target_lang
 
 
 def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [reduce_sum]
+    return vec_to_int_target_lang
 
 
 def softmax_part3_ps_grammar(
@@ -22,7 +22,7 @@ def softmax_part3_ps_grammar(
     upper_bound = max_pos
     slice_index = choose(lower_bound, upper_bound).maybe_relaxed(parser_args.relaxed)
     vec = output[slice_index:slice_index]
-    return ret_val == call_reduce_sum(vec)
+    return ret_val == vec_to_int(vec)
 
 
 def softmax_part3_inv0_grammar(
@@ -38,7 +38,7 @@ def softmax_part3_inv0_grammar(
     return and_objects(
         i >= lower_bound.maybe_relaxed(parser_args.relaxed),
         i <= upper_bound.maybe_relaxed(parser_args.relaxed),
-        sum == call_reduce_sum(vec),
+        sum == vec_to_int(vec),
     )
 
 

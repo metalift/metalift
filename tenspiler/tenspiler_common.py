@@ -1404,7 +1404,8 @@ def get_matrix_select_general_search_space(
         matrix = choose(base, active)
         lower_bound = Int(0)
         upper_bound = base.len()
-        slice_index = choose(lower_bound, upper_bound, row).maybe_relaxed(relaxed)
+        int_var = choose(Int(0), base.len(), base[0].len(), row).maybe_relaxed(relaxed)
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
@@ -1432,9 +1433,10 @@ def get_matrix_select_general_search_space(
         active = reads_by_name["active"]
 
         matrix = choose(base, active)
-        slice_index = choose(Int(0), base.len(), base[0].len(), row, col).maybe_relaxed(
+        int_var = choose(Int(0), base.len(), base[0].len(), row, col).maybe_relaxed(
             relaxed
         )
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         vec = matrix[slice_index]
@@ -1461,7 +1463,8 @@ def get_matrix_select_general_search_space(
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
         base = reads_by_name["base"]
         active = reads_by_name["active"]
-        slice_index = choose(Int(0), base.len(), base[0].len()).maybe_relaxed(relaxed)
+        int_var = choose(Int(0), base.len(), base[0].len()).maybe_relaxed(relaxed)
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = choose(base, active)
         matrix = choose(matrix, matrix.transpose())
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)

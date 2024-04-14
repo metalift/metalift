@@ -50,7 +50,9 @@ if __name__ == "__main__":
     depth_suffix = f"_depth{parser_args.depth}"
 
     start_time = time.time()
-    driver.synthesize(filename=f"linear_dodge_8{depth_suffix}{relaxed_suffix}")
+    driver.synthesize(
+        filename=f"linear_dodge_8{depth_suffix}{relaxed_suffix}", rounds_to_guess=9
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
     print("\n\ngenerated code:" + linear_dodge_8.codegen(codegen))
