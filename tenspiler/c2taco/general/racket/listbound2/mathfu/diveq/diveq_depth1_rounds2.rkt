@@ -125,3 +125,29 @@
     )
     (sat? sol0)
     (print-forms sol0)
+
+
+        (define sol1
+            (synthesize
+                #:forall (list a_BOUNDEDSET-len a_BOUNDEDSET-0 a_BOUNDEDSET-1 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 b_BOUNDEDSET-len b_BOUNDEDSET-0 b_BOUNDEDSET-1 diveq_rv_BOUNDEDSET-len diveq_rv_BOUNDEDSET-0 diveq_rv_BOUNDEDSET-1 i n ref.tmp)
+                #:guarantee (begin
+                    (assume (|| (! (eq? (diveq_inv0 a agg.result b i n ref.tmp) (evaluate (diveq_inv0 a agg.result b i n ref.tmp) sol0))) (! (eq? (diveq_ps a b n diveq_rv) (evaluate (diveq_ps a b n diveq_rv) sol0)))))
+                    (assertions)
+                )
+            )
+        )
+        (sat? sol1)
+        (print-forms sol1)
+
+
+        (define sol2
+            (synthesize
+                #:forall (list a_BOUNDEDSET-len a_BOUNDEDSET-0 a_BOUNDEDSET-1 agg.result_BOUNDEDSET-len agg.result_BOUNDEDSET-0 agg.result_BOUNDEDSET-1 b_BOUNDEDSET-len b_BOUNDEDSET-0 b_BOUNDEDSET-1 diveq_rv_BOUNDEDSET-len diveq_rv_BOUNDEDSET-0 diveq_rv_BOUNDEDSET-1 i n ref.tmp)
+                #:guarantee (begin
+                    (assume (|| (! (eq? (diveq_inv0 a agg.result b i n ref.tmp) (evaluate (diveq_inv0 a agg.result b i n ref.tmp) sol0))) (! (eq? (diveq_ps a b n diveq_rv) (evaluate (diveq_ps a b n diveq_rv) sol0))))) (assume (|| (! (eq? (diveq_inv0 a agg.result b i n ref.tmp) (evaluate (diveq_inv0 a agg.result b i n ref.tmp) sol1))) (! (eq? (diveq_ps a b n diveq_rv) (evaluate (diveq_ps a b n diveq_rv) sol1)))))
+                    (assertions)
+                )
+            )
+        )
+        (sat? sol2)
+        (print-forms sol2)
