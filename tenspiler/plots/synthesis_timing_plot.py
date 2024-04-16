@@ -47,11 +47,11 @@ def process_tsv(file_path):
         next(reader, None)
         # last two columns of each row are 'holing time total' and 'general timing total'
         for row in reader:
-            if row[0] == "" or row[-1] == "" or row[-2] == "":
+            if row[0] == "" or row[-3] == "" or row[-4] == "":
                 continue
             results[row[0]] = [
-                float(row[-2]),
-                float(row[-1]) if row[-1] != "timeout" else -1,
+                float(row[-4]),
+                float(row[-3]) if row[-3] != "timeout" else -1,
             ]
 
     return results
@@ -68,7 +68,12 @@ def plot_synthesis_data(data, test_names, title):
 
     fig, ax = plt.subplots()
     for test_name in test_names:
-        value = data[test_name][0]
+        try:
+            value = data[test_name][0]
+        except:
+            import pdb
+
+            pdb.set_trace()
         if value == -1:
             value = 3600
         ax.bar(x_pos[test_names.index(test_name)], value, bar_width, color=c)
@@ -174,7 +179,7 @@ def plot_abolation_data(data, test_names, title):
     plt.savefig(f"{title}.png", format="png", dpi=300)
 
 
-data = process_tsv("./synthesis_timings.tsv")
+data = process_tsv("./synth_timings.tsv")
 
 plot_synthesis_data(data, blend_test_name, "Blend Benchmarks Synthesis Timing")
 plot_synthesis_data(data, llama_test_name, "Llama Benchmarks Synthesis Timing")

@@ -1,0 +1,47 @@
+#lang rosette
+(require "./bounded.rkt")
+(require "./utils.rkt")
+(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)
+(require rosette/solver/smt/bitwuzla)
+(current-solver (bitwuzla #:path "/Users/sahilbhatia/Documents/bitwuzla/build/src/main/bitwuzla" #:options (hash ':seed 0)))
+
+
+ (define-bounded (reduce_sum x)
+(if (< (length x ) 1 ) 0 (+ (list-ref-noerr x 0 ) (reduce_sum (list-tail-noerr x 1 )) ) ))
+
+(define-grammar (sum_array_inv0_gram a i n sum)
+ [rv (choose (&& (&& (>= i 0 ) (<= i n ) ) (equal? sum (reduce_sum (v0)) ) ))]
+[v0 (choose (list-take-noerr a i ))]
+)
+
+(define-grammar (sum_array_ps_gram a n sum_array_rv)
+ [rv (choose (equal? sum_array_rv (reduce_sum (v0)) ))]
+[v0 (choose (list-take-noerr a n ))]
+)
+
+(define (sum_array_inv0 a i n sum) (sum_array_inv0_gram a i n sum #:depth 10))
+(define (sum_array_ps a n sum_array_rv) (sum_array_ps_gram a n sum_array_rv #:depth 10))
+
+(define-symbolic a_BOUNDEDSET-len integer?)
+(define-symbolic a_BOUNDEDSET-0 integer?)
+(define-symbolic a_BOUNDEDSET-1 integer?)
+(define-symbolic a_BOUNDEDSET-2 integer?)
+(define-symbolic a_BOUNDEDSET-3 integer?)
+(define a (take (list a_BOUNDEDSET-0 a_BOUNDEDSET-1 a_BOUNDEDSET-2 a_BOUNDEDSET-3) a_BOUNDEDSET-len))
+(define-symbolic i integer?)
+(define-symbolic n integer?)
+(define-symbolic sum integer?)
+(define-symbolic sum_array_rv integer?)
+(current-bitwidth 6)
+(define (assertions)
+ (assert (&& (&& (=> (&& (&& (>= n 1 ) (> (length a ) 0 ) ) (>= (length a ) n ) ) (sum_array_inv0 a 0 n 0) ) (=> (&& (&& (&& (&& (< i n ) (>= n 1 ) ) (> (length a ) 0 ) ) (>= (length a ) n ) ) (sum_array_inv0 a i n sum) ) (sum_array_inv0 a (+ i 1 ) n (+ sum (list-ref-noerr a i ) )) ) ) (=> (&& (&& (&& (&& (! (< i n ) ) (>= n 1 ) ) (> (length a ) 0 ) ) (>= (length a ) n ) ) (sum_array_inv0 a i n sum) ) (sum_array_ps a n sum) ) )))
+
+
+    (define sol0
+        (synthesize
+            #:forall (list a_BOUNDEDSET-len a_BOUNDEDSET-0 a_BOUNDEDSET-1 a_BOUNDEDSET-2 a_BOUNDEDSET-3 i n sum sum_array_rv)
+            #:guarantee (assertions)
+        )
+    )
+    (sat? sol0)
+    (print-forms sol0)

@@ -1,0 +1,35 @@
+Dexter	holing	general. depth	general timing	holing time total	general timing total		holing, list bound 4
+normal_blend_f	4.146	4	timeout	4.146	timeout		4.5
+normal_blend_8	2.873	4	timeout	2.873	timeout		5
+dissolve_blend_8	156.75	5	timeout	156.75	timeout		timeout
+darken_blend_8	28.184	1	timeout	28.184	timeout		timeout
+multiply_blend_8	20.739	3	timeout	20.739	timeout		335.63
+linear_burn_8	21.952	3	timeout	21.952	timeout		433.8
+color_burn_8	63.22	4	timeout	63.22	timeout		timeout
+lighten_blend_8	35.941	1	timeout	35.941	timeout		timeout
+screen_blend_8	76.23	4	timeout	76.23	timeout		3406.52
+linear_dodge_8	16.111	2	timeout	16.111	timeout		379.41
+color_dodge_8	34.013	3	timeout	34.013	timeout		timeout
+overlay_blend_8	85.87	5	timeout	85.87	timeout		timeout
+		a=AVERAGE(C2:C13)		median time=MEDIAN(E2:E13)
+				average time=AVERAGE(E2:E13)
+
+Llama		general depth
+softmax_part1	2.693 (failed, strict) + 3.202 (relaxed bounds)	1	2.018 (depth 0) + 3.359 (relaxed depth 0)	5.895	5.377		2.866
+softmax_part2	4.22	3	timeout	4.22	timeout		6.436
+softmax_part3	1.424	1	1.849 (depth 0)	1.424	1.849		1.674
+softmax_part4	2.466	2	2.446 (depth 0) + 3.537 (relaxed depth 0) + 187 (depth 1)	2.466	192.983		1.986
+rmsnorm_part1	1.63	2	2.401 (depth 0) + 3.204 (relaxed depth 0) + 1417 (depth 1)	1.63	1422.605		1.74
+rmsnorm_part2	5.415	5	timeout	5.415	timeout		2.28
+matmul	6.284	2	timeout	6.284	timeout		66
+transformer_part1	696.17 (list bound 2, 10 iterations) + 606 (list bound 3, 3 iterations	4	timeout	1302.17	timeout		415.61
+transformer_part2	767.58 (list bound 2, 6 iterations	3	timeout	767.58	timeout		514.4
+transformer_part3	2.836	5	timeout	2.836	timeout		4.79
+transformer_part4	2.357	2	1.82 (depth 0) + 2.627 (relaxed depth 0) + 275 (depth 1)	2.357	279.447		2.57
+		average depth=AVERAGE(C18:C28)		median time=MEDIAN(E18:E28)
+				average time=AVERAGE(E18:E28)
+
+multiquery_attention_part1 -> transformer_part1			average speedup of holing over general= average(F5 / E5, F9 / E9, F11 / E11, F18 / E18, F20 / E20, F21 / E21, F22 / E22, F28 / E28)
+multiquery_attention_part2 -> transformer_part2			16.52487831	Timing Data'!G22= AVERAGE(
+silu -> transformer_part3
+elemwise_mul -> transformer_part4
