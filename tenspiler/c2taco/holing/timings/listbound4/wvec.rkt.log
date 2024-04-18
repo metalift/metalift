@@ -1,0 +1,23 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/wvec.rkt:28:0
+(define (wvec_inv0 a agg.result b i m n ref.tmp)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i n))
+    (equal?
+     agg.result
+     (vec_elemwise_add
+      (vec_scalar_mul (v0) (list-take-noerr a i))
+      (list-take-noerr b i))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/wvec.rkt:29:0
+(define (wvec_ps a b m n wvec_rv)
+  (choose
+   (equal?
+    wvec_rv
+    (vec_elemwise_add
+     (vec_scalar_mul (v0) (list-take-noerr a n))
+     (list-take-noerr b n)))))
+
+real	0m3.094s
+user	0m1.919s
+sys	0m0.243s

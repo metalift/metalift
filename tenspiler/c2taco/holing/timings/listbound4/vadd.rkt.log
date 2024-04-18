@@ -1,0 +1,19 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/vadd.rkt:22:0
+(define (vadd_inv0 a agg.result b i n ref.tmp)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i n))
+    (equal?
+     agg.result
+     (vec_elemwise_add (list-take-noerr a i) (list-take-noerr b i))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/vadd.rkt:23:0
+(define (vadd_ps a b n vadd_rv)
+  (choose
+   (equal?
+    vadd_rv
+    (vec_elemwise_add (list-take-noerr a n) (list-take-noerr b n)))))
+
+real	0m2.420s
+user	0m1.969s
+sys	0m0.311s

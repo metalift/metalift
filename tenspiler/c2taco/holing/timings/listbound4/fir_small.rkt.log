@@ -1,0 +1,25 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/fir_small.rkt:26:0
+(define (fir_small_inv0 NTAPS coefficient i input sum)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i NTAPS))
+    (equal?
+     sum
+     (reduce_sum
+      (vec_elemwise_mul
+       (list-take-noerr coefficient i)
+       (list-take-noerr input i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/fir_small.rkt:27:0
+(define (fir_small_ps NTAPS input coefficient fir_small_rv)
+  (choose
+   (equal?
+    fir_small_rv
+    (reduce_sum
+     (vec_elemwise_mul
+      (list-take-noerr input NTAPS)
+      (list-take-noerr coefficient NTAPS))))))
+
+real	0m3.681s
+user	0m1.838s
+sys	0m0.255s

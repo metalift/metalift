@@ -1,0 +1,19 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/vmul.rkt:22:0
+(define (vmul_inv0 a agg.result b i n ref.tmp)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i n))
+    (equal?
+     agg.result
+     (vec_elemwise_mul (list-take-noerr a i) (list-take-noerr b i))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/vmul.rkt:23:0
+(define (vmul_ps a b n vmul_rv)
+  (choose
+   (equal?
+    vmul_rv
+    (vec_elemwise_mul (list-take-noerr a n) (list-take-noerr b n)))))
+
+real	0m2.302s
+user	0m2.104s
+sys	0m0.260s

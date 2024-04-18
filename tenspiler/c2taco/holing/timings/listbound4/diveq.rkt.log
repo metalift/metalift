@@ -1,0 +1,19 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/diveq.rkt:22:0
+(define (diveq_inv0 a agg.result b i n ref.tmp)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i n))
+    (equal?
+     agg.result
+     (vec_elemwise_div (list-take-noerr a i) (list-take-noerr b i))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/diveq.rkt:23:0
+(define (diveq_ps a b n diveq_rv)
+  (choose
+   (equal?
+    diveq_rv
+    (vec_elemwise_div (list-take-noerr a n) (list-take-noerr b n)))))
+
+real	0m3.115s
+user	0m1.577s
+sys	0m0.241s

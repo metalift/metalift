@@ -1,0 +1,21 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/dot.rkt:26:0
+(define (dot_inv0 a b i n sum)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i n))
+    (equal?
+     sum
+     (reduce_sum
+      (vec_elemwise_mul (list-take-noerr b i) (list-take-noerr a i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/dot.rkt:27:0
+(define (dot_ps a b n dot_rv)
+  (choose
+   (equal?
+    dot_rv
+    (reduce_sum
+     (vec_elemwise_mul (list-take-noerr b n) (list-take-noerr a n))))))
+
+real	0m3.473s
+user	0m1.751s
+sys	0m0.230s

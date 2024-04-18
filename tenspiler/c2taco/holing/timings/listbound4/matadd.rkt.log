@@ -1,0 +1,63 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matadd.rkt:39:0
+(define (matadd_inv0 agg.result i j m matA matB n ref.tmp row_vec)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i m))
+    (equal?
+     agg.result
+     (matrix_elemwise_add
+      (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+        (matrix-col-slice-noerr (matrix-take-noerr matA i) 0 n)
+        (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 i))
+      (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+        (matrix-col-slice-noerr (matrix-take-noerr matB i) 0 n)
+        (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matadd.rkt:40:0
+(define (matadd_inv1 j m matA matB n ref.tmp row_vec agg.result i)
+  (choose
+   (&&
+    (&&
+     (&& (&& (&& (>= i 0) (< i m)) (>= j 0)) (<= j n))
+     (equal?
+      row_vec
+      (vec_elemwise_add
+       (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+         (list-take-noerr (matrix-ref-noerr matA i) j)
+         (matrix-ref-noerr
+          (matrix-transpose-noerr
+           (matrix-col-slice-with-length-noerr (matrix-take-noerr matA j) i 1))
+          0))
+       (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+         (list-take-noerr (matrix-ref-noerr matB i) j)
+         (matrix-ref-noerr
+          (matrix-transpose-noerr
+           (matrix-col-slice-with-length-noerr (matrix-take-noerr matA j) i 1))
+          0)))))
+    (equal?
+     agg.result
+     (matrix_elemwise_add
+      (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+        (matrix-col-slice-noerr (matrix-take-noerr matA i) 0 n)
+        (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 i))
+      (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+        (matrix-col-slice-noerr (matrix-take-noerr matB i) 0 n)
+        (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matadd.rkt:41:0
+(define (matadd_ps matA matB m n matadd_rv)
+  (choose
+   (equal?
+    matadd_rv
+    (matrix_elemwise_add
+     (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+       (matrix-col-slice-noerr (matrix-take-noerr matA m) 0 n)
+       (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 m))
+     (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
+       (matrix-col-slice-noerr (matrix-take-noerr matB m) 0 n)
+       (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 m))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matadd.rkt:43:0
+(define (MATRIX_OUTER_LOOP_INDEX_FIRST) (choose true))
+
+real	6m7.145s
+user	4m30.936s
+sys	0m10.325s
