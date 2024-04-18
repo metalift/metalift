@@ -1,0 +1,52 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matscal.rkt:42:0
+(define (matscal_inv0 agg.result i j m mat n ref.tmp row_vec val)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i m))
+    (equal?
+     agg.result
+     (matrix_scalar_mul
+      (v0)
+      (if (OUTER_LOOP_INDEX_FIRST)
+        (matrix-col-slice-noerr (matrix-take-noerr (v2) i) 0 n)
+        (matrix-col-slice-noerr (matrix-take-noerr (v2) n) 0 i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matscal.rkt:43:0
+(define (matscal_inv1 j m mat n ref.tmp row_vec val agg.result i)
+  (choose
+   (&&
+    (&&
+     (&& (&& (&& (>= i 0) (< i m)) (>= j 0)) (<= j n))
+     (equal?
+      row_vec
+      (vec_scalar_mul
+       (v0)
+       (if (OUTER_LOOP_INDEX_FIRST)
+         (list-take-noerr (matrix-ref-noerr (v1) i) j)
+         (matrix-ref-noerr
+          (matrix-transpose-noerr
+           (matrix-col-slice-with-length-noerr (matrix-take-noerr (v1) j) i 1))
+          0)))))
+    (equal?
+     agg.result
+     (matrix_scalar_mul
+      (v0)
+      (if (OUTER_LOOP_INDEX_FIRST)
+        (matrix-col-slice-noerr (matrix-take-noerr (v1) i) 0 n)
+        (matrix-col-slice-noerr (matrix-take-noerr (v1) n) 0 i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matscal.rkt:44:0
+(define (matscal_ps mat val m n matscal_rv)
+  (choose
+   (equal?
+    matscal_rv
+    (matrix_scalar_mul
+     (v0)
+     (if (OUTER_LOOP_INDEX_FIRST)
+       (matrix-col-slice-noerr (matrix-take-noerr (v2) m) 0 n)
+       (matrix-col-slice-noerr (matrix-take-noerr (v2) n) 0 m))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matscal.rkt:46:0
+(define (OUTER_LOOP_INDEX_FIRST) (choose true))
+
+real	1m19.246s
+user	0m36.994s
+sys	0m0.879s

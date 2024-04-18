@@ -1,0 +1,23 @@
+#t
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/fourth_in_place.rkt:22:0
+(define (fourth_in_place_inv0 agg.result arr fourth i n sq)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i n))
+    (equal?
+     agg.result
+     (vec_elemwise_mul
+      (vec_elemwise_mul (list-take-noerr arr i) (list-take-noerr arr i))
+      (vec_elemwise_mul (list-take-noerr arr i) (list-take-noerr arr i)))))))
+/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/fourth_in_place.rkt:23:0
+(define (fourth_in_place_ps arr n fourth_in_place_rv)
+  (choose
+   (equal?
+    fourth_in_place_rv
+    (vec_elemwise_mul
+     (vec_elemwise_mul (list-take-noerr arr n) (list-take-noerr arr n))
+     (vec_elemwise_mul (list-take-noerr arr n) (list-take-noerr arr n))))))
+
+real	0m2.306s
+user	0m1.768s
+sys	0m0.199s
