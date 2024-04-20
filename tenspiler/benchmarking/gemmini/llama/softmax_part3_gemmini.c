@@ -16,14 +16,14 @@ void softmax_part3_gemmini(elem_t output[LEN][LEN], elem_t max_pos, elem_t* out)
 }
 
 float softmax_part3_gemmini_glued (float output[LEN], float max_pos){
-    static elem_t glued_44[LEN][LEN];
+    static elem_t glued_46[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_44[i][0] = output[i];
+        glued_46[i][0] = output[i];
     }
 
     elem_t out;
-    softmax_part3_gemmini(glued_44, max_pos, &out);
+    softmax_part3_gemmini(glued_46, max_pos, &out);
 
     return out;
 }    

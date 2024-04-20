@@ -28,7 +28,7 @@ for script_path in driver_files:
     script_basename = basename(script_path)
     script_name, _ = script_basename.rsplit('.', 1)
 
-    if any(not_comp in script_basename for not_comp in gemmini_not_comp):
+    if any(not_comp + "_driver" in script_basename for not_comp in gemmini_not_comp):
         continue
 
     if script_dir not in sys.path:
@@ -121,7 +121,7 @@ llama_func_names = [softmax_part3, rmsnorm_part1, matmul]
 for func_name in blend_func_names + llama_func_names:
     ps_fn_decl, all_fn_decls, d_type = func_name()
     gemmini_code = gemmini_codegen(ps_fn_decl, all_fn_decls, d_type)
-    e2e_fn_name = f"{func_name.__name__}_tf"
+    e2e_fn_name = f"{func_name.__name__}_gemmini"
     path_obj = Path(f"{stored_path}/blend/{e2e_fn_name}.c") if func_name in blend_func_names else Path(f"{stored_path}/llama/{e2e_fn_name}.c")
 
     path_obj.parent.mkdir(parents=True, exist_ok=True)

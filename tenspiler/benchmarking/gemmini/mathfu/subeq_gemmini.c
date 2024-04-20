@@ -19,20 +19,20 @@ void subeq_gemmini(elem_t a[LEN][LEN], elem_t b[LEN][LEN], elem_t n, elem_t out[
 }
 
 int32_t* subeq_gemmini_glued (int32_t a[LEN], int32_t b[LEN], int32_t n){
-    static elem_t glued_18[LEN][LEN];
+    static elem_t glued_20[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_18[i][0] = a[i];
+        glued_20[i][0] = a[i];
     }
 
-    static elem_t glued_19[LEN][LEN];
+    static elem_t glued_21[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_19[i][0] = b[i];
+        glued_21[i][0] = b[i];
     }
 
     static int32_t out [LEN][LEN];
-    subeq_gemmini(glued_18, glued_19, n, out);
+    subeq_gemmini(glued_20, glued_21, n, out);
     static int32_t out_postprocess [LEN]; 
 
 

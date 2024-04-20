@@ -27,14 +27,14 @@ void gemv_gemmini(elem_t M, elem_t N, elem_t A[LEN][LEN], elem_t x[LEN][LEN], el
 }
 
 int32_t* gemv_gemmini_glued (int32_t M, int32_t N, int32_t A[LEN][LEN], int32_t x[LEN]){
-    static elem_t glued_20[LEN][LEN];
+    static elem_t glued_22[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_20[i][0] = x[i];
+        glued_22[i][0] = x[i];
     }
 
     static int32_t out [LEN][LEN];
-    gemv_gemmini(M, N, A, glued_20, out);
+    gemv_gemmini(M, N, A, glued_22, out);
     static int32_t out_postprocess [LEN]; 
 
 

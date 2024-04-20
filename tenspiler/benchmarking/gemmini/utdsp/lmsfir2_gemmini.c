@@ -22,20 +22,20 @@ void lmsfir2_gemmini(elem_t NTAPS, elem_t input[LEN][LEN], elem_t coefficient[LE
 }
 
 int32_t* lmsfir2_gemmini_glued (int32_t NTAPS, int32_t input[LEN], int32_t coefficient[LEN], int32_t error){
-    static elem_t glued_38[LEN][LEN];
+    static elem_t glued_40[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_38[i][0] = input[i];
+        glued_40[i][0] = input[i];
     }
 
-    static elem_t glued_39[LEN][LEN];
+    static elem_t glued_41[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_39[i][0] = coefficient[i];
+        glued_41[i][0] = coefficient[i];
     }
 
     static int32_t out [LEN][LEN];
-    lmsfir2_gemmini(NTAPS, glued_38, glued_39, error, out);
+    lmsfir2_gemmini(NTAPS, glued_40, glued_41, error, out);
     static int32_t out_postprocess [LEN]; 
 
 

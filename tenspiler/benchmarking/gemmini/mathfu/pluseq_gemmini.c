@@ -19,20 +19,20 @@ void pluseq_gemmini(elem_t a[LEN][LEN], elem_t b[LEN][LEN], elem_t n, elem_t out
 }
 
 int32_t* pluseq_gemmini_glued (int32_t a[LEN], int32_t b[LEN], int32_t n){
-    static elem_t glued_14[LEN][LEN];
+    static elem_t glued_16[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_14[i][0] = a[i];
+        glued_16[i][0] = a[i];
     }
 
-    static elem_t glued_15[LEN][LEN];
+    static elem_t glued_17[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_15[i][0] = b[i];
+        glued_17[i][0] = b[i];
     }
 
     static int32_t out [LEN][LEN];
-    pluseq_gemmini(glued_14, glued_15, n, out);
+    pluseq_gemmini(glued_16, glued_17, n, out);
     static int32_t out_postprocess [LEN]; 
 
 

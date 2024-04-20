@@ -27,26 +27,26 @@ void mult_add_into_cpu_gemmini(elem_t N, elem_t X[LEN][LEN], elem_t Y[LEN][LEN],
 }
 
 int32_t* mult_add_into_cpu_gemmini_glued (int32_t N, int32_t X[LEN], int32_t Y[LEN], int32_t Z[LEN]){
-    static elem_t glued_24[LEN][LEN];
-
-    for (int i = 0; i < LEN; i++) { 
-        glued_24[i][0] = X[i];
-    }
-
-    static elem_t glued_25[LEN][LEN];
-
-    for (int i = 0; i < LEN; i++) { 
-        glued_25[i][0] = Y[i];
-    }
-
     static elem_t glued_26[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_26[i][0] = Z[i];
+        glued_26[i][0] = X[i];
+    }
+
+    static elem_t glued_27[LEN][LEN];
+
+    for (int i = 0; i < LEN; i++) { 
+        glued_27[i][0] = Y[i];
+    }
+
+    static elem_t glued_28[LEN][LEN];
+
+    for (int i = 0; i < LEN; i++) { 
+        glued_28[i][0] = Z[i];
     }
 
     static int32_t out [LEN][LEN];
-    mult_add_into_cpu_gemmini(N, glued_24, glued_25, glued_26, out);
+    mult_add_into_cpu_gemmini(N, glued_26, glued_27, glued_28, out);
     static int32_t out_postprocess [LEN]; 
 
 

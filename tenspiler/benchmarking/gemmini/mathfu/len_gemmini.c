@@ -24,14 +24,14 @@ void len_gemmini(elem_t arr[LEN][LEN], elem_t n, elem_t* out){
 }
 
 int32_t len_gemmini_glued (int32_t arr[LEN], int32_t n){
-    static elem_t glued_17[LEN][LEN];
+    static elem_t glued_19[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_17[i][0] = arr[i];
+        glued_19[i][0] = arr[i];
     }
 
     elem_t out;
-    len_gemmini(glued_17, n, &out);
+    len_gemmini(glued_19, n, &out);
 
     return out;
 }    

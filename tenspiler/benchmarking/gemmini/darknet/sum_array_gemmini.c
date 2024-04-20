@@ -16,14 +16,14 @@ void sum_array_gemmini(elem_t a[LEN][LEN], elem_t n, elem_t* out){
 }
 
 int32_t sum_array_gemmini_glued (int32_t a[LEN], int32_t n){
-    static elem_t glued_23[LEN][LEN];
+    static elem_t glued_25[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_23[i][0] = a[i];
+        glued_25[i][0] = a[i];
     }
 
     elem_t out;
-    sum_array_gemmini(glued_23, n, &out);
+    sum_array_gemmini(glued_25, n, &out);
 
     return out;
 }    

@@ -9,11 +9,11 @@ void fir_small_gemmini(elem_t NTAPS, elem_t input[LEN][LEN], elem_t coefficient[
     static elem_t temp0[LEN][LEN]; 
     static elem_t temp1[LEN][LEN]; 
     for (int i = 0; i < NTAPS; i++) { 
-     	 temp1[i][0] = coefficient[i][0]; 
+     	 temp1[i][0] = input[i][0]; 
      } 
     static elem_t temp2[LEN][LEN]; 
     for (int i = 0; i < NTAPS; i++) { 
-     	 temp2[i][0] = input[i][0]; 
+     	 temp2[i][0] = coefficient[i][0]; 
      } 
     for (int i = 0; i < NTAPS; i++) { 
      	 temp0[i][0] = temp1[i][0] * temp2[i][0]; 
@@ -24,20 +24,20 @@ void fir_small_gemmini(elem_t NTAPS, elem_t input[LEN][LEN], elem_t coefficient[
 }
 
 int32_t fir_small_gemmini_glued (int32_t NTAPS, int32_t input[LEN], int32_t coefficient[LEN]){
-    static elem_t glued_36[LEN][LEN];
+    static elem_t glued_38[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_36[i][0] = input[i];
+        glued_38[i][0] = input[i];
     }
 
-    static elem_t glued_37[LEN][LEN];
+    static elem_t glued_39[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_37[i][0] = coefficient[i];
+        glued_39[i][0] = coefficient[i];
     }
 
     elem_t out;
-    fir_small_gemmini(NTAPS, glued_36, glued_37, &out);
+    fir_small_gemmini(NTAPS, glued_38, glued_39, &out);
 
     return out;
 }    
