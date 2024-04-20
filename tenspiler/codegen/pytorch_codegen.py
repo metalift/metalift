@@ -6,6 +6,7 @@ from metalift.ir import (
     And,
     Bool,
     Call,
+    Int,
     Div,
     Eq,
     Expr,
@@ -202,8 +203,15 @@ def pytorch_codegen(
                 vars_to_replace: Dict[str, Expr] = {}
                 for i in range(2):
                     vars_to_replace[select_args[i].name()] = matrix_args[i]
+
+                cond_res, cond_type = helper(cond, vars_to_replace)
+                if_then_res = helper(if_then, vars_to_replace)[0]
+                if_else_res = helper(if_else, vars_to_replace)[0]
+                res = f"torch.where({cond_res}, {if_then_res}, {if_else_res})"
+                if cond_type == Bool:
+                    res = f"torch.where(torch.tensor({cond_res}), {if_then_res}, {if_else_res})"
                 return (
-                    f"torch.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})",
+                    res,
                     expr.type,
                 )
             elif fn_name == MAP_INT_TO_INT or fn_name == "vec_map":

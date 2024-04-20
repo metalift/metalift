@@ -152,8 +152,8 @@ def transformer_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--list-bound", type=int, required=True)
-    parser.add_argument("--rounds-to-guess", type=int, required=True)
+    parser.add_argument("--list-bound", type=int, required=False, default=2)
+    parser.add_argument("--rounds-to-guess", type=int, required=False, default=5)
     parser.add_argument("--relaxed", action="store_true")
     parser_args = parser.parse_args()
 
