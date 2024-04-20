@@ -1,10 +1,11 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
 
+from tenspiler.codegen.numpy_codegen import numpy_codegen
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
-from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.mlx_codegen import mlx_codegen
 from tenspiler.codegen.pytorch_codegen import pytorch_codegen
 from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
+from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
@@ -534,7 +535,7 @@ def test_type():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen]
+codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen, gemmini_codegen]
 
 for codegen_func in codegen_funcs:
     codegen_func(*test_type())
