@@ -2,6 +2,10 @@ from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
 
 # from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.gaudi_codegen import gaudi_codegen
+from tenspiler.codegen.mlx_codegen import mlx_codegen
+from tenspiler.codegen.pytorch_codegen import pytorch_codegen
+from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
+
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -34,20 +38,7 @@ int_x = Int("int_x")
 int_y = Int("int_y")
 
 
-def codegen(func):
-    def wrapper(codegen_func):
-        # Execute the original function
-        ps_fn_decl, all_fn_decls, d_type = func(codegen_func)
-
-        # Post-processing code
-        codegen_result = codegen_func(ps_fn_decl, all_fn_decls, d_type=d_type)
-        print(codegen_result)
-
-    return wrapper
-
-
-@codegen
-def normal_blend_8(codegen_func):
+def normal_blend_8():
     fn_decl = fn_decl_recursive(
         "normal_blend_8_ps",
         List[Int],
@@ -60,8 +51,8 @@ def normal_blend_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def normal_blend_f(codegen_func):
+
+def normal_blend_f():
     fn_decl = fn_decl_recursive(
         "normal_blend_f_ps",
         List[Int],
@@ -74,8 +65,8 @@ def normal_blend_f(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def dissolve_blend_8(codegen_func):
+
+def dissolve_blend_8():
     rand_cons = Int("rand_cons")
     rand_val = (rand_cons % 100 + 1) // 100
     select_two_args_fn_decl = fn_decl_recursive(
@@ -108,11 +99,10 @@ def dissolve_blend_8(codegen_func):
         DISSOLVE_MATRIX_SELECTION_TWO_ARGS: dissolve_matrix_selection_two_args_fn_decl,
         "dissolve_blend_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.FLOAT
+    return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def darken_blend_8(codegen_func):
+def darken_blend_8():
     select_two_args_fn_decl = fn_decl_recursive(
         SELECT_TWO_ARGS,
         Int,
@@ -129,6 +119,8 @@ def darken_blend_8(codegen_func):
             active_matrix,
             select_two_args_fn_obj_arg,
         ),
+        base_matrix,
+        active_matrix,
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
@@ -138,8 +130,8 @@ def darken_blend_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def multiply_blend_8(codegen_func):
+
+def multiply_blend_8():
     fn_decl = fn_decl_recursive(
         "multiply_blend_8_ps",
         Matrix[Int],
@@ -151,8 +143,8 @@ def multiply_blend_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def linear_burn_8(codegen_func):
+
+def linear_burn_8():
     fn_decl = fn_decl_recursive(
         "linear_burn_8_ps",
         Matrix[Int],
@@ -164,8 +156,8 @@ def linear_burn_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def color_burn_8(codegen_func):
+
+def color_burn_8():
     select_two_args_fn_decl = fn_decl_recursive(
         SELECT_TWO_ARGS,
         Int,
@@ -182,6 +174,8 @@ def color_burn_8(codegen_func):
             active_matrix,
             select_two_args_fn_obj_arg,
         ),
+        base_matrix,
+        active_matrix,
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
@@ -191,8 +185,8 @@ def color_burn_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def lighten_blend_8(codegen_func):
+
+def lighten_blend_8():
     select_two_args_fn_decl = fn_decl_recursive(
         SELECT_TWO_ARGS,
         Int,
@@ -209,6 +203,8 @@ def lighten_blend_8(codegen_func):
             active_matrix,
             select_two_args_fn_obj_arg,
         ),
+        base_matrix,
+        active_matrix,
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
@@ -218,8 +214,8 @@ def lighten_blend_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def screen_blend_8(codegen_func):
+
+def screen_blend_8():
     fn_decl = fn_decl_recursive(
         "screen_blend_8_ps",
         Matrix[Int],
@@ -234,8 +230,8 @@ def screen_blend_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def linear_dodge_8(codegen_func):
+
+def linear_dodge_8():
     fn_decl = fn_decl_recursive(
         "linear_dodge_8_ps",
         Matrix[Int],
@@ -247,8 +243,8 @@ def linear_dodge_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def color_dodge_8(codegen_func):
+
+def color_dodge_8():
     select_two_args_fn_decl = fn_decl_recursive(
         SELECT_TWO_ARGS,
         Int,
@@ -265,6 +261,8 @@ def color_dodge_8(codegen_func):
             active_matrix,
             select_two_args_fn_obj_arg,
         ),
+        base_matrix,
+        active_matrix,
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
@@ -274,8 +272,8 @@ def color_dodge_8(codegen_func):
     return fn_decl, all_fn_decls, DataType.INT
 
 
-@codegen
-def overlay_blend_8(codegen_func):
+
+def overlay_blend_8():
     select_two_args_fn_decl = fn_decl_recursive(
         SELECT_TWO_ARGS,
         Int,
@@ -296,6 +294,8 @@ def overlay_blend_8(codegen_func):
             active_matrix,
             select_two_args_fn_obj_arg,
         ),
+        base_matrix,
+        active_matrix,
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
@@ -306,8 +306,8 @@ def overlay_blend_8(codegen_func):
 
 
 # Llama benchmarks
-@codegen
-def softmax_part1(codegen_func):
+
+def softmax_part1():
     input = List(Int, "input")
     max_pos = Int("max_pos")
     fn_decl = fn_decl_recursive(
@@ -317,8 +317,8 @@ def softmax_part1(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def softmax_part2(codegen_func):
+
+def softmax_part2():
     input = List(Int, "input")
     max_pos = Int("max_pos")
     max_val = Int("max_val")
@@ -338,8 +338,8 @@ def softmax_part2(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def softmax_part3(codegen_func):
+
+def softmax_part3():
     output = List(Int, "output")
     max_pos = Int("max_pos")
     fn_decl = fn_decl_recursive(
@@ -349,8 +349,8 @@ def softmax_part3(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def softmax_part4(codegen_func):
+
+def softmax_part4():
     unnormalized_output = List(Int, "unnormalized_output")
     max_pos = Int("max_pos")
     sum = Int("sum")
@@ -366,8 +366,8 @@ def softmax_part4(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def rmsnorm_part1(codegen_func):
+
+def rmsnorm_part1():
     input = List(Int, "input")
     weight = List(Int, "weight")
     fn_decl = fn_decl_recursive(
@@ -377,8 +377,8 @@ def rmsnorm_part1(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def rmsnorm_part2(codegen_func):
+
+def rmsnorm_part2():
     input = List(Int, "input")
     weight = List(Int, "weight")
     ss = Int("ss")
@@ -395,8 +395,8 @@ def rmsnorm_part2(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def matmul(codegen_func):
+
+def matmul():
     weight = Matrix(Int, "weight")
     input = List(Int, "input")
     fn_decl = fn_decl_recursive(
@@ -410,8 +410,8 @@ def matmul(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def transformer_part1(codegen_func):
+
+def transformer_part1():
     token_position = Int("token_position")
     head = Int("head")
     head_size = Int("head_size")
@@ -443,8 +443,8 @@ def transformer_part1(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def transformer_part2(codegen_func):
+
+def transformer_part2():
     token_position = Int("token_position")
     head = Int("head")
     head_size = Int("head_size")
@@ -470,8 +470,8 @@ def transformer_part2(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def transformer_part3(codegen_func):
+
+def transformer_part3():
     input = List(Int, "input")
     hidden_dim = Int("hidden_dim")
 
@@ -503,8 +503,8 @@ def transformer_part3(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def transformer_part4(codegen_func):
+
+def transformer_part4():
     input1 = List(Int, "input1")
     input2 = List(Int, "input2")
     hidden_dim = Int("hidden_dim")
@@ -520,8 +520,7 @@ def transformer_part4(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-@codegen
-def test_type(codegen_func):
+def test_type():
     input = List(Int, "input")
     hidden_dim = Int("hidden_dim")
     fn_decl = fn_decl_recursive(
@@ -535,56 +534,34 @@ def test_type(codegen_func):
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-# codegen_funcs = [mlx_codegen, gaudi_codegen]
-# codegen_funcs = [numpy_codegen]
-codegen_funcs = [gaudi_codegen]
+codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen]
 
 for codegen_func in codegen_funcs:
-    darken_blend_8(codegen_func)
-    print()
-    color_burn_8(codegen_func)
-    print()
-    lighten_blend_8(codegen_func)
-    print()
-    color_dodge_8(codegen_func)
-    print()
-    overlay_blend_8(codegen_func)
-    print()
-    multiply_blend_8(codegen_func)
-    print()
-    linear_burn_8(codegen_func)
-    print()
-    screen_blend_8(codegen_func)
-    print()
-    linear_dodge_8(codegen_func)
-    print()
-    normal_blend_f(codegen_func)
-    print()
-    normal_blend_8(codegen_func)
-    print()
-    dissolve_blend_8(codegen_func)
-    print()
-    exit(0)
+    codegen_func(*test_type())
 
-    softmax_part1(codegen_func)
-    print()
-    softmax_part2(codegen_func)
-    print()
-    softmax_part3(codegen_func)
-    print()
-    softmax_part4(codegen_func)
-    print()
-    rmsnorm_part1(codegen_func)
-    print()
-    rmsnorm_part2(codegen_func)
-    print()
-    matmul(codegen_func)
-    print()
-    transformer_part1(codegen_func)
-    print()
-    transformer_part2(codegen_func)
-    print()
-    transformer_part3(codegen_func)
-    print()
-    transformer_part4(codegen_func)
-    print()
+    codegen_func(*dissolve_blend_8())
+    codegen_func(*darken_blend_8())
+    codegen_func(*color_burn_8())
+    codegen_func(*lighten_blend_8())
+    codegen_func(*color_dodge_8())
+    codegen_func(*overlay_blend_8())
+    codegen_func(*multiply_blend_8())
+    codegen_func(*linear_burn_8())
+    codegen_func(*screen_blend_8())
+    codegen_func(*linear_dodge_8())
+    codegen_func(*normal_blend_f())
+    codegen_func(*normal_blend_8())
+    
+    codegen_func(*matmul())
+    codegen_func(*transformer_part1())
+    codegen_func(*transformer_part2())
+    codegen_func(*transformer_part3())
+    codegen_func(*transformer_part4())
+    codegen_func(*rmsnorm_part1())
+    codegen_func(*rmsnorm_part2())
+    codegen_func(*softmax_part1())
+    codegen_func(*softmax_part2())
+    codegen_func(*softmax_part3())
+    codegen_func(*softmax_part4())
+    
+

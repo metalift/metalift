@@ -1,0 +1,13 @@
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+using namespace std;
+
+
+vector<int32_t> vrecip(vector<int32_t> arr, int n) {
+    vector<int32_t> out;
+    for (int i = 0; i < n; ++i) {
+        out.push_back(1 / arr[i]);
+    }
+    return out;
+}

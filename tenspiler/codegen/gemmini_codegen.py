@@ -90,12 +90,15 @@ translations = {
     "reduce_sum": lambda processed_args, curr_var, var_dimensions: f"tiled_global_average({processed_args[0]}[0], (elem_t*) {curr_var}, 1, 1, {var_dimensions[curr_var][0]}, 1); \n",
 
     "list_take": lambda processed_args, curr_var: f"for (int i = 0; i < {processed_args[1]}; i++) {{ \n \t {curr_var}[i][0] = {processed_args[0]}[i][0]; \n }} \n",
-
+    "matrix_take": lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {processed_args[1]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j]; \n \t }} \n }} \n",
+    
+    "matrix_col_slice": lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = {processed_args[1]}; j < {processed_args[2]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j]; \n \t }} \n }} \n",
+    "matrix_row_slice": lambda processed_args, curr_var, var_dimensions: f"for (int i = {processed_args[1]}; i < {processed_args[2]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j]; \n \t }} \n }} \n",
+    
     Add: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
     Mul: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
     Div: lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
-    # "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
     Mod: lambda processed_args: f"({processed_args[0]}) % ({processed_args[1]})",
 }
 
@@ -167,14 +170,14 @@ def gemmini_codegen(
                     return f"tiled_resadd_auto({var_dimensions[curr_var][0]}, {var_dimensions[curr_var][1]}, {expr1_args[0]}, {expr2_args[0]}, 1, {expr1_args[1]}[0], {expr2_args[1]}[0], {curr_var}[0], false, WS); \n", expr.type
                     
             for arg in expr.arguments():
-                if (isinstance(arg, Call)):
+                if (isinstance(arg, Call) or isinstance(arg, Ite)):
                     temp_var_name = f"temp{temp_var_count}"
                     temp_var_count += 1
                     #this assumes down stream call will actually add "var =" if needed. it will also add the dimentionality to var_dimensions if necessary
                     (var_expr, var_type, *rest) = helper(arg, vars_to_replace, temp_var_name, var_dimensions)
  
                     if var_type == Matrix[Int] or var_type == mlList[Int]:
-                        var_def = f"static elem_t {temp_var_name}[{var_dimensions[temp_var_name][0]}][{var_dimensions[temp_var_name][1]}]; \n"
+                        var_def = f"static elem_t {temp_var_name}[LEN][LEN]; \n"
                     elif var_type == Int:
                         var_def = f"static elem_t {temp_var_name}; \n"
                         continue
@@ -194,6 +197,8 @@ def gemmini_codegen(
                 var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][1]]
                 return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
             elif fn_name == VEC_ELEMWISE_SUB or fn_name == MATRIX_ELEMWISE_SUB:
+
+                
                 var_dimensions[curr_var] = [var_dimensions[processed_args[0]][0], var_dimensions[processed_args[0]][1]]
                 return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
             elif fn_name == VEC_ELEMWISE_MUL or fn_name == MATRIX_ELEMWISE_MUL:
@@ -207,7 +212,11 @@ def gemmini_codegen(
                 return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
             elif fn_name == VEC_SCALAR_MUL or fn_name == MATRIX_SCALAR_MUL or fn_name == VEC_SCALAR_DIV or fn_name == MATRIX_SCALAR_DIV:
                 var_dimensions[curr_var] = [var_dimensions[processed_args[1]][0], var_dimensions[processed_args[1]][1]]
-                return res + translations[fn_name](processed_args), expr.type
+                res = res + translations[fn_name](processed_args)
+                # This is needed since scale doesn't involve assignment
+                if processed_args[1] != curr_var:
+                    res = res + f"memcpy({processed_args[1]}, {curr_var}, sizeof(elem_t) * LEN * LEN); \n"
+                return res, expr.type
             elif fn_name == SCALAR_VEC_SUB or fn_name == SCALAR_MATRIX_SUB or fn_name == SCALAR_VEC_DIV or fn_name == SCALAR_MATRIX_DIV:
                 var_dimensions[curr_var] = [var_dimensions[processed_args[1]][0], var_dimensions[processed_args[1]][1]]
                 return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type
@@ -218,13 +227,24 @@ def gemmini_codegen(
                 return res, expr.type
             elif fn_name == "reduce_sum":
                 res += translations[fn_name](processed_args, curr_var, var_dimensions)
-                res += f"{curr_var} = {curr_var} * {var_dimensions[processed_args[0]][0]} * {var_dimensions[processed_args[0]][1]}; \n"
+                if curr_var != "out":
+                    res += f"{curr_var} = {curr_var} * LEN * LEN; \n"
+                else:
+                    res += f"*{curr_var} = *{curr_var} * LEN * LEN; \n"
                 return res, expr.type
             
             elif fn_name == "list_take":
                 var_dimensions[curr_var] = [processed_args[1], processed_args[1]]
                 return res + translations[fn_name](processed_args, curr_var), expr.type
-
+            elif fn_name == "matrix_take":
+                var_dimensions[curr_var] = var_dimensions[processed_args[0]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type    
+            elif fn_name == "matrix_col_slice":
+                var_dimensions[curr_var] = var_dimensions[processed_args[0]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type    
+            elif fn_name == "matrix_row_slice":
+                var_dimensions[curr_var] = var_dimensions[processed_args[0]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type                    
             elif fn_name in all_synthesized_fns.keys():
                 return helper(all_synthesized_fns[fn_name].body(), vars_to_replace, curr_var, var_dimensions)
                 
@@ -239,8 +259,14 @@ def gemmini_codegen(
             elif cond == "False":
                 return helper(expr.e2(), vars_to_replace, curr_var, var_dimensions)
             else:
-                return f"{helper(expr.e1(), vars_to_replace, curr_var, var_dimensions)[0]} if {cond} else {helper(expr.e2(), vars_to_replace, curr_var, var_dimensions)[0]}", expr.e1().type                
-                
+                return f"""
+if ({cond}) {{
+    {helper(expr.e1(), vars_to_replace, curr_var, var_dimensions)[0]}}} 
+else {{
+    {helper(expr.e2(), vars_to_replace, curr_var, var_dimensions)[0]}
+}}
+""", expr.e1().type                
+  
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace, "", var_dimensions) for arg in expr.args]
         processed_args_types = [a[1] for a in processed_args]
@@ -281,10 +307,10 @@ def gemmini_codegen(
     # Begins actual code generation
     ###############################
     import_stmt = """
-####### include statements ########
-include \"include/gemmini_params.h\" 
-include \"include/gemmini.h\"
-define LEN 200 //change as needed
+// include statements 
+#include \"include/gemmini_params.h\" 
+#include \"include/gemmini.h\"
+//# define LEN 200, change as needed
 //note elem_t is defined in gemmini_params.h and is defaulted to int8_t
 """
     print(import_stmt)
@@ -325,13 +351,13 @@ define LEN 200 //change as needed
     glued_name = f"{fn_name}_gemmini_glued "
 
     #C glue function parameters
-    lib_dtype = "int8_t" 
+    lib_dtype = "uint8_t" 
 
     if d_type == DataType.FLOAT:
         lib_dtype = "float"
 
     if d_type == DataType.FULL_INT:
-        lib_dtype = "int"     
+        lib_dtype = "int32_t"     
 
     var_str_c = []
     for i in range(len(arguments)):

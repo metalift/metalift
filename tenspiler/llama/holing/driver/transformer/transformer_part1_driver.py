@@ -221,8 +221,8 @@ def transformer_part1_inv1_grammar(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--list-bound", type=int, required=True)
-    parser.add_argument("--rounds-to-guess", type=int, required=True)
+    parser.add_argument("--list-bound", type=int, required=False, default=3)
+    parser.add_argument("--rounds-to-guess", type=int, required=False, default=2)
     parser.add_argument("--relaxed", action="store_true")
     parser_args = parser.parse_args()
 
