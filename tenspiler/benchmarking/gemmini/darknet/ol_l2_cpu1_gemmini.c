@@ -33,20 +33,20 @@ void ol_l2_cpu1_gemmini(elem_t n, elem_t pred[LEN][LEN], elem_t truth[LEN][LEN],
 }
 
 int32_t* ol_l2_cpu1_gemmini_glued (int32_t n, int32_t pred[LEN], int32_t truth[LEN]){
-    static elem_t glued_28[LEN][LEN];
+    static elem_t glued_30[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_28[i][0] = pred[i];
+        glued_30[i][0] = pred[i];
     }
 
-    static elem_t glued_29[LEN][LEN];
+    static elem_t glued_31[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_29[i][0] = truth[i];
+        glued_31[i][0] = truth[i];
     }
 
     static int32_t out [LEN][LEN];
-    ol_l2_cpu1_gemmini(n, glued_28, glued_29, out);
+    ol_l2_cpu1_gemmini(n, glued_30, glued_31, out);
     static int32_t out_postprocess [LEN]; 
 
 

@@ -24,14 +24,14 @@ void mag_array_gemmini(elem_t a[LEN][LEN], elem_t n, elem_t* out){
 }
 
 int32_t mag_array_gemmini_glued (int32_t a[LEN], int32_t n){
-    static elem_t glued_27[LEN][LEN];
+    static elem_t glued_29[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_27[i][0] = a[i];
+        glued_29[i][0] = a[i];
     }
 
     elem_t out;
-    mag_array_gemmini(glued_27, n, &out);
+    mag_array_gemmini(glued_29, n, &out);
 
     return out;
 }    

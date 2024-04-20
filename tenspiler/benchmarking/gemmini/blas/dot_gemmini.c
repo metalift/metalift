@@ -24,20 +24,20 @@ void dot_gemmini(elem_t a[LEN][LEN], elem_t b[LEN][LEN], elem_t n, elem_t* out){
 }
 
 int32_t dot_gemmini_glued (int32_t a[LEN], int32_t b[LEN], int32_t n){
-    static elem_t glued_21[LEN][LEN];
+    static elem_t glued_23[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_21[i][0] = a[i];
+        glued_23[i][0] = a[i];
     }
 
-    static elem_t glued_22[LEN][LEN];
+    static elem_t glued_24[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_22[i][0] = b[i];
+        glued_24[i][0] = b[i];
     }
 
     elem_t out;
-    dot_gemmini(glued_21, glued_22, n, &out);
+    dot_gemmini(glued_23, glued_24, n, &out);
 
     return out;
 }    

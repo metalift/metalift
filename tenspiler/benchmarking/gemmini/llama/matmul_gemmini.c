@@ -11,14 +11,14 @@ void matmul_gemmini(elem_t weight[LEN][LEN], elem_t input[LEN][LEN], elem_t out[
 }
 
 float* matmul_gemmini_glued (float weight[LEN][LEN], float input[LEN]){
-    static elem_t glued_47[LEN][LEN];
+    static elem_t glued_49[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_47[i][0] = input[i];
+        glued_49[i][0] = input[i];
     }
 
     static float out [LEN][LEN];
-    matmul_gemmini(weight, glued_47, out);
+    matmul_gemmini(weight, glued_49, out);
     static float out_postprocess [LEN]; 
 
 

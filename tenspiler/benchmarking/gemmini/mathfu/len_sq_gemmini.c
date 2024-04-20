@@ -24,14 +24,14 @@ void len_sq_gemmini(elem_t arr[LEN][LEN], elem_t n, elem_t* out){
 }
 
 int32_t len_sq_gemmini_glued (int32_t arr[LEN], int32_t n){
-    static elem_t glued_16[LEN][LEN];
+    static elem_t glued_18[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_16[i][0] = arr[i];
+        glued_18[i][0] = arr[i];
     }
 
     elem_t out;
-    len_sq_gemmini(glued_16, n, &out);
+    len_sq_gemmini(glued_18, n, &out);
 
     return out;
 }    

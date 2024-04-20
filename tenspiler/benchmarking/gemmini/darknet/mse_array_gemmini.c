@@ -24,14 +24,14 @@ void mse_array_gemmini(elem_t a[LEN][LEN], elem_t n, elem_t* out){
 }
 
 int32_t mse_array_gemmini_glued (int32_t a[LEN], int32_t n){
-    static elem_t glued_32[LEN][LEN];
+    static elem_t glued_34[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_32[i][0] = a[i];
+        glued_34[i][0] = a[i];
     }
 
     elem_t out;
-    mse_array_gemmini(glued_32, n, &out);
+    mse_array_gemmini(glued_34, n, &out);
 
     return out;
 }    

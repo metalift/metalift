@@ -16,20 +16,20 @@ void rmsnorm_part1_gemmini(elem_t input[LEN][LEN], elem_t weight[LEN][LEN], elem
 }
 
 float rmsnorm_part1_gemmini_glued (float input[LEN], float weight[LEN]){
-    static elem_t glued_45[LEN][LEN];
+    static elem_t glued_47[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_45[i][0] = input[i];
+        glued_47[i][0] = input[i];
     }
 
-    static elem_t glued_46[LEN][LEN];
+    static elem_t glued_48[LEN][LEN];
 
     for (int i = 0; i < LEN; i++) { 
-        glued_46[i][0] = weight[i];
+        glued_48[i][0] = weight[i];
     }
 
     elem_t out;
-    rmsnorm_part1_gemmini(glued_45, glued_46, &out);
+    rmsnorm_part1_gemmini(glued_47, glued_48, &out);
 
     return out;
 }    
