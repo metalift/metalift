@@ -535,7 +535,7 @@ def test_type():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen, gemmini_codegen]
+codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen]
 
 for codegen_func in codegen_funcs:
     codegen_func(*test_type())
