@@ -1,6 +1,12 @@
 from enum import Enum
 
 
+class Backend(Enum):
+    NUMPY = 1
+    TENSORFLOW = 2
+    PYTORCH = 3
+
+
 class DataType(Enum):
     # TODO(jie): add documentation
     FLOAT = "float"

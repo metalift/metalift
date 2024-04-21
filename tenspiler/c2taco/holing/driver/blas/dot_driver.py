@@ -20,7 +20,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, b, n = reads
     sum = writes[0]
@@ -29,8 +29,11 @@ def ps_grammar(
 
 
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
+    import pdb
+
+    pdb.set_trace()
     a, b, n = reads
     i, sum = writes
     vec = choose(a[:i], b[:i])
@@ -61,9 +64,12 @@ if __name__ == "__main__":
     driver.add_precondition(b.len() > 0)
     driver.add_precondition(b.len() >= n)
 
-    dot(a, b, n)
-
     start_time = time.time()
-    driver.synthesize(filename="dot", no_verify=True)
+    driver.synthesize(
+        fn_name="dot",
+        fn_args=[a, b, n],
+        filename="dot",
+        # no_verify=True
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

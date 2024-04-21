@@ -553,7 +553,6 @@ def synthesize(
             stderr=stderr_temp_file,
             encoding="utf-8",
             bufsize=0,
-            timeout=3600,  # 1-hour timeout
         )
         process_tracker.all_processes.append(proc_synthesis)
         exit_code = proc_synthesis.poll()
@@ -711,6 +710,8 @@ def synthesize(
                                 else:
                                     print(codegen(body))
                                 print("\n\n")
+                    # Kill the process, since we have already found the solution
+                    proc_synthesis.terminate()
                     return candidates_smt
                 else:
                     if log:
