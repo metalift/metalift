@@ -7,12 +7,14 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import Backend, DataType
 from tenspiler.tenspiler_common import (
     call_reduce_sum,
     call_vec_elemwise_mul,
     reduce_sum,
     vec_elemwise_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesize_algorithm
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -31,9 +33,6 @@ def ps_grammar(
 def inv_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
-    import pdb
-
-    pdb.set_trace()
     a, b, n = reads
     i, sum = writes
     vec = choose(a[:i], b[:i])
@@ -65,11 +64,19 @@ if __name__ == "__main__":
     driver.add_precondition(b.len() >= n)
 
     start_time = time.time()
-    driver.synthesize(
-        fn_name="dot",
-        fn_args=[a, b, n],
-        filename="dot",
-        # no_verify=True
+    run_synthesize_algorithm(
+        driver=driver,
+        backend=Backend.NUMPY,
+        data_type=DataType.INT32,
+        benchmark_name="dot",
+        benchmark_args=[a, b, n],
+        list_bound_start=2,
     )
+    # driver.synthesize(
+    #     fn_name="dot",
+    #     fn_args=[a, b, n],
+    #     filename="dot",
+    #     # no_verify=True
+    # )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

@@ -703,7 +703,9 @@ def implies(e1: "Bool", e2: "Bool") -> "Bool":
 
 
 def call(
-    fn_name: str, return_type: ObjectT, *object_args: Union["Object", Expr]
+    fn_name: str,
+    return_type: ObjectT,
+    *object_args: Union["Object", Expr],
 ) -> "Object":
     call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)

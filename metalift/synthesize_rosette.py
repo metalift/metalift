@@ -564,178 +564,199 @@ def synthesize(
             bufsize=0,
         )
         process_tracker.all_processes.append(proc_synthesis)
-        exit_code = proc_synthesis.poll()
         # both last_processed_sol_idx and rounds_to_guess are 0-indexed
-        while exit_code is None or (last_processed_sol_idx + 1) < (rounds_to_guess + 1):
-            time.sleep(10)
+        while (
+            exit_code := proc_synthesis.poll()
+        ) is None or last_processed_sol_idx + 1 < rounds_to_guess + 1:
+            time.sleep(2)
             with open(stdout_temp_file.name, "r") as stdout_temp_file_read:
                 result_synth = stdout_temp_file_read.read().split("\n")
             with open(stderr_temp_file.name, "r") as stderr_temp_file_read:
                 err_synth = stderr_temp_file_read.read().split("\n")
 
+            if result_synth == [""]:
+                # Nothing to process
+                continue
+
             if result_synth != last_result_synth:
                 # We have seen newly generated results
                 last_result_synth = result_synth
 
-            if len(last_result_synth) > last_processed_sol_idx + 1:
-                # Either way, at this point, last_result_synth should be equal to result_synth
-                # so we don't worry about which one to use
-                t_indices = []
-                for idx, el in enumerate(result_synth):
-                    if el == "#t":
-                        t_indices.append(idx)
-                t_indices.append(len(result_synth))
-                idx_start = t_indices[last_processed_sol_idx + 1]
-                idx_end = t_indices[last_processed_sol_idx + 2]
-                result_synth = result_synth[idx_start:idx_end]
+            # Either way, at this point, last_result_synth should be equal to result_synth
+            # so we don't worry about which one to use
+            curr_sol_idx = last_processed_sol_idx + 1
+            t_count = -1
+            t_index = None
+            for idx, el in enumerate(result_synth):
+                if el == "#t" or el == "#f":
+                    t_count += 1
+                    if t_count == curr_sol_idx:
+                        t_index = idx
+                        break
 
-                ##### End of Synthesis #####
+            if t_index is None:
+                # Nothing to process
+                continue
 
-                #####parsing output of rosette synthesis#####
-                var_types = {}
-                for i in [*loop_and_ps_info, *inv_and_ps]:
-                    if isinstance(i, CodeInfo):
-                        var_types[i.name] = generate_types(
-                            i.modified_vars + i.read_vars + list(vars)
-                        )
-                    else:
-                        var_types[i.args[0]] = generate_types(i.args[2:])
-                for l_i in target_lang:
-                    var_types[l_i.args[0]] = generate_types(l_i.args[2:])
+            # Now need to find the part where it ends
+            result_synth = result_synth[t_index:]
+            end_index = len(result_synth)
+            for idx, el in enumerate(result_synth):
+                if idx == 0:
+                    continue
+                if el == "#t" or el == "#f":
+                    end_index = idx
+                    break
+            result_synth = result_synth[:end_index]
 
-                if result_synth[0] == "#t":
-                    output = parse_output(result_synth[1:])
-                    candidate_dict = {}
-                    fnsType = generate_types(target_lang)
-                    for synth_fun in inv_and_ps:
-                        all_vars = synth_fun.args[2:]
-                        ce_name = synth_fun.args[0]
-                        fn_types = (synth_fun.args[1].type, *[v.type for v in all_vars])
-                        fnsType[ce_name] = Fn[typing.Tuple[fn_types]]  # type: ignore
-                    for n in synth_names:
-                        for r in output:
-                            if "define (" + n + " " in r or "define (" + n + ")" in r:
-                                start_index = r.find("(")
-                                candidate_dict[n] = to_expr(
-                                    generate_ast(r[start_index:])[0],
-                                    fnsType,
-                                    var_types[n],
-                                    choices[n] if n in choices else {},
-                                )
+            ##### End of Synthesis #####
+
+            #####parsing output of rosette synthesis#####
+            var_types = {}
+            for i in [*loop_and_ps_info, *inv_and_ps]:
+                if isinstance(i, CodeInfo):
+                    var_types[i.name] = generate_types(
+                        i.modified_vars + i.read_vars + list(vars)
+                    )
                 else:
-                    raise SynthesisFailed("Synthesis failed")
-                #####candidateDict --> definitions of all functions to be synthesized#####
+                    var_types[i.args[0]] = generate_types(i.args[2:])
+            for l_i in target_lang:
+                var_types[l_i.args[0]] = generate_types(l_i.args[2:])
 
-                ##### generating function definitions of all the functions to be synthesized#####
-                candidates_smt: List[FnDeclRecursive] = []
+            if result_synth[0] == "#t":
+                output = parse_output(result_synth[1:])
+                candidate_dict = {}
+                fnsType = generate_types(target_lang)
                 for synth_fun in inv_and_ps:
                     all_vars = synth_fun.args[2:]
                     ce_name = synth_fun.args[0]
-
-                    if ce_name not in candidate_dict:
-                        # Rosette will not return a function if no choice needs to be made
-                        candidate_dict[ce_name] = (
-                            synth_fun.args[1]
-                            .chooseArbitrarily()
-                            .mapArgs(lambda expr: convert_expr(expr))
-                        )
-
-                    candidates_smt.append(
-                        FnDeclRecursive(
-                            ce_name,
-                            synth_fun.body().type,
-                            candidate_dict[ce_name],
-                            *all_vars,
-                        )
-                    )
-
-                ##### verification of synthesized ps/inv
-                if log:
-                    print(
-                        f"====== verification of round {last_processed_sol_idx + 1} solution ======"
-                    )
-
-                verify_logs: typing.List[str] = []
-
-                if no_verify:
-                    if log:
-                        print("Not verifying solution")
-                    result_verify = "unsat"
-                else:
-                    try:
-                        result_verify, verify_logs = verify_synth_result(
-                            basename,
-                            target_lang,
-                            vars,
-                            preds,
-                            vc,
-                            loop_and_ps_info,
-                            cvc_path,
-                            synth_dir,
-                            candidates_smt,
-                            candidate_dict,
-                            fnsType,
-                            uid,
-                            use_rosette=False,
-                        )
-                    except CVC5UnsupportedException:
-                        print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
-                        result_verify, verify_logs = verify_synth_result(
-                            basename,
-                            target_lang,
-                            vars,
-                            preds,
-                            vc,
-                            loop_and_ps_info,
-                            cvc_path,
-                            synth_dir,
-                            candidates_smt,
-                            candidate_dict,
-                            fnsType,
-                            uid,
-                            use_rosette=True,
-                        )
-
-                if not no_verify and log:
-                    print("Verification Output:", result_verify)
-
-                # TODO(jie): change this back
-                if result_verify == "unsat":
-                    if log:
-                        if not no_verify:
-                            print(
-                                "Verified PS and INV Candidates ",
-                                "\n\n".join([str(c) for c in candidates_smt]),
+                    fn_types = (synth_fun.args[1].type, *[v.type for v in all_vars])
+                    fnsType[ce_name] = Fn[typing.Tuple[fn_types]]  # type: ignore
+                for n in synth_names:
+                    for r in output:
+                        if "define (" + n + " " in r or "define (" + n + ")" in r:
+                            start_index = r.find("(")
+                            candidate_dict[n] = to_expr(
+                                generate_ast(r[start_index:])[0],
+                                fnsType,
+                                var_types[n],
+                                choices[n] if n in choices else {},
                             )
-                        else:
-                            print("Synthesized PS and INV Candidates\n")
-                            for candidate in candidates_smt:
-                                print(
-                                    f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})"
-                                )
-                                body = candidate.body()
-                                if isinstance(body, str):
-                                    print(body)
-                                else:
-                                    print(codegen(body))
-                                print("\n\n")
-                    # Kill the process, since we have already found the solution
-                    proc_synthesis.terminate()
-                    return candidates_smt
-                else:
-                    if log:
+            else:
+                raise SynthesisFailed("Synthesis failed")
+            #####candidateDict --> definitions of all functions to be synthesized#####
+
+            ##### generating function definitions of all the functions to be synthesized#####
+            candidates_smt: List[FnDeclRecursive] = []
+            for synth_fun in inv_and_ps:
+                all_vars = synth_fun.args[2:]
+                ce_name = synth_fun.args[0]
+
+                if ce_name not in candidate_dict:
+                    # Rosette will not return a function if no choice needs to be made
+                    candidate_dict[ce_name] = (
+                        synth_fun.args[1]
+                        .chooseArbitrarily()
+                        .mapArgs(lambda expr: convert_expr(expr))
+                    )
+
+                candidates_smt.append(
+                    FnDeclRecursive(
+                        ce_name,
+                        synth_fun.body().type,
+                        candidate_dict[ce_name],
+                        *all_vars,
+                    )
+                )
+
+            ##### verification of synthesized ps/inv
+            if log:
+                print(
+                    f"====== verification of round {last_processed_sol_idx + 1} solution ======"
+                )
+                print(no_verify)
+
+            verify_logs: typing.List[str] = []
+
+            if no_verify:
+                if log:
+                    print("Not verifying solution")
+                result_verify = "unsat"
+            else:
+                try:
+                    result_verify, verify_logs = verify_synth_result(
+                        basename,
+                        target_lang,
+                        vars,
+                        preds,
+                        vc,
+                        loop_and_ps_info,
+                        cvc_path,
+                        synth_dir,
+                        candidates_smt,
+                        candidate_dict,
+                        fnsType,
+                        uid,
+                        use_rosette=False,
+                    )
+                except CVC5UnsupportedException:
+                    print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
+                    result_verify, verify_logs = verify_synth_result(
+                        basename,
+                        target_lang,
+                        vars,
+                        preds,
+                        vc,
+                        loop_and_ps_info,
+                        cvc_path,
+                        synth_dir,
+                        candidates_smt,
+                        candidate_dict,
+                        fnsType,
+                        uid,
+                        use_rosette=True,
+                    )
+
+            if not no_verify and log:
+                print("Verification Output:", result_verify)
+
+            # TODO(jie): change this back
+            if result_verify == "unsat":
+                if log:
+                    if not no_verify:
                         print(
-                            "verification failed",
+                            "Verified PS and INV Candidates ",
                             "\n\n".join([str(c) for c in candidates_smt]),
                         )
-                        print("\n".join(verify_logs))
-                        print("\nProceeding to verifying the next solution")
-                    if last_processed_sol_idx + 1 == rounds_to_guess:
-                        raise VerificationFailed("Verification failed")
+                    else:
+                        print("Synthesized PS and INV Candidates\n")
+                        for candidate in candidates_smt:
+                            print(
+                                f"def {candidate.name()}({' '.join([a.args[0] for a in candidate.arguments()])})"
+                            )
+                            body = candidate.body()
+                            if isinstance(body, str):
+                                print(body)
+                            else:
+                                print(codegen(body))
+                            print("\n\n")
+                # Kill the process, since we have already found the solution
+                proc_synthesis.terminate()
+                return candidates_smt
+            else:
+                if log:
+                    print(
+                        "verification failed",
+                        "\n\n".join([str(c) for c in candidates_smt]),
+                    )
+                    print("\n".join(verify_logs))
+                    print("\nProceeding to verifying the next solution")
+                if last_processed_sol_idx + 1 == rounds_to_guess:
+                    raise VerificationFailed("Verification failed")
 
-                last_processed_sol_idx += 1
+            last_processed_sol_idx = curr_sol_idx
 
-            exit_code = proc_synthesis.poll()
+            # exit_code = proc_synthesis.poll()
 
         # Now we have exited out of the while loop
         if exit_code != 0:
