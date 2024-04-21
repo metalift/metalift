@@ -101,31 +101,3 @@ lmsfir2	1.780s	2.619s	30.061s	2m44.032s	timeout	timeout	2.052	2.76	1.34502924
 mult_big
 average							2.057333333
 median
-
-blend
-normal_blend_f						timeout	4.146
-normal_blend_8						timeout	2.873
-dissolve_blend_8						timeout	156.75
-darken_blend_8						timeout	28.184
-multiply_blend_8						timeout	20.739
-linear_burn_8						timeout	21.952
-color_burn_8						timeout	63.22
-lighten_blend_8						timeout	35.941
-screen_blend_8						timeout	76.23
-linear_dodge_8						timeout	16.111
-color_dodge_8						timeout	34.013
-overlay_blend_8						timeout	85.87
-
-
-llama
-softmax_part1						5.377	5.895
-softmax_part2						timeout	4.22
-softmax_part3						1.849	1.424
-softmax_part4						192.983	2.466
-rmsnorm_part1						1422.605	1.63
-rmsnorm_part2						timeout	5.415
-matmul						timeout	6.284
-transformer_part1						timeout	1302.17
-transformer_part2						timeout	767.58
-transformer_part3						timeout	2.836
-transformer_part4						279.447	2.357
