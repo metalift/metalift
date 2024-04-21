@@ -55,8 +55,12 @@ class GaudiBodyType(CType, Enum):
     UCHAR256 = "uchar256"
     # 1 vector, with 64 32-bit floats
     FLOAT64 = "float64"
+    # 1 vector, with 64 32-bit integers
+    INT64 = "int64"
     # 4 vectors, each with 64 32-bit integers
     UINT256 = "uint256"
+    # 2 vectors, each with 64 32-bit integrs
+    INT128 = "int128"
     # 4 vectors, each with 64 32-bit floats
     FLOAT256 = "float256"
 
@@ -67,13 +71,19 @@ class GaudiBodyType(CType, Enum):
     @staticmethod
     def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiBodyType":
         if ir_type is Int:
-            if d_type == DataType.INT:
+            if d_type == DataType.UINT_8:
                 return GaudiBodyType.UINT8
-            else:
+            elif d_type == DataType.INT32:
+                return GaudiBodyType.INT64
+            elif d_type == DataType.FLOAT:
                 return GaudiBodyType.FLOAT
+            else:
+                raise ValueError(f"Unsupported data type {d_type}")
         elif is_list_type(ir_type) or is_matrix_type(ir_type):
-            if d_type is DataType.INT:
+            if d_type == DataType.UINT_8:
                 return GaudiBodyType.UCHAR256
+            elif d_type == DataType.INT32:
+                return GaudiBodyType.INT64
             else:
                 return GaudiBodyType.FLOAT64
         else:
@@ -113,8 +123,6 @@ class GaudiInstr:
     expr_str: Optional[str]
 
     def __post_init__(self) -> None:
-        if self.dest_name is not None and self.dest_type is None:
-            raise ValueError("If dest_name is not None, dest_type cannot be None")
         if self.dest_name is None and self.dest_type is not None:
             raise ValueError("If dest_type is not None, dest_name cannot be None")
         if self.dest_name is None and self.expr_str is None:
@@ -122,8 +130,11 @@ class GaudiInstr:
 
     @property
     def instr_str(self) -> str:
-        if self.dest_name is not None and self.expr_str is not None:
-            return f"{self.dest_type.value} {self.dest_name} = {self.expr_str};"
+        if self.expr_str is not None:
+            if self.dest_name is not None and self.dest_type is None:
+                return f"{self.dest_name} = {self.expr_str};"
+            else:
+                return f"{self.dest_type.value} {self.dest_name} = {self.expr_str};"
         elif self.expr_str is None:
             return f"{self.dest_type.value} {self.dest_name};"
         else:
@@ -166,10 +177,14 @@ def get_glue_code_cpp(
     else:
         num_dim = 1
 
-    if d_type == DataType.INT:
+    if d_type == DataType.UINT_8:
+        gc_d_type = "gcapi::DATA_U8"
+    elif d_type == DataType.INT32:
+        gc_d_type = "gcapi::DATA_I32"
+    elif d_type == DataType.FLOAT:
         gc_d_type = "gcapi::DATA_F32"
     else:
-        gc_d_type = "gcapi::DATA_U8"
+        raise ValueError(f"Unsupported data type {d_type}")
 
     # If there are scalar params, we need to define
     if len(primitive_args_with_types) > 0:
@@ -273,8 +288,7 @@ def get_glue_code_hpp(
 def gaudi_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Union[FnDecl, FnDeclRecursive]],
-    override_arg_types: Dict[str, GaudiHeaderType] = {},
-    d_type: DataType = DataType.INT,
+    d_type: DataType = DataType.UINT_8,
 ) -> str:
     # First define some nonlocal variables to be used in this function and associated helper
     # functions
@@ -301,16 +315,18 @@ def gaudi_codegen(
         def format_gaudi_instr(
             expr_str: Optional[str],
             gaudi_body_type: Optional[GaudiBodyType],
+            *,
             final_gaudi_body_type: Optional[GaudiBodyType] = None,
+            override_dest_name: Optional[str] = None,
             ignore_dest: bool = False,
         ) -> GaudiInstr:
             nonlocal var_count
             if ignore_dest:
                 dest_name = None
+            elif override_dest_name:
+                dest_name = override_dest_name
             else:
                 dest_name = f"v{var_count}"
-            if var_count == 15:
-                print("VAR COUNT IS 15")
             default_type_instr = GaudiInstr(dest_name, gaudi_body_type, expr_str)
             local_instructions.append(default_type_instr)
             var_count += 1
@@ -335,6 +351,12 @@ def gaudi_codegen(
             # Nothing to convert
             if arg_gaudi_type == expected_gaudi_type:
                 return None
+            if (
+                arg_gaudi_type == GaudiBodyType.INT128
+                and expected_gaudi_type == GaudiBodyType.INT64
+            ):
+                # If we are multiplying two i32 vectors, we only take the v1 of the result
+                return format_gaudi_instr(f"{arg_name}.v1", expected_gaudi_type)
             # If we are casting from a primitive to a non-primitive, we need to broadcast
             if arg_gaudi_type.is_primitive:
                 return format_gaudi_instr(arg_name, expected_gaudi_type)
@@ -354,7 +376,14 @@ def gaudi_codegen(
         # Instructions local to this expression
         local_instructions: List[GaudiInstr] = []
 
-        fn_dtype = "f32" if d_type == DataType.FLOAT else "u8"
+        if d_type == DataType.FLOAT:
+            fn_dtype = "f32"
+        elif d_type == DataType.UINT_8:
+            fn_dtype = "u8"
+        elif d_type == DataType.INT32:
+            fn_dtype = "i32"
+        else:
+            raise ValueError(f"Unsupported data type {d_type}")
 
         # If we don't have an override type, then we infer the type from the expression type.
         default_expr_type = get_gaudi_body_type(expr.type)
@@ -372,7 +401,7 @@ def gaudi_codegen(
             if is_list_type(expr.type) or is_matrix_type(expr.type):
                 expr_str = f"v_{fn_dtype}_ld_tnsr_b(inputCoord, {expr.name()})"
                 expr_instr = format_gaudi_instr(
-                    expr_str, default_expr_type, final_expr_type
+                    expr_str, default_expr_type, final_gaudi_body_type=final_expr_type
                 )
                 # Use cache
                 if (expr, expr_instr.dest_type) in var_and_lit_cache:
@@ -524,6 +553,27 @@ def gaudi_codegen(
                 )
                 return local_instructions, expr_instr
 
+            # reduce_sum
+            if fn_name == "reduce_sum":
+                # Right now, we only support reduce_sum on i32
+                vec_expr = expr.arguments()[0]
+                vec_instrs, vec_instr = expr_codegen(
+                    vec_expr, vars_to_replace=vars_to_replace
+                )
+                if vec_instr.dest_type != GaudiBodyType.INT64:
+                    raise ValueError("Unsupported data type for reduce_sum")
+                local_instructions.extend(vec_instrs)
+                expr_instr = format_gaudi_instr(
+                    f"v_i32_add_b(v_i32_reduce_add({vec_instr.dest_name}), sum)",
+                    None,
+                    override_dest_name="sum",
+                )
+                return local_instructions, expr_instr
+            # list slice functions
+            if fn_name == "list_take":
+                vec_expr = expr.arguments()[0]
+                return expr_codegen(vec_expr, vars_to_replace=vars_to_replace)
+
             # Group function names
             add_fn_names = {
                 "matrix_elemwise_add",
@@ -558,9 +608,10 @@ def gaudi_codegen(
                 "scalar_vec_div",
             }
             if fn_name in div_fn_names:
-                if d_type == DataType.INT:
+                if d_type == DataType.UINT_8:
                     expected_arg_type = GaudiBodyType.FLOAT256
                 else:
+                    # Both int32 and float data types need to be converted to float 64
                     expected_arg_type = GaudiBodyType.FLOAT64
 
                 if "scalar" in fn_name:
@@ -663,8 +714,10 @@ def gaudi_codegen(
                     instr_name = f"v_{fn_dtype}_sub_b"
                 else:
                     instr_name = f"v_{fn_dtype}_mul_b"
-                    if d_type == DataType.INT:
+                    if d_type == DataType.UINT_8:
                         ret_gaudi_type = GaudiBodyType.UINT256
+                    elif d_type == DataType.INT32:
+                        ret_gaudi_type = GaudiBodyType.INT128
 
                 first_arg_instrs, first_arg_instr = expr_codegen(
                     expr.arguments()[0],
@@ -692,8 +745,15 @@ def gaudi_codegen(
                 expr_instr = format_gaudi_instr(
                     f"{instr_name}({first_arg_instr.dest_name}, {second_arg_instr.dest_name})",
                     ret_gaudi_type,
-                    final_expr_type,
+                    final_gaudi_body_type=final_expr_type,
                 )
+
+                # # If we are multiplying two i32 vectors, we only take the v1 of the result
+                # if ret_gaudi_type == GaudiBodyType.INT128:
+                #     expr_instr = format_gaudi_instr(
+                #         f"{expr_instr.dest_name}.v1",
+                #         GaudiBodyType.INT64
+                #     )
                 return local_instructions, expr_instr
 
     ###############################
@@ -704,8 +764,8 @@ def gaudi_codegen(
     # operations, which means the final return value has to either be a vector or a matrix.
     is_return_type_vec = is_list_type(ps_fn_decl.returnT())
     is_return_type_matrix = is_matrix_type(ps_fn_decl.returnT())
-    if not is_return_type_vec and not is_return_type_matrix:
-        raise Exception("Can only return a tensor from a TPC-C function!")
+    # if not is_return_type_vec and not is_return_type_matrix:
+    #     raise Exception("Can only return a tensor from a TPC-C function!")
 
     # First we generate the function header. We include the tensor to return in the arguments,
     # and it should always be the last argument.
@@ -739,12 +799,17 @@ def gaudi_codegen(
     header = f"void main({arguments_str})"
 
     # If mode is float, then we operate on 64 elements at a time, else 256
-    if d_type == DataType.FLOAT:
+    if d_type == DataType.UINT_8:
+        vec_len = 256
+        store_instr = "v_u8_st_tnsr"
+    elif d_type == DataType.INT32:
+        vec_len = 64
+        store_instr = "v_i32_st_tnsr"
+    elif d_type == DataType.FLOAT:
         vec_len = 64
         store_instr = "v_f32_st_tnsr"
     else:
-        vec_len = 256
-        store_instr = "v_u8_st_tnsr"
+        raise ValueError(f"Unsupported data type {d_type}")
 
     # Generate the returned expression
     instructions, ret_instr = expr_codegen(ps_fn_decl.body())

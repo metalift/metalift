@@ -14,8 +14,8 @@ from metalift.ir import (
     Ge,
     Gt,
     Int,
-    Le,
     Ite,
+    Le,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -141,16 +141,16 @@ translations = {
     else f"np.logical_or({processed_args[0]}, {processed_args[1]})",
 }
 
+
 def numpy_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
 ) -> str:
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
-
         if not isinstance(expr, Expr):
             return str(expr), None
-        
+
         if isinstance(expr, Call):
             processed_args = [
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
@@ -202,19 +202,22 @@ def numpy_codegen(
                 return translations[fn_name](processed_args), expr.type
             elif fn_name in all_synthesized_fns.keys():
                 return helper(all_synthesized_fns[fn_name].body())
-                
+
             raise Exception(f"Unknown function name: {fn_name}")
 
-        # Ite expression. Some condition are constants  
+        # Ite expression. Some condition are constants
         if isinstance(expr, Ite):
             cond = helper(expr.c())[0]
-            
+
             if cond == "True":
                 return helper(expr.e1(), vars_to_replace)
             elif cond == "False":
                 return helper(expr.e2(), vars_to_replace)
             else:
-                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
+                return (
+                    f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}",
+                    expr.e1().type,
+                )
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -286,13 +289,13 @@ import numpy as np
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "np.uint8" 
+            lib_dtype = "np.uint8"
             if d_type == DataType.FLOAT:
                 lib_dtype = "np.float32"
 
-            if d_type == DataType.FULL_INT:
-                lib_dtype = "np.int32"    
-            
+            if d_type == DataType.INT32:
+                lib_dtype = "np.int32"
+
             conversions.append(
                 f"{arguments[i]} = np.array({arguments[i]}).astype({lib_dtype})"
             )

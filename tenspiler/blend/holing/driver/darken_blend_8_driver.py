@@ -48,5 +48,5 @@ if __name__ == "__main__":
     print(f"Synthesis took {end_time - start_time} seconds")
 
     mlx_codegen(
-        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, d_type=DataType.INT
+        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, d_type=DataType.UINT_8
     )

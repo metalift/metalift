@@ -14,8 +14,8 @@ from metalift.ir import (
     Ge,
     Gt,
     Int,
-    Le,
     Ite,
+    Le,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -61,12 +61,24 @@ translations = {
     MATRIX_ELEMWISE_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
     VEC_SCALAR_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
     MATRIX_SCALAR_MUL: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
-    VEC_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    MATRIX_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    SCALAR_VEC_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    SCALAR_MATRIX_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})" if is_floor else f"({processed_args[0]}) / ({processed_args[1]})",
-    VEC_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
-    MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})" if is_floor else f"({processed_args[1]}) / ({processed_args[0]})",
+    VEC_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})"
+    if is_floor
+    else f"({processed_args[0]}) / ({processed_args[1]})",
+    MATRIX_ELEMWISE_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})"
+    if is_floor
+    else f"({processed_args[0]}) / ({processed_args[1]})",
+    SCALAR_VEC_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})"
+    if is_floor
+    else f"({processed_args[0]}) / ({processed_args[1]})",
+    SCALAR_MATRIX_DIV: lambda processed_args, is_floor: f"({processed_args[0]}) // ({processed_args[1]})"
+    if is_floor
+    else f"({processed_args[0]}) / ({processed_args[1]})",
+    VEC_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})"
+    if is_floor
+    else f"({processed_args[1]}) / ({processed_args[0]})",
+    MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})"
+    if is_floor
+    else f"({processed_args[1]}) / ({processed_args[0]})",
     "matrix_vec_mul": lambda processed_args: f"mx.matmul({processed_args[0]}, {processed_args[1]})",
     "list_eq": lambda processed_args: f"mx.equal({processed_args[0]}, {processed_args[1]})",
     "list_empty": lambda processed_args: f"mx.zeros((0))",
@@ -94,22 +106,42 @@ translations = {
     "reduce_max": lambda processed_args: f"mx.max({processed_args[0]})",
     "reduce_sum": lambda processed_args: f"mx.sum({processed_args[0]})",
     "reduce_mul": lambda processed_args: f"mx.prod({processed_args[0]})",
-    "integer_sqrt": lambda processed_args, is_list=False: f"mx.sqrt({processed_args[0]})" if is_list else f"mx.sqrt(mx.array({processed_args[0]}))",
-    "integer_exp": lambda processed_args, is_list=False: f"mx.exp({processed_args[0]})" if is_list else f"mx.exp(mx.array({processed_args[0]}))",
+    "integer_sqrt": lambda processed_args, is_list=False: f"mx.sqrt({processed_args[0]})"
+    if is_list
+    else f"mx.sqrt(mx.array({processed_args[0]}))",
+    "integer_exp": lambda processed_args, is_list=False: f"mx.exp({processed_args[0]})"
+    if is_list
+    else f"mx.exp(mx.array({processed_args[0]}))",
     Add: lambda processed_args, is_int: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args, is_int: f"({processed_args[0]}) - ({processed_args[1]})",
     Mul: lambda processed_args, is_int: f"({processed_args[0]}) * ({processed_args[1]})",
     Div: lambda processed_args, is_int: f"({processed_args[0]}) // ({processed_args[1]})",
     "float_div": lambda processed_args: f"({processed_args[0]}) / ({processed_args[1]})",
     Mod: lambda processed_args, is_int: f"({processed_args[0]}) % ({processed_args[1]})",
-    Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}" if is_int else f"mx.equal({processed_args[0]}, {processed_args[1]})",
-    Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}" if is_int else f"mx.greater({processed_args[0]}, {processed_args[1]})",
-    Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}" if is_int else f"mx.greater_equal({processed_args[0]}, {processed_args[1]})",
-    Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}" if is_int else f"mx.less({processed_args[0]}, {processed_args[1]})",
-    Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}" if is_int else f"mx.less_equal({processed_args[0]}, {processed_args[1]})",
-    Not: lambda processed_args, is_prim: f"not {processed_args[0]}" if is_prim else f"mx.logical_not({processed_args[0]})",
-    And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})" if is_prim else f"mx.logical_and({processed_args[0]}, {processed_args[1]})",
-    Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})" if is_prim else f"mx.logical_or({processed_args[0]}, {processed_args[1]})",
+    Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}"
+    if is_int
+    else f"mx.equal({processed_args[0]}, {processed_args[1]})",
+    Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}"
+    if is_int
+    else f"mx.greater({processed_args[0]}, {processed_args[1]})",
+    Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}"
+    if is_int
+    else f"mx.greater_equal({processed_args[0]}, {processed_args[1]})",
+    Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}"
+    if is_int
+    else f"mx.less({processed_args[0]}, {processed_args[1]})",
+    Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}"
+    if is_int
+    else f"mx.less_equal({processed_args[0]}, {processed_args[1]})",
+    Not: lambda processed_args, is_prim: f"not {processed_args[0]}"
+    if is_prim
+    else f"mx.logical_not({processed_args[0]})",
+    And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})"
+    if is_prim
+    else f"mx.logical_and({processed_args[0]}, {processed_args[1]})",
+    Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})"
+    if is_prim
+    else f"mx.logical_or({processed_args[0]}, {processed_args[1]})",
 }
 
 
@@ -118,7 +150,8 @@ def mlx_codegen(
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
 ) -> str:
-    has_matmul=False    
+    has_matmul = False
+
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
         nonlocal has_matmul
         if not isinstance(expr, Expr):
@@ -137,28 +170,48 @@ def mlx_codegen(
                 if select_two_args_fn_decl is None:
                     raise ValueError("select_two_args not found")
                 select_two_args_body = select_two_args_fn_decl.body()
-                cond, if_then, if_else = (select_two_args_body.c(), select_two_args_body.e1(), select_two_args_body.e2(),)
+                cond, if_then, if_else = (
+                    select_two_args_body.c(),
+                    select_two_args_body.e1(),
+                    select_two_args_body.e2(),
+                )
                 select_args = select_two_args_fn_decl.arguments()[:2]
                 matrix_args = expr.arguments()[:2]
                 vars_to_replace: Dict[str, Expr] = {}
                 for i in range(2):
                     vars_to_replace[select_args[i].name()] = matrix_args[i]
-                return (f"mx.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})", expr.type,)
+                return (
+                    f"mx.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})",
+                    expr.type,
+                )
             elif fn_name == MAP_INT_TO_INT or fn_name == "vec_map":
                 map_fn_name = all_synthesized_fns[MAP_INT_TO_INT].body().name()
                 if map_fn_name in {"integer_sqrt", "integer_exp"}:
-                    return (translations[map_fn_name](processed_args, fn_name == "vec_map"), expr.type, )
+                    return (
+                        translations[map_fn_name](processed_args, fn_name == "vec_map"),
+                        expr.type,
+                    )
                 else:
                     raise ValueError(f"Unknown map function name: {map_fn_name}")
             elif fn_name in translations.keys():
-                if fn_name in {VEC_ELEMWISE_DIV, MATRIX_ELEMWISE_DIV, SCALAR_VEC_DIV, SCALAR_MATRIX_DIV, VEC_SCALAR_DIV, MATRIX_SCALAR_DIV,}:
-                    return (translations[fn_name](processed_args, d_type != DataType.FLOAT), expr.type,)
+                if fn_name in {
+                    VEC_ELEMWISE_DIV,
+                    MATRIX_ELEMWISE_DIV,
+                    SCALAR_VEC_DIV,
+                    SCALAR_MATRIX_DIV,
+                    VEC_SCALAR_DIV,
+                    MATRIX_SCALAR_DIV,
+                }:
+                    return (
+                        translations[fn_name](processed_args, d_type != DataType.FLOAT),
+                        expr.type,
+                    )
                 return translations[fn_name](processed_args), expr.type
             elif fn_name in all_synthesized_fns.keys():
                 return helper(all_synthesized_fns[fn_name].body())
             raise Exception(f"Unknown function name: {fn_name}")
 
-        # Ite expression. Some condition are constants  
+        # Ite expression. Some condition are constants
         if isinstance(expr, Ite):
             cond = helper(expr.c())[0]
             if cond == "True":
@@ -166,7 +219,10 @@ def mlx_codegen(
             elif cond == "False":
                 return helper(expr.e2(), vars_to_replace)
             else:
-                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
+                return (
+                    f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}",
+                    expr.e1().type,
+                )
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -174,7 +230,15 @@ def mlx_codegen(
         processed_args = [a[0] for a in processed_args]
         if any(isinstance(expr, cls) for cls in [Add, Sub, Mul, Div, Mod]):
             is_arg_type_int = all([a_type is Int for a_type in processed_args_types])
-            ret_type = (Int if is_arg_type_int else [a_type for a_type in processed_args_types if a_type is not Int and a_type is not None][0])
+            ret_type = (
+                Int
+                if is_arg_type_int
+                else [
+                    a_type
+                    for a_type in processed_args_types
+                    if a_type is not Int and a_type is not None
+                ][0]
+            )
             if isinstance(expr, Div) and d_type == DataType.FLOAT:
                 return translations["float_div"](processed_args), ret_type
             return translations[type(expr)](processed_args, is_arg_type_int), ret_type
@@ -185,7 +249,9 @@ def mlx_codegen(
             ret_type = Bool if is_arg_type_int else mlList[Bool]
             return translations[type(expr)](processed_args, is_arg_type_int), ret_type
         elif any(isinstance(expr, cls) for cls in [And, Or, Not]):
-            is_arg_type_prim = all([a_type is Int or a_type is Bool for a_type in processed_args_types])
+            is_arg_type_prim = all(
+                [a_type is Int or a_type is Bool for a_type in processed_args_types]
+            )
             ret_type = Bool if is_arg_type_prim else mlList[Bool]
             return translations[type(expr)](processed_args, is_arg_type_prim), ret_type
 
@@ -197,7 +263,7 @@ def mlx_codegen(
                 return helper(vars_to_replace[expr.name()], vars_to_replace)
             return expr.name(), expr.type
         return str(expr)
-    
+
     ############# Actual codegen
     import_stmt = """
 ####### import statements ########
@@ -221,11 +287,11 @@ import mlx.core as mx
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "mx.uint8" 
+            lib_dtype = "mx.uint8"
             if d_type == DataType.FLOAT:
                 lib_dtype = "mx.float32"
-            if d_type == DataType.FULL_INT:
-                lib_dtype = "mx.int32"     
+            if d_type == DataType.INT32:
+                lib_dtype = "mx.int32"
             # matmul require float
             if has_matmul:
                 lib_dtype = "mx.float32"
