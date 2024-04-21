@@ -41,6 +41,7 @@ class CType(Enum):
 
     UINT8 = "uint8_t"
     FLOAT = "float"
+    INT32 = "int32_t"
 
     @property
     def is_primitive(self) -> bool:
@@ -106,10 +107,15 @@ class GaudiHeaderType(CType, Enum):
         if is_list_type(ir_type) or is_matrix_type(ir_type):
             return GaudiHeaderType.TENSOR
         elif ir_type is Int:
-            if d_type == DataType.FLOAT:
+            if d_type == DataType.UINT_8:
+                return GaudiHeaderType.UINT8
+            elif d_type == DataType.INT32:
+                return GaudiHeaderType.INT32
+            elif d_type == DataType.FLOAT:
                 return GaudiHeaderType.FLOAT
             else:
-                return GaudiHeaderType.UINT8
+                raise ValueError(f"Unsupported data type {d_type}")
+
         else:
             raise Exception(
                 f"Cannot infer Gaudi type from ir type {ir_type} and data type {d_type}"
@@ -188,10 +194,18 @@ def get_glue_code_cpp(
 
     # If there are scalar params, we need to define
     if len(primitive_args_with_types) > 0:
+        if d_type == DataType.UINT_8:
+            sizeof_type = "uint8_t"
+        elif d_type == DataType.INT32:
+            sizeof_type = "int32_t"
+        elif d_type == DataType.FLOAT:
+            sizeof_type = "float"
+        else:
+            raise ValueError(f"Unsupported data type {d_type}")
         scalar_params_def = f"""
         // Define scalar params
         {pascal_case_fn_name}Param* paramDef = static_cast<{pascal_case_fn_name}Param*>(in_defs->NodeParams);
-        out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof({'float' if d_type == DataType.FLOAT else 'uint8_t'});
+        out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof({sizeof_type});
         memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
         """
         scalar_params_def = textwrap.dedent(scalar_params_def)
@@ -569,10 +583,19 @@ def gaudi_codegen(
                     override_dest_name="sum",
                 )
                 return local_instructions, expr_instr
-            # list slice functions
-            if fn_name == "list_take":
-                vec_expr = expr.arguments()[0]
-                return expr_codegen(vec_expr, vars_to_replace=vars_to_replace)
+            # We assume slicing is already handled by users before calling kernel
+            if fn_name in {
+                "list_take",
+                "matrix_take",
+                "list_tail",
+                "matrix_tail",
+                "vec_slice",
+                "matrix_row_slice",
+                "matrix_col_slice",
+            }:
+                return expr_codegen(
+                    expr.arguments()[0], vars_to_replace=vars_to_replace
+                )
 
             # Group function names
             add_fn_names = {
@@ -764,8 +787,16 @@ def gaudi_codegen(
     # operations, which means the final return value has to either be a vector or a matrix.
     is_return_type_vec = is_list_type(ps_fn_decl.returnT())
     is_return_type_matrix = is_matrix_type(ps_fn_decl.returnT())
-    # if not is_return_type_vec and not is_return_type_matrix:
-    #     raise Exception("Can only return a tensor from a TPC-C function!")
+    # Return type is either a vector or a matrix, or a reduce sum call
+    is_reduce_sum_call = (
+        isinstance(ps_fn_decl.body(), Call) and ps_fn_decl.body().name() == "reduce_sum"
+    )
+    if (
+        not is_return_type_vec and not is_return_type_matrix
+    ) and not is_reduce_sum_call:
+        raise Exception(
+            "Can only return a tensor from a TPC-C function or a reduce_sum call!"
+        )
 
     # First we generate the function header. We include the tensor to return in the arguments,
     # and it should always be the last argument.
@@ -822,31 +853,54 @@ def gaudi_codegen(
     ]
     deduped_instr_strs = [instr.instr_str for instr in deduped_instrs]
 
-    if is_return_type_vec and not is_return_type_matrix:
+    if (is_return_type_vec and not is_return_type_matrix) or is_reduce_sum_call:
         joined_instr_str = "\n".join(
             [deduped_instr_strs[0]]
             + [
-                textwrap.indent(instr_str, INDENTATION * 3)
+                textwrap.indent(instr_str, INDENTATION * 4)
                 for instr_str in deduped_instr_strs[1:]
             ]
         )
-        body = f"""
-        int5 index_space_start = get_index_space_offset();
-        int5 index_space_end = index_space_start + get_index_space_size();
+        if is_reduce_sum_call:
+            body = f"""
+            int5 index_space_start = get_index_space_offset();
+            int5 index_space_end = index_space_start + get_index_space_size();
 
-        int5 inputCoord = {{ 0 }};
-        int5 outputCoord = {{ 0 }};
+            int5 inputCoord = {{ 0 }};
+            int5 outputCoord = {{ 0 }};
 
-        unsigned vec_len = {vec_len};
+            int64 {ret_dest_name};
 
-        #pragma loop_unroll(8)
-        for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
-            // index space mapping
-            inputCoord[0] = outputCoord[0] = (i * vec_len);
-            {joined_instr_str}
+            unsigned vec_len = {vec_len};
+
+            #pragma loop_unroll(8)
+            for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
+                // index space mapping
+                inputCoord[0] = outputCoord[0] = (i * vec_len);
+                {joined_instr_str}
+            }}
+
+            outputCoord[0] = index_space_start[0] * vec_len;
             {store_instr}(outputCoord, {rv_name}, {ret_dest_name});
-        }}
-        """
+            """
+        else:
+            body = f"""
+            int5 index_space_start = get_index_space_offset();
+            int5 index_space_end = index_space_start + get_index_space_size();
+
+            int5 inputCoord = {{ 0 }};
+            int5 outputCoord = {{ 0 }};
+
+            unsigned vec_len = {vec_len};
+
+            #pragma loop_unroll(8)
+            for(int i = index_space_start[0]; i < index_space_end[0]; i++) {{
+                // index space mapping
+                inputCoord[0] = outputCoord[0] = (i * vec_len);
+                {joined_instr_str}
+                {store_instr}(outputCoord, {rv_name}, {ret_dest_name});
+            }}
+            """
         body = textwrap.dedent(body)
     else:
         joined_instr_str = "\n".join(
