@@ -1599,14 +1599,11 @@ class Driver:
 
     def synthesize(
         self,
-        fn_name: str,
-        fn_args: List[Object],
         filename: str,
         relaxed_grammar: bool = False,
         **synthesize_kwargs,
     ) -> None:  # type: ignore
         # First we need to call the function
-        self.fns[fn_name](*fn_args)
         synths = [
             i.gen_synth(relaxed_grammar) for i in self.pred_tracker.predicates.values()
         ]
