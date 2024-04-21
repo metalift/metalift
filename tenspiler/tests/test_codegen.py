@@ -1,14 +1,5 @@
 from metalift.ir import Int, List, Matrix, fn_decl_recursive, ite
-
 from tenspiler.codegen.gaudi_codegen import gaudi_codegen
-from tenspiler.codegen.gemmini_codegen import gemmini_codegen
-
-from tenspiler.codegen.numpy_codegen import numpy_codegen
-from tenspiler.codegen.mlx_codegen import mlx_codegen
-from tenspiler.codegen.pytorch_codegen import pytorch_codegen
-from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
-
-
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -51,8 +42,7 @@ def normal_blend_8():
         opacity,
     )
     all_fn_decls = {"normal_blend_8_ps": fn_decl}
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def normal_blend_f():
@@ -66,7 +56,6 @@ def normal_blend_f():
     )
     all_fn_decls = {"normal_blend_f_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
-
 
 
 def dissolve_blend_8():
@@ -102,7 +91,7 @@ def dissolve_blend_8():
         DISSOLVE_MATRIX_SELECTION_TWO_ARGS: dissolve_matrix_selection_two_args_fn_decl,
         "dissolve_blend_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def darken_blend_8():
@@ -130,8 +119,7 @@ def darken_blend_8():
         MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "darken_blend_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def multiply_blend_8():
@@ -143,8 +131,7 @@ def multiply_blend_8():
         active_matrix,
     )
     all_fn_decls = {"multiply_blend_8_ps": fn_decl}
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def linear_burn_8():
@@ -156,8 +143,7 @@ def linear_burn_8():
         active_matrix,
     )
     all_fn_decls = {"linear_burn_8_ps": fn_decl}
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def color_burn_8():
@@ -185,8 +171,7 @@ def color_burn_8():
         MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "color_burn_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def lighten_blend_8():
@@ -214,8 +199,7 @@ def lighten_blend_8():
         MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "lighten_blend_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def screen_blend_8():
@@ -230,8 +214,7 @@ def screen_blend_8():
         active_matrix,
     )
     all_fn_decls = {"screen_blend_8_ps": fn_decl}
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def linear_dodge_8():
@@ -243,8 +226,7 @@ def linear_dodge_8():
         active_matrix,
     )
     all_fn_decls = {"linear_dodge_8_ps": fn_decl}
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def color_dodge_8():
@@ -272,8 +254,7 @@ def color_dodge_8():
         MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "color_dodge_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
-
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 def overlay_blend_8():
@@ -305,10 +286,11 @@ def overlay_blend_8():
         MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "overlay_blend_8_ps": fn_decl,
     }
-    return fn_decl, all_fn_decls, DataType.INT
+    return fn_decl, all_fn_decls, DataType.UINT_8
 
 
 # Llama benchmarks
+
 
 def softmax_part1():
     input = List(Int, "input")
@@ -318,7 +300,6 @@ def softmax_part1():
     )
     all_fn_decls = {"softmax_part1_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
-
 
 
 def softmax_part2():
@@ -341,7 +322,6 @@ def softmax_part2():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-
 def softmax_part3():
     output = List(Int, "output")
     max_pos = Int("max_pos")
@@ -350,7 +330,6 @@ def softmax_part3():
     )
     all_fn_decls = {"softmax_part3_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
-
 
 
 def softmax_part4():
@@ -369,7 +348,6 @@ def softmax_part4():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-
 def rmsnorm_part1():
     input = List(Int, "input")
     weight = List(Int, "weight")
@@ -378,7 +356,6 @@ def rmsnorm_part1():
     )
     all_fn_decls = {"rmsnorm_part1_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
-
 
 
 def rmsnorm_part2():
@@ -398,7 +375,6 @@ def rmsnorm_part2():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-
 def matmul():
     weight = Matrix(Int, "weight")
     input = List(Int, "input")
@@ -411,7 +387,6 @@ def matmul():
     )
     all_fn_decls = {"matmul_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
-
 
 
 def transformer_part1():
@@ -446,7 +421,6 @@ def transformer_part1():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-
 def transformer_part2():
     token_position = Int("token_position")
     head = Int("head")
@@ -471,7 +445,6 @@ def transformer_part2():
     )
     all_fn_decls = {"transformer_part2_ps": fn_decl}
     return fn_decl, all_fn_decls, DataType.FLOAT
-
 
 
 def transformer_part3():
@@ -506,7 +479,6 @@ def transformer_part3():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-
 def transformer_part4():
     input1 = List(Int, "input1")
     input2 = List(Int, "input2")
@@ -537,9 +509,24 @@ def test_type():
     return fn_decl, all_fn_decls, DataType.FLOAT
 
 
-codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen]
+def dot():
+    a = List(Int, "a")
+    b = List(Int, "b")
+    n = Int("n")
+    fn_decl = fn_decl_recursive(
+        "dot_ps", Int, call_reduce_sum(List.mul(a[:n], b[:n])), a, b, n
+    )
+    all_fn_decls = {"dot_ps": fn_decl}
+    return fn_decl, all_fn_decls, DataType.INT32
+
+
+# codegen_funcs = [mlx_codegen, numpy_codegen, pytorch_codegen, tensorflow_codegen]
+codegen_funcs = [gaudi_codegen]
 
 for codegen_func in codegen_funcs:
+    print(*dot())
+    codegen_func(*dot())
+    exit(0)
     codegen_func(*test_type())
 
     codegen_func(*dissolve_blend_8())
@@ -554,7 +541,8 @@ for codegen_func in codegen_funcs:
     codegen_func(*linear_dodge_8())
     codegen_func(*normal_blend_f())
     codegen_func(*normal_blend_8())
-    
+    exit(0)
+
     codegen_func(*matmul())
     codegen_func(*transformer_part1())
     codegen_func(*transformer_part2())
@@ -566,5 +554,3 @@ for codegen_func in codegen_funcs:
     codegen_func(*softmax_part2())
     codegen_func(*softmax_part3())
     codegen_func(*softmax_part4())
-    
-

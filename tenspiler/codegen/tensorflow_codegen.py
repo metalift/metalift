@@ -14,8 +14,8 @@ from metalift.ir import (
     Ge,
     Gt,
     Int,
-    Le,
     Ite,
+    Le,
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or, Sub, Var
@@ -211,19 +211,22 @@ def tensorflow_codegen(
                 return translations[fn_name](processed_args), expr.type
             elif fn_name in all_synthesized_fns.keys():
                 return helper(all_synthesized_fns[fn_name].body())
-                
+
             raise Exception(f"Unknown function name: {fn_name}")
 
-        # Ite expression. Some condition are constants  
+        # Ite expression. Some condition are constants
         if isinstance(expr, Ite):
             cond = helper(expr.c())[0]
-            
+
             if cond == "True":
                 return helper(expr.e1(), vars_to_replace)
             elif cond == "False":
                 return helper(expr.e2(), vars_to_replace)
             else:
-                return f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}", expr.e1().type
+                return (
+                    f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}",
+                    expr.e1().type,
+                )
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -293,12 +296,12 @@ import tensorflow as tf
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "tf.uint8" 
+            lib_dtype = "tf.uint8"
             if d_type == DataType.FLOAT:
                 lib_dtype = "tf.float32"
 
-            if d_type == DataType.FULL_INT:
-                lib_dtype = "tf.int32"     
+            if d_type == DataType.INT32:
+                lib_dtype = "tf.int32"
 
             conversions.append(
                 f"{arguments[i]} = tf.convert_to_tensor({arguments[i]}, dtype={lib_dtype})"
