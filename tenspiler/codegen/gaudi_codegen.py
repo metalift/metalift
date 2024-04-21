@@ -947,3 +947,5 @@ def gaudi_codegen(
     print("####### kernel code ########")
     print(header_and_body)
     print()
+
+    return hpp_glue_code, cpp_glue_code, header_and_body

@@ -665,7 +665,6 @@ def synthesize(
                 print(
                     f"====== verification of round {last_processed_sol_idx + 1} solution ======"
                 )
-                print(no_verify)
 
             verify_logs: typing.List[str] = []
 

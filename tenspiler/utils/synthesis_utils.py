@@ -1,9 +1,9 @@
 import multiprocessing
-from typing import List
+from pathlib import Path
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Object
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
+from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.pytorch_codegen import pytorch_codegen
 from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
@@ -16,7 +16,6 @@ def run_synthesize_with_bound(
     backend: Backend,
     data_type: DataType,
     benchmark_name: str,
-    benchmark_args: List[Object],
     list_bound: int,
     max_rounds: int,
 ):
@@ -24,8 +23,6 @@ def run_synthesize_with_bound(
         # First use strict grammar
         basename = f"{benchmark_name}_strict_listbound{list_bound}_rounds{max_rounds}"
         driver.synthesize(
-            fn_name=benchmark_name,
-            fn_args=benchmark_args,
             filename=basename,
             list_bound=list_bound,
             relaxed_grammar=False,
@@ -40,8 +37,6 @@ def run_synthesize_with_bound(
         )
         basename = f"{benchmark_name}_relaxed_listbound{list_bound}_rounds{max_rounds}"
         driver.synthesize(
-            fn_name=benchmark_name,
-            fn_args=benchmark_args,
             filename=basename,
             list_bound=list_bound,
             relaxed_grammar=True,
@@ -52,15 +47,44 @@ def run_synthesize_with_bound(
 
     ps_fn_decl = driver.get_actual_ps_fn_decl()
 
-    if backend == Backend.NUMPY:
-        np_code = numpy_codegen(ps_fn_decl, driver.synthesized_fns, data_type)
-        print(np_code)
-    elif backend == Backend.TENSORFLOW:
-        tf_code = tensorflow_codegen(ps_fn_decl, driver.synthesized_fns, data_type)
-        print(tf_code)
-    elif backend == Backend.PYTORCH:
-        pt_code = pytorch_codegen(ps_fn_decl, driver.synthesized_fns, data_type)
-        print(pt_code)
+    curr_file_path = Path(__file__).resolve()
+    tenspiler_dir = curr_file_path.parent.parent
+    generated_code_dir = tenspiler_dir / "codegen" / "generated_code"
+    generated_code_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write numpy code
+    numpy_base_dir = generated_code_dir / "numpy"
+    numpy_base_dir.mkdir(parents=True, exist_ok=True)
+    np_code = numpy_codegen(ps_fn_decl, driver.synthesized_fns, data_type)
+    with open(numpy_base_dir / f"{benchmark_name}.py", "w") as f:
+        f.write(np_code)
+
+    # Write tensorflow code
+    tf_base_dir = generated_code_dir / "tensorflow"
+    tf_base_dir.mkdir(parents=True, exist_ok=True)
+    tf_code = tensorflow_codegen(ps_fn_decl, driver.synthesized_fns, data_type)
+    with open(tf_base_dir / f"{benchmark_name}.py", "w") as f:
+        f.write(tf_code)
+
+    # Write pytorch code
+    pt_base_dir = generated_code_dir / "pytorch"
+    pt_base_dir.mkdir(parents=True, exist_ok=True)
+    pt_code = pytorch_codegen(ps_fn_decl, driver.synthesized_fns, data_type)
+    with open(generated_code_dir / "pytorch" / f"{benchmark_name}.py", "w") as f:
+        f.write(pt_code)
+
+    gaudi_base_dir = generated_code_dir / "gaudi" / benchmark_name
+    gaudi_base_dir.mkdir(parents=True, exist_ok=True)
+    gaudi_hpp_glue_code, gaudi_cpp_glue_code, gaudi_kernel_code = gaudi_codegen(
+        ps_fn_decl, driver.synthesized_fns, data_type
+    )
+
+    with open(gaudi_base_dir / f"{benchmark_name}.hpp", "w") as f:
+        f.write(gaudi_hpp_glue_code)
+    with open(gaudi_base_dir / f"{benchmark_name}.cpp", "w") as f:
+        f.write(gaudi_cpp_glue_code)
+    with open(gaudi_base_dir / f"{benchmark_name}.c", "w") as f:
+        f.write(gaudi_kernel_code)
 
 
 def run_synthesize_algorithm(
@@ -69,11 +93,9 @@ def run_synthesize_algorithm(
     backend: Backend,
     data_type: DataType,
     benchmark_name: str,
-    benchmark_args: List[Object],
     list_bound_start: int = 2,
     max_rounds: int = 10,
 ):
-    print("RUNNING")
     list_bound = list_bound_start
     while True:
         try:
@@ -82,16 +104,13 @@ def run_synthesize_algorithm(
                 backend=backend,
                 data_type=data_type,
                 benchmark_name=benchmark_name,
-                benchmark_args=benchmark_args,
                 list_bound=list_bound,
                 max_rounds=max_rounds,
             )
+            return
         except VerificationFailed:
             list_bound += 1
         except Exception as e:
-            import pdb
-
-            pdb.set_trace()
             raise e
 
 
@@ -101,17 +120,15 @@ def run_synthesis_algorithm_with_timeout(
     backend: Backend,
     data_type: DataType,
     benchmark_name: str,
-    benchmark_args: List[Object],
     list_bound_start: int = 2,
     max_rounds: int = 10,
-    timeout: int = 3600,  # Default timeout is 1 hour
+    timeout: int = 1,  # Default timeout is 1 hour
 ):
     kwargs = {
         "driver": driver,
         "backend": backend,
         "data_type": data_type,
         "benchmark_name": benchmark_name,
-        "benchmark_args": benchmark_args,
         "list_bound_start": list_bound_start,
         "max_rounds": max_rounds,
     }

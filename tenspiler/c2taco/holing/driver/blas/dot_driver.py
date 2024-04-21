@@ -64,19 +64,13 @@ if __name__ == "__main__":
     driver.add_precondition(b.len() >= n)
 
     start_time = time.time()
+    dot(a, b, n)
     run_synthesize_algorithm(
         driver=driver,
         backend=Backend.NUMPY,
         data_type=DataType.INT32,
         benchmark_name="dot",
-        benchmark_args=[a, b, n],
         list_bound_start=2,
     )
-    # driver.synthesize(
-    #     fn_name="dot",
-    #     fn_args=[a, b, n],
-    #     filename="dot",
-    #     # no_verify=True
-    # )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
