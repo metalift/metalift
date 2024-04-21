@@ -794,11 +794,12 @@ class Predicate:
         self.grammar = grammar
         self.synth = None
 
-    def call(self, state: State) -> Bool:
+    def call(self, state: State, relaxed_grammar: bool) -> Bool:
         call_res = call(
             self.name,
             Bool,
             *[state.read_or_load_var(v.var_name()) for v in self.args],
+            relaxed_grammar=relaxed_grammar,
         )
         return cast(Bool, call_res)
 
@@ -856,9 +857,6 @@ class PredicateTracker:
             self.predicates[fn_name] = ps
             return ps
 
-    def VCall(self, name: str, s: State) -> Bool:
-        return self.predicates[name].call(s)
-
 
 class VCVisitor:
     driver: "Driver"
@@ -878,6 +876,8 @@ class VCVisitor:
 
     uninterp_fns: List[str]
 
+    relaxed_grammar: bool
+
     primitive_var_types: Dict[str, ObjectT]
     pointer_var_types: Dict[str, ObjectT]
 
@@ -894,6 +894,7 @@ class VCVisitor:
         ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
+        relaxed_grammar: bool,
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name
@@ -911,6 +912,8 @@ class VCVisitor:
         self.loops = loops
 
         self.uninterp_fns = uninterp_fns
+
+        self.relaxed_grammar = relaxed_grammar
 
         self.primitive_var_types = {}
         self.pointer_var_types = {}
@@ -1217,7 +1220,7 @@ class VCVisitor:
                 in_scope=in_scope_objs,
                 grammar=inv_grammar.func,
             )
-            blk_state.precond.append(inv.call(blk_state))
+            blk_state.precond.append(inv.call(blk_state, self.relaxed_grammar))
 
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
@@ -1254,10 +1257,13 @@ class VCVisitor:
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
-                    implies(and_objects(*blk_state.precond), inv.call(blk_state))
+                    implies(
+                        and_objects(*blk_state.precond),
+                        inv.call(blk_state, self.relaxed_grammar),
+                    )
                 )
             else:
-                blk_state.asserts.append(inv.call(blk_state))
+                blk_state.asserts.append(inv.call(blk_state, self.relaxed_grammar))
 
     def visit_instructions(self, block_name: str, instructions: List[ValueRef]) -> None:
         for instr in instructions:
@@ -1597,7 +1603,16 @@ class Driver:
                 return f.__class__(f.name(), actual_return_type, body, *actual_args)
         raise Exception("ps function is not found!")
 
-    def synthesize(self, filename: str, **synthesize_kwargs) -> None:  # type: ignore
+    def synthesize(
+        self,
+        fn_name: str,
+        fn_args: List[Object],
+        filename: str,
+        relaxed_grammar: bool = False,
+        **synthesize_kwargs,
+    ) -> None:  # type: ignore
+        # First we need to call the function
+        self.fns[fn_name](*fn_args, relaxed_grammar=relaxed_grammar)
         synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
@@ -1606,74 +1621,41 @@ class Driver:
             target += fn.target_lang_fn()
         inv_and_ps = synths + self.fns_synths
         fn_defs_to_exclude: List[FnDeclRecursive] = []
-        for i in range(1):
-            synthesized: List[FnDeclRecursive] = run_synthesis(
-                basename=filename,
-                target_lang=target,
-                vars=set(self.var_tracker.all()),
-                inv_and_ps=inv_and_ps,
-                preds=[],
-                vc=vc,
-                loop_and_ps_info=synths,
-                cvc_path="cvc5",
-                # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
-                fns_to_guess=synths,
-                **synthesize_kwargs,
-            )
-            for f in synthesized:
-                if "inv0" in f.name():
-                    fn_defs_to_exclude.append(f)
+        synthesized: List[FnDeclRecursive] = run_synthesis(
+            basename=filename,
+            target_lang=target,
+            vars=set(self.var_tracker.all()),
+            inv_and_ps=inv_and_ps,
+            preds=[],
+            vc=vc,
+            loop_and_ps_info=synths,
+            cvc_path="cvc5",
+            # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
+            fns_to_guess=synths,
+            **synthesize_kwargs,
+        )
+        for f in synthesized:
+            if "inv0" in f.name():
+                fn_defs_to_exclude.append(f)
 
-            for f in synthesized:
-                name = f.name()
-                if name not in [ip.name() for ip in inv_and_ps]:
-                    continue
-                self.synthesized_fns[name] = f
+        for f in synthesized:
+            name = f.name()
+            if name not in [ip.name() for ip in inv_and_ps]:
+                continue
+            self.synthesized_fns[name] = f
 
-                # TODO: added back for codegen
-                m = re.match("(\w+)_ps", f.name())  # ignore the invariants
-                if m:
-                    name = m.groups()[0]
-                    if isinstance(f.body(), Eq):
-                        self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
-                        print(f"{name} synthesized: {self.fns[name].synthesized}")
-                    elif (
-                        isinstance(f.body(), Call)
-                        and cast(Call, f.body()).name() == "list_eq"
-                    ):
-                        self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
-                        print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # TODO: figure out why was it commented out
-                # if isinstance(f.body(), Eq):
-                #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
-                #     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # elif (
-                #     isinstance(f.body(), Call)
-                #     and cast(Call, f.body()).name() == "list_eq"
-                # ):
-                #     self.synthesized_fns.append(cast(Call, f.body()).arguments()[1])
-                #     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # else:
-                #     import pdb; pdb.set_trace()
-                #     raise Exception(
-                #         f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                #     )
-                # m = re.match("(\w+)_ps", f.name())  # ignore the invariants
-                # if m:
-                #     name = m.groups()[0]
-                #     if isinstance(f.body(), Eq):
-                #         self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
-                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #     elif (
-                #         isinstance(f.body(), Call)
-                #         and cast(Call, f.body()).name() == "list_eq"
-                #     ):
-                #         self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
-                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #     else:
-                #         raise Exception(
-                #             f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                #         )
+            # TODO: added back for codegen
+            m = re.match("(\w+)_ps", f.name())  # ignore the invariants
+            if m:
+                name = m.groups()[0]
+                if isinstance(f.body(), Eq):
+                    self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
+                    print(f"{name} synthesized: {self.fns[name].synthesized}")
+                elif (
+                    isinstance(f.body(), Call)
+                    and cast(Call, f.body()).name() == "list_eq"
+                ):
+                    self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
 
     def add_precondition(self, e: Object) -> None:
         # this gets propagated to the State when it is created
@@ -1750,24 +1732,6 @@ class MetaliftFunc:
         ]
 
     def __call__(self, *args: Object, **kwds: Any) -> Any:
-        # Check that the arguments passed in have the same names and types as the function definition.
-        # num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
-        # if num_expected_args != num_actual_args:
-        #     raise RuntimeError(
-        #         f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
-        #     )
-        # for i in range(len(args)):
-        #     passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
-        #     fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_args_types[i]
-        #     if passed_in_arg_name != fn_arg_name:
-        #         raise Exception(
-        #             f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
-        #         )
-        #     if passed_in_arg_type != fn_arg_type:
-        #         raise RuntimeError(
-        #             f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
-        #         )
-
         if self.fn_sret_arg is not None:
             sret_obj_type = parse_type_ref_to_obj(self.fn_sret_arg.type)
             sret_obj = create_object(sret_obj_type, self.fn_sret_arg.name)
@@ -1786,6 +1750,7 @@ class MetaliftFunc:
             ps_grammar=self.ps_grammar,
             loops=self.loops,
             uninterp_fns=kwds.get("uninterp_fns", []),
+            relaxed_grammar=kwds.get("relaxed_grammar", False),
         )
 
         # Visit blocks in a DAG order
