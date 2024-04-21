@@ -798,17 +798,16 @@ class Predicate:
         self.grammar = grammar
         self.synth = None
 
-    def call(self, state: State, relaxed_grammar: bool) -> Bool:
+    def call(self, state: State) -> Bool:
         call_res = call(
             self.name,
             Bool,
             *[state.read_or_load_var(v.var_name()) for v in self.args],
-            relaxed_grammar=relaxed_grammar,
         )
         return cast(Bool, call_res)
 
-    def gen_Synth(self) -> Synth:
-        body = self.grammar(self.writes, self.reads, self.in_scope).src
+    def gen_synth(self, relaxed_grammar: bool) -> Synth:
+        body = self.grammar(self.writes, self.reads, self.in_scope, relaxed_grammar).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
@@ -880,8 +879,6 @@ class VCVisitor:
 
     uninterp_fns: List[str]
 
-    relaxed_grammar: bool
-
     primitive_var_types: Dict[str, ObjectT]
     pointer_var_types: Dict[str, ObjectT]
 
@@ -898,7 +895,6 @@ class VCVisitor:
         ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
-        relaxed_grammar: bool,
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name
@@ -916,8 +912,6 @@ class VCVisitor:
         self.loops = loops
 
         self.uninterp_fns = uninterp_fns
-
-        self.relaxed_grammar = relaxed_grammar
 
         self.primitive_var_types = {}
         self.pointer_var_types = {}
@@ -1226,7 +1220,7 @@ class VCVisitor:
                 in_scope=in_scope_objs,
                 grammar=inv_grammar.func if inv_grammar is not None else None,
             )
-            blk_state.precond.append(inv.call(blk_state, self.relaxed_grammar))
+            blk_state.precond.append(inv.call(blk_state))
 
         # Visit the block
         self.visit_instructions(block.name, block.instructions)
@@ -1269,11 +1263,11 @@ class VCVisitor:
                 blk_state.asserts.append(
                     implies(
                         and_objects(*blk_state.precond),
-                        inv.call(blk_state, self.relaxed_grammar),
+                        inv.call(blk_state),
                     )
                 )
             else:
-                blk_state.asserts.append(inv.call(blk_state, self.relaxed_grammar))
+                blk_state.asserts.append(inv.call(blk_state))
 
     def visit_instructions(self, block_name: str, instructions: List[ValueRef]) -> None:
         for instr in instructions:
@@ -1622,8 +1616,10 @@ class Driver:
         **synthesize_kwargs,
     ) -> None:  # type: ignore
         # First we need to call the function
-        self.fns[fn_name](*fn_args, relaxed_grammar=relaxed_grammar)
-        synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
+        self.fns[fn_name](*fn_args)
+        synths = [
+            i.gen_synth(relaxed_grammar) for i in self.pred_tracker.predicates.values()
+        ]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
         target = []
@@ -1764,7 +1760,6 @@ class MetaliftFunc:
             ps_grammar=self.ps_grammar,
             loops=self.loops,
             uninterp_fns=kwds.get("uninterp_fns", []),
-            relaxed_grammar=kwds.get("relaxed_grammar", False),
         )
 
         # Visit blocks in a DAG order
