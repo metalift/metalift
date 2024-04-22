@@ -2,6 +2,7 @@ import subprocess
 import os
 import sys
 import glob
+import numpy as np
 from tenspiler.benchmarking.utils import *
 import shutil
 from tenspiler.benchmarking.gemmini_exec_makefile_helper import *
@@ -59,7 +60,15 @@ def run_gemmini(filename):
 
 
 def run_file(filename):
-    if not (filename in (gemmini_blend_func_names + gemmini_llama_func_names) or (filename in all_test and filename not in (blend_test_name + llama_test_name + gemmini_not_comp))):
+    if filename not in all_test:
+        print(f"Input benchmark name {filename} is invalid for this backend")
+        exit(1)
+
+    if filename in (blend_test_name + llama_test_name) and filename not in (gemmini_blend_func_names + gemmini_llama_func_names):
+        print(f"Input benchmark name {filename} is invalid for this backend")
+        exit(1)
+
+    if filename in gemmini_not_comp:
         print(f"Input benchmark name {filename} is invalid for this backend")
         exit(1)
 
@@ -116,8 +125,25 @@ def main():
         exit(1)
 
     filename = sys.argv[1]
-    run_file(filename)
-    
+    if filename == 'ALL':
+        all_e2e_speedup = []
+        all_kernel_speedup = []
+        for test in all_test:
+            if filename in (blend_test_name + llama_test_name) and filename not in (gemmini_blend_func_names + gemmini_llama_func_names):
+                continue
+
+            if filename in gemmini_not_comp:
+                continue
+            
+            kernel_speedup, e2e_speedup = run_file(test)
+            all_e2e_speedup.append(e2e_speedup)
+            all_kernel_speedup.append(kernel_speedup)
+        all_e2e_speedup = np.array(all_e2e_speedup)
+        all_kernel_speedup = np.array(all_kernel_speedup)
+        print(f"Average kernel speedup of all in TensorFlow is: {np.mean(all_kernel_speedup)}")
+        print(f"Average E2E speedup of all in TensorFlow is: {np.mean(all_e2e_speedup)}")
+    else:
+        run_file(filename)
 
 if __name__ == "__main__":
     main()
