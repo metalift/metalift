@@ -3,6 +3,8 @@
 *.pyc
 # *.ll
 # *.loops
+tests/**/*.ll
+tests/**/*.loops
 llvm-pass/build/
 synthesisLogs/
 tests/struct1.rkt

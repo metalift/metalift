@@ -42,6 +42,7 @@ int main() {
     size_t count = fn.size();
     for (int i = 0; i < 10; i++) {
         long long time = 0;
+        long long time_k = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
             vector<vector<uint8_t>> base = res[0]; 
