@@ -7,7 +7,7 @@ import torchvision
 
 if __name__ == "__main__":
     root = "."
-    output_folder = "./data/"
+    output_folder = "./data_full/"
     tarfile_name = "data.tar.gz"
     size = 10000
 

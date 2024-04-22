@@ -102,7 +102,7 @@ def execute_file(filepath):
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         output = result.stdout.strip().split('\n')
-        test_name, kernel_exec, e2e_exec = output[-3:]
+        test_name, e2e_exec, kernel_exec = output[-3:]
         kernel_time, *kernel_std = kernel_exec.split()
         e2e_time, *e2e_std = e2e_exec.split()
         print(f"Finished executing {filepath}")
