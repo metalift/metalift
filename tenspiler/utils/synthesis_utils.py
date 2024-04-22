@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 from pathlib import Path
 
 from metalift.frontend.llvm import Driver
@@ -7,19 +8,20 @@ from tenspiler.codegen.gaudi_codegen import gaudi_codegen
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.pytorch_codegen import pytorch_codegen
 from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
-from tenspiler.codegen.utils import Backend, DataType
+from tenspiler.codegen.utils import DataType
 
 
 def run_synthesize_with_bound(
     *,
     driver: Driver,
-    backend: Backend,
     data_type: DataType,
     benchmark_name: str,
     list_bound: int,
     max_rounds: int,
+    has_relaxed: bool,
 ):
     try:
+        print(f"Trying strict grammar with list bound {list_bound}...")
         # First use strict grammar
         basename = f"{benchmark_name}_strict_listbound{list_bound}_rounds{max_rounds}"
         driver.synthesize(
@@ -27,22 +29,21 @@ def run_synthesize_with_bound(
             list_bound=list_bound,
             relaxed_grammar=False,
             rounds_to_guess=max_rounds,
-            # TODO(jie)
-            no_verify=True,
         )
-    except SynthesisFailed:
-        # If strict grammar fails, use relaxed grammar
-        print(
-            f"Strict grammar with list bound {list_bound} failed, trying relaxed grammar..."
-        )
+    except SynthesisFailed as e:
+        print(f"Strict grammar with list bound {list_bound} failed")
+        if not has_relaxed:
+            print("No relaxed grammar specified")
+            raise e
+
+        # Use relaxed grammar
+        print("Trying relaxed grammar...")
         basename = f"{benchmark_name}_relaxed_listbound{list_bound}_rounds{max_rounds}"
         driver.synthesize(
             filename=basename,
             list_bound=list_bound,
             relaxed_grammar=True,
             rounds_to_guess=max_rounds,
-            # TODO(jie)
-            no_verify=True,
         )
 
     ps_fn_decl = driver.get_actual_ps_fn_decl()
@@ -90,22 +91,22 @@ def run_synthesize_with_bound(
 def run_synthesize_algorithm(
     *,
     driver: Driver,
-    backend: Backend,
     data_type: DataType,
     benchmark_name: str,
     list_bound_start: int = 2,
     max_rounds: int = 10,
+    has_relaxed: bool = False,
 ):
     list_bound = list_bound_start
     while True:
         try:
             run_synthesize_with_bound(
                 driver=driver,
-                backend=backend,
                 data_type=data_type,
                 benchmark_name=benchmark_name,
                 list_bound=list_bound,
                 max_rounds=max_rounds,
+                has_relaxed=has_relaxed,
             )
             return
         except VerificationFailed:
@@ -117,20 +118,19 @@ def run_synthesize_algorithm(
 def run_synthesis_algorithm_with_timeout(
     *,
     driver: Driver,
-    backend: Backend,
     data_type: DataType,
     benchmark_name: str,
-    list_bound_start: int = 2,
     max_rounds: int = 10,
+    has_relaxed: bool = False,
     timeout: int = 1,  # Default timeout is 1 hour
 ):
     kwargs = {
         "driver": driver,
-        "backend": backend,
         "data_type": data_type,
         "benchmark_name": benchmark_name,
-        "list_bound_start": list_bound_start,
+        "list_bound_start": os.getenv("LIST_BOUND_START", 2),
         "max_rounds": max_rounds,
+        "has_relaxed": has_relaxed,
     }
     p = multiprocessing.Process(target=run_synthesize_algorithm, kwargs=kwargs)
     p.start()

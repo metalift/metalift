@@ -1625,6 +1625,8 @@ class Driver:
             cvc_path="cvc5",
             # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
             fns_to_guess=synths,
+            # TODO(jie): change this to false
+            no_verify=True,
             **synthesize_kwargs,
         )
         for f in synthesized:
