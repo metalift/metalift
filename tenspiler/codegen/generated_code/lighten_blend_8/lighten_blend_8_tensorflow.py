@@ -1,9 +1,10 @@
-
 ####### import statements ########
 import tensorflow as tf
 
+
 def lighten_blend_8_tf(base, active):
     return tf.where(tf.less(active, base), base, active)
+
 
 def lighten_blend_8_tf_glued(base, active):
     base = tf.convert_to_tensor(base, dtype=tf.uint8)

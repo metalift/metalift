@@ -69,7 +69,6 @@ if __name__ == "__main__":
         driver=driver,
         data_type=DataType.INT32,
         benchmark_name="dot",
-        list_bound_start=2,
         has_relaxed=False,
     )
     end_time = time.time()

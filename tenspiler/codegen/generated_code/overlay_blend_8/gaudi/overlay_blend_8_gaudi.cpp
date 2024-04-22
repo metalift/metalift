@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t OverlayBlend8PsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-
