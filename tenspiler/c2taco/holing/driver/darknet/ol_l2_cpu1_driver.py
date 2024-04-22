@@ -7,6 +7,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_vec_elemwise_mul,
     call_vec_elemwise_sub,
@@ -14,6 +15,7 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_mul,
     vec_elemwise_sub,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -60,9 +62,13 @@ if __name__ == "__main__":
     driver.add_precondition(pred.len() >= n)
     driver.add_precondition(truth.len() >= n)
 
-    ol_l2_cpu1(n, pred, truth)
-
     start_time = time.time()
-    driver.synthesize(filename="ol_l2_cpu1", no_verify=True)
+    ol_l2_cpu1(n, pred, truth)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.INT32,
+        benchmark_name="ol_l2_cpu1",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

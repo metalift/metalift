@@ -6,6 +6,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_matrix_vec_mul,
     call_reduce_sum,
@@ -17,6 +18,7 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_mul,
     vec_scalar_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 # Some loop functions
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
@@ -150,9 +152,13 @@ if __name__ == "__main__":
         vector_outer_loop_index_synth,
     ]
 
-    gemv(M, N, A, x)
-
     start_time = time.time()
-    driver.synthesize(filename="gemv", no_verify=True)
+    gemv(M, N, A, x)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.INT32,
+        benchmark_name="gemv",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
