@@ -26,13 +26,7 @@ gemmini_llama_func_names = ['softmax_part3', 'rmsnorm_part1', 'matmul']
 
 gemmini_runtime_conversion = {'matmul': 240, 'rmsnorm_part1': 241, 'softmax_part3': 240}
 
-gemmini_elem_t = {'normal_blend_f_gemmini.c': 'float', 'matmul_gemmini.c': 'float', 'rmsnorm_part1_gemmini.c': 'float', 'softmax_part3_gemmini.c': 'float', 
-                  'normal_blend_8_gemmini.c': 'uint8_t', 'linear_burn_8_gemmini.c': 'uint8_t', 
-                    'linear_dodge_8_gemmini.c': 'uint8_t', 'screen_blend_8_gemmini.c': 'uint8_t'}
-
 def setup_gemmini(src_filepath, filename):
-    #TODO: change elem_t based on filename
-    elem_t = gemmini_elem_t.get(filename, 'int32_t')
 
     print("Copying file to gemmini-rocc-tests/bareMetalC ")
     shutil.copy(src_filepath, gemmini_storage_dir) 
