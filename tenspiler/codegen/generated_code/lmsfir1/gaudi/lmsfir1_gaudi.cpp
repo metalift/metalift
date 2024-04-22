@@ -20,13 +20,17 @@ gcapi::GlueCodeReturn_t Lmsfir1PsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        3,
+        1,
         1,
         gcapi::DATA_I32
         &_binary___lmsfir1_ps_gaudi2_o_start,
         &_binary___lmsfir1_ps_gaudi2_o_end,
     );
 
+    // Define scalar params
+    Lmsfir1PsParam* paramDef = static_cast<Lmsfir1PsParam*>(in_defs->NodeParams);
+    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
+    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+
     return retVal;
 }
-

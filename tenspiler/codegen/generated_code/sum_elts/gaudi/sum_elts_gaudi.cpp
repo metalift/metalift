@@ -20,13 +20,17 @@ gcapi::GlueCodeReturn_t SumEltsPsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        2,
+        0,
         1,
         gcapi::DATA_I32
         &_binary___sum_elts_ps_gaudi2_o_start,
         &_binary___sum_elts_ps_gaudi2_o_end,
     );
 
+    // Define scalar params
+    SumEltsPsParam* paramDef = static_cast<SumEltsPsParam*>(in_defs->NodeParams);
+    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
+    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+
     return retVal;
 }
-

@@ -18,6 +18,11 @@ class Lmsfir1PsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct Lmsfir1PsParam {
+            int32_t NTAPS
+            int32_t lmsfir1_ps_rv;
+        };
+
     private:
         Lmsfir1PsGaudi2(const Lmsfir1PsGaudi2& other) = delete;
         Lmsfir1PsGaudi2& operator=(const Lmsfir1PsGaudi2& other) = delete;

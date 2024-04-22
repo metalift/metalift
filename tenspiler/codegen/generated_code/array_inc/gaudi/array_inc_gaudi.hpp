@@ -18,6 +18,10 @@ class ArrayIncPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct ArrayIncPsParam {
+            int32_t n;
+        };
+
     private:
         ArrayIncPsGaudi2(const ArrayIncPsGaudi2& other) = delete;
         ArrayIncPsGaudi2& operator=(const ArrayIncPsGaudi2& other) = delete;

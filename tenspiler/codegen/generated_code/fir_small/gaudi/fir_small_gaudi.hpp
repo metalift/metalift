@@ -18,6 +18,11 @@ class FirSmallPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct FirSmallPsParam {
+            int32_t NTAPS
+            int32_t fir_small_ps_rv;
+        };
+
     private:
         FirSmallPsGaudi2(const FirSmallPsGaudi2& other) = delete;
         FirSmallPsGaudi2& operator=(const FirSmallPsGaudi2& other) = delete;

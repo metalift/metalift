@@ -18,6 +18,10 @@ class FourthInPlacePsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct FourthInPlacePsParam {
+            int32_t n;
+        };
+
     private:
         FourthInPlacePsGaudi2(const FourthInPlacePsGaudi2& other) = delete;
         FourthInPlacePsGaudi2& operator=(const FourthInPlacePsGaudi2& other) = delete;

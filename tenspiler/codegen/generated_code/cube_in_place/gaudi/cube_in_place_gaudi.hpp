@@ -18,6 +18,10 @@ class CubeInPlacePsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct CubeInPlacePsParam {
+            int32_t n;
+        };
+
     private:
         CubeInPlacePsGaudi2(const CubeInPlacePsGaudi2& other) = delete;
         CubeInPlacePsGaudi2& operator=(const CubeInPlacePsGaudi2& other) = delete;

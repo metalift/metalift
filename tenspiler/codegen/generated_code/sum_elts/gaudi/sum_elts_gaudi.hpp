@@ -18,6 +18,11 @@ class SumEltsPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct SumEltsPsParam {
+            int32_t n
+            int32_t sum_elts_ps_rv;
+        };
+
     private:
         SumEltsPsGaudi2(const SumEltsPsGaudi2& other) = delete;
         SumEltsPsGaudi2& operator=(const SumEltsPsGaudi2& other) = delete;
