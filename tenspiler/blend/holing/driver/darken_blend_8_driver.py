@@ -40,8 +40,9 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    darken_blend_8(base, active)
+
     start_time = time.time()
+    darken_blend_8(base, active)
     run_synthesis_algorithm(
         driver=driver,
         data_type=DataType.UINT_8,

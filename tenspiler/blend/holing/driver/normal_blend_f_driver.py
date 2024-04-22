@@ -74,9 +74,8 @@ if __name__ == "__main__":
     driver.add_precondition(base_var.len() == active_var.len())
     driver.add_precondition(base_var.len() > 0)
 
-    normal_blend_f(base_var, active_var, opacity_var)
-
     start_time = time.time()
+    normal_blend_f(base_var, active_var, opacity_var)
     run_synthesis_algorithm(
         driver=driver,
         data_type=DataType.FLOAT,

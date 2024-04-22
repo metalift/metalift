@@ -39,9 +39,9 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    dissolve_blend_8(base, active, opacity, rand_cons)
 
     start_time = time.time()
+    dissolve_blend_8(base, active, opacity, rand_cons)
     run_synthesis_algorithm(
         driver=driver,
         data_type=DataType.FLOAT,
