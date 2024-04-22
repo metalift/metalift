@@ -18,6 +18,10 @@ class VcopyPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VcopyPsParam {
+            int32_t n;
+        };
+
     private:
         VcopyPsGaudi2(const VcopyPsGaudi2& other) = delete;
         VcopyPsGaudi2& operator=(const VcopyPsGaudi2& other) = delete;

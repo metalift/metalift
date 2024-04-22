@@ -18,6 +18,11 @@ class VoffsetPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VoffsetPsParam {
+            int32_t v
+            int32_t n;
+        };
+
     private:
         VoffsetPsGaudi2(const VoffsetPsGaudi2& other) = delete;
         VoffsetPsGaudi2& operator=(const VoffsetPsGaudi2& other) = delete;

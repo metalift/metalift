@@ -18,6 +18,10 @@ class VaddPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VaddPsParam {
+            int32_t n;
+        };
+
     private:
         VaddPsGaudi2(const VaddPsGaudi2& other) = delete;
         VaddPsGaudi2& operator=(const VaddPsGaudi2& other) = delete;

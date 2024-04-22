@@ -18,6 +18,10 @@ class VmulPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VmulPsParam {
+            int32_t n;
+        };
+
     private:
         VmulPsGaudi2(const VmulPsGaudi2& other) = delete;
         VmulPsGaudi2& operator=(const VmulPsGaudi2& other) = delete;

@@ -18,8 +18,7 @@ void main(tensor arr, int32_t n, tensor vrecip_ps_rv) {
         float64 v2 = convert_int64_to_float64(v1, 0);
         float64 v3 = v_reciprocal_fast_f32(v2);
         float64 v4 = v_f32_mul_b(v0, v3);
-        int64 v5 = convert_float64_to_int64(v4, 0);
-        v_i32_st_tnsr(outputCoord, vrecip_ps_rv, v5);
+        v_i32_st_tnsr(outputCoord, vrecip_ps_rv, v4);
     }
 
 }

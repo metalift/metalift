@@ -18,6 +18,11 @@ class MatsubPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MatsubPsParam {
+            int32_t m
+            int32_t n;
+        };
+
     private:
         MatsubPsGaudi2(const MatsubPsGaudi2& other) = delete;
         MatsubPsGaudi2& operator=(const MatsubPsGaudi2& other) = delete;

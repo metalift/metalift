@@ -18,6 +18,11 @@ class MataddPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MataddPsParam {
+            int32_t m
+            int32_t n;
+        };
+
     private:
         MataddPsGaudi2(const MataddPsGaudi2& other) = delete;
         MataddPsGaudi2& operator=(const MataddPsGaudi2& other) = delete;

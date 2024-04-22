@@ -18,6 +18,10 @@ class VrecipPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VrecipPsParam {
+            int32_t n;
+        };
+
     private:
         VrecipPsGaudi2(const VrecipPsGaudi2& other) = delete;
         VrecipPsGaudi2& operator=(const VrecipPsGaudi2& other) = delete;

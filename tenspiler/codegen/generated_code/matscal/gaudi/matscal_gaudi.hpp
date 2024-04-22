@@ -18,6 +18,12 @@ class MatscalPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MatscalPsParam {
+            int32_t val
+            int32_t m
+            int32_t n;
+        };
+
     private:
         MatscalPsGaudi2(const MatscalPsGaudi2& other) = delete;
         MatscalPsGaudi2& operator=(const MatscalPsGaudi2& other) = delete;

@@ -18,6 +18,10 @@ class VnegPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VnegPsParam {
+            int32_t n;
+        };
+
     private:
         VnegPsGaudi2(const VnegPsGaudi2& other) = delete;
         VnegPsGaudi2& operator=(const VnegPsGaudi2& other) = delete;

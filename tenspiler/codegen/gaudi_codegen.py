@@ -7,6 +7,7 @@ from pydash import pascal_case
 
 from metalift.ir import (
     Add,
+    Bool,
     Call,
     Div,
     Eq,
@@ -16,6 +17,7 @@ from metalift.ir import (
     Ge,
     Gt,
     Int,
+    Ite,
     Le,
     Lit,
     Lt,
@@ -413,6 +415,9 @@ def gaudi_codegen(
                     vars_to_replace=vars_to_replace,
                 )
             if is_list_type(expr.type) or is_matrix_type(expr.type):
+                import pdb
+
+                pdb.set_trace()
                 expr_str = f"v_{fn_dtype}_ld_tnsr_b(inputCoord, {expr.name()})"
                 expr_instr = format_gaudi_instr(
                     expr_str, default_expr_type, final_gaudi_body_type=final_expr_type
@@ -438,6 +443,25 @@ def gaudi_codegen(
                     expr_instr,
                 )
                 return local_instructions, expr_instr
+        if isinstance(expr, Ite):
+            if not isinstance(expr.c(), Call):
+                raise ValueError("Condition of ITE must be a call")
+            cond_fn_name = expr.c().name()
+            cond = all_synthesized_fns[cond_fn_name].body()
+            if Expr.__eq__(cond, Bool(True)):
+                return expr_codegen(
+                    expr.e1(),
+                    override_type=override_type,
+                    vars_to_replace=vars_to_replace,
+                )
+            elif Expr.__eq__(cond, Bool(False)):
+                return expr_codegen(
+                    expr.e2(),
+                    override_type=override_type,
+                    vars_to_replace=vars_to_replace,
+                )
+            else:
+                raise ValueError("Unsupported condition for ITE")
         elif isinstance(expr, Lit):
             expr_instr = format_gaudi_instr(str(expr.val()), final_expr_type)
             if (expr, expr_instr.dest_type) in var_and_lit_cache:
@@ -594,7 +618,9 @@ def gaudi_codegen(
                 "matrix_col_slice",
             }:
                 return expr_codegen(
-                    expr.arguments()[0], vars_to_replace=vars_to_replace
+                    expr.arguments()[0],
+                    override_type=override_type,
+                    vars_to_replace=vars_to_replace,
                 )
 
             # Group function names
@@ -651,6 +677,10 @@ def gaudi_codegen(
                         override_type=expected_arg_type,
                         vars_to_replace=vars_to_replace,
                     )
+                import pdb
+
+                pdb.set_trace()
+
                 second_arg_instrs, second_arg_instr = expr_codegen(
                     expr.arguments()[1],
                     override_type=expected_arg_type,
@@ -695,7 +725,7 @@ def gaudi_codegen(
                 if len(first_arg_mult_lst) == 1 and len(second_arg_mult_lst) == 1:
                     result_instr = format_gaudi_instr(
                         f"v_f32_mul_b({first_arg_mult_lst[0]}, {second_arg_mult_lst[0]})",
-                        final_gaudi_body_type=GaudiBodyType.FLOAT64,
+                        GaudiBodyType.FLOAT64,
                     )
                     return local_instructions, result_instr
                 else:
@@ -741,12 +771,16 @@ def gaudi_codegen(
                         ret_gaudi_type = GaudiBodyType.UINT256
                     elif d_type == DataType.INT32:
                         ret_gaudi_type = GaudiBodyType.INT128
+                try:
+                    first_arg_instrs, first_arg_instr = expr_codegen(
+                        expr.arguments()[0],
+                        override_type=expected_arg_type,
+                        vars_to_replace=vars_to_replace,
+                    )
+                except:
+                    import pdb
 
-                first_arg_instrs, first_arg_instr = expr_codegen(
-                    expr.arguments()[0],
-                    override_type=expected_arg_type,
-                    vars_to_replace=vars_to_replace,
-                )
+                    pdb.set_trace()
 
                 second_arg_instrs, second_arg_instr = expr_codegen(
                     expr.arguments()[1],
