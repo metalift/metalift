@@ -1,3 +1,4 @@
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,7 +6,9 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_vec_scalar_div, vec_scalar_div
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -53,8 +56,13 @@ if __name__ == "__main__":
     driver.add_precondition(max_pos_var <= unnormalized_output_var.len())
     driver.add_precondition(max_pos_var >= 1)
 
+    start_time = time.time()
     softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
-    inv0 = driver.pred_tracker.predicates["softmax_part4_inv0"]
-    print(inv0.reads, inv0.writes)
-    exit(0)
-    driver.synthesize(filename="softmax_part4")
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="softmax_part4",
+        has_relaxed=False,
+    )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")
