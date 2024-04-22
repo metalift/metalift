@@ -4,6 +4,7 @@ from typing import List, Union
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_matrix_elemwise_add,
     call_vec_elemwise_add,
@@ -11,6 +12,7 @@ from tenspiler.tenspiler_common import (
     matrix_elemwise_add,
     vec_elemwise_add,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 # Some loop functions
 outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
@@ -117,9 +119,14 @@ if __name__ == "__main__":
     driver.add_precondition(matB[0].len() >= n)
 
     driver.fns_synths = [outer_loop_index_first_synth]
-    matadd(matA, matB, m, n)
 
     start_time = time.time()
-    driver.synthesize(filename="matadd", no_verify=True)
+    matadd(matA, matB, m, n)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.INT32,
+        benchmark_name="matadd",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
