@@ -1,8 +1,8 @@
 !shell.nix
 .DS_Store
 *.pyc
-*.ll
-*.loops
+# *.ll
+# *.loops
 llvm-pass/build/
 synthesisLogs/
 tests/struct1.rkt

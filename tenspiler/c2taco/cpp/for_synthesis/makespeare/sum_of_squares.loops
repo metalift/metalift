@@ -1,0 +1,3 @@
+Printing analysis 'Natural Loop Information' for function '_Z14sum_of_squaresNSt3__16vectorIiNS_9allocatorIiEEEEi':
+Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%for.inc<latch>
+Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm':
