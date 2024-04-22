@@ -563,7 +563,7 @@ def gaudi_codegen(
                 local_instructions.extend(if_else_instrs)
                 expr_str = f"{cond_instr_name}({cond_arg0_instr.dest_name}, {cond_arg1_instr.dest_name}, {if_then_instr.dest_name}, {if_else_instr.dest_name})"
                 expr_instr = format_gaudi_instr(
-                    expr_str, default_expr_type, final_expr_type
+                    expr_str, default_expr_type, final_gaudi_body_type=final_expr_type
                 )
                 return local_instructions, expr_instr
 
@@ -695,7 +695,7 @@ def gaudi_codegen(
                 if len(first_arg_mult_lst) == 1 and len(second_arg_mult_lst) == 1:
                     result_instr = format_gaudi_instr(
                         f"v_f32_mul_b({first_arg_mult_lst[0]}, {second_arg_mult_lst[0]})",
-                        GaudiBodyType.FLOAT64,
+                        final_gaudi_body_type=GaudiBodyType.FLOAT64,
                     )
                     return local_instructions, result_instr
                 else:

@@ -7,12 +7,14 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_vec_elemwise_add,
     call_vec_scalar_mul,
     vec_elemwise_add,
     vec_scalar_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm_with_timeout
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -75,6 +77,12 @@ if __name__ == "__main__":
     normal_blend_f(base_var, active_var, opacity_var)
 
     start_time = time.time()
+    run_synthesis_algorithm_with_timeout(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="normal_blend_f",
+        has_relaxed=False,
+    )
     driver.synthesize(filename="normal_blend_f")
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

@@ -2,12 +2,12 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tenspiler.codegen.mlx_codegen import mlx_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     darken_blend_8_hole_body,
     get_matrix_select_holing_search_space,
 )
+from tenspiler.utils.synthesis_utils import run_synthesize_algorithm
 
 if __name__ == "__main__":
     driver = Driver()
@@ -41,12 +41,13 @@ if __name__ == "__main__":
 
     driver.fns_synths = fns_synths
     darken_blend_8(base, active)
-
     start_time = time.time()
-    driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, no_verify=True)
+    run_synthesize_algorithm(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="darken_blend_8",
+        list_bound_start=2,
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-
-    mlx_codegen(
-        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, d_type=DataType.UINT_8
-    )

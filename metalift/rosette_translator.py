@@ -140,6 +140,7 @@ def generate_vars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
 
 
 def generate_synth(
+    basename: str,
     vars: List[str],
     rounds_to_guess: int = 0,
     fns_to_guess: List[FnDeclRecursive] = [],
@@ -161,6 +162,16 @@ def generate_synth(
             )
         )
         (sat? sol)
+        (with-output-to-file
+            "synthesislogs/{basename}_sol"
+            (lambda ()
+                (begin
+                    (printf (~a (sat? sol)))
+                    (printf "\\n")
+                    (print-forms sol)
+                )
+            )
+        )
         (print-forms sol)
         """
     all_synth_funs: List[str] = []
@@ -172,6 +183,16 @@ def generate_synth(
         )
     )
     (sat? sol0)
+    (with-output-to-file
+        "synthesislogs/{basename}_sol0"
+        (lambda ()
+            (begin
+                (printf (~a (sat? sol0)))
+                (printf "\\n")
+                (print-forms sol0)
+            )
+        )
+    )
     (print-forms sol0)
     """
     all_synth_funs.append(synth_fun)
@@ -199,6 +220,16 @@ def generate_synth(
             )
         )
         (sat? sol{i})
+        (with-output-to-file
+            "synthesisLogs/{basename}_sol{i}"
+            (lambda ()
+                (begin
+                    (printf (~a (sat? sol{i})))
+                    (printf "\\n")
+                    (print-forms sol{i})
+                )
+            )
+        )
         (print-forms sol{i})
         """
         all_synth_funs.append(synth_fun)
@@ -225,6 +256,7 @@ def generate_inv_ps(loop_and_ps_info: Sequence[Union[CodeInfo, Expr]]) -> str:
 
 
 def to_rosette(
+    basename: str,
     filename: str,
     target_lang: Sequence[Union[FnDeclRecursive, FnDecl, ir.Axiom]],
     vars: Set[Var],
@@ -305,7 +337,13 @@ def to_rosette(
     # synthesis function
     if not verify_mode:
         print(
-            generate_synth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude),
+            generate_synth(
+                basename,
+                vars_all,
+                rounds_to_guess,
+                fns_to_guess,
+                fn_defs_to_exclude,
+            ),
             file=f,
         )
     else:
