@@ -18,6 +18,11 @@ class MuleqScaPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MuleqScaPsParam {
+            int32_t b
+            int32_t n;
+        };
+
     private:
         MuleqScaPsGaudi2(const MuleqScaPsGaudi2& other) = delete;
         MuleqScaPsGaudi2& operator=(const MuleqScaPsGaudi2& other) = delete;

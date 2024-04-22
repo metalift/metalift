@@ -20,13 +20,17 @@ gcapi::GlueCodeReturn_t MatmulScaPsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        4,
+        1,
         2,
         gcapi::DATA_I32
         &_binary___matmul_sca_ps_gaudi2_o_start,
         &_binary___matmul_sca_ps_gaudi2_o_end,
     );
 
+    // Define scalar params
+    MatmulScaPsParam* paramDef = static_cast<MatmulScaPsParam*>(in_defs->NodeParams);
+    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
+    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+
     return retVal;
 }
-

@@ -18,6 +18,10 @@ class NegatePsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct NegatePsParam {
+            int32_t n;
+        };
+
     private:
         NegatePsGaudi2(const NegatePsGaudi2& other) = delete;
         NegatePsGaudi2& operator=(const NegatePsGaudi2& other) = delete;

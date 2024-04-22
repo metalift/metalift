@@ -18,6 +18,10 @@ class VsubPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VsubPsParam {
+            int32_t n;
+        };
+
     private:
         VsubPsGaudi2(const VsubPsGaudi2& other) = delete;
         VsubPsGaudi2& operator=(const VsubPsGaudi2& other) = delete;

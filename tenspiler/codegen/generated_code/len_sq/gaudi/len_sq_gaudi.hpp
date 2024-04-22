@@ -18,6 +18,11 @@ class LenSqPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct LenSqPsParam {
+            int32_t n
+            int32_t len_sq_ps_rv;
+        };
+
     private:
         LenSqPsGaudi2(const LenSqPsGaudi2& other) = delete;
         LenSqPsGaudi2& operator=(const LenSqPsGaudi2& other) = delete;

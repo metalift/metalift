@@ -18,6 +18,11 @@ class SumOfSquaresPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct SumOfSquaresPsParam {
+            int32_t n
+            int32_t sum_of_squares_ps_rv;
+        };
+
     private:
         SumOfSquaresPsGaudi2(const SumOfSquaresPsGaudi2& other) = delete;
         SumOfSquaresPsGaudi2& operator=(const SumOfSquaresPsGaudi2& other) = delete;

@@ -18,6 +18,10 @@ class PluseqPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct PluseqPsParam {
+            int32_t n;
+        };
+
     private:
         PluseqPsGaudi2(const PluseqPsGaudi2& other) = delete;
         PluseqPsGaudi2& operator=(const PluseqPsGaudi2& other) = delete;

@@ -18,6 +18,10 @@ class DiveqPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct DiveqPsParam {
+            int32_t n;
+        };
+
     private:
         DiveqPsGaudi2(const DiveqPsGaudi2& other) = delete;
         DiveqPsGaudi2& operator=(const DiveqPsGaudi2& other) = delete;

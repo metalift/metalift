@@ -18,6 +18,10 @@ class SubeqPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct SubeqPsParam {
+            int32_t n;
+        };
+
     private:
         SubeqPsGaudi2(const SubeqPsGaudi2& other) = delete;
         SubeqPsGaudi2& operator=(const SubeqPsGaudi2& other) = delete;

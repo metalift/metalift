@@ -20,13 +20,17 @@ gcapi::GlueCodeReturn_t NegatePsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        2,
+        1,
         1,
         gcapi::DATA_I32
         &_binary___negate_ps_gaudi2_o_start,
         &_binary___negate_ps_gaudi2_o_end,
     );
 
+    // Define scalar params
+    NegatePsParam* paramDef = static_cast<NegatePsParam*>(in_defs->NodeParams);
+    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
+    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+
     return retVal;
 }
-

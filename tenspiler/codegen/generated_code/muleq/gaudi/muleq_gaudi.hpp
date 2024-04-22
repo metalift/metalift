@@ -18,6 +18,10 @@ class MuleqPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MuleqPsParam {
+            int32_t n;
+        };
+
     private:
         MuleqPsGaudi2(const MuleqPsGaudi2& other) = delete;
         MuleqPsGaudi2& operator=(const MuleqPsGaudi2& other) = delete;

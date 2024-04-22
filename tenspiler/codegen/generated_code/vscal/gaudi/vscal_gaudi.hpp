@@ -18,6 +18,11 @@ class VscalPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct VscalPsParam {
+            int32_t v
+            int32_t n;
+        };
+
     private:
         VscalPsGaudi2(const VscalPsGaudi2& other) = delete;
         VscalPsGaudi2& operator=(const VscalPsGaudi2& other) = delete;

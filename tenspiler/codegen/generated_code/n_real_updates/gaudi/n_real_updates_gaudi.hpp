@@ -18,6 +18,10 @@ class NRealUpdatesPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct NRealUpdatesPsParam {
+            int32_t N;
+        };
+
     private:
         NRealUpdatesPsGaudi2(const NRealUpdatesPsGaudi2& other) = delete;
         NRealUpdatesPsGaudi2& operator=(const NRealUpdatesPsGaudi2& other) = delete;

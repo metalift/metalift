@@ -18,6 +18,11 @@ class WvecPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct WvecPsParam {
+            int32_t m
+            int32_t n;
+        };
+
     private:
         WvecPsGaudi2(const WvecPsGaudi2& other) = delete;
         WvecPsGaudi2& operator=(const WvecPsGaudi2& other) = delete;
