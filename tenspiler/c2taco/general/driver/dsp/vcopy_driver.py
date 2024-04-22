@@ -29,7 +29,7 @@ def vcopy_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def vcopy_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, n = reads
     out = writes[0]
@@ -44,7 +44,7 @@ def vcopy_ps_grammar(
 
 
 def vcopy_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, n = reads
     out, i = writes

@@ -475,7 +475,7 @@ def gaudi_codegen(
                 expr_instr = format_gaudi_instr(
                     f"{first_arg_instr.dest_name} {op} {second_arg_instr.dest_name}",
                     default_expr_type,
-                    final_expr_type,
+                    final_gaudi_body_type=final_expr_type,
                 )
                 return local_instructions, expr_instr
             else:

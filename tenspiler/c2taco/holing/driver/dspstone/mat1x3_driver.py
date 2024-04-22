@@ -46,7 +46,7 @@ def mat1x3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def mat1x3_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     y = writes[0]
     N, h, x = reads
@@ -57,7 +57,7 @@ def mat1x3_ps_grammar(
 
 
 def mat1x3_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     N, h, x = reads
     y, f, i, sum = writes
@@ -73,7 +73,7 @@ def mat1x3_inv0_grammar(
 
 
 def mat1x3_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     f, sum = writes
     N, h, x = reads

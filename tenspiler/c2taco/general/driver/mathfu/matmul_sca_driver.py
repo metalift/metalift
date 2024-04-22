@@ -32,7 +32,7 @@ def matmul_sca_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def matmul_sca_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, val, m, n = reads
     out, i, j, _, _ = writes
@@ -54,7 +54,7 @@ def matmul_sca_inv0_grammar(
 
 
 def matmul_sca_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, val, m, n = reads
     out, i = in_scope
@@ -87,7 +87,7 @@ def matmul_sca_inv1_grammar(
 
 
 def matmul_sca_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, val, m, n = reads
     out = writes[0]

@@ -26,7 +26,7 @@ def scale_matrix_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def scale_matrix_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     m, scale = reads
     out, i, j, _, _ = writes
@@ -44,7 +44,7 @@ def scale_matrix_inv0_grammar(
 
 
 def scale_matrix_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     m, scale = reads
     out, i = in_scope
@@ -74,7 +74,7 @@ def scale_matrix_inv1_grammar(
 
 
 def scale_matrix_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     m, scale = reads
     out = writes[0]

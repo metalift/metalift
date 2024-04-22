@@ -7,7 +7,7 @@ from tenspiler.tenspiler_common import (
     darken_blend_8_hole_body,
     get_matrix_select_holing_search_space,
 )
-from tenspiler.utils.synthesis_utils import run_synthesize_algorithm
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 if __name__ == "__main__":
     driver = Driver()
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     driver.fns_synths = fns_synths
     darken_blend_8(base, active)
     start_time = time.time()
-    run_synthesize_algorithm(
+    run_synthesis_algorithm(
         driver=driver,
         data_type=DataType.UINT_8,
         benchmark_name="darken_blend_8",

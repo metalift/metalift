@@ -29,7 +29,7 @@ def ol_l2_cpu1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def ol_l2_cpu1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     n, pred, truth = reads
     error = writes[0]
@@ -44,7 +44,7 @@ def ol_l2_cpu1_ps_grammar(
 
 
 def ol_l2_cpu1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     n, pred, truth = reads
     error, _, i, _ = writes

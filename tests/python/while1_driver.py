@@ -18,7 +18,7 @@ def ps_grammar(
 
 # inv: ite(y<=x, 0<=x, y=0)
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     x, y = reads
     return ite(y <= x, 0 <= x, y == 0)

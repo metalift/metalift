@@ -30,7 +30,7 @@ def len_sq_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def len_sq_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     l = writes[0]
@@ -44,7 +44,7 @@ def len_sq_ps_grammar(
 
 
 def len_sq_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     i, l = writes

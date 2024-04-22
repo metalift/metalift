@@ -25,7 +25,7 @@ def softmax_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def softmax_part2_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos, max_val = reads
@@ -42,7 +42,7 @@ def softmax_part2_ps_grammar(
 
 
 def softmax_part2_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     input, max_pos, max_val = reads
     out, cur, i = writes

@@ -68,7 +68,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Object:
     z, i, j, _, res = writes
     alpha, a, x, beta, y = reads
@@ -92,7 +92,7 @@ def inv0_grammar(
 
 # TODO(jie): only keep i and agg.result from in_scope
 def inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Object:
     # Inner loop
     j, res = writes
@@ -138,7 +138,7 @@ def inv1_grammar(
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Object:
     ret_val = writes[0]
     alpha, a, x, beta, y = reads

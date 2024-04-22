@@ -30,7 +30,7 @@ def mse_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def mse_array_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, n = reads
     sum = writes[0]
@@ -44,7 +44,7 @@ def mse_array_ps_grammar(
 
 
 def mse_array_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, n = reads
     i, sum = writes

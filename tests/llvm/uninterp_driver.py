@@ -23,7 +23,7 @@ def target_lang() -> List[FnDecl]:
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     x, y = reads
@@ -31,7 +31,7 @@ def ps_grammar(
 
 
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     raise Exception("no loop in the source")
 

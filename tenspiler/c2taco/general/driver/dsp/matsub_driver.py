@@ -32,7 +32,7 @@ def matsub_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def matsub_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, matB, m, n = reads
     out, i, j, _, _ = writes
@@ -55,7 +55,7 @@ def matsub_inv0_grammar(
 
 
 def matsub_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, matB, m, n = reads
     out, i = in_scope
@@ -89,7 +89,7 @@ def matsub_inv1_grammar(
 
 
 def matsub_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, matB, m, n = reads
     out = writes[0]

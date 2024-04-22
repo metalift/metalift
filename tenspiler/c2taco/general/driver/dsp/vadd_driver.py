@@ -29,7 +29,7 @@ def vadd_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def vadd_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, b, n = reads
     out = writes[0]
@@ -44,7 +44,7 @@ def vadd_ps_grammar(
 
 
 def vadd_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, b, n = reads
     out, i, _ = writes

@@ -26,7 +26,7 @@ from tenspiler.tenspiler_common import (
 
 
 def transformer_part2_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # More constrained grammar
     token_position, head, head_size, key_cache_layer, attention = reads
@@ -60,7 +60,7 @@ def transformer_part2_inv0_grammar(
 
 
 def transformer_part2_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     curr, timestep = writes
@@ -110,7 +110,7 @@ def transformer_part2_inv1_grammar(
 
 
 def transformer_part2_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]

@@ -25,7 +25,7 @@ def transformer_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def transformer_part4_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     input1, input2, hidden_dim = reads
@@ -43,7 +43,7 @@ def transformer_part4_ps_grammar(
 
 
 def transformer_part4_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     input1, input2, hidden_dim = reads
     out, i, _ = writes

@@ -2,7 +2,9 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import get_dissolve_holing_search_space
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 if __name__ == "__main__":
     driver = Driver()
@@ -40,8 +42,12 @@ if __name__ == "__main__":
     dissolve_blend_8(base, active, opacity, rand_cons)
 
     start_time = time.time()
-    driver.synthesize(filename="dissolve_blend_8", no_verify=True)
-
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="dissovle_blend_8",
+        has_relaxed=False,
+    )
     end_time = time.time()
 
     print(f"Synthesis took {end_time - start_time} seconds")

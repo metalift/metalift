@@ -29,7 +29,7 @@ def subeq_sca_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def subeq_sca_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, b, n = reads
     out = writes[0]
@@ -43,7 +43,7 @@ def subeq_sca_ps_grammar(
 
 
 def subeq_sca_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, b, n = reads
     out, i, _ = writes

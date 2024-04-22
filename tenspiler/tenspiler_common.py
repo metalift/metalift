@@ -654,7 +654,7 @@ dissolve_selection_two_args_fn_decl = fn_decl_recursive(
 
 
 def selection_two_args_ps_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     base, active = reads
@@ -665,7 +665,7 @@ def selection_two_args_ps_grammar_fn(
 
 
 def selection_two_args_inv0_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # outer loop grammar
     writes_by_name = {w.var_name(): w for w in writes}
@@ -689,7 +689,7 @@ def selection_two_args_inv0_grammar_fn(
 
 
 def selection_two_args_inv1_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # inner loop grammar
     writes_by_name = {w.var_name(): w for w in writes}
@@ -1185,7 +1185,7 @@ def get_matrix_computation_general_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         out, col, pixel, row, row_vec = writes
         base, active = reads
@@ -1208,7 +1208,7 @@ def get_matrix_computation_general_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         col, pixel, row_vec = writes
         out, row = in_scope
@@ -1244,7 +1244,7 @@ def get_matrix_computation_general_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         base, active = reads
@@ -1294,7 +1294,7 @@ def get_matrix_computation_holing_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         out, col, pixel, row, row_vec = writes
         base, active = reads
@@ -1313,7 +1313,7 @@ def get_matrix_computation_holing_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         col, pixel, row_vec = writes
         out, row = in_scope
@@ -1341,7 +1341,7 @@ def get_matrix_computation_holing_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         base, active = reads
@@ -1390,7 +1390,7 @@ def get_matrix_select_general_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1416,7 +1416,7 @@ def get_matrix_select_general_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1457,7 +1457,7 @@ def get_matrix_select_general_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
@@ -1632,7 +1632,7 @@ def get_dissolve_holing_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1662,7 +1662,7 @@ def get_dissolve_holing_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1716,7 +1716,7 @@ def get_dissolve_holing_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
@@ -1775,7 +1775,7 @@ def get_dissolve_general_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1804,7 +1804,7 @@ def get_dissolve_general_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1851,7 +1851,7 @@ def get_dissolve_general_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}

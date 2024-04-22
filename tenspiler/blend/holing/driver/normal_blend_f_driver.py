@@ -14,7 +14,7 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_add,
     vec_scalar_mul,
 )
-from tenspiler.utils.synthesis_utils import run_synthesis_algorithm_with_timeout
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -22,7 +22,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     base, active, opacity = reads
     out = writes[0]
@@ -36,7 +36,7 @@ def ps_grammar(
 
 
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     base, active, opacity = reads
     out = writes[0]
@@ -77,12 +77,11 @@ if __name__ == "__main__":
     normal_blend_f(base_var, active_var, opacity_var)
 
     start_time = time.time()
-    run_synthesis_algorithm_with_timeout(
+    run_synthesis_algorithm(
         driver=driver,
-        data_type=DataType.UINT_8,
+        data_type=DataType.FLOAT,
         benchmark_name="normal_blend_f",
         has_relaxed=False,
     )
-    driver.synthesize(filename="normal_blend_f")
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

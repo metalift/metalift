@@ -37,7 +37,7 @@ def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursi
 
 
 def multiquery_attention_part1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     attention = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
@@ -94,7 +94,7 @@ def multiquery_attention_part1_ps_grammar(
 
 
 def multiquery_attention_part1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
@@ -159,7 +159,7 @@ def multiquery_attention_part1_inv0_grammar(
 
 
 def multiquery_attention_part1_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes
@@ -262,7 +262,7 @@ def multiquery_attention_part1_inv1_grammar(
 
 
 def multiquery_attention_part2_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # ## More general grammar
     # token_position, head, head_size, key_cache_layer, attention = reads
@@ -356,7 +356,7 @@ def multiquery_attention_part2_inv0_grammar(
 
 
 def multiquery_attention_part2_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     curr, timestep = writes
@@ -499,7 +499,7 @@ def multiquery_attention_part2_inv1_grammar(
 
 
 def multiquery_attention_part2_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]

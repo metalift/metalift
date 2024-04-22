@@ -29,7 +29,7 @@ def negate_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def negate_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     out = writes[0]
@@ -44,7 +44,7 @@ def negate_ps_grammar(
 
 
 def negate_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     out, i, _ = writes
