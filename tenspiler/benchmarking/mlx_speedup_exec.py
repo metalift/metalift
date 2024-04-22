@@ -2,6 +2,7 @@ import subprocess
 import os
 import sys
 import glob
+import numpy as np
 from tenspiler.benchmarking.utils import *
 
 python_dir = os.path.join(parent_path, "mlx")
@@ -67,7 +68,19 @@ def main():
         exit(1)
 
     filename = sys.argv[1]
-    run_file(filename)
+    if filename == 'ALL':
+        all_e2e_speedup = []
+        all_kernel_speedup = []
+        for test in all_test:
+            kernel_speedup, e2e_speedup = run_file(test)
+            all_e2e_speedup.append(e2e_speedup)
+            all_kernel_speedup.append(kernel_speedup)
+        all_e2e_speedup = np.array(all_e2e_speedup)
+        all_kernel_speedup = np.array(all_kernel_speedup)
+        print(f"Average kernel speedup of all in MLX is: {np.mean(all_kernel_speedup)}")
+        print(f"Average E2E speedup of all in MLX is: {np.mean(all_e2e_speedup)}")
+    else:
+        run_file(filename)
     
 if __name__ == "__main__":
     main()
