@@ -73,6 +73,11 @@ translations = {
     "matrix_take": lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {processed_args[1]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j]; \n \t }} \n }} \n",
     "matrix_col_slice": lambda processed_args, curr_var, var_dimensions: f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = {processed_args[1]}; j < {processed_args[2]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j]; \n \t }} \n }} \n",
     "matrix_row_slice": lambda processed_args, curr_var, var_dimensions: f"for (int i = {processed_args[1]}; i < {processed_args[2]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][1]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[i][j]; \n \t }} \n }} \n",
+    
+    "list_length": lambda processed_args, curr_var, var_dimensions: f"{var_dimensions[processed_args[0]][0]}",
+    "matrix_length": lambda processed_args, curr_var, var_dimensions: f"{var_dimensions[processed_args[0]][0] * var_dimensions[processed_args[0]][0]}",
+    "matrix_transpose": lambda processed_args, curr_var, var_dimensions:  f"for (int i = 0; i < {var_dimensions[curr_var][0]}; i++) {{ \n \t for (int j = 0; j < {var_dimensions[curr_var][0]}; j++) {{ \n \t \t {curr_var}[i][j] = {processed_args[0]}[j][i]; \n \t }} \n }} \n",
+
     Add: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args: f"({processed_args[0]}) - ({processed_args[1]})",
     Mul: lambda processed_args: f"({processed_args[0]}) * ({processed_args[1]})",
@@ -327,11 +332,12 @@ def gemmini_codegen(
                 )
             elif fn_name == "matrix_row_slice":
                 var_dimensions[curr_var] = var_dimensions[processed_args[0]]
-                return (
-                    res
-                    + translations[fn_name](processed_args, curr_var, var_dimensions),
-                    expr.type,
-                )
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type  
+            elif fn_name == "list_length" or fn_name == "matrix_length":
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type   
+            elif fn_name == "matrix_transpose":
+                var_dimensions[curr_var] = var_dimensions[processed_args[0]]
+                return res + translations[fn_name](processed_args, curr_var, var_dimensions), expr.type           
             elif fn_name in all_synthesized_fns.keys():
                 return helper(
                     all_synthesized_fns[fn_name].body(),
