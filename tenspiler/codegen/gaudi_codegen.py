@@ -136,8 +136,8 @@ class GaudiInstr:
 
     @property
     def instr_str(self) -> str:
-        if self.expr_str is not None:
-            if self.dest_name is not None and self.dest_type is None:
+        if self.dest_name is not None and self.expr_str is not None:
+            if self.dest_type is None:
                 return f"{self.dest_name} = {self.expr_str};"
             else:
                 return f"{self.dest_type.value} {self.dest_name} = {self.expr_str};"

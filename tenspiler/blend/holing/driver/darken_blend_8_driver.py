@@ -46,7 +46,6 @@ if __name__ == "__main__":
         driver=driver,
         data_type=DataType.UINT_8,
         benchmark_name="darken_blend_8",
-        list_bound_start=2,
         has_relaxed=False,
     )
     end_time = time.time()
