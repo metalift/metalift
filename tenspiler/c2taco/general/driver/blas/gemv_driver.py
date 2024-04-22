@@ -31,7 +31,7 @@ def gemv_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def gemv_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     y = writes[0]
     M, N, A, x = reads
@@ -51,7 +51,7 @@ def gemv_ps_grammar(
 
 
 def gemv_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     M, N, A, x = reads
     y, i, j, sum = writes
@@ -79,7 +79,7 @@ def gemv_inv0_grammar(
 
 
 def gemv_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     j, sum = writes
     M, N, A, x = reads

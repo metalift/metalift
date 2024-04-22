@@ -83,7 +83,7 @@ unknown_const = choose(*[IntLit(coef) for coef in range(-3, 3 + 1)])
 kernel = reduce(lambda acc, _cur: unknown_const.append(acc), range(2), mlList.empty(Int))
 
 # invariant grammar
-def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]):
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool):
     an_input = reads[0]
     an_output_i32 = writes[1] #loop counter `i` of source code
     an_output_list = writes[0] #output variable `result` of the source
@@ -112,7 +112,7 @@ def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object
         kernel := [val,val]
         val := -3 | -2 | -1 | 0 | 1 | 2 | 3
     '''
-def post_condition_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]):
+def post_condition_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool):
     # We require that, when the input and kernel lists are the same size,
     # that the output list is  1D convolution of the kernel over the input .
     an_output = writes[0]

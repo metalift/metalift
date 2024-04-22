@@ -31,14 +31,14 @@ def target_lang() -> List[FnDeclRecursive]:
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     return ret_val == call("sum_n", Int, choose(Int(1), Int(2)))
 
 
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     e = choose(*writes)
     f = choose(Int(1), Int(2), Int(3))

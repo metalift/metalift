@@ -29,7 +29,7 @@ def scale_array_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def scale_array_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, n, s = reads
     out = writes[0]
@@ -43,7 +43,7 @@ def scale_array_ps_grammar(
 
 
 def scale_array_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     a, n, s = reads
     out, i, _ = writes

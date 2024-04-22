@@ -14,7 +14,7 @@ from tenspiler.tenspiler_common import (
     reduce_sum,
     vec_elemwise_mul,
 )
-from tenspiler.utils.synthesis_utils import run_synthesize_algorithm
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     dot(a, b, n)
     start_time = time.time()
-    run_synthesize_algorithm(
+    run_synthesis_algorithm(
         driver=driver,
         data_type=DataType.INT32,
         benchmark_name="dot",

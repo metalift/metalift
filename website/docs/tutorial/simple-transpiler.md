@@ -67,7 +67,7 @@ After that, we tell Metalift that all values should be computed using the gramma
 
 <!--phmdoctest-share-names-->
 ```python
-def grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+def grammar(writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool) -> Bool:
     ret_val = writes[0]
     var = choose(*reads, Int(0))
     added = var + var

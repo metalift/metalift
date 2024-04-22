@@ -45,7 +45,7 @@ def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def matmul_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     weight, input = reads
@@ -60,7 +60,7 @@ def matmul_ps_grammar(
 
 
 def matmul_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     weight, input = reads
     out, col, _, row = writes
@@ -78,7 +78,7 @@ def matmul_inv0_grammar(
 
 
 def matmul_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     col, curr = writes
     weight, input = reads

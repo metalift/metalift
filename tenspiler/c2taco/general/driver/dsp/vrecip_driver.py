@@ -29,7 +29,7 @@ def vrecip_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def vrecip_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     out = writes[0]
@@ -44,7 +44,7 @@ def vrecip_ps_grammar(
 
 
 def vrecip_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     out, i, _ = writes

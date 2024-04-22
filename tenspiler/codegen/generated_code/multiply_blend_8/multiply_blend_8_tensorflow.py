@@ -1,9 +1,10 @@
-
 ####### import statements ########
 import tensorflow as tf
 
+
 def multiply_blend_8_tf(base, active):
     return ((base) * (active)) // (32)
+
 
 def multiply_blend_8_tf_glued(base, active):
     base = tf.convert_to_tensor(base, dtype=tf.uint8)

@@ -30,7 +30,7 @@ def sum_of_squares_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def sum_of_squares_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     sum = writes[0]
@@ -44,7 +44,7 @@ def sum_of_squares_ps_grammar(
 
 
 def sum_of_squares_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     i, sum = writes

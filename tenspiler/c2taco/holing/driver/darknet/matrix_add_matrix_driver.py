@@ -30,7 +30,7 @@ def matrix_add_matrix_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def matrix_add_matrix_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     from_matrix, to_matrix = reads
     out, i, j, _, _ = writes
@@ -47,7 +47,7 @@ def matrix_add_matrix_inv0_grammar(
 
 
 def matrix_add_matrix_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     from_matrix, to_matrix = reads
     out, i = in_scope
@@ -76,7 +76,7 @@ def matrix_add_matrix_inv1_grammar(
 
 
 def matrix_add_matrix_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     from_matrix, to_matrix = reads
     out = writes[0]

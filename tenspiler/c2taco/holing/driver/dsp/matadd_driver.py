@@ -30,7 +30,7 @@ def matadd_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def matadd_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, matB, m, n = reads
     out, i, j, _, _ = writes
@@ -45,7 +45,7 @@ def matadd_inv0_grammar(
 
 
 def matadd_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, matB, m, n = reads
     out, i = in_scope
@@ -74,7 +74,7 @@ def matadd_inv1_grammar(
 
 
 def matadd_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     matA, matB, m, n = reads
     out = writes[0]

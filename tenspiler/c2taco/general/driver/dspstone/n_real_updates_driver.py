@@ -29,7 +29,7 @@ def n_real_updates_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def n_real_updates_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     N, A, B, C = reads
     D = writes[0]
@@ -44,7 +44,7 @@ def n_real_updates_ps_grammar(
 
 
 def n_real_updates_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     N, A, B, C = reads
     out, _, i = writes

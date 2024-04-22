@@ -29,7 +29,7 @@ def vscal_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def vscal_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, v, n = reads
     out = writes[0]
@@ -43,7 +43,7 @@ def vscal_ps_grammar(
 
 
 def vscal_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, v, n = reads
     out, i, _ = writes

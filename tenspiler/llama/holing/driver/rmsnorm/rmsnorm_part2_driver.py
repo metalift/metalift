@@ -19,7 +19,7 @@ def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def rmsnorm_part2_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     input, weight, ss = reads
@@ -31,7 +31,7 @@ def rmsnorm_part2_ps_grammar(
 
 
 def rmsnorm_part2_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # Second loop
     input, weight, ss = reads

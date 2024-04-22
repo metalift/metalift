@@ -29,7 +29,7 @@ def fourth_in_place_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def fourth_in_place_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     out = writes[0]
@@ -44,7 +44,7 @@ def fourth_in_place_ps_grammar(
 
 
 def fourth_in_place_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     out, _, i, _ = writes

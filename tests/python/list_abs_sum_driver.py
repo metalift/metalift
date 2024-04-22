@@ -29,7 +29,7 @@ def target_lang() -> List[FnDeclRecursive]:
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     lst = reads[0]
@@ -38,7 +38,7 @@ def ps_grammar(
 
 
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Expr:
     # reads = [curr_el, i, lst, sum]
     # writes = [curr_el, i, sum]

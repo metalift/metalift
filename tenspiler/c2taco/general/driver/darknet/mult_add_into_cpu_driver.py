@@ -29,7 +29,7 @@ def mult_add_into_cpu_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def mult_add_into_cpu_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     N, X, Y, Z = reads
     out = writes[0]
@@ -44,7 +44,7 @@ def mult_add_into_cpu_ps_grammar(
 
 
 def mult_add_into_cpu_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     N, X, Y, Z = reads
     out, i, _ = writes

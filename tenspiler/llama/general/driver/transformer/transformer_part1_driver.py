@@ -74,7 +74,7 @@ def transformer_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def transformer_part1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     attention = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
@@ -110,7 +110,7 @@ def transformer_part1_ps_grammar(
 
 
 def transformer_part1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
@@ -152,7 +152,7 @@ def transformer_part1_inv0_grammar(
 
 
 def transformer_part1_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes

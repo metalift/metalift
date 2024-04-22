@@ -30,7 +30,7 @@ def array_sum_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def array_sum_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     sum = writes[0]
@@ -44,7 +44,7 @@ def array_sum_ps_grammar(
 
 
 def array_sum_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     arr, n = reads
     i, sum = writes
