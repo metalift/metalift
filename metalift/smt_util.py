@@ -84,7 +84,7 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
             newArgs.append(filterBody(funDef.args[i], funCall, inCall))
         return Call(inCall, funDef.type, *newArgs)
     else:
-        return funDef.mapArgs(lambda x: filterBody(x, funCall, inCall))
+        return funDef.map_args(lambda x: filterBody(x, funCall, inCall))
 
 
 def toSMT(
