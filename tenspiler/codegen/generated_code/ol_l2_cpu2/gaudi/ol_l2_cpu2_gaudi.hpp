@@ -18,6 +18,10 @@ class OlL2Cpu2PsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct OlL2Cpu2PsParam {
+            int32_t n;
+        };
+
     private:
         OlL2Cpu2PsGaudi2(const OlL2Cpu2PsGaudi2& other) = delete;
         OlL2Cpu2PsGaudi2& operator=(const OlL2Cpu2PsGaudi2& other) = delete;

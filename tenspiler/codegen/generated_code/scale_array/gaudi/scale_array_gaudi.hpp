@@ -18,6 +18,11 @@ class ScaleArrayPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct ScaleArrayPsParam {
+            int32_t n
+            int32_t s;
+        };
+
     private:
         ScaleArrayPsGaudi2(const ScaleArrayPsGaudi2& other) = delete;
         ScaleArrayPsGaudi2& operator=(const ScaleArrayPsGaudi2& other) = delete;

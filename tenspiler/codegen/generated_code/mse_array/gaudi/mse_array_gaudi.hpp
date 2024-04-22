@@ -18,6 +18,11 @@ class MseArrayPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MseArrayPsParam {
+            int32_t n
+            int32_t mse_array_ps_rv;
+        };
+
     private:
         MseArrayPsGaudi2(const MseArrayPsGaudi2& other) = delete;
         MseArrayPsGaudi2& operator=(const MseArrayPsGaudi2& other) = delete;

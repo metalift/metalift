@@ -18,6 +18,11 @@ class TranslateArrayPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct TranslateArrayPsParam {
+            int32_t n
+            int32_t s;
+        };
+
     private:
         TranslateArrayPsGaudi2(const TranslateArrayPsGaudi2& other) = delete;
         TranslateArrayPsGaudi2& operator=(const TranslateArrayPsGaudi2& other) = delete;

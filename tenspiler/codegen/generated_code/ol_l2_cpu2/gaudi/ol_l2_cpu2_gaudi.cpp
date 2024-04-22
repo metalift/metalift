@@ -20,13 +20,17 @@ gcapi::GlueCodeReturn_t OlL2Cpu2PsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        3,
+        2,
         1,
         gcapi::DATA_I32
         &_binary___ol_l2_cpu2_ps_gaudi2_o_start,
         &_binary___ol_l2_cpu2_ps_gaudi2_o_end,
     );
 
+    // Define scalar params
+    OlL2Cpu2PsParam* paramDef = static_cast<OlL2Cpu2PsParam*>(in_defs->NodeParams);
+    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
+    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+
     return retVal;
 }
-

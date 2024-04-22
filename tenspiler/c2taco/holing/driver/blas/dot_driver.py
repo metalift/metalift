@@ -63,8 +63,8 @@ if __name__ == "__main__":
     driver.add_precondition(b.len() > 0)
     driver.add_precondition(b.len() >= n)
 
-    dot(a, b, n)
     start_time = time.time()
+    dot(a, b, n)
     run_synthesis_algorithm(
         driver=driver,
         data_type=DataType.INT32,

@@ -18,6 +18,11 @@ class MagArrayPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct MagArrayPsParam {
+            int32_t n
+            int32_t mag_array_ps_rv;
+        };
+
     private:
         MagArrayPsGaudi2(const MagArrayPsGaudi2& other) = delete;
         MagArrayPsGaudi2& operator=(const MagArrayPsGaudi2& other) = delete;

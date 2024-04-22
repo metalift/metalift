@@ -18,6 +18,11 @@ class SumArrayPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
+        struct SumArrayPsParam {
+            int32_t n
+            int32_t sum_array_ps_rv;
+        };
+
     private:
         SumArrayPsGaudi2(const SumArrayPsGaudi2& other) = delete;
         SumArrayPsGaudi2& operator=(const SumArrayPsGaudi2& other) = delete;

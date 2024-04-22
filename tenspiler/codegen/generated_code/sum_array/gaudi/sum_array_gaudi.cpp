@@ -20,13 +20,17 @@ gcapi::GlueCodeReturn_t SumArrayPsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        2,
+        0,
         1,
         gcapi::DATA_I32
         &_binary___sum_array_ps_gaudi2_o_start,
         &_binary___sum_array_ps_gaudi2_o_end,
     );
 
+    // Define scalar params
+    SumArrayPsParam* paramDef = static_cast<SumArrayPsParam*>(in_defs->NodeParams);
+    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
+    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
+
     return retVal;
 }
-
