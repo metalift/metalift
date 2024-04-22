@@ -634,9 +634,7 @@ def synthesize(
         # Prune ite branches
         all_candidates_by_name = prune_fn_decls(all_candidates_by_name)
         candidates_smt = list(all_candidates_by_name.values())
-        import pdb
 
-        pdb.set_trace()
         ##### verification of synthesized ps/inv
         if log:
             print(
