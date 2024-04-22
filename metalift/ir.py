@@ -177,14 +177,14 @@ class Expr:
             return FnDeclRecursive(
                 self.name(),
                 self.returnT(),
-                self.body().map_args(f),
+                f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
         elif isinstance(self, FnDecl):
             return FnDecl(
                 self.name(),
                 self.returnT(),
-                self.body().map_args(f),
+                f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
         else:

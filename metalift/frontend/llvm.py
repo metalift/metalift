@@ -1623,7 +1623,6 @@ class Driver:
         for fn in self.fns.values():
             target += fn.target_lang_fn()
         inv_and_ps = synths + self.fns_synths
-        fn_defs_to_exclude: List[FnDeclRecursive] = []
         synthesized: List[FnDeclRecursive] = run_synthesis(
             basename=filename,
             target_lang=target,
@@ -1636,12 +1635,9 @@ class Driver:
             # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
             fns_to_guess=synths,
             # TODO(jie): change this to false
-            no_verify=True,
+            # no_verify=True,
             **synthesize_kwargs,
         )
-        for f in synthesized:
-            if "inv0" in f.name():
-                fn_defs_to_exclude.append(f)
 
         for f in synthesized:
             name = f.name()

@@ -19,6 +19,37 @@ class VerificationFailed(Exception):
     pass
 
 
+def prune_fn_decls(all_fns: Dict[str, Union[FnDecl, FnDeclRecursive]]) -> FnDecl:
+    def prune_ite(expr: Expr) -> Expr:
+        if (
+            (not isinstance(expr, Expr))
+            or isinstance(expr, Var)
+            or isinstance(expr, Lit)
+        ):
+            return expr
+        if isinstance(expr, Ite):
+            cond = expr.c().map_args(prune_ite)
+            if Expr.__eq__(cond, Bool(True)):
+                return expr.e1().map_args(prune_ite)
+            elif Expr.__eq__(cond, Bool(False)):
+                return expr.e2().map_args(prune_ite)
+            elif isinstance(cond, Call):
+                fn_name = cond.name()
+                if fn_name in all_fns.keys():
+                    fn_body = all_fns[fn_name].body()
+                    if Expr.__eq__(fn_body, Bool(True)):
+                        return expr.e1().map_args(prune_ite)
+                    elif Expr.__eq__(fn_body, Bool(False)):
+                        return expr.e2().map_args(prune_ite)
+            return expr.map_args(prune_ite)
+        return expr.map_args(prune_ite)
+
+    new_fns: Dict[str, Union[FnDecl, FnDeclRecursive]] = {}
+    for fn_name, fn in all_fns.items():
+        new_fns[fn_name] = fn.map_args(prune_ite)
+    return new_fns
+
+
 def generate_types(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, ObjectT]:
     fnsType = {}
 
@@ -40,45 +71,45 @@ def generate_types(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, Ob
     return fnsType
 
 
-def parseCandidates(
+def parse_candidates(
     candidate: Union[Expr, str],
-    inCalls: typing.List[Any],
-    fnsType: Dict[Any, Any],
-    fnCalls: typing.List[Any],
-    extractedLambdas: typing.List[FnDecl],
-    inFunctionName: str,
+    in_calls: typing.List[Any],
+    fns_type: Dict[Any, Any],
+    fn_calls: typing.List[Any],
+    extracted_lambdas: typing.List[FnDecl],
+    in_function_name: str,
 ) -> typing.Tuple[
     Union[Expr, str], Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]
 ]:
     if not isinstance(candidate, Expr):
-        return candidate, (inCalls, fnCalls)
+        return candidate, (in_calls, fn_calls)
     else:
         candidate = candidate.map_args(
-            lambda a: parseCandidates(  # type: ignore
-                a, inCalls, fnsType, fnCalls, extractedLambdas, inFunctionName
+            lambda a: parse_candidates(  # type: ignore
+                a, in_calls, fns_type, fn_calls, extracted_lambdas, in_function_name
             )[0]
         )
         # if candidate.kind == Expr.Kind.Call:
         if isinstance(candidate, Call):
             if (
-                candidate.args[0] in fnsType.keys()
-                and candidate.args[0] != inFunctionName
+                candidate.args[0] in fns_type.keys()
+                and candidate.args[0] != in_function_name
             ):
-                fnCalls.append(candidate.args[0])
+                fn_calls.append(candidate.args[0])
 
             new_args = []
             for ar in candidate.args:
                 if not isinstance(ar, str):
                     # TODO: fix when decided if function will be IR Objects
-                    if is_fn_decl_type(ar.type) and ar.args[0] in fnsType.keys():
+                    if is_fn_decl_type(ar.type) and ar.args[0] in fns_type.keys():
                         # TODO(shadaj): this logic doesn't correctly handle
                         # multiple function parameters
-                        inCalls.append((candidate.args[0], ar.args[0]))
+                        in_calls.append((candidate.args[0], ar.args[0]))
                         new_args.append(ar)
                     # elif ar.kind == Expr.Kind.Lambda:
                     elif isinstance(ar, Lambda):
-                        lambda_name = f"lambda_{len(extractedLambdas)}"
-                        extractedLambdas.append(
+                        lambda_name = f"lambda_{len(extracted_lambdas)}"
+                        extracted_lambdas.append(
                             FnDecl(
                                 # TODO: ar.type no longer has args, find proper substitution
                                 lambda_name,
@@ -87,8 +118,8 @@ def parseCandidates(
                                 *ar.args[1:],
                             )
                         )
-                        fnCalls.append(lambda_name)
-                        inCalls.append((candidate.args[0], lambda_name))
+                        fn_calls.append(lambda_name)
+                        in_calls.append((candidate.args[0], lambda_name))
                         new_args.append(Var(lambda_name, ar.type))
                     else:
                         new_args.append(ar)
@@ -96,7 +127,7 @@ def parseCandidates(
                     new_args.append(ar)
             # candidate = Expr(candidate.kind, candidate.type, new_args)
             candidate = Call(new_args[0], candidate.type, *new_args[1:])
-        return candidate, (inCalls, fnCalls)
+        return candidate, (in_calls, fn_calls)
 
 
 def verify_synth_result(
@@ -139,7 +170,7 @@ def verify_synth_result(
         fnCalls: typing.List[Any] = []
         extractedLambdas: typing.List[FnDecl] = []
         for ce in loopAndPsInfo:
-            updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
+            updated, (inCalls, fnCalls) = parse_candidates(  # type: ignore
                 candidateDict[ce.name if isinstance(ce, CodeInfo) else ce.args[0]],
                 inCalls,
                 fnsType,
@@ -156,7 +187,7 @@ def verify_synth_result(
         for langFn in targetLang:
             if langFn.args[1] is not None:
                 # Things are good here
-                updated, (inCalls, fnCalls) = parseCandidates(  # type: ignore
+                updated, (inCalls, fnCalls) = parse_candidates(  # type: ignore
                     langFn.args[1],
                     inCalls,
                     fnsType,
@@ -190,7 +221,7 @@ def verify_synth_result(
                 transformedLang.append(langFn)
         targetLang = transformedLang
 
-        vc, (inCalls, fnCalls) = parseCandidates(vc, inCalls, fnsType, fnCalls, extractedLambdas, None)  # type: ignore
+        vc, (inCalls, fnCalls) = parse_candidates(vc, inCalls, fnsType, fnCalls, extractedLambdas, None)  # type: ignore
 
         inCalls = list(set(inCalls))
         fnCalls = list(set(fnCalls))
