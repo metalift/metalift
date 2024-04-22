@@ -1,3 +1,4 @@
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,7 +6,9 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_vec_elemwise_mul, vec_elemwise_mul
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def transformer_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -56,5 +59,13 @@ if __name__ == "__main__":
     driver.add_precondition(input1_var.len() >= hidden_dim_var)
     driver.add_precondition(input2_var.len() >= hidden_dim_var)
 
+    start_time = time.time()
     transformer_part4(input1_var, input2_var, hidden_dim_var)
-    driver.synthesize(filename="transformer_part4")
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="transformer_part4",
+        has_relaxed=False,
+    )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")

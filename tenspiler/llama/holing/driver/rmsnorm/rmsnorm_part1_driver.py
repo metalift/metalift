@@ -1,3 +1,4 @@
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,12 +6,14 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_reduce_sum,
     call_vec_elemwise_mul,
     reduce_sum,
     vec_elemwise_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def rmsnorm_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -59,5 +62,13 @@ if __name__ == "__main__":
     driver.add_precondition(input_var.len() == weight_var.len())
     driver.add_precondition(input_var.len() > 0)
 
+    start_time = time.time()
     rmsnorm_part1(input_var, weight_var)
-    driver.synthesize(filename="rmsnorm_part1")
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="rmsnorm_part1",
+        has_relaxed=False,
+    )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")

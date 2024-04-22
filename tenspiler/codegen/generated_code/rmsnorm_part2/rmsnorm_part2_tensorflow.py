@@ -1,9 +1,13 @@
-
 ####### import statements ########
 import tensorflow as tf
 
+
 def rmsnorm_part2_tf(input, weight, ss):
-    return ((1) / (tf.sqrt(tf.cast(((ss) / (tf.size(input, tf.float32))) + (1), tf.float32)))) * ((weight) * (input))
+    return (
+        (1)
+        / (tf.sqrt(tf.cast(((ss) / (tf.size(input, tf.float32))) + (1), tf.float32)))
+    ) * ((weight) * (input))
+
 
 def rmsnorm_part2_tf_glued(input, weight, ss):
     input = tf.convert_to_tensor(input, dtype=tf.float32)

@@ -9,6 +9,21 @@ from tenspiler.codegen.pytorch_codegen import pytorch_codegen
 from tenspiler.codegen.tensorflow_codegen import tensorflow_codegen
 from tenspiler.codegen.utils import DataType
 
+tpcc_benchmarks = {
+    "normal_blend_f",
+    "normal_blend_8",
+    "dissolve_blend_8",
+    "darken_blend_8",
+    "multiply_blend_8",
+    "linear_burn_8",
+    "color_burn_8",
+    "lighten_blend_8",
+    "screen_blend_8",
+    "linear_dodge_8",
+    "color_dodge_8",
+    "overlay_blend_8",
+}
+
 
 def run_synthesis_with_bound(
     *,
@@ -67,18 +82,19 @@ def run_synthesis_with_bound(
     with open(generated_code_dir / f"{benchmark_name}_pytorch.py", "w") as f:
         f.write(pt_code)
 
-    gaudi_base_dir = generated_code_dir / "gaudi"
-    gaudi_base_dir.mkdir(parents=True, exist_ok=True)
-    gaudi_hpp_glue_code, gaudi_cpp_glue_code, gaudi_kernel_code = gaudi_codegen(
-        ps_fn_decl, driver.synthesized_fns, data_type
-    )
+    if benchmark_name in tpcc_benchmarks:
+        gaudi_base_dir = generated_code_dir / "gaudi"
+        gaudi_base_dir.mkdir(parents=True, exist_ok=True)
+        gaudi_hpp_glue_code, gaudi_cpp_glue_code, gaudi_kernel_code = gaudi_codegen(
+            ps_fn_decl, driver.synthesized_fns, data_type
+        )
 
-    with open(gaudi_base_dir / f"{benchmark_name}_gaudi.hpp", "w") as f:
-        f.write(gaudi_hpp_glue_code)
-    with open(gaudi_base_dir / f"{benchmark_name}_gaudi.cpp", "w") as f:
-        f.write(gaudi_cpp_glue_code)
-    with open(gaudi_base_dir / f"{benchmark_name}_gaudi.c", "w") as f:
-        f.write(gaudi_kernel_code)
+        with open(gaudi_base_dir / f"{benchmark_name}_gaudi.hpp", "w") as f:
+            f.write(gaudi_hpp_glue_code)
+        with open(gaudi_base_dir / f"{benchmark_name}_gaudi.cpp", "w") as f:
+            f.write(gaudi_cpp_glue_code)
+        with open(gaudi_base_dir / f"{benchmark_name}_gaudi.c", "w") as f:
+            f.write(gaudi_kernel_code)
 
 
 def run_synthesis_algorithm(

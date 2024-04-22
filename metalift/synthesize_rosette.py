@@ -603,9 +603,6 @@ def synthesize(
                             choices[n] if n in choices else {},
                         )
         else:
-            import pdb
-
-            pdb.set_trace()
             raise SynthesisFailed("Synthesis failed")
         #####candidateDict --> definitions of all functions to be synthesized#####
 
