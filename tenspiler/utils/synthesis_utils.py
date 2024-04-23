@@ -149,9 +149,8 @@ def run_synthesis_algorithm(
     max_rounds: int = 10,
     has_relaxed: bool = False,
 ):
-    list_bound_start = os.getenv("LIST_BOUND_START")
-    if list_bound_start is None:
-        raise Exception("LIST_BOUND_START environment variable not set")
+    list_bound_start = os.getenv("LIST_BOUND_START", 2)
+    print(f"Starting synthesis at list bound {list_bound_start}")
     list_bound_start = int(list_bound_start)
     list_bound = list_bound_start
     while True:
