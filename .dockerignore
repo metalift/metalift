@@ -20,4 +20,3 @@ nixos.qcow2
 .vscode/
 .venv/
 .3.9venv/
-tenspiler/data/

@@ -1,7 +1,6 @@
-import subprocess
-import os
-import sys
 import glob
+import os
+import subprocess
 
 parent_path = "./tenspiler/benchmarking/"
 
@@ -9,9 +8,9 @@ cpp_dir = os.path.join(parent_path, "cpp")
 utils_filepath = os.path.join(cpp_dir, "utils.cc")
 
 COMPILER = "h5c++"
-FLAG="-O3"
-INCLUDE=f"-I/usr/include/opencv -I{cpp_dir}"
-LINK="-lopencv_highgui -lopencv_core -lopencv_imgproc -lhdf5_cpp -lhdf5 "
+FLAG = "-O3"
+INCLUDE = f"-I/usr/include/opencv4 -I{cpp_dir}"
+LINK = "-lopencv_highgui -lopencv_core -lopencv_imgproc -lhdf5_cpp -lhdf5 "
 
 PYTHON_CMD = "python"
 
@@ -27,7 +26,7 @@ blend_test_name = [
     "normal_blend_8",
     "normal_blend_f",
     "overlay_blend_8",
-    "screen_blend_8"
+    "screen_blend_8",
 ]
 
 llama_test_name = [
@@ -41,9 +40,9 @@ llama_test_name = [
     "transformer_part1",
     "transformer_part2",
     "transformer_part3",
-    "transformer_part4"
+    "transformer_part4",
 ]
-blas_test_name = ['dot', 'gemv']
+blas_test_name = ["dot", "gemv"]
 darknet_test_name = [
     "mag_array",
     "matrix_add_matrix",
@@ -54,7 +53,7 @@ darknet_test_name = [
     "scale_array",
     "scale_matrix",
     "sum_array",
-    "translate_array"
+    "translate_array",
 ]
 dsp_test_name = [
     "matadd",
@@ -68,11 +67,11 @@ dsp_test_name = [
     "vrecip",
     "vscal",
     "vsub",
-    "wvec"
+    "wvec",
 ]
-dspstone_test_name = ['mat1x3','n_real_updates']
-makespeare_test_name = ['sum_of_squares']
-mathfu_test_name =[
+dspstone_test_name = ["mat1x3", "n_real_updates"]
+makespeare_test_name = ["sum_of_squares"]
+mathfu_test_name = [
     "diveq",
     "diveq_sca",
     "len",
@@ -83,15 +82,32 @@ mathfu_test_name =[
     "negate",
     "pluseq",
     "subeq",
-    "subeq_sca"
+    "subeq_sca",
 ]
-simpl_array_test_name =['array_inc','array_sum','cube_in_place','fourth_in_place','sum_elts']
-utdsp_test_name = ['fir_small','lmsfir1','lmsfir2']
-all_test = blend_test_name + llama_test_name + blas_test_name + darknet_test_name + dsp_test_name + dspstone_test_name + makespeare_test_name + mathfu_test_name + simpl_array_test_name + utdsp_test_name
+simpl_array_test_name = [
+    "array_inc",
+    "array_sum",
+    "cube_in_place",
+    "fourth_in_place",
+    "sum_elts",
+]
+utdsp_test_name = ["fir_small", "lmsfir1", "lmsfir2"]
+all_test = (
+    blend_test_name
+    + llama_test_name
+    + blas_test_name
+    + darknet_test_name
+    + dsp_test_name
+    + dspstone_test_name
+    + makespeare_test_name
+    + mathfu_test_name
+    + simpl_array_test_name
+    + utdsp_test_name
+)
 
 
 def execute_file(filepath):
-    if filepath.endswith('.py'):
+    if filepath.endswith(".py"):
         command = [PYTHON_CMD, filepath]
     elif os.access(filepath, os.X_OK):
         command = [filepath]
@@ -101,21 +117,36 @@ def execute_file(filepath):
     print(f"Executing {filepath}")
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
-        output = result.stdout.strip().split('\n')
+        output = result.stdout.strip().split("\n")
         test_name, e2e_exec, kernel_exec = output[-3:]
         kernel_time, *kernel_std = kernel_exec.split()
         e2e_time, *e2e_std = e2e_exec.split()
         print(f"Finished executing {filepath}")
-        return (float(kernel_time), kernel_std[0] if kernel_std else None, 
-                float(e2e_time), e2e_std[0] if e2e_std else None)
+        return (
+            float(kernel_time),
+            kernel_std[0] if kernel_std else None,
+            float(e2e_time),
+            e2e_std[0] if e2e_std else None,
+        )
     except subprocess.CalledProcessError as e:
         print(f"Execution failed for {filepath}: {e}")
         exit(1)
 
-def compile_cpp(source_path, output_path = None):
+
+def compile_cpp(source_path, output_path=None):
     if not output_path:
-        output_path = source_path.replace('.cc', '_O3')
-    compile_command = [COMPILER, FLAG, INCLUDE, source_path, utils_filepath, LINK, '-o', output_path]
+        output_path = source_path.replace(".cc", "_O3")
+    compile_command = [
+        COMPILER,
+        FLAG,
+        INCLUDE,
+        source_path,
+        utils_filepath,
+        LINK,
+        "`pkg-config opencv4 --cflags --libs`",
+        "-o",
+        output_path,
+    ]
 
     try:
         subprocess.run(compile_command, check=True)
@@ -125,5 +156,6 @@ def compile_cpp(source_path, output_path = None):
         print(f"Failed to compile {source_path}.")
         exit(1)
 
+
 def find_file(directory, pattern):
-    return glob.glob(os.path.join(directory, '**', pattern), recursive=True)
+    return glob.glob(os.path.join(directory, "**", pattern), recursive=True)
