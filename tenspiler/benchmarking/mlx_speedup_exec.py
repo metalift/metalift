@@ -1,11 +1,12 @@
-import subprocess
 import os
 import sys
-import glob
+
 import numpy as np
+
 from tenspiler.benchmarking.utils import *
 
 python_dir = os.path.join(parent_path, "mlx")
+
 
 def run_file(filename):
     if filename not in all_test:
@@ -26,9 +27,13 @@ def run_file(filename):
 
     if not cpp_exec_files:
         if filename not in llama_test_name:
-            print(f"Expected {filename}_O3 not found in {cpp_dir}. Trying to compile the C++ file.")
+            print(
+                f"Expected {filename}_O3 not found in {cpp_dir}. Trying to compile the C++ file."
+            )
         else:
-            print(f"Expected {filename}_O3_MLX not found in {cpp_dir}. Trying to compile the C++ file.")
+            print(
+                f"Expected {filename}_O3_MLX not found in {cpp_dir}. Trying to compile the C++ file."
+            )
         if not cpp_files:
             if filename not in llama_test_name:
                 print(f"Error: {filename}.cc not found in {cpp_dir}")
@@ -50,7 +55,9 @@ def run_file(filename):
     else:
         python_file = python_files[0]
 
-    cpp_kernel_time, cpp_kernel_std, cpp_e2e_time, cpp_e2e_std = execute_file(cpp_exec_file)
+    cpp_kernel_time, cpp_kernel_std, cpp_e2e_time, cpp_e2e_std = execute_file(
+        cpp_exec_file
+    )
     py_kernel_time, py_kernel_std, py_e2e_time, py_e2e_std = execute_file(python_file)
 
     print(f"{filename} MLX speedup test")
@@ -62,13 +69,9 @@ def run_file(filename):
     print(f"Speedup: {cpp_e2e_time / py_e2e_time:.2f}X")
     return cpp_kernel_time / py_kernel_time, cpp_e2e_time / py_e2e_time
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python mlx_speedup_exec.py <benchmark name>")
-        exit(1)
 
-    filename = sys.argv[1]
-    if filename == 'ALL':
+def get_mlx_speedup(benchmark_name: str) -> None:
+    if benchmark_name == "ALL":
         all_e2e_speedup = []
         all_kernel_speedup = []
         for test in all_test:
@@ -80,7 +83,12 @@ def main():
         print(f"Average kernel speedup of all in MLX is: {np.mean(all_kernel_speedup)}")
         print(f"Average E2E speedup of all in MLX is: {np.mean(all_e2e_speedup)}")
     else:
-        run_file(filename)
-    
+        run_file(benchmark_name)
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python mlx_speedup_exec.py <benchmark name>")
+        exit(1)
+
+    get_mlx_speedup(sys.argv[1])

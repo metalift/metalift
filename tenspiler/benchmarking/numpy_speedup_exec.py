@@ -1,12 +1,12 @@
-import subprocess
 import os
 import sys
+
 import numpy as np
-import glob
 
 from tenspiler.benchmarking.utils import *
 
 python_dir = os.path.join(parent_path, "numpy")
+
 
 def run_file(filename):
     if filename not in all_test:
@@ -21,7 +21,9 @@ def run_file(filename):
     python_file = ""
 
     if not cpp_exec_files:
-        print(f"Expected {filename}_O3 not found in {cpp_dir}. Trying to compile the C++ file.")
+        print(
+            f"Expected {filename}_O3 not found in {cpp_dir}. Trying to compile the C++ file."
+        )
         if not cpp_files:
             print(f"Error: {filename}.cc not found in {cpp_dir}")
             exit(1)
@@ -37,7 +39,9 @@ def run_file(filename):
     else:
         python_file = python_files[0]
 
-    cpp_kernel_time, cpp_kernel_std, cpp_e2e_time, cpp_e2e_std = execute_file(cpp_exec_file)
+    cpp_kernel_time, cpp_kernel_std, cpp_e2e_time, cpp_e2e_std = execute_file(
+        cpp_exec_file
+    )
     py_kernel_time, py_kernel_std, py_e2e_time, py_e2e_std = execute_file(python_file)
 
     print(f"{filename} NumPy speedup test")
@@ -49,13 +53,9 @@ def run_file(filename):
     print(f"Speedup: {cpp_e2e_time / py_e2e_time:.2f}X")
     return cpp_kernel_time / py_kernel_time, cpp_e2e_time / py_e2e_time
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python numpy_speedup_exec.py <benchmark name>")
-        exit(1)
 
-    filename = sys.argv[1]
-    if filename == 'ALL':
+def get_numpy_speedup(benchmark_name: str) -> None:
+    if benchmark_name == "ALL":
         all_e2e_speedup = []
         all_kernel_speedup = []
         for test in all_test:
@@ -64,11 +64,17 @@ def main():
             all_kernel_speedup.append(kernel_speedup)
         all_e2e_speedup = np.array(all_e2e_speedup)
         all_kernel_speedup = np.array(all_kernel_speedup)
-        print(f"Average kernel speedup of all in NumPy is: {np.mean(all_kernel_speedup)}")
+        print(
+            f"Average kernel speedup of all in NumPy is: {np.mean(all_kernel_speedup)}"
+        )
         print(f"Average E2E speedup of all in NumPy is: {np.mean(all_e2e_speedup)}")
     else:
-        run_file(filename)
-    
+        run_file(benchmark_name)
+
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python numpy_speedup_exec.py <benchmark name>")
+        exit(1)
+
+    get_numpy_speedup(sys.argv[1])

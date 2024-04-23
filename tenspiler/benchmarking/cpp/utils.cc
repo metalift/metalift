@@ -106,8 +106,7 @@ vector<int32_t> random_vector_int(int m) {
 }
 
 std::array<vector<vector<uint8_t>>,2> get_base_active(int i) {
-    IplImage* img_c = cvLoadImage(fn[i].c_str(), CV_LOAD_IMAGE_GRAYSCALE);
-    cv::Mat img(img_c, true); 
+    cv::Mat img = imread(fn[i].c_str(), IMREAD_GRAYSCALE);
     //assert dim 2
     assert(img.dims == 2);
     vector<vector<uint8_t> > base(img.rows, vector<uint8_t>(img.cols));
@@ -117,9 +116,8 @@ std::array<vector<vector<uint8_t>>,2> get_base_active(int i) {
             base.at(i).at(j) = static_cast<uint8_t>(img.at<uchar>(i, j));
         }
     }
-    cvReleaseImage(&img_c);
     vector<vector<uint8_t> > active = random_matrix_grayscale(img.rows, img.cols);
-    
+
     std::array<vector<vector<uint8_t>>,2> res;
     res[0] = base;
     res[1] = active;
@@ -128,8 +126,8 @@ std::array<vector<vector<uint8_t>>,2> get_base_active(int i) {
 
 std::array<vector<vector<int32_t>>,2> get_base_active_int(int i) {
     std::array<vector<vector<uint8_t>>,2> res = get_base_active(i);
-    vector<vector<uint8_t>> base = res[0]; 
-    vector<vector<uint8_t>> active = res[1]; 
+    vector<vector<uint8_t>> base = res[0];
+    vector<vector<uint8_t>> active = res[1];
     std::vector<std::vector<int32_t>> base_int;
     std::vector<std::vector<int32_t>> active_int;
 
@@ -246,7 +244,7 @@ void setup_timer(bool needWeights, bool needAttnWeights, bool needProjWeights) {
 
 void setup_timer_7b(bool needWeights, bool needAttnWeights, bool needProjWeights) {
     srand(1);
-    H5::H5File file("./vicuna_weight7b.h5", H5F_ACC_RDONLY);
+    H5::H5File file("./tenspiler/data/vicuna_weight7b.h5", H5F_ACC_RDONLY);
 
     H5::Group root = file.openGroup("/");
 
