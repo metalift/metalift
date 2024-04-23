@@ -12,7 +12,7 @@ FLAG = "-O3"
 INCLUDE = f"-I/usr/include/opencv4 -I{cpp_dir}"
 LINK = "-lopencv_highgui -lopencv_core -lopencv_imgproc -lhdf5_cpp -lhdf5 "
 
-PYTHON_CMD = "python"
+PYTHON_CMD = ["poetry", "run", "python"]
 
 blend_test_name = [
     "color_burn_8",
@@ -108,7 +108,7 @@ all_test = (
 
 def execute_file(filepath):
     if filepath.endswith(".py"):
-        command = [PYTHON_CMD, filepath]
+        command = [*PYTHON_CMD, filepath]
     elif os.access(filepath, os.X_OK):
         command = [filepath]
     else:

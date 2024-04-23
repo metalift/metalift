@@ -20,3 +20,5 @@ nixos.qcow2
 .vscode/
 .venv/
 .3.9venv/
+*.o
+*_O3
