@@ -163,7 +163,7 @@ def generate_synth(
         )
         (sat? sol)
         (with-output-to-file
-            "synthesislogs/{basename}_sol"
+            "synthesisLogs/{basename}_sol"
             (lambda ()
                 (begin
                     (printf (~a (sat? sol)))
@@ -184,7 +184,7 @@ def generate_synth(
     )
     (sat? sol0)
     (with-output-to-file
-        "synthesislogs/{basename}_sol0"
+        "synthesisLogs/{basename}_sol0"
         (lambda ()
             (begin
                 (printf (~a (sat? sol0)))
