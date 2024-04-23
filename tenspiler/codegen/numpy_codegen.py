@@ -311,5 +311,3 @@ import numpy as np
 
     return import_stmt + kernel_fn + glued_fn
 
-
-# numpy_codegen(driver.get_actual_ps_fn_decl(), driver.synthesized_fns)
