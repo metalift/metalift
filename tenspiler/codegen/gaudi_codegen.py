@@ -38,7 +38,7 @@ from tenspiler.codegen.utils import DataType
 INDENTATION = " " * 4
 
 
-class CType(Enum):
+class CType:
     """C types"""
 
     UINT8 = "uint8_t"
@@ -51,7 +51,7 @@ class CType(Enum):
 
 
 # TODO(jie): think of a better name
-class GaudiBodyType(CType, Enum):
+class GaudiBodyType(Enum):
     """Gaudi types used in the body (inside the loops). All C types are supported in the Gaudi body."""
 
     # 1 vector, with 256 8-bit integers
@@ -66,6 +66,10 @@ class GaudiBodyType(CType, Enum):
     INT128 = "int128"
     # 4 vectors, each with 64 32-bit floats
     FLOAT256 = "float256"
+
+    UINT8 = "uint8_t"
+    FLOAT = "float"
+    INT32 = "int32_t"
 
     @property
     def is_primitive(self) -> bool:
@@ -95,10 +99,14 @@ class GaudiBodyType(CType, Enum):
             )
 
 
-class GaudiHeaderType(CType, Enum):
+class GaudiHeaderType(Enum):
     """Types used Gaudi's function header."""
 
     TENSOR = "tensor"
+
+    UINT8 = "uint8_t"
+    FLOAT = "float"
+    INT32 = "int32_t"
 
     @property
     def is_primitive(self) -> bool:
