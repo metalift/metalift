@@ -25,11 +25,15 @@ driver_files = find_all_drivers(driver_dirs)
 
 stored_path = "./tenspiler/generated_code/gaudi/"
 
-
+gaudi_not_comp = ['vcopy', 'mat1x3', 'gemv']
 def generate_benchmark(benchmark_name):
     if benchmark_name not in all_test:
         print(f"Benchmark name {benchmark_name} is not in predefined benchmark name list!")
         exit(1)
+
+    if benchmark_name in llama_test_name or benchmark_name in gaudi_not_comp:
+        print(f"Benchmark name {benchmark_name} is not supported in Gaudi backend with TPC-C. See PyTorch version.")
+        return
 
     data_type = None
 
