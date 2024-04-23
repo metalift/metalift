@@ -7,60 +7,64 @@ from pathlib import Path
 from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tests.test_codegen import *
+from tenspiler.generated_code.benchmark_names import *
 
 
 def find_all_drivers(driver_dirs):
-    driver_files = []
+    driver_files = {}
     for root_dir in driver_dirs:
         for dirpath, dirnames, filenames in os.walk(root_dir):
             for filename in filenames:
                 if filename.endswith("_driver.py"):
+                    benchmark_name = filename[:-10] # remove the _driver.py at the end
                     full_path = join(dirpath, filename)
-                    driver_files.append(full_path)
+                    driver_files[benchmark_name] = full_path
     return driver_files
 
 
-driver_dirs = ["tenspiler/c2taco/holing/driver/"]
+driver_dirs = ["tenspiler/c2taco/holing/driver/", "tenspiler/blend/holing/driver/", "tenspiler/llama/holing/driver/"]
 driver_files = find_all_drivers(driver_dirs)
 
 stored_path = "./tenspiler/generated_code/gemmini/"
-gemmini_not_comp = [
-    "translate_array",
-    "vcopy",
-    "vmul",
-    "vneg",
-    "voffset",
-    "vrecip",
-    "diveq",
-    "muleq",
-    "negate",
-    "subeq_sca",
-    "array_inc",
-    "cube_in_place",
-    "fourth_in_place",
-]
-for script_path in driver_files:
+
+def generate_benchmark(benchmark_name):
+    if benchmark_name not in all_test:
+        print(f"Benchmark name {benchmark_name} is not in predefined benchmark name list!")
+        exit(1)
+
+    data_type = None
+    if benchmark_name in gemmini_blend_func_names:
+        data_type = DataType.UINT_8
+    elif benchmark_name in gemmini_llama_func_names:
+        data_type = DataType.FLOAT
+    elif benchmark_name not in gemmini_not_comp:
+        data_type = DataType.INT32
+    else:
+        print(f"Benchmark name {benchmark_name} is not supported in Gemmini backend")
+        return
+    
+    script_path = driver_files[benchmark_name]
     script_dir = dirname(script_path)
     script_basename = basename(script_path)
     script_name, _ = script_basename.rsplit(".", 1)
-
-    if any(not_comp + "_driver" in script_basename for not_comp in gemmini_not_comp):
-        continue
 
     if script_dir not in sys.path:
         sys.path.append(script_dir)
 
     result = runpy.run_module(script_name, run_name="__main__")
 
+    print(f"Successfully executed driver file at {script_path}")
+
     if script_dir in sys.path:
         sys.path.remove(script_dir)
 
     driver = result.get("driver")
 
-    # NOTE: All c2taco uses full integer
     gemmini_code = gemmini_codegen(
-        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, DataType.FULL_INT
+        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, data_type
     )
+
+    print(f"Successfully generated code for {benchmark_name}")
 
     e2e_fn_name = f"{driver.get_actual_ps_fn_decl().name()[:-3]}_gemmini"
 
@@ -120,6 +124,11 @@ for script_path in driver_files:
     path_obj = Path(script_path)
     folder_name = path_obj.parent.name if path_obj.parent.name != "driver" else ""
 
+    if benchmark_name in blend_test_name:
+        folder_name = "blend"
+    elif benchmark_name in llama_test_name:
+        folder_name = "llama"
+
     e2e_filename = join(stored_path, folder_name, f"{e2e_fn_name}.c")
 
     e2e_filepath = Path(e2e_filename)
@@ -129,27 +138,20 @@ for script_path in driver_files:
     with e2e_filepath.open("w") as file:
         file.write(gemmini_code_timing)
 
+    print(f"Stored the genereted code into {e2e_filename}")
 
-blend_func_names = [
-    normal_blend_8,
-    normal_blend_f,
-    linear_burn_8,
-    linear_dodge_8,
-    screen_blend_8,
-]
-llama_func_names = [softmax_part3, rmsnorm_part1, matmul]
 
-for func_name in blend_func_names + llama_func_names:
-    ps_fn_decl, all_fn_decls, d_type = func_name()
-    gemmini_code = gemmini_codegen(ps_fn_decl, all_fn_decls, d_type)
-    e2e_fn_name = f"{func_name.__name__}_gemmini"
-    path_obj = (
-        Path(f"{stored_path}/blend/{e2e_fn_name}.c")
-        if func_name in blend_func_names
-        else Path(f"{stored_path}/llama/{e2e_fn_name}.c")
-    )
+def generate_benchmarks(benchmark_name):
+    if benchmark_name == "ALL":
+        for test in all_test:
+            generate_benchmark(test)
+    else:
+        generate_benchmark(benchmark_name)
+    print("Finished generation")
 
-    path_obj.parent.mkdir(parents=True, exist_ok=True)
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python generate_gemmini_benchmarks.py <benchmark name>")
+        exit(1)
 
-    with path_obj.open("w") as file:
-        file.write(gemmini_code)
+    generate_benchmarks(sys.argv[1])
