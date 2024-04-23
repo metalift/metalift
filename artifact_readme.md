@@ -4,6 +4,7 @@ ECOOP submission number for the paper: 220
 
 # Metadata
 **No need to provide them again in the submission**
+[comment]TODO: fill this
 - OS and resource (CPU, memory, disk, GPU) used by the authors to run the artifact 
     for this do we just include all the config from paper?
 - Estimation of the required hardware resources for evaluation. In case the evaluation takes multiple days or requires huge resources, please provide a scaled-down evaluation.
@@ -30,13 +31,20 @@ poetry run python tenspiler/generated_code/numpy/generate_numpy_benchmarks.py do
 ```
 You should find the resulting file at `tenspiler/generated_code/numpy/blas/dot_np.py`.
 
-4. To test if timing scripts are working, we can run one test from each dataset. 
+4. To test if timing scripts are working, we can run one test from each dataset. We first prepare the dataset
+```
+cp -rfT ./data_sampled/ ./data/
+cp -f ./vicuna_weight_sampled.h5 ./vicuna_weight.h5
+```
+5. We then performce the timing
 ```
 poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
 poetry run python tenspiler/benchmarking/numpy_speedup_exec.py matmul
 ```
 This should print to the terminal the runtime of the corresponding benchmark in C++ baseline and NumPy as well as the E2E and Kernel speedup.
    
+[comment]: do we need the imagenet dataset for running this?
+[comment]: yes we need both the ./data_sampled/ and vicuna_weight_sampled.h5 and they need to be renamed properly.
 
 
 # Overview: What does the artifact comprise?
@@ -56,10 +64,11 @@ Source Code and Evaluation Scripts:
     - llama/: containing the Llama benchmarks
     - codegen/: code-generation scripts from TensIR to each of the 6 backends supported
     - generated_code/: convinient scripts that runs the synthesizer, verifier, and codegen in one run
-    - llm/: TODO: Do we need to include this?
     - plots/: all data and plots used in paper
 
-Datasets (jpeg and h5): We include `data_sampled/`, `vicuna_weight_sampled.h5`, and `vicuna_weight7b_sampled.h5` as subsamples of the real datasets used for performance evaluation. See the performance secton in Functional badge for more detail. These are located in the /code/metalift/ folder. TODO: verify this can update at all placed.
+[comment]:  we can move the synthesis datasets (llama, c2taco, blend) in this paragraph with 2 sections. benchmarks and evaluation. [comment]: wdym by 'move the datasets in this paragraph with 2 sections'?
+
+Datasets (jpeg and h5): We include `data_sampled/`, `vicuna_weight_sampled.h5`, and `vicuna_weight7b_sampled.h5` as subsamples of the real datasets used for performance evaluation. See the performance secton in Functional badge for more detail. These are located in the /code/metalift/ folder. [comment]TODO: verify this setup and update at all placed.
 
 # Available badge
 
@@ -71,12 +80,16 @@ We agree to publish the artifacts.
 # Functional badge
 
 ## Generating Code per Backend
-As stated in our paper section 6.1.2, our tool can target 6 different backends for 69 benchmarks. To reproduce the result, simpliy run 
+As stated in our paper section 6.1.2, our tool can target 6 different backends for 69 benchmarks. To reproduce the result for all benchmarks, simpliy run 
+```
+poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
+```
+which would write the result of final lifted code to `tenspiler/generated_code/<backend>/<benchmark-suite>/<synthesized-file>`.
+
+Note this could take a while. To only test a single benchmark, run
 ```
 poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py <benchmark-name>
 ```
-which would write the result of final lifted code to `tenspiler/generated_code/<backend>/<benchmark-suite>/<synthesized-file>`.
-NOTE: Use `ALL` inplace of `<benchmark-name>` to generate files corresponding to a backend of all benchmarks.
 
 See below for valid backend names and benchmark names:
 ### Backend names
@@ -192,27 +205,34 @@ cp -f ./vicuna_weight7b_sampled.h5 ./vicuna_weight7b.h5
 ```
 replace _sampled with _full if using full dataset.
 
-Also, evaluations of TensorFlow and PyTorch were using GPU which aren't supported by Docker (TODO: do we want to add support?) so the scripts will execute them on CPU. 
+Also, evaluations of TensorFlow and PyTorch were using GPU which aren't supported by Docker ([comment]TODO: do we want to add support?) so the scripts will execute them on CPU. 
 
-The MLX library requires Apple's M-series CPU. To run these, port all files onto a platform with M-series chip, install MLX with `pip install mlx==0.7`, and follow the same command. TODO: do we need to mention how to setup with c++ baseline?
+The MLX library requires Apple's M-series CPU. To run these, port all files onto a platform with M-series chip, install MLX with `pip install mlx==0.7`, and follow the same command.
 
-Germmini requires setup Dockerfile currently not support. Please follow TODO: add how to setup germmini for evaluation?.
+Germmini requires setup Dockerfile currently not support. Please follow [comment]TODO: add how to setup germmini for evaluation?.
 
-Gaudi requires specialized Gaudi2 hardware, available in AWS EC2 DL1 instance, for execution. TODO: add how to set this up?
+Gaudi requires specialized Gaudi2 hardware, available in AWS EC2 DL1 instance, for execution. [comment]TODO: add how to set this up?
+[comment]: we can skip the C++ setup here
+[comment]: im not sure how to run gaudi code yet. do we need to mention that?
 
-We recognize some of the backends are hard to setup for execution, but we have verified the code with Germmini and Gaudi personnel as well as running them. For fast verification in Docker, please use NumPy, TensorFlow, or PyTorch as backend.
+We recognize some of the backends are hard to setup for execution, but we have verified the code with Germmini and Gaudi experts as well as running them. For fast verification in Docker, please use NumPy, TensorFlow, or PyTorch as backend.
 
-To obtain runtime comparision of a backend with baseline, run
+To obtain runtime comparision of a backend with baseline over all benchmarks, run
+```
+poetry shell python tenspiler/benchmarking/<backend>_speedup_exec.py ALL
+```
+This runs all supported benchmarks twice: with C++ baseline and the specified backend, so it could take few hours.
+
+For evaluation of one benchmark, run 
 ```
 poetry shell python tenspiler/benchmarking/<backend>_speedup_exec.py <benchmark-name>
 ```
 The execution results are printed to the terminal. 
 
-NOTE: Use `ALL` inplace of `<benchmark-name>` to run speedup test corresponding to a backend of all supported benchmarks.
 
 ## Synthesis Timing and Abolation Timing
-TODO: do we include this?
-The synthesize timing presented in Figure 8 can be reproduced by running TODO(jie): add how to get synthesize timing data. The abolation timing study in Figure 11 can be reproduced by running TODO(jie): add how to get data for abolation study
+[comment]TODO: do we include this?
+The synthesize timing presented in Figure 8 can be reproduced by running [comment]TODO(jie): add how to get synthesize timing data. The abolation timing study in Figure 11 can be reproduced by running [comment]TODO(jie): add how to get data for abolation study
 
 # Reusable badge
 
@@ -227,5 +247,5 @@ translations = {
 }
 ```
 Then, we can reuse one of the existing `<backend>_codegen` function from another backend which will recursively parse the IR tree corresponding to our synthesized solution. This can be used to generate the body of the resulting function as string. To actual executable code, we add the import-statements needed as well as function definition to insert the body into. And optionally any glue-code that can connect other input format (e.g. Python List) to the desired solution. To generate code targeting this new backend, we call this `<backend>_codegen` with results from any synthesizing driver.
-TODO: do we need to add how to support C flavored backend?
-TODO: do we need to descript how to write a driver?
+
+[comment] : we can add few things about driver. [comment]TODO(jie): could u add the drivers info
