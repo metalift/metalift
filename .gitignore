@@ -21,3 +21,5 @@ nixos.qcow2
 .venv/
 .3.9venv/
 tenspiler/data/
+*.o
+*_O3
