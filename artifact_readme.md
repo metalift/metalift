@@ -57,7 +57,7 @@ Below, we describe each component of our artifact:
 - Evaluation scripts:
     - `/code/metalift/tenspiler/generated_code/`: The scripts that run all three phases of Tenspiler for each benchmark, as described above.
     - `/code/metalift/tenspiler/benchmarking/`: The scripts to obtain speedup of each benchmark on the backends.
-    - `/code/metalift/(data_sampled/|vicuna_weight_sampled.h5|vicuna_weight7b_sampled.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
+    - `/code/metalift/(data/|vicuna_weight.h5|vicuna_weight7b.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
 
 # Available badge
 
@@ -118,9 +118,9 @@ array_inc (no gemmini support), array_sum, cube_in_place (no gemmini support), f
 ## Performance Evaluation
 In figures 9 and 10 in the paper, we show the performance of translated code compared to C++ baseline. In this artifact, we include scripts to replicate the results.
 
-In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be downloaded at https://drive.google.com/drive/folders/1TLqDKP8PsVWnAOJrOyHl6Vh5hkhwoRJC?usp=sharing, and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`.
+In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be found at `/code/metalift/data_full`, and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`.
 
-If you decide to use the full datasets, rename the downloaded images folder to `data`, and the vicuna 33B and 7B weights as `vicuna_weight.h5` and `vicuna_weight7b.h5`, respectively. Everything should be placed in the `metalift` directory.
+If you decide to use the full datasets, rename the 10k images folder `data_full` to `data`, and the vicuna 33B and 7B weights as `vicuna_weight.h5` and `vicuna_weight7b.h5`, respectively. Everything should be placed in the `metalift` directory.
 
 
 **Notes**:
