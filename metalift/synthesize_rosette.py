@@ -34,7 +34,7 @@ from metalift.ir import (
     Let,
 )
 from metalift.ir import List as mlList
-from metalift.ir import Lt, Mod, Mul, Not, ObjectT, Or
+from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or
 from metalift.ir import Set as mlSet
 from metalift.ir import (
     Sub,
@@ -438,6 +438,17 @@ def to_expr(
             else:
                 return Call(ast[0], ret_type, *arg_eval)
         elif ast[0] in choices:
+
+            def replace_choices(expr: Expr) -> Expr:
+                if (not isinstance(expr, Expr)) or isinstance(expr, Lit):
+                    return expr
+
+                if isinstance(expr, Var):
+                    if expr.name().startswith("(") and expr.name()[1:-1] in choices:
+                        return choices[expr.name()[1:-1]].args[0]
+                    return expr
+                return expr.map_args(replace_choices)
+
             picked: Expr = choices[ast[0]].args[0]
             while (
                 # picked.kind == Expr.Kind.Var
@@ -446,7 +457,7 @@ def to_expr(
                 and picked.args[0][1:-1] in choices
             ):
                 picked = choices[picked.args[0][1:-1]].args[0]
-            return picked
+            return picked.map_args(replace_choices)
         else:
             raise Exception(f"Unexpected function name: {ast[0]}")
     else:
@@ -623,6 +634,9 @@ def synthesize(
             ce_name = synth_fun.args[0]
 
             if ce_name not in candidate_dict:
+                import pdb
+
+                pdb.set_trace()
                 # Rosette will not return a function if no choice needs to be made
                 candidate_dict[ce_name] = (
                     synth_fun.args[1]
