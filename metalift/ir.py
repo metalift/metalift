@@ -627,7 +627,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
         return List[List[Int]]
 
     elif ty_str in {"%struct.set*"}:
-        # TODO jie: how to support different contained types
+        # TODO : how to support different contained types
         return Set[Int]
     elif ty_str in {"%struct.tup*"}:
         return Tuple[typing.Tuple[Int, Int]]

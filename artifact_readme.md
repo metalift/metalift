@@ -81,7 +81,7 @@ poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchm
 ```
 which writes the translated code to `tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take a while (TODO: put time).
 
-To test a single benchmark, run (TODO jie)
+To test a single benchmark, run (TODO )
 ```
 poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py <benchmark-name>
 ```

@@ -1009,7 +1009,7 @@ class VCVisitor:
         for var in loop_info.havocs:
             var_type = self.get_var_type(var.name)
             # var_type = blk_state.read_or_load_var(var.name).type
-            # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
+            # TODO: add generic (ie containedT) support needed for objects and different types of objects
             obj = create_object(var_type, var.name)
             if var.type.is_pointer:
                 pointer_havocs.append(obj)
@@ -1621,8 +1621,8 @@ class Driver:
             preds=[],
             vc=vc,
             loop_and_ps_info=synths,
-            cvc_path="cvc5",
-            # cvc_path="/code/metalift/cvc5",
+            # cvc_path="cvc5",
+            cvc_path="/code/metalift/cvc5",
             # fns_to_guess=inv_and_ps, # TODO: might need to change this
             fns_to_guess=synths,
             # TODO: change this to false

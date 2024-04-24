@@ -237,7 +237,7 @@ parser.add_argument("--n-choices", type=int, default=10)
 # parser.add_argument("--post-cond", type=str)
 args = parser.parse_args()
 
-dir = f"/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/{args.benchmark_suite}/outputs/openai/inv_ps/{args.n_choices}_choices"
+dir = f"/code/metalift/tenspiler/llm/benchmarks/{args.benchmark_suite}/outputs/openai/inv_ps/{args.n_choices}_choices"
 filename = args.filename
 source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()

@@ -243,7 +243,7 @@ source_code = open(args.source_code).read()
 dsl_code = open(args.dsl_code).read()
 
 # reading post-conditions
-file = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/source/ps.json"
+file = "/code/metalift/tenspiler/llm/benchmarks/llama/source/ps.json"
 post_conds = json.load(open(file))
 
 
