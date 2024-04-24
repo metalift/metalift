@@ -8,6 +8,7 @@ from tenspiler.tenspiler_common import (
     overlay_blend_8_hole_body,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()
@@ -18,11 +19,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_matrix_select_holing_search_space(driver, overlay_blend_8_hole_body)
+
+    def target_lang_axiom():
+        return target_lang() + [matrix_selection_two_args_axiom]
+
     overlay_blend_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/overlay_blend_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/overlay_blend_8.loops",
         fn_name="overlay_blend_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "overlay_blend_8_inv0": inv0_grammar,
             "overlay_blend_8_inv1": inv1_grammar,
