@@ -52,7 +52,7 @@ Below, we describe each component of our artifact:
 - Evaluation scripts:
     - `/code/metalift/tenspiler/generated_code/`: The scripts that run all three phases of Tenspiler for each benchmark, as described above.
     - `/code/metalift/tenspiler/benchmarking/`: The scripts to obtain speedup of each benchmark on the backends.
-    - `/code/metalift/data`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
+    - `/code/metalift/(data_sampled/|vicuna_weight_sampled.h5|vicuna_weight7b_sampled.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
 
 # Available badge
 
@@ -68,7 +68,7 @@ As stated in our paper section 6.1.2, Tenspiler can target 6 different backends 
 ```
 poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
-which writes the translated code to `tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take around 30 minutes for each backend.
+which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`.
 
 To test a single benchmark, run
 ```
