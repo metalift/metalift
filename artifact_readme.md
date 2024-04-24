@@ -129,7 +129,7 @@ In the paper, we evaluated the performance of the translated code using either 1
 **Notes**:
 - For this artifact, we have included evaluations only for **NumPy**, **TensorFlow**, and **PyTorch** backends (on CPUs). In the paper, we evaluated TensorFlow and PyTorch using GPU, which aren't supported by Docker for linux distributions.
 - We don't include MLX, Gemmini, and Gaudi because of lack of Docker support.
-- We have verified the generated MLX, Gaudi and Gemmini code by executing them on hardwares or simulator and verified with Gaudi and Gemmini experts.
+- We have verified the generated MLX, Gaudi and Gemmini code by executing them on hardwares and verified with Gaudi and Gemmini experts.
 
 # Reusable badge
 
