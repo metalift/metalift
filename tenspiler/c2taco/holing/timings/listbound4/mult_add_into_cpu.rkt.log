@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mult_add_into_cpu.rkt:26:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mult_add_into_cpu.rkt:26:0
 (define (mult_add_into_cpu_inv0 N X Y Z agg.result i ref.tmp)
   (choose
    (&&
@@ -9,7 +9,7 @@
      (vec_elemwise_add
       (list-take-noerr Z i)
       (vec_elemwise_mul (list-take-noerr X i) (list-take-noerr Y i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mult_add_into_cpu.rkt:27:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mult_add_into_cpu.rkt:27:0
 (define (mult_add_into_cpu_ps N X Y Z mult_add_into_cpu_rv)
   (choose
    (equal?

@@ -1,5 +1,5 @@
 ; begin integer functions
-; TODO(jie): fix
+; TODO: fix
 (define-fun-rec integer_exp ((n Int)) Int
 (ite (<= n 0) 1 (mod (* (integer_exp (- n 1)) 3) 64)))
 

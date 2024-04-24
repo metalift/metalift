@@ -119,7 +119,7 @@ def list_length(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    # TODO(jie) think of how to better handle list of lists
+    # TODO think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
     return ReturnValue(
         lst.len(),  # type: ignore
@@ -295,7 +295,7 @@ def new_tuple(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    # TODO(jie): handle types other than Int
+    # TODO: handle types other than Int
     return ReturnValue(call("newTuple", make_tuple_type(Int, Int)), None)
 
 
@@ -305,7 +305,7 @@ def make_tuple(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    # TODO(jie): handle types other than Int
+    # TODO: handle types other than Int
     reg_vals = [state.read_or_load_operand(args[i]) for i in range(len(args))]
     contained_type = [Int for _ in range(len(args))]
     return_type = make_tuple_type(*contained_type)
@@ -478,7 +478,7 @@ def get_fn_name_from_call_instruction(o: ValueRef) -> str:
     raw_fn_name = get_raw_fn_name_from_call_instruction(o)
     ops = list(o.operands)
     if raw_fn_name == "":
-        # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+        # TODO: this is a hack around LLVM bitcasting the function before calling it on aarch64
         fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
     else:
         demangled_name = get_demangled_fn_name(raw_fn_name)
@@ -1094,7 +1094,7 @@ class VCVisitor:
             if len(pred_preconds) >= 1:
                 blk_state.precond = [or_objects(*pred_preconds)]
 
-            # TODO(jie): handle global vars and uninterpreted functions
+            # TODO: handle global vars and uninterpreted functions
 
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
@@ -1192,7 +1192,7 @@ class VCVisitor:
             self.driver.add_var_objects(havocs)
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
 
-            # TODO(jie): extract this logic to be better
+            # TODO: extract this logic to be better
             in_scope_objs: List[Object] = []
             for var_name, var_obj in blk_state.primitive_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
@@ -1270,7 +1270,7 @@ class VCVisitor:
         )  # bug: ops[0] always return i32 1 regardless of type
         obj_type = parse_type_ref_to_obj(t)
 
-        # TODO(jie): handle custom contained types
+        # TODO: handle custom contained types
         default_val = obj_type.default_value()
 
         # o.name is the register name
@@ -1429,7 +1429,7 @@ class VCVisitor:
         )
 
         # Call postcondition
-        # TODO(jie) use the call method of the predicate
+        # TODO use the call method of the predicate
         ps = call(
             self.pred_tracker.predicates[self.fn_name].name,
             Bool,
@@ -1451,7 +1451,7 @@ class VCVisitor:
         fn_name = get_fn_name_from_call_instruction(o)
 
         if fn_name in fn_models:
-            # TODO(colin): handle global var
+            # TODO: handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # process the mangled name -> name, type
             raw_fn_name = get_raw_fn_name_from_call_instruction(o)
@@ -1520,7 +1520,7 @@ class Driver:
         return self.var_tracker.variable(name, type)
 
     def add_var_object(self, var_object: Object) -> None:
-        # TODO(jie): extract this check to a more generic function
+        # TODO: extract this check to a more generic function
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
         self.var_tracker.variable(var_object.var_name(), var_object.type)
@@ -1567,7 +1567,7 @@ class Driver:
                     )
 
     def get_ps_fn_decl(self) -> Union[FnDecl, FnDeclRecursive]:
-        # TODO(jie): delete potentially
+        # TODO: delete potentially
         for fname, f in self.synthesized_fns.items():
             if re.match("(\w+)_ps", fname):
                 return f
@@ -1623,9 +1623,9 @@ class Driver:
             loop_and_ps_info=synths,
             cvc_path="cvc5",
             # cvc_path="/code/metalift/cvc5",
-            # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
+            # fns_to_guess=inv_and_ps, # TODO: might need to change this
             fns_to_guess=synths,
-            # TODO(jie): change this to false
+            # TODO: change this to false
             # no_verify=True,
             **synthesize_kwargs,
         )
@@ -1666,7 +1666,7 @@ class MetaliftFunc:
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
-    synthesized: Optional[Object]  # TODO(colin): change this into list
+    synthesized: Optional[Object]  # TODO: change this into list
 
     loops: List[LoopInfo]
 
@@ -1756,14 +1756,14 @@ class MetaliftFunc:
                     v.visit_llvm_block(b)
                     done = False
 
-        # TODO(jie): now we should update the return type
+        # TODO: now we should update the return type
         # if sret_obj is not None:
         #     self.fn_ret_type = sret_obj.type
         #     import pdb; pdb.set_trace()
         # ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
         # self.driver.add_var_object(ret_val)
 
-        # # TODO(jie) instead of constructin this call manually can we replace it with a method call.
+        # # TODO instead of constructin this call manually can we replace it with a method call.
         # ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
 
         # self.driver.postconditions.append(cast(Bool, ps))

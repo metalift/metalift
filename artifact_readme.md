@@ -7,7 +7,7 @@ ECOOP submission number for the paper: 220
 [comment]TODO: fill this
 - Docker building time: ~20 minutes.
 - Docker image size: ~15GB.
-- Memory used at peak: ~10GB ??? TODO
+- Memory used at peak: ~3GB
 - Which badges do you claim for your artifact? Functional? Reusable? Available?
     - We claim all three badges.
 
@@ -17,7 +17,7 @@ ECOOP submission number for the paper: 220
     ```
     docker build -t tenspiler .
     ```
-2. Run the container and spawn a shell (TODO(jie))
+2. Run the container and spawn a shell (TODO)
     ```
     docker run -v $(pwd):/code/metalift -it tenspiler /bin/bash
     ```
@@ -41,7 +41,7 @@ ECOOP submission number for the paper: 220
     ```
     The generated NumPy code can be found at `./tenspiler/generated_code/numpy/blas/dot_np.py`.
 
-4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located [here](./tenspiler/data_sampled/). (TODO(jie) fix path) We compare against running C++ code compiled with `-O3` flag.
+4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located [here](./tenspiler/data_sampled/). (TODO fix path) We compare against running C++ code compiled with `-O3` flag.
     ```
     poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
     ```
@@ -75,7 +75,7 @@ We agree to publish the artifacts.
 
 ## Generating Code per Backend
 As stated in our paper section 6.1.2, Tenspiler can target 6 different backends for 69 benchmarks. To translate all 69 benchmarks to executable code for each backend, run
-TODO(jie): fix
+TODO: fix
 ```
 poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```

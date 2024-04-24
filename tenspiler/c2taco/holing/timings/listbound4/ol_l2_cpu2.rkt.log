@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/ol_l2_cpu2.rkt:26:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/ol_l2_cpu2.rkt:26:0
 (define (ol_l2_cpu2_inv0 agg.result diff i n pred truth)
   (choose
    (&&
@@ -7,7 +7,7 @@
     (equal?
      agg.result
      (vec_elemwise_sub (list-take-noerr truth i) (list-take-noerr pred i))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/ol_l2_cpu2.rkt:27:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/ol_l2_cpu2.rkt:27:0
 (define (ol_l2_cpu2_ps n pred truth ol_l2_cpu2_rv)
   (choose
    (equal?

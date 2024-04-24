@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/pluseq.rkt:22:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/pluseq.rkt:22:0
 (define (pluseq_inv0 a agg.result b i n ref.tmp)
   (choose
    (&&
@@ -7,7 +7,7 @@
     (equal?
      agg.result
      (vec_elemwise_add (list-take-noerr a i) (list-take-noerr b i))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/pluseq.rkt:23:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/pluseq.rkt:23:0
 (define (pluseq_ps a b n pluseq_rv)
   (choose
    (equal?

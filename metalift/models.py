@@ -92,7 +92,7 @@ def list_length(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    # TODO(jie) think of how to better handle list of lists
+    # TODO think of how to better handle list of lists
     lst = (
         primitive_vars[args[0].name]
         if not args[0].type.is_pointer
@@ -230,7 +230,7 @@ def make_tuple(
         for i in range(len(args))
     ]
 
-    # TODO(jie): handle types other than Int
+    # TODO: handle types other than Int
     contained_type = [Int for i in range(len(args))]
     return_type = make_tuple_type(*contained_type)
     return ReturnValue(call("make-tuple", return_type, *reg_vals), None)

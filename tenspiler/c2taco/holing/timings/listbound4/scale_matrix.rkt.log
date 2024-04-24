@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:42:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:42:0
 (define (scale_matrix_inv0 agg.result i j m ref.tmp row_vec scale)
   (choose
    (&&
@@ -11,7 +11,7 @@
       (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
         (matrix-take-noerr (v2) i)
         (matrix-col-slice-noerr (v2) 0 i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:43:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:43:0
 (define (scale_matrix_inv1 j m ref.tmp row_vec scale agg.result i)
   (choose
    (&&
@@ -36,10 +36,10 @@
       (if (MATRIX_OUTER_LOOP_INDEX_FIRST)
         (matrix-take-noerr (v1) i)
         (matrix-col-slice-noerr (v1) 0 i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:44:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:44:0
 (define (scale_matrix_ps m scale scale_matrix_rv)
   (choose (equal? scale_matrix_rv (matrix_scalar_mul (v0) (v2)))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:46:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/scale_matrix.rkt:46:0
 (define (MATRIX_OUTER_LOOP_INDEX_FIRST) (choose true))
 
 real	0m46.424s

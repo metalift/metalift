@@ -47,7 +47,7 @@ def extract(s):
 if not os.path.exists(dir):
     os.makedirs(dir)
 
-# TODO(jie): extract this code
+# TODO: extract this code
 for temp, idx in enumerate([0.1, 0.3, 0.5, 0.7, 0.9]):
     # call the completions endpoint to get the completions for the prompt
     completion = model.generate_content(

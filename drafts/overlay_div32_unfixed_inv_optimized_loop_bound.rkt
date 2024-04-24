@@ -5,7 +5,7 @@
          rosette/lib/match
          rosette/lib/synthax)
 (require rosette/solver/smt/bitwuzla)
-(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla"
+(current-solver (bitwuzla #:path "/bitwuzla/build/src/main/bitwuzla"
                           #:options (hash ':seed 0)))
 (current-solver)
 

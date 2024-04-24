@@ -3,7 +3,7 @@
 (require "./utils.rkt")
 (require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)
 (require rosette/solver/smt/bitwuzla)
-(current-solver (bitwuzla #:path "/Users/sahilbhatia/Documents/bitwuzla/build/src/main/bitwuzla" #:options (hash ':seed 0)))
+(current-solver (bitwuzla #:path "/bitwuzla/build/src/main/bitwuzla" #:options (hash ':seed 0)))
 
 
  (define-bounded (vec_elemwise_add x y)

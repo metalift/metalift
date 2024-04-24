@@ -6,7 +6,7 @@
 (declare-datatypes ((Tuple4 4)) ((par (T0 T1 T2 T3)    ((tuple4 (tuple4_get0 T0) (tuple4_get1 T1) (tuple4_get2 T2) (tuple4_get3 T3))))))
 (declare-datatypes ((Tuple5 5)) ((par (T0 T1 T2 T3 T4) ((tuple5 (tuple5_get0 T0) (tuple5_get1 T1) (tuple5_get2 T2) (tuple5_get3 T3) (tuple5_get4 T4))))))
 ; begin integer functions
-; TODO(jie): fix
+; TODO: fix
 (define-fun-rec integer_exp ((n Int)) Int
 (ite (<= n 0) 1 (mod (* (integer_exp (- n 1)) 3) 64)))
 

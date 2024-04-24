@@ -126,7 +126,7 @@ def _get_func_def_arg_names(func_def: FuncDef) -> pyList[str]:
     return [arg.variable.name for arg in func_def.arguments]
 
 
-# TODO(jie): add return type
+# TODO: add return type
 def mypy_parse(
     code: str, expected_num_funcs: int = 1
 ) -> pyTuple[pyList[FuncDef], Dict[str, pyList[ObjectT]], Dict[Node, MypyType]]:
@@ -163,7 +163,7 @@ def mypy_parse(
         func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
     ]
 
-    # TODO(jie): right now we are rejecting functions that don't have type information in the signature
+    # TODO: right now we are rejecting functions that don't have type information in the signature
     func_sign = {
         func_def.name: (
             _get_func_def_ir_type(func_def),
@@ -203,7 +203,7 @@ def mypy_node_to_ir(
     in_calls: pyList[pyTuple[str, str]],
 ) -> Expr:
     def parse_node(node: Node) -> Expr:
-        # TODO(jie): add support for non-lambda inline functions
+        # TODO: add support for non-lambda inline functions
         if isinstance(node, FuncDef) or isinstance(node, LambdaExpr):
             if isinstance(node, FuncDef):
                 func_ir_type, _ = func_sign[node.name]
@@ -252,7 +252,7 @@ def mypy_node_to_ir(
             return parse_node(node.expr)
         elif isinstance(node, CallExpr):
             if isinstance(node.callee, MemberExpr):
-                # TODO(jie): here we need to identify the list append calls, etc
+                # TODO: here we need to identify the list append calls, etc
                 raise Exception("Method calls not supported")
                 # mypy_node_to_ir(node.callee, func_sign, types)
             elif isinstance(node.callee, NameExpr):
@@ -320,7 +320,7 @@ def mypy_node_to_ir(
             # Nothing can go wrong with a name expression (which are basically variables)
             ir_type = mypy_type_to_ir_type(types[node])
             return create_object(ir_type, node.name).src
-        # TODO(jie): check not
+        # TODO: check not
         elif isinstance(node, OpExpr):
             left = parse_node(node.left)
             right = parse_node(node.right)

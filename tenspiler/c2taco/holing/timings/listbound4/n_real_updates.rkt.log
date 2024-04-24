@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/n_real_updates.rkt:26:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/n_real_updates.rkt:26:0
 (define (n_real_updates_inv0 A B C N agg.result curr i)
   (choose
    (&&
@@ -9,7 +9,7 @@
      (vec_elemwise_add
       (list-take-noerr C i)
       (vec_elemwise_mul (list-take-noerr B i) (list-take-noerr A i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/n_real_updates.rkt:27:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/n_real_updates.rkt:27:0
 (define (n_real_updates_ps N A B C n_real_updates_rv)
   (choose
    (equal?

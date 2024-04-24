@@ -119,7 +119,7 @@ class Expr:
     # TODO: move into per-type implementations
     def map_args(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         if isinstance(self, Var):
-            # TODO(jie)
+            # TODO
             return Var(typing.cast(str, f(self.args[0])), self.type)
         elif isinstance(self, Lit):
             return Lit(typing.cast(Union[bool, int, str], f(self.args[0])), self.type)
@@ -606,7 +606,7 @@ def toRosetteType(t: ObjectT) -> str:
         raise Exception("NYI: %s" % t)
 
 
-# TODO(jie): fix the type in the function signature
+# TODO: fix the type in the function signature
 def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     if is_new_object_type(t):
         return t  # type: ignore
@@ -616,8 +616,8 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     elif ty_str in {"i1", "i8", "i8*"}:
         return Bool
     elif ty_str in {"%struct.list*", "%struct.list**"}:
-        # TODO(colin): add generic type support
-        # TODO(jie): retire struct.list and use STL?
+        # TODO: add generic type support
+        # TODO: retire struct.list and use STL?
         return List[Int]
     elif re.match('%"class.std::__1::List(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::List"*, llvmlite will turn it into %"class.std::__1::List.0"*
@@ -1685,7 +1685,7 @@ class Tuple(Generic[TupleContainedT], Object):
             index_lit = index.src.val()  # type: ignore
             item_type = self.containedT[index_lit]
             if issubclass(item_type, Object):
-                # TODO(jie) create a function to wrap objects around expession
+                # TODO create a function to wrap objects around expession
                 return call("tupleGet", item_type, self, index)
             else:
                 raise Exception(
@@ -1719,7 +1719,7 @@ class Tuple(Generic[TupleContainedT], Object):
     def type(self) -> Type["Tuple"]:  # type: ignore
         return Tuple[typing.Tuple[self.containedT]]  # type: ignore
 
-    # TODO(jie): handle contained type
+    # TODO: handle contained type
     @staticmethod
     def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type_strs: pyList[str] = []
@@ -1917,7 +1917,7 @@ def IntLit(val: int) -> Expr:
 
 def EnumIntLit(val: int) -> Expr:
     return Lit(val, Int)
-    # TODO(colin): bring EnumBack
+    # TODO: bring EnumBack
     # return Lit(val, EnumInt())
 
 
@@ -2095,7 +2095,7 @@ class Eq(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        # TODO(jie): might need more handling for lists
+        # TODO: might need more handling for lists
         return f"{self.e1().to_python()} == {self.e2().to_python()}"
 
     # def accept(self, v: "Visitor[T]") -> T:
@@ -2234,7 +2234,7 @@ class And(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         if not all(map(lambda e: e.type == Bool, args)):
-            # TODO(jie) how to check this type?
+            # TODO how to check this type?
             raise Exception(f"Cannot apply AND to values of type {args}")
         Expr.__init__(self, Bool, args)
 
@@ -3167,7 +3167,7 @@ class Lambda(Expr):
         )
 
     def toSMT(self) -> str:
-        # TODO(shadaj): extract during filtering assuming no captures
+        # TODO: extract during filtering assuming no captures
         raise Exception("Lambda not supported")
 
     # def accept(self, v: "Visitor[T]") -> T:

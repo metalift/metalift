@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:39:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:39:0
 (define (matsub_inv0 agg.result i j m matA matB n ref.tmp row_vec)
   (choose
    (&&
@@ -13,7 +13,7 @@
       (if (OUTER_LOOP_INDEX_FIRST)
         (matrix-col-slice-noerr (matrix-take-noerr matB i) 0 n)
         (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:40:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:40:0
 (define (matsub_inv1 j m matA matB n ref.tmp row_vec agg.result i)
   (choose
    (&&
@@ -43,7 +43,7 @@
       (if (OUTER_LOOP_INDEX_FIRST)
         (matrix-col-slice-noerr (matrix-take-noerr matB i) 0 n)
         (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:41:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:41:0
 (define (matsub_ps matA matB m n matsub_rv)
   (choose
    (equal?
@@ -55,7 +55,7 @@
      (if (OUTER_LOOP_INDEX_FIRST)
        (matrix-col-slice-noerr (matrix-take-noerr matB m) 0 n)
        (matrix-col-slice-noerr (matrix-take-noerr matA n) 0 m))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:43:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/matsub.rkt:43:0
 (define (OUTER_LOOP_INDEX_FIRST) (choose true))
 
 real	4m8.448s
