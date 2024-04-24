@@ -39,7 +39,9 @@ actives = []
 
 for _file in img_files:
     img = cv2.imread(_file, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
+    img[img == 0] = 1
     rnd = (rng.random(img.shape, dtype=np.float32) * 255).astype(np.uint8)
+    rnd[rnd == 0] = 1
     bases.append(img)
     actives.append(rnd)
 

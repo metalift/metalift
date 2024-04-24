@@ -56,7 +56,6 @@ RUN raco pkg install --auto rosette
 WORKDIR /code/metalift
 ENV PYTHONPATH "${PYTHONPATH}:/code/metalift"
 
-# #TODO: move data into docker
-# COPY ./data_sampled /code/metalift/data_sampled
-# COPY ./vicuna_weight_sampled.h5 /code/metalift/vicuna_weight_sampled.h5
-# COPY ./vicuna_weight7b_sampled.h5 /code/metalift/vicuna_weight7b_sampled.h5
+# move cvc5 binary into docker
+COPY ./cvc5 /code/metalift/cvc5
+ENV PATH="${PATH}:/code/metalift/cvc5"
