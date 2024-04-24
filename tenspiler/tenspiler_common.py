@@ -270,6 +270,30 @@ def call_matrix_selection_two_args(
     return call(MATRIX_WHERE, Matrix[Int], left, right, select_fn)
 
 
+def call_matrix_selection(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right)
+
+
+def call_selection(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    return call(SELECTION_TWO_ARGS, mlList[Int], left, right)
+
+
+def call_dissolve_matrix_selection(
+    left: Matrix[Int], right: Matrix[Int], opacity: Int, rand_cons: Int
+) -> Matrix[Int]:
+    return call(
+        DISSOLVE_MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right, opacity, rand_cons
+    )
+
+
+def call_dissolve_selection(
+    left: mlList[Int], right: mlList[Int], opacity: Int, rand_cons: Int
+) -> mlList[Int]:
+    return call(
+        DISSOLVE_SELECTION_TWO_ARGS, mlList[Int], left, right, opacity, rand_cons
+    )
+
+
 def call_dissolve_matrix_selection_two_args(
     left: Matrix[Int],
     right: Matrix[Int],
