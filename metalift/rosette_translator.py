@@ -282,7 +282,8 @@ def to_rosette(
         + "(require rosette/solver/smt/bitwuzla)\n"
         # + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
         # + '(current-solver (bitwuzla #:path "/Users/sahilbhatia/Documents/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
-        + '(current-solver (bitwuzla #:path "/home/c/Desktop/research/ml/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
+        # + '(current-solver (bitwuzla #:path "/home/c/Desktop/research/ml/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
+        + '(current-solver (bitwuzla #:path "/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
         # + "\n",
         # + "(require rosette/solver/smt/z3)\n"
         # + "(current-solver (z3 #:options (hash ':random-seed 0)))\n"
