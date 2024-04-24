@@ -15,8 +15,8 @@ void main(tensor a, tensor b, int32_t n, int32_t dot_ps_rv) {
     for(int i = index_space_start[0]; i < index_space_end[0]; i++) {
         // index space mapping
         inputCoord[0] = outputCoord[0] = (i * vec_len);
-        int64 v0 = v_i32_ld_tnsr_b(inputCoord, a);
-        int64 v1 = v_i32_ld_tnsr_b(inputCoord, b);
+        int64 v0 = v_i32_ld_tnsr_b(inputCoord, b);
+        int64 v1 = v_i32_ld_tnsr_b(inputCoord, a);
         int128 v2 = v_i32_mul_b(v0, v1);
         int64 v3 = v2.v1;
         sum = v_i32_add_b(v_i32_reduce_add(v3), sum);

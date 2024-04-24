@@ -18,11 +18,6 @@ class DotPsGaudi2
                 char kernelName [gcapi::MAX_NODE_NAME]);
 
 
-        struct DotPsParam {
-            int32_t n
-            int32_t dot_ps_rv;
-        };
-
     private:
         DotPsGaudi2(const DotPsGaudi2& other) = delete;
         DotPsGaudi2& operator=(const DotPsGaudi2& other) = delete;
