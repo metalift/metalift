@@ -244,7 +244,7 @@ void setup_timer(bool needWeights, bool needAttnWeights, bool needProjWeights) {
 
 void setup_timer_7b(bool needWeights, bool needAttnWeights, bool needProjWeights) {
     srand(1);
-    H5::H5File file("./tenspiler/data/vicuna_weight7b.h5", H5F_ACC_RDONLY);
+    H5::H5File file("./vicuna_weight7b.h5", H5F_ACC_RDONLY);
 
     H5::Group root = file.openGroup("/");
 

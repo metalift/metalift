@@ -38,7 +38,7 @@ with h5py.File(original_weights_path, "r") as original_file, h5py.File(
 ) as new_file:
     sample(original_file, new_file, 0.005)
 
-original_weights_path = "./tenspiler/data/vicuna_weight7b.h5"
+original_weights_path = "./vicuna_weight7b.h5"
 sampled_weights_path = "./vicuna_weight7b_sampled.h5"
 
 with h5py.File(original_weights_path, "r") as original_file, h5py.File(
