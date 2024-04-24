@@ -17,10 +17,11 @@ from tenspiler.tenspiler_common import (
     vec_scalar_sub,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_scalar_sub_axiom
 
 
 def softmax_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_scalar_sub, vec_map, map_int_to_int]
+    return [vec_scalar_sub, vec_map, map_int_to_int, vec_scalar_sub_axiom]
 
 
 def softmax_part2_ps_grammar(

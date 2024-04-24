@@ -9,10 +9,11 @@ from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_reduce_sum, reduce_sum
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import reduce_sum_axiom
 
 
 def softmax_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [reduce_sum]
+    return [reduce_sum, reduce_sum_axiom]
 
 
 def softmax_part3_ps_grammar(

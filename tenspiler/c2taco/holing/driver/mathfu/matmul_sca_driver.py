@@ -13,6 +13,7 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_scalar_mul_axiom, matrix_scalar_mul_axiom
 
 # Some loop functions
 outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
@@ -28,6 +29,8 @@ def matmul_sca_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_scalar_mul,
         matrix_scalar_mul,
         outer_loop_index_first_fn_decl,
+        vec_scalar_mul_axiom,
+        matrix_scalar_mul_axiom,
     ]
 
 

@@ -24,6 +24,11 @@ from tenspiler.tenspiler_common import (
     vec_scalar_add,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    vec_elemwise_mul_axiom,
+    vec_scalar_add_axiom,
+    scalar_vec_div_axiom,
+)
 
 
 def transformer_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -34,6 +39,9 @@ def transformer_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_elemwise_mul,
         vec_map,
         map_int_to_int,
+        vec_elemwise_mul_axiom,
+        vec_scalar_add_axiom,
+        scalar_vec_div_axiom,
     ]
 
 

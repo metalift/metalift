@@ -10,10 +10,11 @@ from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_scalar_vec_div, scalar_vec_div
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import scalar_vec_div_axiom
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [scalar_vec_div]
+    return [scalar_vec_div, scalar_vec_div_axiom]
 
 
 def ps_grammar(

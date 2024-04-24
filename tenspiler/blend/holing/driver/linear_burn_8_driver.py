@@ -8,6 +8,10 @@ from tenspiler.tenspiler_common import (
     linear_burn_8_hole_body,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    matrix_scalar_sub_axiom,
+    matrix_elemwise_add_axiom,
+)
 
 if __name__ == "__main__":
     driver = Driver()
@@ -18,11 +22,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_matrix_computation_holing_search_space(linear_burn_8_hole_body)
+
+    def target_lang_axiom():
+        return target_lang() + [matrix_scalar_sub_axiom, matrix_elemwise_add_axiom]
+
     linear_burn_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/linear_burn_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/linear_burn_8.loops",
         fn_name="linear_burn_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "linear_burn_8_inv0": inv0_grammar,
             "linear_burn_8_inv1": inv1_grammar,

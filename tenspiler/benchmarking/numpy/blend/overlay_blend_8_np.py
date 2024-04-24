@@ -26,7 +26,7 @@ import cv2
 ####### setup for benchmarking ########
 rng = np.random.default_rng(1)
 
-folder = "./tenspiler/data/data_sampled"
+folder = "./data/"
 
 img_files = [
     os.path.join(folder, f)

@@ -13,6 +13,7 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_add,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom, matrix_elemwise_add_axiom
 
 # Some loop functions
 outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
@@ -28,6 +29,8 @@ def matadd_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_elemwise_add,
         matrix_elemwise_add,
         outer_loop_index_first_fn_decl,
+        vec_elemwise_add_axiom,
+        matrix_elemwise_add_axiom,
     ]
 
 

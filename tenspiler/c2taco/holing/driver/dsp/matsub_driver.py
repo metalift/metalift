@@ -13,6 +13,7 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_sub,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_sub_axiom, matrix_elemwise_sub_axiom
 
 # Some loop functions
 outer_loop_index_first_fn_name = "OUTER_LOOP_INDEX_FIRST"
@@ -28,6 +29,8 @@ def matsub_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_elemwise_sub,
         matrix_elemwise_sub,
         outer_loop_index_first_fn_decl,
+        vec_elemwise_sub_axiom,
+        matrix_elemwise_sub_axiom,
     ]
 
 
