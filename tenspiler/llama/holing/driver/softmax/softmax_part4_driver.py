@@ -9,10 +9,11 @@ from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_vec_scalar_div, vec_scalar_div
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_scalar_div_axiom
 
 
 def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_scalar_div]
+    return [vec_scalar_div, vec_scalar_div_axiom]
 
 
 def softmax_part4_ps_grammar(

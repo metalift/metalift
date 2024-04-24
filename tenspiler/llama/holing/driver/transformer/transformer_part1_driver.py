@@ -1,11 +1,13 @@
 import argparse
 from typing import List, Union
+import time
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, call, choose, fn_decl, ite, synth
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.llama.holing.driver.transformer.utils import (
     call_matrix_composed_index_fn,
     call_vec_composed_index_fn,
@@ -30,6 +32,7 @@ from tenspiler.tenspiler_common import (
     vec_scalar_div,
     vec_scalar_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 token_position_var = Int("token_position")
 head_var = Int("head")
@@ -220,12 +223,6 @@ def transformer_part1_inv1_grammar(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--list-bound", type=int, required=False, default=3)
-    parser.add_argument("--rounds-to-guess", type=int, required=False, default=2)
-    parser.add_argument("--relaxed", action="store_true")
-    parser_args = parser.parse_args()
-
     # Synthesize part 1
     transformer_part1 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part1.ll",
@@ -264,6 +261,7 @@ if __name__ == "__main__":
 
     driver.fns_synths = fns_synths
 
+    start_time = time.time()
     transformer_part1(
         token_position_var,
         head_var,
@@ -271,14 +269,11 @@ if __name__ == "__main__":
         key_cache_layer_var,
         q_var,
     )
-
-    rounds_to_guess_suffix = f"_rounds{parser_args.rounds_to_guess}"
-    list_bound_suffix = f"_listbound{parser_args.list_bound}"
-    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
-
-    driver.synthesize(
-        filename=f"transformer_part1{rounds_to_guess_suffix}{list_bound_suffix}{relaxed_suffix}",
-        list_bound=parser_args.list_bound,
-        rounds_to_guess=parser_args.rounds_to_guess,
-        no_verify=True,
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.INT32,
+        benchmark_name="transformer_part1",
+        has_relaxed=False,
     )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")
