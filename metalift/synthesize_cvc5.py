@@ -236,7 +236,7 @@ def synthesize(
     preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
-    cvcPath: str = "cvc5",
+    cvcPath: str = "/Users/jieq/Desktop/metalift/cvc5",
     uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored
