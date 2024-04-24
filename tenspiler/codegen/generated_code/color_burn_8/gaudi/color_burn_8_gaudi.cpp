@@ -29,3 +29,4 @@ gcapi::GlueCodeReturn_t ColorBurn8PsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
+

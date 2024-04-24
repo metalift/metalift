@@ -63,4 +63,5 @@ COPY ./vicuna_weight7b_sampled.h5 /code/metalift/vicuna_weight7b_sampled.h5
 
 # move cvc5 binary into docker
 COPY ./cvc5 /code/metalift/cvc5
+RUN chmod +x /code/metalift/cvc5
 ENV PATH="${PATH}:/code/metalift/cvc5"

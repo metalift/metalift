@@ -20,17 +20,13 @@ gcapi::GlueCodeReturn_t DotPsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        1,
+        3,
         1,
         gcapi::DATA_I32
         &_binary___dot_ps_gaudi2_o_start,
         &_binary___dot_ps_gaudi2_o_end,
     );
 
-    // Define scalar params
-    DotPsParam* paramDef = static_cast<DotPsParam*>(in_defs->NodeParams);
-    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
-    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
-
     return retVal;
 }
+
