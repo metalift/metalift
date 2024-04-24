@@ -29,9 +29,9 @@ ECOOP submission number for the paper: 220
     ```
     poetry run python tenspiler/generated_code/numpy/generate_numpy_benchmarks.py dot
     ```
-    The generated NumPy code can be found at `./tenspiler/generated_code/numpy/blas/dot_np.py`.
+    The generated NumPy code can be found at `tenspiler/generated_code/numpy/blas/dot_np.py`.
 
-4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `./tenspiler/data_sampled/`. We compare against running C++ code compiled with `-O3` flag.
+4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `tenspiler/data_sampled/`. We compare against running C++ code compiled with `-O3` flag.
     ```
     poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
     ```
@@ -68,7 +68,7 @@ As stated in our paper section 6.1.2, Tenspiler can target 6 different backends 
 ```
 poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
-which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take around 30 minutes for each backend.
+which writes the translated code to `tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take around 30 minutes for each backend.
 
 To test a single benchmark, run
 ```
