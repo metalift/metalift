@@ -638,7 +638,7 @@ def synthesize(
                 candidate_dict[ce_name] = (
                     synth_fun.args[1]
                     .chooseArbitrarily()
-                    .mapArgs(lambda expr: convert_expr(expr))
+                    .map_args(lambda expr: convert_expr(expr))
                 )
 
             candidates_smt.append(
