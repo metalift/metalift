@@ -3,17 +3,18 @@ from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Axiom, implies
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_vec_elemwise_add, vec_elemwise_add
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_add]
+    return [vec_elemwise_add, vec_elemwise_add_axiom]
 
 
 def ps_grammar(
