@@ -499,7 +499,7 @@ def synthesize(
     preds: typing.List[Expr],
     vc: Expr,
     loop_and_ps_info: typing.Sequence[Union[CodeInfo, Expr]],
-    cvc_path: str = "./cvc5",
+    cvc_path: str,
     uid: int = 1,
     no_verify: bool = False,
     unbounded_ints: bool = False,

@@ -1,6 +1,5 @@
-import argparse
-from typing import List, Union
 import time
+from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
@@ -35,17 +34,17 @@ from tenspiler.tenspiler_common import (
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 token_position_var = Int("token_position")
-head_var = Int("head")
+head1_var = Int("head1")
 head_size_var = Int("head_size")
 sqrt_arg_fn_name = "SQRT_ARG_FN"
 sqrt_arg_fn_decl = fn_decl(
-    sqrt_arg_fn_name, Int, None, token_position_var, head_var, head_size_var
+    sqrt_arg_fn_name, Int, None, token_position_var, head1_var, head_size_var
 )
 sqrt_arg_synth = synth(
     sqrt_arg_fn_name,
-    choose(Int(0), Int(1)) * choose(token_position_var, head_var, head_size_var),
+    choose(Int(0), Int(1)) * choose(token_position_var, head1_var, head_size_var),
     token_position_var,
-    head_var,
+    head1_var,
     head_size_var,
 )
 
@@ -239,32 +238,32 @@ if __name__ == "__main__":
     )
 
     token_position_var = Int("token_position")
-    head_var = Int("head")
+    head1_var = Int("head1")
     head_size_var = Int("head_size")
     key_cache_layer_var = Matrix(Int, "key_cache_layer")
     q_var = mlList(Int, "q")
     driver.add_var_objects(
-        [token_position_var, head_var, head_size_var, key_cache_layer_var, q_var]
+        [token_position_var, head1_var, head_size_var, key_cache_layer_var, q_var]
     )
     driver.add_precondition(token_position_var > 0)
     driver.add_precondition(key_cache_layer_var.len() > token_position_var)
-    driver.add_precondition(head_var >= 0)
-    driver.add_precondition(head_var <= q_var.len())
-    driver.add_precondition(head_var <= key_cache_layer_var.len())
+    driver.add_precondition(head1_var >= 0)
+    driver.add_precondition(head1_var <= q_var.len())
+    driver.add_precondition(head1_var <= key_cache_layer_var.len())
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= q_var.len())
     driver.add_precondition(head_size_var <= key_cache_layer_var.len())
     driver.add_precondition(
-        (head_var * head_size_var + head_size_var) < key_cache_layer_var[0].len()
+        (head1_var * head_size_var + head_size_var) < key_cache_layer_var[0].len()
     )
-    driver.add_precondition((head_var * head_size_var + head_size_var) < q_var.len())
+    driver.add_precondition((head1_var * head_size_var + head_size_var) < q_var.len())
 
     driver.fns_synths = fns_synths
 
     start_time = time.time()
     transformer_part1(
         token_position_var,
-        head_var,
+        head1_var,
         head_size_var,
         key_cache_layer_var,
         q_var,

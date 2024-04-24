@@ -1,4 +1,3 @@
-import argparse
 import time
 from typing import List, Union
 
@@ -165,14 +164,14 @@ if __name__ == "__main__":
         ps_grammar=transformer_part2_ps_grammar,
     )
     token_position_var = Int("token_position")
-    head_var = Int("head")
+    head1_var = Int("head1")
     head_size_var = Int("head_size")
     key_cache_layer_var = Matrix(Int, "key_cache_layer")
     attention_var = mlList(Int, "attention")
     driver.add_var_objects(
         [
             token_position_var,
-            head_var,
+            head1_var,
             head_size_var,
             key_cache_layer_var,
             attention_var,
@@ -185,12 +184,12 @@ if __name__ == "__main__":
     driver.add_precondition(attention_var.len() > 0)
     driver.add_precondition(key_cache_layer_var.len() > token_position_var)
     driver.add_precondition(
-        key_cache_layer_var[0].len() > head_var * head_size_var + head_size_var
+        key_cache_layer_var[0].len() > head1_var * head_size_var + head_size_var
     )
     driver.add_precondition(attention_var.len() > token_position_var)
 
-    driver.add_precondition(head_var >= 0)
-    driver.add_precondition(head_var <= attention_var.len())
+    driver.add_precondition(head1_var >= 0)
+    driver.add_precondition(head1_var <= attention_var.len())
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= attention_var.len())
 
@@ -198,7 +197,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
     transformer_part2(
-        token_position_var, head_var, head_size_var, key_cache_layer_var, attention_var
+        token_position_var, head1_var, head_size_var, key_cache_layer_var, attention_var
     )
     run_synthesis_algorithm(
         driver=driver,
