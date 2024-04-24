@@ -272,9 +272,6 @@ def verify_synth_result(
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
-        import pdb
-
-        pdb.set_trace()
 
         if procVerify.returncode < 0:
             resultVerify = "SAT/UNKNOWN"
