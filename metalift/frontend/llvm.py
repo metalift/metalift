@@ -1621,6 +1621,7 @@ class Driver:
             preds=[],
             vc=vc,
             loop_and_ps_info=synths,
+            cvc_path="/code/metalift/cvc5",
             # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
             fns_to_guess=synths,
             # TODO(jie): change this to false
