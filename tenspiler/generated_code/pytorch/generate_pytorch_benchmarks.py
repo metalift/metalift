@@ -81,7 +81,7 @@ def generate_benchmark(benchmark_name):
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # cpu = 'cpu'
 
-    # folder = "./tenspiler/data/data_sampled"
+    # folder = "./data/"
 
     # img_files = [os.path.join(folder, f) for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
 

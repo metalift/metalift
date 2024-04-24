@@ -24,7 +24,7 @@ import numpy as np
 ####### setup for benchmarking ########
 rng = np.random.default_rng(1)
 
-weights_path = "./tenspiler/data/vicuna_weight7b.h5"
+weights_path = "./vicuna_weight7b.h5"
 
 weights = []
 w_input = []
