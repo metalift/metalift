@@ -625,9 +625,6 @@ def synthesize(
             ce_name = synth_fun.args[0]
 
             if ce_name not in candidate_dict:
-                import pdb
-
-                pdb.set_trace()
                 # Rosette will not return a function if no choice needs to be made
                 candidate_dict[ce_name] = (
                     synth_fun.args[1]
