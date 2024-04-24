@@ -266,7 +266,7 @@ def verify_synth_result(
                 cvcPath,
                 "--lang=smt",
                 "--produce-models",
-                "--tlimit=100000",
+                "--tlimit=30000",
                 verifFile,
             ],
             stdout=subprocess.PIPE,

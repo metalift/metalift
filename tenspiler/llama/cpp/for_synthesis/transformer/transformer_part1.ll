@@ -45,11 +45,11 @@ entry:
 }
 
 ; Function Attrs: noinline optnone ssp uwtable
-define void @_Z17transformer_part1iiiNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES3_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, i32 %token_position, i32 %head, i32 %head_size, %"class.std::__1::vector.1"* %key_cache_layer, %"class.std::__1::vector"* %q) #1 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+define void @_Z17transformer_part1iiiNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES3_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, i32 %token_position, i32 %head1, i32 %head_size, %"class.std::__1::vector.1"* %key_cache_layer, %"class.std::__1::vector"* %q) #1 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
 entry:
   %result.ptr = alloca i8*, align 8
   %token_position.addr = alloca i32, align 4
-  %head.addr = alloca i32, align 4
+  %head1.addr = alloca i32, align 4
   %head_size.addr = alloca i32, align 4
   %nrvo = alloca i1, align 1
   %timestep = alloca i32, align 4
@@ -60,7 +60,7 @@ entry:
   %i1 = bitcast %"class.std::__1::vector"* %agg.result to i8*
   store i8* %i1, i8** %result.ptr, align 8
   store i32 %token_position, i32* %token_position.addr, align 4
-  store i32 %head, i32* %head.addr, align 4
+  store i32 %head1, i32* %head1.addr, align 4
   store i32 %head_size, i32* %head_size.addr, align 4
   store i1 false, i1* %nrvo, align 1
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector"* %agg.result) #11
@@ -85,7 +85,7 @@ for.cond1:                                        ; preds = %for.inc, %for.body
   br i1 %cmp2, label %for.body3, label %for.end
 
 for.body3:                                        ; preds = %for.cond1
-  %i6 = load i32, i32* %head.addr, align 4
+  %i6 = load i32, i32* %head1.addr, align 4
   %i7 = load i32, i32* %head_size.addr, align 4
   %mul = mul nsw i32 %i6, %i7
   %i8 = load i32, i32* %i, align 4
@@ -96,7 +96,7 @@ for.body3:                                        ; preds = %for.cond1
   %i10 = load i32, i32* %timestep, align 4
   %conv4 = sext i32 %i10 to i64
   %call5 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector.1"* %key_cache_layer, i64 %conv4) #11
-  %i11 = load i32, i32* %head.addr, align 4
+  %i11 = load i32, i32* %head1.addr, align 4
   %i12 = load i32, i32* %head_size.addr, align 4
   %mul6 = mul nsw i32 %i11, %i12
   %i13 = load i32, i32* %i, align 4

@@ -36,11 +36,11 @@ target triple = "x86_64-apple-macosx12.0.0"
 @_ZTVSt12length_error = external unnamed_addr constant { [5 x i8*] }, align 8
 
 ; Function Attrs: noinline optnone ssp uwtable
-define void @_Z17transformer_part2iiiNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES3_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, i32 %token_position, i32 %head, i32 %head_size, %"class.std::__1::vector.1"* %key_cache_layer, %"class.std::__1::vector"* %attention) #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+define void @_Z17transformer_part2iiiNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEES3_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, i32 %token_position, i32 %head1, i32 %head_size, %"class.std::__1::vector.1"* %key_cache_layer, %"class.std::__1::vector"* %attention) #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
 entry:
   %result.ptr = alloca i8*, align 8
   %token_position.addr = alloca i32, align 4
-  %head.addr = alloca i32, align 4
+  %head1.addr = alloca i32, align 4
   %head_size.addr = alloca i32, align 4
   %nrvo = alloca i1, align 1
   %i = alloca i32, align 4
@@ -51,7 +51,7 @@ entry:
   %i1 = bitcast %"class.std::__1::vector"* %agg.result to i8*
   store i8* %i1, i8** %result.ptr, align 8
   store i32 %token_position, i32* %token_position.addr, align 4
-  store i32 %head, i32* %head.addr, align 4
+  store i32 %head1, i32* %head1.addr, align 4
   store i32 %head_size, i32* %head_size.addr, align 4
   store i1 false, i1* %nrvo, align 1
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector"* %agg.result) #11
@@ -83,7 +83,7 @@ for.body3:                                        ; preds = %for.cond1
   %i8 = load i32, i32* %timestep, align 4
   %conv4 = sext i32 %i8 to i64
   %call5 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector.1"* %key_cache_layer, i64 %conv4) #11
-  %i9 = load i32, i32* %head.addr, align 4
+  %i9 = load i32, i32* %head1.addr, align 4
   %i10 = load i32, i32* %head_size.addr, align 4
   %mul = mul nsw i32 %i9, %i10
   %i11 = load i32, i32* %i, align 4
