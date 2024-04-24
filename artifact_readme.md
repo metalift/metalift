@@ -2,28 +2,18 @@ Title of the submitted paper: Tenspiler: A Verified Lifting-Based Compiler for T
 
 ECOOP submission number for the paper: 220
 
-# Metadata
-**No need to provide them again in the submission**
-[comment]TODO: fill this
-- Docker building time: ~20 minutes.
-- Docker image size: ~15GB.
-- Memory used at peak: ~3GB
-- Which badges do you claim for your artifact? Functional? Reusable? Available?
-    - We claim all three badges.
-
-
 # Quick-start guide
 1. Build the provided Docker container with
     ```
     docker build -t tenspiler .
     ```
-2. Run the container and spawn a shell (TODO)
+2. Run the container and spawn a shell
     ```
-    docker run -v $(pwd):/code/metalift -it tenspiler /bin/bash
+    docker run --rm -v $(pwd):/code/metalift -it tenspiler /bin/bash
     ```
     **Note**: For any `python` command in the Docker environment, please prefix with `poetry run` (as included in all provided commands).
 
-3. There are three phases in Tenspiler: synthesis, verification, and code generation. To make everything works, we can perform a quick test by generating **NumPy** code for the **dot** benchmark. The source code of this benchmark can be found [here](./tenspiler/c2taco/cpp/for_synthesis/blas/dot.cc), and the expected executable numpy code is as follows:
+3. There are three phases in Tenspiler: synthesis, verification, and code generation. To make everything works, we can perform a quick test by generating **NumPy** code for the **dot** benchmark. The source code of this benchmark can be found at `tenspiler/c2taco/cpp/for_synthesis/blas/dot.cc`, and the expected executable numpy code is as follows:
     ```python
     import numpy as np
 
@@ -41,7 +31,7 @@ ECOOP submission number for the paper: 220
     ```
     The generated NumPy code can be found at `./tenspiler/generated_code/numpy/blas/dot_np.py`.
 
-4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located [here](./tenspiler/data_sampled/). (TODO fix path) We compare against running C++ code compiled with `-O3` flag.
+4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `./tenspiler/data_sampled/`. We compare against running C++ code compiled with `-O3` flag.
     ```
     poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
     ```
@@ -75,15 +65,14 @@ We agree to publish the artifacts.
 
 ## Generating Code per Backend
 As stated in our paper section 6.1.2, Tenspiler can target 6 different backends for 69 benchmarks. To translate all 69 benchmarks to executable code for each backend, run
-TODO: fix
 ```
-poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
+poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
-which writes the translated code to `tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take a while (TODO: put time).
+which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take around 30 minutes for each backend.
 
-To test a single benchmark, run (TODO )
+To test a single benchmark, run
 ```
-poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py <benchmark-name>
+poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py <benchmark-name>
 ```
 
 ## Backend Descriptions
@@ -124,7 +113,10 @@ array_inc (no gemmini support), array_sum, cube_in_place (no gemmini support), f
 ## Performance Evaluation
 In figures 9 and 10 in the paper, we show the performance of translated code compared to C++ baseline. In this artifact, we include scripts to replicate the results.
 
-In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets.
+In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be downloaded at `https://drive.google.com/drive/folders/1sH1HwGeovQ2AA81WmL6H7fQFk0GvwhTj?usp=sharing` TODO(colin), and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`.
+
+If you decide to use the full datasets, rename the downloaded images folder to `data`, and the vicuna 33B and 7B weights as `vicuna_weight.h5` and `vicuna_weight7b.h5`, respectively. Everything should be placed in the `metalift` directory.
+
 
 **Notes**:
 - For this artifact, we have included evaluations only for **NumPy**, **TensorFlow**, and **PyTorch** backends (on CPUs). In the paper, we evaluated TensorFlow and PyTorch using GPU, which aren't supported by Docker for linux distributions.
