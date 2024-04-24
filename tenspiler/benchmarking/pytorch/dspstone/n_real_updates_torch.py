@@ -28,7 +28,7 @@ if not torch.cuda.is_available():
 device = "cuda" if torch.cuda.is_available() else "cpu"
 cpu = "cpu"
 
-folder = "./tenspiler/data/data_sampled"
+folder = "./data/"
 
 img_files = [
     os.path.join(folder, f)

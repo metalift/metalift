@@ -23,3 +23,6 @@ nixos.qcow2
 tenspiler/data/
 *.o
 *_O3
+vicuna_weight_sampled.h5
+data_sampled/
+vicuna_weight7b_sampled.h5
