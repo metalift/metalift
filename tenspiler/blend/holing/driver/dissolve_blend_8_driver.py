@@ -5,6 +5,7 @@ from metalift.ir import Int, Matrix
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import get_dissolve_holing_search_space
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import dissolve_matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()
@@ -15,11 +16,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_dissolve_holing_search_space(driver)
+
+    def target_lang_axiom():
+        return target_lang() + [dissolve_matrix_selection_two_args_axiom]
+
     dissolve_blend_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.loops",
         fn_name="dissolve_blend_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "dissolve_blend_8_inv0": inv0_grammar,
             "dissolve_blend_8_inv1": inv1_grammar,
