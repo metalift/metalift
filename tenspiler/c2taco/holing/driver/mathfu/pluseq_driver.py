@@ -10,10 +10,11 @@ from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_vec_elemwise_add, vec_elemwise_add
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_add]
+    return [vec_elemwise_add, vec_elemwise_add_axiom]
 
 
 def ps_grammar(
