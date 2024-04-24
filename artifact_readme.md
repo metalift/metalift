@@ -31,7 +31,17 @@ ECOOP submission number for the paper: 220
     ```
     The generated NumPy code can be found at `tenspiler/generated_code/numpy/blas/dot_np.py`.
 
+<<<<<<< HEAD
 4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `tenspiler/data_sampled/`. We compare against running C++ code compiled with `-O3` flag.
+=======
+4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `/code/metalift/data_sampled/`. We compare against running C++ code compiled with `-O3` flag. The first step is to rename the dataset so the exection script can find it.
+    ```
+    cp -rfT ./data_sampled/ ./data/
+    cp -f ./vicuna_weight_sampled.h5 ./vicuna_weight.h5
+    cp -f ./vicuna_weight7b_sampled.h5 ./vicuna_weight7b.h5
+    ```
+5. Then we can perform the timing with
+>>>>>>> eb443c2 (final readme)
     ```
     poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
     ```
@@ -52,7 +62,7 @@ Below, we describe each component of our artifact:
 - Evaluation scripts:
     - `/code/metalift/tenspiler/generated_code/`: The scripts that run all three phases of Tenspiler for each benchmark, as described above.
     - `/code/metalift/tenspiler/benchmarking/`: The scripts to obtain speedup of each benchmark on the backends.
-    - `/code/metalift/data`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
+    - `/code/metalift/(data_sampled/|vicuna_weight_sampled.h5|vicuna_weight7b_sampled.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
 
 # Available badge
 
@@ -68,7 +78,11 @@ As stated in our paper section 6.1.2, Tenspiler can target 6 different backends 
 ```
 poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
+<<<<<<< HEAD
 which writes the translated code to `tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take around 30 minutes for each backend.
+=======
+which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`.
+>>>>>>> eb443c2 (final readme)
 
 To test a single benchmark, run
 ```
