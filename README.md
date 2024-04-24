@@ -10,7 +10,7 @@ Gaudi processor), and Gemmini (an open-source neural network accelerator generat
 
 #### Get the Metalift source code
 First, clone the Tenspiler repository:
-<!-- TODO(jie): fix the naming -->
+<!-- TODO: fix the naming -->
 ```bash
 git clone https://github.com/tenspiler/tenspiler.git
 cd tenspiler

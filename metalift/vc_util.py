@@ -39,7 +39,7 @@ def and_exprs(*exprs: Expr) -> Expr:
     return result
 
 
-# TODO(jie): should this belong to the same function as and_exprs or different?
+# TODO: should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
     if len(exprs) == 0:
         raise Exception("Must provide at least one expression!")

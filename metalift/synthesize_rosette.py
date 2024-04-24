@@ -109,7 +109,7 @@ def to_expr(
         if ast[0] == "define":
             return to_expr(ast[2], fnsType, varType, choices)
         elif ast[0] == "choose":
-            # TODO(shadaj): now that we have chooseArbitrarily we could parse things properly
+            # TODO: now that we have chooseArbitrarily we could parse things properly
             return to_expr(ast[1], fnsType, varType, choices)
         elif ast[0] in expr_bi.keys():
             return expr_bi[ast[0]](
@@ -697,7 +697,7 @@ def synthesize(
         if not no_verify and log:
             print("Verification Output:", result_verify)
 
-        # TODO(jie): change this back
+        # TODO: change this back
         if result_verify == "unsat":
             if log:
                 if not no_verify:

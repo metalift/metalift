@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:49:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:49:0
 (define (mat1x3_inv0 N agg.result f h i sum x)
   (choose
    (&&
@@ -13,7 +13,7 @@
       (if (VECTOR_OUTER_LOOP_INDEX)
         (list-take-noerr x i)
         (list-take-noerr x N)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:50:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:50:0
 (define (mat1x3_inv1 N f h sum x agg.result i)
   (choose
    (&&
@@ -48,7 +48,7 @@
       (if (VECTOR_OUTER_LOOP_INDEX)
         (list-take-noerr x i)
         (list-take-noerr x N)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:51:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:51:0
 (define (mat1x3_ps N h x mat1x3_rv)
   (choose
    (equal?
@@ -56,9 +56,9 @@
     (matrix_vec_mul
      (matrix-col-slice-noerr (matrix-take-noerr h N) 0 N)
      (list-take-noerr x N)))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:53:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:53:0
 (define (MATRIX_OUTER_LOOP_INDEX_FIRST) (choose true))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:54:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/mat1x3.rkt:54:0
 (define (VECTOR_OUTER_LOOP_INDEX) (choose false))
 
 real	2m14.706s

@@ -1,5 +1,5 @@
 #t
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/fir_small.rkt:26:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/fir_small.rkt:26:0
 (define (fir_small_inv0 NTAPS coefficient i input sum)
   (choose
    (&&
@@ -10,7 +10,7 @@
       (vec_elemwise_mul
        (list-take-noerr coefficient i)
        (list-take-noerr input i)))))))
-/Users/sahilbhatia/Documents/metalift_ecoop/metalift/synthesisLogs/fir_small.rkt:27:0
+./Documents/metalift_ecoop/metalift/synthesisLogs/fir_small.rkt:27:0
 (define (fir_small_ps NTAPS input coefficient fir_small_rv)
   (choose
    (equal?

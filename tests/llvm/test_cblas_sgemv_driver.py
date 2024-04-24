@@ -88,7 +88,7 @@ def inv0_grammar(
     return result
 
 
-# TODO(jie): only keep i and agg.result from in_scope
+# TODO: only keep i and agg.result from in_scope
 def inv1_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Object:

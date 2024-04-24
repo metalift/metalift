@@ -102,7 +102,7 @@ def parse_candidates(
                 if not isinstance(ar, str):
                     # TODO: fix when decided if function will be IR Objects
                     if is_fn_decl_type(ar.type) and ar.args[0] in fns_type.keys():
-                        # TODO(shadaj): this logic doesn't correctly handle
+                        # TODO: this logic doesn't correctly handle
                         # multiple function parameters
                         in_calls.append((candidate.args[0], ar.args[0]))
                         new_args.append(ar)
@@ -162,7 +162,7 @@ def verify_synth_result(
             [],
             [],
             True,
-            list_bound=4,  # TODO(shadaj): bench to find what this value should be
+            list_bound=4,  # TODO: bench to find what this value should be
             verify_mode=True,
         )
     else:
@@ -201,7 +201,7 @@ def verify_synth_result(
                         langFn.args[0], langFn.returnT(), updated, *langFn.args[2:]
                     )
                 elif isinstance(langFn, Axiom):
-                    # TODO(shadaj): check
+                    # TODO: check
                     decl = Axiom(
                         langFn.args[0], typing.cast(Expr, updated), *langFn.args[2:]
                     )

@@ -838,7 +838,7 @@ class Driver:
         return self.var_tracker.variable(name, type)
 
     def add_var_object(self, var_object: Object) -> None:
-        # TODO(jie): extract this check to a more generic function
+        # TODO: extract this check to a more generic function
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
         self.var_tracker.variable(var_object.var_name(), var_object.src.type)

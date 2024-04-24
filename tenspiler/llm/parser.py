@@ -121,33 +121,7 @@ def _get_func_def_arg_names(func_def: FuncDef) -> pyList[str]:
     return [arg.variable.name for arg in func_def.arguments]
 
 
-@lru_cache(maxsize=None)
-def get_dsl_func_defs() -> List[FuncDef]:
-    """
-    Get the function definitions of the python dsl module.
-    This is cached because the dsl file never changes.
-    """
-    options = Options()
-    options.incremental = False  # turn off caching of previously typed results
-    options.show_traceback = True
-    options.python_version = PYTHON3_VERSION
-    options.preserve_asts = True
-    options.export_types = True
-    mypy_build = build.build(
-        sources=[BuildSource(path=None, module="tenspiler.llm.python_dsl")],
-        options=options,
-    )
-    python_dsl_tree: MypyFile = cast(
-        MypyFile, mypy_build.graph["tenspiler.llm.python_dsl"].tree
-    )  # tree of the entire module / file
-
-    # Get function signatures of the python dsl module
-    dsl_func_defs = [
-        func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
-    ]
-    return dsl_func_defs
-
-
+# TODO: add return type
 def mypy_parse(
     code: str, expected_num_funcs: int = 1
 ) -> pyTuple[pyList[FuncDef], Dict[str, pyList[ObjectT]], Dict[Node, MypyType]]:
@@ -176,26 +150,15 @@ def mypy_parse(
             f"Only rewrite the given {expected_num_funcs} functions and don't include any additional functions"
         )
 
-    # TODO(jie): right now we are rejecting functions that don't have type information in the signature
-    func_sign: dict[str, tuple[Type | None, ObjectT | None, list[str]]] = {}
-    for func_def in [*target_func_defs, *get_dsl_func_defs()]:
-        func_ir_type = mypy_type_to_ir_type(func_def.type)
-        if func_ir_type is None:
-            raise Exception(f"Function {func_def.name} has no type information")
+    # Get function signatures of the python dsl module
+    dsl_func_defs = [
+        func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
+    ]
 
-        arg_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
-        ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
-        if any(arg_ir_types) is None:
-            raise Exception(
-                f"Function {func_def.name} has arguments with no type information"
-            )
-        if ret_ir_type is None:
-            raise Exception(f"Function {func_def.name} has no return type information")
-
-        func_sign[func_def.name] = (
-            # use .arg_types to get the argument types and .ret_type for return type
-            func_def.type,
-            func_ir_type,
+    # TODO: right now we are rejecting functions that don't have type information in the signature
+    func_sign = {
+        func_def.name: (
+            _get_func_def_ir_type(func_def),
             _get_func_def_arg_names(func_def),
         )
 
@@ -243,7 +206,7 @@ def mypy_node_to_ir(
     in_calls: pyList[pyTuple[str, str]],
 ) -> Expr:
     def parse_node(node: Node) -> Expr:
-        # TODO(jie): add support for non-lambda inline functions
+        # TODO: add support for non-lambda inline functions
         if isinstance(node, FuncDef) or isinstance(node, LambdaExpr):
             if isinstance(node, FuncDef):
                 _, func_ir_type, _ = func_sign[node.name]
@@ -302,7 +265,7 @@ def mypy_node_to_ir(
             return parse_node(node.expr)
         elif isinstance(node, CallExpr):
             if isinstance(node.callee, MemberExpr):
-                # TODO(jie): here we need to identify the list append calls, etc
+                # TODO: here we need to identify the list append calls, etc
                 raise Exception("Method calls not supported")
             elif isinstance(node.callee, NameExpr):
                 func_name = cast(NameExpr, node.callee).name
@@ -375,7 +338,7 @@ def mypy_node_to_ir(
             # Nothing can go wrong with a name expression (which are basically variables)
             ir_type = mypy_type_to_ir_type(types[node])
             return create_object(ir_type, node.name).src
-        # TODO(jie): check not
+        # TODO: check not
         elif isinstance(node, OpExpr):
             left_expr = parse_node(node.left)
             right_expr = parse_node(node.right)

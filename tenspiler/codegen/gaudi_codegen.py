@@ -50,7 +50,7 @@ class CType:
         return True
 
 
-# TODO(jie): think of a better name
+# TODO: think of a better name
 class GaudiBodyType(Enum):
     """Gaudi types used in the body (inside the loops). All C types are supported in the Gaudi body."""
 
@@ -162,7 +162,7 @@ def get_glue_code_cpp(
 ) -> str:
     pascal_case_fn_name = pascal_case(fn_name)
 
-    # TODO(jie): ask Niranjan if there's any intelligence in picking the variable names
+    # TODO: ask Niranjan if there's any intelligence in picking the variable names
     binary_start = f"_binary___{fn_name}_gaudi2_o_start"
     binary_end = f"_binary___{fn_name}_gaudi2_o_end"
     binary_loc_declarations = f"""
