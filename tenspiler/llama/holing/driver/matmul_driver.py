@@ -19,6 +19,11 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    vec_scalar_mul_axiom,
+    reduce_sum_axiom,
+    matrix_vec_mul_axiom,
+)
 
 # Some loop functions
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
@@ -44,6 +49,9 @@ def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         reduce_sum,
         matrix_outer_loop_index_first_fn_decl,
         vector_outer_loop_index_fn_decl,
+        vec_scalar_mul_axiom,
+        reduce_sum_axiom,
+        matrix_vec_mul_axiom,
     ]
 
 

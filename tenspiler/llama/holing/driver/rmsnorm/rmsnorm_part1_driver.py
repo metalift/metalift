@@ -14,10 +14,11 @@ from tenspiler.tenspiler_common import (
     vec_elemwise_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_mul_axiom, reduce_sum_axiom
 
 
 def rmsnorm_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_mul, reduce_sum]
+    return [vec_elemwise_mul, reduce_sum, vec_elemwise_mul_axiom, reduce_sum_axiom]
 
 
 def rmsnorm_part1_ps_grammar(

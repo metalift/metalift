@@ -15,10 +15,16 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_scalar_mul_axiom, vec_elemwise_mul_axiom
 
 
 def rmsnorm_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_scalar_mul, vec_elemwise_mul]
+    return [
+        vec_scalar_mul,
+        vec_elemwise_mul,
+        vec_scalar_mul_axiom,
+        vec_elemwise_mul_axiom,
+    ]
 
 
 def rmsnorm_part2_ps_grammar(
