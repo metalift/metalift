@@ -29,17 +29,17 @@ def prune_fn_decls(all_fns: Dict[str, Union[FnDecl, FnDeclRecursive]]) -> FnDecl
             return expr
         if isinstance(expr, Ite):
             cond = expr.c().map_args(prune_ite)
-            if Expr.__eq__(cond, Bool(True)):
+            if Expr.__eq__(cond, Bool(True).src):
                 return expr.e1().map_args(prune_ite)
-            elif Expr.__eq__(cond, Bool(False)):
+            elif Expr.__eq__(cond, Bool(False).src):
                 return expr.e2().map_args(prune_ite)
             elif isinstance(cond, Call):
                 fn_name = cond.name()
                 if fn_name in all_fns.keys():
                     fn_body = all_fns[fn_name].body()
-                    if Expr.__eq__(fn_body, Bool(True)):
+                    if Expr.__eq__(fn_body, Bool(True).src):
                         return expr.e1().map_args(prune_ite)
-                    elif Expr.__eq__(fn_body, Bool(False)):
+                    elif Expr.__eq__(fn_body, Bool(False).src):
                         return expr.e2().map_args(prune_ite)
             return expr.map_args(prune_ite)
         return expr.map_args(prune_ite)
