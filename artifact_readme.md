@@ -29,7 +29,7 @@ ECOOP submission number for the paper: 220
     ```
     poetry run python tenspiler/generated_code/numpy/generate_numpy_benchmarks.py dot
     ```
-    The generated NumPy code can be found at `tenspiler /generated_code/numpy/blas/dot_np.py`.
+    The generated NumPy code can be found at `tenspiler/generated_code/numpy/blas/dot_np.py`.
 
 4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `tenspiler/data/`. We compare against running C++ code compiled with `-O3` flag.
     ```
