@@ -1,6 +1,7 @@
 import json
 import re
 import uuid
+from functools import lru_cache
 from textwrap import dedent
 from typing import Dict
 from typing import List as pyList
@@ -52,6 +53,7 @@ from metalift.ir import (
     Lt,
     Mod,
     Mul,
+    Not,
     Object,
     ObjectT,
     Or,
@@ -63,7 +65,6 @@ from metalift.ir import (
     is_list_type,
     is_nested_list_type,
     ite,
-    Not
 )
 
 
@@ -126,13 +127,39 @@ def _get_func_def_arg_names(func_def: FuncDef) -> pyList[str]:
     return [arg.variable.name for arg in func_def.arguments]
 
 
-# TODO(jie): add return type
+@lru_cache(maxsize=None)
+def get_dsl_func_defs() -> List[FuncDef]:
+    """
+    Get the function definitions of the python dsl module.
+    This is cached because the dsl file never changes.
+    """
+    options = Options()
+    options.incremental = False  # turn off caching of previously typed results
+    options.show_traceback = True
+    options.python_version = PYTHON3_VERSION
+    options.preserve_asts = True
+    options.export_types = True
+    mypy_build = build.build(
+        sources=[BuildSource(path=None, module="tenspiler.llm.python_dsl")],
+        options=options,
+    )
+    python_dsl_tree: MypyFile = cast(
+        MypyFile, mypy_build.graph["tenspiler.llm.python_dsl"].tree
+    )  # tree of the entire module / file
+
+    # Get function signatures of the python dsl module
+    dsl_func_defs = [
+        func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
+    ]
+    return dsl_func_defs
+
+
 def mypy_parse(
     code: str, expected_num_funcs: int = 1
 ) -> pyTuple[pyList[FuncDef], Dict[str, pyList[ObjectT]], Dict[Node, MypyType]]:
     options = Options()
-    options.incremental = False  # turn off caching of previously typed results
-    # options.export_types = True
+    # Incremental mode so we don't build the dsl code every time
+    options.incremental = True
     options.show_traceback = True
     options.python_version = PYTHON3_VERSION
     options.preserve_asts = True
@@ -145,9 +172,6 @@ def mypy_parse(
         options=options,
     )
     target_tree: MypyFile = cast(MypyFile, mypy_build.graph["target_code"].tree)
-    python_dsl_tree: MypyFile = cast(
-        MypyFile, mypy_build.graph["tenspiler.llm.python_dsl"].tree
-    )  # tree of the entire module / file
 
     # Get target function definition
     target_func_defs = [
@@ -158,18 +182,13 @@ def mypy_parse(
             f"{expected_num_funcs} function definition expected but found {len(target_func_defs)}"
         )
 
-    # Get function signatures of the python dsl module
-    dsl_func_defs = [
-        func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
-    ]
-
     # TODO(jie): right now we are rejecting functions that don't have type information in the signature
     func_sign = {
         func_def.name: (
             _get_func_def_ir_type(func_def),
             _get_func_def_arg_names(func_def),
         )
-        for func_def in [*target_func_defs, *dsl_func_defs]
+        for func_def in [*target_func_defs, *get_dsl_func_defs()]
     }
 
     return target_func_defs, func_sign, mypy_build.types
@@ -462,7 +481,16 @@ def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
                 print(f"Duplicate solution {idx} for {benchmark_name}")
                 continue
             print(solution)
-            check_solution(solution, expected_num_funcs)
+
+            try:
+                check_solution(solution, expected_num_funcs)
+                print(f"Solution {idx} for {benchmark_name} is correct")
+            except Exception as e:
+                print(f"Error in solution {idx} for {benchmark_name}")
+                print(e)
+
+            print("\n")
+            print("============================================")
             print("\n")
             solutions_seen.add(solution)
 
@@ -471,5 +499,6 @@ if __name__ == "__main__":
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
     # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
-    solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
-    check_solutions(solutions_filename, 2)
+    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
+    solutions_filename = "tenspiler/llm/benchmarks/dexter/outputs/openai/ps/10_choices/screen_blend_8_ps_raw_response.json"
+    check_solutions(solutions_filename, 1)
