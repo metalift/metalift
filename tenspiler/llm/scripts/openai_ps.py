@@ -26,7 +26,7 @@ dsl_code = open(args.dsl_code).read()
 
 # prompt for guessing the post conditions of a function. dsl_code is the set of functions and constants that can be used to rewrite the function. source_code is the function to be rewritten.
 TEMPLATE_TEXT = f"""
-Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please do not generate any explanations.
 #Instructions
 # 1. Do not use for/while loops for rewriting the function.
 # 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
