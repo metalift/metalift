@@ -263,7 +263,7 @@ source_code = "\n".join(lines)
 
 
 # prompt for generating invariants of a function.
-TEMPLATE_TEXT = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
+TEMPLATE_TEXT = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula. Please do not generate any explanations.
 
 #Instructions:
 1. You need to use only the defined functions to write the loop invariant.
