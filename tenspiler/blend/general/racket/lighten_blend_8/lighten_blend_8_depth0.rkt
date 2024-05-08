@@ -141,7 +141,7 @@
 
 (define (lighten_blend_8_inv0 active agg.result base col pixel row row_vec) (lighten_blend_8_inv0_gram active agg.result base col pixel row row_vec #:depth 10))
 (define (lighten_blend_8_inv1 active base col pixel row_vec agg.result row) (lighten_blend_8_inv1_gram active base col pixel row_vec agg.result row #:depth 10))
-(define (lighten_blend_8_ps base active lighten_blend_8_rv) (lighten_blend_8_ps_gram base active lighten_blend_8_rv #:depth 10))
+(define (lighten_blend_8_ps base active lighten_blend_8_rv) ((lighten_blend_8_ps_gram base active lighten_blend_8_rv #:depth 10)))
 
 (define (select_two_args int_x int_y) (select_two_args_gram int_x int_y #:depth 10))
 (define (map_int_to_int int_x) (map_int_to_int_gram int_x #:depth 10))

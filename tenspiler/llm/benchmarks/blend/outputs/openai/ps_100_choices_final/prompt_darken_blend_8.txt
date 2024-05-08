@@ -3,8 +3,8 @@ Your task is to rewrite the given `test` C++ Function. You need to use only the 
 #Instructions
 # 1. Do not use for/while loops for rewriting the function.
 # 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
-# 3. Inline all the expressions. Do not use intermediate variables. 
-```                  
+# 3. Inline all the expressions. Do not use intermediate variables.
+```
 #defined functions
 from typing import Any, Callable, List
 
@@ -234,7 +234,7 @@ def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List
         if len(matrix) < 1
         else [matrix[0][start:end], *matrix_col_slice(matrix[1:], start, end)]
     )
-    
+
 
 def firsts(matrix: List[List[int]]) -> List[int]:
     return [] if len(matrix) < 1 else [matrix[0][0], *firsts(matrix[1:])]
@@ -255,14 +255,14 @@ def matrix_elemwise_mul(
             *matrix_elemwise_mul(matrix_x[1:], matrix_y[1:]),
         ]
     )
-     
+
 ```
 ```
 //test function
 #include <vector>
 using namespace std;
 
-vector<vector<int>> color_dodge_8(vector<vector<int>> base, vector<vector<int>> active)
+vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>> active)
 {
     vector<vector<int>> out;
     int m = base.size();
@@ -271,10 +271,10 @@ vector<vector<int>> color_dodge_8(vector<vector<int>> base, vector<vector<int>> 
         vector<int> row_vec;
 		for (int col = 0; col < n; col++) {
 			int pixel;
-            if (active[row][col] == 255)
-                pixel = 255;
-            else
-                pixel = base[row][col] / (255 - active[row][col]);
+			if (base[row][col] > active[row][col])
+				pixel = active[row][col];
+			else
+				pixel = base[row][col];
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);
