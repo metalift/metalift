@@ -272,6 +272,10 @@ def to_rosette(
             writeTo = write_choices_to[g.args[0]]  # type: ignore
         print(g.to_rosette(writeTo), "\n", file=f)
 
+    import pdb
+
+    pdb.set_trace()
+
     # inv and ps declaration
     print(generate_inv_ps(loop_and_ps_info), file=f)
 

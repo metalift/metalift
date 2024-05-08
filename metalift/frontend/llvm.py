@@ -657,7 +657,7 @@ InvGrammar = NamedTuple(
     [
         (
             "func",
-            Callable[[List[Object], List[Object], List[Object]], Bool],
+            Optional[Callable[[List[Object], List[Object], List[Object]], Bool]],
         ),
         ("in_scope_var_names", List[str]),
     ],
@@ -1201,7 +1201,7 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
-            inv_grammar = self.inv_grammars[inv_name]
+            inv_grammar = self.inv_grammars.get(inv_name)
             in_scope_objs = [
                 obj
                 for obj in in_scope_objs
@@ -1236,7 +1236,7 @@ class VCVisitor:
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
-            inv_grammar = self.inv_grammars[inv_name]
+            inv_grammar = self.inv_grammars.get(inv_name)
             in_scope_objs = [
                 obj
                 for obj in in_scope_objs
@@ -1250,7 +1250,7 @@ class VCVisitor:
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,
-                grammar=self.inv_grammars[inv_name].func,
+                grammar=inv_grammar.func if inv_grammar else None,
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
