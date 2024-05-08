@@ -10,7 +10,7 @@ from tenspiler.llm.scripts.utils import (
     get_inv_choices,
     get_num_inv_funcs,
     get_ps_choices,
-    verify_solution,
+    verify_benchmark,
 )
 
 # Global variables
@@ -103,9 +103,11 @@ def get_ps(
 
             # Send to verifier
             print("Sending to verifier")
-            target_lang = ps_fn_decls + inv_fn_decls
             # Driver file
-            verify_solution()
+            verify_benchmark(
+                benchmark_name=benchmark_name,
+                synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+            )
 
 
 if __name__ == "__main__":
