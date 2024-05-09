@@ -1,38 +1,30 @@
-import typing
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int
+from metalift.ir import Axiom, Bool, Int
 from metalift.ir import List as mlList
-from metalift.ir import (
-    Matrix,
-    implies,
-    Axiom,
-)
-from metalift.vc_util import and_objects, or_objects
+from metalift.ir import Matrix, implies
+from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
-    call_reduce_sum,
-    call_vec_elemwise_add,
-    call_vec_elemwise_mul,
-    call_scalar_vec_sub,
-    call_vec_scalar_add,
-    call_scalar_vec_div,
-    call_vec_scalar_mul,
-    call_vec_elemwise_sub,
-    call_vec_scalar_div,
-    call_vec_elemwise_div,
-    call_vec_scalar_sub,
-    call_matrix_elemwise_add,
-    call_matrix_elemwise_sub,
-    call_matrix_scalar_mul,
-    call_matrix_vec_mul,
-    call_matrix_elemwise_mul,
-    call_matrix_scalar_div,
-    call_matrix_scalar_sub,
-    call_matrix_selection,
-    call_selection,
     call_dissolve_matrix_selection,
     call_dissolve_selection,
+    call_matrix_elemwise_add,
+    call_matrix_elemwise_mul,
+    call_matrix_elemwise_sub,
+    call_matrix_scalar_div,
+    call_matrix_scalar_mul,
+    call_matrix_scalar_sub,
+    call_matrix_selection,
+    call_matrix_vec_mul,
+    call_reduce_sum,
+    call_scalar_vec_div,
+    call_scalar_vec_sub,
+    call_selection,
+    call_vec_elemwise_add,
+    call_vec_elemwise_div,
+    call_vec_elemwise_mul,
+    call_vec_elemwise_sub,
+    call_vec_scalar_add,
+    call_vec_scalar_div,
+    call_vec_scalar_mul,
+    call_vec_scalar_sub,
 )
 
 index = Int("index")
@@ -231,6 +223,10 @@ scalar_vec_sub_axiom = Axiom(
     scalar_vec_sub_axiom(a, i, index).src, a.src, i.src, index.src
 )
 
+vec_scalar_sub_axiom = Axiom(
+    vec_scalar_sub_axiom(a, i, index).src, a.src, i.src, index.src
+)
+
 vec_scalar_add_axiom = Axiom(
     vec_scalar_add_axiom(a, i, index).src, a.src, i.src, index.src
 )
@@ -263,6 +259,10 @@ matrix_elemwise_add_axiom = Axiom(
 
 matrix_elemwise_sub_axiom = Axiom(
     matrix_elemwise_sub_axiom(x, y, index).src, x.src, y.src, index.src
+)
+
+matrix_scalar_sub_axiom = Axiom(
+    matrix_scalar_sub_axiom(x, i, index).src, x.src, i.src, index.src
 )
 
 matrix_scalar_mul_axiom = Axiom(
