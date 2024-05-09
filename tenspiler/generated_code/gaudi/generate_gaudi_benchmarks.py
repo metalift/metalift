@@ -15,24 +15,35 @@ def find_all_drivers(driver_dirs):
         for dirpath, dirnames, filenames in os.walk(root_dir):
             for filename in filenames:
                 if filename.endswith("_driver.py"):
-                    benchmark_name = filename[:-10] # remove the _driver.py at the end
+                    benchmark_name = filename[:-10]  # remove the _driver.py at the end
                     full_path = join(dirpath, filename)
                     driver_files[benchmark_name] = full_path
     return driver_files
 
-driver_dirs = ["tenspiler/c2taco/holing/driver/", "tenspiler/blend/holing/driver/", "tenspiler/llama/holing/driver/"]
+
+driver_dirs = [
+    "tenspiler/c2taco/holing/driver/",
+    "tenspiler/blend/holing/driver/",
+    "tenspiler/llama/holing/driver/",
+]
 driver_files = find_all_drivers(driver_dirs)
 
-stored_path = "./tenspiler/generated_code/gaudi/"
+stored_path = Path("./tenspiler/generated_code/gaudi/")
 
-gaudi_not_comp = ['vcopy', 'mat1x3', 'gemv']
+gaudi_not_comp = ["vcopy", "mat1x3", "gemv"]
+
+
 def generate_benchmark(benchmark_name):
     if benchmark_name not in all_test:
-        print(f"Benchmark name {benchmark_name} is not in predefined benchmark name list!")
+        print(
+            f"Benchmark name {benchmark_name} is not in predefined benchmark name list!"
+        )
         exit(1)
 
     if benchmark_name in llama_test_name or benchmark_name in gaudi_not_comp:
-        print(f"Benchmark name {benchmark_name} is not supported in Gaudi backend with TPC-C. See PyTorch version.")
+        print(
+            f"Benchmark name {benchmark_name} is not supported in Gaudi backend with TPC-C. See PyTorch version."
+        )
         return
 
     data_type = None
@@ -44,7 +55,6 @@ def generate_benchmark(benchmark_name):
     else:
         data_type = DataType.INT32
 
-    
     script_path = driver_files[benchmark_name]
     script_dir = dirname(script_path)
     script_basename = basename(script_path)
@@ -63,8 +73,8 @@ def generate_benchmark(benchmark_name):
     driver = result.get("driver")
 
     gaudi_hpp_glue_code, gaudi_cpp_glue_code, gaudi_kernel_code = gaudi_codegen(
-            driver.get_actual_ps_fn_decl(), driver.synthesized_fns, data_type
-        )
+        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, data_type
+    )
 
     print(f"Successfully generated code for {benchmark_name}")
 
@@ -76,7 +86,8 @@ def generate_benchmark(benchmark_name):
     elif benchmark_name in llama_test_name:
         folder_name = "llama"
 
-    filepath = join(stored_path, folder_name)
+    filepath = stored_path / folder_name / benchmark_name
+    filepath.mkdir(parents=True, exist_ok=True)
 
     with open(filepath / f"{benchmark_name}_gaudi.hpp", "w") as f:
         f.write(gaudi_hpp_glue_code)
@@ -95,6 +106,7 @@ def generate_benchmarks(benchmark_name):
     else:
         generate_benchmark(benchmark_name)
     print("Finished generation")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
