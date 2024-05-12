@@ -698,7 +698,8 @@ def synthesize(
             print("Verification Output:", result_verify)
 
         # TODO: change this back
-        if result_verify == "unsat":
+        # if result_verify != "unsat":
+        if False:
             if log:
                 if not no_verify:
                     print(
