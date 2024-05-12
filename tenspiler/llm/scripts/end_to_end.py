@@ -52,7 +52,6 @@ def run_end_to_end_llm(
         )
         print(f"Generated {ps_idx}th PS solution")
         print(ps_sol)
-        print("\n\n")
 
         print("Passing through parser")
         try:
@@ -79,7 +78,6 @@ def run_end_to_end_llm(
             )
             print(f"Generated {inv_idx}th INV solution for the {ps_idx}th PS solution")
             print(inv_sol)
-            print("\n\n")
 
             print("Passing through parser")
             try:
