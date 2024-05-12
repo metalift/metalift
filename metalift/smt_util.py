@@ -56,7 +56,7 @@ def topological_sort(
     return dependent_fn_decls + independent_fn_decls + axioms
 
 
-def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
+def filter_args(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
         if not is_fn_decl_type(a.type):
@@ -64,27 +64,27 @@ def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     return newArgs
 
 
-def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
+def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
     if (
-        (not isinstance(funDef, Expr))
-        or isinstance(funDef, Var)
-        or isinstance(funDef, Lit)
+        (not isinstance(fun_def, Expr))
+        or isinstance(fun_def, Var)
+        or isinstance(fun_def, Lit)
     ):
-        return funDef
-    if isinstance(funDef, Call):
-        newArgs = []
-        for i in range(1, len(funDef.args)):
-            if not is_fn_decl_type(funDef.args[i].type):
-                newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-        return Call(funDef.name(), funDef.type, *newArgs)
-    elif isinstance(funDef, CallValue):
-        newArgs = []
+        return fun_def
+    if isinstance(fun_def, Call):
+        new_args = []
+        for i in range(1, len(fun_def.args)):
+            if not is_fn_decl_type(fun_def.args[i].type):
+                new_args.append(filter_body(fun_def.args[i], fn_call, in_call))
+        return Call(fun_def.name(), fun_def.type, *new_args)
+    elif isinstance(fun_def, CallValue):
+        new_args = []
 
-        for i in range(1, len(funDef.args)):
-            newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-        return Call(inCall, funDef.type, *newArgs)
+        for i in range(1, len(fun_def.args)):
+            new_args.append(filter_body(fun_def.args[i], fn_call, in_call))
+        return Call(in_call, fun_def.type, *new_args)
     else:
-        return funDef.mapArgs(lambda x: filterBody(x, funCall, inCall))
+        return fun_def.map_args(lambda x: filter_body(x, fn_call, in_call))
 
 
 def toSMT(
@@ -124,10 +124,10 @@ def toSMT(
                         found_inline = True
                         early_candidates_names.add(i[1])
                         # parse body
-                        newBody = filterBody(t.args[1], i[0], i[1])
+                        newBody = filter_body(t.args[1], i[0], i[1])
 
                         # remove function type args
-                        newArgs = filterArgs(t.args[2:])
+                        newArgs = filter_args(t.args[2:])
                         fn_decls.append(
                             FnDeclRecursive(
                                 t.name(),  # TODO(jie): this only handles single function param
@@ -160,7 +160,7 @@ def toSMT(
         for cand in invAndPs:
             newBody = cand.args[1]
             for i in inCalls:
-                newBody = filterBody(newBody, i[0], i[1])
+                newBody = filter_body(newBody, i[0], i[1])
 
             # if cand.kind == Expr.Kind.Synth:
             if isinstance(cand, Synth):
@@ -184,12 +184,12 @@ def toSMT(
         for axiom in axioms:
             newBody = axiom.args[0]
             for i in inCalls:
-                newBody = filterBody(newBody, i[0], i[1])
+                newBody = filter_body(newBody, i[0], i[1])
 
             filtered_axioms.append(Axiom(newBody, *axiom.args[1:]))
 
         for i in inCalls:
-            vc = filterBody(vc, i[0], i[1])
+            vc = filter_body(vc, i[0], i[1])
 
         candidates = topological_sort(candidates)
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
