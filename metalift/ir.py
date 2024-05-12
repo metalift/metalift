@@ -119,7 +119,7 @@ class Expr:
         self.metadata = metadata
 
     # TODO: move into per-type implementations
-    def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
+    def map_args(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         if isinstance(self, Var):
             # TODO(jie)
             return Var(typing.cast(str, f(self.args[0])), self.type)
@@ -173,11 +173,25 @@ class Expr:
             )
         elif isinstance(self, CallValue):
             return CallValue(f(self.args[0]), *[f(a) for a in self.args[1:]])
+        elif isinstance(self, FnDeclRecursive):
+            return FnDeclRecursive(
+                self.name(),
+                self.returnT(),
+                self.body().map_args(f),
+                *[f(a) for a in self.arguments()],
+            )
+        elif isinstance(self, FnDecl):
+            return FnDecl(
+                self.name(),
+                self.returnT(),
+                self.body().map_args(f),
+                *[f(a) for a in self.arguments()],
+            )
         else:
             raise Exception("NYI: %s" % self)
 
     def chooseArbitrarily(self) -> "Expr":
-        return self.mapArgs(
+        return self.map_args(
             lambda x: x.chooseArbitrarily() if isinstance(x, Expr) else x
         )
 
@@ -446,7 +460,7 @@ class Expr:
         return retStr
 
     def simplify(self) -> "Expr":
-        self = self.mapArgs(lambda a: a.simplify() if isinstance(a, Expr) else a)
+        self = self.map_args(lambda a: a.simplify() if isinstance(a, Expr) else a)
         if isinstance(self, And):
             filtered_args: typing.List[Expr] = []
             for arg in self.args:
@@ -512,7 +526,7 @@ class Expr:
             else:
                 return self
         else:
-            return self.mapArgs(
+            return self.map_args(
                 lambda a: a.rewrite(mappings) if isinstance(a, Expr) else a
             )
 
@@ -551,7 +565,7 @@ class Expr:
 
             self = self.rewrite(rewrites)
 
-        return self.mapArgs(
+        return self.map_args(
             lambda a: a.optimize_useless_equality(counts, new_vars)
             if isinstance(a, Expr)
             else a
@@ -3162,6 +3176,9 @@ class FnDecl(Expr):
         *args: Expr,
     ) -> None:
         Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])  # type: ignore
+
+    def set_name(self, name: str) -> None:
+        self.args[0] = name
 
     def name(self) -> str:
         return self.args[0]  # type: ignore

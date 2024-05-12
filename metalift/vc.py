@@ -515,7 +515,7 @@ class VC:
             if isinstance(i, Lit):
                 return i
             else:
-                return i.mapArgs(lambda x: VC.evalMLInst(x, reg, mem))  # type: ignore
+                return i.map_args(lambda x: VC.evalMLInst(x, reg, mem))  # type: ignore
         elif isinstance(i, str):
             return i
         elif i.opcode == "load":

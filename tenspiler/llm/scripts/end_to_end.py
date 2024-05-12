@@ -56,7 +56,7 @@ def run_end_to_end_llm(
 
         print("Passing through parser")
         try:
-            ps_fn_decls, _ = check_solution(ps_sol, 1)
+            ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
         except Exception as e:
             print(f"Failed to parse the {ps_idx}th PS solution")
             print(e)
@@ -83,7 +83,7 @@ def run_end_to_end_llm(
 
             print("Passing through parser")
             try:
-                inv_fn_decls, _ = check_solution(inv_sol, num_inv_funcs)
+                inv_fn_decls, inv_in_calls = check_solution(inv_sol, num_inv_funcs)
             except Exception as e:
                 print(
                     f"Failed to parse the {inv_idx}th INV solution for the {ps_idx}th PS solution"
@@ -94,10 +94,13 @@ def run_end_to_end_llm(
             # Send to verifier
             print("Sending to verifier")
             # Driver file
-            verify_benchmark(
+            verification_success = verify_benchmark(
                 benchmark_name=benchmark_name,
                 synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+                in_calls=[*ps_in_calls, *inv_in_calls],
             )
+            if verification_success:
+                return
 
 
 if __name__ == "__main__":

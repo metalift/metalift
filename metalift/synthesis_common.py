@@ -53,7 +53,7 @@ def parseCandidates(
     if not isinstance(candidate, Expr):
         return candidate, (inCalls, fnCalls)
     else:
-        candidate = candidate.mapArgs(
+        candidate = candidate.map_args(
             lambda a: parseCandidates(  # type: ignore
                 a, inCalls, fnsType, fnCalls, extractedLambdas, inFunctionName
             )[0]

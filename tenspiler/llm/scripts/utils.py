@@ -1,10 +1,11 @@
 import re
+import subprocess
 import textwrap
 from dataclasses import dataclass
 from typing import Union, get_args
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import FnDecl, FnDeclRecursive, Int, List, Var
+from metalift.ir import Call, Expr, FnDecl, FnDeclRecursive, Int, List, Lit, Var
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
@@ -425,15 +426,43 @@ def get_inv_choice(
     return outputs.choices[0]
 
 
+def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
+    caller_fn_name, callee_fn_name = in_call
+    if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
+        return expr
+    if isinstance(expr, Call):
+        new_args = []
+        for arg in expr.arguments():
+            if isinstance(arg, FnDecl) or isinstance(arg, FnDeclRecursive):
+                if arg.name() == callee_fn_name and expr.name() == caller_fn_name:
+                    new_args.append(Var(caller_fn_name, arg.type))
+                else:
+                    new_args.append(replace_in_call(arg, in_call))
+        return Call(expr.name(), expr.type, *new_args)
+    elif isinstance(expr, FnDeclRecursive):
+        # TODO(jie)
+        pass
+    else:
+        return expr.map_args(lambda x: replace_in_call(x, in_call))
+
+
+def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
+    for in_call in in_calls:
+        expr = replace_in_call(expr, in_call)
+    return expr
+
+
 def verify_benchmark(
     *,
     benchmark_name: str,
     synthesized_fn_decls: list[Union[FnDecl, FnDeclRecursive]],
+    in_calls: list[tuple[str, str]],
     list_bound: int = 2,
     bitwidth: int = 6,
-) -> None:
+) -> bool:
     driver = Driver()
 
+    print("Analyzing benchmark")
     if benchmark_name in {
         "darken_blend_8",
         "multiply_blend_8",
@@ -449,7 +478,9 @@ def verify_benchmark(
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
 
-    f = open(f"./synthesisLogs/verify_{benchmark_name}.rkt", "w")
+    print("Finished analyzing benchmark, starting verification")
+    verify_file_name = f"./synthesisLogs/verify_{benchmark_name}.rkt"
+    f = open(verify_file_name, "w")
     print(
         "#lang rosette\n"
         + '(require "./bounded.rkt")\n'
@@ -465,19 +496,30 @@ def verify_benchmark(
     )
     # write dsl code
     for fn_decl in TENSPILER_FNS:
-        import pdb
-
-        pdb.set_trace()
+        # Skip some functions that are already in utils.rkt
+        # TODO(jie): this is a bit hacky. We could remove all these functions in utils.rkt, but then we need to make sure that they are added to perspective driver files.
         if fn_decl.name().startswith("integer"):
             continue
         if fn_decl in {"firsts"}:
             continue
         if fn_decl.body() is None:
             continue
+        fn_decl = replace_in_calls(fn_decl, in_calls)
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
     # write ps and inv
     for fn_decl in synthesized_fn_decls:
+        fn_decl = replace_in_calls(fn_decl, in_calls)
+        # Change function names
+        if fn_decl.name() == "invariant1":
+            fn_decl.set_name(f"{benchmark_name}_inv0")
+        if fn_decl.name() == "invariant2":
+            fn_decl.set_name(f"{benchmark_name}_inv1")
+        if fn_decl.name() == benchmark_name:
+            fn_decl.set_name(f"{benchmark_name}_ps")
+            import pdb
+
+            pdb.set_trace()
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
     # Write variables
@@ -490,9 +532,21 @@ def verify_benchmark(
 
     # Write assertions
     vc = and_objects(*driver.asserts).src.simplify()
-    print("(define (assertions)\n (assert %s))\n" % vc.to_rosette(), file=f)
-    print("(verify (assertions))", file=f)
+    vc = replace_in_calls(vc, in_calls)
+
+    # {vc.to_rosette()}
+    print(f"(define vc (verify (assert {vc.to_rosette()})))\n", file=f)
+    print("vc", file=f)
 
     f.close()
 
-    # TODO(jie): add step to run
+    # Run the verification
+    verification_output = subprocess.run(
+        ["racket", verify_file_name], check=True, capture_output=True
+    )
+    if verification_output.decode("utf-8").split("\n")[0] == "(unsat)":
+        print("Verification successful")
+        return True
+    else:
+        print("Verification failed")
+        return False
