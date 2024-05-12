@@ -1,4 +1,5 @@
-from tenspiler_common import (
+from metalift.ir import fn_decl
+from tenspiler.tenspiler_common import (
     firsts_fn_decl,
     matrix_col_slice_fn_decl,
     matrix_col_slice_with_length_fn_decl,
@@ -9,8 +10,6 @@ from tenspiler_common import (
     vec_slice_fn_decl,
     vec_slice_with_length_fn_decl,
 )
-
-from metalift.ir import fn_decl
 
 fn_decls = [
     vec_slice_fn_decl,

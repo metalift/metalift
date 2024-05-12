@@ -2439,6 +2439,9 @@ class Call(Expr):
                         callStr += a.to_rosette() + " "
                 callStr += ")"
                 return callStr
+            elif self.name() == "ite":
+                args = self.arguments()
+                return Ite(args[0], args[1], args[2]).to_rosette()
             else:
                 return (
                     "("

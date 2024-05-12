@@ -1,4 +1,4 @@
-from tenspiler_common import (
+from tenspiler.tenspiler_common import (
     firsts_fn_decl,
     integer_exp_fn_decl,
     integer_sqrt_fn_decl,

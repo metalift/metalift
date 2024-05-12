@@ -2,15 +2,15 @@ from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, Matrix
 
 
-def analyze_darken_blend_8(driver: Driver):
-    darken_blend_8 = driver.analyze(
-        llvm_filepath="tenspiler/blend/cpp/for_synthesis/darken_blend_8.ll",
-        loops_filepath="tenspiler/blend/cpp/for_synthesis/darken_blend_8.loops",
-        fn_name="darken_blend_8",
+def analyze_blend_double_loop(driver: Driver, benchmark_name: str):
+    benchmark = driver.analyze(
+        llvm_filepath=f"tenspiler/blend/cpp/for_synthesis/{benchmark_name}.ll",
+        loops_filepath=f"tenspiler/blend/cpp/for_synthesis/{benchmark_name}.loops",
+        fn_name=benchmark_name,
         target_lang_fn=[],
         inv_grammars={
-            "darken_blend_8_inv0": InvGrammar(None, []),
-            "darken_blend_8_inv1": InvGrammar(None, ["row", "agg.result"]),
+            f"{benchmark_name}_inv0": InvGrammar(None, []),
+            f"{benchmark_name}_inv1": InvGrammar(None, ["row", "agg.result"]),
         },
         ps_grammar=None,
     )
@@ -24,4 +24,4 @@ def analyze_darken_blend_8(driver: Driver):
     driver.add_precondition(base.len() == active.len())
     driver.add_precondition(base[0].len() == active[0].len())
 
-    darken_blend_8(base, active)
+    benchmark(base, active)
