@@ -7,9 +7,9 @@ from openai import OpenAI
 from tenspiler.llm.parser import check_solution
 from tenspiler.llm.scripts.utils import (
     extract_and_write,
-    get_inv_choices,
+    get_inv_choice,
     get_num_inv_funcs,
-    get_ps_choices,
+    get_ps_choice,
     verify_benchmark,
 )
 
@@ -21,79 +21,69 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # TODO(jie): add type
-def get_ps(
+def run_end_to_end_llm(
     benchmark_suite: str,
     benchmark_name: str,
     source_code: str,
     dsl_code: str,
-    n_choices: int = 10,
+    fanout: int = 10,
 ):
-    # call the completions endpoint to get the completions for the prompt
-    ps_choices = get_ps_choices(
-        client=client,
-        source_code=source_code,
-        dsl_code=source_code,
-        n_choices=n_choices,
-    )
-    ps_output_dir = (
+    fanout_dir = (
         BENCHMARKS_PATH
-        / benchmark_suite
         / "outputs"
-        / "end_to_end"
         / "openai"
-        / "ps"
-        / f"{n_choices}_choices"
+        / "end_to_end"
+        / f"{fanout}_fanout"
+        / benchmark_suite
     )
-    ps_solutions = extract_and_write(
-        ps_choices, ps_output_dir / f"{benchmark_name}.json"
-    )
+    ps_output_dir = fanout_dir / "ps"
+    inv_output_dir = fanout_dir / "inv"
+    ps_output_dir.mkdir(parents=True, exist_ok=True)
+    inv_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Now for each ps solution, we try to synthesize invariants
-    for ps_idx, ps_solution in enumerate(ps_solutions):
+    for ps_idx in range(fanout):
+        ps_choice = get_ps_choice(
+            client=client,
+            source_code=source_code,
+            dsl_code=dsl_code,
+        )
+        ps_sol = extract_and_write(
+            ps_choice, ps_output_dir / f"{benchmark_name}_{ps_idx}.txt"
+        )
         print(f"Generated {ps_idx}th PS solution")
-        print(ps_solution)
+        print(ps_sol)
         print("\n\n")
 
         print("Passing through parser")
         try:
-            ps_fn_decls, _ = check_solution(ps_solution, 1)
+            ps_fn_decls, _ = check_solution(ps_sol, 1)
         except Exception as e:
             print(f"Failed to parse the {ps_idx}th PS solution")
             print(e)
             continue
-        # TODO(jie): pass through parser
 
         print(f"Generating invariants for the {ps_idx}th PS solution")
-        inv_choices = get_inv_choices(
-            client=client,
-            benchmark_name=benchmark_name,
-            ps_solution=ps_solution,
-            source_code=source_code,
-            dsl_code=dsl_code,
-            n_choices=n_choices,
-        )
-        inv_output_dir = (
-            BENCHMARKS_PATH
-            / benchmark_suite
-            / "outputs"
-            / "end_to_end"
-            / "openai"
-            / "inv"
-            / f"{n_choices}_choices"
-        )
-        inv_solutions = extract_and_write(
-            inv_choices, inv_output_dir / f"{benchmark_name}_ps_{ps_idx}th.json"
-        )
-        for inv_idx, inv_solution in enumerate(inv_solutions):
+        num_inv_funcs = get_num_inv_funcs(benchmark_name)
+        for inv_idx in range(fanout):
+            inv_choice = get_inv_choice(
+                client=client,
+                benchmark_name=benchmark_name,
+                ps_solution=ps_sol,
+                source_code=source_code,
+                dsl_code=dsl_code,
+            )
+
+            inv_sol = extract_and_write(
+                inv_choice,
+                inv_output_dir / f"{benchmark_name}_ps_{ps_idx}_inv_{inv_idx}.txt",
+            )
             print(f"Generated {inv_idx}th INV solution for the {ps_idx}th PS solution")
-            print(inv_solution)
+            print(inv_sol)
             print("\n\n")
 
             print("Passing through parser")
             try:
-                inv_fn_decls, _ = check_solution(
-                    inv_solution, get_num_inv_funcs(benchmark_name)
-                )
+                inv_fn_decls, _ = check_solution(inv_sol, num_inv_funcs)
             except Exception as e:
                 print(
                     f"Failed to parse the {inv_idx}th INV solution for the {ps_idx}th PS solution"
@@ -119,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dsl-code", type=str, default=str(TENSPILER_LLM_PATH / "python_dsl.py")
     )
-    parser.add_argument("--n-choices", type=int, default=10)
+    parser.add_argument("--fanout", type=int, default=10)
     args = parser.parse_args()
 
     # First we find the source code
@@ -134,13 +124,16 @@ if __name__ == "__main__":
         print(f"Could not find benchmark {args.benchmark}")
         exit(1)
 
-    print(source_code)
-    exit(0)
-    files = list(filter(lambda x: x.is_file(), BENCHMARKS_PATH.rglob("*.cc")))
-    print(files[0].name)
-    # import pdb; pdb.set_trace()
+    # Then we find the dsl code
+    with open(args.dsl_code) as f:
+        dsl_code = f.read()
 
-    dir = f"./benchmarks/{args.benchmark_suite}/outputs/openai/ps/{args.n_choices}_choices"
-    filename = args.filename
-    source_code = open(args.source_code).read()
-    dsl_code = open(args.dsl_code).read()
+    print(f"Found benchmark {args.benchmark} in suite {benchmark_suite}")
+    print(source_code)
+    run_end_to_end_llm(
+        benchmark_suite=benchmark_suite,
+        benchmark_name=args.benchmark,
+        source_code=source_code,
+        dsl_code=dsl_code,
+        fanout=args.fanout,
+    )

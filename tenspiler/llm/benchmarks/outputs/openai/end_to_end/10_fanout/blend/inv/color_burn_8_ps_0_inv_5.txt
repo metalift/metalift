@@ -1,0 +1,8 @@
+
+from typing import Callable, List
+
+def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], pixel: int, row: int) -> bool:
+    return row >= 0 and row <= len(base) and out == matrix_row_slice(matrix_selection_two_args( matrix_scalar_add(255, matrix_elemwise_div(matrix_scalar_sub(255, base), active)), scalar_matrix_div(255, active), lambda x, y: ite(y == 0, 255, x) ), 0, row)
+
+def invariant2(active: List[List[int]], base: List[List[int]], col: int, pixel: int, row: int) -> bool:
+    return col >= 0 and col <= len(base[0]) and pixel == ite(active[row][col] == 0, 255, 255 - (255 - base[row][col]) / active[row][col]) and row >= 0 and row < len(base)

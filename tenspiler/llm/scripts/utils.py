@@ -1,4 +1,3 @@
-import json
 import re
 import textwrap
 from dataclasses import dataclass
@@ -9,7 +8,7 @@ from metalift.ir import FnDecl, FnDeclRecursive, Int, List, Var
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
-from tenspiler.llm.analysis import analyze_darken_blend_8
+from tenspiler.llm.analysis import analyze_blend_double_loop
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 
@@ -23,19 +22,32 @@ def extract(s):
 
 
 # TODO(jie): add type
-def extract_and_write(choices, output_file) -> list[str]:
-    responses: list[str] = []
-    for i, choice in enumerate(choices):
-        extracted_output = "\n\n".join(extract(choice.message.content))
-        responses.append(extracted_output)
-
+def extract_and_write(choice, output_file) -> str:
+    if isinstance(choice, str):
+        # For testing purpose
+        content = choice
+    else:
+        content = "\n\n".join(extract(choice.message.content))
     with open(output_file, "w") as f:
-        json.dump(responses, f)
-    return responses
+        f.write(content)
+    return content
+
+
+count = 0
 
 
 # TODO(jie): add type
-def get_ps_choices(*, client, source_code: str, dsl_code: str, n_choices: int):
+def get_ps_choice(*, client, source_code: str, dsl_code: str):
+    # global count
+    # with open("/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/ps_100_choices_final/color_burn_8.json") as f:
+    #     data = json.load(f)
+    #     ps_choice = extract(data[count])
+    # count += 1
+    # return ps_choice[0]
+    return """
+    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+        return matrix_selection_two_args(base, active, lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
+    """
     # prompt for guessing the post conditions of a function. dsl_code is the set of functions and constants that can be used to rewrite the function. source_code is the function to be rewritten.
     ps_template_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please do not generate any explanations.
@@ -59,10 +71,10 @@ def get_ps_choices(*, client, source_code: str, dsl_code: str, n_choices: int):
             {"role": "system", "content": TEMPLATE_SYS},
             {"role": "user", "content": ps_template_text},
         ],
-        n=n_choices,  # number of candidates,
+        n=1,  # We always sample 1 solution at a time
         temperature=0.7,
     )
-    return outputs.choices
+    return outputs.choices[0]
 
 
 ######
@@ -85,7 +97,24 @@ class DoubleLoopInfo:
     inner_loop_modified_vars: list[Var]
 
 
+blend_double_loops = DoubleLoopInfo(
+    outer_loop_var=Int("row").src,
+    inner_loop_var=Int("col").src,
+    outer_loop_read_vars=[
+        List(List[Int], "base").src,
+        List(List[Int], "active").src,
+    ],
+    inner_loop_read_vars=[
+        List(List[Int], "base").src,
+        List(List[Int], "active").src,
+        Int("row").src,
+    ],
+    outer_loop_modified_vars=[List(List[Int], "out").src],
+    inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
+)
+
 _loop_info_map = {
+    "color_burn_8": blend_double_loops,
     "softmax_part1": SingleLoopInfo(
         loop_var=Int("i").src,
         modified_vars=[Int("max_val").src],
@@ -321,15 +350,23 @@ def _get_inv_source_code(ps_code: str, source_code: str) -> str:
     return "\n".join(lines)
 
 
-def get_inv_choices(
+def get_inv_choice(
     *,
     client,
     benchmark_name: str,
     ps_solution: str,
     source_code: str,
     dsl_code: str,
-    n_choices: int,
 ):
+    return f"""
+    from typing import List
+
+    def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
+        return row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
+
+    def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
+        return col >= 0 and col <= len(active[0]) and row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a)) and row_vec == selection_two_args(base[row][:col], active[row][:col], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
+    """
     # prompt for generating invariants of a function.
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula. Please do not generate any explanations.
 
@@ -381,13 +418,11 @@ def get_inv_choices(
         messages=[
             {"role": "system", "content": TEMPLATE_SYS},
             {"role": "user", "content": inv_template_text},
-            # {"role": "assistant", "content": sol},
-            # {"role": "user", "content": "This invariant is incorrect, generate another one."}
         ],
-        n=n_choices,  # number of candidates,
+        n=1,
         temperature=0.7,
     )
-    return outputs.choices
+    return outputs.choices[0]
 
 
 def verify_benchmark(
@@ -399,8 +434,18 @@ def verify_benchmark(
 ) -> None:
     driver = Driver()
 
-    if benchmark_name == "darken_blend_8":
-        analyze_darken_blend_8(driver)
+    if benchmark_name in {
+        "darken_blend_8",
+        "multiply_blend_8",
+        "linear_burn_8",
+        "color_burn_8",
+        "lighten_blend_8",
+        "screen_blend_8",
+        "linear_dodge_8",
+        "color_dodge_8",
+        "overlay_blend_8",
+    }:
+        analyze_blend_double_loop(driver, benchmark_name)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
 
@@ -420,6 +465,15 @@ def verify_benchmark(
     )
     # write dsl code
     for fn_decl in TENSPILER_FNS:
+        import pdb
+
+        pdb.set_trace()
+        if fn_decl.name().startswith("integer"):
+            continue
+        if fn_decl in {"firsts"}:
+            continue
+        if fn_decl.body() is None:
+            continue
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
     # write ps and inv
