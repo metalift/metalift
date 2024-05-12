@@ -20,17 +20,13 @@ gcapi::GlueCodeReturn_t MagArrayPsGaudi2::GetGcDefinitions(
     gcapi::GlueCodeReturn_t retVal = setGcDefsHelper(
         inDefs,
         outDefs,
-        0,
+        2,
         1,
         gcapi::DATA_I32
         &_binary___mag_array_ps_gaudi2_o_start,
         &_binary___mag_array_ps_gaudi2_o_end,
     );
 
-    // Define scalar params
-    MagArrayPsParam* paramDef = static_cast<MagArrayPsParam*>(in_defs->NodeParams);
-    out_defs->kernel.paramsNr = sizeof(*paramDef)/ sizeof(int32_t);
-    memcpy(&(outDefs->kernel.scalarParams[0]), paramDef, sizeof(*paramDef));
-
     return retVal;
 }
+
