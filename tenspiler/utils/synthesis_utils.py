@@ -146,7 +146,7 @@ def run_synthesis_algorithm(
     driver: Driver,
     data_type: DataType,
     benchmark_name: str,
-    max_rounds: int = 10,
+    max_rounds: int = 2,
     has_relaxed: bool = False,
 ):
     list_bound_start = os.getenv("LIST_BOUND_START", 2)
