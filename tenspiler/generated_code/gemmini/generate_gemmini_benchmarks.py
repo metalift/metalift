@@ -6,7 +6,6 @@ from pathlib import Path
 
 from tenspiler.codegen.gemmini_codegen import gemmini_codegen
 from tenspiler.codegen.utils import DataType
-from tenspiler.tests.test_codegen import *
 from tenspiler.generated_code.benchmark_names import *
 
 
@@ -33,10 +32,18 @@ def generate_benchmark(benchmark_name):
         exit(1)
 
     data_type = None
-    if benchmark_name in gemmini_blend_func_names:
-        data_type = DataType.UINT_8
-    elif benchmark_name in gemmini_llama_func_names:
-        data_type = DataType.FLOAT
+    if benchmark_name in blend_test_name:
+        if benchmark_name in gemmini_blend_func_names:
+            data_type = DataType.UINT_8
+        else:
+            print(f"Benchmark name {benchmark_name} is not supported in Gemmini backend")
+            return
+    elif benchmark_name in llama_test_name: 
+        if benchmark_name in gemmini_llama_func_names:
+            data_type = DataType.FLOAT
+        else:
+            print(f"Benchmark name {benchmark_name} is not supported in Gemmini backend")
+            return
     elif benchmark_name not in gemmini_not_comp:
         data_type = DataType.INT32
     else:
@@ -153,5 +160,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python generate_gemmini_benchmarks.py <benchmark name>")
         exit(1)
-
     generate_benchmarks(sys.argv[1])

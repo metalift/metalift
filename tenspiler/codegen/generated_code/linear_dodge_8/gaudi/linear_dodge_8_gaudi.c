@@ -18,8 +18,8 @@ void main(tensor base, tensor active, tensor linear_dodge_8_ps_rv) {
             // coordinate 1 is for dim1.
             inputCoord[1] = outputCoord[1] = j;
 
-            uchar256 v0 = v_u8_ld_tnsr_b(inputCoord, base);
-            uchar256 v1 = v_u8_ld_tnsr_b(inputCoord, active);
+            uchar256 v0 = v_u8_ld_tnsr_b(inputCoord, active);
+            uchar256 v1 = v_u8_ld_tnsr_b(inputCoord, base);
             uchar256 v2 = v_u8_add_b(v0, v1);
 
             v_u8_st_tnsr(outputCoord, linear_dodge_8_ps_rv, v2);
