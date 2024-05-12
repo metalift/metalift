@@ -34,3 +34,4 @@ gcapi::GlueCodeReturn_t NormalBlend8PsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
+
