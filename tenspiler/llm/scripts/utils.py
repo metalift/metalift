@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Union, get_args
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Expr, FnDecl, FnDeclRecursive, Int, List, Lit, Var
+from metalift.ir import Call, Expr, FnDecl, FnDeclRecursive, Int, List, Var
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
@@ -34,21 +34,12 @@ def extract_and_write(choice, output_file) -> str:
     return content
 
 
-count = 0
-
-
 # TODO(jie): add type
 def get_ps_choice(*, client, source_code: str, dsl_code: str):
-    # global count
-    # with open("/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/ps_100_choices_final/color_burn_8.json") as f:
-    #     data = json.load(f)
-    #     ps_choice = extract(data[count])
-    # count += 1
-    # return ps_choice[0]
-    return """
-    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-        return matrix_selection_two_args(base, active, lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
-    """
+    # return """
+    # def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    #     return matrix_selection_two_args(base, active, lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
+    # """
     # prompt for guessing the post conditions of a function. dsl_code is the set of functions and constants that can be used to rewrite the function. source_code is the function to be rewritten.
     ps_template_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please do not generate any explanations.
@@ -359,15 +350,15 @@ def get_inv_choice(
     source_code: str,
     dsl_code: str,
 ):
-    return f"""
-    from typing import List
+    # return f"""
+    # from typing import List
 
-    def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
-        return row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
+    # def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
+    #     return row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
 
-    def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
-        return col >= 0 and col <= len(active[0]) and row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a)) and row_vec == selection_two_args(base[row][:col], active[row][:col], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
-    """
+    # def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
+    #     return col >= 0 and col <= len(active[0]) and row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a)) and row_vec == selection_two_args(base[row][:col], active[row][:col], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
+    # """
     # prompt for generating invariants of a function.
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula. Please do not generate any explanations.
 
@@ -428,20 +419,36 @@ def get_inv_choice(
 
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
     caller_fn_name, callee_fn_name = in_call
-    if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
-        return expr
-    if isinstance(expr, Call):
+    if (
+        isinstance(expr, Call)
+        or isinstance(expr, FnDecl)
+        or isinstance(expr, FnDeclRecursive)
+    ):
         new_args = []
         for arg in expr.arguments():
             if isinstance(arg, FnDecl) or isinstance(arg, FnDeclRecursive):
                 if arg.name() == callee_fn_name and expr.name() == caller_fn_name:
-                    new_args.append(Var(caller_fn_name, arg.type))
+                    new_args.append(Var(callee_fn_name, arg.type))
                 else:
                     new_args.append(replace_in_call(arg, in_call))
-        return Call(expr.name(), expr.type, *new_args)
-    elif isinstance(expr, FnDeclRecursive):
-        # TODO(jie)
-        pass
+            else:
+                new_args.append(replace_in_call(arg, in_call))
+        if isinstance(expr, Call):
+            return Call(expr.name(), expr.type, *new_args)
+        elif isinstance(expr, FnDecl):
+            return FnDecl(
+                expr.name(),
+                expr.returnT(),
+                replace_in_call(expr.body(), in_call),
+                *new_args,
+            )
+        else:
+            return FnDeclRecursive(
+                expr.name(),
+                expr.returnT(),
+                replace_in_call(expr.body(), in_call),
+                *new_args,
+            )
     else:
         return expr.map_args(lambda x: replace_in_call(x, in_call))
 
@@ -487,7 +494,7 @@ def verify_benchmark(
         + '(require "./utils.rkt")\n'
         + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n"
         + "(require rosette/solver/smt/bitwuzla)\n"
-        + '(current-solver (bitwuzla #:path "/home/c/Desktop/research/ml/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n'
+        + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n'
         + "\n",
         # + "(require rosette/solver/smt/z3)\n"
         # + "(current-solver (z3 #:options (hash ':random-seed 0)))\n"
@@ -509,7 +516,6 @@ def verify_benchmark(
 
     # write ps and inv
     for fn_decl in synthesized_fn_decls:
-        fn_decl = replace_in_calls(fn_decl, in_calls)
         # Change function names
         if fn_decl.name() == "invariant1":
             fn_decl.set_name(f"{benchmark_name}_inv0")
@@ -517,10 +523,7 @@ def verify_benchmark(
             fn_decl.set_name(f"{benchmark_name}_inv1")
         if fn_decl.name() == benchmark_name:
             fn_decl.set_name(f"{benchmark_name}_ps")
-            import pdb
-
-            pdb.set_trace()
-        print("\n", fn_decl.to_rosette(), "\n", file=f)
+        print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
     # Write variables
     vars = set(driver.var_tracker.all())
