@@ -148,9 +148,7 @@ def verify_synth_result(
     if use_rosette:
         verifFile = synthDir + basename + f"_{uid}_verif" + ".rkt"
     else:
-        # verifFile = synthDir + basename + f"_{uid}" + ".smt"
-        verifFile = synthDir + basename + ".smt"
-
+        verifFile = synthDir + basename + f"_{uid}" + ".smt"
     if use_rosette:
         to_rosette(
             verifFile,
@@ -266,7 +264,7 @@ def verify_synth_result(
                 cvcPath,
                 "--lang=smt",
                 "--produce-models",
-                "--tlimit=30000",
+                "--tlimit=1",
                 verifFile,
             ],
             stdout=subprocess.PIPE,

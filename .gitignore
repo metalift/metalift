@@ -29,3 +29,4 @@ vicuna_weight7b_sampled.h5
 vicuna_weight.h5
 data/
 vicuna_weight7b.h5
+build/
