@@ -1,4 +1,4 @@
-from metalift.ir import Axiom, Bool, Int
+from metalift.ir import Axiom, Bool, Int, ite
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, implies
 from metalift.vc_util import and_objects
@@ -13,6 +13,7 @@ from tenspiler.tenspiler_common import (
     call_matrix_scalar_sub,
     call_matrix_selection,
     call_matrix_vec_mul,
+    call_reduce_max,
     call_reduce_sum,
     call_scalar_vec_div,
     call_scalar_vec_sub,
@@ -108,6 +109,12 @@ def reduce_sum_axiom(data: mlList[int], index: int, max_pos: int) -> Bool:
         == call_reduce_sum(data[:index]) + data[index],
     )
 
+def reduce_max_axiom(data: mlList[int], index: int, max_pos: int) -> Bool:
+    return implies(
+        and_objects(index >= 0, index <= max_pos, max_pos >= 0),
+        call_reduce_max(data[: index + 1])
+        == ite(data[index] > (call_reduce_max(data[:index])), data[index], (call_reduce_max(data[:index])))
+    )
 
 def vec_scalar_div_axiom(a: mlList[int], i: int, index: int) -> Bool:
     return implies(
@@ -244,6 +251,8 @@ vec_elemwise_sub_axiom = Axiom(
 )
 
 reduce_sum_axiom = Axiom(reduce_sum_axiom(a, index, i).src, a.src, index.src, i.src)
+
+reduce_max_axiom = Axiom(reduce_max_axiom(a, index, i).src, a.src, index.src, i.src)
 
 vec_scalar_div_axiom = Axiom(
     vec_scalar_div_axiom(a, i, index).src, a.src, i.src, index.src
