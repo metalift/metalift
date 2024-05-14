@@ -648,9 +648,7 @@ def synthesize(
 
         ##### verification of synthesized ps/inv
         if log:
-            print(
-                f"====== verification of round {last_processed_sol_idx + 1} solution ======"
-            )
+            print(f"====== verification of round {curr_sol_idx} solution ======")
 
         verify_logs: typing.List[str] = []
         print("no verify", no_verify)
@@ -673,7 +671,7 @@ def synthesize(
                     candidates_smt,
                     candidate_dict,
                     fnsType,
-                    uid,
+                    uid=curr_sol_idx,
                     use_rosette=False,
                 )
             except CVC5UnsupportedException:
