@@ -9,11 +9,11 @@ from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_reduce_max, reduce_max
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-# from tenspiler.axioms_tenspiler import reduce_max_axiom
+from tenspiler.axioms_tenspiler import reduce_max_axiom
 
 
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [reduce_max]
+    return [reduce_max, reduce_max_axiom]
 
 
 def softmax_part1_ps_grammar(
