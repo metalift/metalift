@@ -21,8 +21,8 @@ llama_test_name = [
     "softmax_part2",
     "softmax_part3",
     "softmax_part4",
-    # "transformer_part1",
-    # "transformer_part2",
+    "transformer_part1",
+    "transformer_part2",
     "transformer_part3",
     "transformer_part4",
 ]

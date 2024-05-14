@@ -25,6 +25,12 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    matrix_vec_mul_axiom,
+    reduce_sum_axiom,
+    vec_elemwise_mul_axiom,
+    vec_scalar_mul_axiom,
+)
 
 
 def transformer_part2_inv0_grammar(
@@ -145,6 +151,10 @@ def transformer_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_scalar_mul,
         matrix_vec_mul,
         *common_fn_decls,
+        matrix_vec_mul_axiom,
+        reduce_sum_axiom,
+        vec_elemwise_mul_axiom,
+        vec_scalar_mul_axiom,
     ]
 
 
