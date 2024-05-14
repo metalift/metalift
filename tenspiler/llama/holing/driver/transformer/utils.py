@@ -1,11 +1,11 @@
-from typing import List
+from typing import Callable, List, Tuple
 
-from metalift.ir import Int, call, choose, fn_decl, synth
+from metalift.ir import Bool, FnDecl, Int, Synth, call, choose, fn_decl, synth
 from tenspiler.tenspiler_common import get_no_arg_bool_fn
 
 # Define arguments to helper functions to synthesize
 token_position_var = Int("token_position")
-head_var = Int("head")
+head1_var = Int("head1")
 head_size_var = Int("head_size")
 i_var = Int("i")
 timestep_var = Int("timestep")
@@ -31,14 +31,14 @@ matrix_composed_index_fn_decl = fn_decl(
     Int,
     None,
     token_position_var,
-    head_var,
+    head1_var,
     head_size_var,
 )
 matrix_composed_index_synth = synth(
     matrix_composed_index_fn_name,
-    get_composed_int_var([token_position_var, head_var, head_size_var]),
+    head1_var * head_size_var,
     token_position_var,
-    head_var,
+    head1_var,
     head_size_var,
 )
 
@@ -51,20 +51,19 @@ def call_matrix_composed_index_fn(
 
 vec_composed_index_fn_name = "VEC_COMPOSED_INDEX_FN"
 vec_composed_index_fn_decl = fn_decl(
-    vec_composed_index_fn_name, Int, None, token_position_var, head_var, head_size_var
+    vec_composed_index_fn_name, Int, None, token_position_var, head1_var, head_size_var
 )
 vec_composed_index_synth = synth(
     vec_composed_index_fn_name,
-    get_composed_int_var([token_position_var, head_var, head_size_var]),
+    head1_var * head_size_var,
     token_position_var,
-    head_var,
+    head1_var,
     head_size_var,
 )
 
 
 def call_vec_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
     return call(vec_composed_index_fn_name, Int, token_position, head, head_size)
-
 
 # Loop functions
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"

@@ -148,8 +148,8 @@ def run_synthesis_algorithm(
     benchmark_name: str,
     max_rounds: int = 10,
     has_relaxed: bool = False,
+    list_bound_start: int = 2
 ):
-    list_bound_start = os.getenv("LIST_BOUND_START", 2)
     print(f"Starting synthesis at list bound {list_bound_start}")
     list_bound_start = int(list_bound_start)
     list_bound = list_bound_start

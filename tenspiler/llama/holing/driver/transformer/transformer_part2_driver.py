@@ -54,7 +54,7 @@ def transformer_part2_inv0_grammar(
             composed_int_var + i,
         ),
     )
-    matrix = choose(matrix, matrix.transpose())
+    matrix = choose(matrix.transpose())
     vec = ite(
         is_vector_outer_loop_index(),
         attention[0:i],
@@ -87,7 +87,7 @@ def transformer_part2_inv1_grammar(
             composed_int_var + i,
         ),
     )
-    outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
+    outer_loop_matrix = choose(outer_loop_matrix.transpose())
     outer_loop_vec = ite(
         is_vector_outer_loop_index(),
         attention[0:i],
@@ -134,7 +134,7 @@ def transformer_part2_ps_grammar(
             composed_int_var + head_size,
         ),
     )
-    matrix = choose(matrix, matrix.transpose())
+    matrix = choose(matrix.transpose())
     vec = ite(
         is_vector_outer_loop_index(),
         attention[0:head_size],
