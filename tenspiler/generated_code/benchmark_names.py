@@ -14,9 +14,9 @@ blend_test_name = [
 ]
 
 llama_test_name = [
-    # "matmul",
-    # "rmsnorm_part1",
-    # "rmsnorm_part2",
+    "matmul",
+    "rmsnorm_part1",
+    "rmsnorm_part2",
     "softmax_part1",
     "softmax_part2",
     "softmax_part3",
