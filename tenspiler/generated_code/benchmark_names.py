@@ -77,7 +77,8 @@ simpl_array_test_name = [
 ]
 utdsp_test_name = ["fir_small", "lmsfir1", "lmsfir2"]
 all_test = (
-    llama_test_name
+    blend_test_name
+    + llama_test_name
     + blas_test_name
     + darknet_test_name
     + dsp_test_name
