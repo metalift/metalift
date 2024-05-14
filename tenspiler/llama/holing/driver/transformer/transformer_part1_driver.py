@@ -18,6 +18,7 @@ from tenspiler.llama.holing.driver.transformer.utils import (
     vec_composed_index_synth,
 )
 from tenspiler.tenspiler_common import (
+    call_integer_sqrt,
     call_matrix_vec_mul,
     call_reduce_sum,
     call_vec_elemwise_mul,
@@ -50,7 +51,7 @@ sqrt_arg_fn_decl = fn_decl(
 )
 sqrt_arg_synth = synth(
     sqrt_arg_fn_name,
-    choose(Int(0), Int(1)) * choose(token_position_var, head1_var, head_size_var),
+    Int(1) * head_size_var,
     token_position_var,
     head1_var,
     head_size_var,
@@ -109,9 +110,6 @@ def transformer_part1_ps_grammar(
             matrix_composed_int_var + token_position,
         ),
     )
-    key_cache_layer_matrix = choose(
-        key_cache_layer_matrix, key_cache_layer_matrix.transpose()
-    )
     q_vec = ite(
         is_vector_outer_loop_index(),
         q[vec_composed_int_var : vec_composed_int_var + token_position],
@@ -120,7 +118,7 @@ def transformer_part1_ps_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_div(call_sqrt_arg(token_position, head, head_size), vec)
+    vec = call_vec_scalar_div(call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec)
 
     return attention == vec
 
@@ -147,9 +145,6 @@ def transformer_part1_inv0_grammar(
             matrix_composed_int_var + timestep,
         ),
     )
-    key_cache_layer_matrix = choose(
-        key_cache_layer_matrix, key_cache_layer_matrix.transpose()
-    )
     q_vec = ite(
         is_vector_outer_loop_index(),
         q[vec_composed_int_var : vec_composed_int_var + timestep],
@@ -158,7 +153,7 @@ def transformer_part1_inv0_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_div(call_sqrt_arg(token_position, head, head_size), vec)
+    vec = call_vec_scalar_div(call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec)
 
     return and_objects(
         timestep >= 0,
@@ -190,9 +185,6 @@ def transformer_part1_inv1_grammar(
             matrix_composed_int_var + timestep,
         ),
     )
-    key_cache_layer_outer_loop_matrix = choose(
-        key_cache_layer_outer_loop_matrix, key_cache_layer_outer_loop_matrix.transpose()
-    )
     q_outer_loop_vec = ite(
         is_vector_outer_loop_index(),
         q[vec_composed_int_var : vec_composed_int_var + timestep],
@@ -204,7 +196,7 @@ def transformer_part1_inv1_grammar(
     )
     outer_loop_vec = choose(q_outer_loop_vec, outer_loop_computed_vec)
     outer_loop_vec = call_vec_scalar_div(
-        call_sqrt_arg(token_position, head, head_size), outer_loop_vec
+        call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), outer_loop_vec
     )
 
     inner_loop_key_cache_layer_vec = ite(
@@ -287,6 +279,7 @@ if __name__ == "__main__":
         data_type=DataType.INT32,
         benchmark_name="transformer_part1",
         has_relaxed=False,
+        list_bound_start=3
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
