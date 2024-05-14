@@ -281,6 +281,7 @@ def to_rosette(
         + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n"
         + "(require rosette/solver/smt/bitwuzla)\n"
         + '(current-solver (bitwuzla #:path "/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
+        # + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
         file=f,
     )
 
