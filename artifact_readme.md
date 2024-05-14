@@ -73,7 +73,7 @@ As stated in our paper section 6.1.2, Tenspiler can target 6 different backends 
 ```
 poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
-which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|...)/`.
+which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|blas|darknet|...)/<benchmark name>`.
 
 To test a single benchmark, run
 ```
@@ -118,7 +118,7 @@ array_inc (no gemmini support), array_sum, cube_in_place (no gemmini support), f
 ## Performance Evaluation
 In figures 9 and 10 in the paper, we show the performance of translated code compared to C++ baseline. In this artifact, we include scripts to replicate the results.
 
-In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be found at `/code/metalift/data_full`, and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`. Running with full dataset of 33B vicuna requires more memory; our experimentation setup has 512GB available.
+In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be found at `/code/metalift/data_full`, and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`. Running with full dataset, especially 33B vicuna, requires more memory; our experimentation setup has 512GB available.
 
 If you decide to use the full datasets, rename the 10k images folder `data_full` to `data`, and the vicuna 33B and 7B weights as `vicuna_weight.h5` and `vicuna_weight7b.h5`, respectively. Everything should be placed in the `metalift` directory.
 
