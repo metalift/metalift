@@ -32,6 +32,14 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    vec_scalar_mul_axiom,
+    vec_scalar_div_axiom,
+    vec_elemwise_mul_axiom,
+    vec_elemwise_div_axiom,
+    reduce_sum_axiom,
+    matrix_vec_mul_axiom,
+)
 
 token_position_var = Int("token_position")
 head1_var = Int("head1")
@@ -65,6 +73,12 @@ target_lang = [
     vec_composed_index_fn_decl,
     sqrt_arg_fn_decl,
     *common_fn_decls,
+    vec_scalar_mul_axiom,
+    vec_scalar_div_axiom,
+    vec_elemwise_mul_axiom,
+    vec_elemwise_div_axiom,
+    reduce_sum_axiom,
+    matrix_vec_mul_axiom,
 ]
 
 # Define initial synths

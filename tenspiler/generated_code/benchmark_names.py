@@ -14,15 +14,15 @@ blend_test_name = [
 ]
 
 llama_test_name = [
-    "matmul",
-    "rmsnorm_part1",
-    "rmsnorm_part2",
+    # "matmul",
+    # "rmsnorm_part1",
+    # "rmsnorm_part2",
     "softmax_part1",
     "softmax_part2",
     "softmax_part3",
     "softmax_part4",
-    "transformer_part1",
-    "transformer_part2",
+    # "transformer_part1",
+    # "transformer_part2",
     "transformer_part3",
     "transformer_part4",
 ]
@@ -77,8 +77,7 @@ simpl_array_test_name = [
 ]
 utdsp_test_name = ["fir_small", "lmsfir1", "lmsfir2"]
 all_test = (
-    blend_test_name
-    + llama_test_name
+    llama_test_name
     + blas_test_name
     + darknet_test_name
     + dsp_test_name
