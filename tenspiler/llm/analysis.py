@@ -71,7 +71,7 @@ def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]):
         "tenspiler/blend/cpp/for_synthesis/normal_blend_8.loops",
         "normal_blend_8",
         target_lang_fn=[],
-        inv_grammars=defaultdict(lambda: InvGrammar(None, [], inv_args)),
+        inv_grammars={"normal_blend_8_inv0": InvGrammar(None, [], inv_args)},
         ps_grammar=None,
     )
 

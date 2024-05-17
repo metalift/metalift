@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 import subprocess
 import textwrap
@@ -5,7 +6,7 @@ from dataclasses import dataclass
 from typing import Union, get_args
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Expr, FnDecl, FnDeclRecursive, Int, List, Object, Var
+from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, List, Object, Var
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
@@ -16,10 +17,13 @@ TEMPLATE_SYS = "You are a helpful expert in programming languages."
 
 # regex to extract the code from the completions
 def extract(s):
-    return [
+    extracted_result = [
         x.group(1)
         for x in re.finditer(r"```(?:Python|python|assembly)?(.*?)```", s, re.DOTALL)
     ]
+    if len(extracted_result) == 0:
+        return [s]
+    return extracted_result
 
 
 # TODO(jie): add type
@@ -28,10 +32,12 @@ def extract_and_write(choice, output_file) -> str:
         # For testing purpose
         content = choice
     else:
-        content = "\n\n".join(extract(choice.message.content))
+        content = choice.message.content
+
+    final_content = "\n\n".join(extract(content))
     with open(output_file, "w") as f:
-        f.write(content)
-    return content
+        f.write(final_content)
+    return final_content
 
 
 # TODO(jie): add type
@@ -105,13 +111,32 @@ blend_double_loops = DoubleLoopInfo(
     inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
 )
 
+_output_var_map = {
+    "normal_blend_f": List(Int, "out").src,
+    "normal_blend_8": List(Int, "out").src,
+}
+
 _loop_info_map = {
     "normal_blend_f": SingleLoopInfo(
         loop_var=Int("i").src,
         modified_vars=[List(Int, "out").src],
         read_vars=[List(Int, "base").src, List(Int, "active").src, Int("opacity").src],
     ),
+    "normal_blend_8": SingleLoopInfo(
+        loop_var=Int("i").src,
+        modified_vars=[List(Int, "out").src],
+        read_vars=[List(Int, "base").src, List(Int, "active").src, Int("opacity").src],
+    ),
+    "darken_blend_8": blend_double_loops,
+    "multiply_blend_8": blend_double_loops,
+    "linear_burn_8": blend_double_loops,
     "color_burn_8": blend_double_loops,
+    "lighten_blend_8": blend_double_loops,
+    "screen_blend_8": blend_double_loops,
+    "linear_dodge_8": blend_double_loops,
+    "color_dodge_8": blend_double_loops,
+    "overlay_blend_8": blend_double_loops,
+    "dissolve_blend_8": blend_double_loops,
     "softmax_part1": SingleLoopInfo(
         loop_var=Int("i").src,
         modified_vars=[Int("max_val").src],
@@ -327,10 +352,6 @@ def get_inv_choice(
     source_code: str,
     dsl_code: str,
 ):
-    return f"""
-    def invariant(base: List[int], active: List[int], i: int, opacity: int, out: List[int]) -> bool:
-        return i >= 0 and i <= len(base) and out == vec_elemwise_add(vec_scalar_mul(opacity, active[:i]), vec_scalar_mul(1 - opacity, base[:i]))
-    """
     # return f"""
     # from typing import List
 
@@ -472,6 +493,18 @@ def get_args_for_invariants(benchmark_name: str) -> Union[
         )
         return outer_inv_args, inner_inv_args
 
+def process_ps_fn_decl(
+    fn_decl: Union[FnDecl, FnDeclRecursive],
+    output_var: Object,
+) -> Union[FnDecl, FnDeclRecursive]:
+    return fn_decl.__class__(
+        fn_decl.name(),
+        Bool,
+        Eq(output_var, fn_decl.body()),
+        *fn_decl.arguments(),
+        output_var
+    )
+
 def verify_benchmark(
     *,
     benchmark_name: str,
@@ -505,6 +538,8 @@ def verify_benchmark(
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
 
     print("Finished analyzing benchmark, starting verification")
+    synthesis_logs_dir = Path("./synthesisLogs")
+    synthesis_logs_dir.mkdir(exist_ok=True)
     verify_file_name = f"./synthesisLogs/verify_{benchmark_name}.rkt"
     f = open(verify_file_name, "w")
     print(
@@ -545,8 +580,11 @@ def verify_benchmark(
             fn_decl.set_name(f"{benchmark_name}_inv0")
         if fn_decl.name() == "invariant2":
             fn_decl.set_name(f"{benchmark_name}_inv1")
+
+        # Change ps function name
         if fn_decl.name() == benchmark_name:
             fn_decl.set_name(f"{benchmark_name}_ps")
+            fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
     # Write variables
@@ -561,7 +599,6 @@ def verify_benchmark(
     vc = and_objects(*driver.asserts).src.simplify()
     vc = replace_in_calls(vc, in_calls)
 
-    # {vc.to_rosette()}
     print(f"(define vc (verify (assert {vc.to_rosette()})))\n", file=f)
     print("vc", file=f)
 
@@ -571,9 +608,12 @@ def verify_benchmark(
     verification_output = subprocess.run(
         ["racket", verify_file_name], check=True, capture_output=True
     )
-    if verification_output.decode("utf-8").split("\n")[0] == "(unsat)":
+    if verification_output.stdout.decode("utf-8").split("\n")[0] == "(unsat)":
         print("Verification successful")
+        print("\n\n")
         return True
     else:
         print("Verification failed")
+        print(verification_output.stdout.decode("utf-8"))
+        print("\n\n")
         return False

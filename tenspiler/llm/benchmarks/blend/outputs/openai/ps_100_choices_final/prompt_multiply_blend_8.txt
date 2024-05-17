@@ -271,7 +271,7 @@ vector<vector<uint8_t>> multiply_blend_8(vector<vector<uint8_t>> base, vector<ve
 	for (uint8_t row = 0; row < m; row++) {
         vector<uint8_t> row_vec;
 		for (uint8_t col = 0; col < n; col++) {
-            uint8_t pixel = (base[row][col] * active[row][col]) / 255;
+            uint8_t pixel = (base[row][col] * active[row][col]) / 32;
 			row_vec.push_back(pixel);
 		}
 		out.push_back(row_vec);
