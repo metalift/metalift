@@ -1,0 +1,3 @@
+
+def normal_blend_f(base: List[int], active: List[int], opacity: int) -> List[int]:
+    return vec_elemwise_add(vec_scalar_mul(opacity, active), vec_scalar_mul((1 - opacity), base))

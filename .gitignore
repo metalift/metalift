@@ -17,3 +17,4 @@ rosette-packages/
 nixos.qcow2
 .vscode/
 .venv/
+.3.9venv/

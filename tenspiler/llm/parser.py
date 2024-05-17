@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import re
 import uuid
 from functools import lru_cache
@@ -19,6 +20,7 @@ from mypy.nodes import (
     ComparisonExpr,
     ConditionalExpr,
     FuncDef,
+    UnaryExpr,
     IndexExpr,
     IntExpr,
     LambdaExpr,
@@ -67,6 +69,7 @@ from metalift.ir import (
     ite,
 )
 
+TENSPILER_LLM_PATH = Path(__file__).parent.resolve()
 
 def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
     """Convert mypy type to python type"""
@@ -351,7 +354,7 @@ def mypy_node_to_ir(
                     return Sub(left, right)
                 elif op == "*":
                     return Mul(left, right)
-                elif op == "//":
+                elif op in {"//", "/"}:
                     return Div(left, right)
                 elif op == "%":
                     return Mod(left, right)
@@ -380,6 +383,14 @@ def mypy_node_to_ir(
                 raise Exception(
                     f"Unsupported binary operation {op} on types {left.type} and {right.type}"
                 )
+        elif isinstance(node, UnaryExpr):
+            if node.op == "-":
+                node_expr = parse_node(node.expr)
+                if node_expr.type is not Int:
+                    raise Exception("Unary operator - only supported on integers")
+                return Sub(Int(0), node_expr)
+            else:
+                raise Exception(f"Unsupported unary operator {node.op}")
         elif isinstance(node, IntExpr):
             return create_object(Int, node.value).src
         elif isinstance(node, ListExpr):
@@ -493,12 +504,3 @@ def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
             print("============================================")
             print("\n")
             solutions_seen.add(solution)
-
-
-if __name__ == "__main__":
-    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
-    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
-    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
-    # solutions_filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
-    solutions_filename = "tenspiler/llm/benchmarks/dexter/outputs/openai/ps/10_choices/screen_blend_8_ps_raw_response.json"
-    check_solutions(solutions_filename, 1)

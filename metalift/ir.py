@@ -1821,6 +1821,9 @@ class Var(Expr):
     def __init__(self, name: str, ty: ObjectT) -> None:
         Expr.__init__(self, ty, [name])
 
+    def set_name(self, name: str) -> None:
+        self.args[0] = name
+
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
