@@ -1250,7 +1250,6 @@ class VCVisitor:
             override_args = []
             if inv_grammar is not None:
                 override_args = inv_grammar.override_args
-            import pdb; pdb.set_trace()
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
                 args=override_args or args,
@@ -1785,7 +1784,7 @@ class MetaliftFunc:
             driver=self.driver,
             fn_name=self.fn_name,
             fn_ret_type=self.fn_ret_type,
-            fn_args=list(args),
+            fn_args=list(sorted(args, key=lambda obj: obj.var_name())),
             fn_sret_arg=sret_obj,
             var_tracker=self.driver.var_tracker,
             pred_tracker=self.driver.pred_tracker,

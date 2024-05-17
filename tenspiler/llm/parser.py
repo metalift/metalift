@@ -65,6 +65,7 @@ from metalift.ir import (
     fn_decl_recursive,
     is_fn_decl_type,
     is_list_type,
+    is_matrix_type,
     is_nested_list_type,
     ite,
 )
@@ -237,6 +238,7 @@ def mypy_node_to_ir(
             variables: pyList[Object] = []
             for arg, ir_type in zip(node.arguments, arg_ir_types):
                 variables.append(create_object(ir_type, arg.variable.name))
+            variables = sorted(variables, key=lambda x: x.var_name())
             # Because we are not sure if the function is recursive, we opt to always use the recursive definition
             # If the function is expressed as a lambda expression, then the name will be "<lambda>"
             return fn_decl_recursive(
@@ -285,7 +287,7 @@ def mypy_node_to_ir(
                     if len(node.args) != 1:
                         raise Exception("len() takes exactly one argument")
                     arg_expr = parse_node(node.args[0])
-                    if arg_expr.type.is_nested:
+                    if is_matrix_type(arg_expr.type) or is_nested_list_type(arg_expr.type):
                         list_func_name = "matrix_length"
                     else:
                         list_func_name = "list_length"

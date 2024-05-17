@@ -2,11 +2,13 @@ import argparse
 import os
 from pathlib import Path
 import json
+import time
 
 from openai import OpenAI
 
 from tenspiler.llm.parser import check_solution
 from tenspiler.llm.scripts.utils import (
+    extract,
     extract_and_write,
     get_inv_choice,
     get_num_inv_funcs,
@@ -30,6 +32,13 @@ def run_end_to_end_llm(
     fanout: int = 10,
     use_ps_json_file: bool = False
 ):
+    # verify_benchmark(
+    #     benchmark_name=benchmark_name,
+    #     synthesized_fn_decls=[],
+    #     in_calls=[]
+    # )
+    # exit(0)
+    start_time = time.time()
     fanout_dir = (
         BENCHMARKS_PATH
         / "outputs"
@@ -37,6 +46,7 @@ def run_end_to_end_llm(
         / "end_to_end"
         / f"{fanout}_fanout"
         / benchmark_suite
+        / benchmark_name
     )
     ps_output_dir = fanout_dir / "ps"
     inv_output_dir = fanout_dir / "inv"
@@ -47,7 +57,8 @@ def run_end_to_end_llm(
         if use_ps_json_file:
             json_filename = BENCHMARKS_PATH / benchmark_suite / "outputs" / "openai" / "ps_100_choices_final" / f"{benchmark_name}.json"
             with open(json_filename) as f:
-                ps_choice = json.load(f)[ps_idx]
+                all_sols = json.load(f)
+                ps_choice = extract(all_sols[ps_idx])[0]
         else:
             ps_choice = get_ps_choice(
                 client=client,
@@ -79,7 +90,6 @@ def run_end_to_end_llm(
                 source_code=source_code,
                 dsl_code=dsl_code,
             )
-
             inv_sol = extract_and_write(
                 inv_choice,
                 inv_output_dir / f"{benchmark_name}_ps_{ps_idx}_inv_{inv_idx}.txt",
@@ -107,6 +117,9 @@ def run_end_to_end_llm(
                 in_calls=[*ps_in_calls, *inv_in_calls],
             )
             if verification_success:
+                end_time = time.time()
+                print(f"Successfully verified the {inv_idx}th INV solution for the {ps_idx}th PS solution")
+                print(f"Time taken: {end_time - start_time}s")
                 return
 
 
@@ -146,4 +159,5 @@ if __name__ == "__main__":
         source_code=source_code,
         dsl_code=dsl_code,
         fanout=args.fanout,
+        use_ps_json_file=True
     )
