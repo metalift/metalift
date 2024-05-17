@@ -1,16 +1,12 @@
-import pytest
+# import pytest
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, List, call, fn_decl_recursive
 from metalift.vc_util import and_objects
-from tenspiler.llm.analysis import analyze_darken_blend_8
+from tenspiler.llm.parser import check_solution
 
-driver = Driver()
-analyze_darken_blend_8(driver)
-vc = and_objects(*driver.asserts).src
-print(vc)
+check_solution(None, 1)
 exit(0)
-
 # def fma(x, y, z):
 #     return x * y + z
 

@@ -652,16 +652,16 @@ LLVMVar = NamedTuple(
     ],
 )
 
-InvGrammar = NamedTuple(
-    "InvGrammar",
-    [
-        (
-            "func",
-            Optional[Callable[[List[Object], List[Object], List[Object]], Bool]],
-        ),
-        ("in_scope_var_names", List[str]),
-    ],
-)
+class InvGrammar:
+    def __init__(
+        self,
+        func: Optional[Callable[[List[Object], List[Object], List[Object]], Bool]],
+        in_scope_var_names: List[str] = [],
+        override_args: List[Object] = [],
+    ):
+        self.func = func
+        self.in_scope_var_names = in_scope_var_names
+        self.override_args = override_args
 
 
 class State:
@@ -1202,20 +1202,22 @@ class VCVisitor:
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             inv_grammar = self.inv_grammars.get(inv_name)
-            in_scope_objs = [
-                obj
-                for obj in in_scope_objs
-                if obj.var_name() in inv_grammar.in_scope_var_names
-            ]
+            if inv_grammar is not None:
+                in_scope_objs = [
+                    obj
+                    for obj in in_scope_objs
+                    if obj.var_name() in inv_grammar.in_scope_var_names
+                ]
             args = list(ObjectSet(havocs) + ObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
+            override_args = [] if inv_grammar is None else inv_grammar.override_args
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
-                args=args,
+                args=override_args or args,
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,
-                grammar=inv_grammar.func,
+                grammar=inv_grammar.func if inv_grammar is not None else None,
             )
             blk_state.precond.append(inv.call(blk_state))
 
@@ -1237,16 +1239,21 @@ class VCVisitor:
             for var_name, var_obj in blk_state.pointer_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
             inv_grammar = self.inv_grammars.get(inv_name)
-            in_scope_objs = [
-                obj
-                for obj in in_scope_objs
-                if obj.var_name() in inv_grammar.in_scope_var_names
-            ]
+            if inv_grammar is not None:
+                in_scope_objs = [
+                    obj
+                    for obj in in_scope_objs
+                    if obj.var_name() in inv_grammar.in_scope_var_names
+                ]
             args = list(ObjectSet(havocs) + ObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
+            override_args = []
+            if inv_grammar is not None:
+                override_args = inv_grammar.override_args
+            import pdb; pdb.set_trace()
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
-                args=args,
+                args=override_args or args,
                 writes=havocs,
                 reads=self.fn_args,
                 in_scope=in_scope_objs,

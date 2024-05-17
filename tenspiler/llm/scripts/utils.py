@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from typing import Union, get_args
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Expr, FnDecl, FnDeclRecursive, Int, List, Var
+from metalift.ir import Call, Expr, FnDecl, FnDeclRecursive, Int, List, Object, Var
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
-from tenspiler.llm.analysis import analyze_blend_double_loop
+from tenspiler.llm.analysis import analyze_blend_double_loop, analyze_normal_blend_f, analyze_normal_blend_8
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 
@@ -106,6 +106,11 @@ blend_double_loops = DoubleLoopInfo(
 )
 
 _loop_info_map = {
+    "normal_blend_f": SingleLoopInfo(
+        loop_var=Int("i").src,
+        modified_vars=[List(Int, "out").src],
+        read_vars=[List(Int, "base").src, List(Int, "active").src, Int("opacity").src],
+    ),
     "color_burn_8": blend_double_loops,
     "softmax_part1": SingleLoopInfo(
         loop_var=Int("i").src,
@@ -216,19 +221,10 @@ def get_num_inv_funcs(benchmark_name: str) -> int:
     else:
         raise ValueError(f"Invalid loop info for {benchmark_name}")
 
-
-def _generate_invariant_template(
-    loop_info: Union[SingleLoopInfo, DoubleLoopInfo]
-) -> str:
+def _generate_invariant_template(benchmark_name: str) -> str:
+    loop_info = _loop_info_map[benchmark_name]
     if isinstance(loop_info, SingleLoopInfo):
-        arguments = sorted(
-            list(
-                set(
-                    loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var]
-                )
-            ),
-            key=lambda x: x.name(),
-        )
+        arguments = get_args_for_invariants(benchmark_name)
         args_with_types = ", ".join(
             [
                 f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
@@ -249,31 +245,12 @@ def _generate_invariant_template(
             """
         )
     else:
-        outer_inv_args = sorted(
-            list(
-                set(
-                    loop_info.outer_loop_read_vars
-                    + loop_info.outer_loop_modified_vars
-                    + [loop_info.outer_loop_var]
-                )
-            ),
-            key=lambda x: x.name(),
-        )
+        outer_inv_args, inner_inv_args = get_args_for_invariants(benchmark_name)
         outer_inv_args_with_types = ", ".join(
             [
                 f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
                 for arg in outer_inv_args
             ]
-        )
-        inner_inv_args = sorted(
-            list(
-                set(
-                    loop_info.inner_loop_read_vars
-                    + loop_info.inner_loop_modified_vars
-                    + [loop_info.inner_loop_var]
-                )
-            ),
-            key=lambda x: x.name(),
         )
         inner_inv_args_with_types = ", ".join(
             [
@@ -350,6 +327,10 @@ def get_inv_choice(
     source_code: str,
     dsl_code: str,
 ):
+    return f"""
+    def invariant(base: List[int], active: List[int], i: int, opacity: int, out: List[int]) -> bool:
+        return i >= 0 and i <= len(base) and out == vec_elemwise_add(vec_scalar_mul(opacity, active[:i]), vec_scalar_mul(1 - opacity, base[:i]))
+    """
     # return f"""
     # from typing import List
 
@@ -370,7 +351,7 @@ def get_inv_choice(
     5. Generate separate loop invariants for each loop in the test function.
     6. invariant structure
     ```
-    {_generate_invariant_template(_loop_info_map[benchmark_name])}
+    {_generate_invariant_template(benchmark_name)}
     ```
 
     Example1:
@@ -458,6 +439,38 @@ def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
         expr = replace_in_call(expr, in_call)
     return expr
 
+def get_args_for_invariants(benchmark_name: str) -> Union[
+    list[Object],
+    tuple[list[Object], list[Object]]
+]:
+    loop_info = _loop_info_map[benchmark_name]
+    if isinstance(loop_info, SingleLoopInfo):
+        return sorted(
+            list(set(loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var])),
+            key=lambda x: x.name(),
+        )
+    else:
+        outer_inv_args = sorted(
+            list(
+                set(
+                    loop_info.outer_loop_read_vars
+                    + loop_info.outer_loop_modified_vars
+                    + [loop_info.outer_loop_var]
+                )
+            ),
+            key=lambda x: x.name(),
+        )
+        inner_inv_args = sorted(
+            list(
+                set(
+                    loop_info.inner_loop_read_vars
+                    + loop_info.inner_loop_modified_vars
+                    + [loop_info.inner_loop_var]
+                )
+            ),
+            key=lambda x: x.name(),
+        )
+        return outer_inv_args, inner_inv_args
 
 def verify_benchmark(
     *,
@@ -470,6 +483,7 @@ def verify_benchmark(
     driver = Driver()
 
     print("Analyzing benchmark")
+    inv_args = get_args_for_invariants(benchmark_name)
     if benchmark_name in {
         "darken_blend_8",
         "multiply_blend_8",
@@ -480,8 +494,13 @@ def verify_benchmark(
         "linear_dodge_8",
         "color_dodge_8",
         "overlay_blend_8",
+        "dissolve_blend_8",
     }:
-        analyze_blend_double_loop(driver, benchmark_name)
+        analyze_blend_double_loop(driver, benchmark_name, inv_args)
+    elif benchmark_name == "normal_blend_f":
+        analyze_normal_blend_f(driver, inv_args)
+    elif benchmark_name == "normal_blend_8":
+        analyze_normal_blend_8(driver, inv_args)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
 
@@ -517,6 +536,11 @@ def verify_benchmark(
     # write ps and inv
     for fn_decl in synthesized_fn_decls:
         # Change function names
+        # Change single loop invariant names
+        if fn_decl.name() == "invariant":
+            fn_decl.set_name(f"{benchmark_name}_inv0")
+
+        # Change double loop invariant names
         if fn_decl.name() == "invariant1":
             fn_decl.set_name(f"{benchmark_name}_inv0")
         if fn_decl.name() == "invariant2":

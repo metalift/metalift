@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import json
 
 from openai import OpenAI
 
@@ -27,6 +28,7 @@ def run_end_to_end_llm(
     source_code: str,
     dsl_code: str,
     fanout: int = 10,
+    use_ps_json_file: bool = False
 ):
     fanout_dir = (
         BENCHMARKS_PATH
@@ -42,11 +44,16 @@ def run_end_to_end_llm(
     inv_output_dir.mkdir(parents=True, exist_ok=True)
 
     for ps_idx in range(fanout):
-        ps_choice = get_ps_choice(
-            client=client,
-            source_code=source_code,
-            dsl_code=dsl_code,
-        )
+        if use_ps_json_file:
+            json_filename = BENCHMARKS_PATH / benchmark_suite / "outputs" / "openai" / "ps_100_choices_final" / f"{benchmark_name}.json"
+            with open(json_filename) as f:
+                ps_choice = json.load(f)[ps_idx]
+        else:
+            ps_choice = get_ps_choice(
+                client=client,
+                source_code=source_code,
+                dsl_code=dsl_code,
+            )
         ps_sol = extract_and_write(
             ps_choice, ps_output_dir / f"{benchmark_name}_{ps_idx}.txt"
         )
@@ -56,6 +63,7 @@ def run_end_to_end_llm(
         print("Passing through parser")
         try:
             ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
+            print("Passed parser!")
         except Exception as e:
             print(f"Failed to parse the {ps_idx}th PS solution")
             print(e)
@@ -82,6 +90,7 @@ def run_end_to_end_llm(
             print("Passing through parser")
             try:
                 inv_fn_decls, inv_in_calls = check_solution(inv_sol, num_inv_funcs)
+                print("Passed parser!")
             except Exception as e:
                 print(
                     f"Failed to parse the {inv_idx}th INV solution for the {ps_idx}th PS solution"
