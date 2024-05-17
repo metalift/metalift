@@ -1,0 +1,7 @@
+
+def dissolve_blend_8(base, active, opacity, rand_cons):
+    return matrix_selection_two_args(
+        active, 
+        base, 
+        lambda a, b: ite(opacity - ((rand_cons % 100) + 1) / 100 >= 0, a, b)
+    )

@@ -1,0 +1,3 @@
+
+def multiply_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_elemwise_div(matrix_elemwise_mul(base, active), matrix_scalar_mul(32, base))
