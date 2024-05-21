@@ -10,6 +10,38 @@ def _process_args(args: list[Object], replace_args: dict[str, str]) -> list[Obje
         new_args.append(create_object(arg.type, arg_name))
     return new_args
 
+def analyze_dissolve_blend_8(driver: Driver, inv_args: tuple[list[Object], list[Object]]) -> None:
+    inv0_args, inv1_args = inv_args
+    replace_args = {"out": "agg.result"}
+    inv0_args = _process_args(inv0_args, replace_args)
+    inv1_args = _process_args(inv1_args, replace_args)
+    inv0_grammar = InvGrammar(None, [], inv0_args)
+    inv1_grammar = InvGrammar(None, [], inv1_args)
+    dissolve_blend_8 = driver.analyze(
+        llvm_filepath="tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.ll",
+        loops_filepath="tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.loops",
+        fn_name="dissolve_blend_8",
+        target_lang_fn=[],
+        inv_grammars={
+            "dissolve_blend_8_inv0": inv0_grammar,
+            "dissolve_blend_8_inv1": inv1_grammar,
+        },
+        ps_grammar=None,
+    )
+
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
+    opacity = Int("opacity")
+    rand_cons = Int("rand_cons")
+    driver.add_var_objects([base, active, opacity, rand_cons])
+
+    # Add preconditions
+    driver.add_precondition(base.len() > 1)
+    driver.add_precondition(base.len() == active.len())
+    driver.add_precondition(base[0].len() == active[0].len())
+
+    dissolve_blend_8(base, active, opacity, rand_cons)
+
 def analyze_blend_double_loop(
     driver: Driver,
     benchmark_name: str,

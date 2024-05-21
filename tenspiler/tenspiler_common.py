@@ -58,9 +58,9 @@ SELECT_TWO_ARGS = "select_two_args"
 DISSOLVE_SELECT_TWO_ARGS = "dissolve_select_two_args"
 SELECT_TWO_ARGS_ARG = "select_two_args_arg"
 DISSOLVE_SELECT_TWO_ARGS_ARG = "dissolve_select_two_args_arg"
-SELECTION_TWO_ARGS = "selection_two_args"
+VECTOR_WHERE = "vector_where"
 DISSOLVE_SELECTION_TWO_ARGS = "dissolve_selection_two_args"
-MATRIX_SELECTION_TWO_ARGS = "matrix_selection_two_args"
+MATRIX_WHERE = "matrix_where"
 DISSOLVE_MATRIX_SELECTION_TWO_ARGS = "dissolve_matrix_selection_two_args"
 
 # Uninterpreted functions
@@ -243,7 +243,7 @@ def call_reduce_max(lst) -> Int:
 def call_selection_two_args(
     left: mlList[Int], right: mlList[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
 ) -> mlList[Int]:
-    return call(SELECTION_TWO_ARGS, mlList[Int], left, right, select_fn)
+    return call(VECTOR_WHERE, mlList[Int], left, right, select_fn)
 
 
 def call_dissolve_selection_two_args(
@@ -267,7 +267,7 @@ def call_dissolve_selection_two_args(
 def call_matrix_selection_two_args(
     left: Matrix[Int], right: Matrix[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
 ) -> Matrix[Int]:
-    return call(MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
+    return call(MATRIX_WHERE, Matrix[Int], left, right, select_fn)
 
 
 def call_dissolve_matrix_selection_two_args(
@@ -553,7 +553,7 @@ def matrix_selection_two_args_body(
 
 
 matrix_selection_two_args_fn_decl = fn_decl_recursive(
-    MATRIX_SELECTION_TWO_ARGS,
+    MATRIX_WHERE,
     Matrix[Int],
     matrix_selection_two_args_body(matrix_x, matrix_y, select_two_args_fn_obj_arg),
     matrix_x,
@@ -611,7 +611,7 @@ def selection_two_args_body(
 
 
 selection_two_args_fn_decl = fn_decl_recursive(
-    SELECTION_TWO_ARGS,
+    VECTOR_WHERE,
     mlList[Int],
     selection_two_args_body(x, y, select_two_args_fn_obj_arg),
     x,

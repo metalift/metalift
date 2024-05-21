@@ -238,7 +238,9 @@ def mypy_node_to_ir(
             variables: pyList[Object] = []
             for arg, ir_type in zip(node.arguments, arg_ir_types):
                 variables.append(create_object(ir_type, arg.variable.name))
-            variables = sorted(variables, key=lambda x: x.var_name())
+            if isinstance(node, FuncDef):
+                # Sort the variables by name so that the order is consistent
+                variables = sorted(variables, key=lambda x: x.var_name())
             # Because we are not sure if the function is recursive, we opt to always use the recursive definition
             # If the function is expressed as a lambda expression, then the name will be "<lambda>"
             return fn_decl_recursive(
