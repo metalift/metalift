@@ -1,4 +1,49 @@
-from typing import Callable, List
+Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula. Please do not generate any explanations.
+
+    #Instructions:
+    1. You need to use only the defined functions to write the loop invariant.
+    2. Do not use for/while loops for rewriting the function.
+    3. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+    4. Inline all the expressions. Do not use intermediate variables.
+    5. Generate separate loop invariants for each loop in the test function.
+    6. invariant structure
+    ```
+    
+def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
+    return row op expr() and row op expr() and out == operation over defined functions
+
+def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
+    return col op expr() and col op expr() and row op expr() and row op expr() and out == operation over defined functions and row_vec == operation over defined functions
+
+    ```
+
+    Example1:
+    ```
+    #defined functions
+    def map(data: list[int] , f: func):
+        return [f(x) for x in data]
+    def reduce(data: list[int] , f: func):
+        if len(data) == 0:
+            return 0
+        else:
+            return f(data[0], reduce(data[1:], f))
+    def add(a: int , b: int):
+        return a + b
+    constants = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    #test function
+    def test(data: list[int]):
+        count = 0
+        for i in range(len(data)):
+            count += 1
+        assert count == reduce(map(data, lambda x: 1), add)
+    def invariant(data: list[int], count: int, i:int):
+        return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
+    ```
+
+    Example2:
+    ```
+    #defined functions
+    from typing import Callable, List
 
 
 def matrix_scalar_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
@@ -45,30 +90,30 @@ def vec_map(x: List[int], map_int_to_int: Callable[[int], int]) -> List[int]:
     return [] if len(x) < 1 else [map_int_to_int(x[0]), *vec_map(x[1:], map_int_to_int)]
 
 
-def matrix_where(
+def matrix_selection_two_args(
     matrix_x: List[List[int]],
     matrix_y: List[List[int]],
-    condition: Callable[[int, int], int],
+    select_two_args_arg: Callable[[int, int], int],
 ) -> List[List[int]]:
     return (
         []
         if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
         else [
-            vector_where(matrix_x[0], matrix_y[0], condition),
-            *matrix_where(matrix_x[1:], matrix_y[1:], condition),
+            selection_two_args(matrix_x[0], matrix_y[0], select_two_args_arg),
+            *matrix_selection_two_args(matrix_x[1:], matrix_y[1:], select_two_args_arg),
         ]
     )
 
 
-def vector_where(
-    x: List[int], y: List[int], condition: Callable[[int, int], int]
+def selection_two_args(
+    x: List[int], y: List[int], select_two_args_arg: Callable[[int, int], int]
 ) -> List[int]:
     return (
         []
         if len(x) < 1 or not len(x) == len(y)
         else [
-            condition(x[0], y[0]),
-            *vector_where(x[1:], y[1:], condition),
+            select_two_args_arg(x[0], y[0]),
+            *selection_two_args(x[1:], y[1:], select_two_args_arg),
         ]
     )
 
@@ -265,3 +310,26 @@ def integer_sqrt(n: int) -> int:
 
 def ite(cond: bool, a: int, b: int) -> int:
     return a if cond else b
+
+    //test function
+    #include <vector>
+using namespace std;
+
+vector<vector<int>> linear_dodge_8(vector<vector<int>> base, vector<vector<int>> active)
+{
+    vector<vector<int>> out;
+    int m = base.size();
+    int n = base[0].size();
+	for (int row = 0; row < m; row++) {
+        vector<int> row_vec;
+		for (int col = 0; col < n; col++) {
+			int pixel = base[row][col] + active[row][col];
+			row_vec.push_back(pixel);
+		}
+		out.push_back(row_vec);
+	}
+assert out == matrix_elemwise_add(base, active)
+}
+
+    ```
+    

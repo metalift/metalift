@@ -1,0 +1,1 @@
+["\n        from typing import List\n\n        def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n            return matrix_where(base, active, lambda x, y: ite(y == 32, 32, x // (32 - y)))\n        "]

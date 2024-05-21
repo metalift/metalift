@@ -1,8 +1,0 @@
-
-from typing import List
-
-def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
-    return row >= 0 and row <= len(base) and out == matrix_elemwise_div(matrix_elemwise_mul(base[:row], active[:row]), matrix_scalar_mul(32, base[:row]))
-
-def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
-    return col >= 0 and col <= len(base[0]) and row >= 0 and row <= len(base) and out == matrix_elemwise_div(matrix_elemwise_mul(base[:row], active[:row]), matrix_scalar_mul(32, base[:row])) and row_vec == vec_elemwise_div(vec_elemwise_mul(base[row][:col], active[row][:col]), vec_scalar_mul(32, base[row][:col]))

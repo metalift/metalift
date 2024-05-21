@@ -3,20 +3,23 @@ import re
 import subprocess
 import textwrap
 from dataclasses import dataclass
+import time
 from typing import Union, get_args
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, List, Object, Var
+from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, List, Lit, Object, Var
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
-from tenspiler.llm.analysis import analyze_blend_double_loop, analyze_normal_blend_f, analyze_normal_blend_8
+from tenspiler.llm.analysis import analyze_blend_double_loop, analyze_dissolve_blend_8, analyze_normal_blend_f, analyze_normal_blend_8
+import json
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
+TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same Please generate another program."
 
 
 # regex to extract the code from the completions
-def extract(s):
+def extract(s) -> list[str]:
     extracted_result = [
         x.group(1)
         for x in re.finditer(r"```(?:Python|python|assembly)?(.*?)```", s, re.DOTALL)
@@ -27,28 +30,40 @@ def extract(s):
 
 
 # TODO(jie): add type
-def extract_and_write(choice, output_file) -> str:
-    if isinstance(choice, str):
-        # For testing purpose
-        content = choice
-    else:
-        content = choice.message.content
+def extract_and_save(choices, output_file: Path) -> str:
+    final_content: list[str] = []
+    for choice in choices:
+        if isinstance(choice, str):
+            # For testing purpose
+            content = choice
+        else:
+            content = choice.message.content
+        final_content.append("\n\n".join(extract(content)))
 
-    final_content = "\n\n".join(extract(content))
     with open(output_file, "w") as f:
-        f.write(final_content)
+        json.dump(final_content, f)
     return final_content
 
 
+
 # TODO(jie): add type
-def get_ps_choice(*, client, source_code: str, dsl_code: str):
-    # return """
-    # def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-    #     return matrix_selection_two_args(base, active, lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
-    # """
-    # prompt for guessing the post conditions of a function. dsl_code is the set of functions and constants that can be used to rewrite the function. source_code is the function to be rewritten.
+def get_ps_choice_and_save_prompt(
+    *,
+    client,
+    source_code: str,
+    dsl_code: str,
+    output_file: Path,
+    prev_incorrect_sols: set[str]
+):
+    return [f"""
+    def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
+        return matrix_where(
+            base,
+            active,
+            lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
+    """]
     ps_template_text = f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please do not generate any explanations.
+    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
     #Instructions
     # 1. Do not use for/while loops for rewriting the function.
     # 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
@@ -63,16 +78,27 @@ def get_ps_choice(*, client, source_code: str, dsl_code: str):
     ```
     """
     # call the completions endpoint to get the completions for the prompt
+    messages = [
+        {"role": "system", "content": TEMPLATE_SYS},
+        {"role": "user", "content": ps_template_text},
+    ]
+    if len(prev_incorrect_sols) > 0:
+        messages.append({"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)})
+        messages.append({"role": "user", "content": TEMPLATE_ERR})
+
+    with open(output_file, "w") as f:
+        json.dump(messages, f)
+
+    call_start_time = time.time()
     outputs = client.chat.completions.create(
         model="gpt-4",  # model to use
-        messages=[
-            {"role": "system", "content": TEMPLATE_SYS},
-            {"role": "user", "content": ps_template_text},
-        ],
-        n=1,  # We always sample 1 solution at a time
+        messages=messages,
+        n=10,  # We always sample 1 solution at a time
         temperature=0.7,
     )
-    return outputs.choices[0]
+    call_end_time = time.time()
+    print(f"ps call took {call_end_time - call_start_time}s")
+    return outputs.choices
 
 
 ######
@@ -114,6 +140,16 @@ blend_double_loops = DoubleLoopInfo(
 _output_var_map = {
     "normal_blend_f": List(Int, "out").src,
     "normal_blend_8": List(Int, "out").src,
+    "darken_blend_8": List(List[Int], "out").src,
+    "multiply_blend_8": List(List[Int], "out").src,
+    "linear_burn_8": List(List[Int], "out").src,
+    "color_burn_8": List(List[Int], "out").src,
+    "lighten_blend_8": List(List[Int], "out").src,
+    "screen_blend_8": List(List[Int], "out").src,
+    "linear_dodge_8": List(List[Int], "out").src,
+    "color_dodge_8": List(List[Int], "out").src,
+    "overlay_blend_8": List(List[Int], "out").src,
+    "dissolve_blend_8": List(List[Int], "out").src,
 }
 
 _loop_info_map = {
@@ -136,7 +172,25 @@ _loop_info_map = {
     "linear_dodge_8": blend_double_loops,
     "color_dodge_8": blend_double_loops,
     "overlay_blend_8": blend_double_loops,
-    "dissolve_blend_8": blend_double_loops,
+    "dissolve_blend_8": DoubleLoopInfo(
+        outer_loop_var=Int("row").src,
+        inner_loop_var=Int("col").src,
+        outer_loop_read_vars=[
+            List(List[Int], "base").src,
+            List(List[Int], "active").src,
+            Int("opacity").src,
+            Int("rand_cons").src,
+        ],
+        inner_loop_read_vars=[
+            List(List[Int], "base").src,
+            List(List[Int], "active").src,
+            Int("opacity").src,
+            Int("rand_cons").src,
+            Int("row").src,
+        ],
+        outer_loop_modified_vars=[List(List[Int], "out").src],
+        inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
+    ),
     "softmax_part1": SingleLoopInfo(
         loop_var=Int("i").src,
         modified_vars=[Int("max_val").src],
@@ -344,25 +398,27 @@ def _get_inv_source_code(ps_code: str, source_code: str) -> str:
     return "\n".join(lines)
 
 
-def get_inv_choice(
+def get_inv_choice_and_save_prompt(
     *,
     client,
     benchmark_name: str,
     ps_solution: str,
     source_code: str,
     dsl_code: str,
+    output_file: Path,
+    prev_incorrect_sols: set[str],
 ):
-    # return f"""
-    # from typing import List
+    return [
+        f"""
+        def invariant1(base: List[List[int]], active: List[List[int]], opacity: int, out: List[List[int]], rand_cons: int, row: int) -> bool:
+            return row >= 0 and row <= len(base) and out == matrix_where( base[:row], active[:row], lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
 
-    # def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
-    #     return row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
-
-    # def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
-    #     return col >= 0 and col <= len(active[0]) and row >= 0 and row <= len(active) and out == matrix_selection_two_args(base[:row], active[:row], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a)) and row_vec == selection_two_args(base[row][:col], active[row][:col], lambda b, a: ite(a == 0, 255, 255 - (255 - b) // a))
-    # """
+        def invariant2(base: List[List[int]], active: List[List[int]], col: int, opacity: int, out: List[List[int]], rand_cons: int, row: int, row_vec: List[int]) -> bool:
+            return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and row_vec == vector_where( base[row][:col], active[row][:col], lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel) and out == matrix_where( base[:row], active[:row], lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
+        """
+    ]
     # prompt for generating invariants of a function.
-    inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula. Please do not generate any explanations.
+    inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
     #Instructions:
     1. You need to use only the defined functions to write the loop invariant.
@@ -378,24 +434,43 @@ def get_inv_choice(
     Example1:
     ```
     #defined functions
-    def map(data: list[int] , f: func):
-        return [f(x) for x in data]
-    def reduce(data: list[int] , f: func):
-        if len(data) == 0:
-            return 0
-        else:
-            return f(data[0], reduce(data[1:], f))
-    def add(a: int , b: int):
-        return a + b
-    constants = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    #test function
-    def test(data: list[int]):
-        count = 0
-        for i in range(len(data)):
-            count += 1
-        assert count == reduce(map(data, lambda x: 1), add)
-    def invariant(data: list[int], count: int, i:int):
-        return i >= 0 and i <= len(data) and count == reduce(map(data[:i], lambda x: 1), add)
+
+    def vec_elemwise_sub(x: list[int], y: list[int]) -> list[int]:
+        return (
+            []
+            if len(x) < 1 or not len(x) == len(y)
+            else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
+        )
+    def matrix_elemwise_sub(matrix_x,: list[list[int]], matrix_y: list[list[int]]) -> list[list[int]]:
+        return (
+            []
+            if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+            else [
+                vec_elemwise_sub(matrix_x[0], matrix_y[0]),
+                *matrix_elemwise_sub(matrix_x[1:], matrix_y[1:]),
+            ]
+        )
+    //test function
+    vector<vector<uint8_t>> test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
+    {{
+        vector<vector<uint8_t>> out;
+        uint8_t m = base.size();
+        uint8_t n = base[0].size();
+        for (uint8_t row = 0; row < m; row++) {{
+            vector<uint8_t> row_vec;
+            for (uint8_t col = 0; col < n; col++) {{
+                uint8_t pixel = base[row][col] - active[row][col] ;
+                row_vec.push_back(pixel);
+
+            }}
+            out.push_back(row_vec);
+        }}
+        assert out == matrix_elemwise_sub(base, active);
+    }}
+    def invariant1(row, col, base, active, out):
+        return row >= 0 and row <= base.size() and out == matrix_elemwise_sub(base[:row], active[:row])
+    def invariant2(row, col, base, active, row_vec, out):
+        return row >= 0 and row < base.size() and col >= 0 and col <= base[0].size() and row_vec == vec_elemwise_sub(base[row][:col], active[row][:col]) and out == matrix_elemwise_sub(base[:row], active[:row])
     ```
 
     Example2:
@@ -407,16 +482,27 @@ def get_inv_choice(
     {_get_inv_source_code(ps_solution, source_code)}
     ```
     """
+    messages = [
+        {"role": "system", "content": TEMPLATE_SYS},
+        {"role": "user", "content": inv_template_text},
+    ]
+    if len(prev_incorrect_sols) > 0:
+        messages.append({"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)})
+        messages.append({"role": "user", "content": TEMPLATE_ERR})
+
+    with open(output_file, "w") as f:
+        json.dump(messages, f)
+
+    call_start_time = time.time()
     outputs = client.chat.completions.create(
         model="gpt-4",  # model to use
-        messages=[
-            {"role": "system", "content": TEMPLATE_SYS},
-            {"role": "user", "content": inv_template_text},
-        ],
-        n=1,
+        messages=messages,
+        n=10,
         temperature=0.7,
     )
-    return outputs.choices[0]
+    call_end_time = time.time()
+    print(f"inv call took {call_end_time - call_start_time}s")
+    return outputs.choices
 
 
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
@@ -451,6 +537,8 @@ def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
                 replace_in_call(expr.body(), in_call),
                 *new_args,
             )
+    elif isinstance(expr, Var) or isinstance(expr, Lit):
+        return expr
     else:
         return expr.map_args(lambda x: replace_in_call(x, in_call))
 
@@ -505,17 +593,9 @@ def process_ps_fn_decl(
         output_var
     )
 
-def verify_benchmark(
-    *,
-    benchmark_name: str,
-    synthesized_fn_decls: list[Union[FnDecl, FnDeclRecursive]],
-    in_calls: list[tuple[str, str]],
-    list_bound: int = 2,
-    bitwidth: int = 6,
-) -> bool:
+def analyze_benchmark(benchmark_name: str) -> Driver:
+    print(f"Analyzing benchmark {benchmark_name}")
     driver = Driver()
-
-    print("Analyzing benchmark")
     inv_args = get_args_for_invariants(benchmark_name)
     if benchmark_name in {
         "darken_blend_8",
@@ -527,17 +607,29 @@ def verify_benchmark(
         "linear_dodge_8",
         "color_dodge_8",
         "overlay_blend_8",
-        "dissolve_blend_8",
     }:
         analyze_blend_double_loop(driver, benchmark_name, inv_args)
+    elif benchmark_name == "dissolve_blend_8":
+        analyze_dissolve_blend_8(driver, inv_args)
     elif benchmark_name == "normal_blend_f":
         analyze_normal_blend_f(driver, inv_args)
     elif benchmark_name == "normal_blend_8":
         analyze_normal_blend_8(driver, inv_args)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
+    return driver
 
-    print("Finished analyzing benchmark, starting verification")
+def verify_benchmark(
+    *,
+    driver: Driver,
+    benchmark_name: str,
+    synthesized_fn_decls: list[Union[FnDecl, FnDeclRecursive]],
+    in_calls: list[tuple[str, str]],
+    list_bound: int = 2,
+    bitwidth: int = 6,
+) -> bool:
+    print(f"Generating verification file for benchmark {benchmark_name}")
+
     synthesis_logs_dir = Path("./synthesisLogs")
     synthesis_logs_dir.mkdir(exist_ok=True)
     verify_file_name = f"./synthesisLogs/verify_{benchmark_name}.rkt"
@@ -561,10 +653,11 @@ def verify_benchmark(
         # TODO(jie): this is a bit hacky. We could remove all these functions in utils.rkt, but then we need to make sure that they are added to perspective driver files.
         if fn_decl.name().startswith("integer"):
             continue
-        if fn_decl in {"firsts"}:
+        if fn_decl.name() in {"firsts"}:
             continue
         if fn_decl.body() is None:
             continue
+
         fn_decl = replace_in_calls(fn_decl, in_calls)
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
@@ -605,6 +698,8 @@ def verify_benchmark(
     f.close()
 
     # Run the verification
+    print(f"Running verification for benchmark {benchmark_name}")
+    return False
     verification_output = subprocess.run(
         ["racket", verify_file_name], check=True, capture_output=True
     )
