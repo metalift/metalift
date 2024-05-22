@@ -82,28 +82,28 @@ def get_ps_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    return [
-        f"""
-        def transformer_part2(
-            token_position: int,
-            head: int,
-            head_size: int,
-            key_cache_layer: List[List[int]],
-            attention: List[int]
-        ) -> List[int]:
+    # return [
+    #     f"""
+    #     def transformer_part2(
+    #         token_position: int,
+    #         head: int,
+    #         head_size: int,
+    #         key_cache_layer: List[List[int]],
+    #         attention: List[int]
+    #     ) -> List[int]:
 
-            return matrix_vec_mul(
-                matrix_transpose(
-                    matrix_col_slice(
-                        matrix_row_slice(key_cache_layer, 0, token_position + 1),
-                        head * head_size,
-                        (head + 1) * head_size
-                    )
-                ),
-                attention[:token_position + 1]
-            )
-        """
-    ]
+    #         return matrix_vec_mul(
+    #             matrix_transpose(
+    #                 matrix_col_slice(
+    #                     matrix_row_slice(key_cache_layer, 0, token_position + 1),
+    #                     head * head_size,
+    #                     (head + 1) * head_size
+    #                 )
+    #             ),
+    #             attention[:token_position + 1]
+    #         )
+    #     """
+    # ]
     # return [
     #     f"""
     #     def transformer_part4(input1: List[int], input2: List[int], hidden_dim: int) -> List[int]:
@@ -140,15 +140,22 @@ def get_ps_choice_and_save_prompt(
         json.dump(messages, f)
 
     call_start_time = time.time()
-    outputs = client.chat.completions.create(
-        model="gpt-4",  # model to use
-        messages=messages,
-        n=50,  # We always sample 1 solution at a time
-        temperature=0.7,
+    message = client.messages.create(
+        model="claude-3-opus-20240229",
+        max_tokens=1000,
+        temperature=0.0,
+        system=TEMPLATE_SYS,
+        messages=[{"role": "user", "content": ps_template_text}],
     )
+    # outputs = client.chat.completions.create(
+    #     model="gpt-4",  # model to use
+    #     messages=messages,
+    #     n=50,  # We always sample 1 solution at a time
+    #     temperature=0.7,
+    # )
     call_end_time = time.time()
     print(f"ps call took {call_end_time - call_start_time}s")
-    return outputs.choices
+    return [message.content[0].text]
 
 
 ######
@@ -561,15 +568,22 @@ def get_inv_choice_and_save_prompt(
         json.dump(messages, f)
 
     call_start_time = time.time()
-    outputs = client.chat.completions.create(
-        model="gpt-4",  # model to use
-        messages=messages,
-        n=50,
-        temperature=0.7,
+    message = client.messages.create(
+        model="claude-3-opus-20240229",
+        max_tokens=1000,
+        temperature=0.0,
+        system=TEMPLATE_SYS,
+        messages=[{"role": "user", "content": inv_template_text}],
     )
+    # outputs = client.chat.completions.create(
+    #     model="gpt-4",  # model to use
+    #     messages=messages,
+    #     n=50,
+    #     temperature=0.7,
+    # )
     call_end_time = time.time()
     print(f"inv call took {call_end_time - call_start_time}s")
-    return outputs.choices
+    return [message.content[0].text]
 
 
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
