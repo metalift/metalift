@@ -43,7 +43,7 @@ from tenspiler.llm.analysis import (
 )
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
-TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same Please generate another program."
+TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same. Please generate another program."
 
 
 # regex to extract the code from the completions
