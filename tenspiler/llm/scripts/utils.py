@@ -1,18 +1,42 @@
-from pathlib import Path
+import json
 import re
 import subprocess
 import textwrap
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Union, get_args
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, List, Lit, Object, Var
+from metalift.ir import (
+    Bool,
+    Call,
+    Eq,
+    Expr,
+    FnDecl,
+    FnDeclRecursive,
+    Int,
+    List,
+    Lit,
+    Object,
+    Var,
+)
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
-from tenspiler.llm.analysis import analyze_blend_double_loop, analyze_dissolve_blend_8, analyze_normal_blend_f, analyze_normal_blend_8, analyze_rmsnorm_part1, analyze_softmax_part1, analyze_softmax_part2, analyze_softmax_part3, analyze_softmax_part4
-import json
+from tenspiler.llm.analysis import (
+    analyze_blend_double_loop,
+    analyze_dissolve_blend_8,
+    analyze_matmul,
+    analyze_normal_blend_8,
+    analyze_normal_blend_f,
+    analyze_rmsnorm_part1,
+    analyze_rmsnorm_part2,
+    analyze_softmax_part1,
+    analyze_softmax_part2,
+    analyze_softmax_part3,
+    analyze_softmax_part4,
+)
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same Please generate another program."
@@ -40,10 +64,9 @@ def extract_and_save(choices, output_file: Path) -> str:
             content = choice.message.content
         final_content.append("\n\n".join(extract(content)))
 
-    with open(output_file, "w") as f:
-        json.dump(final_content, f)
+    # with open(output_file, "w") as f:
+    #     json.dump(final_content, f)
     return final_content
-
 
 
 # TODO(jie): add type
@@ -53,8 +76,14 @@ def get_ps_choice_and_save_prompt(
     source_code: str,
     dsl_code: str,
     output_file: Path,
-    prev_incorrect_sols: set[str]
+    prev_incorrect_sols: set[str],
 ):
+    return [
+        f"""
+        def matmul(weight: List[List[int]], input: List[int]) -> List[int]:
+            return matrix_vec_mul(weight, input)
+        """
+    ]
     ps_template_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
     #Instructions
@@ -76,7 +105,9 @@ def get_ps_choice_and_save_prompt(
         {"role": "user", "content": ps_template_text},
     ]
     if len(prev_incorrect_sols) > 0:
-        messages.append({"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)})
+        messages.append(
+            {"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)}
+        )
         messages.append({"role": "user", "content": TEMPLATE_ERR})
 
     with open(output_file, "w") as f:
@@ -148,6 +179,8 @@ _output_var_map = {
     "softmax_part3": Int("sum").src,
     "softmax_part4": List(Int, "output").src,
     "rmsnorm_part1": Int("ss").src,
+    "rmsnorm_part2": List(Int, "output").src,
+    "matmul": List(Int, "output").src,
 }
 
 _loop_info_map = {
@@ -233,8 +266,8 @@ _loop_info_map = {
             List(Int, "output").src,
             Int("row").src,
         ],
-        outer_loop_modified_vars=[List(Int, "output").src, Int("curr").src],
-        inner_loop_modified_vars=[Int("curr").src],
+        outer_loop_modified_vars=[List(Int, "output").src],
+        inner_loop_modified_vars=[List(Int, "output").src, Int("curr").src],
     ),
     "transformer_part1": DoubleLoopInfo(
         outer_loop_var=Int("timestep").src,
@@ -297,6 +330,7 @@ def get_num_inv_funcs(benchmark_name: str) -> int:
         return 2
     else:
         raise ValueError(f"Invalid loop info for {benchmark_name}")
+
 
 def _generate_invariant_template(benchmark_name: str) -> str:
     loop_info = _loop_info_map[benchmark_name]
@@ -406,9 +440,20 @@ def get_inv_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
+    return [
+        f"""
+        def invariant1(row: int, weight: List[List[int]], input: List[int], output: List[int]) -> bool:
+            return row >= 0 and row <= len(weight) and output == matrix_vec_mul(weight[:row], input)
+
+        def invariant2(col: int, curr: int, row: int, weight: List[List[int]], input: List[int], output: List[int]) -> bool:
+            return col >= 0 and col <= len(input) and row >= 0 and row < len(weight) and curr == reduce_sum(vec_elemwise_mul(weight[row][:col], input[:col])) and output == matrix_vec_mul(weight[:row], input)
+        """
+    ]
     tmp = _generate_invariant_template(benchmark_name)
     print("inv template", tmp)
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     # prompt for generating invariants of a function.
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
@@ -479,7 +524,9 @@ def get_inv_choice_and_save_prompt(
         {"role": "user", "content": inv_template_text},
     ]
     if len(prev_incorrect_sols) > 0:
-        messages.append({"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)})
+        messages.append(
+            {"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)}
+        )
         messages.append({"role": "user", "content": TEMPLATE_ERR})
 
     with open(output_file, "w") as f:
@@ -540,14 +587,18 @@ def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
         expr = replace_in_call(expr, in_call)
     return expr
 
-def get_args_for_invariants(benchmark_name: str) -> Union[
-    list[Object],
-    tuple[list[Object], list[Object]]
-]:
+
+def get_args_for_invariants(
+    benchmark_name: str,
+) -> Union[list[Object], tuple[list[Object], list[Object]]]:
     loop_info = _loop_info_map[benchmark_name]
     if isinstance(loop_info, SingleLoopInfo):
         return sorted(
-            list(set(loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var])),
+            list(
+                set(
+                    loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var]
+                )
+            ),
             key=lambda x: x.name(),
         )
     else:
@@ -573,6 +624,7 @@ def get_args_for_invariants(benchmark_name: str) -> Union[
         )
         return outer_inv_args, inner_inv_args
 
+
 def process_ps_fn_decl(
     fn_decl: Union[FnDecl, FnDeclRecursive],
     output_var: Object,
@@ -582,8 +634,9 @@ def process_ps_fn_decl(
         Bool,
         Eq(output_var, fn_decl.body()),
         *fn_decl.arguments(),
-        output_var
+        output_var,
     )
+
 
 def analyze_benchmark(benchmark_name: str) -> Driver:
     print(f"Analyzing benchmark {benchmark_name}")
@@ -617,9 +670,14 @@ def analyze_benchmark(benchmark_name: str) -> Driver:
         analyze_softmax_part4(driver, inv_args)
     elif benchmark_name == "rmsnorm_part1":
         analyze_rmsnorm_part1(driver, inv_args)
+    elif benchmark_name == "rmsnorm_part2":
+        analyze_rmsnorm_part2(driver, inv_args)
+    elif benchmark_name == "matmul":
+        analyze_matmul(driver, inv_args)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
     return driver
+
 
 def verify_benchmark(
     *,
@@ -679,10 +737,7 @@ def verify_benchmark(
         # Change ps function name
         if fn_decl.name() == benchmark_name:
             fn_decl.set_name(f"{benchmark_name}_ps")
-            fn_decl = process_ps_fn_decl(
-                fn_decl,
-                _output_var_map[benchmark_name]
-            )
+            fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
     # Write variables

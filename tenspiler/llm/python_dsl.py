@@ -105,18 +105,6 @@ def integer_exp(n: int) -> int:
     return 1 if n <= 0 else (integer_exp((n - 1)) * 3 % 64)
 
 
-def integer_sqrt_helper(n: int, guess: int) -> int:
-    return (
-        1
-        if guess == 0 or guess == 1 or guess > 64
-        else (
-            guess
-            if guess == (n // guess)
-            else integer_sqrt_helper(n, (guess + (n // guess) // 2))
-        )
-    )
-
-
 def reduce_max(x: List[int]) -> int:
     return (
         x[0]
@@ -262,6 +250,7 @@ def reduce_sum(x: List[int]) -> int:
 
 def integer_sqrt(n: int) -> int:
     return integer_sqrt_helper((n // 2), n)
+
 
 def ite(cond: bool, a: int, b: int) -> int:
     return a if cond else b

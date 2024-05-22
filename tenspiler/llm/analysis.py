@@ -1,6 +1,5 @@
-from collections import defaultdict
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Int, List, Matrix, Object, Var, create_object
+from metalift.ir import Int, List, Matrix, Object, create_object
 
 
 def _process_args(args: list[Object], replace_args: dict[str, str]) -> list[Object]:
@@ -10,7 +9,10 @@ def _process_args(args: list[Object], replace_args: dict[str, str]) -> list[Obje
         new_args.append(create_object(arg.type, arg_name))
     return new_args
 
-def analyze_dissolve_blend_8(driver: Driver, inv_args: tuple[list[Object], list[Object]]) -> None:
+
+def analyze_dissolve_blend_8(
+    driver: Driver, inv_args: tuple[list[Object], list[Object]]
+) -> None:
     inv0_args, inv1_args = inv_args
     replace_args = {"out": "agg.result"}
     inv0_args = _process_args(inv0_args, replace_args)
@@ -42,10 +44,9 @@ def analyze_dissolve_blend_8(driver: Driver, inv_args: tuple[list[Object], list[
 
     dissolve_blend_8(base, active, opacity, rand_cons)
 
+
 def analyze_blend_double_loop(
-    driver: Driver,
-    benchmark_name: str,
-    inv_args: tuple[list[Object], list[Object]]
+    driver: Driver, benchmark_name: str, inv_args: tuple[list[Object], list[Object]]
 ):
     inv0_args, inv1_args = inv_args
     replace_args = {"out": "agg.result"}
@@ -76,6 +77,7 @@ def analyze_blend_double_loop(
 
     benchmark(base, active)
 
+
 def analyze_normal_blend_f(driver: Driver, inv_args: list):
     inv_args = _process_args(inv_args, {"out": "agg.result"})
     normal_blend_f = driver.analyze(
@@ -96,6 +98,7 @@ def analyze_normal_blend_f(driver: Driver, inv_args: list):
 
     normal_blend_f(base_var, active_var, opacity_var)
 
+
 def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]):
     inv_args = _process_args(inv_args, {"out": "agg.result"})
     normal_blend_8 = driver.analyze(
@@ -115,6 +118,7 @@ def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]):
     driver.add_precondition(base_var.len() > 0)
 
     normal_blend_8(base_var, active_var, opacity_var)
+
 
 def analyze_softmax_part1(driver: Driver, inv_args: list[Object]) -> None:
     inv_args = _process_args(inv_args, {})
@@ -158,6 +162,7 @@ def analyze_softmax_part2(driver: Driver, inv_args: list[Object]):
 
     softmax_part2(input_var, max_pos_var, max_val_var)
 
+
 def analyze_softmax_part3(driver: Driver, inv_args: list[Object]):
     inv_args = _process_args(inv_args, {})
     softmax_part3 = driver.analyze(
@@ -180,6 +185,7 @@ def analyze_softmax_part3(driver: Driver, inv_args: list[Object]):
 
     softmax_part3(output_var, max_pos_var)
 
+
 def analyze_softmax_part4(driver: Driver, inv_args: list[Object]) -> None:
     inv_args = _process_args(inv_args, {"output": "agg.result"})
     softmax_part4 = driver.analyze(
@@ -201,6 +207,7 @@ def analyze_softmax_part4(driver: Driver, inv_args: list[Object]) -> None:
 
     softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
 
+
 def analyze_rmsnorm_part1(driver: Driver, inv_args: list[Object]) -> None:
     inv_args = _process_args(inv_args, {})
     rmsnorm_part1 = driver.analyze(
@@ -219,3 +226,51 @@ def analyze_rmsnorm_part1(driver: Driver, inv_args: list[Object]) -> None:
     driver.add_precondition(input_var.len() > 0)
 
     rmsnorm_part1(input_var, weight_var)
+
+
+def analyze_rmsnorm_part2(driver: Driver, inv_args: list[Object]) -> None:
+    inv_args = _process_args(inv_args, {"output": "agg.result"})
+    rmsnorm_part2 = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part2.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part2.loops",
+        fn_name="rmsnorm_part2",
+        target_lang_fn=[],
+        inv_grammars={"rmsnorm_part2_inv0": InvGrammar(None, [], inv_args)},
+        ps_grammar=None,
+    )
+
+    input_var = List(Int, "input")
+    weight_var = List(Int, "weight")
+    ss = Int("ss")
+    driver.add_var_objects([input_var, weight_var, ss])
+    driver.add_precondition(input_var.len() == weight_var.len())
+    driver.add_precondition(input_var.len() > 0)
+
+    rmsnorm_part2(input_var, weight_var, ss)
+
+
+def analyze_matmul(driver: Driver, inv_args: list[Object]) -> None:
+    inv0_args, inv1_args = inv_args
+    replace_args = {"output": "agg.result"}
+    inv0_args = _process_args(inv0_args, replace_args)
+    inv1_args = _process_args(inv1_args, replace_args)
+    matmul = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/matmul.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/matmul.loops",
+        fn_name="matmul",
+        target_lang_fn=[],
+        inv_grammars={
+            "matmul_inv0": InvGrammar(None, [], inv0_args),
+            "matmul_inv1": InvGrammar(None, [], inv1_args),
+        },
+        ps_grammar=None,
+    )
+
+    weight_var = Matrix(Int, "weight")
+    input_var = List(Int, "input")
+    driver.add_var_objects([weight_var, input_var])
+    driver.add_precondition(weight_var.len() > 0)
+    driver.add_precondition(weight_var[0].len() > 0)
+    driver.add_precondition(weight_var[0].len() == input_var.len())
+
+    matmul(weight_var, input_var)
