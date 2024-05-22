@@ -36,6 +36,10 @@ from tenspiler.llm.analysis import (
     analyze_softmax_part2,
     analyze_softmax_part3,
     analyze_softmax_part4,
+    analyze_transformer_part1,
+    analyze_transformer_part2,
+    analyze_transformer_part3,
+    analyze_transformer_part4,
 )
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
@@ -64,8 +68,8 @@ def extract_and_save(choices, output_file: Path) -> str:
             content = choice.message.content
         final_content.append("\n\n".join(extract(content)))
 
-    # with open(output_file, "w") as f:
-    #     json.dump(final_content, f)
+    with open(output_file, "w") as f:
+        json.dump(final_content, f)
     return final_content
 
 
@@ -80,10 +84,32 @@ def get_ps_choice_and_save_prompt(
 ):
     return [
         f"""
-        def matmul(weight: List[List[int]], input: List[int]) -> List[int]:
-            return matrix_vec_mul(weight, input)
+        def transformer_part2(
+            token_position: int,
+            head: int,
+            head_size: int,
+            key_cache_layer: List[List[int]],
+            attention: List[int]
+        ) -> List[int]:
+
+            return matrix_vec_mul(
+                matrix_transpose(
+                    matrix_col_slice(
+                        matrix_row_slice(key_cache_layer, 0, token_position + 1),
+                        head * head_size,
+                        (head + 1) * head_size
+                    )
+                ),
+                attention[:token_position + 1]
+            )
         """
     ]
+    # return [
+    #     f"""
+    #     def transformer_part4(input1: List[int], input2: List[int], hidden_dim: int) -> List[int]:
+    #         return vec_elemwise_mul(vec_slice(input1, 0, hidden_dim), vec_slice(input2, 0, hidden_dim))
+    #     """
+    # ]
     ps_template_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
     #Instructions
@@ -117,7 +143,7 @@ def get_ps_choice_and_save_prompt(
     outputs = client.chat.completions.create(
         model="gpt-4",  # model to use
         messages=messages,
-        n=10,  # We always sample 1 solution at a time
+        n=50,  # We always sample 1 solution at a time
         temperature=0.7,
     )
     call_end_time = time.time()
@@ -181,6 +207,10 @@ _output_var_map = {
     "rmsnorm_part1": Int("ss").src,
     "rmsnorm_part2": List(Int, "output").src,
     "matmul": List(Int, "output").src,
+    "transformer_part1": List(Int, "attention").src,
+    "transformer_part2": List(Int, "xb").src,
+    "transformer_part3": List(Int, "output").src,
+    "transformer_part4": List(Int, "output").src,
 }
 
 _loop_info_map = {
@@ -287,8 +317,8 @@ _loop_info_map = {
             List(List[Int], "key_cache_layer").src,
             Int("timestep").src,
         ],
-        outer_loop_modified_vars=[List(Int, "attention").src, Int("score").src],
-        inner_loop_modified_vars=[Int("score").src],
+        outer_loop_modified_vars=[List(Int, "attention").src],
+        inner_loop_modified_vars=[List(Int, "attention").src, Int("score").src],
     ),
     "transformer_part2": DoubleLoopInfo(
         outer_loop_var=Int("i").src,
@@ -307,13 +337,13 @@ _loop_info_map = {
             List(List[Int], "key_cache_layer").src,
             List(Int, "attention").src,
         ],
-        outer_loop_modified_vars=[List(Int, "xb").src, Int("curr").src],
-        inner_loop_modified_vars=[Int("curr").src],
+        outer_loop_modified_vars=[List(Int, "xb").src],
+        inner_loop_modified_vars=[List(Int, "xb").src, Int("curr").src],
     ),
     "transformer_part3": SingleLoopInfo(
         loop_var=Int("i").src,
         read_vars=[List(Int, "input").src, Int("hidden_dim").src],
-        modified_vars=[List(Int, "output").src, Int("curr").src],
+        modified_vars=[List(Int, "output").src],
     ),
     "transformer_part4": SingleLoopInfo(
         loop_var=Int("i").src,
@@ -440,20 +470,18 @@ def get_inv_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    return [
-        f"""
-        def invariant1(row: int, weight: List[List[int]], input: List[int], output: List[int]) -> bool:
-            return row >= 0 and row <= len(weight) and output == matrix_vec_mul(weight[:row], input)
-
-        def invariant2(col: int, curr: int, row: int, weight: List[List[int]], input: List[int], output: List[int]) -> bool:
-            return col >= 0 and col <= len(input) and row >= 0 and row < len(weight) and curr == reduce_sum(vec_elemwise_mul(weight[row][:col], input[:col])) and output == matrix_vec_mul(weight[:row], input)
-        """
-    ]
     tmp = _generate_invariant_template(benchmark_name)
     print("inv template", tmp)
+
     import pdb
 
     pdb.set_trace()
+    # return [
+    #     f"""
+    #     def invariant(i: int, hidden_dim: int, input: List[int], output: List[int]) -> bool:
+    #         return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(input[:i], vec_map(input[:i], lambda x: 1 // (1 + integer_exp(0 - x))))
+    #     """
+    # ]
     # prompt for generating invariants of a function.
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
@@ -536,7 +564,7 @@ def get_inv_choice_and_save_prompt(
     outputs = client.chat.completions.create(
         model="gpt-4",  # model to use
         messages=messages,
-        n=10,
+        n=50,
         temperature=0.7,
     )
     call_end_time = time.time()
@@ -630,7 +658,7 @@ def process_ps_fn_decl(
     output_var: Object,
 ) -> Union[FnDecl, FnDeclRecursive]:
     return fn_decl.__class__(
-        fn_decl.name(),
+        f"{fn_decl.name()}_ps",
         Bool,
         Eq(output_var, fn_decl.body()),
         *fn_decl.arguments(),
@@ -674,6 +702,14 @@ def analyze_benchmark(benchmark_name: str) -> Driver:
         analyze_rmsnorm_part2(driver, inv_args)
     elif benchmark_name == "matmul":
         analyze_matmul(driver, inv_args)
+    elif benchmark_name == "transformer_part1":
+        analyze_transformer_part1(driver, inv_args)
+    elif benchmark_name == "transformer_part2":
+        analyze_transformer_part2(driver, inv_args)
+    elif benchmark_name == "transformer_part3":
+        analyze_transformer_part3(driver, inv_args)
+    elif benchmark_name == "transformer_part4":
+        analyze_transformer_part4(driver, inv_args)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
     return driver
@@ -736,7 +772,6 @@ def verify_benchmark(
 
         # Change ps function name
         if fn_decl.name() == benchmark_name:
-            fn_decl.set_name(f"{benchmark_name}_ps")
             fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
