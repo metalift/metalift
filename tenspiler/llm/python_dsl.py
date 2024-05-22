@@ -254,3 +254,7 @@ def integer_sqrt(n: int) -> int:
 
 def ite(cond: bool, a: int, b: int) -> int:
     return a if cond else b
+
+
+def col_vec(matrix: List[List[int]], col_index: int) -> List[int]:
+    return matrix_transpose(matrix_col_slice(matrix, col_index, col_index + 1))[0]

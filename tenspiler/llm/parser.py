@@ -1,8 +1,8 @@
 import json
-from pathlib import Path
 import re
 import uuid
 from functools import lru_cache
+from pathlib import Path
 from textwrap import dedent
 from typing import Dict
 from typing import List as pyList
@@ -20,7 +20,6 @@ from mypy.nodes import (
     ComparisonExpr,
     ConditionalExpr,
     FuncDef,
-    UnaryExpr,
     IndexExpr,
     IntExpr,
     LambdaExpr,
@@ -32,6 +31,7 @@ from mypy.nodes import (
     OpExpr,
     ReturnStmt,
     SliceExpr,
+    UnaryExpr,
 )
 from mypy.options import Options
 from mypy.types import AnyType, CallableType, Instance
@@ -72,6 +72,7 @@ from metalift.ir import (
 
 TENSPILER_LLM_PATH = Path(__file__).parent.resolve()
 
+
 def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
     """Convert mypy type to python type"""
     if isinstance(mypy_type, UnboundType):
@@ -84,7 +85,7 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
         if mypy_type.name == "Any":
             # This means that no types are enforced
             return None
-        elif mypy_type.name == "List" and len(mypy_type.args) == 1:
+        elif mypy_type.name in {"List", "list"} and len(mypy_type.args) == 1:
             return List[mypy_type_to_ir_type(mypy_type.args[0])]
         elif mypy_type.name == "Callable":
             if len(mypy_type.args) != 2:
@@ -289,7 +290,9 @@ def mypy_node_to_ir(
                     if len(node.args) != 1:
                         raise Exception("len() takes exactly one argument")
                     arg_expr = parse_node(node.args[0])
-                    if is_matrix_type(arg_expr.type) or is_nested_list_type(arg_expr.type):
+                    if is_matrix_type(arg_expr.type) or is_nested_list_type(
+                        arg_expr.type
+                    ):
                         list_func_name = "matrix_length"
                     else:
                         list_func_name = "list_length"
