@@ -115,3 +115,107 @@ def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]):
     driver.add_precondition(base_var.len() > 0)
 
     normal_blend_8(base_var, active_var, opacity_var)
+
+def analyze_softmax_part1(driver: Driver, inv_args: list[Object]) -> None:
+    inv_args = _process_args(inv_args, {})
+    softmax_part1 = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.loops",
+        fn_name="softmax_part1",
+        target_lang_fn=[],
+        inv_grammars={"softmax_part1_inv0": InvGrammar(None, [], inv_args)},
+        ps_grammar=None,
+    )
+
+    input_var = List(Int, "input")
+    max_pos_var = Int("max_pos")
+    driver.add_var_objects([input_var, max_pos_var])
+    driver.add_precondition(input_var.len() > 0)
+    driver.add_precondition(max_pos_var <= input_var.len())
+    driver.add_precondition(max_pos_var >= 1)
+
+    softmax_part1(input_var, max_pos_var)
+
+
+def analyze_softmax_part2(driver: Driver, inv_args: list[Object]):
+    inv_args = _process_args(inv_args, {"output": "agg.result"})
+    softmax_part2 = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part2.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part2.loops",
+        fn_name="softmax_part2",
+        target_lang_fn=[],
+        inv_grammars={"softmax_part2_inv0": InvGrammar(None, [], inv_args)},
+        ps_grammar=None,
+    )
+
+    input_var = List(Int, "input")
+    max_pos_var = Int("max_pos")
+    max_val_var = Int("max_val")
+    driver.add_var_objects([input_var, max_pos_var, max_val_var])
+    driver.add_precondition(input_var.len() > 0)
+    driver.add_precondition(max_pos_var <= input_var.len())
+    driver.add_precondition(max_pos_var >= 1)
+
+    softmax_part2(input_var, max_pos_var, max_val_var)
+
+def analyze_softmax_part3(driver: Driver, inv_args: list[Object]):
+    inv_args = _process_args(inv_args, {})
+    softmax_part3 = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part3.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part3.loops",
+        fn_name="softmax_part3",
+        target_lang_fn=[],
+        inv_grammars={
+            "softmax_part3_inv0": InvGrammar(None, [], inv_args),
+        },
+        ps_grammar=None,
+    )
+
+    output_var = List(Int, "output")
+    max_pos_var = Int("max_pos")
+    driver.add_var_objects([output_var, max_pos_var])
+    driver.add_precondition(output_var.len() > 0)
+    driver.add_precondition(max_pos_var <= output_var.len())
+    driver.add_precondition(max_pos_var >= 1)
+
+    softmax_part3(output_var, max_pos_var)
+
+def analyze_softmax_part4(driver: Driver, inv_args: list[Object]) -> None:
+    inv_args = _process_args(inv_args, {"output": "agg.result"})
+    softmax_part4 = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.loops",
+        fn_name="softmax_part4",
+        target_lang_fn=[],
+        inv_grammars={"softmax_part4_inv0": InvGrammar(None, [], inv_args)},
+        ps_grammar=None,
+    )
+
+    unnormalized_output_var = List(Int, "unnormalized_output")
+    max_pos_var = Int("max_pos")
+    sum_var = Int("sum")
+    driver.add_var_objects([unnormalized_output_var, max_pos_var, sum_var])
+    driver.add_precondition(unnormalized_output_var.len() > 0)
+    driver.add_precondition(max_pos_var <= unnormalized_output_var.len())
+    driver.add_precondition(max_pos_var >= 1)
+
+    softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
+
+def analyze_rmsnorm_part1(driver: Driver, inv_args: list[Object]) -> None:
+    inv_args = _process_args(inv_args, {})
+    rmsnorm_part1 = driver.analyze(
+        llvm_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part1.ll",
+        loops_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part1.loops",
+        fn_name="rmsnorm_part1",
+        target_lang_fn=[],
+        inv_grammars={"rmsnorm_part1_inv0": InvGrammar(None, [], inv_args)},
+        ps_grammar=None,
+    )
+
+    input_var = List(Int, "input")
+    weight_var = List(Int, "weight")
+    driver.add_var_objects([input_var, weight_var])
+    driver.add_precondition(input_var.len() == weight_var.len())
+    driver.add_precondition(input_var.len() > 0)
+
+    rmsnorm_part1(input_var, weight_var)

@@ -54,7 +54,10 @@ def run_end_to_end_llm(
     inv_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Analyze the benchmark
+    analyze_time_start = time.time()
     driver = analyze_benchmark(benchmark_name)
+    analyze_time_end = time.time()
+    print(f"Analyze took {analyze_time_end - analyze_time_start}s")
 
     curr_round_incorrect_ps_sols = set()
 
@@ -68,7 +71,6 @@ def run_end_to_end_llm(
                 all_sols = json.load(f)
                 ps_choices = extract(all_sols[ps_idx])
         else:
-            import pdb; pdb.set_trace()
             ps_choices = get_ps_choice_and_save_prompt(
                 client=client,
                 source_code=source_code,
@@ -169,6 +171,7 @@ def run_end_to_end_llm(
                     synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
                     in_calls=[*ps_in_calls, *inv_in_calls],
                 )
+                import pdb; pdb.set_trace()
                 if verification_success:
                     end_time = time.time()
                     print(f"Successfully verified the {inv_idx}th INV solution for the {ps_idx}th PS solution")
@@ -190,13 +193,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # First we find the source code
+    all_suites = {"blend", "llama"}
     benchmark_suite, source_code = None, None
     for file in BENCHMARKS_PATH.rglob("*.cc"):
         if file.name == f"{args.benchmark}.cc":
             with open(file) as f:
                 source_code = f.read()
-                benchmark_suite = file.parent.parent.name
-
+                suite_folder = file.parent.parent
+                while suite_folder.name not in all_suites:
+                    suite_folder = suite_folder.parent
+                benchmark_suite = suite_folder.name
     if source_code is None:
         print(f"Could not find benchmark {args.benchmark}")
         exit(1)

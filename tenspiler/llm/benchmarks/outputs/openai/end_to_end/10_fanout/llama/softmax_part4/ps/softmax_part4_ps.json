@@ -1,0 +1,1 @@
+["\n        def softmax_part4(unnormalized_output: List[int], max_pos: int, sum: int) -> List[int]:\n            return vec_scalar_div(sum, vec_slice(unnormalized_output, 0, max_pos))\n        "]
