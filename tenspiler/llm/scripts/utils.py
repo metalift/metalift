@@ -11,7 +11,7 @@ from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, List
 from metalift.rosette_translator import generate_vars
 from metalift.vc_util import and_objects
 from tenspiler.constants import TENSPILER_FNS
-from tenspiler.llm.analysis import analyze_blend_double_loop, analyze_dissolve_blend_8, analyze_normal_blend_f, analyze_normal_blend_8
+from tenspiler.llm.analysis import analyze_blend_double_loop, analyze_dissolve_blend_8, analyze_normal_blend_f, analyze_normal_blend_8, analyze_rmsnorm_part1, analyze_softmax_part1, analyze_softmax_part2, analyze_softmax_part3, analyze_softmax_part4
 import json
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
@@ -55,13 +55,6 @@ def get_ps_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str]
 ):
-    return [f"""
-    def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
-        return matrix_where(
-            base,
-            active,
-            lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
-    """]
     ps_template_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
     #Instructions
@@ -150,6 +143,11 @@ _output_var_map = {
     "color_dodge_8": List(List[Int], "out").src,
     "overlay_blend_8": List(List[Int], "out").src,
     "dissolve_blend_8": List(List[Int], "out").src,
+    "softmax_part1": Int("max_val").src,
+    "softmax_part2": List(Int, "output").src,
+    "softmax_part3": Int("sum").src,
+    "softmax_part4": List(Int, "output").src,
+    "rmsnorm_part1": Int("ss").src,
 }
 
 _loop_info_map = {
@@ -208,7 +206,7 @@ _loop_info_map = {
     ),
     "softmax_part4": SingleLoopInfo(
         loop_var=Int("i").src,
-        modified_vars=[List(Int, "unnormalized_output").src],
+        modified_vars=[List(Int, "output").src],
         read_vars=[
             List(Int, "unnormalized_output").src,
             Int("max_pos").src,
@@ -408,15 +406,9 @@ def get_inv_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    return [
-        f"""
-        def invariant1(base: List[List[int]], active: List[List[int]], opacity: int, out: List[List[int]], rand_cons: int, row: int) -> bool:
-            return row >= 0 and row <= len(base) and out == matrix_where( base[:row], active[:row], lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
-
-        def invariant2(base: List[List[int]], active: List[List[int]], col: int, opacity: int, out: List[List[int]], rand_cons: int, row: int, row_vec: List[int]) -> bool:
-            return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and row_vec == vector_where( base[row][:col], active[row][:col], lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel) and out == matrix_where( base[:row], active[:row], lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
-        """
-    ]
+    tmp = _generate_invariant_template(benchmark_name)
+    print("inv template", tmp)
+    import pdb; pdb.set_trace()
     # prompt for generating invariants of a function.
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
@@ -615,6 +607,16 @@ def analyze_benchmark(benchmark_name: str) -> Driver:
         analyze_normal_blend_f(driver, inv_args)
     elif benchmark_name == "normal_blend_8":
         analyze_normal_blend_8(driver, inv_args)
+    elif benchmark_name == "softmax_part1":
+        analyze_softmax_part1(driver, inv_args)
+    elif benchmark_name == "softmax_part2":
+        analyze_softmax_part2(driver, inv_args)
+    elif benchmark_name == "softmax_part3":
+        analyze_softmax_part3(driver, inv_args)
+    elif benchmark_name == "softmax_part4":
+        analyze_softmax_part4(driver, inv_args)
+    elif benchmark_name == "rmsnorm_part1":
+        analyze_rmsnorm_part1(driver, inv_args)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
     return driver
@@ -677,7 +679,10 @@ def verify_benchmark(
         # Change ps function name
         if fn_decl.name() == benchmark_name:
             fn_decl.set_name(f"{benchmark_name}_ps")
-            fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
+            fn_decl = process_ps_fn_decl(
+                fn_decl,
+                _output_var_map[benchmark_name]
+            )
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
     # Write variables
