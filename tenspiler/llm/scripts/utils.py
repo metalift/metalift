@@ -477,12 +477,6 @@ def get_inv_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    tmp = _generate_invariant_template(benchmark_name)
-    print("inv template", tmp)
-
-    import pdb
-
-    pdb.set_trace()
     # return [
     #     f"""
     #     def invariant(i: int, hidden_dim: int, input: List[int], output: List[int]) -> bool:
@@ -727,6 +721,108 @@ def analyze_benchmark(benchmark_name: str) -> Driver:
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
     return driver
+
+
+def get_inv_and_ps(
+    *,
+    client,
+    benchmark_name: str,
+    source_code: str,
+    dsl_code: str,
+    output_file: Path,
+    prev_incorrect_sols: set[str],
+):
+    inv_ps_template_text = f"""Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. In addition, your task is to prove that rewritten function is equivalent to the `test` function. We can prove this by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
+    #Instructions Rewriting
+    # 1. Do not use for/while loops for rewriting the function.
+    # 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+    # 3. Inline all the expressions. Do not use intermediate variables.
+    #Instructions Invariants:
+    # 1. You need to use only the defined functions to write the loop invariant.
+    # 2. Do not use for/while loops for rewriting the function.
+    # 3. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+    # 4. Inline all the expressions. Do not use intermediate variables.
+    # 5. Generate separate loop invariants for each loop in the test function.
+    # 6. invariant structure
+    ```
+    {_generate_invariant_template(benchmark_name)}
+    ```
+
+    Example1:
+    ```
+    #defined functions
+    def vec_elemwise_sub(x: list[int], y: list[int]) -> list[int]:
+        return (
+            []
+            if len(x) < 1 or not len(x) == len(y)
+            else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
+        )
+    def matrix_elemwise_sub(matrix_x,: list[list[int]], matrix_y: list[list[int]]) -> list[list[int]]:
+        return (
+            []
+            if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+            else [
+                vec_elemwise_sub(matrix_x[0], matrix_y[0]),
+                *matrix_elemwise_sub(matrix_x[1:], matrix_y[1:]),
+            ]
+        )
+    //test function
+    vector<vector<uint8_t>> test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
+    {{
+        vector<vector<uint8_t>> out;
+        uint8_t m = base.size();
+        uint8_t n = base[0].size();
+        for (uint8_t row = 0; row < m; row++) {{
+            vector<uint8_t> row_vec;
+            for (uint8_t col = 0; col < n; col++) {{
+                uint8_t pixel = base[row][col] - active[row][col] ;
+                row_vec.push_back(pixel);
+
+            }}
+            out.push_back(row_vec);
+        }}
+        return out
+    }}
+    def test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
+        return out = matrix_elemwise_sub(base, active)
+    def invariant1(row, outer_loop_vars):
+        return row >= 0 and row <= m and out == matrix_elemwise_sub(base[:row], active[:row])
+    def invariant2(row, col, inner_loop_vars, outer_loop_vars):
+        return row >= 0 and row < m and col >= 0 and col <= n and row_vec == vec_elemwise_sub(base[row][:col], active[row][:col]) and out == matrix_elemwise_sub(base[:row], active[:row])
+    ```
+
+    Example2:
+    ```
+    #defined functions
+    {dsl_code}
+
+    //test function
+    {source_code}
+    ```
+    """
+    messages = [
+        {"role": "system", "content": TEMPLATE_SYS},
+        {"role": "user", "content": inv_ps_template_text},
+    ]
+    if len(prev_incorrect_sols) > 0:
+        messages.append(
+            {"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)}
+        )
+        messages.append({"role": "user", "content": TEMPLATE_ERR})
+
+    with open(output_file, "w") as f:
+        json.dump(messages, f)
+
+    call_start_time = time.time()
+    outputs = client.chat.completions.create(
+        model="gpt-4",  # model to use
+        messages=messages,
+        n=10,
+        temperature=0.7,
+    )
+    call_end_time = time.time()
+    print(f"inv ps call took {call_end_time - call_start_time}s")
+    return outputs.choices, call_end_time - call_start_time
 
 
 def verify_benchmark(
