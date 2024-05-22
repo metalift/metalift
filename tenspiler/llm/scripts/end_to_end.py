@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import shutil
 import time
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from tenspiler.llm.scripts.utils import (
     analyze_benchmark,
     extract,
     extract_and_save,
+    get_inv_and_ps,
     get_inv_choice_and_save_prompt,
     get_num_inv_funcs,
     get_ps_choice_and_save_prompt,
@@ -50,18 +50,64 @@ def run_end_to_end_llm(
         / benchmark_name
     )
     # Remove all content in this directory
-    shutil.rmtree(fanout_dir, ignore_errors=True)
 
     ps_output_dir = fanout_dir / "ps"
     inv_output_dir = fanout_dir / "inv"
+    inv_ps_output_dir = fanout_dir / "inv_ps"
     ps_output_dir.mkdir(parents=True, exist_ok=True)
     inv_output_dir.mkdir(parents=True, exist_ok=True)
+    inv_ps_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Analyze the benchmark
     analyze_time_start = time.time()
     driver = analyze_benchmark(benchmark_name)
     analyze_time_end = time.time()
     print(f"Analyze took {analyze_time_end - analyze_time_start}s")
+    incorrect_ps_inv_sols = set()
+    ps_inv_sols_seen = set()
+    count = 0
+    total_time = analyze_time_end - analyze_time_start
+    while True:
+        if count == 5:
+            exit(0)
+        print("Generating 10 INV AND PS solutions")
+        inv_ps_choices, call_time = get_inv_and_ps(
+            client=openai_client,
+            benchmark_name=benchmark_name,
+            source_code=source_code,
+            dsl_code=dsl_code,
+            # Prompt is the same for all PS solutions
+            output_file=ps_output_dir / f"{benchmark_name}_ps_inv_prompt.json",
+            prev_incorrect_sols=incorrect_ps_inv_sols,
+        )
+        total_time += call_time
+        inv_ps_sols = extract_and_save(
+            inv_ps_choices, ps_output_dir / f"{benchmark_name}_ps.json"
+        )
+        for i in range(10):
+            print(f"{count * 10 + i}th INV AND PS solution")
+            print(inv_ps_sols[i])
+            if inv_ps_sols[i] in ps_inv_sols_seen:
+                ps_inv_sols_seen.add(inv_ps_sols[i])
+                print("INV AND PS solution seen, continuing")
+
+            parse_start_time = time.time()
+            try:
+                check_solution(inv_ps_sols[i], 1 + get_num_inv_funcs(benchmark_name))
+                incorrect_ps_inv_sols.add(inv_ps_sols[i])
+            except Exception as e:
+                print("failed to parse", e)
+                parse_end_time = time.time()
+                print(f"Parse took {parse_end_time - parse_start_time}s")
+                total_time += parse_end_time - parse_start_time
+                print("total time to date", total_time)
+                continue
+            parse_end_time = time.time()
+            print(f"Parse took {parse_end_time - parse_start_time}s")
+            total_time += parse_end_time - parse_start_time
+            print("total time to date", total_time)
+
+        count += 1
 
     incorrect_ps_sols = set()
     ps_solutions_seen = set()
