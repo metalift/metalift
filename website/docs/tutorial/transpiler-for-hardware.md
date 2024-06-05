@@ -137,7 +137,7 @@ The ```CodeInfo``` object consists of all the variables that are modified in the
 
 
 ## Transpiler flow
-Once the target operators semantics and the search space description is defined, we can build the transpiler now. First, we need to compiler the source code to LLVM bytecode using the [script provided by Metalift].(https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
+Once the target operators semantics and the search space description is defined, we can build the transpiler now. First, we need to compiler the source code to LLVM bytecode using the [script provided by Metalift](https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
 <!--phmdoctest-mark.skip-->
 ```python
