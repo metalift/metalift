@@ -28,15 +28,14 @@ from metalift.ir import Lit, Matrix, Object, ObjectT
 from metalift.ir import Set as mlSet
 from metalift.ir import (
     Synth,
+    Tensor3D,
     Var,
     call,
     create_object,
-    get_list_element_type,
     get_object_exprs,
     implies,
     is_pointer_type,
     make_tuple_type,
-    parse_c_or_cpp_type_to_obj,
     parse_type_ref_to_obj,
 )
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
@@ -55,6 +54,7 @@ ReturnValue = NamedTuple(
 PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
 PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >)"
 NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >)"
+DOUBLE_NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({NESTED_VECTOR_TYPE_REGEX}), std::__1::allocator<({NESTED_VECTOR_TYPE_REGEX}) > >)"
 
 
 def set_create(
@@ -178,10 +178,6 @@ def new_vector(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    print(full_demangled_name)
-    import pdb
-
-    pdb.set_trace()
     assert len(args) == 1
     primitive_match = re.match(
         rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
@@ -189,25 +185,21 @@ def new_vector(
     nested_match = re.match(
         rf"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
     )
+    double_nested_match = re.match(
+        rf"{DOUBLE_NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
+    )
     if primitive_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
+        list_obj = mlList.empty(Int)
     elif nested_match:
-        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
+        list_obj = Matrix.empty(Int)
+    elif double_nested_match:
+        list_obj = Tensor3D.empty(Int)
     else:
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
 
     var_name: str = args[0].name
-    contained_type = get_list_element_type(list_type)
-
-    if (
-        contained_type == mlList[Int]
-    ):  # special case when the vector is a matrix (2d array)
-        list_obj = Matrix.empty(get_list_element_type(contained_type))
-    else:
-        list_obj = mlList.empty(contained_type)
-
     list_loc = state.get_var_location(var_name)
     return ReturnValue(None, [(var_name, list_obj, list_loc)])
 
@@ -255,18 +247,22 @@ def vector_length(
     nested_match = re.match(
         rf"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
     )
+    double_nested_match = re.match(
+        rf"{DOUBLE_NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
+    )
+    lst = state.read_or_load_operand(args[0])
+    if not isinstance(lst, mlList):
+        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
     if primitive_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
+        lst.containedT = Int
     elif nested_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
+        lst.containedT = mlList[Int]
+    elif double_nested_match is not None:
+        lst.containedT = Matrix[Int]
     else:
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
-    lst = state.read_or_load_operand(args[0])
-    if not isinstance(lst, mlList) and not isinstance(lst, Matrix):
-        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
-    lst.containedT = get_list_element_type(list_type)
 
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)

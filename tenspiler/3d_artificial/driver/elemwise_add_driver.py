@@ -31,6 +31,15 @@ def inv1_grammar_fn(
     pdb.set_trace()
 
 
+def inv2_grammar_fn(
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+) -> Bool:
+    print("INV 2")
+    import pdb
+
+    pdb.set_trace()
+
+
 def ps_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
@@ -45,6 +54,7 @@ if __name__ == "__main__":
     print("MADE DRIVER")
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
     inv1_grammar = InvGrammar(inv1_grammar_fn, [])
+    inv2_grammar = InvGrammar(inv2_grammar_fn, [])
     print("MADE GRAMMAR")
     elemwise_add = driver.analyze(
         llvm_filepath="tenspiler/3d_artificial/cpp/elemwise_add.ll",
@@ -54,6 +64,7 @@ if __name__ == "__main__":
         inv_grammars={
             "elemwise_add_inv0": inv0_grammar,
             "elemwise_add_inv1": inv1_grammar,
+            "elemwise_add_inv2": inv2_grammar,
         },
         ps_grammar=ps_grammar_fn,
     )
@@ -71,9 +82,6 @@ if __name__ == "__main__":
     driver.add_precondition(a[0][0].len() == b[0][0].len())
     print("HAHAHAH")
     elemwise_add(a, b)
-    # driver.synthesize(
-    #     filename="elemwise_add",
-    #     list_bound=2,
-    #     relaxed_grammar=False,
-    #     rounds_to_guess=1
-    # )
+    driver.synthesize(
+        filename="elemwise_add", list_bound=2, relaxed_grammar=False, rounds_to_guess=1
+    )

@@ -660,6 +660,11 @@ def parse_c_or_cpp_type_to_obj(ty_str: str) -> ObjectT:
         == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
     ):
         return List[List[Int]]
+    if (
+        ty_str
+        == "std::__1::vector<std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >, std::__1::allocator<std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > > > >"
+    ):
+        return List[List[List[Int]]]
 
     raise Exception(f"no type defined for {ty_str}")
 
