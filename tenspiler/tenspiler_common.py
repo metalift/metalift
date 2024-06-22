@@ -8,6 +8,7 @@ from metalift.ir import (
     Matrix,
     Object,
     Synth,
+    Tensor3D,
     call,
     call_value,
     choose,
@@ -17,6 +18,7 @@ from metalift.ir import (
     is_list_type,
     is_matrix_type,
     is_primitive_type,
+    is_tensor3d_type,
     ite,
     synth,
 )
@@ -30,12 +32,16 @@ REDUCEMAX = "reduce_max"
 # Elemwise functions
 VEC_ELEMWISE_ADD = "vec_elemwise_add"
 MATRIX_ELEMWISE_ADD = "matrix_elemwise_add"
+TENSOR3D_ELEMWISE_ADD = "tensor3d_elemwise_add"
 VEC_ELEMWISE_SUB = "vec_elemwise_sub"
 MATRIX_ELEMWISE_SUB = "matrix_elemwise_sub"
+TENSOR3D_ELEMWISE_SUB = "tensor3d_elemwise_sub"
 VEC_ELEMWISE_MUL = "vec_elemwise_mul"
 MATRIX_ELEMWISE_MUL = "matrix_elemwise_mul"
+TENSOR3D_ELEMWISE_MUL = "tensor3d_elemwise_mul"
 VEC_ELEMWISE_DIV = "vec_elemwise_div"
 MATRIX_ELEMWISE_DIV = "matrix_elemwise_div"
+TENSOR3D_ELEMWISE_DIV = "tensor3d_elemwise_div"
 
 # Scalar functions
 VEC_SCALAR_ADD = "vec_scalar_add"
@@ -358,6 +364,8 @@ x = mlList(Int, "x")
 y = mlList(Int, "y")
 matrix_x = Matrix(Int, "matrix_x")
 matrix_y = Matrix(Int, "matrix_y")
+tensor3d_x = Tensor3D(Int, "tensor3d_x")
+tensor3d_y = Tensor3D(Int, "tensor3d_y")
 int_x = Int("int_x")
 int_y = Int("int_y")
 opacity = Int("opacity")
@@ -753,13 +761,23 @@ selection_two_args_inv1_grammar = InvGrammar(
 
 
 def elemwise_body(
-    left: Union[mlList[Int], Matrix[Int]],
-    right: Union[mlList[Int], Matrix[Int]],
+    left: Union[mlList[Int], Matrix[Int], Tensor3D[Int]],
+    right: Union[mlList[Int], Matrix[Int], Tensor3D[Int]],
     compute_fn: Callable[[Int, Int], Int],
     vec_fn_name: str,
     matrix_fn_name: str,
+    tensor3d_fn_name: str,
 ) -> Union[mlList[Int], Matrix[Int]]:
-    if is_matrix_type(left.type) and is_matrix_type(right.type):
+    if is_tensor3d_type(left.type) and is_tensor3d_type(right.type):
+        cur = call(matrix_fn_name, Matrix[Int], left[0], right[0])
+        recursed = call(tensor3d_fn_name, Tensor3D[Int], left[1:], right[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(left.len() < 1, left.len() != right.len()),
+            Tensor3D.empty(Int),
+            general_answer,
+        )
+    elif is_matrix_type(left.type) and is_matrix_type(right.type):
         cur = call(vec_fn_name, mlList[Int], left[0], right[0])
         recursed = call(matrix_fn_name, Matrix[Int], left[1:], right[1:])
         general_answer = recursed.prepend(cur)
@@ -845,6 +863,7 @@ vec_elemwise_add = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x + int_y,
         vec_fn_name=VEC_ELEMWISE_ADD,
         matrix_fn_name=MATRIX_ELEMWISE_ADD,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
     ),
     x,
     y,
@@ -858,9 +877,22 @@ matrix_elemwise_add = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x + int_y,
         vec_fn_name=VEC_ELEMWISE_ADD,
         matrix_fn_name=MATRIX_ELEMWISE_ADD,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_add = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_ADD,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_ADD,
+        matrix_fn_name=MATRIX_ELEMWISE_ADD,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
+    ),
 )
 
 vec_elemwise_sub = fn_decl_recursive(
@@ -872,6 +904,7 @@ vec_elemwise_sub = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x - int_y,
         vec_fn_name=VEC_ELEMWISE_SUB,
         matrix_fn_name=MATRIX_ELEMWISE_SUB,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
     ),
     x,
     y,
@@ -885,9 +918,22 @@ matrix_elemwise_sub = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x + int_y,
         vec_fn_name=VEC_ELEMWISE_SUB,
         matrix_fn_name=MATRIX_ELEMWISE_SUB,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_sub = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_SUB,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_SUB,
+        matrix_fn_name=MATRIX_ELEMWISE_SUB,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
+    ),
 )
 
 vec_elemwise_mul = fn_decl_recursive(
@@ -899,6 +945,7 @@ vec_elemwise_mul = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x * int_y,
         vec_fn_name=VEC_ELEMWISE_MUL,
         matrix_fn_name=MATRIX_ELEMWISE_MUL,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
     ),
     x,
     y,
@@ -912,9 +959,22 @@ matrix_elemwise_mul = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x * int_y,
         vec_fn_name=VEC_ELEMWISE_MUL,
         matrix_fn_name=MATRIX_ELEMWISE_MUL,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_mul = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_MUL,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_MUL,
+        matrix_fn_name=MATRIX_ELEMWISE_MUL,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
+    ),
 )
 
 vec_elemwise_div = fn_decl_recursive(
@@ -926,6 +986,7 @@ vec_elemwise_div = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x // int_y,
         vec_fn_name=VEC_ELEMWISE_DIV,
         matrix_fn_name=MATRIX_ELEMWISE_DIV,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
     ),
     x,
     y,
@@ -939,9 +1000,22 @@ matrix_elemwise_div = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x // int_y,
         vec_fn_name=VEC_ELEMWISE_DIV,
         matrix_fn_name=MATRIX_ELEMWISE_DIV,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_div = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_DIV,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_DIV,
+        matrix_fn_name=MATRIX_ELEMWISE_DIV,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
+    ),
 )
 
 vec_scalar_add = fn_decl_recursive(

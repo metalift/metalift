@@ -178,6 +178,10 @@ def new_vector(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
+    print(full_demangled_name)
+    import pdb
+
+    pdb.set_trace()
     assert len(args) == 1
     primitive_match = re.match(
         rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
@@ -630,16 +634,17 @@ def get_full_demangled_name(maybe_mangled_name: str) -> str:
 def get_demangled_fn_name(maybe_mangled_name: str) -> Optional[str]:
     # Note: this function does not raise exception, it's up to the caller to raise exceptions if the name cannot be demangled
     full_demangled_name = get_full_demangled_name(maybe_mangled_name)
+
+    match = re.match(f"^([a-zA-Z0-9_]+)(\(.*\))?$", full_demangled_name)
+    if match is not None:
+        return match.group(1)
+
     match = re.match(
         f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$",
         full_demangled_name,
     )
     if match is not None:
         return match.group(3)
-
-    match = re.match(f"^([a-zA-Z0-9_]+)(\(.*\))?$", full_demangled_name)
-    if match is not None:
-        return match.group(1)
 
     return None
 
@@ -1693,6 +1698,7 @@ class MetaliftFunc:
             demangled_name = get_demangled_fn_name(func.name)
             if fn_name == demangled_name:
                 fn_ref = ref.get_function(func.name)
+                break
         if fn_ref is None:
             raise Exception(
                 f"Did not find function declaration for {fn_name} in {llvm_filepath}"
