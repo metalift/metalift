@@ -51,6 +51,13 @@ def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
         return issubclass(ty, Matrix)
 
 
+def is_tensor3d_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), Tensor3D)  # type: ignore
+    else:
+        return issubclass(ty, Tensor3D)
+
+
 def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
     contained_type = get_args(ty)[0]
     return (
@@ -1355,15 +1362,12 @@ class Matrix(List[T], Generic[T], Object):
         return Matrix[self.elemT]  # type: ignore
 
     @staticmethod
-    def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
+    def empty(containedT: ObjectContainedT) -> "Matrix":  # type: ignore
         return Matrix(containedT, Call("matrix_empty", Matrix[containedT]))  # type: ignore
 
     @staticmethod
     def default_value() -> "Matrix[Int]":
         return Matrix.empty(Int)
-
-    def __len__(self) -> int:
-        raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
         return Int(Call("matrix_length", Int, self.src))
@@ -1448,15 +1452,6 @@ class Matrix(List[T], Generic[T], Object):
             return call("matrix_scalar_div", Matrix[Int], second, first)
         return call("matrix_elemwise_div", Matrix[Int], first, second)
 
-    def __setitem__(self, index: Union[Int, int], value: Object) -> None:
-        if isinstance(index, int):
-            index = Int(index)
-        if value.type != self.containedT:
-            raise TypeError(
-                f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
-            )
-        self.src = Call("matrix_set", self.type, self.src, index.src, value.src)
-
     # in place append
     def append(self, value: Object) -> "Matrix":  # type: ignore
         if value.type != self.containedT:
@@ -1521,15 +1516,6 @@ class Matrix(List[T], Generic[T], Object):
             )
         return Matrix(self.elemT, Call("list_concat", self.type, self.src, other.src))  # type: ignore
 
-    def __eq__(self, other: "Matrix") -> Bool:  # type: ignore
-        if other is None or self.type != other.type:
-            return Bool(False)
-        else:
-            return cast(Bool, call("list_eq", Bool, self, other))
-
-    def __repr__(self) -> str:
-        return f"{self.src}"
-
     @staticmethod
     def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
         elem_type = type_args[0]
@@ -1566,6 +1552,62 @@ class Matrix(List[T], Generic[T], Object):
             return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"  # type: ignore
         else:
             return f"List {contained_type.cls_str()}"
+
+
+class Tensor3D(List[T], Generic[T], Object):
+    containedT: ObjectContainedT
+
+    def __init__(
+        self,
+        containedT: ObjectContainedT = Int,
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
+        src: Expr
+        if value is None:
+            src = Var("v", Tensor3D[containedT])
+        elif isinstance(value, Expr):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, Tensor3D[containedT])
+        else:
+            raise TypeError(f"Cannot create 3D tensors from {value}")
+        self.elemT = containedT
+        # TODO(jie): is this used anywhere?
+        self.containedT = Matrix[containedT]  # type: ignore
+        Object.__init__(self, src)
+
+    @property
+    def type(self) -> Type["Tensor3D"]:  # type: ignore
+        return Tensor3D[self.elemT]  # type: ignore
+
+    @staticmethod
+    def empty(containedT: ObjectContainedT) -> "Tensor3D":  # type: ignore
+        return Tensor3D(containedT, Call("tensor3d_empty", Tensor3D[containedT]))
+
+    @staticmethod
+    def default_value() -> "Tensor3D[Int]":
+        return Tensor3D.empty(Int)
+
+    def len(self) -> Int:
+        return call("tensor3d_length", Int, self)
+
+    # in place prepend
+    def prepend(self, value: Object) -> "Tensor3D":  # type: ignore
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+
+        self.src = call("tensor3d_prepend", self.type, value, self).src
+        return self
+
+    def append(self, value: Object) -> "Tensor3D":  # type: ignore
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+        self.src = call("tensor3d_append", self.type, self, value).src
+        return self
 
 
 class Set(Generic[T], Object):

@@ -178,6 +178,10 @@ def new_vector(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
+    print(full_demangled_name)
+    import pdb
+
+    pdb.set_trace()
     assert len(args) == 1
     primitive_match = re.match(
         rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
