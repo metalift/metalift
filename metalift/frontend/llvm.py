@@ -215,9 +215,10 @@ def vector_append(
 
     lst = state.read_or_load_operand(args[0])
     value = state.read_or_load_operand(args[1])
-
-    if lst.is_nested:
+    if lst.is_matrix:
         fn_name = "matrix_append"
+    elif lst.is_tensor3d:
+        fn_name = "tensor3d_append"
     else:
         fn_name = "list_append"
 

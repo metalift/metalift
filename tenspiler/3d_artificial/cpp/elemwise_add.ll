@@ -63,7 +63,7 @@ target triple = "x86_64-apple-macosx12.0.0"
 @_ZTVSt12length_error = external unnamed_addr constant { [5 x i8*] }, align 8
 
 ; Function Attrs: noinline optnone ssp uwtable
-define void @_Z12elemwise_addNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEES7_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, %"class.std::__1::vector"* %a, %"class.std::__1::vector"* %b) #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+define void @_Z12elemwise_addNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEES7_(%"class.std::__1::vector"* noalias sret align 8 %agg.result, %"class.std::__1::vector"* %tensor3d_x, %"class.std::__1::vector"* %tensor3d_y) #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
 entry:
   %result.ptr = alloca i8*, align 8
   %nrvo = alloca i1, align 1
@@ -82,14 +82,14 @@ entry:
   store i8* %i1, i8** %result.ptr, align 8
   store i1 false, i1* %nrvo, align 1
   call void @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEC1Ev(%"class.std::__1::vector"* %agg.result) #11
-  %call = call i64 @_ZNKSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEE4sizeEv(%"class.std::__1::vector"* %a) #11
+  %call = call i64 @_ZNKSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEE4sizeEv(%"class.std::__1::vector"* %tensor3d_x) #11
   %conv = trunc i64 %call to i32
   store i32 %conv, i32* %m, align 4
-  %call1 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %a, i64 0) #11
+  %call1 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %tensor3d_x, i64 0) #11
   %call2 = call i64 @_ZNKSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE4sizeEv(%"class.std::__1::vector.0"* %call1) #11
   %conv3 = trunc i64 %call2 to i32
   store i32 %conv3, i32* %n, align 4
-  %call4 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %a, i64 0) #11
+  %call4 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %tensor3d_x, i64 0) #11
   %call5 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.2"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector.0"* %call4, i64 0) #11
   %call6 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector.2"* %call5) #11
   %conv7 = trunc i64 %call6 to i32
@@ -128,7 +128,7 @@ for.cond11:                                       ; preds = %for.inc, %for.body1
 for.body13:                                       ; preds = %for.cond11
   %i8 = load i32, i32* %i, align 4
   %conv14 = sext i32 %i8 to i64
-  %call15 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %a, i64 %conv14) #11
+  %call15 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %tensor3d_x, i64 %conv14) #11
   %i9 = load i32, i32* %j, align 4
   %conv16 = sext i32 %i9 to i64
   %call17 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.2"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector.0"* %call15, i64 %conv16) #11
@@ -138,7 +138,7 @@ for.body13:                                       ; preds = %for.cond11
   %i11 = load i32, i32* %call19, align 4
   %i12 = load i32, i32* %i, align 4
   %conv20 = sext i32 %i12 to i64
-  %call21 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %b, i64 %conv20) #11
+  %call21 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_INS0_IiNS_9allocatorIiEEEENS1_IS3_EEEENS1_IS5_EEEixEm(%"class.std::__1::vector"* %tensor3d_y, i64 %conv20) #11
   %i13 = load i32, i32* %j, align 4
   %conv22 = sext i32 %i13 to i64
   %call23 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.2"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector.0"* %call21, i64 %conv22) #11
