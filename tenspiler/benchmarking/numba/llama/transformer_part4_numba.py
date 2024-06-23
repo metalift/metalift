@@ -4,10 +4,10 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def transformer_part4_numba (input1, input2, hidden_dim):
+def transformer_part4_numba (input1, input2, hidden_dim, res):
     # output = []
     for i in range(hidden_dim):
-        temp = input1[i] * input2[i]
+        res[i] = input1[i] * input2[i]
         # output.append(input1[i] * input2[i])
     # return output
 
@@ -35,11 +35,12 @@ with h5py.File(weights_path, 'r') as weight_file:
 inp1 = weights[-1].flatten()
 inp2 = w_input[-1].flatten()
 hidden_dim = len(inp1)
+res = np.array([0 for _ in range(hidden_dim)], dtype = np.float32)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (inp1.size + (threadsperblock - 1)) // threadsperblock
 
-transformer_part4_numba[blockspergrid, threadsperblock](inp1, inp2, hidden_dim)
+transformer_part4_numba[blockspergrid, threadsperblock](inp1, inp2, hidden_dim, res)
 
 runs = 10
 times = []
@@ -49,12 +50,13 @@ for _ in range(runs):
         inp1 = weights[i].flatten()
         inp2 = w_input[i].flatten()
         hidden_dim = len(inp1)
+        res = np.array([0 for _ in range(hidden_dim)], dtype = np.float32)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (inp1.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        transformer_part4_numba[blockspergrid, threadsperblock](inp1, inp2, hidden_dim)
+        transformer_part4_numba[blockspergrid, threadsperblock](inp1, inp2, hidden_dim, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 

@@ -3,11 +3,12 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def dot_numba(a, b, n):
+def dot_numba(a, b, n, res):
     sum = 0
     for i in range(n): 
       sum += a[i] * b[i]
     # return sum
+    res[0] = sum
 
 import os
 
@@ -44,11 +45,12 @@ times = []
 b = bases[-1].flatten().astype(np.int32)
 a = actives[-1].flatten().astype(np.int32)
 (n,) = b.shape
+res = np.array([0], dtype = np.int32)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-dot_numba[blockspergrid, threadsperblock](b, a, n)
+dot_numba[blockspergrid, threadsperblock](b, a, n, res)
 
 for _ in range(runs):
     total_time = 0
@@ -56,12 +58,13 @@ for _ in range(runs):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
         (n,) = b.shape
+        res = np.array([0], dtype = np.int32)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        dot_numba[blockspergrid, threadsperblock](b, a, n)
+        dot_numba[blockspergrid, threadsperblock](b, a, n, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 

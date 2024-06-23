@@ -4,7 +4,7 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def matmul_numba (weight, input):
+def matmul_numba (weight, input, res):
     # output = []
     m = len(weight)
     n = len(input)
@@ -13,6 +13,7 @@ def matmul_numba (weight, input):
         for j in range(n):
             curr += weight[i][j] * input[j]
         # output.append(curr)
+        res[i] = curr
     # return output
 
 ####### more import statements for benchmarking ########
@@ -38,11 +39,12 @@ with h5py.File(weights_path, 'r') as weight_file:
 ####### runner. need to manually update for each file ########  
 w = attn_weights[-1]
 inp = aw_input[-1]
+res = np.array([0 for _ in range(len(w))], dtype = np.float32)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (w.size + (threadsperblock - 1)) // threadsperblock
 
-matmul_numba[blockspergrid, threadsperblock](w, inp)
+matmul_numba[blockspergrid, threadsperblock](w, inp, res)
 
 runs = 10
 times = []
@@ -51,12 +53,13 @@ for _ in range(runs):
     for i in range(len(attn_weights)):
         w = attn_weights[i]
         inp = aw_input[i]
+        res = np.array([0 for _ in range(len(w))], dtype = np.float32)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (w.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        matmul_numba[blockspergrid, threadsperblock](w, inp)
+        matmul_numba[blockspergrid, threadsperblock](w, inp, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 

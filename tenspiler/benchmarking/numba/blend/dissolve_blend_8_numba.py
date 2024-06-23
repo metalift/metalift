@@ -3,7 +3,7 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def dissolve_blend_8_numba(base, active, opacity, rand_cons):
+def dissolve_blend_8_numba(base, active, opacity, rand_cons, res):
 #   output = []
   m = len(base)
   n = len(base[0])
@@ -14,15 +14,10 @@ def dissolve_blend_8_numba(base, active, opacity, rand_cons):
         pixel = active[i][j]
       else:
         pixel = base[i][j]
+      res[i][j] = pixel
     #   curr_row.append(pixel)
     # output.append(curr_row)
 #   return output
-
-
-def dissolve_blend_8_numba_glued(base, active, opacity, rand_cons):
-    base = np.array(base).astype(np.uint8)
-    active = np.array(active).astype(np.uint8)
-    return dissolve_blend_8_numba(base, active, opacity, rand_cons)
 
 
 import os
@@ -55,12 +50,13 @@ for _file in img_files:
 ####### runner. need to manually update for each file ########
 b = bases[-1]
 a = actives[-1]
+res = np.empty(b.shape, dtype=np.uint8)
 opacity = float(rng.random(dtype=np.float32))
 rand_cons = int(rng.integers(low=0, high=256))
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-dissolve_blend_8_numba[blockspergrid, threadsperblock](b, a, opacity, rand_cons)
+dissolve_blend_8_numba[blockspergrid, threadsperblock](b, a, opacity, rand_cons, res)
 
 
 runs = 10
@@ -70,13 +66,14 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i]
         a = actives[i]
+        res = np.empty(b.shape, dtype=np.uint8)
         opacity = float(rng.random(dtype=np.float32))
         rand_cons = int(rng.integers(low=0, high=256))
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        dissolve_blend_8_numba[blockspergrid, threadsperblock](b, a, opacity, rand_cons)
+        dissolve_blend_8_numba[blockspergrid, threadsperblock](b, a, opacity, rand_cons, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 

@@ -3,9 +3,9 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def wvec_numba(a, b, m, n):
+def wvec_numba(a, b, m, n, res):
     for i in range(n):
-        temp = (m) * (a[i]) + b[i]
+        res[i] = (m) * (a[i]) + b[i]
 
 
 import os
@@ -39,13 +39,14 @@ for _file in img_files:
 
 b = bases[-1].flatten().astype(np.int32)
 a = actives[-1].flatten().astype(np.int32)
+res = np.empty(b.shape, dtype=np.int32)
 (n,) = b.shape
 v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-wvec_numba[blockspergrid, threadsperblock](b, a, v, n)
+wvec_numba[blockspergrid, threadsperblock](b, a, v, n, res)
 
 runs = 10
 times = []
@@ -54,14 +55,15 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
+        res = np.empty(b.shape, dtype=np.int32)
         (n,) = b.shape
         v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        wvec_numba[blockspergrid, threadsperblock](b, a, v, n)
+        wvec_numba[blockspergrid, threadsperblock](b, a, v, n, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

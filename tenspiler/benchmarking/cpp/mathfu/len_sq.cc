@@ -13,7 +13,7 @@ std::chrono::time_point<std::chrono::high_resolution_clock> start_time_k;
 std::chrono::time_point<std::chrono::high_resolution_clock> end_time_k;
 
 
-int len_sq(vector<int32_t> arr, int n) {
+int32_t len_sq(vector<int32_t> arr, int n) {
     start_time_k = high_resolution_clock::now();
     int32_t l = 0;
     for (int i = 0; i < n; ++i) {

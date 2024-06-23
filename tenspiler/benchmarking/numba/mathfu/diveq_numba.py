@@ -3,9 +3,9 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def diveq_numba(a, b, n):
+def diveq_numba(a, b, n, res):
     for i in range(n):
-        temp = a[i] // b[i]
+        res[i] = a[i] // b[i]
 
 import os
 
@@ -38,13 +38,14 @@ for _file in img_files:
 
 b = bases[-1].flatten().astype(np.int32)
 a = actives[-1].flatten().astype(np.int32)
+res = np.empty(b.shape, dtype = np.int32)
 a[a == 0] = 1
 (n,) = b.shape
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-diveq_numba[blockspergrid, threadsperblock](b, a, n)
+diveq_numba[blockspergrid, threadsperblock](b, a, n, res)
 
 runs = 10
 times = []
@@ -53,14 +54,15 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
+        res = np.empty(b.shape, dtype = np.int32)
         a[a == 0] = 1
         (n,) = b.shape
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        diveq_numba[blockspergrid, threadsperblock](b, a, n)
+        diveq_numba[blockspergrid, threadsperblock](b, a, n, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

@@ -4,19 +4,15 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def transformer_part2_numba (token_position, head, head_size, key_cache_layer, attention):
+def transformer_part2_numba (token_position, head, head_size, key_cache_layer, attention, res):
     # xb = []
     for i in range(head_size):
         curr = 0
         for timestep in range(token_position):
             curr += attention[timestep] * key_cache_layer[timestep][head * head_size + i]
         # xb.append(curr)
+        res[i] = curr
     # return xb
-
-def transformer_part2_numba_glued (token_position, head, head_size, key_cache_layer, attention):
-    key_cache_layer = np.array(key_cache_layer).astype(np.float32)
-    attention = np.array(attention).astype(np.float32)
-    return transformer_part2_numba(token_position, head, head_size, key_cache_layer, attention)
 
 ####### more import statements for benchmarking ########
 import numpy as np
@@ -58,10 +54,12 @@ q = q_matrix.flatten()
 attention = transformer_part1_numba(token_position, head, head_size, key_cache_layer, q)
 attention = np.append(attention, np.array([0]))
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (k_matrix.size + (threadsperblock - 1)) // threadsperblock
 
-transformer_part2_numba[blockspergrid, threadsperblock](token_position, head, head_size, key_cache_layer, attention)
+res = np.array([0 for _ in range(head_size)], dtype = np.float32)
+
+transformer_part2_numba[blockspergrid, threadsperblock](token_position, head, head_size, key_cache_layer, attention, res)
 
 runs = 10
 times = []
@@ -82,11 +80,13 @@ for _ in range(runs):
         attention = transformer_part1_numba(token_position, head, head_size, key_cache_layer, q)
         attention = np.append(attention, np.array([0]))
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (k_matrix.size + (threadsperblock - 1)) // threadsperblock
 
+        res = np.array([0 for _ in range(head_size)], dtype = np.float32)
+
         start_time = time.perf_counter()
-        transformer_part2_numba[blockspergrid, threadsperblock](token_position, head, head_size, key_cache_layer, attention)
+        transformer_part2_numba[blockspergrid, threadsperblock](token_position, head, head_size, key_cache_layer, attention, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 
