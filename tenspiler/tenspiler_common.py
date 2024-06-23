@@ -901,6 +901,8 @@ tensor3d_elemwise_add = fn_decl_recursive(
         matrix_fn_name=MATRIX_ELEMWISE_ADD,
         tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
     ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_elemwise_sub = fn_decl_recursive(
@@ -942,6 +944,8 @@ tensor3d_elemwise_sub = fn_decl_recursive(
         matrix_fn_name=MATRIX_ELEMWISE_SUB,
         tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
     ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_elemwise_mul = fn_decl_recursive(
@@ -983,6 +987,8 @@ tensor3d_elemwise_mul = fn_decl_recursive(
         matrix_fn_name=MATRIX_ELEMWISE_MUL,
         tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
     ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_elemwise_div = fn_decl_recursive(
@@ -1024,6 +1030,8 @@ tensor3d_elemwise_div = fn_decl_recursive(
         matrix_fn_name=MATRIX_ELEMWISE_DIV,
         tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
     ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_scalar_add = fn_decl_recursive(

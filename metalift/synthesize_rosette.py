@@ -703,8 +703,7 @@ def synthesize(
         if not no_verify and log:
             print("Verification Output:", result_verify)
 
-        # TODO: change this back
-        if result_verify != "unsat":
+        if result_verify == "unsat":
             if log:
                 if not no_verify:
                     print(
