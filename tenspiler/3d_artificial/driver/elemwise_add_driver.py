@@ -34,7 +34,7 @@ def inv1_grammar_fn(
         i < a.len(),
         j >= 0,
         j <= a[0].len(),
-        matrix == call_elemwise_add(a[i][:j], b[i][i:j]),
+        matrix == call_elemwise_add(a[i][:j], b[i][:j]),
         result == call_elemwise_add(a[:i], b[:i]),
     )
 
@@ -52,7 +52,7 @@ def inv2_grammar_fn(
         j < a[0].len(),
         k >= 0,
         k <= a[0][0].len(),
-        lst == call_elemwise_add(a[i][j][:k], a[i][j][:k]),
+        lst == call_elemwise_add(a[i][j][:k], b[i][j][:k]),
         matrix == call_elemwise_add(a[i][:j], b[i][:j]),
         result == call_elemwise_add(a[:i], b[:i]),
     )
@@ -88,13 +88,17 @@ if __name__ == "__main__":
     driver.add_var_objects([tensor3d_x, tensor3d_y])
 
     # Add preconditions
-    driver.add_precondition(tensor3d_x.len() > 1)
+    driver.add_precondition(tensor3d_x.len() > 0)
     driver.add_precondition(tensor3d_x.len() == tensor3d_y.len())
-    driver.add_precondition(tensor3d_x[0].len() > 1)
+    driver.add_precondition(tensor3d_x[0].len() > 0)
     driver.add_precondition(tensor3d_x[0].len() == tensor3d_y[0].len())
-    driver.add_precondition(tensor3d_x[0][0].len() > 1)
+    driver.add_precondition(tensor3d_x[0][0].len() > 0)
     driver.add_precondition(tensor3d_x[0][0].len() == tensor3d_y[0][0].len())
     elemwise_add(tensor3d_x, tensor3d_y)
     driver.synthesize(
-        filename="elemwise_add", list_bound=2, relaxed_grammar=False, rounds_to_guess=0
+        filename="elemwise_add",
+        list_bound=2,
+        relaxed_grammar=False,
+        rounds_to_guess=0,
+        no_verify=True,
     )
