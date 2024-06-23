@@ -33,7 +33,7 @@ def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
         return issubclass(ty, Matrix)
 
 
-def get_matrix_element_type(ty: _GenericAlias) -> ObjectT:
+def get_element_type(ty: _GenericAlias) -> ObjectT:
     return get_args(ty)[0]  # type: ignore
 
 
@@ -394,34 +394,50 @@ class Expr:
             return "list-ref-noerr"
         elif fn_name == "matrix_get":
             return "matrix-ref-noerr"
+        elif fn_name == "tensor3d_get":
+            return "tensor3d-ref-noerr"
         elif fn_name == "list_append":
             return "list-append"
         elif fn_name == "matrix_append":
             return "matrix-append"
+        elif fn_name == "tensor3d_append":
+            return "tensor3d-append"
         elif fn_name == "list_empty":
             return "list-empty"
         elif fn_name == "matrix_empty":
             return "matrix-empty"
+        elif fn_name == "tensor3d_empty":
+            return "tensor3d-empty"
         elif fn_name == "list_tail":
             return "list-tail-noerr"
         elif fn_name == "matrix_tail":
             return "matrix-tail-noerr"
+        elif fn_name == "tensor3d_tail":
+            return "tensor3d-tail-noerr"
         elif fn_name == "list_length":
             return "length"
         elif fn_name == "matrix_length":
             return "matrix-length"
+        elif fn_name == "tensor3d_length":
+            return "tensor3d-length"
         elif fn_name == "list_take":
             return "list-take-noerr"
         elif fn_name == "matrix_take":
             return "matrix-take-noerr"
+        elif fn_name == "tensor3d_take":
+            return "tensor3d-take-noerr"
         elif fn_name == "vec_slice":
             return "vec-slice-noerr"
         elif fn_name == "matrix_row_slice":
             return "matrix-row-slice-noerr"
+        elif fn_name == "tensor3d_slice":
+            return "tensor3d-slice-noerr"
         elif fn_name == "vec_slice_with_length":
             return "vec-slice-with-length-noerr"
         elif fn_name == "matrix_row_slice_with_length":
             return "matrix-row-slice-with-length-noerr"
+        elif fn_name == "tensor3d_slice_with_length":
+            return "tensor3d-slice-with-length-noerr"
         elif fn_name == "matrix_col_slice":
             return "matrix-col-slice-noerr"
         elif fn_name == "matrix_col_slice_with_length":
@@ -438,6 +454,8 @@ class Expr:
             return "list-prepend"
         elif fn_name == "matrix_prepend":
             return "matrix-prepend"
+        elif fn_name == "tensor3d_prepend":
+            return "tensor3d-prepend"
         elif fn_name == "list_eq":
             return "equal?"
         elif fn_name == "list_concat":
@@ -1097,8 +1115,12 @@ class List(Generic[T], Object):
         return List[self.containedT]  # type: ignore
 
     @property
-    def is_nested(self) -> bool:
-        return is_nested_list_type(self.type) or is_matrix_type(self.type)
+    def is_matrix(self) -> bool:
+        return is_matrix_type(self.type)
+
+    @property
+    def is_tensor3d(self) -> bool:
+        return is_tensor3d_type(self.type)
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
@@ -1116,11 +1138,7 @@ class List(Generic[T], Object):
         raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
-        if self.is_nested:
-            fn_name = "matrix_length"
-        else:
-            fn_name = "list_length"
-        return Int(Call(fn_name, Int, self.src))
+        return Int(Call("list_length", Int, self.src))
 
     def __getitem__(self, index: Union[Int, int, slice]) -> Object:
         if isinstance(index, int):
@@ -1130,16 +1148,20 @@ class List(Generic[T], Object):
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = Int(start)
-                if self.is_nested:
+                if self.is_matrix:
                     fn_name = "matrix_tail"
+                elif self.is_tensor3d:
+                    fn_name = "tensor3d_tail"
                 else:
                     fn_name = "list_tail"
                 return call(fn_name, self.type, self, start)  # type: ignore
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = Int(stop)
-                if self.is_nested:
+                if self.is_matrix:
                     fn_name = "matrix_take"
+                elif self.is_tensor3d:
+                    fn_name = "tensor3d_take"
                 else:
                     fn_name = "list_take"
                 return call(fn_name, self.type, self, stop)  # type: ignore
@@ -1148,8 +1170,10 @@ class List(Generic[T], Object):
                     start = Int(start)
                 if isinstance(stop, int):
                     stop = Int(stop)
-                if self.is_nested:
+                if self.is_matrix:
                     fn_name = "matrix_row_slice"
+                elif self.is_tensor3d:
+                    fn_name = "tensor3d_slice"
                 else:
                     fn_name = "vec_slice"
                 return call(fn_name, self.type, self, start, stop)
@@ -1157,8 +1181,10 @@ class List(Generic[T], Object):
                 raise NotImplementedError(
                     f"Slices with both start and stop indices specified are not implemented: {index}"
                 )
-        if self.is_nested:
+        if self.is_matrix:
             fn_name = "matrix_get"
+        elif self.is_tensor3d:
+            fn_name = "tensor3d_get"
         else:
             fn_name = "list_get"
         return call(fn_name, self.containedT, self, index)
@@ -1178,11 +1204,7 @@ class List(Generic[T], Object):
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
-        if self.is_nested:
-            fn_name = "matrix_append"
-        else:
-            fn_name = "list_append"
-        self.src = call(fn_name, self.type, self, value).src
+        self.src = call("list_append", self.type, self, value).src
         return self
 
     # in place prepend
@@ -1191,11 +1213,7 @@ class List(Generic[T], Object):
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
-        if self.is_nested:
-            fn_name = "matrix_prepend"
-        else:
-            fn_name = "list_prepend"
-        self.src = call(fn_name, self.type, value, self).src
+        self.src = call("list_prepend", self.type, value, self).src
         return self
 
     def slice_with_length(
@@ -1205,8 +1223,10 @@ class List(Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        if self.is_nested:
+        if self.is_matrix:
             fn_name = "matrix_row_slice_with_length"
+        elif self.is_tensor3d:
+            fn_name = "tensor3d_slice_with_length"
         else:
             fn_name = "vec_slice_with_length"
         return call(fn_name, self.type, self, start, lst_length)
@@ -2491,11 +2511,13 @@ class Call(Expr):
                 or self.args[0].startswith("vec")
                 or self.args[0].startswith("matrix")
                 or self.args[0].startswith("integer")
+                or self.args[0].startswith("tensor3d")
             ):
                 if (
                     self.args[0].startswith("list")
                     or self.args[0].startswith("matrix")
                     or self.args[0].startswith("vec")
+                    or self.args[0].startswith("tensor3d")
                 ):
                     callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 elif self.args[0].startswith("integer"):
