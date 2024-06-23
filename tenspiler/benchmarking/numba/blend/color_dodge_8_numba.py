@@ -3,7 +3,7 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def color_dodge_8_numba(base, active):
+def color_dodge_8_numba(base, active, res):
 #   output = []
   m = len(base)
   n = len(base[0])
@@ -15,6 +15,7 @@ def color_dodge_8_numba(base, active):
       else:
         pixel = base[i][j] // (255 - active[i][j])
     #   curr_row.append(pixel)
+      res[i][j] = pixel
     # output.append(curr_row)
 #   return output
 
@@ -48,10 +49,11 @@ for _file in img_files:
 ####### runner. need to manually update for each file ########
 b = bases[-1]
 a = actives[-1]
-threadsperblock = 32
+res = np.empty(b.shape, dtype=np.uint8)
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-color_dodge_8_numba[blockspergrid, threadsperblock](b, a)
+color_dodge_8_numba[blockspergrid, threadsperblock](b, a, res)
 
 
 runs = 10
@@ -61,11 +63,12 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i]
         a = actives[i]
-        threadsperblock = 32
+        res = np.empty(b.shape, dtype=np.uint8)
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        color_dodge_8_numba[blockspergrid, threadsperblock](b, a)
+        color_dodge_8_numba[blockspergrid, threadsperblock](b, a, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 

@@ -3,10 +3,11 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def array_sum_numba(arr, n):
+def array_sum_numba(arr, n, res):
     sum = 0
     for i in range(n):
         sum += arr[i]
+    res[0] = sum
 
 
 
@@ -39,12 +40,13 @@ for _file in img_files:
 
 ####### runner. need to manually update for each file ########
 b = bases[-1].flatten().astype(np.int32)
+res = np.array([0], dtype = np.int32)
 (n,) = b.shape
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
-array_sum_numba[blockspergrid, threadsperblock](b, n)
+array_sum_numba[blockspergrid, threadsperblock](b, n, res)
 
 
 runs = 10
@@ -53,12 +55,13 @@ for _ in range(runs):
     total_time = 0
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
+        res = np.array([0], dtype = np.int32)
         (n,) = b.shape
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        array_sum_numba[blockspergrid, threadsperblock](b, n)
+        array_sum_numba[blockspergrid, threadsperblock](b, n, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

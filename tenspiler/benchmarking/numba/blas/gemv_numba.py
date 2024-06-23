@@ -3,13 +3,14 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def gemv_numba(M, N, A, x):
+def gemv_numba(M, N, A, x, res):
     # y = []
     for i in range(M):
         sum = 0
         for j in range(N):
             sum += A[i][j] * x[j]
         # y.append(sum)
+        res[i] = sum
     # return y
 
 import os
@@ -44,11 +45,12 @@ for _file in img_files:
 b = bases[-1].astype(np.int32)
 M, N = b.shape
 a = actives[-1].flatten().astype(np.int32)[:N]
+res = np.empty(M, dtype=np.int32)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-gemv_numba[blockspergrid, threadsperblock](M, N, b, a)
+gemv_numba[blockspergrid, threadsperblock](M, N, b, a, res)
 
 runs = 10
 times = []
@@ -58,12 +60,13 @@ for _ in range(runs):
         b = bases[i].astype(np.int32)
         M, N = b.shape
         a = actives[i].flatten().astype(np.int32)[:N]
+        res = np.empty(M, dtype=np.int32)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        gemv_numba[blockspergrid, threadsperblock](M, N, b, a)
+        gemv_numba[blockspergrid, threadsperblock](M, N, b, a, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

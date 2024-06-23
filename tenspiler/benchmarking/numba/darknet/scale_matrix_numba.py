@@ -3,10 +3,10 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def scale_matrix_numba(m, scale):
+def scale_matrix_numba(m, scale, res):
     for i in range(m.shape[0]):
         for j in range(m.shape[1]):
-            temp = m[i][j] * scale
+            res[i][j] = m[i][j] * scale
 
 
 import os
@@ -39,11 +39,11 @@ for _file in img_files:
 ####### runner. need to manually update for each file ########
 b = bases[-1].astype(np.int32)
 s = rng.integers(0, high=np.iinfo(np.int32).max + 1).astype(np.int32)
-
-threadsperblock = 32
+res = np.empty(b.shape, dtype=np.int32)
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-scale_matrix_numba[blockspergrid, threadsperblock](b, s)
+scale_matrix_numba[blockspergrid, threadsperblock](b, s, res)
 
 
 runs = 10
@@ -53,12 +53,12 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].astype(np.int32)
         s = rng.integers(0, high=np.iinfo(np.int32).max + 1).astype(np.int32)
-        
-        threadsperblock = 32
+        res = np.empty(b.shape, dtype=np.int32)
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        scale_matrix_numba[blockspergrid, threadsperblock](b, s)
+        scale_matrix_numba[blockspergrid, threadsperblock](b, s, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

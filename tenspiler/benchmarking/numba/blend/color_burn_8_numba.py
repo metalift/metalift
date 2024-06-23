@@ -3,7 +3,7 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def color_burn_8_numba(base, active):
+def color_burn_8_numba(base, active, res):
 #   output = []
   m = len(base)
   n = len(base[0])
@@ -15,6 +15,7 @@ def color_burn_8_numba(base, active):
       else:
         pixel = 255 - (255 - base[i][j]) // active[i][j]
     #   curr_row.append(pixel)
+      res[i][j] = pixel
     # output.append(curr_row)
 #   return output
 
@@ -51,11 +52,12 @@ for _file in img_files:
 
 b = bases[-1]
 a = actives[-1]
+res = np.empty(b.shape, dtype=np.uint8)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-color_burn_8_numba[blockspergrid, threadsperblock](b, a)
+color_burn_8_numba[blockspergrid, threadsperblock](b, a, res)
 
 
 runs = 10
@@ -65,12 +67,13 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i]
         a = actives[i]
+        res = np.empty(b.shape, dtype=np.uint8)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        color_burn_8_numba[blockspergrid, threadsperblock](b, a)
+        color_burn_8_numba[blockspergrid, threadsperblock](b, a, res)
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 

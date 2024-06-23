@@ -4,10 +4,11 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def rmsnorm_part1_numba (input, weight):
+def rmsnorm_part1_numba (input, weight, res):
     ss = 0
     for i in range(len(input)):
         ss += input[i] * input[i]
+    res[0] = ss
     # return ss
 
 ####### more import statements for benchmarking ########
@@ -33,11 +34,12 @@ with h5py.File(weights_path, 'r') as weight_file:
 ####### runner. need to manually update for each file ########  
 inp = w_input[-1].flatten()
 w = weights[-1].flatten()
+res = np.array([0], dtype = np.float32)
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
-rmsnorm_part1_numba[blockspergrid, threadsperblock](inp, w)
+rmsnorm_part1_numba[blockspergrid, threadsperblock](inp, w, res)
 
 runs = 10
 times = []
@@ -46,12 +48,13 @@ for _ in range(runs):
     for i in range(len(weights)):
         inp = w_input[i].flatten()
         w = weights[i].flatten()
+        res = np.array([0], dtype = np.float32)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        rmsnorm_part1_numba[blockspergrid, threadsperblock](inp, w)
+        rmsnorm_part1_numba[blockspergrid, threadsperblock](inp, w, res)
         end_time = time.perf_counter()
 
         total_time += (end_time - start_time) * 1000

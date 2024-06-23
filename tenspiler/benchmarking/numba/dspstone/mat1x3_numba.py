@@ -3,9 +3,12 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def mat1x3_numba(N, h, x):
+def mat1x3_numba(N, h, x, res):
     for i in range(N):
-        temp = h[i][i] * x[i]
+        temp = 0
+        for j in range(N):
+            temp += h[i][j] * x[j]
+        res[i] = temp
 
 import os
 
@@ -41,11 +44,12 @@ b = bases[-1].astype(np.int32)
 m, n = b.shape
 if m < n:
     n = m
-
-threadsperblock = 32
+res = np.array([0 for _ in range(n)], dtype=np.int32)
+    
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
-mat1x3_numba[blockspergrid, threadsperblock](n, b, a)
+mat1x3_numba[blockspergrid, threadsperblock](n, b, a, res)
 
 
 runs = 10
@@ -58,12 +62,13 @@ for _ in range(runs):
         m, n = b.shape
         if m < n:
             n = m
+        res = np.array([0 for _ in range(n)], dtype=np.int32)
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        mat1x3_numba[blockspergrid, threadsperblock](n, b, a)
+        mat1x3_numba[blockspergrid, threadsperblock](n, b, a, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

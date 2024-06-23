@@ -3,9 +3,9 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def mult_add_into_cpu_numba(N, X, Y, Z):
+def mult_add_into_cpu_numba(N, X, Y, Z, res):
     for i in range(N):
-        temp = Z[i] + X[i] * Y[i]
+        res[i] = Z[i] + X[i] * Y[i]
 
 
 import os
@@ -38,15 +38,16 @@ for _file in img_files:
 ####### runner. need to manually update for each file ########
 b = bases[-1].flatten().astype(np.int32)
 a = actives[-1].flatten().astype(np.int32)
+res = np.empty(b.shape, dtype=np.int32)
 (n,) = b.shape
 rand_f = rng.integers(
     low=0, high=np.iinfo(np.int32).max + 1, size=b.shape, dtype=np.int32
 )
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
-mult_add_into_cpu_numba[blockspergrid, threadsperblock](n, b, a, rand_f)
+mult_add_into_cpu_numba[blockspergrid, threadsperblock](n, b, a, rand_f, res)
 
 
 
@@ -57,15 +58,16 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
+        res = np.empty(b.shape, dtype=np.int32)
         (n,) = b.shape
         rand_f = rng.integers(
             low=0, high=np.iinfo(np.int32).max + 1, size=b.shape, dtype=np.int32
         )
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        mult_add_into_cpu_numba[blockspergrid, threadsperblock](n, b, a, rand_f)
+        mult_add_into_cpu_numba[blockspergrid, threadsperblock](n, b, a, rand_f, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000

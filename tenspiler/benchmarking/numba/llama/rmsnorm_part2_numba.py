@@ -5,12 +5,12 @@ from numba import jit, cuda
 import math
 
 @cuda.jit()
-def rmsnorm_part2_numba (input, weight, ss):
+def rmsnorm_part2_numba (input, weight, ss, res):
     # output = []
     size = len(input)
     inv_ss = 1 / math.sqrt(ss / size + 1)
     for i in range(size):
-        temp = inv_ss * input[i] * weight[i]
+        res[i] = inv_ss * input[i] * weight[i]
         # output.append(inv_ss * input[i] * weight[i])
     # return output
 
@@ -37,12 +37,13 @@ with h5py.File(weights_path, 'r') as weight_file:
 ####### runner. need to manually update for each file ########  
 inp = w_input[-1].flatten()
 w = weights[-1].flatten()
+res = np.array([0 for _ in range(len(inp))], dtype = np.float32)
 
 ss = float(np.sum(inp * inp))
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (w.size + (threadsperblock - 1)) // threadsperblock
 
-rmsnorm_part2_numba[blockspergrid, threadsperblock](inp, w, ss)
+rmsnorm_part2_numba[blockspergrid, threadsperblock](inp, w, ss, res)
 
 runs = 10
 times = []
@@ -51,13 +52,14 @@ for _ in range(runs):
     for i in range(len(weights)):
         inp = w_input[i].flatten()
         w = weights[i].flatten()
+        res = np.array([0 for _ in range(len(inp))], dtype = np.float32)
     
         ss = float(np.sum(inp * inp))
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (w.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        rmsnorm_part2_numba[blockspergrid, threadsperblock](inp, w, ss)
+        rmsnorm_part2_numba[blockspergrid, threadsperblock](inp, w, ss, res)
         end_time = time.perf_counter()
 
         total_time += (end_time - start_time) * 1000

@@ -3,10 +3,10 @@ import numpy as np
 from numba import jit, cuda
 
 @cuda.jit()
-def matsub_numba(matA, matB, m, n):
+def matsub_numba(matA, matB, m, n, res):
     for i in range(m):
         for j in range(n):
-            temp = matA[i][j] - matB[i][j]
+            res[i][j] = matA[i][j] - matB[i][j]
 
 
 import os
@@ -40,13 +40,14 @@ for _file in img_files:
 
 b = bases[-1].astype(np.int32)
 a = actives[-1].astype(np.int32)
+res = np.empty(b.shape, dtype=np.int32)
 m, n = b.shape
 
-threadsperblock = 32
+threadsperblock = 256
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
-matsub_numba[blockspergrid, threadsperblock](b, a, m, n)
+matsub_numba[blockspergrid, threadsperblock](b, a, m, n, res)
     
 runs = 10
 times = []
@@ -55,13 +56,14 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].astype(np.int32)
         a = actives[i].astype(np.int32)
+        res = np.empty(b.shape, dtype=np.int32)
         m, n = b.shape
 
-        threadsperblock = 32
+        threadsperblock = 256
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        matsub_numba[blockspergrid, threadsperblock](b, a, m, n)
+        matsub_numba[blockspergrid, threadsperblock](b, a, m, n, res)
 
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
