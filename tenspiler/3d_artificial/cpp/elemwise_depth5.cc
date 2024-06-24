@@ -1,7 +1,7 @@
 #include <vector>
 using namespace std;
 
-vector<vector<vector<int>>> elemwise_fma(
+vector<vector<vector<int>>> elemwise_depth5(
     vector<vector<vector<int>>> tensor3d_x,
     vector<vector<vector<int>>> tensor3d_y
 ) {
@@ -15,7 +15,9 @@ vector<vector<vector<int>>> elemwise_fma(
         for (int j = 0; j < n; j++) {
             vector<int> lst;
             for (int k = 0; k < o; k++) {
-                lst.push_back(tensor3d_x[i][j][k] * tensor3d_y[i][j][k] + tensor3d_x[i][j][k]);
+                lst.push_back(
+                    tensor3d_x[i][j][k] + (tensor3d_x[i][j][k] + tensor3d_y[i][j][k] * tensor3d_x[i][j][k]) * tensor3d_y[i][j][k]
+                );
             }
             matrix.push_back(lst);
         }
