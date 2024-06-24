@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Object, Tensor3D
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Object, Tensor3D, choose
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
     call_elemwise_add,
@@ -19,23 +19,29 @@ def inv0_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     result, i, j, k, lst, matrix, _ = writes
-    a, b = reads
-    return and_objects(i >= 0, i <= a.len(), result == call_elemwise_add(a[:i], b[:i]))
+    tensor3d_x, tensor3d_y = reads
+    tensor3d = choose(tensor3d_x, tensor3d_y)
+    return and_objects(
+        i >= 0,
+        i <= tensor3d_x.len(),
+        result == call_elemwise_add(tensor3d[:i], tensor3d[:i]),
+    )
 
 
 def inv1_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     j, k, lst, matrix, _ = writes
-    a, b = reads
+    tensor3d_x, tensor3d_y = reads
+    tensor3d = choose(tensor3d_x, tensor3d_y)
     result, i = in_scope
     return and_objects(
         i >= 0,
-        i < a.len(),
+        i < tensor3d_x.len(),
         j >= 0,
-        j <= a[0].len(),
-        matrix == call_elemwise_add(a[i][:j], b[i][:j]),
-        result == call_elemwise_add(a[:i], b[:i]),
+        j <= tensor3d_x[0].len(),
+        matrix == call_elemwise_add(tensor3d[i][:j], tensor3d[i][:j]),
+        result == call_elemwise_add(tensor3d[:i], tensor3d[:i]),
     )
 
 
@@ -43,18 +49,19 @@ def inv2_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     k, lst, _ = writes
-    a, b = reads
+    tensor3d_x, tensor3d_y = reads
+    tensor3d = choose(tensor3d_x, tensor3d_y)
     result, i, matrix, j = in_scope
     return and_objects(
         i >= 0,
-        i < a.len(),
+        i < tensor3d_x.len(),
         j >= 0,
-        j < a[0].len(),
+        j < tensor3d_x[0].len(),
         k >= 0,
-        k <= a[0][0].len(),
-        lst == call_elemwise_add(a[i][j][:k], b[i][j][:k]),
-        matrix == call_elemwise_add(a[i][:j], b[i][:j]),
-        result == call_elemwise_add(a[:i], b[:i]),
+        k <= tensor3d_x[0][0].len(),
+        lst == call_elemwise_add(tensor3d[i][j][:k], tensor3d[i][j][:k]),
+        matrix == call_elemwise_add(tensor3d[i][:j], tensor3d[i][:j]),
+        result == call_elemwise_add(tensor3d[:i], tensor3d[:i]),
     )
 
 
@@ -62,8 +69,9 @@ def ps_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     result = writes[0]
-    a, b = reads
-    return result == call_elemwise_add(a, b)
+    tensor3d_x, tensor3d_y = reads
+    tensor3d = choose(tensor3d_x, tensor3d_y)
+    return result == call_elemwise_add(tensor3d, tensor3d)
 
 
 if __name__ == "__main__":
