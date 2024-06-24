@@ -63,16 +63,16 @@ def gen_var(v: Expr, decls: List[str], vars_all: List[str], list_bound: int) -> 
 
         tmp = [
             v.args[0] + "_BOUNDEDSET-" + str(i)
-            for i in range(list_bound * 1 * list_bound)
+            for i in range(list_bound * list_bound * list_bound)
         ]
         element_type = get_element_type(v.type)
         for t in tmp:
             gen_var(Var(t, element_type), decls, vars_all, list_bound)
         matrices: List[str] = []
         for i in range(list_bound):
-            matrix_index_start = i * 1 * list_bound
+            matrix_index_start = i * list_bound * list_bound
             lsts: List[str] = []
-            for j in range(1):
+            for j in range(list_bound):
                 matrix_index = matrix_index_start + j * list_bound
                 lsts.append(
                     f"(list {' '.join(tmp[matrix_index : matrix_index + list_bound])})"

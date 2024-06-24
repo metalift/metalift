@@ -34,7 +34,7 @@ from metalift.ir import (
     Let,
 )
 from metalift.ir import List as mlList
-from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or
+from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or
 from metalift.ir import Set as mlSet
 from metalift.ir import Sub, Synth, Target, TupleExpr, TupleGet, Var, get_fn_return_type
 from metalift.rosette_translator import to_rosette
@@ -145,10 +145,16 @@ def to_expr(
             return Call(
                 "matrix_length", Int, to_expr(ast[1], fnsType, varType, choices)
             )
+        elif ast[0] == "tensor3d-length":
+            return Call(
+                "tensor3d_length", Int, to_expr(ast[1], fnsType, varType, choices)
+            )
         elif ast[0] == "list-empty":
             return Call("list_empty", mlList[Int])
         elif ast[0] == "matrix-empty":
             return Call("matrix_empty", mlList[mlList[Int]])
+        elif ast[0] == "tensor3d-empty":
+            return Call("tensor3d_empty", mlList[mlList[mlList[Int]]])
         elif ast[0] == "list-append":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             elem = to_expr(ast[2], fnsType, varType, choices)
@@ -165,6 +171,15 @@ def to_expr(
                 "matrix_append",
                 list_expr.type,
                 list_expr,
+                elem,
+            )
+        elif ast[0] == "tensor3d-append":
+            tensor_expr = to_expr(ast[1], fnsType, varType, choices)
+            elem = to_expr(ast[2], fnsType, varType, choices)
+            return Call(
+                "tensor3d_append",
+                tensor_expr.type,
+                tensor_expr,
                 elem,
             )
         elif ast[0] == "list-prepend":
@@ -185,6 +200,15 @@ def to_expr(
                 elem,
                 lst,
             )
+        elif ast[0] == "tensor3d-prepend":
+            elem = to_expr(ast[1], fnsType, varType, choices)
+            tensor = to_expr(ast[2], fnsType, varType, choices)
+            return Call(
+                "tensor3d_prepend",
+                tensor.type,
+                elem,
+                tensor,
+            )
         elif ast[0] == "list-ref-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
@@ -201,6 +225,16 @@ def to_expr(
                 list_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
+        elif ast[0] == "tensor3d-ref-noerr":
+            tensor_expr = to_expr(ast[1], fnsType, varType, choices)
+            return Call(
+                "tensor3d_get",
+                Matrix[
+                    Int
+                ],  # TODO(jie) for now we can assume this is matrix[int] since we only support int lists
+                tensor_expr,
+                to_expr(ast[2], fnsType, varType, choices),
+            )
         elif ast[0] == "list-tail-noerr":
             list_expr = to_expr(ast[1], fnsType, varType, choices)
             return Call(
@@ -215,6 +249,14 @@ def to_expr(
                 "matrix_tail",
                 list_expr.type,
                 list_expr,
+                to_expr(ast[2], fnsType, varType, choices),
+            )
+        elif ast[0] == "tensor3d-tail-noerr":
+            tensor_expr = to_expr(ast[1], fnsType, varType, choices)
+            return Call(
+                "tensor3d_tail",
+                tensor_expr.type,
+                tensor_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "list-concat":
@@ -235,6 +277,14 @@ def to_expr(
                 "matrix_take",
                 list_expr.type,
                 list_expr,
+                to_expr(ast[2], fnsType, varType, choices),
+            )
+        elif ast[0] == "tensor3d-take-noerr":
+            tensor_expr = to_expr(ast[1], fnsType, varType, choices)
+            return Call(
+                "tensor3d_take",
+                tensor_expr.type,
+                tensor_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
         elif ast[0] == "vec-slice-noerr":
