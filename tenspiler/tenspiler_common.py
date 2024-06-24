@@ -87,7 +87,7 @@ TensorT = Union[mlList[Int], Matrix[Int], Tensor3D[Int]]
 def call_elemwise_add(left: TensorT, right: TensorT) -> TensorT:
     if is_tensor3d_type(left.type):
         return call_tensor_3d_elemwise_add(left, right)
-    if is_matrix_type(left.type):
+    elif is_matrix_type(left.type):
         return call_matrix_elemwise_add(left, right)
     else:
         return call_vec_elemwise_add(left, right)
@@ -101,7 +101,9 @@ def call_elemwise_sub(left: TensorT, right: TensorT) -> TensorT:
 
 
 def call_elemwise_mul(left: TensorT, right: TensorT) -> TensorT:
-    if is_matrix_type(left.type):
+    if is_tensor3d_type(left.type):
+        return call_tensor_3d_elemwise_mul(left, right)
+    elif is_matrix_type(left.type):
         return call_matrix_elemwise_mul(left, right)
     else:
         return call_vec_elemwise_mul(left, right)
@@ -240,6 +242,12 @@ def call_tensor_3d_elemwise_add(
     left: Tensor3D[Int], right: Tensor3D[Int]
 ) -> Tensor3D[Int]:
     return call(TENSOR3D_ELEMWISE_ADD, Tensor3D[Int], left, right)
+
+
+def call_tensor_3d_elemwise_mul(
+    left: Tensor3D[Int], right: Tensor3D[Int]
+) -> Tensor3D[Int]:
+    return call(TENSOR3D_ELEMWISE_MUL, Tensor3D[Int], left, right)
 
 
 def call_reduce_sum(lst) -> Int:
