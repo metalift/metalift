@@ -35,7 +35,7 @@ inp = weights[-1].flatten()
 hidden_dim = len(inp)
 res = np.array([0 for _ in range(hidden_dim)], dtype = np.float32)
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
 transformer_part3_numba[blockspergrid, threadsperblock](inp, hidden_dim, res)
@@ -49,7 +49,7 @@ for _ in range(runs):
         hidden_dim = len(inp)
         res = np.array([0 for _ in range(hidden_dim)], dtype = np.float32)
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

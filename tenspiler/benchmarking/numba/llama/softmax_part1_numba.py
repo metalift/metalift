@@ -37,7 +37,7 @@ inp = attn_weights[-1].flatten()
 res = np.array([0], dtype = np.float32)
 max_pos = len(inp)
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
 
@@ -53,7 +53,7 @@ for _ in range(runs):
         res = np.array([0], dtype = np.float32)
         max_pos = len(inp)
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
 

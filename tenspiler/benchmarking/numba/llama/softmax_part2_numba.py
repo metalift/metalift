@@ -39,7 +39,7 @@ max_pos = len(inp)
 
 max_val = float(np.max(inp[:max_pos]))
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
 softmax_part2_numba[blockspergrid, threadsperblock](inp, max_pos, max_val, res)
@@ -55,7 +55,7 @@ for _ in range(runs):
         
         max_val = float(np.max(inp[:max_pos]))
         
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

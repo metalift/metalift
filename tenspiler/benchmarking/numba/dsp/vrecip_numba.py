@@ -41,7 +41,7 @@ b = bases[-1].flatten().astype(np.int32)
 b[b == 0] = 1
 res = np.empty(b.shape, dtype=np.int32)
 (n,) = b.shape
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 vrecip_numba[blockspergrid, threadsperblock](b, n, res)
@@ -55,7 +55,7 @@ for _ in range(runs):
         b[b == 0] = 1
         res = np.empty(b.shape, dtype=np.int32)
         (n,) = b.shape
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

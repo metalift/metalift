@@ -47,7 +47,7 @@ M, N = b.shape
 a = actives[-1].flatten().astype(np.int32)[:N]
 res = np.empty(M, dtype=np.int32)
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 gemv_numba[blockspergrid, threadsperblock](M, N, b, a, res)
@@ -62,7 +62,7 @@ for _ in range(runs):
         a = actives[i].flatten().astype(np.int32)[:N]
         res = np.empty(M, dtype=np.int32)
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

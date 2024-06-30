@@ -42,7 +42,7 @@ a = actives[-1].flatten().astype(np.int32)
 res = np.empty(b.shape, dtype=np.int32)
 (n,) = b.shape
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
@@ -58,7 +58,7 @@ for _ in range(runs):
         res = np.empty(b.shape, dtype=np.int32)
         (n,) = b.shape
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

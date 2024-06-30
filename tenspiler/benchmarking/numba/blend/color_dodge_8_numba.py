@@ -50,7 +50,7 @@ for _file in img_files:
 b = bases[-1]
 a = actives[-1]
 res = np.empty(b.shape, dtype=np.uint8)
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 color_dodge_8_numba[blockspergrid, threadsperblock](b, a, res)
@@ -64,7 +64,7 @@ for _ in range(runs):
         b = bases[i]
         a = actives[i]
         res = np.empty(b.shape, dtype=np.uint8)
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

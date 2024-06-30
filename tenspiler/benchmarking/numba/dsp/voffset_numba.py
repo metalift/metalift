@@ -41,7 +41,7 @@ b = bases[-1].flatten().astype(np.int32)
 res = np.empty(b.shape, dtype=np.int32)
 (n,) = b.shape
 v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 voffset_numba[blockspergrid, threadsperblock](b, v, n, res)
@@ -55,7 +55,7 @@ for _ in range(runs):
         res = np.empty(b.shape, dtype=np.int32)
         (n,) = b.shape
         v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

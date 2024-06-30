@@ -36,7 +36,7 @@ inp = w_input[-1].flatten()
 w = weights[-1].flatten()
 res = np.array([0], dtype = np.float32)
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
 rmsnorm_part1_numba[blockspergrid, threadsperblock](inp, w, res)
@@ -50,7 +50,7 @@ for _ in range(runs):
         w = weights[i].flatten()
         res = np.array([0], dtype = np.float32)
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

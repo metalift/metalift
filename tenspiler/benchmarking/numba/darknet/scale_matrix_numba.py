@@ -40,7 +40,7 @@ for _file in img_files:
 b = bases[-1].astype(np.int32)
 s = rng.integers(0, high=np.iinfo(np.int32).max + 1).astype(np.int32)
 res = np.empty(b.shape, dtype=np.int32)
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 scale_matrix_numba[blockspergrid, threadsperblock](b, s, res)
@@ -54,7 +54,7 @@ for _ in range(runs):
         b = bases[i].astype(np.int32)
         s = rng.integers(0, high=np.iinfo(np.int32).max + 1).astype(np.int32)
         res = np.empty(b.shape, dtype=np.int32)
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

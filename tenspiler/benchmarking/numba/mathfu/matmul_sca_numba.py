@@ -41,7 +41,7 @@ b = bases[-1].astype(np.int32)
 res = np.empty(b.shape, dtype = np.int32)
 m, n = b.shape
 v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 matmul_sca_numba[blockspergrid, threadsperblock](b, v, m, n, res)
@@ -56,7 +56,7 @@ for _ in range(runs):
         res = np.empty(b.shape, dtype = np.int32)
         m, n = b.shape
         v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

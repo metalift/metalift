@@ -52,7 +52,7 @@ head_size = k_matrix.shape[0] // num_head
 key_cache_layer = k_matrix
 q = q_matrix.flatten()
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (k_matrix.size + (threadsperblock - 1)) // threadsperblock
 
 transformer_part1_numba[blockspergrid, threadsperblock](token_position, head, head_size, key_cache_layer, q, res)
@@ -75,7 +75,7 @@ for _ in range(runs):
         key_cache_layer = k_matrix
         q = q_matrix.flatten()
         
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (k_matrix.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

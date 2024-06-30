@@ -43,7 +43,7 @@ res = np.empty(b.shape, dtype=np.int32)
 rand_f = rng.integers(
     low=0, high=np.iinfo(np.int32).max + 1, size=b.shape, dtype=np.int32
 )
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
@@ -63,7 +63,7 @@ for _ in range(runs):
         rand_f = rng.integers(
             low=0, high=np.iinfo(np.int32).max + 1, size=b.shape, dtype=np.int32
         )
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

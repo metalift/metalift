@@ -42,7 +42,7 @@ res = np.empty(b.shape, dtype = np.int32)
 a[a == 0] = 1
 (n,) = b.shape
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 diveq_numba[blockspergrid, threadsperblock](b, a, n, res)
@@ -58,7 +58,7 @@ for _ in range(runs):
         a[a == 0] = 1
         (n,) = b.shape
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
