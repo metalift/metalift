@@ -46,7 +46,7 @@ if m < n:
     n = m
 res = np.array([0 for _ in range(n)], dtype=np.int32)
     
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 mat1x3_numba[blockspergrid, threadsperblock](n, b, a, res)
@@ -64,7 +64,7 @@ for _ in range(runs):
             n = m
         res = np.array([0 for _ in range(n)], dtype=np.int32)
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

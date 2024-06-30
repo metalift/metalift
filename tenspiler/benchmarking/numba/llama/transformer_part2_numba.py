@@ -54,7 +54,7 @@ q = q_matrix.flatten()
 attention = transformer_part1_numba(token_position, head, head_size, key_cache_layer, q)
 attention = np.append(attention, np.array([0]))
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (k_matrix.size + (threadsperblock - 1)) // threadsperblock
 
 res = np.array([0 for _ in range(head_size)], dtype = np.float32)
@@ -80,7 +80,7 @@ for _ in range(runs):
         attention = transformer_part1_numba(token_position, head, head_size, key_cache_layer, q)
         attention = np.append(attention, np.array([0]))
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (k_matrix.size + (threadsperblock - 1)) // threadsperblock
 
         res = np.array([0 for _ in range(head_size)], dtype = np.float32)

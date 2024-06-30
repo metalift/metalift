@@ -41,7 +41,7 @@ res = np.empty(b.shape, dtype = np.int32)
 (n,) = b.shape
 v = rng.integers(low=1, high=np.iinfo(np.int32).max + 1)
 
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 diveq_sca_numba[blockspergrid, threadsperblock](b, v, n, res)
 
@@ -55,7 +55,7 @@ for _ in range(runs):
         (n,) = b.shape
         v = rng.integers(low=1, high=np.iinfo(np.int32).max + 1)
 
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

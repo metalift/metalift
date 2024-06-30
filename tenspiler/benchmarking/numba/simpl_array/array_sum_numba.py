@@ -42,7 +42,7 @@ for _file in img_files:
 b = bases[-1].flatten().astype(np.int32)
 res = np.array([0], dtype = np.int32)
 (n,) = b.shape
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
@@ -57,7 +57,7 @@ for _ in range(runs):
         b = bases[i].flatten().astype(np.int32)
         res = np.array([0], dtype = np.int32)
         (n,) = b.shape
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

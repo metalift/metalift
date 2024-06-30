@@ -53,7 +53,7 @@ a = actives[-1]
 res = np.empty(b.shape, dtype=np.uint8)
 opacity = float(rng.random(dtype=np.float32))
 rand_cons = int(rng.integers(low=0, high=256))
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 dissolve_blend_8_numba[blockspergrid, threadsperblock](b, a, opacity, rand_cons, res)
@@ -69,7 +69,7 @@ for _ in range(runs):
         res = np.empty(b.shape, dtype=np.uint8)
         opacity = float(rng.random(dtype=np.float32))
         rand_cons = int(rng.integers(low=0, high=256))
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()

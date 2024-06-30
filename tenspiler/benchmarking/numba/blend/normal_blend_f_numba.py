@@ -42,7 +42,7 @@ b = bases[-1].flatten().astype(np.float32)
 a = actives[-1].flatten().astype(np.float32)
 res = np.empty(b.shape, dtype=np.float32)
 opacity = float(rng.random(dtype=np.float32))
-threadsperblock = 256
+threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 normal_blend_f_numba[blockspergrid, threadsperblock](b, a, opacity, res)
@@ -56,7 +56,7 @@ for _ in range(runs):
         a = actives[i].flatten().astype(np.float32)
         res = np.empty(b.shape, dtype=np.float32)
         opacity = float(rng.random(dtype=np.float32))
-        threadsperblock = 256
+        threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 
