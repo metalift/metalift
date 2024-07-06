@@ -1597,7 +1597,7 @@ class Tensor3D(List[T], Generic[T], Object):
         else:
             raise TypeError(f"Cannot create 3D tensors from {value}")
         self.elemT = containedT
-        # TODO(jie): is this used anywhere?
+        # TODO: is this used anywhere?
         self.containedT = Matrix[containedT]  # type: ignore
         Object.__init__(self, src)
 

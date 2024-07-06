@@ -240,7 +240,7 @@ def to_expr(
                 "tensor3d_get",
                 Matrix[
                     Int
-                ],  # TODO(jie) for now we can assume this is matrix[int] since we only support int lists
+                ],  # TODO for now we can assume this is matrix[int] since we only support int lists
                 tensor_expr,
                 to_expr(ast[2], fnsType, varType, choices),
             )
