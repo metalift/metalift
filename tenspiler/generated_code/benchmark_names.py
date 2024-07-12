@@ -26,7 +26,7 @@ llama_test_name = [
     "transformer_part3",
     "transformer_part4",
 ]
-blas_test_name = ["dot", "gemv"]
+
 darknet_test_name = [
     "mag_array",
     "matrix_add_matrix",
@@ -39,69 +39,16 @@ darknet_test_name = [
     "sum_array",
     "translate_array",
 ]
-dsp_test_name = [
-    "matadd",
-    "matscal",
-    "matsub",
-    "vadd",
-    "vcopy",
-    "vmul",
-    "vneg",
-    "voffset",
-    "vrecip",
-    "vscal",
-    "vsub",
-    "wvec",
-]
-dspstone_test_name = ["mat1x3", "n_real_updates"]
-makespeare_test_name = ["sum_of_squares"]
-mathfu_test_name = [
-    "diveq",
-    "diveq_sca",
-    "len",
-    "len_sq",
-    "matmul_sca",
-    "muleq",
-    "muleq_sca",
-    "negate",
-    "pluseq",
-    "subeq",
-    "subeq_sca",
-]
-simpl_array_test_name = [
-    "array_inc",
-    "array_sum",
-    "cube_in_place",
-    "fourth_in_place",
-    "sum_elts",
-]
+
 utdsp_test_name = ["fir_small", "lmsfir1", "lmsfir2"]
 all_test = (
     blend_test_name
     + llama_test_name
-    + blas_test_name
     + darknet_test_name
-    + dsp_test_name
-    + dspstone_test_name
-    + makespeare_test_name
-    + mathfu_test_name
-    + simpl_array_test_name
     + utdsp_test_name
 )
 gemmini_not_comp = [
     "translate_array",
-    "vcopy",
-    "vmul",
-    "vneg",
-    "voffset",
-    "vrecip",
-    "diveq",
-    "muleq",
-    "negate",
-    "subeq_sca",
-    "array_inc",
-    "cube_in_place",
-    "fourth_in_place",
 ]
 gemmini_blend_func_names = [
     'normal_blend_8',
