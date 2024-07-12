@@ -98,7 +98,7 @@ int test(int base, int arg1, int base2, int arg2) {
 }
 ```
 
-We do this using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
+We do this using the [script provided by Metalift](https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains [information about the code to be transpiled](https://github.com/metalift/metalift/blob/main/metalift/analysis.py#L185). The code info is then used to generate our grammar as described above. 
 
