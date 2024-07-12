@@ -5,7 +5,7 @@
     ```
 2. Run the container and spawn a shell
     ```
-    docker run --rm -v $(pwd):/code/metalift -it tenspiler /bin/bash
+    docker run --rm -v $(pwd):/code/tenspiler -it tenspiler /bin/bash
     ```
     **Note**: For any `python` command in the Docker environment, please prefix with `poetry run` (as included in all provided commands).
 
@@ -47,14 +47,14 @@ We provide a **Dockerfile** for easy setup of the environment.
 
 Below, we describe each component of our artifact:
 - Source Code:
-    - `/code/metalift/`: The root folder of Tenspiler.
-    - `/code/metalift/tenspiler/(blend|llama|c2taco)cpp/for_synthesis/`: The source code of our benchmarks.
-    - `/code/metalift/tenspiler/codegen/`: The code generation scripts from TensIR to each of the 6 supported backends.
-    - `/code/metalift/tenspiler/plots/`: Evaluation data, plots, and plotting scripts used in the paper.
+    - `/code/tenspiler/`: The root folder of Tenspiler.
+    - `/code/tenspiler/tenspiler/(blend|llama|c2taco)cpp/for_synthesis/`: The source code of our benchmarks.
+    - `/code/tenspiler/tenspiler/codegen/`: The code generation scripts from TensIR to each of the 6 supported backends.
+    - `/code/tenspiler/tenspiler/plots/`: Evaluation data, plots, and plotting scripts used in the paper.
 - Evaluation scripts:
-    - `/code/metalift/tenspiler/generated_code/`: The scripts that run all three phases of Tenspiler for each benchmark, as described above.
-    - `/code/metalift/tenspiler/benchmarking/`: The scripts to obtain speedup of each benchmark on the backends.
-    - `/code/metalift/(data/|vicuna_weight.h5|vicuna_weight7b.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
+    - `/code/tenspiler/tenspiler/generated_code/`: The scripts that run all three phases of Tenspiler for each benchmark, as described above.
+    - `/code/tenspiler/tenspiler/benchmarking/`: The scripts to obtain speedup of each benchmark on the backends.
+    - `/code/tenspiler/(data/|vicuna_weight.h5|vicuna_weight7b.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
 
 # Functional badge
 
@@ -90,9 +90,9 @@ fir_small, lmsfir1, lmsfir2
 ## Performance Evaluation
 In figures 9 and 10 in the paper, we show the performance of translated code compared to C++ baseline. In this artifact, we include scripts to replicate the results.
 
-In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be found at `/code/metalift/data_full`, and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`. Running with full dataset, especially 33B vicuna, requires more memory; our experimentation setup has 512GB available.
+In the paper, we evaluated the performance of the translated code using either 10k images from ImageNet or the model weights from vicuna-33B and 7B. It takes multiple days to run the evalutes on the full datasets. For the purpose of this artifact, we include a scaled down version of the datasets. To retrieve the full datasets, the ImageNet images can be found at `/code/tenspiler/data_full`, and vicuna weights 33B and 7B can be obtained by runing in `poetry run python tenspiler/benchmarking/retrieving_data/vicuna_weights_processing.py`. Running with full dataset, especially 33B vicuna, requires more memory; our experimentation setup has 512GB available.
 
-If you decide to use the full datasets, rename the 10k images folder `data_full` to `data`, and the vicuna 33B and 7B weights as `vicuna_weight.h5` and `vicuna_weight7b.h5`, respectively. Everything should be placed in the `metalift` directory.
+If you decide to use the full datasets, rename the 10k images folder `data_full` to `data`, and the vicuna 33B and 7B weights as `vicuna_weight.h5` and `vicuna_weight7b.h5`, respectively. Everything should be placed in the `/code/tenspiler/` directory.
 
 
 **Notes**:
