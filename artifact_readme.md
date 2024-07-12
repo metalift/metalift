@@ -1,7 +1,3 @@
-Title of the submitted paper: Tenspiler: A Verified Lifting-Based Compiler for Tensor
-
-ECOOP submission number for the paper: 220
-
 # Quick-start guide
 1. Build the provided Docker container with
     ```
@@ -13,23 +9,24 @@ ECOOP submission number for the paper: 220
     ```
     **Note**: For any `python` command in the Docker environment, please prefix with `poetry run` (as included in all provided commands).
 
-3. There are three phases in Tenspiler: synthesis, verification, and code generation. To make everything works, we can perform a quick test by generating **NumPy** code for the **dot** benchmark. The source code of this benchmark can be found at `tenspiler/c2taco/cpp/for_synthesis/blas/dot.cc`, and the expected executable numpy code is as follows:
+3. There are three phases in Tenspiler: synthesis, verification, and code generation. To make everything works, we can perform a quick test by generating **NumPy** code for the **mag_array** benchmark. The source code of this benchmark can be found at `tenspiler/c2taco/cpp/for_synthesis/darknet/mag_array.cc`, and the expected executable NumPy code is as follows:
     ```python
     import numpy as np
 
-    def dot_np (a, b, n):
-        return np.sum((b[:n]) * (a[:n]))
+    def mag_array_np(a, n):
+        return np.sum((a[:n]) * (a[:n]))
 
-    def dot_np_glued (a, b, n):
+
+    def mag_array_np_glued(a, n):
         a = np.array(a).astype(np.int32)
-        b = np.array(b).astype(np.int32)
-        return dot_np(a, b, n)
+        return mag_array_np(a, n)
+
     ```
     To run Tenspiler end to end for this benchmark, we can execute
     ```
-    poetry run python tenspiler/generated_code/numpy/generate_numpy_benchmarks.py dot
+    poetry run python tenspiler/generated_code/numpy/generate_numpy_benchmarks.py mag_array
     ```
-    The generated NumPy code can be found at `tenspiler/generated_code/numpy/blas/dot_np.py`.
+    The generated NumPy code can be found at `tenspiler/generated_code/numpy/darknet/mag_array_np.py`.
 
 4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `/code/metalift/data_sampled/`. We compare against running C++ code compiled with `-O3` flag. The first step is to rename the dataset so the exection script can find it.
     ```
@@ -38,9 +35,9 @@ ECOOP submission number for the paper: 220
     
 5. Then we can perform the timing with
     ```
-    poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
+    poetry run python tenspiler/benchmarking/numpy_speedup_exec.py mag_array
     ```
-    This will print the C++ and Numpy runtimes, and both the end-to-end and kernel speedups offered by NumPy. End-to-end includes the overhead of loading the dataset, while kernel speedup only includes the computation time.
+    This will print the C++ and NumPy runtimes, and both the end-to-end and kernel speedups offered by NumPy. End-to-end includes the overhead of loading the dataset, while kernel speedup only includes the computation time.
 
 
 # Overview: What does the artifact comprise?
@@ -59,21 +56,14 @@ Below, we describe each component of our artifact:
     - `/code/metalift/tenspiler/benchmarking/`: The scripts to obtain speedup of each benchmark on the backends.
     - `/code/metalift/(data/|vicuna_weight.h5|vicuna_weight7b.h5)`: Sampled datasets used for evaluation. See [the performance evaluation section](#performance-evaluation) for more details.
 
-# Available badge
-
-We offer to publish the artifact on [DARTS](https://drops.dagstuhl.de/opus/institut_darts.php), in which case the available badge will be issued automatically.
-If you agree to publishing your artifact under a Creative Commons license, please indicate this here.
-
-We agree to publish the artifacts.
-
 # Functional badge
 
 ## Generating Code per Backend
-As stated in our paper section 6.1.2, Tenspiler can target 6 different backends for 69 benchmarks. To translate all 69 benchmarks to executable code for each backend, run
+As stated in our paper section 6.1.2, Tenspiler can target 6 different backends for the benchmarks. Note that not all 69 benchmarks are included since some are private. To translate all benchmarks to executable code for each backend, run
 ```
 poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
-which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|blas|darknet|...)/<benchmark name>`.
+which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|darknet|...)/<benchmark name>`.
 
 To test a single benchmark, run
 ```
@@ -82,7 +72,7 @@ poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmar
 
 ## Backend Descriptions
 ### Backend names
-Tenspiler supports 6 backends: numpy, mlx, pytorch, tensorflow, gemmini, and gaudi.
+Tenspiler supports 6 backends: NumPy, MLX, PyTorch, TensorFlow, Gemmini, and Gaudi.
 
 ### Benchmarks
 #### blend
@@ -91,29 +81,11 @@ color_burn_8 (no gemmini support), color_dodge_8 (no gemmini support), darken_bl
 #### llama
 matmul (no gaudi TPC-C support), rmsnorm_part1 (no gaudi TPC-C support), rmsnorm_part2 (no gemmini support) (no gaudi TPC-C support), softmax_part1 (no gemmini support) (no gaudi TPC-C support), softmax_part2 (no gemmini support) (no gaudi TPC-C support), softmax_part3 (no gaudi TPC-C support), softmax_part4 (no gemmini support) (no gaudi TPC-C support), transformer_part1 (no gemmini support) (no gaudi TPC-C support), transformer_part2 (no gemmini support) (no gaudi TPC-C support), transformer_part3 (no gemmini support) (no gaudi TPC-C support), transformer_part4 (no gemmini support) (no gaudi TPC-C support)
 
-#### blas
-dot, gemv (no gaudi TPC-C support)
-
 #### darknet
 mag_array, matrix_add_matrix, mse_array, mult_add_into_cpu, ol_l2_cpu1, ol_l2_cpu2, scale_array, scale_matrix, sum_array, translate_array (no gemmini support)
 
 #### utdsp
 fir_small, lmsfir1, lmsfir2
-
-#### dsp
-matadd, matscal, matsub, vadd, vcopy (no gemmini support) (no gaudi TPC-C support), vmul (no gemmini support), vneg (no gemmini support), voffset (no gemmini support), vrecip (no gemmini support), vscal, vsub, wvec
-
-#### dspstone
-mat1x3 (no gaudi TPC-C support), n_real_updates
-
-#### makespeare
-sum_of_squares
-
-#### mathfu
-diveq (no gemmini support), diveq_sca, len, len_sq, matmul_sca, muleq (no gemmini support), muleq_sca, negate (no gemmini support), pluseq, subeq, subeq_sca (no gemmini support)
-
-#### simple_array
-array_inc (no gemmini support), array_sum, cube_in_place (no gemmini support), fourth_in_place (no gemmini support), sum_elts
 
 ## Performance Evaluation
 In figures 9 and 10 in the paper, we show the performance of translated code compared to C++ baseline. In this artifact, we include scripts to replicate the results.
