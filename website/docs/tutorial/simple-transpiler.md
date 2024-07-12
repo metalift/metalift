@@ -21,17 +21,18 @@ Our first step is to define the semantics of the target language. Using Metalift
 
 <!--phmdoctest-share-names-->
 ```python
-from metalift.ir import Var, FnDecl, FnDeclRecursive, Choose, Synth
-from metalift.ir import Add, Mul, Eq, Call, Lit, IntLit
-from metalift.ir import Int, Bool
+from typing import List
+from metalift.ir import fn_decl, fn_decl_recursive, choose, Synth
+from metalift.ir import call, Lit, IntLit, Add, Call, Eq, Expr, Ite, Lit, Sub, TupleExpr
+from metalift.ir import Int, Bool, Object
 
 def targetLang():
-  x = Var("x", Int()) # variables to be used in semantic function definition
-  y = Var("y", Int())
-  z = Var("z", Int())
-  fma = FnDecl("fma",             # function name
-               Int(),             # return type
-               Add(x, Mul(y, z)), # body of the function
+  x = Int("x") # variables to be used in semantic function definition
+  y = Int("y")
+  z = Int("z")
+  fma = fn_decl("fma",             # function name
+               Int,             # return type
+               x + y * z, # body of the function
                x, y, z)           # function inputs
   return [fma]
 ```
@@ -50,11 +51,11 @@ For our example, we want the synthesizer to consider transpiling the input code 
 <!--phmdoctest-mark.skip-->
 ```python
 # inputVars := one of the vars read in the input | 0
-inputVars = Choose(*ci.readVars, IntLit(0))
+inputVars = choose(*ci.readVars, IntLit(0))
 # var_or_add := inputVar + inputVar
-var_or_add = Add(inputVars, inputVars)
+var_or_add = inputVars + inputVars
 # var_or_fma := one of the vars read | fma(var_or_add, var_or_add, var_or_add)
-var_or_fma = Choose(*ci.readVars, Call("fma", Int(), var_or_add, var_or_add, var_or_add))
+var_or_fma = choose(*ci.readVars, call("fma", Int, var_or_add, var_or_add, var_or_add))
 ```
 
 A few things of note here:
@@ -66,19 +67,14 @@ After that, we tell Metalift that all values should be computed using the gramma
 
 <!--phmdoctest-share-names-->
 ```python
-def grammar(name, args):
-  inputVars = Choose(*args, IntLit(0))
-  var_or_add = Add(inputVars, inputVars)
-  var_or_fma = Choose(
-    *args, Call("fma", Int(), var_or_add, var_or_add, var_or_add)
-  )
-  
-  # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma 
-  summary = Add(var_or_fma, var_or_fma)
-
-  return Synth(name,                            # name of the function we are transpiling
-               summary,                         # grammar defined above
-               *args)  # list of input variables
+def grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    ret_val = writes[0]
+    var = choose(*reads, Int(0))
+    added = var + var
+    fma_call_object = call("fma", Int, added, added, added)
+    var_or_fma = choose(*reads, fma_call_object)
+    # all writes should be computed using the grammar above. I.e., written_var = var_or_fma + var_or_fma. and the return value must be equal to it
+    return ret_val == var_or_fma + var_or_fma
 
 ```
 We wrap this in a `Synth` AST node and return it afterwards.
@@ -102,13 +98,14 @@ int test(int base, int arg1, int base2, int arg2) {
 }
 ```
 
-We do this using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
+We do this using the [script provided by Metalift](https://github.com/starptr/metalift/blob/oscar/main/tests/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file, along with a file containing loop information (.loops, which is empty since our input code does not contain any loops).
 
 We pass these file names to Metalift's `analyze` function, which returns a number of results. The most important is the last one, which contains [information about the code to be transpiled](https://github.com/metalift/metalift/blob/main/metalift/analysis.py#L185). The code info is then used to generate our grammar as described above. 
 
 <!--phmdoctest-share-names-->
 ```python
 from metalift.analysis_new import VariableTracker, analyze
+from metalift.frontend.llvm import Driver
 
 filename = "tests/llvm/fma_dsl.ll"
 basename = "fma_dsl"
@@ -117,24 +114,24 @@ fnName = "test"
 loopsFile = "tests/llvm/fma_dsl.loops"
 cvcPath = "cvc5"
 
-test_analysis = analyze(filename, fnName, loopsFile)
+driver = Driver()
+test = driver.analyze(
+    llvm_filepath=filename,
+    loops_filepath=loopsFile,
+    fn_name=fnName,
+    target_lang_fn=targetLang,
+    inv_grammars=None,
+    ps_grammar=grammar
+)
 
-variable_tracker = VariableTracker()
-base = variable_tracker.variable("base", Int())
-arg1 = variable_tracker.variable("arg1", Int())
-base2 = variable_tracker.variable("base2", Int())
-arg2 = variable_tracker.variable("arg2", Int())
 
-print("====== grammar")
-invAndPs = [grammar(fnName, [base, arg1, base2, arg2])]
+base = Int("base")
+arg1 = Int("arg1")
+base2 = Int("base2")
+arg2 = Int("arg2")
+driver.add_var_objects([base, arg1, base2, arg2])
 
-vc = test_analysis.call(base, arg1, base2, arg2)(variable_tracker, lambda ret: Eq(ret, Call(
-  fnName,
-  Int(),
-  base, arg1, base2, arg2
-)))
-
-lang = targetLang()
+test(base, arg1, base2, arg2)
 ```
 
 After we defined our target language and search space grammar, we call Metalift's `synthesize` function as described in our previous tutorial.
@@ -143,36 +140,41 @@ After we defined our target language and search space grammar, we call Metalift'
 ```python
 from metalift.synthesize_auto import synthesize
 
-candidates = synthesize(
-  "example", lang, variable_tracker.all(), invAndPs, [], vc, invAndPs, cvcPath
-)
+driver.synthesize()
 ```
 
 The synthesized code can then pass through our code generator to produce executable code.
 
 <!--phmdoctest-share-names-->
 ```python
-def codeGen(summary: FnDeclRecursive):
-  expr = summary.body() 
-  def eval(expr):
-    if isinstance(expr, Add):
-      return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
-    elif isinstance(expr, Call):
-      eval_args = []
-      for a in expr.arguments():
-        eval_args.append(eval(a))
-      return f"{expr.name()}({', '.join(eval_args)})"
-    elif isinstance(expr, Lit):
-      return str(expr.val())
-    else:
-      return str(expr)
-  return eval(expr)
+def codeGen(expr: Expr) -> str:
+    def eval(expr: Expr) -> str:
+        if isinstance(expr, Eq):
+            return f"{expr.e1()} == {eval(expr.e2())}"
+        if isinstance(expr, Add):
+            return f"{eval(expr.args[0])} + {eval(expr.args[1])}"
+        if isinstance(expr, Sub):
+            return f"{eval(expr.args[0])} - {eval(expr.args[1])}"
+        if isinstance(expr, Call):
+            eval_args = []
+            for a in expr.arguments():
+                eval_args.append(eval(a))
+            return f"{expr.name()}({', '.join(a for a in eval_args)})"
+        if isinstance(expr, Lit):
+            return f"{expr.val()}"
+        if isinstance(expr, TupleExpr):
+            return f"({', '.join(eval(a) for a in expr.args)})"
+        if isinstance(expr, Ite):
+            return f"{eval(expr.e1())} if {eval(expr.c())} else {eval(expr.e2())}"
+        else:
+            return "%s"%(expr)
+    return eval(expr)
 
-summary = codeGen(candidates[0])
+summary = test.codegen(codeGen)
 
 print(summary)
 ```
 
 ```
-fma(base + base, base2 + 0, 0 + 0) + fma(base2 + base2, arg2 + 0, arg1 + arg1)
+fma(base + base2, 0 + arg1, arg2 + arg2) + fma(base + base2, base2 + 0, 0 + 0)
 ```

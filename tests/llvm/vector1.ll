@@ -51,9 +51,9 @@ for.cond:                                         ; preds = %for.inc, %entry
   %conv = sext i32 %i2 to i64
   %call = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector"* %in) #11
   %cmp = icmp ult i64 %conv, %call
-  br i1 %cmp, label %bb, label %bb5
+  br i1 %cmp, label %for.body, label %for.end
 
-for.body:                                         ; preds = %bb
+for.body:                                         ; preds = %for.cond
   %i3 = load i32, i32* %i, align 4
   %conv1 = sext i32 %i3 to i64
   %call2 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector"* %in, i64 %conv1) #11
@@ -69,29 +69,17 @@ for.inc:                                          ; preds = %invoke.cont
   store i32 %inc, i32* %i, align 4
   br label %for.cond
 
-for.end:                                          ; preds = %bb5
+for.end:                                          ; preds = %for.cond
   store i1 true, i1* %nrvo, align 1
   %nrvo.val = load i1, i1* %nrvo, align 1
-  br i1 %nrvo.val, label %bb6, label %bb7
+  br i1 %nrvo.val, label %nrvo.skipdtor, label %nrvo.unused
 
-nrvo.unused:                                      ; preds = %bb7
+nrvo.unused:                                      ; preds = %for.end
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector"* %agg.result) #11
   br label %nrvo.skipdtor
 
-nrvo.skipdtor:                                    ; preds = %bb6, %nrvo.unused
+nrvo.skipdtor:                                    ; preds = %nrvo.unused, %for.end
   ret void
-
-bb:                                               ; preds = %for.cond
-  br label %for.body
-
-bb5:                                              ; preds = %for.cond
-  br label %for.end
-
-bb6:                                              ; preds = %for.end
-  br label %nrvo.skipdtor
-
-bb7:                                              ; preds = %for.end
-  br label %nrvo.unused
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -138,26 +126,20 @@ entry:
   %call = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE9__end_capEv(%"class.std::__1::__vector_base"* %i2) #11
   %i3 = load i32*, i32** %call, align 8
   %cmp = icmp ne i32* %i1, %i3
-  br i1 %cmp, label %bb, label %bb6
+  br i1 %cmp, label %if.then, label %if.else
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   %i4 = load i32*, i32** %__x.addr, align 8
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE22__construct_one_at_endIJRKiEEEvDpOT_(%"class.std::__1::vector"* %this1, i32* nonnull align 4 dereferenceable(4) %i4)
   br label %if.end
 
-if.else:                                          ; preds = %bb6
+if.else:                                          ; preds = %entry
   %i5 = load i32*, i32** %__x.addr, align 8
   call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE21__push_back_slow_pathIRKiEEvOT_(%"class.std::__1::vector"* %this1, i32* nonnull align 4 dereferenceable(4) %i5)
   br label %if.end
 
 if.end:                                           ; preds = %if.else, %if.then
   ret void
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb6:                                              ; preds = %entry
-  br label %if.else
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -383,9 +365,9 @@ entry:
   %__begin_ = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 0
   %i = load i32*, i32** %__begin_, align 8
   %cmp = icmp ne i32* %i, null
-  br i1 %cmp, label %bb, label %bb2
+  br i1 %cmp, label %if.then, label %if.end
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   call void @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE5clearEv(%"class.std::__1::__vector_base"* %this1) #11
   %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %this1) #11
   %__begin_2 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 0
@@ -394,14 +376,8 @@ if.then:                                          ; preds = %bb
   call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call, i32* %i1, i64 %call3) #11
   br label %if.end
 
-if.end:                                           ; preds = %bb2, %if.then
+if.end:                                           ; preds = %if.then, %entry
   ret void
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb2:                                              ; preds = %entry
-  br label %if.end
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -560,9 +536,9 @@ while.cond:                                       ; preds = %invoke.cont, %entry
   %i1 = load i32*, i32** %__new_last.addr, align 8
   %i2 = load i32*, i32** %__soon_to_be_end, align 8
   %cmp = icmp ne i32* %i1, %i2
-  br i1 %cmp, label %bb, label %bb5
+  br i1 %cmp, label %while.body, label %while.end
 
-while.body:                                       ; preds = %bb
+while.body:                                       ; preds = %while.cond
   %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv(%"class.std::__1::__vector_base"* %this1) #11
   %i3 = load i32*, i32** %__soon_to_be_end, align 8
   %incdec.ptr = getelementptr inbounds i32, i32* %i3, i32 -1
@@ -574,17 +550,11 @@ while.body:                                       ; preds = %bb
 invoke.cont:                                      ; preds = %while.body
   br label %while.cond
 
-while.end:                                        ; preds = %bb5
+while.end:                                        ; preds = %while.cond
   %i4 = load i32*, i32** %__new_last.addr, align 8
   %__end_3 = getelementptr inbounds %"class.std::__1::__vector_base", %"class.std::__1::__vector_base"* %this1, i32 0, i32 1
   store i32* %i4, i32** %__end_3, align 8
   ret void
-
-bb:                                               ; preds = %while.cond
-  br label %while.body
-
-bb5:                                              ; preds = %while.cond
-  br label %while.end
 }
 
 ; Function Attrs: noinline optnone ssp uwtable
@@ -677,9 +647,9 @@ entry:
   store i64 %__align, i64* %__align.addr, align 8
   %i = load i64, i64* %__align.addr, align 8
   %call = call zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %i) #11
-  br i1 %call, label %bb, label %bb7
+  br i1 %call, label %if.then, label %if.else
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   %i1 = load i64, i64* %__align.addr, align 8
   store i64 %i1, i64* %__align_val, align 8
   %i2 = load i8*, i8** %__ptr.addr, align 8
@@ -688,7 +658,7 @@ if.then:                                          ; preds = %bb
   call void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvmSt11align_val_t(i8* %i2, i64 %i3, i64 %i4)
   br label %return
 
-if.else:                                          ; preds = %bb7
+if.else:                                          ; preds = %entry
   %i5 = load i8*, i8** %__ptr.addr, align 8
   %i6 = load i64, i64* %__size.addr, align 8
   call void @_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvm(i8* %i5, i64 %i6)
@@ -696,12 +666,6 @@ if.else:                                          ; preds = %bb7
 
 return:                                           ; preds = %if.else, %if.then
   ret void
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb7:                                              ; preds = %entry
-  br label %if.else
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -1053,28 +1017,28 @@ entry:
   %i = load i64, i64* %__new_size.addr, align 8
   %i1 = load i64, i64* %__ms, align 8
   %cmp = icmp ugt i64 %i, %i1
-  br i1 %cmp, label %bb, label %bb9
+  br i1 %cmp, label %if.then, label %if.end
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   %i2 = bitcast %"class.std::__1::vector"* %this1 to %"class.std::__1::__vector_base_common"*
   call void @_ZNKSt3__120__vector_base_commonILb1EE20__throw_length_errorEv(%"class.std::__1::__vector_base_common"* %i2) #14
   unreachable
 
-if.end:                                           ; preds = %bb9
+if.end:                                           ; preds = %entry
   %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE8capacityEv(%"class.std::__1::vector"* %this1) #11
   store i64 %call2, i64* %__cap, align 8
   %i3 = load i64, i64* %__cap, align 8
   %i4 = load i64, i64* %__ms, align 8
   %div = udiv i64 %i4, 2
   %cmp3 = icmp uge i64 %i3, %div
-  br i1 %cmp3, label %bb10, label %bb11
+  br i1 %cmp3, label %if.then4, label %if.end5
 
-if.then4:                                         ; preds = %bb10
+if.then4:                                         ; preds = %if.end
   %i5 = load i64, i64* %__ms, align 8
   store i64 %i5, i64* %retval, align 8
   br label %return
 
-if.end5:                                          ; preds = %bb11
+if.end5:                                          ; preds = %if.end
   %i6 = load i64, i64* %__cap, align 8
   %mul = mul i64 2, %i6
   store i64 %mul, i64* %ref.tmp, align 8
@@ -1086,18 +1050,6 @@ if.end5:                                          ; preds = %bb11
 return:                                           ; preds = %if.end5, %if.then4
   %i8 = load i64, i64* %retval, align 8
   ret i64 %i8
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb9:                                              ; preds = %entry
-  br label %if.end
-
-bb10:                                             ; preds = %if.end
-  br label %if.then4
-
-bb11:                                             ; preds = %if.end
-  br label %if.end5
 }
 
 ; Function Attrs: noinline optnone ssp uwtable
@@ -1271,25 +1223,19 @@ entry:
   %i = load i64*, i64** %__b.addr, align 8
   %i1 = load i64*, i64** %__a.addr, align 8
   %call = call zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %__comp, i64* nonnull align 8 dereferenceable(8) %i, i64* nonnull align 8 dereferenceable(8) %i1)
-  br i1 %call, label %bb, label %bb4
+  br i1 %call, label %cond.true, label %cond.false
 
-cond.true:                                        ; preds = %bb
+cond.true:                                        ; preds = %entry
   %i2 = load i64*, i64** %__b.addr, align 8
   br label %cond.end
 
-cond.false:                                       ; preds = %bb4
+cond.false:                                       ; preds = %entry
   %i3 = load i64*, i64** %__a.addr, align 8
   br label %cond.end
 
 cond.end:                                         ; preds = %cond.false, %cond.true
   %cond-lvalue = phi i64* [ %i2, %cond.true ], [ %i3, %cond.false ]
   ret i64* %cond-lvalue
-
-bb:                                               ; preds = %entry
-  br label %cond.true
-
-bb4:                                              ; preds = %entry
-  br label %cond.false
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -1368,25 +1314,19 @@ entry:
   %i = load i64*, i64** %__a.addr, align 8
   %i1 = load i64*, i64** %__b.addr, align 8
   %call = call zeroext i1 @_ZNKSt3__16__lessImmEclERKmS3_(%"struct.std::__1::__less"* %__comp, i64* nonnull align 8 dereferenceable(8) %i, i64* nonnull align 8 dereferenceable(8) %i1)
-  br i1 %call, label %bb, label %bb4
+  br i1 %call, label %cond.true, label %cond.false
 
-cond.true:                                        ; preds = %bb
+cond.true:                                        ; preds = %entry
   %i2 = load i64*, i64** %__b.addr, align 8
   br label %cond.end
 
-cond.false:                                       ; preds = %bb4
+cond.false:                                       ; preds = %entry
   %i3 = load i64*, i64** %__a.addr, align 8
   br label %cond.end
 
 cond.end:                                         ; preds = %cond.false, %cond.true
   %cond-lvalue = phi i64* [ %i2, %cond.true ], [ %i3, %cond.false ]
   ret i64* %cond-lvalue
-
-bb:                                               ; preds = %entry
-  br label %cond.true
-
-bb4:                                              ; preds = %entry
-  br label %cond.false
 }
 
 ; Function Attrs: noinline optnone ssp uwtable
@@ -1409,15 +1349,15 @@ entry:
   call void @_ZNSt3__117__compressed_pairIPiRNS_9allocatorIiEEEC1IDnS4_EEOT_OT0_(%"class.std::__1::__compressed_pair.1"* %__end_cap_, i8** nonnull align 8 dereferenceable(8) %ref.tmp, %"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %i1)
   %i2 = load i64, i64* %__cap.addr, align 8
   %cmp = icmp ne i64 %i2, 0
-  br i1 %cmp, label %bb, label %bb8
+  br i1 %cmp, label %cond.true, label %cond.false
 
-cond.true:                                        ; preds = %bb
+cond.true:                                        ; preds = %entry
   %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this1) #11
   %i3 = load i64, i64* %__cap.addr, align 8
   %call2 = call i32* @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE8allocateERS2_m(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call, i64 %i3)
   br label %cond.end
 
-cond.false:                                       ; preds = %bb8
+cond.false:                                       ; preds = %entry
   br label %cond.end
 
 cond.end:                                         ; preds = %cond.false, %cond.true
@@ -1439,12 +1379,6 @@ cond.end:                                         ; preds = %cond.false, %cond.t
   %call6 = call nonnull align 8 dereferenceable(8) i32** @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv(%"struct.std::__1::__split_buffer"* %this1) #11
   store i32* %add.ptr5, i32** %call6, align 8
   ret void
-
-bb:                                               ; preds = %entry
-  br label %cond.true
-
-bb8:                                              ; preds = %entry
-  br label %cond.false
 }
 
 ; Function Attrs: noinline optnone ssp uwtable
@@ -1555,24 +1489,18 @@ entry:
   %this1 = load %"class.std::__1::allocator"*, %"class.std::__1::allocator"** %this.addr, align 8
   %i = load i64, i64* %__n.addr, align 8
   %cmp = icmp ugt i64 %i, 4611686018427387903
-  br i1 %cmp, label %bb, label %bb3
+  br i1 %cmp, label %if.then, label %if.end
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   call void @_ZNSt3__120__throw_length_errorEPKc(i8* getelementptr inbounds ([68 x i8], [68 x i8]* @.str, i64 0, i64 0)) #14
   unreachable
 
-if.end:                                           ; preds = %bb3
+if.end:                                           ; preds = %entry
   %i1 = load i64, i64* %__n.addr, align 8
   %mul = mul i64 %i1, 4
   %call = call i8* @_ZNSt3__117__libcpp_allocateEmm(i64 %mul, i64 4)
   %i2 = bitcast i8* %call to i32*
   ret i32* %i2
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb3:                                              ; preds = %entry
-  br label %if.end
 }
 
 ; Function Attrs: noinline noreturn optnone ssp uwtable
@@ -1604,9 +1532,9 @@ entry:
   store i64 %__align, i64* %__align.addr, align 8
   %i = load i64, i64* %__align.addr, align 8
   %call = call zeroext i1 @_ZNSt3__124__is_overaligned_for_newEm(i64 %i) #11
-  br i1 %call, label %bb, label %bb6
+  br i1 %call, label %if.then, label %if.end
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   %i1 = load i64, i64* %__align.addr, align 8
   store i64 %i1, i64* %__align_val, align 8
   %i2 = load i64, i64* %__size.addr, align 8
@@ -1620,7 +1548,7 @@ if.then:                                          ; preds = %bb
   store i8* %call1, i8** %retval, align 8
   br label %return
 
-if.end:                                           ; preds = %bb6
+if.end:                                           ; preds = %entry
   %i4 = load i64, i64* %__size.addr, align 8
   %call2 = call noalias nonnull i8* @_Znwm(i64 %i4) #15
   store i8* %call2, i8** %retval, align 8
@@ -1629,12 +1557,6 @@ if.end:                                           ; preds = %bb6
 return:                                           ; preds = %if.end, %if.then
   %i5 = load i8*, i8** %retval, align 8
   ret i8* %i5
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb6:                                              ; preds = %entry
-  br label %if.end
 }
 
 declare i8* @__cxa_allocate_exception(i64)
@@ -1748,9 +1670,9 @@ entry:
   store i32* %add.ptr, i32** %i3, align 8
   %i5 = load i64, i64* %_Np, align 8
   %cmp = icmp sgt i64 %i5, 0
-  br i1 %cmp, label %bb, label %bb12
+  br i1 %cmp, label %if.then, label %if.end
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   %i6 = load i32**, i32*** %__end2.addr, align 8
   %i7 = load i32*, i32** %i6, align 8
   %i8 = bitcast i32* %i7 to i8*
@@ -1761,14 +1683,8 @@ if.then:                                          ; preds = %bb
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 4 %i8, i8* align 4 %i10, i64 %mul, i1 false)
   br label %if.end
 
-if.end:                                           ; preds = %bb12, %if.then
+if.end:                                           ; preds = %if.then, %entry
   ret void
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb12:                                             ; preds = %entry
-  br label %if.end
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -1852,9 +1768,9 @@ entry:
   %__first_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
   %i = load i32*, i32** %__first_, align 8
   %tobool = icmp ne i32* %i, null
-  br i1 %tobool, label %bb, label %bb2
+  br i1 %tobool, label %if.then, label %if.end
 
-if.then:                                          ; preds = %bb
+if.then:                                          ; preds = %entry
   %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this1) #11
   %__first_2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 0
   %i1 = load i32*, i32** %__first_2, align 8
@@ -1865,14 +1781,8 @@ invoke.cont:                                      ; preds = %if.then
   call void @_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim(%"class.std::__1::allocator"* nonnull align 1 dereferenceable(1) %call, i32* %i1, i64 %call3) #11
   br label %if.end
 
-if.end:                                           ; preds = %bb2, %invoke.cont
+if.end:                                           ; preds = %invoke.cont, %entry
   ret void
-
-bb:                                               ; preds = %entry
-  br label %if.then
-
-bb2:                                              ; preds = %entry
-  br label %if.end
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
@@ -1934,9 +1844,9 @@ while.cond:                                       ; preds = %invoke.cont, %entry
   %__end_ = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 2
   %i2 = load i32*, i32** %__end_, align 8
   %cmp = icmp ne i32* %i1, %i2
-  br i1 %cmp, label %bb, label %bb4
+  br i1 %cmp, label %while.body, label %while.end
 
-while.body:                                       ; preds = %bb
+while.body:                                       ; preds = %while.cond
   %call = call nonnull align 1 dereferenceable(1) %"class.std::__1::allocator"* @_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE7__allocEv(%"struct.std::__1::__split_buffer"* %this1) #11
   %__end_2 = getelementptr inbounds %"struct.std::__1::__split_buffer", %"struct.std::__1::__split_buffer"* %this1, i32 0, i32 2
   %i3 = load i32*, i32** %__end_2, align 8
@@ -1949,14 +1859,8 @@ while.body:                                       ; preds = %bb
 invoke.cont:                                      ; preds = %while.body
   br label %while.cond
 
-while.end:                                        ; preds = %bb4
+while.end:                                        ; preds = %while.cond
   ret void
-
-bb:                                               ; preds = %while.cond
-  br label %while.body
-
-bb4:                                              ; preds = %while.cond
-  br label %while.end
 }
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable

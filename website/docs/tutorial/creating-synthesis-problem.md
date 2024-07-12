@@ -21,30 +21,21 @@ Then, we define the verification conditions:
 
 <!--phmdoctest-share-names-->
 ```python
-x = ir.Var("x", ir.Int())
+x = ir.Int("x")
 
-correct = ir.And(
-  # f(x) >= 0
-  ir.Ge(
-    ir.Call(
-      'f', # function name
-      ir.Int(), # return type
-      x # arguments
-    ),
-    ir.IntLit(0)
-  ),
-  # f(x) >= x
-  ir.Ge(
-    ir.Call('f', ir.Int(), x),
-    x
-  )
-)
+# f(x) >= 0 && f(x) >= x
+correct = (ir.call(
+    'f', # function name
+    ir.Int, # return type
+    x # arguments
+  ) >= 0).And(ir.call('f', ir.Int, x) >= x)
+
 ```
 
 As an early check, we can print out these conditions in the [SMT-LIB](https://smtlib.cs.uiowa.edu/) language:
 <!--phmdoctest-share-names-->
 ```python
-print(correct.toSMT())
+print(correct.src.toSMT())
 ```
 
 ```
@@ -61,10 +52,10 @@ To build up the grammar, which must have a fixed depth and cannot be recursive, 
 grammar = x
 
 for i in range(2):
-  grammar = ir.Choose(
-    ir.Add(grammar, grammar),
-    ir.Sub(grammar, grammar),
-    ir.Mul(grammar, grammar)
+  grammar = ir.choose(
+    grammar + grammar,
+    grammar - grammar,
+    grammar * grammar
   )
 ```
 
@@ -74,8 +65,8 @@ Once the grammar is defined, we wrap it with a `Synth` node which declares a fun
 ```python
 synthF = ir.Synth(
   "f", # function name
-  grammar, # body
-  x, # arguments
+  grammar.src, # body
+  x.src, # arguments
 )
 ```
 
@@ -87,10 +78,10 @@ from metalift.synthesize_auto import synthesize
 result = synthesize(
   "example", # name of the synthesis problem
   [], # list of utility functions
-  [x], # list of variables to verify over
+  [x.src], # list of variables to verify over
   [synthF], # list of functions to synthesize
   [], # list of predicates
-  correct, # verification condition
+  correct.src, # verification condition
   [synthF], # type metadata for functions to synthesize, just pass the Synth node otherwise
   unboundedInts=True, # verify against the full range of integers (by default integers are restricted to a fixed number of bits)
 )
@@ -103,8 +94,8 @@ If we run this code, Metalift will use the [Rosette](https://emina.github.io/ros
 ```
 ====== verification
 Verification Output: unsat
-Verified PS and INV Candidates  (FnDeclRecursive:(Function Int Int) f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)
-[(FnDeclRecursive:(Function Int Int) f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)]
+Verified PS and INV Candidates  (FnDeclRecursive:Function  f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)
+[(FnDeclRecursive:Function  f (Add:Int (Mul:Int x x) (Sub:Int x x)) x)]
 ```
 
 In this case, we get $f(x) = (x * x) + (x - x) = x * x$ which indeed satisfies the verification conditions!

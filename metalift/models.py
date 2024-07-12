@@ -1,84 +1,175 @@
-from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple, cast
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Bool, Call, Expr, Int, IntLit, Ite, SetT, Type, parse_type_ref
+from metalift.ir import (
+    Expr,
+    Object,
+    List as mlList,
+    Int,
+    Set as mlSet,
+    parse_type_ref_to_obj,
+    call,
+    make_tuple_type,
+)
 from metalift.vc_util import parseOperand
 
 ReturnValue = NamedTuple(
     "ReturnValue",
     [
-        ("val", Optional[Expr]),
-        ("assigns", Optional[List[Tuple[str, Expr]]]),
+        ("val", Optional[Object]),
+        ("assigns", Optional[List[Tuple[str, Object, str]]]),
     ],
 )
 
 
-def new_list(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+def set_create(
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("list_empty", Type("MLList", Int())), None)
+    return ReturnValue(mlSet.empty(Int), None)
+
+
+def set_add(
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.add(item), None)  # type: ignore
+
+
+def set_remove(
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(s.remove(item), None)  # type: ignore
+
+
+def set_contains(
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 2
+    s = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    item = primitive_vars[args[1].name]
+    return ReturnValue(item in s, None)  # type: ignore
+
+
+def new_list(
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
+    global_vars: Dict[str, str],
+    *args: ValueRef,
+) -> ReturnValue:
+    assert len(args) == 0
+    return ReturnValue(mlList.empty(Int), None)
 
 
 def list_length(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("list_length", Int(), primitive_vars[args[0].name]), None)
+    assert len(args) == 1
+    # TODO(jie) think of how to better handle list of lists
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    return ReturnValue(
+        lst.len(),  # type: ignore
+        None,
+    )
 
 
 def list_get(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 2
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    index = primitive_vars[args[1].name]
     return ReturnValue(
-        Call(
-            "list_get",
-            Int(),
-            primitive_vars[args[0].name],
-            primitive_vars[args[1].name],
-        ),
+        lst[index],  # type: ignore
         None,
     )
 
 
 def list_append(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 2
+    lst = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    value = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
     return ReturnValue(
-        Call(
-            "list_append",
-            parse_type_ref(args[0].type),
-            primitive_vars[args[0].name],
-            primitive_vars[args[1].name],
-        ),
+        lst.append(value),  # type: ignore
         None,
     )
 
 
 def list_concat(
-    primitive_vars: Dict[str, Expr],
-    pointer_vars: Dict[str, Expr],
+    primitive_vars: Dict[str, Object],
+    pointer_vars: Dict[str, Object],
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
+    assert len(args) == 2
+    lst1 = (
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name]
+    )
+    lst2 = (
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name]
+    )
     return ReturnValue(
-        Call(
-            "list_concat",
-            parse_type_ref(args[0].type),
-            primitive_vars[args[0].name],
-            primitive_vars[args[1].name],
-        ),
+        lst1 + lst2,  # type: ignore
         None,
     )
 
@@ -91,10 +182,10 @@ def new_vector(
 ) -> ReturnValue:
     assert len(args) == 1
     var_name: str = args[0].name
-    assigns: List[Tuple[str, Expr]] = [
-        (var_name, Call("list_empty", Type("MLList", Int())))
+    assigns: List[Tuple[str, Expr, str]] = [
+        (var_name, mlList.empty(Int), "primitive")  # type: ignore
     ]
-    return ReturnValue(None, assigns)
+    return ReturnValue(None, assigns)  # type: ignore
 
 
 def vector_append(
@@ -105,15 +196,20 @@ def vector_append(
 ) -> ReturnValue:
     assert len(args) == 2
     assign_var_name: str = args[0].name
-    assign_val = Call(
+
+    assign_val = call(
         "list_append",
-        parse_type_ref(args[0].type),
-        primitive_vars[args[0].name],
-        primitive_vars[args[1].name],
+        parse_type_ref_to_obj(args[0].type),
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name],
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name],
     )
     return ReturnValue(
         None,
-        [(assign_var_name, assign_val)],
+        [(assign_var_name, assign_val, "primitive")],
     )
 
 
@@ -123,7 +219,7 @@ def new_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    return ReturnValue(Call("newTuple", Type("Tuple", Int(), Int())), None)
+    return ReturnValue(call("newTuple", make_tuple_type(Int, Int)), None)
 
 
 def make_tuple(
@@ -132,12 +228,17 @@ def make_tuple(
     global_vars: Dict[str, str],
     *args: ValueRef,
 ) -> ReturnValue:
-    regVals = [primitive_vars[args[i].name] for i in range(len(args))]
-    retVals = [Int() for i in range(len(args))]
-    return ReturnValue(
-        Call("make-tuple", Type("Tuple", *retVals), *regVals),
-        None,
-    )
+    reg_vals = [
+        primitive_vars[args[i].name]
+        if not args[i].type.is_pointer
+        else pointer_vars[args[i].name]
+        for i in range(len(args))
+    ]
+
+    # TODO(jie): handle types other than Int
+    contained_type = [Int for i in range(len(args))]
+    return_type = make_tuple_type(*contained_type)
+    return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
 
 
 def tuple_get(
@@ -147,10 +248,12 @@ def tuple_get(
     *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(
-        Call(
+        call(
             "tupleGet",
-            Int(),
-            primitive_vars[args[0].name],
+            Int,
+            primitive_vars[args[0].name]
+            if not args[0].type.is_pointer
+            else pointer_vars[args[0].name],
             parseOperand(args[1], primitive_vars),
         ),
         None,
@@ -195,40 +298,10 @@ fn_models: Dict[str, Callable[..., ReturnValue]] = {
     "getField": get_field,
     "setField": set_field,
     # names for set.h
-    "set_create": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Call("set-create", SetT(Int())), None
-    ),
-    "set_add": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Call(
-            "set-insert",
-            SetT(Int()),
-            parseOperand(args[1], primitive_vars),
-            parseOperand(args[0], primitive_vars),
-        ),
-        None,
-    ),
-    "set_remove": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Call(
-            "set-minus",
-            SetT(Int()),
-            parseOperand(args[0], primitive_vars),
-            Call("set-singleton", SetT(Int()), parseOperand(args[1], primitive_vars)),
-        ),
-        None,
-    ),
-    "set_contains": lambda primitive_vars, pointer_vars, global_vars, *args: ReturnValue(
-        Ite(
-            Call(
-                "set-pointer_varsber",
-                Bool(),
-                parseOperand(args[1], primitive_vars),
-                parseOperand(args[0], primitive_vars),
-            ),
-            IntLit(1),
-            IntLit(0),
-        ),
-        None,
-    ),
+    "set_create": set_create,
+    "set_add": set_add,
+    "set_remove": set_remove,
+    "set_contains": set_contains,
     # tuple methods
     "MakeTuple": make_tuple,
     "tupleGet": tuple_get,

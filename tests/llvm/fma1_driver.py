@@ -1,15 +1,16 @@
+from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver
-from metalift.ir import Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Var
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import Bool, FnDecl, Int, Object, call, choose, fn_decl
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDecl]:
-    x = Var("x", Int())
-    y = Var("y", Int())
-    z = Var("z", Int())
-    fma = FnDecl("fma", Int(), x + y * z, x, y, z)
+    x = Int("x")
+    y = Int("y")
+    z = Int("z")
+    fma = fn_decl("fma", Int, (x + y * z), x, y, z)
     return [fma]
 
 
@@ -19,14 +20,16 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    var = Choose(*reads, IntLit(0))
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    ret_val = writes[0]
+    var = choose(*reads, Int(0))
     added = var + var
-    var_or_fma = Choose(*reads, Call("fma", Int(), added, added, added))
+    fma_call_object = call("fma", Int, added, added, added)
+    var_or_fma = choose(*reads, fma_call_object)
 
-    return Eq(ret_val, var_or_fma + var_or_fma)
+    return ret_val == var_or_fma + var_or_fma
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     raise Exception("no loop in the source")
 
 
@@ -37,16 +40,17 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/fma_dsl.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammar=inv_grammar,
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 
-    v1 = driver.variable("base", Int())
-    v2 = driver.variable("arg1", Int())
-    v3 = driver.variable("base2", Int())
-    v4 = driver.variable("arg2", Int())
+    base = Int("base")
+    arg1 = Int("arg1")
+    base2 = Int("base2")
+    arg2 = Int("arg2")
+    driver.add_var_objects([base, arg1, base2, arg2])
 
-    test(v1, v2, v3, v4)
+    test(base, arg1, base2, arg2)
 
     driver.synthesize()
 

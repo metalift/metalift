@@ -1,10 +1,26 @@
+from inspect import isclass
 import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import Expr, FnDeclRecursive, FnDecl, Var
+from metalift.ir import (
+    Bool,
+    Expr,
+    FnDeclRecursive,
+    FnDecl,
+    Int,
+    Var,
+    List as mlList,
+    get_nested_list_element_type,
+    is_list_type,
+    is_nested_list_type,
+    is_set_type,
+    is_tuple_type,
+    is_matrix_type,
+    get_matrix_element_type,
+)
 from llvmlite.binding import ValueRef
-from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional
+from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
 
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
@@ -16,49 +32,89 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    if (
-        v.type.name == "Int"
-        or v.type.name == "ClockInt"
-        or v.type.name == "EnumInt"
-        or v.type.name == "OpaqueInt"
-        or v.type.name == "NodeIDInt"
-    ):
+    if v.type == Int:
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif v.type.name == "Bool":
+    elif v.type == Bool:
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif v.type.name == "MLList" or v.type.name == "Set":
-        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
-
-        for t in tmp:
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
-
+    elif is_matrix_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
 
-        if v.type.name == "Set":
-            decls.append(
-                "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+        tmp = [
+            v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound * listBound)
+        ]
+        nested_element_type = get_matrix_element_type(v.type)
+        for t in tmp:
+            genVar(Var(t, nested_element_type), decls, vars_all, listBound)
+        nested_lsts: List[str] = [
+            f"(list {' '.join(tmp[i : i + listBound])})"
+            for i in range(0, len(tmp) - 1, listBound)
+        ]
+        decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+        decls.append(decl)
+
+    elif is_list_type(v.type) or is_set_type(v.type):
+        len_name = v.args[0] + "_BOUNDEDSET-len"
+        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
+
+        is_nested_list = is_nested_list_type(v.type)
+        if is_nested_list:
+            tmp = [
+                v.args[0] + "_BOUNDEDSET-" + str(i)
+                for i in range(listBound * listBound)
+            ]
+            nested_element_type = get_nested_list_element_type(v.type)
+            for t in tmp:
+                genVar(Var(t, nested_element_type), decls, vars_all, listBound)
+            nested_lsts: List[str] = [  # type: ignore
+                f"(list {' '.join(tmp[i : i + listBound])})"
+                for i in range(0, len(tmp) - 1, listBound)
+            ]
+            decl = (
+                f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
             )
+            decls.append(decl)
         else:
-            decls.append(
-                "(define %s (take %s %s))"
-                % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-            )
-    elif v.type.name == "Map":
+            tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
+
+            for t in tmp:
+                genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
+
+            if is_set_type(v.type):
+                decls.append(
+                    "(define %s (sort (remove-duplicates (take %s %s)) <))"
+                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+                )
+            else:
+                decls.append(
+                    "(define %s (take %s %s))"
+                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
+                )
+    elif is_tuple_type(v.type):
+        elem_names = []
+        for i, t in enumerate(typing.get_args(v.type)):
+            elem_name = v.args[0] + "_TUPLE-" + str(i)
+            genVar(Var(elem_name, t), decls, vars_all, listBound)
+            elem_names.append(elem_name)
+
+        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
+    # TODO: change this once MapObject is ready
+    elif hasattr(v.type, "name") and v.type.name == "Map":
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
         for t in tmp_k:
-            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)
+            # TODO: v.type no longer has args, find proper solution
+            genVar(Var(t, v.type.args[0]), decls, vars_all, listBound)  # type: ignore
         for t in tmp_v:
-            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)
+            # TODO: v.type no longer has args, find proper solution
+            genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
 
         len_name = v.args[0] + "-len"
-        genVar(Var(len_name, ir.Int()), decls, vars_all, listBound)
+        genVar(Var(len_name, Int), decls, vars_all, listBound)
 
         all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
 
@@ -66,14 +122,6 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             "(define %s (map-normalize (take %s %s)))"
             % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
         )
-    elif v.type.name == "Tuple":
-        elem_names = []
-        for i, t in enumerate(v.type.args):
-            elem_name = v.args[0] + "_TUPLE-" + str(i)
-            genVar(Var(elem_name, t), decls, vars_all, listBound)
-            elem_names.append(elem_name)
-
-        decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     else:
         raise Exception(f"Unknown type: {v.type}")
 
@@ -159,7 +207,7 @@ def toRosette(
         is_uninterp_fn = (
             isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive)
         ) and t.name() in uninterp_fns
-        if t.args[1] == None and not is_uninterp_fn:
+        if t.args[1] is None and not is_uninterp_fn:
             continue
         print("\n", t.toRosette(is_uninterp=is_uninterp_fn), "\n", file=f)
     # print(generateInter(targetLang),file=f)
@@ -178,7 +226,7 @@ def toRosette(
     fnsDecls = []
     for t in targetLang:
         if (
-            t.args[1] == None
+            t.args[1] is None
             and (isinstance(t, FnDecl) or isinstance(t, FnDeclRecursive))
             and t.name() not in uninterp_fns
         ):

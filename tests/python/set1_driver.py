@@ -1,47 +1,80 @@
 from typing import List
 
-from mypy.nodes import Statement
-
 from metalift.frontend.python import Driver
-from metalift.ir import (Call, Choose, Eq, Expr, FnDecl, Int, IntLit, Ite,
-                         SetT, Var)
+from metalift.ir import (Bool, Int, Object, Set as mlSet,
+                         choose, ite, fn_decl_recursive)
 from tests.python.utils.utils import codegen
 
 
-def target_lang() -> List[FnDecl]:
-    return []
-
-def ps_grammar(ret_val: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    input_s, input_add, input_value = reads
-    int_lit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    int_value = Choose(input_value, int_lit)
-
-    condition = Eq(input_add, int_lit)
-
-    empty_set = Call("set-create", SetT(Int()))
-    set_in = Choose(input_s, empty_set, Call("set-singleton", SetT(Int()), int_value))
-    set_transform = Choose(
-        set_in,
-        Call("set-union", SetT(Int()), set_in, set_in),
-        Call("set-minus", SetT(Int()), set_in, set_in),
+def target_lang():
+    x = Int("x")
+    double = fn_decl_recursive(
+        "double",
+        Int,
+        (x + x),
+        x
     )
-    return Eq(ret_val, Ite(condition, set_transform, set_transform))
+    return [double]
 
-def inv_grammar(v: Var, ast: Statement, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
-    raise Exception("no loop in the source")
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    raise Exception("no invariant")
 
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    ret_val = writes[0]
+    input_s = reads[0]
+    input_add = reads[1]
+    input_value = reads[2]
+    output_var = writes[0]
+
+    empty_set = mlSet.empty(Int)
+
+    int_lit = choose(
+        Int(0),
+        Int(1),
+        Int(2),
+        Int(3)
+    )
+    int_value = choose(input_value, int_lit)
+
+    condition = input_add == int_lit
+
+    set_in = choose(
+        input_s,
+        empty_set,
+        mlSet.singleton(int_value)
+    )
+
+    set_transform = choose(
+        set_in,
+        set_in.union(set_in),
+        set_in.difference(set_in)
+    )
+
+    chosen_transform = ite(
+        condition,
+        set_transform,
+        set_transform
+    )
+
+    summary = output_var == chosen_transform
+    return summary
 
 if __name__ == "__main__":
-    filename = "tests/python/set1.py"
-
     driver = Driver()
-    test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
+    test = driver.analyze(
+        filepath="tests/python/set1.py",
+        fn_name="test",
+        target_lang_fn=target_lang,
+        inv_grammar=inv_grammar,
+        ps_grammar=ps_grammar
+    )
 
-    v1 = driver.variable("s", SetT(Int()))
-    v2 = driver.variable("add", Int())
-    v3 = driver.variable("value", Int())
+    s = mlSet[Int](Int, "s")
+    add = Int("add")
+    value = Int("value")
+    driver.add_var_objects([s, add, value])
 
-    test(v1, v2, v3)
+    test(s, add, value)
 
     driver.synthesize()
 
