@@ -18,9 +18,7 @@ class VerificationFailed(Exception):
     pass
 
 
-def generateTypes(
-    lang: typing.Sequence[Union[Expr, ValueRef]]
-) -> Dict[str, NewObjectT]:
+def generateTypes(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, ObjectT]:
     fnsType = {}
 
     for l in lang:
@@ -32,7 +30,7 @@ def generateTypes(
                 fnsType[l.name] = parse_type_ref_to_obj(l.type)
         else:
             if not isinstance(l, ValueRef):
-                if isinstance(l, NewObject):
+                if isinstance(l, Object):
                     fnsType[l.src.args[0]] = l.type
                 else:
                     fnsType[l.args[0]] = l.type
@@ -111,7 +109,7 @@ def verify_synth_result(
     synthDir: str,
     candidatesSMT: typing.List[FnDeclRecursive],
     candidateDict: Dict[str, Expr],
-    fnsType: Dict[str, NewObjectT],
+    fnsType: Dict[str, ObjectT],
     uid: int,
     useRosette: bool = False,
 ) -> typing.Tuple[str, typing.List[str]]:

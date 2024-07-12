@@ -4,18 +4,20 @@ from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
 from metalift.ir import (
-    BoolObject,
+    Bool,
     Expr,
     FnDeclRecursive,
     FnDecl,
-    IntObject,
+    Int,
     Var,
-    ListObject,
+    List as mlList,
     get_nested_list_element_type,
     is_list_type,
     is_nested_list_type,
     is_set_type,
     is_tuple_type,
+    is_matrix_type,
+    get_matrix_element_type,
 )
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
@@ -30,17 +32,34 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
-    if v.type == IntObject:
+    if v.type == Int:
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif v.type == BoolObject:
+    elif v.type == Bool:
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
+    elif is_matrix_type(v.type):
+        len_name = v.args[0] + "_BOUNDEDSET-len"
+        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
+
+        tmp = [
+            v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound * listBound)
+        ]
+        nested_element_type = get_matrix_element_type(v.type)
+        for t in tmp:
+            genVar(Var(t, nested_element_type), decls, vars_all, listBound)
+        nested_lsts: List[str] = [
+            f"(list {' '.join(tmp[i : i + listBound])})"
+            for i in range(0, len(tmp) - 1, listBound)
+        ]
+        decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+        decls.append(decl)
+
     elif is_list_type(v.type) or is_set_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
+        genVar(Var(len_name, ir.Int), decls, vars_all, listBound)
 
         is_nested_list = is_nested_list_type(v.type)
         if is_nested_list:
@@ -51,7 +70,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             nested_element_type = get_nested_list_element_type(v.type)
             for t in tmp:
                 genVar(Var(t, nested_element_type), decls, vars_all, listBound)
-            nested_lsts: List[str] = [
+            nested_lsts: List[str] = [  # type: ignore
                 f"(list {' '.join(tmp[i : i + listBound])})"
                 for i in range(0, len(tmp) - 1, listBound)
             ]
@@ -75,7 +94,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
                     "(define %s (take %s %s))"
                     % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
                 )
-    elif is_tuple_type(v):
+    elif is_tuple_type(v.type):
         elem_names = []
         for i, t in enumerate(typing.get_args(v.type)):
             elem_name = v.args[0] + "_TUPLE-" + str(i)
@@ -95,7 +114,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             genVar(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
 
         len_name = v.args[0] + "-len"
-        genVar(Var(len_name, IntObject), decls, vars_all, listBound)
+        genVar(Var(len_name, Int), decls, vars_all, listBound)
 
         all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
 

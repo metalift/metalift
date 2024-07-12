@@ -70,7 +70,6 @@ def toSMT(
                 found_inline = False
                 for i in inCalls:
                     if i[0] == t.args[0]:
-                        print("func", t.args[0])
                         found_inline = True
                         early_candidates_names.add(i[1])
                         # parse body
@@ -143,7 +142,7 @@ def toSMT(
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
-        declarations: typing.List[typing.Tuple[str, NewObjectT]] = []
+        declarations: typing.List[typing.Tuple[str, ObjectT]] = []
         for v in vars:
             declarations.append((v.args[0], v.type))
 

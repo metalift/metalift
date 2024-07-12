@@ -1,28 +1,28 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import (BoolObject, IntObject, NewObject, TupleObject, call,
+from metalift.ir import (Bool, Int, Object, Tuple as mlTuple, call,
                          choose, make_tuple, fn_decl)
 from tests.python.utils.utils import codegen
 
 
 def tuple_add(t):
-    return call("tuple_add", IntObject, t)
+    return call("tuple_add", Int, t)
 
 def target_lang():
-    x = TupleObject((IntObject, IntObject), "x")
+    x = mlTuple((Int, Int), "x")
     tuple_add = fn_decl(
         "tuple_add",
-        IntObject,
+        Int,
        (x[0] + x[1]),
         x
     )
     return [tuple_add]
 
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     raise Exception("no invariant")
 
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     ret_val = writes[0]
     (x, y) = reads
     x_tuple = make_tuple(x, x)
@@ -43,8 +43,8 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    x = IntObject("x")
-    y = IntObject("y")
+    x = Int("x")
+    y = Int("y")
     driver.add_var_objects([x, y])
 
     test(x, y)

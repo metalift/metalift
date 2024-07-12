@@ -1,7 +1,7 @@
 from typing import List
 from metalift.frontend.python import Driver
 
-from metalift.ir import Add, And, BoolObject, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt, IntObject, Ite, Le, ListObject, Lt, Sub, Var
+from metalift.ir import Add, And, Bool, Call, Choose, Eq, Expr, FnDeclRecursive, Ge, Gt, Int, Ite, Le, List as mlList, Lt, Sub, Var
 
 from tests.python.utils.utils import codegen
 
@@ -10,25 +10,25 @@ TEST_ABS_FN_NAME = "test_abs"
 LIST_ABS_SUM_FN_NAME = "list_abs_sum"
 
 def target_lang() -> List[FnDeclRecursive]:
-    lst = ListObject[IntObject](IntObject, "lst")
+    lst = mlList[Int](Int, "lst")
     list_abs_sum = FnDeclRecursive(
         LIST_ABS_SUM_FN_NAME,
-        IntObject,
+        Int,
         Ite(
             lst.len() >= 1,
             Add(
                 Ite(
                     lst[0] < 0,
-                    IntObject(0) - lst[0],
+                    Int(0) - lst[0],
                     lst[0]
                 ),
                 Call(
                     LIST_ABS_SUM_FN_NAME,
-                    IntObject,
+                    Int,
                     lst[1:]
                 )
             ),
-            IntObject(0)
+            Int(0)
         ),
         lst
     )
@@ -38,7 +38,7 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var], in_scope: List
     lst = reads[0]
     lst_sum = Call(
         LIST_ABS_SUM_FN_NAME,
-        IntObject,
+        Int,
         lst
     )
     return Eq(ret_val, lst_sum)
@@ -46,26 +46,26 @@ def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var], in_scope: List
 def inv_grammar(v: Var, writes: List[Var], reads: List[Var], in_scope: List[Var]) -> Expr:
     # This grammar func could be called with v as one of [curr_el, i, sum], and we really only want to generate this grammar once.
     if v.var_name() != "sum":
-        return BoolObject(True)
+        return Bool(True)
     # reads = [curr_el, i, lst, sum]
     # writes = [curr_el, i, sum]
     lst = reads[2]
     choose_write = Choose(*writes)
     int_lit = Choose(
-        IntObject(0) - IntObject(1),
-        IntObject(0),
-        IntObject(1),
-        IntObject(2)
+        Int(0) - Int(1),
+        Int(0),
+        Int(1),
+        Int(2)
     )
     lst_length = lst.len()
     lst_sum = Call(
         LIST_ABS_SUM_FN_NAME,
-        IntObject,
+        Int,
         lst
     )
     lst_tail_sum = Call(
         LIST_ABS_SUM_FN_NAME,
-        IntObject,
+        Int,
         lst[Add(choose_write, int_lit):]
     )
     index_lower_bound = Choose(
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    lst = ListObject[IntObject](IntObject, "lst")
+    lst = mlList[Int](Int, "lst")
     driver.add_var_object(lst)
 
     test(lst)

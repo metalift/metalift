@@ -1,16 +1,16 @@
 from typing import List
 
 from metalift.frontend.python import Driver
-from metalift.ir import BoolObject, FnDecl, IntObject, NewObject, call, choose, fn_decl
+from metalift.ir import Bool, FnDecl, Int, Object, call, choose, fn_decl
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
 
 def target_lang() -> List[FnDecl]:
-    x = IntObject("x")
-    y = IntObject("y")
-    z = IntObject("z")
-    fma = fn_decl("fma", IntObject, (x + y * z), x, y, z)
+    x = Int("x")
+    y = Int("y")
+    z = Int("z")
+    fma = fn_decl("fma", Int, (x + y * z), x, y, z)
     return [fma]
 
 
@@ -20,17 +20,17 @@ def target_lang() -> List[FnDecl]:
 #
 # return value := var_or_fma + var_or_fma
 #
-def ps_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject],) -> BoolObject:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object],) -> Bool:
     ret_val = writes[0]
-    var = choose(*reads, IntObject(0))
+    var = choose(*reads, Int(0))
     added = var + var
-    var_or_fma = choose(*reads, call("fma", IntObject, added, added, added))
+    var_or_fma = choose(*reads, call("fma", Int, added, added, added))
 
     return ret_val == var_or_fma + var_or_fma
 
 
 # invariant: i <= arg2 and p = arg1 * i
-def inv_grammar(writes: List[NewObject], reads: List[NewObject], in_scope: List[NewObject]) -> BoolObject:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     (arg1, arg2, i, p) = reads
 
     value = choose(arg1, arg2, arg1 * i, arg2 * i)
@@ -47,10 +47,10 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target_lang, inv_grammar, ps_grammar)
 
-    base1 = IntObject("base1")
-    arg1 = IntObject("arg1")
-    base2 = IntObject("base2")
-    arg2 = IntObject("arg2")
+    base1 = Int("base1")
+    arg1 = Int("arg1")
+    base2 = Int("base2")
+    arg2 = Int("arg2")
     driver.add_var_objects([base1, arg1, base2, arg2])
 
     driver.add_precondition(arg2 >= 0)

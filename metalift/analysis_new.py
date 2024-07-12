@@ -7,14 +7,14 @@ from typing import Callable, Dict, List, Optional, Set, Type, Union, Tuple
 from metalift.analysis import LoopInfo, parseLoops
 from metalift.ir import (
     And,
-    BoolObject,
+    Bool,
     Eq,
     Expr,
     Implies,
-    IntObject,
-    NewObjectT,
+    Int,
+    ObjectT,
     Var,
-    NewObject,
+    Object,
     parse_type_ref_to_obj,
 )
 from metalift import ir, models_new
@@ -30,7 +30,7 @@ def format_with_index(a: str, idx: int) -> str:
 class VariableTracker(object):
     groups: Dict[str, int]
     existing: Dict[str, int]
-    var_to_type: Dict[str, NewObjectT]
+    var_to_type: Dict[str, ObjectT]
 
     def __init__(self) -> None:
         self.groups = {}
@@ -45,7 +45,7 @@ class VariableTracker(object):
             self.groups[name] = 0
         return VariableGroup(self, format_with_index(name, self.groups[name]))
 
-    def variable(self, name: str, type: NewObjectT) -> Var:
+    def variable(self, name: str, type: ObjectT) -> Var:
         self.var_to_type[name] = type
         return Var(name, type)
 
@@ -58,7 +58,7 @@ class VariableGroup(object):
         self.tracker = tracker
         self.name = name
 
-    def existing_variable(self, name: str, type: NewObjectT) -> Var:
+    def existing_variable(self, name: str, type: ObjectT) -> Var:
         my_name = f"{self.name}_{name}"
 
         if my_name not in self.tracker.existing:
@@ -75,7 +75,7 @@ class VariableGroup(object):
         )
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
-    def variable_or_existing(self, name: str, type: NewObjectT) -> Var:
+    def variable_or_existing(self, name: str, type: ObjectT) -> Var:
         my_name = f"{self.name}_{name}"
         if my_name not in self.tracker.existing:
             self.tracker.existing[my_name] = 0
@@ -94,7 +94,7 @@ class VariableGroup(object):
         )
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
-    def variable(self, name: str, type: NewObjectT) -> Var:
+    def variable(self, name: str, type: ObjectT) -> Var:
         my_name = f"{self.name}_{name}"
         if my_name in self.tracker.existing:
             self.tracker.existing[my_name] += 1
@@ -112,7 +112,7 @@ class RawBlock(object):
     name: str
     instructions: List[ValueRef]
     successors: Set[str]
-    return_type: Optional[NewObjectT] = None
+    return_type: Optional[ObjectT] = None
 
     def __init__(self, name: str, instructions: List[ValueRef]) -> None:
         self.name = name
@@ -315,9 +315,9 @@ class RichBlock(object):
             if len(operands) == 1:  # unconditional branch
                 return Implies(
                     fn_group.variable_or_existing(
-                        f"{operands[0].name}_from_{self.name}", BoolObject
+                        f"{operands[0].name}_from_{self.name}", Bool
                     ),
-                    fn_group.existing_variable(operands[0].name, BoolObject),
+                    fn_group.existing_variable(operands[0].name, Bool),
                 )
             else:
                 condition = gen_value(operands[0], fn_group)
@@ -330,15 +330,15 @@ class RichBlock(object):
                     condition,
                     Implies(
                         fn_group.variable_or_existing(
-                            f"{true_branch}_from_{self.name}", BoolObject
+                            f"{true_branch}_from_{self.name}", Bool
                         ),
-                        fn_group.existing_variable(true_branch, BoolObject),
+                        fn_group.existing_variable(true_branch, Bool),
                     ),
                     Implies(
                         fn_group.variable_or_existing(
-                            f"{false_branch}_from_{self.name}", BoolObject
+                            f"{false_branch}_from_{self.name}", Bool
                         ),
-                        fn_group.existing_variable(false_branch, BoolObject),
+                        fn_group.existing_variable(false_branch, Bool),
                     ),
                 )
         else:
@@ -366,9 +366,7 @@ class RichBlock(object):
                     stack_merges[key_expr_pair] = []
 
                 stack_merges[key_expr_pair].append(
-                    fn_group.variable_or_existing(
-                        f"{self.name}_from_{pred}", BoolObject
-                    )
+                    fn_group.variable_or_existing(f"{self.name}_from_{pred}", Bool)
                 )
 
         assigns: List[Expr] = []
@@ -433,7 +431,7 @@ class LoopBlock(RichBlock):
 class AnalysisResult(object):
     name: str
     arguments: List[Var]
-    return_type: NewObjectT
+    return_type: ObjectT
     blocks: Dict[str, RawBlock]
     loop_info: Dict[str, LoopInfo]
 
@@ -474,9 +472,7 @@ class AnalysisResult(object):
                 arg.name(): group.variable(arg.name(), arg.type)
                 for arg in self.arguments
             }
-            bb_variables = {
-                b: group.variable(b, BoolObject) for b in rich_blocks.keys()
-            }
+            bb_variables = {b: group.variable(b, Bool) for b in rich_blocks.keys()}
             return Implies(
                 And(
                     *[
@@ -536,5 +532,5 @@ def analyze(
 #         print()
 
 #     variable_tracker = VariableTracker()
-#     vc = test_analysis.call(IntObject("in"))(variable_tracker, lambda ret: ret == 0)
+#     vc = test_analysis.call(Int("in"))(variable_tracker, lambda ret: ret == 0)
 #     print(vc)
