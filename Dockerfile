@@ -25,7 +25,7 @@ RUN python3.9 -m pip install --upgrade pip
 # Install poetry
 RUN python3.9 -m pip install poetry
 # Set the working directory
-WORKDIR /code/metalift
+WORKDIR /code/tenspiler
 COPY pyproject.toml .
 RUN poetry lock
 RUN poetry install
@@ -53,9 +53,9 @@ ENV PATH="${PATH}:/usr/racket/bin"
 # Install Rosette
 RUN raco pkg install --auto rosette
 #Set back working directory
-WORKDIR /code/metalift
-ENV PYTHONPATH "${PYTHONPATH}:/code/metalift"
+WORKDIR /code/tenspiler
+ENV PYTHONPATH "${PYTHONPATH}:/code/tenspiler"
 
 # move cvc5 binary into docker
-COPY ./cvc5 /code/metalift/cvc5
-ENV PATH="${PATH}:/code/metalift/cvc5"
+COPY ./cvc5 /code/tenspiler/cvc5
+ENV PATH="${PATH}:/code/tenspiler/cvc5"
