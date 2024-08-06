@@ -632,16 +632,17 @@ def get_full_demangled_name(maybe_mangled_name: str) -> str:
 def get_demangled_fn_name(maybe_mangled_name: str) -> Optional[str]:
     # Note: this function does not raise exception, it's up to the caller to raise exceptions if the name cannot be demangled
     full_demangled_name = get_full_demangled_name(maybe_mangled_name)
+
+    match = re.match(f"^([a-zA-Z0-9_]+)(\(.*\))?$", full_demangled_name)
+    if match is not None:
+        return match.group(1)
+
     match = re.match(
         f"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$",
         full_demangled_name,
     )
     if match is not None:
         return match.group(3)
-
-    match = re.match(f"^([a-zA-Z0-9_]+)(\(.*\))?$", full_demangled_name)
-    if match is not None:
-        return match.group(1)
 
     return None
 
@@ -653,6 +654,7 @@ LLVMVar = NamedTuple(
         ("var_type", ObjectT),
     ],
 )
+
 
 class InvGrammar:
     def __init__(
@@ -1724,9 +1726,13 @@ class MetaliftFunc:
         # raw_fn_name is potentially-mangled name of fn_name
         fn_ref: Optional[ValueRef] = None
         for func in functions:
+            print("yoyo")
+            if fn_name not in func.name:
+                continue
             demangled_name = get_demangled_fn_name(func.name)
             if fn_name == demangled_name:
                 fn_ref = ref.get_function(func.name)
+                break
         if fn_ref is None:
             raise Exception(
                 f"Did not find function declaration for {fn_name} in {llvm_filepath}"

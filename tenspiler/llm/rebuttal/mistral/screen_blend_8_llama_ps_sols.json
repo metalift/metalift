@@ -1,0 +1,546 @@
+------0 solution---------
+def screen_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        matrix_elemwise_add(base, active),
+        matrix_scalar_mul(2, matrix_elemwise_div(matrix_elemwise_mul(base, active), 32)),
+        lambda a, b: a + b - (a * b // 32),
+    )
+
+Total time to date 16.98367691040039s
+
+------1 solution---------
+def screen_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    base_flattened = [item for sublist in base for item in sublist]
+    active_flattened = [item for sublist in active for item in sublist]
+    blended_flattened = [(a + b - (a * b // 32)) for a, b in zip(base_flattened, active_flattened)]
+    m, n = len(base), len(base[0])
+    return [blended_flattened[i:i + n] for i in range(0, len(blended_flattened), n)]
+
+Total time to date 24.130475759506226s
+
+------2 solution---------
+def screen_blend_8(base, active):
+    return [[b + a - (b * a // 32) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 29.44984769821167s
+
+------3 solution---------
+def screen_blend_8(base, active):
+    blended = [[(b + a - (b * a // 32)) for b, a in zip(base_row, active_row)] for base_row, active_row in zip(base, active)]
+    return blended
+
+Total time to date 35.440754890441895s
+
+------4 solution---------
+def screen_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    if len(base) != len(active) or len(base[0]) != len(active[0]):
+        raise ValueError("Input matrices must have the same dimensions")
+    return [[max(0, min(255, b + a - (b * a // 32))) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 44.16389298439026s
+
+------5 solution---------
+def screen_blend_8(base, active):
+    def blend_row(base_row, active_row):
+        if not base_row:
+            return []
+        else:
+            b, *rest_b = base_row
+            a, *rest_a = active_row
+            return [b + a - (b * a // 32)] + blend_row(rest_b, rest_a)
+
+    if not base:
+        return []
+    else:
+        base_row, *rest_base = base
+        active_row, *rest_active = active
+        return [blend_row(base_row, active_row)] + screen_blend_8(rest_base, rest_active)
+
+Total time to date 51.29376482963562s
+
+------6 solution---------
+def screen_blend_8(base, active):
+    return [
+        [
+            ite(
+                (b + a - b*a // 32) < 0,
+                0,
+                min(255, max(0, b + a - b*a // 32))
+            )
+            for b, a in zip(base_row, active_row)
+        ]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 58.35826873779297s
+
+------7 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(b + a - b * a // 32 < 0, 0, min(255, b + a - b * a // 32)),
+        base,
+        active
+    )
+
+Total time to date 65.16934394836426s
+
+------8 solution---------
+def screen_blend_8(base, active):
+    blended = vec_map(lambda b, a: ite(b + a - b * a // 32 < 0, 0, min(255, b + a - b * a // 32)), vec_zip(base, active))
+    return matrix_row_slice(matrix_col_slice(matrix_transpose(blended), 0, len(base)), 0, len(base[0]))
+
+Total time to date 72.03002595901489s
+
+------9 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(b + a - b * a // 32 < 0, 0, ite(b + a - b * a // 32 > 255, 255, b + a - b * a // 32)),
+        base,
+        active
+    )
+
+Total time to date 79.20292091369629s
+
+------10 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(lambda b, a: reduce_mul(256, ite((b + a - b * a // 32) < 0, 0, (b + a - b * a // 32) % 256)), base, active)
+
+Total time to date 87.072518825531s
+
+------11 solution---------
+def screen_blend_8(base, active):
+    blended = [[max(0, min(255, b + a - (b * a // 32))) for b, a in zip(base_row, active_row)] for base_row, active_row in zip(base, active)]
+    return blended
+
+Total time to date 94.23739767074585s
+
+------12 solution---------
+def screen_blend_8(base, active):
+    return [[max(0, min(255, b + a - (b * a // 32))) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 103.99341177940369s
+
+------13 solution---------
+from typing import List
+
+def blend_screens(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def blend_row(base_row: List[int], active_row: List[int]) -> List[int]:
+        blended_row = []
+        for b, a in zip(base_row, active_row):
+            blended_pixel = b + a - (b * a // 32)
+            blended_row.append(max(0, min(255, blended_pixel)))
+        return blended_row
+
+    return [[*blend_row(base_row, active_row)] for base_row, active_row in zip(base, active)]
+
+Total time to date 114.196133852005s
+
+------14 solution---------
+def screen_blend_8(base, active):
+    return [
+        [max(0, min(255, b + a - (b * a >> 5))) for b, a in zip(base_row, active_row)]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 121.54116773605347s
+
+------15 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: vector_where(
+            [a, b, a, (b * a) // 32],
+            reduce_add
+        ),
+        base,
+        active
+    )
+
+Total time to date 128.9950008392334s
+
+------16 solution---------
+def screen_blend_8(base, active):
+    return [
+        [
+            max(0, min(255, b + a - ((b * a) // 32)))
+            for b, a in zip(base_row, active_row)
+        ]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 137.8252899646759s
+
+------17 solution---------
+def screen_blend_8(base, active):
+    if not base or not active:
+        return []
+    return [
+        [(b + a - (b * a // 32)) if 0 <= (b + a - (b * a // 32)) <= 255 else 0
+         for b, a in zip(base[0], active[0])]
+        + screen_blend_8(base[1:], active[1:])[0]
+        if base and active
+        else []
+    ]
+
+Total time to date 145.13718581199646s
+
+------18 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite((b + a - b * a // 32) < 0, 0, min(255, b + a - b * a // 32)),
+        base,
+        active
+    )
+
+Total time to date 152.8043327331543s
+
+------19 solution---------
+import operator
+
+def screen_blend_8(base, active):
+    op_add = operator.add
+    op_sub = operator.sub
+    op_lshift = operator.lshift
+    op_rshift = operator.rshift
+
+    return [
+        [max(0, min(255, op_add(b, a) - (op_rshift(op_lshift(b, 5), 5) * a))) for b, a in zip(base_row, active_row)]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 161.2186529636383s
+
+------20 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: min(255, max(0, b + a - ((b * a) >> 5))),
+        base,
+        active
+    )
+
+Total time to date 168.78759503364563s
+
+------22 solution---------
+def screen_blend_8(base, active):
+    def blend_rows(i, j, m, n):
+        if i == m:
+            return []
+        else:
+            b, *rest_b = base[i]
+            a, *rest_a = active[i]
+            return [[max(0, min(255, (b + a) - ((b << 5) & a >> 5)))] + blend_rows(i + 1, j + 1, m, n)[0]]
+
+    return blend_rows(0, 0, len(base), len(base[0]))
+
+Total time to date 185.1360058784485s
+
+------23 solution---------
+def screen_blend_8(base, active):
+    m, n = len(base), len(base[0])
+    blended = [[0] * n for _ in range(m)]
+    for i in range(m):
+        for j in range(n):
+            blended[i][j] = max(0, min(255, base[i][j] + active[i][j] - (base[i][j] * active[i][j]) // 32))
+    return blended
+
+Total time to date 192.85140585899353s
+
+------24 solution---------
+def screen_blend_8(base, active):
+    return [
+        [max(0, min(255, b + a - ((b * a) >> 5))) for b, a in zip(base_row, active_row)]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 200.23944783210754s
+
+------25 solution---------
+def screen_blend_8(base, active):
+    return [[min(255, max(0, b + a - (b * a // 32))) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 205.78444695472717s
+
+------26 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda row_base, row_active: vec_map(
+            lambda b, a: blend(b, a),
+            vec_zip(row_base, row_active)
+        ),
+        base,
+        active
+    )
+
+def blend(b, a):
+    blended_pixel = b + a - (b * a // 32)
+    return min(255, max(0, blended_pixel))
+
+Total time to date 214.60463285446167s
+
+------28 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(
+            (b + a - (b * a // 32)) < 0, 0, min(255, (b + a - (b * a // 32)))
+        ),
+        base,
+        active
+    )
+
+Total time to date 228.3697648048401s
+
+------29 solution---------
+def screen_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_map(
+        lambda b, a: max(0, min(255, b + a - (b * a // 32))),
+        base,
+        active
+    )
+
+Total time to date 236.43237400054932s
+
+------30 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: reduce_mul(256, ite((b + a - b * a // 32) < 0, 0, ((b + a - b * a // 32) % 256))),
+        base,
+        active
+    )
+
+Total time to date 246.87139678001404s
+
+------31 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(
+            (b + a - (b * a // 32)) < 0, 0,
+            ite((b + a - (b * a // 32)) > 255, 255, (b + a - (b * a // 32)))
+        ),
+        base,
+        active
+    )
+
+Total time to date 255.24720788002014s
+
+------32 solution---------
+def screen_blend_8(base, active):
+    blended = (base + active - (base * active.bitwise_right_shift(5))).clip(min=0, max=255)
+    return blended.tolist()
+
+Total time to date 262.8115818500519s
+
+------33 solution---------
+def screen_blend_8(base, active):
+    blend_pixels = lambda b, a: min(255, max(0, b + a - (b * a // 32)))
+    return [[blend_pixels(b, a) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 271.1979079246521s
+
+------34 solution---------
+def blend_pixel(b, a):
+    return max(0, min(255, b + a - (b * a // 32)))
+
+def screen_blend_8(base, active):
+    return [[blend_pixel(b, a) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 277.5273268222809s
+
+------35 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(
+            (b + a) - (b * a // 32) < 0,
+            0,
+            ite(
+                (b + a) - (b * a // 32) > 255,
+                255,
+                (b + a) - (b * a // 32)
+            )
+        ),
+        base,
+        active
+    )
+
+Total time to date 286.0621409416199s
+
+------37 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(
+            (b + a - (b * a >> 5)) < 0, 0,
+            ite((b + a - (b * a >> 5)) > 255, 255, (b + a - (b * a >> 5)))
+        ),
+        base,
+        active
+    )
+
+Total time to date 302.5054919719696s
+
+------38 solution---------
+def screen_blend_8(base, active, i=0, j=0, blended=None):
+    if blended is None:
+        blended = []
+    if i == len(base):
+        return blended
+    elif j == len(base[0]):
+        return screen_blend_8(base, active, i + 1, 0, blended)
+    else:
+        b, *rest_b = base[i]
+        a, *rest_a = active[i]
+        blended_pixel = max(0, min(255, b + a - (b * a // 32)))
+        return screen_blend_8(base, active, i, j + 1, blended + [blended_pixel])
+
+Total time to date 312.2614018917084s
+
+------39 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: reduce_mul(
+            256,
+            ite(
+                (b + a - (b * a // 32)) < 0,
+                0,
+                (b + a - (b * a // 32)) % 256
+            )
+        ),
+        base,
+        active
+    )
+
+Total time to date 321.7813959121704s
+
+------40 solution---------
+def screen_blend_8(base, active):
+    lambda_func = lambda b, a: max(0, min(255, b + a - (b * a // 32)))
+    return matrix_map(lambda_func, base, active)
+
+Total time to date 330.02949476242065s
+
+------41 solution---------
+def screen_blend_8(base, active):
+    return [[max(0, min(255, b + a - (b * a // 32))) for b, a in zip(base_row, active_row)] for base_row, active_row in zip(base, active)]
+
+Total time to date 339.10656571388245s
+
+------42 solution---------
+def blend_pixel(b, a):
+    return max(0, min(255, b + a - (b * a // 32)))
+
+def screen_blend_8(base, active):
+    return [[blend_pixel(b, a) for b, a in zip(base_row, active_row)] for base_row, active_row in zip(base, active)]
+
+Total time to date 347.5790128707886s
+
+------43 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: ite(
+            (b + a - (b * a // 32)) < 0, 0,
+            min(255, (b + a - (b * a // 32)))
+        ),
+        base,
+        active
+    )
+
+Total time to date 358.37302470207214s
+
+------44 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: reduce_mul(
+            256,
+            ite(
+                (b + a - b * a // 32) < 0,
+                0,
+                (b + a - b * a // 32) % 256
+            )
+        ),
+        base,
+        active
+    )
+
+Total time to date 367.89412665367126s
+
+------45 solution---------
+def screen_blend_8(base, active):
+    if not base:
+        return []
+    row_base, *rest_base = base
+    row_active, *rest_active = active
+    blended_row = [max(0, min(255, b + a - (b * a // 32))) for b, a in zip(row_base, row_active)]
+    return [blended_row] + screen_blend_8(rest_base, rest_active)
+
+
+
+def screen_blend_8(base, active):
+    a, b = matrix_elemwise_sub(active, matrix_scalar_mul(256, matrix_scalar_div(matrix_elemwise_mul(base, active), 32)))
+    return matrixMap(addInt, base, a) + matrixMap(addInt, b)
+
+
+
+def screen_blend_8(base, active):
+    n = len(base[0])
+    blended_cols = [matrixSlice(
+        vector_where(col_base, col_active, lambda b, a: max(0, min(255, b + a - (b * a // 32)))),
+        0, n
+    ) for col_base, col_active in zip(base, active)]
+    return matrixTranspose(blended_cols)
+
+Total time to date 380.4944818019867s
+
+------46 solution---------
+from functools import reduce
+from operator import add
+
+def screen_blend_8(base, active):
+    return [
+        [
+            reduce(
+                add,
+                (b + a - (b * a // 32)) if 0 <= (b + a - (b * a // 32)) <= 255 else 0
+                for b, a in zip(row_base, row_active)
+            )
+            for row_base, row_active in zip(base, active)
+        ]
+    ]
+
+Total time to date 387.3841516971588s
+
+------47 solution---------
+def screen_blend_8(base, active, i=0, j=0, blended=None):
+    if blended is None:
+        blended = []
+
+    if i == len(base):
+        return blended
+
+    row_base, *rest_base = base
+    row_active, *rest_active = active
+
+    if j == len(row_base):
+        return screen_blend_8(rest_base, rest_active, i, 0, blended)
+
+    b, *rest_b = row_base
+    a, *rest_a = row_active
+
+    blended_pixel = max(0, min(255, b + a - (b * a // 32)))
+    result = screen_blend_8(rest_base, rest_active, i, j + 1, blended + [blended_pixel])
+
+    return result
+
+Total time to date 401.11327385902405s
+
+------48 solution---------
+def screen_blend_8(base, active):
+    return [[min(255, max(0, b + a - (b * a // 32))) for b, a in row] for row in zip(base, active)]
+
+Total time to date 410.82450580596924s
+
+------49 solution---------
+def screen_blend_8(base, active):
+    return matrix_map(
+        lambda b, a: min(255, max(0, b + a - (b * a // 32))),
+        base,
+        active
+    )
+
+Total time to date 419.3573157787323s

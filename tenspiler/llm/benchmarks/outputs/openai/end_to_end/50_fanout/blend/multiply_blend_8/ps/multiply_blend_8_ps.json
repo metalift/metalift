@@ -1,0 +1,1 @@
+["\ndef multiply_blend_8(base, active):\n    return matrix_map(zip(base, active), lambda (b, a): ((b * a) // 32) if a else 0)\n"]

@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 import textwrap
@@ -42,15 +43,25 @@ from tenspiler.llm.analysis import (
     analyze_transformer_part4,
 )
 
+hf_token = os.getenv("HUGGING_FACE_API")
+if not hf_token:
+    raise ValueError("Please set the environment variable HUGGING_FACE_API")
+
+
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same. Please generate another program."
+
+llama_repo = "meta-llama/Meta-Llama-3-8B-Instruct"
+mistral_repo = "mistralai/Mistral-Nemo-Instruct-2407"
 
 
 # regex to extract the code from the completions
 def extract(s) -> list[str]:
     extracted_result = [
         x.group(1)
-        for x in re.finditer(r"```(?:Python|python|assembly)?(.*?)```", s, re.DOTALL)
+        for x in re.finditer(
+            r"```(?:Python|python|assembly|cpp|c|c\+\+)?(.*?)```", s, re.DOTALL
+        )
     ]
     if len(extracted_result) == 0:
         return [s]
@@ -82,34 +93,6 @@ def get_ps_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    # return [
-    #     f"""
-    #     def transformer_part2(
-    #         token_position: int,
-    #         head: int,
-    #         head_size: int,
-    #         key_cache_layer: List[List[int]],
-    #         attention: List[int]
-    #     ) -> List[int]:
-
-    #         return matrix_vec_mul(
-    #             matrix_transpose(
-    #                 matrix_col_slice(
-    #                     matrix_row_slice(key_cache_layer, 0, token_position + 1),
-    #                     head * head_size,
-    #                     (head + 1) * head_size
-    #                 )
-    #             ),
-    #             attention[:token_position + 1]
-    #         )
-    #     """
-    # ]
-    # return [
-    #     f"""
-    #     def transformer_part4(input1: List[int], input2: List[int], hidden_dim: int) -> List[int]:
-    #         return vec_elemwise_mul(vec_slice(input1, 0, hidden_dim), vec_slice(input2, 0, hidden_dim))
-    #     """
-    # ]
     ps_template_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
     #Instructions
@@ -140,21 +123,37 @@ def get_ps_choice_and_save_prompt(
         json.dump(messages, f)
 
     call_start_time = time.time()
+    # Claude
+    import pdb
+
+    pdb.set_trace()
     message = client.messages.create(
-        model="claude-3-opus-20240229",
+        model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
         temperature=0.0,
         system=TEMPLATE_SYS,
-        messages=[{"role": "user", "content": ps_template_text}],
+        messages=messages,
     )
+
     # outputs = client.chat.completions.create(
     #     model="gpt-4",  # model to use
     #     messages=messages,
     #     n=50,  # We always sample 1 solution at a time
     #     temperature=0.7,
     # )
+    # inference_client = InferenceClient(
+    #     mistral_repo,
+    #     token=hf_token,
+    #     headers={"X-use-cache": "false"}
+    # )
+    # outputs = inference_client.chat_completion(
+    # 	messages=messages,
+    # 	max_tokens=500,
+    # 	temperature=1,
+    # )
     call_end_time = time.time()
     print(f"ps call took {call_end_time - call_start_time}s")
+    # return [outputs.choices[0].message.content]
     return [message.content[0].text]
 
 
@@ -477,13 +476,11 @@ def get_inv_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    # return [
-    #     f"""
-    #     def invariant(i: int, hidden_dim: int, input: List[int], output: List[int]) -> bool:
-    #         return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(input[:i], vec_map(input[:i], lambda x: 1 // (1 + integer_exp(0 - x))))
-    #     """
-    # ]
-    # prompt for generating invariants of a function.
+    # TODO(jie)
+    ps_solution = f"""
+    def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+        return matrix_elemwise_add(base, active)
+    """
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
     #Instructions:
@@ -562,21 +559,33 @@ def get_inv_choice_and_save_prompt(
         json.dump(messages, f)
 
     call_start_time = time.time()
+    print("CALLING INV for PS", ps_solution)
     message = client.messages.create(
-        model="claude-3-opus-20240229",
+        model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
         temperature=0.0,
         system=TEMPLATE_SYS,
-        messages=[{"role": "user", "content": inv_template_text}],
+        messages=messages,
     )
-    # outputs = client.chat.completions.create(
-    #     model="gpt-4",  # model to use
+    # # outputs = client.chat.completions.create(
+    # #     model="gpt-4",  # model to use
+    # #     messages=messages,
+    # #     n=50,
+    # #     temperature=0.7,
+    # # )
+    # inference_client = InferenceClient(
+    #     mistral_repo,
+    #     token=hf_token,
+    #     headers={"X-use-cache": "false"}
+    # )
+    # outputs = inference_client.chat_completion(
     #     messages=messages,
-    #     n=50,
+    #     max_tokens=500,
     #     temperature=0.7,
     # )
     call_end_time = time.time()
     print(f"inv call took {call_end_time - call_start_time}s")
+    # return [outputs.choices[0].message.content]
     return [message.content[0].text]
 
 
@@ -814,10 +823,15 @@ def get_inv_and_ps(
         json.dump(messages, f)
 
     call_start_time = time.time()
-    outputs = client.chat.completions.create(
-        model="gpt-4",  # model to use
+    # outputs = client.chat.completions.create(
+    #     model="gpt-4",  # model to use
+    #     messages=messages,
+    #     n=10,
+    #     temperature=0.7,
+    # )
+    outputs = inference_client.chat_completion(
         messages=messages,
-        n=10,
+        max_tokens=500,
         temperature=0.7,
     )
     call_end_time = time.time()

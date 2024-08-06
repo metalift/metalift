@@ -1,0 +1,1 @@
+["\ndef screen_blend_8(base, active):\n    return matrix_map(\n        lambda b, a: min(255, max(0, b + a - (b * a // 32))),\n        base,\n        active\n    )\n"]

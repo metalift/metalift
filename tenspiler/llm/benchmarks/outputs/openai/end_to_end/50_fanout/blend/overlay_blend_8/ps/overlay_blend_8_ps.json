@@ -1,0 +1,1 @@
+["\ndef overlay_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return [[(base[row][col] - 32) * (2 * (base[row][col] // 32 + 1) - 1) if base[row][col] >= 16 else (2 * base[row][col] ** 2 // 16) for col in range(len(base[0]))] for row in range(len(base))]\n"]

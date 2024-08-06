@@ -1,0 +1,631 @@
+------0 solution---------
+vector<vector<int>> darken_blend_8(vector<vector<int>> base, vector<vector<int>> active)
+{
+  return matrix_where(base, active, [](int a, int b){ return ite(a > b, b, a); });
+}
+
+Total time to date 4.790750026702881s
+
+------1 solution---------
+def darken_blend_8(base, active):
+    return matrix_where(base, active, lambda a, b: vec_elemwise_mul(a, b) if a > b else a)
+
+Total time to date 16.673934936523438s
+
+------2 solution---------
+def darken_blend_8(base, active):
+    if not base:  # base matrix is empty
+        return active
+    elif not active:  # active matrix is empty
+        return base
+    else:  # both matrices have elements
+        base_first, *base_rest = base
+        active_first, *active_rest = active
+        row = [min(a, b) for a, b in zip(base_first, active_first)]
+        return [row] + darken_blend_8(base_rest, active_rest)
+
+Total time to date 24.704682111740112s
+
+------3 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row, col)] for row, col in zip(base, active)]
+
+# Let's test the function with some sample inputs
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+# Output: [[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 31.38116693496704s
+
+------4 solution---------
+def darken_blend_8(base, active):
+    return matrix_where(base, active, vec_elemwise_mul) if reduce_max(base) > reduce_max(active) else base
+
+Total time to date 39.107316970825195s
+
+------5 solution---------
+def darken_blend_8(base, active):
+    return [
+        [min(a, b) for a, b in zip(row_base, row_active)]
+        for row_base, row_active in zip(base, active)
+    ]
+
+Total time to date 45.04293394088745s
+
+------6 solution---------
+def darken_blend_8(base, active):
+    return matrix_where(base, active, reduce_max)[0][0]
+
+Total time to date 50.940101861953735s
+
+------7 solution---------
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base or active
+    else:
+        base_row, *base_rest = base
+        active_row, *active_rest = active
+        return [min(a, b) for a, b in zip(base_row, active_row)] + darken_blend_8(base_rest, active_rest)
+
+Total time to date 56.33549499511719s
+
+------8 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(rows)] for rows in zip(base, active)]
+
+Total time to date 60.518489837646484s
+
+------10 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(base komen-basekomen, active komen-activekomen)] for komen-basekomen, active komen-activekomen in zip(base, active)]
+
+Total time to date 70.8480441570282s
+
+------11 solution---------
+def darken_blend_8(base, active):
+    match (base, active):
+        case ([], active):
+            return active
+        case (base, []):
+            return base
+        case (head_base, tail_base), (head_active, tail_active):
+            return [min(r1, r2) for r1, r2 in zip(head_base, head_active)] + darken_blend_8(tail_base, tail_active)
+
+Total time to date 76.86555910110474s
+
+------12 solution---------
+def darken_blend_8(base, active):
+    return matrix_where(
+        base,
+        active,
+        lambda x, y: ite(x > y, integer_exp(x // 32), x) if integer_exp(y) > 32 else y
+    )
+
+Total time to date 84.83378577232361s
+
+------13 solution---------
+def darken_blend_8(base, active):
+    return recursion_helper([], base, active, 0, 0)
+
+def recursion_helper(acc, base, active, i, j):
+    if i == len(base):
+        return acc
+    elif j == len(base[0]):
+        return recursion_helper(acc + [list(base[i])], base, active, i + 1, 0)
+    else:
+        return recursion_helper(
+            acc + [[min(base[i][j], active[i][j])]], base, active, i, j + 1
+        )
+
+Total time to date 93.27643179893494s
+
+------14 solution---------
+def darken_blend_8(base, active):
+    return [[min(x, y) for x, y in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 100.61430597305298s
+
+------15 solution---------
+def darken_blend_8(base, active):
+    return _darken_blend_8_helper(base, active, 0, 0)
+
+def _darken_blend_8_helper(base, active, i, j):
+    if i == len(base):
+        return []
+    elif j == len(base[0]):
+        return _darken_blend_8_helper(base, active, i + 1, 0)
+    else:
+        return [
+            min(base[i][j], active[i][j]),
+            *_darken_blend_8_helper(base, active, i, j + 1)
+        ]
+
+# Let's test the function with some sample inputs
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+# Output: [[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 111.38814687728882s
+
+------16 solution---------
+def darken_blend_8(base, active):
+    return matrix_where(
+        base,
+        active,
+        lambda x, y: [x[i] if x[i] > y[i] else y[i] for i in range(len(x))]
+    )
+
+Total time to date 118.72179889678955s
+
+------17 solution---------
+def darken_blend_8(base, active):
+    return matrix_elemwise_mul(
+        matrix_geq(base, active),
+        active
+    )
+
+Total time to date 126.69704294204712s
+
+------18 solution---------
+def darken_blend_8(base, active):
+    return matrix_elemwise_mul(
+        matrix_leq(base, active),
+        active
+    )
+
+Total time to date 132.80487775802612s
+
+------19 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+
+
+#include <vector>
+#include <algorithm>
+
+std::vector<std::vector<int>> darken_blend_8(const std::vector<std::vector<int>>& base, const std::vector<std::vector<int>>& active) {
+    std::vector<std::vector<int>> result;
+    for (size_t i = 0; i < base.size(); ++i) {
+        std::vector<int> row;
+        for (size_t j = 0; j < base[i].size(); ++j) {
+            row.push_back(std::min(base[i][j], active[i][j]));
+        }
+        result.push_back(row);
+    }
+    return result;
+}
+
+Total time to date 140.57697701454163s
+
+------20 solution---------
+def darken_blend_8(base, active):
+    return helper([], base, active, 0, 0)
+
+def helper(acc, base, active, i, j):
+    if i == len(base):
+        return acc
+    if j == len(base[0]):
+        return helper(acc, base, active, i + 1, 0)
+    else:
+        acc.append(min(base[i][j], active[i][j]))
+        return helper(acc, base, active, i, j + 1)
+
+
+
+def darken_blend_8(base, active):
+    return [min(a, b) for a, b in zip(*(row for row in zip(base, active)))]
+
+def darken_blend_8(base, active):
+    return (min(a, b) for a, b in zip(*(iter(base), iter(active)))) if base and active else base or active
+
+
+
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+
+
+import operator
+from functools import reduce
+
+def darken_blend_8(base, active):
+    return reduce(min, zip(*base, *active), [])
+
+Total time to date 151.17238783836365s
+
+------21 solution---------
+def darken_blend_8(base, active):
+    import functools
+    return list(functools.zip_longest(
+        *(map(lambda row: map(min, row, active_row), base), repeat([]))
+    ))
+
+
+
+def darken_blend_8(base, active):
+    if base:
+        base_row, *rest_base = base
+        active_row, *rest_active = active
+        return [list(map(min, base_row, active_row))] + darken_blend_8(rest_base, rest_active)
+    else:
+        return base or active
+
+
+
+import numpy as np
+
+def darken_blend_8(base, active):
+    return np.minimum(np.array(base), np.array(active)).tolist()
+
+
+
+import itertools
+
+def darken_blend_8(base, active):
+    return list(map(min, *zip(*itertools.zip_longest(base, active, fillvalue=0))))
+
+Total time to date 162.80447101593018s
+
+------22 solution---------
+def darken_blend_8(base, active):
+    return [[min(x, y) for x, y in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+
+
+import functools
+import itertools
+
+def darken_blend_8(base, active):
+    return list(map(tuple, zip(*map(min, *zip(*itertools.zip_longest(base, active, fillvalue=None))))))
+
+Total time to date 170.61448979377747s
+
+------23 solution---------
+def darken_blend_8(base, active):
+    if not base: return active
+    if not active: return base
+    return [[min(a, b) for a, b in zip(row_base, row_active)] for row_base, row_active in zip(*base, *active)]
+
+# Let's test the function with some sample inputs
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+# Output: [[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 180.0348858833313s
+
+------24 solution---------
+from itertools import zip_longest
+from functools import reduce
+
+def darken_blend_8(base, active):
+    return list(reduce(
+        lambda acc, curr: acc + [min(x, y) for x, y in zip_longest(*curr)],
+        zip_longest(base, active, fillvalue=None),
+        []
+    ))
+
+Total time to date 188.31709790229797s
+
+------26 solution---------
+def darken_blend_8(base, active):
+    match (base, active):
+        case ([], active):
+            return active
+        case (base, []):
+            return base
+        case (head_base, tail_base), (head_active, tail_active):
+            return [min(row_base, row_active) for row_base, row_active in zip(head_base, head_active)] + darken_blend_8(tail_base, tail_active)
+
+Total time to date 204.4768569469452s
+
+------27 solution---------
+def darken_blend_8(base, active):
+    return [
+        [min(a, b) for a, b in zip(row_base, row_active)]
+        for row_base, row_active in zip(base or [[]], active or [])
+    ]
+
+Total time to date 211.97850489616394s
+
+------28 solution---------
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base if base else active
+    else:
+        base_row, *base_rest = base
+        active_row, *active_rest = active
+        return [[min(a, b) for a, b in zip(base_row, active_row)]] + darken_blend_8(base_rest, active_rest)
+
+Total time to date 220.08060002326965s
+
+------29 solution---------
+def darken_blend_8(base, active):
+    return [min(row_b, row_a) for row_b, row_a in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 229.54650592803955s
+
+------30 solution---------
+from functools import partial
+from itertools import zip_longest
+
+def darken_blend_8(base, active):
+    min_row = partial(min, *active)
+    return [list(min_rowocol) forocol in zip_longest(base, active, fillvalue=float('inf'))]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 238.06401896476746s
+
+------31 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+Total time to date 248.51694297790527s
+
+------32 solution---------Understood. I'll generate a new solution that approaches the task in a different way, ensuring that it's correct and follows the given constraints.
+Total time to date 253.84127593040466s
+
+------33 solution---------
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base or active
+    base_row, *base_rest = base
+    active_row, *active_rest = active
+    return [min(a, b) for a, b in zip(base_row, active_row)] + darken_blend_8(base_rest, active_rest)
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 268.650319814682s
+
+------34 solution---------
+def darken_blend_8(base, active):
+    return [[min(x, y) for x, y in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+print(darken_blend_8(base, active))
+# [[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 280.072536945343s
+
+------36 solution---------
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base or active
+    else:
+        base_row, *base_rest = base
+        active_row, *active_rest = active
+        return [
+            [min(a, b) for a, b in zip(base_row, active_row)],
+            *darken_blend_8(base_rest, active_rest)
+        ]
+
+Total time to date 295.3360278606415s
+
+------37 solution---------
+def darken_blend_8(base, active):
+    return matrix_elemwise_min(base, active)
+
+def matrix_elemwise_min(matrix_x, matrix_y):
+    return [
+        vec_elemwise_min(matrix_x[0], matrix_y[0]) if matrix_x and matrix_y else matrix_x or matrix_y,
+        *matrix_elemwise_min(matrix_x[1:], matrix_y[1:]) if matrix_x and matrix_y else matrix_x or matrix_y,
+    ]
+
+def vec_elemwise_min(x, y):
+    return [a if a < b else b for a, b in zip(x, y)] if x and y else x or y
+
+Total time to date 304.9325587749481s
+
+------38 solution---------
+from itertools import zip_longest
+
+def darken_blend_8(base, active):
+    return [[min(x, y) for x, y in zip_longest(row_base, row_active, fillvalue=float('inf'))] for row_base, row_active in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 317.0414719581604s
+
+------39 solution---------
+from itertools import zip_longest
+
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base or active
+
+    base_row, *base_rest = base
+    active_row, *active_rest = active
+
+    return [
+        [min(a, b) for a, b in zip_longest(base_row, active_row, fillvalue=float('inf'))],
+        *darken_blend_8(base_rest, active_rest)
+    ]
+
+Total time to date 326.1728310585022s
+
+------40 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+print(darken_blend_8(base, active))
+
+Total time to date 334.9911320209503s
+
+------41 solution---------
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base or active
+    else:
+        base_row, *base_rest = base
+        active_row, *active_rest = active
+        return [[min(a, b) for a, b in zip(base_row, active_row)]] + darken_blend_8(base_rest, active_rest)
+
+Total time to date 345.3005998134613s
+
+------42 solution---------
+def darken_blend_8(base, active):
+    return matrix_elemwise_min(base, active)
+
+
+
+def matrix_elemwise_min(matrix_x, matrix_y):
+    return [[min(x, y) for x, y in zip(row_x, row_y)] for row_x, row_y in zip(*matrix_x, *matrix_y)]
+
+Total time to date 355.36899399757385s
+
+------43 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 368.30326986312866s
+
+------44 solution---------
+def darken_blend_8(base, active):
+    return [[min(x, y) for x, y in zip(row_b, row_a)] for row_b, row_a in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 381.258013010025s
+
+------45 solution---------
+def darken_blend_8(base, active):
+    if not base or not active:
+        return base or active
+
+    base_row, *base_rest = base
+    active_row, *active_rest = active
+
+    return [[min(base_row[i], active_row[i]) for i in range(len(base_row))],
+            *darken_blend_8(base_rest, active_rest) if base_rest else [],
+            *darken_blend_8([active_row], active_rest) if active_rest else []]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 392.79678893089294s
+
+------46 solution---------
+def darken_blend_8(base, active):
+    return [
+        [min(x, y) for x, y in zip(row_base, row_active)]
+        for row_base, row_active in zip(base, active)
+    ]
+
+Total time to date 402.17451095581055s
+
+------47 solution---------
+def darken_blend_8(base, active):
+    return [[min(a, b) for a, b in zip(row_base, row_active)] if row_base and row_active else row_base or row_active
+            for row_base, row_active in zip(base, active)]
+
+
+
+base = [[255, 255, 255], [255, 0, 0], [0, 0, 255]]
+active = [[128, 128, 128], [255, 255, 255], [128, 0, 128]]
+
+print(darken_blend_8(base, active))
+
+
+
+[[128, 128, 128], [255, 0, 0], [128, 0, 128]]
+
+Total time to date 415.3326859474182s
+
+------48 solution---------
+from functools import reduce
+from itertools import chain
+
+def darken_blend_8(base, active):
+    return reduce(
+        lambda rows, row_a: rows + [[min(x, y) for x, y in zip(row_b, row_a)]],
+        chain.from_iterable(active),
+        []
+    )
+
+Total time to date 425.7613089084625s
+
+------49 solution---------
+def darken_blend_8(base, active):
+    return matrix_elemwise_min(base, active)
+
+Total time to date 435.30435585975647s
