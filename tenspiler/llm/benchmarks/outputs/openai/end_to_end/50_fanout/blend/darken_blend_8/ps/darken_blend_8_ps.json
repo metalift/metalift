@@ -1,0 +1,1 @@
+["\ndef darken_blend_8(base, active):\n    return matrix_elemwise_min(base, active)\n"]

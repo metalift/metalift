@@ -1,0 +1,1 @@
+["\ndef lighten_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    # Calculate the blended matrix using matrix_where with the appropriate condition\n    blended_matrix = matrix_where(\n        base,\n        active,\n        lambda b, a: a if b < a else b\n    )\n\n    # Return the blended matrix\n    return blended_matrix\n"]

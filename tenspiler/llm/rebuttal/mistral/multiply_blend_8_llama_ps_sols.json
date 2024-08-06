@@ -1,0 +1,576 @@
+------0 solution---------
+return matrix_map(
+    lambda x, y: vec_map(
+        lambda a, b: (a * b) // 32,
+        x,
+        y,
+    ),
+    base,
+    active,
+)
+
+Total time to date 8.780478954315186s
+
+------1 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda x, y: vec_map(
+            lambda a, b: ite(b == 0, 0, (a * b) // 32),
+            x,
+            y,
+        ),
+        [[(a if b else 0) for a, b in zip(x, y)] for x, y in zip(base, active)],
+    )
+
+Total time to date 22.81222414970398s
+
+------2 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda b_row, a_row: vec_map(
+            lambda b_pix, a_pix: ite(a_pix == 0, 0, (b_pix * a_pix) // 32),
+            b_row,
+            a_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 27.495556116104126s
+
+------3 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda x, y: vec_map(
+            lambda a, b: (a * b) // 32 if b else 0,
+            x,
+            y,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 33.061691999435425s
+
+------4 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row: vec_map(
+            lambda pix_b, pix_a: (pix_b * pix_a) // 32 if pix_a else 0,
+            row,
+            active[0],
+        ),
+        base,
+    )
+
+Total time to date 40.10963797569275s
+
+------5 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda x, y: vec_map(
+            lambda a, b: ite(b == 0, 0, (a * b) // 32),
+            x,
+            vec_map(
+                lambda a, b: b * (base[0][0] == 32),
+                x[0],
+                y[0],
+            ),
+        ),
+        base,
+        active,
+    )
+
+Total time to date 48.11617302894592s
+
+------6 solution---------
+return [
+    [((base_row[i] * active_row[i]) // 32) if active_row[i] != 0 else 0
+     for i in range(len(base_row))]
+    for base_row, active_row in zip(base, active)
+]
+
+Total time to date 54.06855916976929s
+
+------7 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda base_row, active_row: vec_map(
+            lambda pix_b, pix_a: pix_b * pix_a // 32 if pix_a != 0 else 0,
+            base_row,
+            active_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 60.721734046936035s
+
+------8 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, a_row: vec_map(
+            lambda b_pix, a_pix: (
+                (b_pix * a_pix) // 32
+                if a_pix != 0
+                else 0
+            ),
+            row,
+            a_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 66.61300802230835s
+
+------9 solution---------
+def multiply_blend_8(base, active):
+    def pixel_operation(base_pix, active_pix):
+        return (base_pix * active_pix) // 32 if active_pix else 0
+
+    return matrix_map(lambda row, active_row: vec_map(pixel_operation, row, active_row), base, active)
+
+Total time to date 73.86080002784729s
+
+------10 solution---------
+def multiply_blend_8(base, active):
+    def pixel_operation(pix_b, pix_a):
+        return (pix_b * pix_a) // 32 if pix_a != 0 else 0
+
+    return matrix_map(
+        lambda row, active_row: reduce_map(
+            pixel_operation,
+            row,
+            active_row,
+        ),
+        base,
+        active,
+    )
+
+
+
+def reduce_map(operation, x, y):
+    return reduce(
+        lambda acc, (a, b): operation(acc, (a * b) // 32 if b != 0 else 0),
+        0,
+        zip(x, y),
+    )
+
+Total time to date 80.16582608222961s
+
+------11 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, a_row: vec_map(
+            lambda pix_b, pix_a: ite(pix_a == 0, 0, (pix_b * pix_a) // 32),
+            row,
+            a_row,
+        ),
+        base,
+        active,
+    )
+
+
+
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, a_row: vec_map(lambda pix_b, pix_a: (pix_b * pix_a) // 32 if pix_a != 0 else 0, row, a_row),
+        base,
+        active,
+    )
+
+Total time to date 87.670077085495s
+
+------12 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(lambda x, y: vec_map(lambda a, b: (a * b) // 32 if b else 0, x, y), base, active)
+
+Total time to date 97.21322083473206s
+
+------13 solution---------
+def multiply_blend_8(base, active):
+    return matrix_where(base, active, lambda b_pix, a_pix: (b_pix * a_pix) // 32 if a_pix != 0 else 0)
+
+Total time to date 103.85341119766235s
+
+------14 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, a_row: vec_map(
+            lambda pix_b, pix_a: (pix_b * pix_a) // 32 if pix_a else 0,
+            row,
+            vec_scalar_add(active[0][0] == 32, a_row),  # Adjust active row based on initial condition
+        ),
+        base,
+        active,
+    )
+
+Total time to date 111.13406801223755s
+
+------15 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda base_row, active_row: vec_map(
+            lambda base_pix, active_pix: (base_pix * active_pix) // 32 if active_pix != 0 else 0,
+            base_row,
+            active_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 117.90916728973389s
+
+------16 solution---------
+def multiply_blend_8(base, active):
+    return [
+        [((base_row[c] * active_row[c]) // 32) if active_row[c] != 0 else 0 for c in range(len(base_row))]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 122.92740416526794s
+
+------17 solution---------
+def multiply_blend_8(base, active):
+    if not base:
+        return []
+    elif not base[0]:
+        return [[]]
+    else:
+        return [
+            [(base[0][0] * active[0][0]) // 32 if active[0][0] != 0 else 0] +
+            multiply_blend_8([base[0][1:] + active[0][1:]], base[1:] + active[1:])[0]
+            if len(base[0]) > 1 or len(active[0]) > 1
+            else []
+        ]
+
+Total time to date 133.01459002494812s
+
+------18 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda b_row, a_row: vec_map(
+            lambda b_pix, a_pix: a_pix * (b_pix // 32) if a_pix != 0 else 0,
+            b_row,
+            a_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 140.344003200531s
+
+------19 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(lambda row, a_row: vec_map(lambda pix_b, pix_a: pix_b * pix_a // 32, row, a_row), base, active)
+
+Total time to date 147.6863932609558s
+
+------20 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act: vec_map(
+            lambda pix_b, pix_a: (pix_a / 32 * pix_b) if pix_a else 0,
+            row,
+            active[0],
+        ),
+        base,
+    )
+
+Total time to date 154.76582503318787s
+
+------21 solution---------
+def multiply_blend_8(base, active):
+    return [[(b * a) // 32 for b, a in zip(row, act_row) if a != 0] for row, act_row in zip(base, active)]
+
+Total time to date 161.5625400543213s
+
+------22 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(lambda row, a_row: vec_map(lambda b_pix, a_pix: (b_pix * a_pix) // 32 if a_pix else 0, row, a_row), base, active)
+
+Total time to date 168.05469608306885s
+
+------23 solution---------
+def multiply_blend_8(base, active):
+    return [
+        [((base_row[col] * active_row[col]) // 32) if active_row[col] != 0 else 0 for col in range(len(base_row))]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 175.2769899368286s
+
+------24 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda base_row, active_row: vec_map(
+            lambda base_pix, active_pix: (base_pix * active_pix) // 32
+            if active_pix != 0
+            else 0,
+            base_row,
+            active_row
+        ),
+        base,
+        active
+    )
+
+Total time to date 181.8723909854889s
+
+------25 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(lambda row, act: vec_map(lambda b, a: (b * a) // 32 if a else 0, row, act), base, active)
+
+Total time to date 189.29034614562988s
+
+------26 solution---------
+def multiply_blend_8(base, active):
+    def pixel_operation(base_pix, active_pix):
+        return (base_pix * active_pix) // 32 if active_pix != 0 else 0
+
+    return matrix_map(
+        lambda row, active_row: vec_map(pixel_operation, row, active_row),
+        base,
+        active,
+    )
+
+Total time to date 196.86387610435486s
+
+------27 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: [
+            (pix_b * pix_a) // 32 if pix_a != 0 else 0
+            for pix_b, pix_a in zip(row, act_row)
+        ],
+        base,
+        active,
+    )
+
+Total time to date 204.2355830669403s
+
+------28 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, a_row: vec_map(
+            lambda pix_b, pix_a: (pix_b * pix_a) // 32 if pix_a else 0,
+            row,
+            a_row,
+        ),
+        base,
+        [vec_scalar_add(1, active_row) for active_row in active],  # Adjust active matrix to account for initial condition
+    )
+
+Total time to date 212.45137214660645s
+
+------29 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: vec_map(
+            lambda pix_b, pix_a: pix_b * (pix_a // 32) if pix_a else 0,
+            row,
+            act_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 222.28609013557434s
+
+------30 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: vec_map(
+            lambda pix_b, pix_a: pix_b * (pix_a // 32) if pix_a != 0 else 0,
+            row,
+            act_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 229.34001517295837s
+
+------31 solution---------
+def multiply_blend_8(base, active):
+    return [[(base_row[col] * active_row[col]) // 32 if active_row[col] != 0 else 0 for col in range(len(base_row))] for base_row, active_row in zip(base, active)]
+
+Total time to date 234.95125818252563s
+
+------32 solution---------
+def multiply_blend_8(base, active):
+    match base, active:
+        case [], _ | _, []:
+            return []
+        case [base_row], [active_row]:
+            return [[(base_pix * active_pix) // 32 if active_pix else 0 for base_pix, active_pix in zip(base_row, active_row)]]
+        case [base_row, *rest_base], [active_row, *rest_active]:
+            return [
+                [(base_pix * active_pix) // 32 if active_pix else 0 for base_pix, active_pix in zip(base_row, active_row)]
+                + multiply_blend_8(rest_base, rest_active)[0]
+            ]
+
+Total time to date 242.83491110801697s
+
+------33 solution---------
+def multiply_blend_8(base, active):
+    return matrix_elemwise_mul(base, matrix_map(lambda x: vec_map(lambda a, b: a * (b // 32), x, active[0]), active))
+
+Total time to date 252.3084270954132s
+
+------34 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: vec_map(
+            lambda pix_b, pix_a: (pix_b * pix_a) // 32 if pix_a > 0 else 0,
+            row,
+            act_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 263.16315388679504s
+
+------35 solution---------
+def multiply_blend_8(base, active):
+    return [
+        [((base_row[i] * active_row[i]) // 32) for i in range(len(base_row)) if active_row[i] != 0]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 271.02504086494446s
+
+------36 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: vec_map(
+            lambda pix_b, pix_a: ite(pix_a > 0, pix_b * pix_a // 32, 0),
+            row,
+            act_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 279.3943901062012s
+
+------37 solution---------
+def multiply_blend_8(base, active):
+    return [
+        [(base_row[c] * active_row[c]) // 32 if active_row[c] else 0 for c in range(len(base_row))]
+        for base_row, active_row in zip(base, active)
+    ]
+
+Total time to date 287.0468611717224s
+
+------38 solution---------
+def apply_operation_to_non.zero(x, a, f):
+    return [] if len(x) < 1 or len(a) < 1 else [f(x[0], a[0]), *apply_operation_to_non_zero(x[1:], a[1:], f)]
+
+def multiply_blend_8(base, active):
+    return matrix_map(lambda row, act_row: apply_operation_to_non_zero(row, act_row, lambda pix_b, pix_a: pix_b * pix_a // 32), base, active)
+
+Total time to date 293.2827179431915s
+
+------39 solution---------
+def multiply_blend_8(base, active):
+    if not base or not active:
+        return []
+
+    # Recursive case
+    elif len(base[0]) > 1 or len(active[0]) > 1:
+        return [
+            [(base[0][0] * active[0][0]) // 32 if active[0][0] != 0 else 0] +
+            multiply_blend_8([base[0][1:] + active[0][1:]], base[1:] + active[1:])[0]
+        ]
+
+    # Base case: single pixel
+    else:
+        return [[(base[0][0] * active[0][0]) // 32 if active[0][0] != 0 else 0]]
+
+Total time to date 302.89428305625916s
+
+------40 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act: [
+            ((base_pix * act_pix) // 32) if act_pix != 0 else 0 for base_pix, act_pix in zip(row, act)
+        ],
+        base,
+        active
+    )
+
+Total time to date 310.94246315956116s
+
+------41 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: vec_map(
+            lambda b_pix, a_pix: ite(a_pix == 0, 0, (b_pix * a_pix) // 32),
+            row,
+            act_row,
+        ),
+        base,
+        active,
+    )
+
+Total time to date 320.33570623397827s
+
+------42 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(lambda row, act_row: reduce_map(lambda acc, (b, a): acc + (b * a) // 32 if a else acc, row, act_row) * 32, base, active)
+
+Total time to date 329.142254114151s
+
+------43 solution---------
+def multiply_blend_8(base, active):
+    return matrix_elemwise_mul(
+        base,
+        vector_where(
+            active,
+            [32] * len(active[0]),
+            lambda a, _: a // 32
+        )
+    )
+
+Total time to date 337.9999530315399s
+
+------44 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(
+        lambda row, act_row: [
+            ((row_pix * act_pix) // 32) if act_pix != 0 else 0
+            for row_pix, act_pix in zip(row, act_row)
+        ],
+        base,
+        active,
+    )
+
+Total time to date 348.49656987190247s
+
+------45 solution---------
+def multiply_blend_8(base, active):
+    return [[((base_row[c] * active_row[c]) // 32) if active_row[c] != 0 else 0 for c in range(len(base_row))] for base_row, active_row in zip(base, active)]
+
+Total time to date 357.0506200790405s
+
+------46 solution---------
+import operator
+
+def multiply_blend_8(base, active):
+    return [[(operator.floordiv(operator.mul(base[row][col], active[row][col]), 32)) if active[row][col] else 0 for col in range(len(base[row]))] for row in range(len(base))]
+
+Total time to date 365.6739242076874s
+
+------48 solution---------
+def multiply_blend_8(base, active):
+    return [[(b * a) // 32 if a != 0 else 0 for b, a in zip(row, act_row)] for row, act_row in zip(base, active)]
+
+Total time to date 380.7468738555908s
+
+------49 solution---------
+def multiply_blend_8(base, active):
+    return matrix_map(zip(base, active), lambda (b, a): ((b * a) // 32) if a else 0)
+
+Total time to date 387.3885672092438s
