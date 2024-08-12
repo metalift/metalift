@@ -35,7 +35,7 @@ def run_end_to_end_llm(
     benchmark_name: str,
     source_code: str,
     dsl_code: str,
-    fanout: int = 50,
+    fanout: int = 10,
     use_ps_json_file: bool = False,
 ):
     start_time = time.time()
@@ -57,11 +57,14 @@ def run_end_to_end_llm(
     inv_output_dir.mkdir(parents=True, exist_ok=True)
     inv_ps_output_dir.mkdir(parents=True, exist_ok=True)
 
+    total_time = 0
+
     # Analyze the benchmark
     analyze_time_start = time.time()
     driver = analyze_benchmark(benchmark_name)
     analyze_time_end = time.time()
     print(f"Analyze took {analyze_time_end - analyze_time_start}s")
+    total_time += analyze_time_end - analyze_time_start
     # incorrect_ps_inv_sols = set()
     # ps_inv_sols_seen = set()
     # count = 0
@@ -110,7 +113,6 @@ def run_end_to_end_llm(
 
     incorrect_ps_sols = set()
     ps_solutions_seen = set()
-    hf_ps_sols = open(f"{benchmark_name}_llama_ps_sols.json", "w")
 
     while True:
         for ps_idx in range(fanout):
@@ -127,7 +129,7 @@ def run_end_to_end_llm(
                     all_sols = json.load(f)
                     ps_choices = extract(all_sols[ps_idx])
             else:
-                ps_choices = get_ps_choice_and_save_prompt(
+                ps_choices, call_time = get_ps_choice_and_save_prompt(
                     client=claude_client,
                     source_code=source_code,
                     dsl_code=dsl_code,
@@ -139,58 +141,41 @@ def run_end_to_end_llm(
                     ps_choices, ps_output_dir / f"{benchmark_name}_ps.json"
                 )
                 ps_sol = ps_sols[0]
-                ps_start_time = time.time()
+                total_time += call_time
 
-            print(f"{ps_idx}th PS solution")
-            print(ps_sol)
+            print(f"------{ps_idx}th PS solution---------")
+            print(ps_sol + "\n")
+            print("Total time to date", total_time)
 
             if ps_sol in ps_solutions_seen:
                 print(f"Skipping {ps_idx}th PS solution because it was already seen")
-                ps_end_time = time.time()
-                print(f"PS solution took {ps_end_time - ps_start_time}s")
                 continue
             ps_solutions_seen.add(ps_sol)
-
-            hf_ps_sols.write(f"------{ps_idx} solution---------")
-            hf_ps_sols.write(ps_sol + "\n")
-            hf_ps_sols.flush()
 
             print("Passing through parser")
             parser_start_time = time.time()
             try:
                 ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
                 print("Passed parser!")
-                parser_end_time = time.time()
-                print(f"Parser took {parser_end_time - parser_start_time}s")
-                hf_ps_sols.write("passed parser\n")
-                hf_ps_sols.write(
-                    f"Total time to date {parser_end_time - start_time}s\n"
-                )
-                hf_ps_sols.write("\n")
-                hf_ps_sols.flush()
-
+                ps_sol_failed = False
             except Exception as e:
+                parser_end_time = time.time()
                 print(f"Failed to parse the {ps_idx}th PS solution")
                 print(e)
-                ps_end_time = time.time()
-                print(f"PS solution took {ps_end_time - ps_start_time}s")
-                print(f"Parser took {ps_end_time - parser_start_time}s")
-                print(f"Total time taken: {ps_end_time - start_time}s")
-                # continue
+                ps_sol_failed = True
+            finally:
+                parser_end_time = time.time()
+                print(f"Parser took {parser_end_time - parser_start_time}s")
+                total_time += parser_end_time - parser_start_time
+                print(f"Total time taken: {total_time}s")
 
-                hf_ps_sols.write(f"Total time to date {ps_end_time - start_time}s\n")
-                hf_ps_sols.write("\n")
-                hf_ps_sols.flush()
+            if ps_sol_failed:
+                incorrect_ps_sols.add(ps_sol)
+                continue
 
-            ps_end_time = time.time()
-            print(f"PS solution took {ps_end_time - ps_start_time}s")
-
-            incorrect_ps_sols.add(ps_sol)
-            continue
-
-            # if os.getenv("SKIP_INV"):
-            #     incorrect_ps_sols.add(ps_sol)
-            #     continue
+            if os.getenv("SKIP_INV"):
+                incorrect_ps_sols.add(ps_sol)
+                continue
 
             print(f"Generating invariants for the {ps_idx}th PS solution")
             inv_solutions_seen = set()
@@ -198,7 +183,7 @@ def run_end_to_end_llm(
 
             for inv_idx in range(fanout):
                 num_inv_funcs = get_num_inv_funcs(benchmark_name)
-                inv_choices = get_inv_choice_and_save_prompt(
+                inv_choices, inv_call_time = get_inv_choice_and_save_prompt(
                     client=claude_client,
                     benchmark_name=benchmark_name,
                     ps_solution=ps_sol,
@@ -214,8 +199,10 @@ def run_end_to_end_llm(
                     inv_output_dir / f"{benchmark_name}_ps_{ps_idx}_inv.json",
                 )
                 inv_sol = inv_sols[0]
-                print(f"{inv_idx}th INV solution for the {ps_idx}th PS solution")
+                print(f"---{inv_idx}th INV solution for the {ps_idx}th PS solution---")
                 print(inv_sol)
+                total_time += inv_call_time
+                print("Total time to date", total_time)
 
                 if inv_sol in inv_solutions_seen:
                     print(
@@ -225,23 +212,20 @@ def run_end_to_end_llm(
                 inv_solutions_seen.add(inv_sol)
 
                 print("Passing through parser")
+                inv_parser_start_time = time.time()
                 try:
                     inv_fn_decls, inv_in_calls = check_solution(inv_sol, num_inv_funcs)
                     print("Passed parser!")
-                    print("Total time to date", time.time() - start_time)
-                    continue
                 except Exception as e:
-                    inv_sol = "\n".join(
-                        [
-                            inv_sol,
-                            "This solution contains python syntax not supported by the defined functions.",
-                        ]
-                    )
                     print(
                         f"Failed to parse the {inv_idx}th INV solution for the {ps_idx}th PS solution"
                     )
                     print(e)
-                    print("Total time to date", time.time() - start_time)
+                finally:
+                    inv_parser_end_time = time.time()
+                    total_time += inv_parser_end_time - inv_parser_start_time
+                    print("Total time to date", total_time)
+                    incorrect_inv_sols.add(inv_sol)
                     continue
 
                 # Send to verifier
@@ -274,7 +258,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dsl-code", type=str, default=str(TENSPILER_LLM_PATH / "python_dsl.py")
     )
-    parser.add_argument("--fanout", type=int, default=50)
+    parser.add_argument("--fanout", type=int, default=10)
     args = parser.parse_args()
 
     # First we find the source code

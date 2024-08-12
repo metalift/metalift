@@ -1,0 +1,987 @@
+Found benchmark color_dodge_8 in suite blend
+#include <vector>
+using namespace std;
+
+vector<vector<int>> color_dodge_8(vector<vector<int>> base, vector<vector<int>> active)
+{
+    vector<vector<int>> out;
+    int m = base.size();
+    int n = base[0].size();
+	for (int row = 0; row < m; row++) {
+        vector<int> row_vec;
+		for (int col = 0; col < n; col++) {
+			int pixel;
+            if (active[row][col] == 32)
+                pixel = 32;
+            else
+                pixel = base[row][col] / (32 - active[row][col]);
+			row_vec.push_back(pixel);
+		}
+		out.push_back(row_vec);
+	}
+	return out;
+}
+
+Analyzing benchmark color_dodge_8
+yoyo
+name: for.cond<header><exiting>
+name: for.body
+name: for.cond4
+name: for.end
+name: invoke.cont20
+name: for.inc21<latch>
+name: for.body6
+name: if.else
+name: if.then
+name: if.end
+name: invoke.cont
+name: for.inc
+name: for.cond4<header><exiting>
+name: for.body6
+name: if.else
+name: if.then
+name: if.end
+name: invoke.cont
+name: for.inc<latch>
+found loop: header: for.cond, body: ['for.body', 'for.cond4', 'for.end', 'invoke.cont20', 'for.body6', 'if.else', 'if.then', 'if.end', 'invoke.cont', 'for.inc'], exits: ['for.cond'], latches: ['for.inc21']
+found loop: header: for.cond4, body: ['for.body6', 'if.else', 'if.then', 'if.end', 'invoke.cont'], exits: ['for.cond4'], latches: ['for.inc']
+  %result.ptr = alloca i8*, align 8
+  %nrvo = alloca i1, align 1
+  %m = alloca i32, align 4
+  %n = alloca i32, align 4
+  %row = alloca i32, align 4
+  %row_vec = alloca %"class.std::__1::vector.0", align 8
+  %col = alloca i32, align 4
+  %pixel = alloca i32, align 4
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  %i = bitcast %"class.std::__1::vector"* %agg.result to i8*
+  store i8* %i, i8** %result.ptr, align 8
+  store i1 false, i1* %nrvo, align 1
+  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEC1Ev(%"class.std::__1::vector"* %agg.result) #11
+  %call = call i64 @_ZNKSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE4sizeEv(%"class.std::__1::vector"* %base) #11
+  %conv = trunc i64 %call to i32
+  store i32 %conv, i32* %m, align 4
+  %call1 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 0) #11
+  %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector.0"* %call1) #11
+  %conv3 = trunc i64 %call2 to i32
+  store i32 %conv3, i32* %n, align 4
+  store i32 0, i32* %row, align 4
+  br label %for.cond
+  %i1 = load i32, i32* %row, align 4
+  %i2 = load i32, i32* %m, align 4
+  %cmp = icmp slt i32 %i1, %i2
+  br i1 %cmp, label %for.body, label %for.end23
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector.0"* %row_vec) #11
+  store i32 0, i32* %col, align 4
+  br label %for.cond4
+  %i3 = load i32, i32* %col, align 4
+  %i4 = load i32, i32* %n, align 4
+  %cmp5 = icmp slt i32 %i3, %i4
+  br i1 %cmp5, label %for.body6, label %for.end
+  %i5 = load i32, i32* %row, align 4
+  %conv7 = sext i32 %i5 to i64
+  %call8 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %active, i64 %conv7) #11
+  %i6 = load i32, i32* %col, align 4
+  %conv9 = sext i32 %i6 to i64
+  %call10 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call8, i64 %conv9) #11
+  %i7 = load i32, i32* %call10, align 4
+  %cmp11 = icmp eq i32 %i7, 32
+  br i1 %cmp11, label %if.then, label %if.else
+  store i32 32, i32* %pixel, align 4
+  br label %if.end
+  %i8 = load i32, i32* %row, align 4
+  %conv12 = sext i32 %i8 to i64
+  %call13 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv12) #11
+  %i9 = load i32, i32* %col, align 4
+  %conv14 = sext i32 %i9 to i64
+  %call15 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call13, i64 %conv14) #11
+  %i10 = load i32, i32* %call15, align 4
+  %i11 = load i32, i32* %row, align 4
+  %conv16 = sext i32 %i11 to i64
+  %call17 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %active, i64 %conv16) #11
+  %i12 = load i32, i32* %col, align 4
+  %conv18 = sext i32 %i12 to i64
+  %call19 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call17, i64 %conv18) #11
+  %i13 = load i32, i32* %call19, align 4
+  %sub = sub nsw i32 32, %i13
+  %div = sdiv i32 %i10, %sub
+  store i32 %div, i32* %pixel, align 4
+  br label %if.end
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector.0"* %row_vec, i32* nonnull align 4 dereferenceable(4) %pixel)
+  br label %invoke.cont
+  br label %for.inc
+  %i14 = load i32, i32* %col, align 4
+  %inc = add nsw i32 %i14, 1
+  store i32 %inc, i32* %col, align 4
+  br label %for.cond4
+  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE9push_backERKS3_(%"class.std::__1::vector"* %agg.result, %"class.std::__1::vector.0"* nonnull align 8 dereferenceable(24) %row_vec)
+  br label %invoke.cont20
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector.0"* %row_vec) #11
+  br label %for.inc21
+  %i15 = load i32, i32* %row, align 4
+  %inc22 = add nsw i32 %i15, 1
+  store i32 %inc22, i32* %row, align 4
+  br label %for.cond
+  store i1 true, i1* %nrvo, align 1
+  %nrvo.val = load i1, i1* %nrvo, align 1
+  br i1 %nrvo.val, label %nrvo.skipdtor, label %nrvo.unused
+  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEED1Ev(%"class.std::__1::vector"* %agg.result) #11
+  br label %nrvo.skipdtor
+  ret void
+ps: (Implies:Bool (Or:Bool (And:Bool (And:Bool (And:Bool (And:Bool (Not:Bool (Lt:Bool row (matrix_length:Int base))) (Gt:Bool (matrix_length:Int base) (Lit:Int 1))) (Eq:Bool (matrix_length:Int base) (matrix_length:Int active))) (Eq:Bool (list_length:Int (matrix_get:List Int base (Lit:Int 0))) (list_length:Int (matrix_get:List Int active (Lit:Int 0))))) (color_dodge_8_inv0:Bool active base agg.result row)) (And:Bool (And:Bool (And:Bool (And:Bool (And:Bool (Not:Bool (Lit:Bool True)) (Not:Bool (Lt:Bool row (matrix_length:Int base)))) (Gt:Bool (matrix_length:Int base) (Lit:Int 1))) (Eq:Bool (matrix_length:Int base) (matrix_length:Int active))) (Eq:Bool (list_length:Int (matrix_get:List Int base (Lit:Int 0))) (list_length:Int (matrix_get:List Int active (Lit:Int 0))))) (color_dodge_8_inv0:Bool active base agg.result row))) (color_dodge_8_ps:Bool active base agg.result))
+Analyze took 0.9467289447784424s
+ps call took 6.844104051589966s
+------0th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+        matrix_scalar_add(32, matrix_scalar_sub(32, active)),
+        lambda x, y: ite(y == 32, 32, x)
+    )
+
+
+Total time to date 7.790832996368408
+Passing through parser
+Passed parser!
+Parser took 6.920631170272827s
+Total time taken: 14.711464166641235s
+ps call took 5.56249213218689s
+------1th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y if x == 32 else x
+        ),
+        lambda x, y: 32 if x == 32 else y
+    )
+
+
+Total time to date 20.273956298828125
+Passing through parser
+Passed parser!
+Parser took 1.0285937786102295s
+Total time taken: 21.302550077438354s
+ps call took 6.3869709968566895s
+------2th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+        lambda a, b: ite(a == 32, 32, matrix_vec_mul(base, [b])[0])
+    )
+
+
+Total time to date 27.689521074295044
+Passing through parser
+Passed parser!
+Parser took 1.4494831562042236s
+Total time taken: 29.139004230499268s
+ps call took 5.744908571243286s
+------3th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 34.883912801742554
+Passing through parser
+Passed parser!
+Parser took 0.9484210014343262s
+Total time taken: 35.83233380317688s
+ps call took 5.040158033370972s
+------4th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 40.87249183654785
+Skipping 4th PS solution because it was already seen
+ps call took 4.811122894287109s
+------5th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 45.68361473083496
+Skipping 5th PS solution because it was already seen
+ps call took 6.92265510559082s
+------6th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 52.60626983642578
+Skipping 6th PS solution because it was already seen
+ps call took 6.27074933052063s
+------7th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 58.87701916694641
+Skipping 7th PS solution because it was already seen
+ps call took 5.673893213272095s
+------8th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 64.5509123802185
+Skipping 8th PS solution because it was already seen
+ps call took 5.615386962890625s
+------9th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 70.16629934310913
+Skipping 9th PS solution because it was already seen
+ps call took 5.0795488357543945s
+------10th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 75.24584817886353
+Skipping 10th PS solution because it was already seen
+ps call took 5.742458820343018s
+------11th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 80.98830699920654
+Skipping 11th PS solution because it was already seen
+ps call took 6.246449947357178s
+------12th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 87.23475694656372
+Skipping 12th PS solution because it was already seen
+ps call took 5.633385896682739s
+------13th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 92.86814284324646
+Skipping 13th PS solution because it was already seen
+ps call took 5.584797143936157s
+------14th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 98.45293998718262
+Skipping 14th PS solution because it was already seen
+ps call took 6.082539081573486s
+------15th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 104.5354790687561
+Skipping 15th PS solution because it was already seen
+ps call took 5.3165202140808105s
+------16th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 109.85199928283691
+Skipping 16th PS solution because it was already seen
+ps call took 6.812237024307251s
+------17th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 116.66423630714417
+Skipping 17th PS solution because it was already seen
+ps call took 6.296151876449585s
+------18th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 122.96038818359375
+Skipping 18th PS solution because it was already seen
+ps call took 5.634742021560669s
+------19th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 128.59513020515442
+Skipping 19th PS solution because it was already seen
+ps call took 4.71046781539917s
+------20th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 133.3055980205536
+Skipping 20th PS solution because it was already seen
+ps call took 5.217941045761108s
+------21th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 138.5235390663147
+Skipping 21th PS solution because it was already seen
+ps call took 4.812836170196533s
+------22th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 143.33637523651123
+Skipping 22th PS solution because it was already seen
+ps call took 5.8363940715789795s
+------23th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 149.1727693080902
+Skipping 23th PS solution because it was already seen
+ps call took 5.297291040420532s
+------24th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 154.47006034851074
+Skipping 24th PS solution because it was already seen
+ps call took 6.229554891586304s
+------25th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 160.69961524009705
+Skipping 25th PS solution because it was already seen
+ps call took 5.2333598136901855s
+------26th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 165.93297505378723
+Skipping 26th PS solution because it was already seen
+ps call took 5.693189859390259s
+------27th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 171.6261649131775
+Skipping 27th PS solution because it was already seen
+ps call took 5.390069961547852s
+------28th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 177.01623487472534
+Skipping 28th PS solution because it was already seen
+ps call took 5.935290813446045s
+------29th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 182.9515256881714
+Skipping 29th PS solution because it was already seen
+ps call took 5.010149955749512s
+------30th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 187.9616756439209
+Skipping 30th PS solution because it was already seen
+ps call took 5.296374797821045s
+------31th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 193.25805044174194
+Skipping 31th PS solution because it was already seen
+ps call took 6.074434041976929s
+------32th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 199.33248448371887
+Skipping 32th PS solution because it was already seen
+ps call took 5.2208168506622314s
+------33th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 204.5533013343811
+Skipping 33th PS solution because it was already seen
+ps call took 5.730652093887329s
+------34th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 210.28395342826843
+Skipping 34th PS solution because it was already seen
+ps call took 5.321624994277954s
+------35th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 215.6055784225464
+Skipping 35th PS solution because it was already seen
+ps call took 5.215588808059692s
+------36th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 220.82116723060608
+Skipping 36th PS solution because it was already seen
+ps call took 6.353888988494873s
+------37th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 227.17505621910095
+Skipping 37th PS solution because it was already seen
+ps call took 5.351916074752808s
+------38th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 232.52697229385376
+Skipping 38th PS solution because it was already seen
+ps call took 5.993310928344727s
+------39th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 238.5202832221985
+Skipping 39th PS solution because it was already seen
+ps call took 5.029660940170288s
+------40th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 243.54994416236877
+Skipping 40th PS solution because it was already seen
+ps call took 6.040811061859131s
+------41th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 249.5907552242279
+Skipping 41th PS solution because it was already seen
+ps call took 6.244131088256836s
+------42th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 255.83488631248474
+Skipping 42th PS solution because it was already seen
+ps call took 4.948516130447388s
+------43th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 260.78340244293213
+Skipping 43th PS solution because it was already seen
+ps call took 4.984240293502808s
+------44th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 265.76764273643494
+Skipping 44th PS solution because it was already seen
+ps call took 7.233827829360962s
+------45th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 273.0014705657959
+Skipping 45th PS solution because it was already seen
+ps call took 5.015771150588989s
+------46th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 278.0172417163849
+Skipping 46th PS solution because it was already seen
+ps call took 5.545063018798828s
+------47th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 283.5623047351837
+Skipping 47th PS solution because it was already seen
+ps call took 5.742846965789795s
+------48th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 289.3051517009735
+Skipping 48th PS solution because it was already seen
+ps call took 4.955857992172241s
+------49th PS solution---------
+
+def color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_where(
+            scalar_matrix_div(32, matrix_scalar_sub(32, active)),
+            base,
+            lambda x, y: y
+        ),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Total time to date 294.26100969314575
+Skipping 49th PS solution because it was already seen

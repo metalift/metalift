@@ -1,1 +1,1 @@
-["\nfrom typing import List\n\ndef linear_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return [[(b + a - 32) for b, a in zip(row_base, row_active)] for row_base, row_active in zip(base, active)]\n"]
+["\ndef linear_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_scalar_sub(32, matrix_elemwise_add(base, active))\n"]
