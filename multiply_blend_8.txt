@@ -1,0 +1,153 @@
+Found benchmark multiply_blend_8 in suite blend
+#include <vector>
+#include <cstdint>
+using namespace std;
+
+vector<vector<uint8_t>> multiply_blend_8(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
+{
+    vector<vector<uint8_t>> out;
+    uint8_t m = base.size();
+    uint8_t n = base[0].size();
+	for (uint8_t row = 0; row < m; row++) {
+        vector<uint8_t> row_vec;
+		for (uint8_t col = 0; col < n; col++) {
+            uint8_t pixel = (base[row][col] * active[row][col]) / 32;
+			row_vec.push_back(pixel);
+		}
+		out.push_back(row_vec);
+	}
+	return out;
+}
+
+Analyzing benchmark multiply_blend_8
+yoyo
+name: for.cond<header><exiting>
+name: for.body
+name: for.cond4
+name: for.end
+name: invoke.cont15
+name: for.inc16<latch>
+name: for.body6
+name: invoke.cont
+name: for.inc
+name: for.cond4<header><exiting>
+name: for.body6
+name: invoke.cont
+name: for.inc<latch>
+found loop: header: for.cond, body: ['for.body', 'for.cond4', 'for.end', 'invoke.cont15', 'for.body6', 'invoke.cont', 'for.inc'], exits: ['for.cond'], latches: ['for.inc16']
+found loop: header: for.cond4, body: ['for.body6', 'invoke.cont'], exits: ['for.cond4'], latches: ['for.inc']
+  %result.ptr = alloca i8*, align 8
+  %nrvo = alloca i1, align 1
+  %m = alloca i32, align 4
+  %n = alloca i32, align 4
+  %row = alloca i32, align 4
+  %row_vec = alloca %"class.std::__1::vector.0", align 8
+  %col = alloca i32, align 4
+  %pixel = alloca i32, align 4
+  %exn.slot = alloca i8*, align 8
+  %ehselector.slot = alloca i32, align 4
+  %i = bitcast %"class.std::__1::vector"* %agg.result to i8*
+  store i8* %i, i8** %result.ptr, align 8
+  store i1 false, i1* %nrvo, align 1
+  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEC1Ev(%"class.std::__1::vector"* %agg.result) #11
+  %call = call i64 @_ZNKSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE4sizeEv(%"class.std::__1::vector"* %base) #11
+  %conv = trunc i64 %call to i32
+  store i32 %conv, i32* %m, align 4
+  %call1 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 0) #11
+  %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector.0"* %call1) #11
+  %conv3 = trunc i64 %call2 to i32
+  store i32 %conv3, i32* %n, align 4
+  store i32 0, i32* %row, align 4
+  br label %for.cond
+  %i1 = load i32, i32* %row, align 4
+  %i2 = load i32, i32* %m, align 4
+  %cmp = icmp slt i32 %i1, %i2
+  br i1 %cmp, label %for.body, label %for.end18
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector.0"* %row_vec) #11
+  store i32 0, i32* %col, align 4
+  br label %for.cond4
+  %i3 = load i32, i32* %col, align 4
+  %i4 = load i32, i32* %n, align 4
+  %cmp5 = icmp slt i32 %i3, %i4
+  br i1 %cmp5, label %for.body6, label %for.end
+  %i5 = load i32, i32* %row, align 4
+  %conv7 = sext i32 %i5 to i64
+  %call8 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv7) #11
+  %i6 = load i32, i32* %col, align 4
+  %conv9 = sext i32 %i6 to i64
+  %call10 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call8, i64 %conv9) #11
+  %i7 = load i32, i32* %call10, align 4
+  %i8 = load i32, i32* %row, align 4
+  %conv11 = sext i32 %i8 to i64
+  %call12 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %active, i64 %conv11) #11
+  %i9 = load i32, i32* %col, align 4
+  %conv13 = sext i32 %i9 to i64
+  %call14 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call12, i64 %conv13) #11
+  %i10 = load i32, i32* %call14, align 4
+  %mul = mul nsw i32 %i7, %i10
+  %div = sdiv i32 %mul, 32
+  store i32 %div, i32* %pixel, align 4
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector.0"* %row_vec, i32* nonnull align 4 dereferenceable(4) %pixel)
+  br label %invoke.cont
+  br label %for.inc
+  %i11 = load i32, i32* %col, align 4
+  %inc = add nsw i32 %i11, 1
+  store i32 %inc, i32* %col, align 4
+  br label %for.cond4
+  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE9push_backERKS3_(%"class.std::__1::vector"* %agg.result, %"class.std::__1::vector.0"* nonnull align 8 dereferenceable(24) %row_vec)
+  br label %invoke.cont15
+  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector.0"* %row_vec) #11
+  br label %for.inc16
+  %i12 = load i32, i32* %row, align 4
+  %inc17 = add nsw i32 %i12, 1
+  store i32 %inc17, i32* %row, align 4
+  br label %for.cond
+  store i1 true, i1* %nrvo, align 1
+  %nrvo.val = load i1, i1* %nrvo, align 1
+  br i1 %nrvo.val, label %nrvo.skipdtor, label %nrvo.unused
+  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEED1Ev(%"class.std::__1::vector"* %agg.result) #11
+  br label %nrvo.skipdtor
+  ret void
+ps: (Implies:Bool (Or:Bool (And:Bool (And:Bool (And:Bool (And:Bool (Not:Bool (Lt:Bool row (matrix_length:Int base))) (Gt:Bool (matrix_length:Int base) (Lit:Int 1))) (Eq:Bool (matrix_length:Int base) (matrix_length:Int active))) (Eq:Bool (list_length:Int (matrix_get:List Int base (Lit:Int 0))) (list_length:Int (matrix_get:List Int active (Lit:Int 0))))) (multiply_blend_8_inv0:Bool active base agg.result row)) (And:Bool (And:Bool (And:Bool (And:Bool (And:Bool (Not:Bool (Lit:Bool True)) (Not:Bool (Lt:Bool row (matrix_length:Int base)))) (Gt:Bool (matrix_length:Int base) (Lit:Int 1))) (Eq:Bool (matrix_length:Int base) (matrix_length:Int active))) (Eq:Bool (list_length:Int (matrix_get:List Int base (Lit:Int 0))) (list_length:Int (matrix_get:List Int active (Lit:Int 0))))) (multiply_blend_8_inv0:Bool active base agg.result row))) (multiply_blend_8_ps:Bool active base agg.result))
+Analyze took 0.7226929664611816s
+ps call took 6.128965854644775s
+------0th PS solution---------
+
+def multiply_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_scalar_div(32, matrix_elemwise_mul(base, active))
+
+
+Total time to date 6.851658821105957
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/end_to_end.py(151)run_end_to_end_llm()
+-> if ps_sol in ps_solutions_seen:
+(Pdb) Passing through parser
+Passed parser!
+Parser took 6.849052906036377s
+Total time taken: 13.700711727142334s
+Generating invariants for the 0th PS solution
+CALLING INV for PS
+def multiply_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_scalar_div(32, matrix_elemwise_mul(base, active))
+
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/utils.py(565)get_inv_choice_and_save_prompt()
+-> call_start_time = time.time()
+(Pdb) inv call took 7.98366379737854s
+---0th INV solution for the 0th PS solution---
+
+def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
+    return row >= 0 and row <= len(base) and out == matrix_scalar_div(32, matrix_elemwise_mul(matrix_row_slice(base, 0, row), matrix_row_slice(active, 0, row)))
+
+def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: List[List[int]], row: int, row_vec: List[int]) -> bool:
+    return col >= 0 and col <= len(base[0]) and row >= 0 and row < len(base) and out == matrix_scalar_div(32, matrix_elemwise_mul(matrix_row_slice(base, 0, row), matrix_row_slice(active, 0, row))) and row_vec == vec_scalar_div(32, vec_elemwise_mul(vec_slice(base[row], 0, col), vec_slice(active[row], 0, col)))
+
+Total time to date 21.684375524520874
+Passing through parser
+Passed parser!
+Total time to date 23.157312393188477
+CALLING INV for PS
+def multiply_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_scalar_div(32, matrix_elemwise_mul(base, active))
+
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/utils.py(565)get_inv_choice_and_save_prompt()
+-> call_start_time = time.time()
+(Pdb)

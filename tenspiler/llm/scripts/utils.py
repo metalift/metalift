@@ -97,8 +97,9 @@ def get_ps_choice_and_save_prompt(
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
     #Instructions
     # 1. Do not use for/while loops for rewriting the function.
-    # 2. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+    # 2. The rewritten program should be a function with a single return statement of the form return_var = provided_function(...).
     # 3. Inline all the expressions. Do not use intermediate variables.
+    # 4. Enclose the rewritten program in a code block.
     ```
     #defined functions
     {dsl_code}
@@ -110,7 +111,7 @@ def get_ps_choice_and_save_prompt(
     """
     # call the completions endpoint to get the completions for the prompt
     messages = [
-        {"role": "system", "content": TEMPLATE_SYS},
+        # {"role": "system", "content": TEMPLATE_SYS},
         {"role": "user", "content": ps_template_text},
     ]
     if len(prev_incorrect_sols) > 0:
@@ -122,11 +123,8 @@ def get_ps_choice_and_save_prompt(
     with open(output_file, "w") as f:
         json.dump(messages, f)
 
-    call_start_time = time.time()
     # Claude
-    import pdb
-
-    pdb.set_trace()
+    call_start_time = time.time()
     message = client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
@@ -154,7 +152,7 @@ def get_ps_choice_and_save_prompt(
     call_end_time = time.time()
     print(f"ps call took {call_end_time - call_start_time}s")
     # return [outputs.choices[0].message.content]
-    return [message.content[0].text]
+    return [message.content[0].text], call_end_time - call_start_time
 
 
 ######
@@ -477,18 +475,22 @@ def get_inv_choice_and_save_prompt(
     prev_incorrect_sols: set[str],
 ):
     # TODO(jie)
-    ps_solution = f"""
-    def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-        return matrix_elemwise_add(base, active)
-    """
+    # ps_solution = f"""
+    # def normal_blend_f(base: List[int], active: List[int], opacity: int) -> List[int]:
+    #     return vec_elemwise_add(
+    #         vec_scalar_mul(opacity, active),
+    #         vec_scalar_mul(1 - opacity, base)
+    #     )
+    # """
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
     #Instructions:
     1. You need to use only the defined functions to write the loop invariant.
     2. Do not use for/while loops for rewriting the function.
-    3. The rewritten program should just be a single return statement of the form return_var = provided_function(...)
+    3. The rewritten program should be a function with a single return statement of the form return_var = provided_function(...).
     4. Inline all the expressions. Do not use intermediate variables.
     5. Generate separate loop invariants for each loop in the test function.
+    6. Enclose the rewritten program in a code block.
     6. invariant structure
     ```
     {_generate_invariant_template(benchmark_name)}
@@ -546,7 +548,7 @@ def get_inv_choice_and_save_prompt(
     ```
     """
     messages = [
-        {"role": "system", "content": TEMPLATE_SYS},
+        # {"role": "system", "content": TEMPLATE_SYS},
         {"role": "user", "content": inv_template_text},
     ]
     if len(prev_incorrect_sols) > 0:
@@ -558,8 +560,11 @@ def get_inv_choice_and_save_prompt(
     with open(output_file, "w") as f:
         json.dump(messages, f)
 
-    call_start_time = time.time()
     print("CALLING INV for PS", ps_solution)
+    import pdb
+
+    pdb.set_trace()
+    call_start_time = time.time()
     message = client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
@@ -586,7 +591,7 @@ def get_inv_choice_and_save_prompt(
     call_end_time = time.time()
     print(f"inv call took {call_end_time - call_start_time}s")
     # return [outputs.choices[0].message.content]
-    return [message.content[0].text]
+    return [message.content[0].text], call_end_time - call_start_time
 
 
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:

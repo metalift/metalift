@@ -1,1 +1,1 @@
-["\ndef linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return vec_map(base, lambda row: vec_map(row, lambda x, y=active[base.index(row)]:\n                                           ite(x + y < 8, x + y, 8)))\n"]
+["\ndef linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_elemwise_add(base, active)\n"]

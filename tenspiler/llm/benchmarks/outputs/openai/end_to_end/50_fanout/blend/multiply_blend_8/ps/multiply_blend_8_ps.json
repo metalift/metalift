@@ -1,1 +1,1 @@
-["\ndef multiply_blend_8(base, active):\n    return matrix_map(zip(base, active), lambda (b, a): ((b * a) // 32) if a else 0)\n"]
+["\ndef multiply_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_scalar_div(32, matrix_elemwise_mul(base, active))\n"]
