@@ -1,0 +1,546 @@
+------0th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, scalar_matrix_div(32, active), lambda x, y: 32 if x == 0 else y)
+
+
+Parsed PS solution
+Failed to run tests: expected [[31, 29], [30, 30]], but got [[16, 8], [4, 3]]
+------1th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------2th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        matrix_scalar_sub(32, base),
+        active,
+        lambda x, y: ite(y == 0, 32, 32 - x // y)
+    )
+
+
+Parsed PS solution
+Failed to run tests: expected [[31, 29], [30, 30]], but got [[33, 35], [35, 35]]
+------3th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        scalar_matrix_div(32, active),
+        matrix_scalar_add(32, matrix_elemwise_sub(base, active)),
+        lambda a, b: ite(a == 32, 32, b)
+    )
+
+
+Parsed PS solution
+Failed to run tests: expected [[31, 29], [30, 30]], but got [[60, 48], [34, 27]]
+------4th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    cond = lambda a, b: a == 0
+    a = 32
+    b = lambda b, c: 32 - (32 - b) // c
+    return matrix_where(active, base, lambda a, b: ite(cond(a, b), a, b(a, b)))
+
+
+Failed to parse PS solution
+------5th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        matrix_scalar_add(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
+        scalar_matrix_div(32, active),
+        lambda base_pixel, active_pixel: 32 if active_pixel == 0 else base_pixel
+    )
+
+
+Parsed PS solution
+Failed to run tests: expected [[31, 29], [30, 30]], but got [[31, 29], [29, 29]]
+------6th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda x, y: 32 if y == 0 else 32 - (32 - x) // y
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------7th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return_var = matrix_where(
+        active,
+        matrix_scalar_div(
+            scalar_vec_sub(
+                32,
+                matrix_elemwise_sub(
+                    scalar_matrix_sub(32, base),
+                    active
+                )
+            ),
+            active
+        ),
+        lambda x, y: 32 if x == 0 else y
+    )
+    return return_var
+
+
+Failed to parse PS solution
+------8th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        matrix_elemwise_sub(
+            scalar_matrix_sub(
+                32,
+                matrix_scalar_div(
+                    matrix_scalar_sub(
+                        32,
+                        base
+                    ),
+                    active
+                )
+            ),
+            scalar_matrix_div(
+                32,
+                active
+            ),
+            lambda a, b: ite(b == 0, a, 32)
+        )
+    )
+
+
+Failed to parse PS solution
+------9th PS solution--------
+
+from typing import Callable, List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda x, y: 32 if y == 0 else 32 - (32 - x) // y
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------10th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        base,
+        lambda active_pixel, base_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    )
+
+
+Parsed PS solution
+Passed tests!
+------11th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(base, active, lambda x, y: 32 if y == 0 else 32 - (32 - x) // y)
+
+
+Parsed PS solution
+Passed tests!
+------12th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        base,
+        active,
+        lambda base, active: 32 if active == 0 else 32 - (32 - base) // active
+    )
+
+
+Parsed PS solution
+Passed tests!
+------13th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(active, base, condition)
+
+
+Failed to parse PS solution
+------14th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(base, active, lambda x, y: 32 if y == 0 else 32 - ((32 - x) // y))
+
+
+Parsed PS solution
+Passed tests!
+------15th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------16th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------17th PS solution--------
+
+from typing import Callable, List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - scalar_vec_div((32 - base_pixel), active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------18th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------19th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, base, lambda x, y: 32 if x == 0 else 32 - (32 - y) // x)
+
+
+Parsed PS solution
+Passed tests!
+------20th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - scalar_vec_div(32 - base_pixel, active_pixel)
+
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------21th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(base, active, lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - scalar_vec_div((32 - base_pixel), active_pixel))
+
+
+Failed to parse PS solution
+------22th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------23th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------24th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: ite(active_pixel == 0, 32, 32 - scalar_vec_div((32 - base_pixel), active_pixel))
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------25th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------26th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return ite(active_pixel == 0, 32, scalar_vec_sub(32, scalar_vec_div(scalar_vec_sub(32, base_pixel), active_pixel)))
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------27th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda b, a: 32 if a == 0 else 32 - ((32 - b) // a)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------28th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(active, base, condition)
+
+
+Failed to parse PS solution
+------29th PS solution--------
+
+from typing import Callable, List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------30th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(base, active, lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel)
+
+
+Parsed PS solution
+Passed tests!
+------31th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------32th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------33th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------34th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(base, active, lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel)
+
+
+Parsed PS solution
+Passed tests!
+------35th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------36th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------37th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------38th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(b: int, a: int) -> int:
+        return 32 if a == 0 else 32 - ((32 - b) // a)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------39th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def pixel_condition(base_pixel, active_pixel):
+        return ite(active_pixel == 0, 32, 32 - scalar_vec_div(32 - base_pixel, active_pixel))
+    return matrix_where(base, active, pixel_condition)
+
+
+Failed to parse PS solution
+------40th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------41th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def pixel_condition(base_pixel, active_pixel):
+        return 32 if active_pixel == 0 else 32 - scalar_vec_div(32 - base_pixel, active_pixel)
+    return matrix_where(base, active, pixel_condition)
+
+
+Failed to parse PS solution
+------42th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------43th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------44th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        if active_pixel == 0:
+            return 32
+        else:
+            return scalar_vec_sub(32, scalar_vec_div(scalar_vec_sub(32, base_pixel), active_pixel))
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------45th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        if active_pixel == 0:
+            return 32
+        else:
+            return scalar_vec_sub(32, scalar_vec_div(scalar_vec_sub(32, base_pixel), active_pixel))
+
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------46th PS solution--------
+
+from typing import List
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        if active_pixel == 0:
+            return 32
+        else:
+            return 32 - (32 - base_pixel) // active_pixel
+
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------47th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    def condition(base_pixel: int, active_pixel: int) -> int:
+        return 32 if active_pixel == 0 else 32 - (32 - base_pixel) // active_pixel
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
+------48th PS solution--------
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(base, active, lambda b, a: ite(a == 0, 32, 32 - (32 - b) // a))
+
+
+Parsed PS solution
+Failed to run tests: integer division or modulo by zero
+------49th PS solution--------
+
+from typing import List, Callable
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    condition: Callable[[int, int], int] = lambda base_pixel, active_pixel: 32 if active_pixel == 0 else 32 - ((32 - base_pixel) // active_pixel)
+    return matrix_where(base, active, condition)
+
+
+Failed to parse PS solution
