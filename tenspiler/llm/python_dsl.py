@@ -74,7 +74,7 @@ def vector_where(
 
 
 def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
-    return lst[:end][:start]
+    return lst[:end][start:]
 
 
 def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
@@ -84,7 +84,7 @@ def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List
 def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
     return (
         []
-        if len(matrix) < 1
+        if len(matrix) < 1 or len(matrix[0][start:end]) < 1
         else [matrix[0][start:end], *matrix_col_slice(matrix[1:], start, end)]
     )
 
@@ -249,7 +249,8 @@ def reduce_sum(x: List[int]) -> int:
 
 
 def integer_sqrt(n: int) -> int:
-    return integer_sqrt_helper((n // 2), n)
+    return n
+    # return integer_sqrt_helper((n // 2), n)
 
 
 def ite(cond: bool, a: int, b: int) -> int:

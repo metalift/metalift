@@ -12,10 +12,7 @@ from tenspiler.llm.scripts.utils import (
     analyze_benchmark,
     extract,
     extract_and_save,
-    get_inv_choice_and_save_prompt,
-    get_num_inv_funcs,
     get_ps_choice_and_save_prompt,
-    verify_benchmark,
 )
 
 # Global variables
@@ -113,140 +110,147 @@ def run_end_to_end_llm(
 
     incorrect_ps_sols = set()
     ps_solutions_seen = set()
+    all_ps_solutions = []
 
-    while True:
-        for ps_idx in range(fanout):
-            if use_ps_json_file:
-                json_filename = (
-                    BENCHMARKS_PATH
-                    / benchmark_suite
-                    / "outputs"
-                    / "openai"
-                    / "ps_100_choices_final"
-                    / f"{benchmark_name}.json"
-                )
-                with open(json_filename) as f:
-                    all_sols = json.load(f)
-                    ps_choices = extract(all_sols[ps_idx])
-            else:
-                ps_choices, call_time = get_ps_choice_and_save_prompt(
-                    client=claude_client,
-                    source_code=source_code,
-                    dsl_code=dsl_code,
-                    # Prompt is the same for all PS solutions
-                    output_file=ps_output_dir / f"{benchmark_name}_ps_prompt.json",
-                    prev_incorrect_sols=incorrect_ps_sols,
-                )
-                ps_sols = extract_and_save(
-                    ps_choices, ps_output_dir / f"{benchmark_name}_ps.json"
-                )
-                ps_sol = ps_sols[0]
-                total_time += call_time
+    for ps_idx in range(5):
+        print(f"----Round {ps_idx}-----")
+        if use_ps_json_file:
+            json_filename = (
+                BENCHMARKS_PATH
+                / benchmark_suite
+                / "outputs"
+                / "openai"
+                / "ps_100_choices_final"
+                / f"{benchmark_name}.json"
+            )
+            with open(json_filename) as f:
+                all_sols = json.load(f)
+                ps_choices = extract(all_sols[ps_idx])
+        else:
+            ps_choices, call_time = get_ps_choice_and_save_prompt(
+                client=openai_client,
+                source_code=source_code,
+                dsl_code=dsl_code,
+                # Prompt is the same for all PS solutions
+                output_file=ps_output_dir / f"{benchmark_name}_ps_prompt.json",
+                prev_incorrect_sols=incorrect_ps_sols,
+            )
+            ps_sols = extract_and_save(
+                ps_choices, ps_output_dir / f"{benchmark_name}_ps.json"
+            )
+            all_ps_solutions.extend(ps_sols)
+            total_time += call_time
 
-            print(f"------{ps_idx}th PS solution---------")
-            print(ps_sol + "\n")
-            print("Total time to date", total_time)
-
-            if ps_sol in ps_solutions_seen:
-                print(f"Skipping {ps_idx}th PS solution because it was already seen")
-                continue
-            ps_solutions_seen.add(ps_sol)
-
-            print("Passing through parser")
-            parser_start_time = time.time()
-            try:
-                ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
-                print("Passed parser!")
-                ps_sol_failed = False
-            except Exception as e:
-                parser_end_time = time.time()
-                print(f"Failed to parse the {ps_idx}th PS solution")
-                print(e)
-                ps_sol_failed = True
-            finally:
-                parser_end_time = time.time()
-                print(f"Parser took {parser_end_time - parser_start_time}s")
-                total_time += parser_end_time - parser_start_time
-                print(f"Total time taken: {total_time}s")
-
-            if ps_sol_failed:
-                incorrect_ps_sols.add(ps_sol)
-                continue
-
-            if os.getenv("SKIP_INV"):
-                incorrect_ps_sols.add(ps_sol)
-                continue
-
-            print(f"Generating invariants for the {ps_idx}th PS solution")
-            inv_solutions_seen = set()
-            incorrect_inv_sols = set()
-
-            for inv_idx in range(fanout):
-                num_inv_funcs = get_num_inv_funcs(benchmark_name)
-                inv_choices, inv_call_time = get_inv_choice_and_save_prompt(
-                    client=claude_client,
-                    benchmark_name=benchmark_name,
-                    ps_solution=ps_sol,
-                    source_code=source_code,
-                    dsl_code=dsl_code,
-                    # Prompt is the same for all inv solutions generated for one ps solution
-                    output_file=inv_output_dir
-                    / f"{benchmark_name}_ps_{ps_idx}_inv_prompt.json",
-                    prev_incorrect_sols=incorrect_inv_sols,
-                )
-                inv_sols = extract_and_save(
-                    inv_choices,
-                    inv_output_dir / f"{benchmark_name}_ps_{ps_idx}_inv.json",
-                )
-                inv_sol = inv_sols[0]
-                print(f"---{inv_idx}th INV solution for the {ps_idx}th PS solution---")
-                print(inv_sol)
-                total_time += inv_call_time
+            for idx, ps_sol in enumerate(ps_sols):
+                print(f"------{ps_idx * 10 + idx}th PS solution---------")
+                print(ps_sol + "\n")
                 print("Total time to date", total_time)
 
-                if inv_sol in inv_solutions_seen:
+                if ps_sol in ps_solutions_seen:
                     print(
-                        f"Skipping {inv_idx}th INV solution because it was already seen"
+                        f"Skipping {ps_idx}th PS solution because it was already seen"
                     )
                     continue
-                inv_solutions_seen.add(inv_sol)
+                ps_solutions_seen.add(ps_sol)
 
                 print("Passing through parser")
-                inv_parser_start_time = time.time()
+                parser_start_time = time.time()
                 try:
-                    inv_fn_decls, inv_in_calls = check_solution(inv_sol, num_inv_funcs)
+                    ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
                     print("Passed parser!")
+                    ps_sol_failed = False
                 except Exception as e:
-                    print(
-                        f"Failed to parse the {inv_idx}th INV solution for the {ps_idx}th PS solution"
-                    )
+                    parser_end_time = time.time()
+                    print(f"Failed to parse the {ps_idx}th PS solution")
                     print(e)
+                    ps_sol_failed = True
                 finally:
-                    inv_parser_end_time = time.time()
-                    total_time += inv_parser_end_time - inv_parser_start_time
-                    print("Total time to date", total_time)
-                    incorrect_inv_sols.add(inv_sol)
+                    parser_end_time = time.time()
+                    print(f"Parser took {parser_end_time - parser_start_time}s")
+                    total_time += parser_end_time - parser_start_time
+                    print(f"Total time taken: {total_time}s")
+
+                if ps_sol_failed:
+                    incorrect_ps_sols.add(ps_sol)
                     continue
 
-                # Send to verifier
-                print("Sending to verifier")
-                # Driver file
-                verification_success = verify_benchmark(
-                    driver=driver,
-                    benchmark_name=benchmark_name,
-                    synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
-                    in_calls=[*ps_in_calls, *inv_in_calls],
-                )
+                if os.getenv("SKIP_INV"):
+                    incorrect_ps_sols.add(ps_sol)
+                    continue
 
-                if verification_success:
-                    end_time = time.time()
-                    print(
-                        f"Successfully verified the {inv_idx}th INV solution for the {ps_idx}th PS solution"
-                    )
-                    print(f"Time taken: {end_time - start_time}s")
-                    return
-                incorrect_inv_sols.add(inv_sol)
-        break
+    with open(ps_output_dir / f"{benchmark_name}_ps.json", "w") as f:
+        json.dump(all_ps_solutions, f)
+    exit(0)
+    # print(f"Generating invariants for the {ps_idx}th PS solution")
+    # inv_solutions_seen = set()
+    # incorrect_inv_sols = set()
+
+    # for inv_idx in range(fanout):
+    #     num_inv_funcs = get_num_inv_funcs(benchmark_name)
+    #     inv_choices, inv_call_time = get_inv_choice_and_save_prompt(
+    #         client=claude_client,
+    #         benchmark_name=benchmark_name,
+    #         ps_solution=ps_sol,
+    #         source_code=source_code,
+    #         dsl_code=dsl_code,
+    #         # Prompt is the same for all inv solutions generated for one ps solution
+    #         output_file=inv_output_dir
+    #         / f"{benchmark_name}_ps_{ps_idx}_inv_prompt.json",
+    #         prev_incorrect_sols=incorrect_inv_sols,
+    #     )
+    #     inv_sols = extract_and_save(
+    #         inv_choices,
+    #         inv_output_dir / f"{benchmark_name}_ps_{ps_idx}_inv.json",
+    #     )
+    #     inv_sol = inv_sols[0]
+    #     print(f"---{inv_idx}th INV solution for the {ps_idx}th PS solution---")
+    #     print(inv_sol)
+    #     total_time += inv_call_time
+    #     print("Total time to date", total_time)
+
+    #     if inv_sol in inv_solutions_seen:
+    #         print(
+    #             f"Skipping {inv_idx}th INV solution because it was already seen"
+    #         )
+    #         continue
+    #     inv_solutions_seen.add(inv_sol)
+
+    #     print("Passing through parser")
+    #     inv_parser_start_time = time.time()
+    #     try:
+    #         inv_fn_decls, inv_in_calls = check_solution(inv_sol, num_inv_funcs)
+    #         print("Passed parser!")
+    #     except Exception as e:
+    #         print(
+    #             f"Failed to parse the {inv_idx}th INV solution for the {ps_idx}th PS solution"
+    #         )
+    #         print(e)
+    #     finally:
+    #         inv_parser_end_time = time.time()
+    #         total_time += inv_parser_end_time - inv_parser_start_time
+    #         print("Total time to date", total_time)
+    #         incorrect_inv_sols.add(inv_sol)
+    #         continue
+
+    #         # Send to verifier
+    #         print("Sending to verifier")
+    #         # Driver file
+    #         verification_success = verify_benchmark(
+    #             driver=driver,
+    #             benchmark_name=benchmark_name,
+    #             synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+    #             in_calls=[*ps_in_calls, *inv_in_calls],
+    #         )
+
+    #         if verification_success:
+    #             end_time = time.time()
+    #             print(
+    #                 f"Successfully verified the {inv_idx}th INV solution for the {ps_idx}th PS solution"
+    #             )
+    #             print(f"Time taken: {end_time - start_time}s")
+    #             return
+    #         incorrect_inv_sols.add(inv_sol)
+    # break
 
 
 if __name__ == "__main__":

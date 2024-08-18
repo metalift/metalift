@@ -111,7 +111,7 @@ def get_ps_choice_and_save_prompt(
     """
     # call the completions endpoint to get the completions for the prompt
     messages = [
-        # {"role": "system", "content": TEMPLATE_SYS},
+        {"role": "system", "content": TEMPLATE_SYS},
         {"role": "user", "content": ps_template_text},
     ]
     if len(prev_incorrect_sols) > 0:
@@ -123,22 +123,25 @@ def get_ps_choice_and_save_prompt(
     with open(output_file, "w") as f:
         json.dump(messages, f)
 
-    # Claude
     call_start_time = time.time()
-    message = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
-        max_tokens=1000,
-        temperature=0.0,
-        system=TEMPLATE_SYS,
+
+    # # Claude
+    # message = client.messages.create(
+    #     model="claude-3-5-sonnet-20240620",
+    #     max_tokens=1000,
+    #     temperature=0.0,
+    #     system=TEMPLATE_SYS,
+    #     messages=messages,
+    # )
+
+    # GPT-4
+    outputs = client.chat.completions.create(
+        model="gpt-4",  # model to use
         messages=messages,
+        n=10,
+        temperature=0.7,
     )
 
-    # outputs = client.chat.completions.create(
-    #     model="gpt-4",  # model to use
-    #     messages=messages,
-    #     n=50,  # We always sample 1 solution at a time
-    #     temperature=0.7,
-    # )
     # inference_client = InferenceClient(
     #     mistral_repo,
     #     token=hf_token,
@@ -151,8 +154,10 @@ def get_ps_choice_and_save_prompt(
     # )
     call_end_time = time.time()
     print(f"ps call took {call_end_time - call_start_time}s")
-    # return [outputs.choices[0].message.content]
-    return [message.content[0].text], call_end_time - call_start_time
+    return [
+        choice.message.content for choice in outputs.choices
+    ], call_end_time - call_start_time
+    # return [message.content[0].text], call_end_time - call_start_time
 
 
 ######
