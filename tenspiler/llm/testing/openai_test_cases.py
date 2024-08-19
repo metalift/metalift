@@ -139,10 +139,11 @@ def run_test(func_name: str, ps_sol: str):
         ), f"expected {expected_output}, but got {actual}"
 
 
+exceptions_count: dict[str, int] = {}
 if __name__ == "__main__":
     # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/outputs/openai/end_to_end/10_fanout/blend/color_burn_8/ps/color_burn_8_ps.json
     # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/outputs/openai/end_to_end/10_fanout/llama/transformer_part1/ps/transformer_part1_ps.json"
-    filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/outputs/openai/end_to_end/10_fanout/llama/transformer_part2/ps/transformer_part2_ps.json"
+    filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/transformer_part2_ps.json"
     seen_ps_sols = set()
     with open(filename, "r") as f:
         ps_sols = json.load(f)
@@ -155,25 +156,24 @@ if __name__ == "__main__":
             print()
             continue
         seen_ps_sols.add(ps_sol)
+        # ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
 
         try:
             ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
             print("Parsed PS solution")
         except Exception as e:
             print(f"Failed to parse PS solution {e}")
+            exceptions_count[str(e)] = exceptions_count.get(str(e), 0) + 1
             continue
 
-        # If we passed the parser, we run tests
-        try:
-            run_test("transformer_part2", ps_sol)
-            print("Passed tests!")
-        except Exception as e:
-            print(f"Failed to run tests: {e}")
-            continue
-        print()
+        # # If we passed the parser, we run tests
+        # try:
+        #     run_test("transformer_part2", ps_sol)
+        #     print("Passed tests!")
+        # except Exception as e:
+        #     print(f"Failed to run tests: {e}")
+        #     continue
+        # print()
 
-matrix_col_slice(
-    matrix_row_slice(input["key_cache_layer"], 0, input["token_position"] + 1),
-    input["head"] * input["head_size"],
-    (input["head"] + 1) * input["head_size"],
-)
+    for k, v in exceptions_count.items():
+        print(f"{k}: {v}")
