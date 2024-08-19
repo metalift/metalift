@@ -42,9 +42,6 @@ Your task is to rewrite the given `test` C++ Function. You need to use only the 
 """
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
-import pdb
-
-pdb.set_trace()
 
 # call the completions endpoint to get the completions for the prompt
 outputs = client.chat.completions.create(

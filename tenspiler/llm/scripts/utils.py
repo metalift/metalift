@@ -565,10 +565,6 @@ def get_inv_choice_and_save_prompt(
     with open(output_file, "w") as f:
         json.dump(messages, f)
 
-    print("CALLING INV for PS", ps_solution)
-    import pdb
-
-    pdb.set_trace()
     call_start_time = time.time()
     message = client.messages.create(
         model="claude-3-5-sonnet-20240620",
