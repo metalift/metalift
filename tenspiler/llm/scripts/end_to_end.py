@@ -9,7 +9,6 @@ from openai import OpenAI
 
 from tenspiler.llm.parser import check_solution
 from tenspiler.llm.scripts.utils import (
-    analyze_benchmark,
     extract,
     extract_and_save,
     get_ps_choice_and_save_prompt,
@@ -58,7 +57,7 @@ def run_end_to_end_llm(
 
     # Analyze the benchmark
     analyze_time_start = time.time()
-    driver = analyze_benchmark(benchmark_name)
+    # driver = analyze_benchmark(benchmark_name)
     analyze_time_end = time.time()
     print(f"Analyze took {analyze_time_end - analyze_time_start}s")
     total_time += analyze_time_end - analyze_time_start
@@ -148,7 +147,7 @@ def run_end_to_end_llm(
 
                 if ps_sol in ps_solutions_seen:
                     print(
-                        f"Skipping {ps_idx}th PS solution because it was already seen"
+                        f"Skipping {ps_idx * 10 + idx}th PS solution because it was already seen"
                     )
                     continue
                 ps_solutions_seen.add(ps_sol)
@@ -266,7 +265,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # First we find the source code
-    all_suites = {"blend", "llama"}
+    all_suites = {"blend", "llama", "polybench"}
     benchmark_suite, source_code = None, None
     for file in BENCHMARKS_PATH.rglob("*.cc"):
         if file.name == f"{args.benchmark}.cc":
@@ -276,6 +275,7 @@ if __name__ == "__main__":
                 while suite_folder.name not in all_suites:
                     suite_folder = suite_folder.parent
                 benchmark_suite = suite_folder.name
+
     if source_code is None:
         print(f"Could not find benchmark {args.benchmark}")
         exit(1)

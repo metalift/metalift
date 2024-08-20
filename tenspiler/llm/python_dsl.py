@@ -161,7 +161,9 @@ def matrix_elemwise_add(
 ) -> List[List[int]]:
     return (
         []
-        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        if len(matrix_x) < 1
+        or not len(matrix_x) == len(matrix_y)
+        or vec_elemwise_add(matrix_x[0], matrix_y[0]) == []
         else [
             vec_elemwise_add(matrix_x[0], matrix_y[0]),
             *matrix_elemwise_add(matrix_x[1:], matrix_y[1:]),
@@ -174,7 +176,9 @@ def matrix_elemwise_sub(
 ) -> List[List[int]]:
     return (
         []
-        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        if len(matrix_x) < 1
+        or not len(matrix_x) == len(matrix_y)
+        or vec_elemwise_sub(matrix_x[0], matrix_y[0]) == []
         else [
             vec_elemwise_sub(matrix_x[0], matrix_y[0]),
             *matrix_elemwise_sub(matrix_x[1:], matrix_y[1:]),
@@ -191,7 +195,9 @@ def matrix_elemwise_mul(
 ) -> List[List[int]]:
     return (
         []
-        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        if len(matrix_x) < 1
+        or not len(matrix_x) == len(matrix_y)
+        or vec_elemwise_mul(matrix_x[0], matrix_y[0]) == []
         else [
             vec_elemwise_mul(matrix_x[0], matrix_y[0]),
             *matrix_elemwise_mul(matrix_x[1:], matrix_y[1:]),
@@ -204,7 +210,9 @@ def matrix_elemwise_div(
 ) -> List[List[int]]:
     return (
         []
-        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        if len(matrix_x) < 1
+        or not len(matrix_x) == len(matrix_y)
+        or vec_elemwise_div(matrix_x[0], matrix_y[0]) == []
         else [
             vec_elemwise_div(matrix_x[0], matrix_y[0]),
             *matrix_elemwise_div(matrix_x[1:], matrix_y[1:]),
