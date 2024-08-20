@@ -20,6 +20,7 @@ from mypy.nodes import (
     ComparisonExpr,
     ConditionalExpr,
     FuncDef,
+    IfStmt,
     IndexExpr,
     IntExpr,
     LambdaExpr,
@@ -256,11 +257,11 @@ def mypy_node_to_ir(
             if len(node.body) == 2:
                 if not isinstance(node.body[0], AssignmentStmt):
                     raise Exception(
-                        "If there are two statements, the statement must be an assignment"
+                        "If the rewritten function has two statements, the first statement must be an assignment to the return value"
                     )
                 if not isinstance(node.body[1], ReturnStmt):
                     raise Exception(
-                        "If there are two statements, the second statement must be a return statement"
+                        "If the rewritten function two statements, the second statement must be a return statement"
                     )
 
                 first_stmt = cast(AssignmentStmt, node.body[0])
@@ -269,6 +270,10 @@ def mypy_node_to_ir(
                     raise Exception(
                         "Only one variable can be on the left side of an assignment"
                     )
+                if not isinstance(first_stmt.lvalues[0], NameExpr):
+                    raise Exception("Only variables can be assigned to")
+                if not isinstance(second_stmt.expr, NameExpr):
+                    raise Exception("Only variables can be returned")
                 if first_stmt.lvalues[0].name != second_stmt.expr.name:
                     raise Exception(
                         "Return variable must be the same as the variable assigned"
@@ -328,7 +333,7 @@ def mypy_node_to_ir(
                     arg_expr = parse_node(arg)
                     if arg_expr.type != expected_ir_type:
                         raise Exception(
-                            f"Expected type {expected_type} but got {arg.type} for {idx}th argument of {func_name}"
+                            f"Expected type {expected_type} but got {types[arg]} for {idx}th argument of {func_name}"
                         )
 
                     # If the argument is a function, then we need to define another function for it
@@ -482,6 +487,8 @@ def mypy_node_to_ir(
         else:
             if isinstance(node, ListComprehension):
                 raise Exception("List comprehensions are not supported")
+            elif isinstance(node, IfStmt):
+                raise Exception("If statements are not supported")
             raise Exception(f"Unsupported node {node}")
 
     ps_fn_decl = parse_node(root_node)

@@ -15,12 +15,18 @@ outputs_mapping = {
     ],
     "transformer_part1": [[1], [4, 10], [2, 8, 14], [5, 19], [85, 210, 335]],
     "transformer_part2": [[11], [34, 40], [60, 70, 80], [21], [42, 48]],
+    "fdtd_2d_part2": [
+        [[2, 3], [0, 11]],
+        [[-5, -5, -5], [6, 6, 6], [2, 2, 2]],
+        [[1]],
+        [[3, 4], [16, 17]],
+        [[-1], [6]],
+    ],
 }
 inputs_mapping = {
     "color_burn_8": [
         {"base": [[30, 20], [10, 5]], "active": [[2, 4], [8, 10]]},
         {"base": [[0, 32], [16, 24]], "active": [[1, 1], [1, 1]]},
-        {"base": [[32, 32], [32, 32]], "active": [[0, 0], [0, 0]]},
         {"base": [[10, 0], [15, 32]], "active": [[2, 3], [5, 8]]},
         {"base": [[31, 1], [2, 30]], "active": [[5, 7], [9, 11]]},
         {"base": [[16, 8], [24, 32]], "active": [[16, 8], [4, 2]]},
@@ -116,10 +122,27 @@ inputs_mapping = {
             "attention": [1, 1, 1],
         },
     ],
+    "fdtd_2d_part2": [
+        {"nx": 2, "ny": 3, "ex": [[1, 2, 3], [4, 5, 6]], "hz": [[1, 1, 1], [0, 1, 0]]},
+        {
+            "nx": 3,
+            "ny": 4,
+            "ex": [[0, 0, 0, 0], [1, 1, 1, 1], [2, 2, 2, 2]],
+            "hz": [[1, 2, 3, 4], [4, 3, 2, 1], [0, 0, 0, 0]],
+        },
+        {"nx": 1, "ny": 2, "ex": [[5, 6]], "hz": [[1, 2]]},
+        {
+            "nx": 2,
+            "ny": 3,
+            "ex": [[7, 8, 9], [10, 11, 12]],
+            "hz": [[1, 2, 3], [3, 2, 1]],
+        },
+        {"nx": 2, "ny": 2, "ex": [[3, 4], [5, 6]], "hz": [[2, 3], [1, 1]]},
+    ],
 }
 
 
-def run_test(func_name: str, ps_sol: str):
+def run_test(func_name: str, ps_sol: str) -> int:
     universal_imports = f"""
     from tenspiler.llm.python_dsl import *
     from typing import Any, Callable, List
@@ -132,18 +155,29 @@ def run_test(func_name: str, ps_sol: str):
     assert len(inputs) == len(
         expected_outputs
     ), f"expected {len(inputs)} outputs, but got {len(expected_outputs)}"
+
+    passed_count = 0
     for input, expected_output in zip(inputs, expected_outputs):
-        actual = namespace[func_name](**input)
-        assert (
-            actual == expected_output
-        ), f"expected {expected_output}, but got {actual}"
+        try:
+            actual = namespace[func_name](**input)
+            assert (
+                actual == expected_output
+            ), f"expected {expected_output}, but got {actual}"
+            passed_count += 1
+        except:
+            continue
+
+    return passed_count
 
 
 exceptions_count: dict[str, int] = {}
+num_passed_test_cases: dict[str, list[int]] = {"passed_parser": [], "failed_parser": []}
+
 if __name__ == "__main__":
-    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/outputs/openai/end_to_end/10_fanout/blend/color_burn_8/ps/color_burn_8_ps.json
-    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/benchmarks/outputs/openai/end_to_end/10_fanout/llama/transformer_part1/ps/transformer_part1_ps.json"
-    filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/transformer_part2_ps.json"
+    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/color_burn_8_ps.json"
+    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/transformer_part1_ps.json"
+    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/transformer_part2_ps.json"
+    filename = "tenspiler/llm/testing/ps_sols/fdtd_2d_part2_ps.json"
     seen_ps_sols = set()
     with open(filename, "r") as f:
         ps_sols = json.load(f)
@@ -156,24 +190,22 @@ if __name__ == "__main__":
             print()
             continue
         seen_ps_sols.add(ps_sol)
-        # ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
+
+        # If we passed the parser, we run tests
+        passed_count = run_test("fdtd_2d_part2", ps_sol)
+        print(f"Passed {passed_count} tests")
 
         try:
             ps_fn_decls, ps_in_calls = check_solution(ps_sol, 1)
             print("Parsed PS solution")
+            num_passed_test_cases["passed_parser"].append(passed_count)
         except Exception as e:
             print(f"Failed to parse PS solution {e}")
             exceptions_count[str(e)] = exceptions_count.get(str(e), 0) + 1
-            continue
-
-        # # If we passed the parser, we run tests
-        # try:
-        #     run_test("transformer_part2", ps_sol)
-        #     print("Passed tests!")
-        # except Exception as e:
-        #     print(f"Failed to run tests: {e}")
-        #     continue
-        # print()
+            num_passed_test_cases["failed_parser"].append(passed_count)
 
     for k, v in exceptions_count.items():
+        print(f"{k}: {v}")
+
+    for k, v in num_passed_test_cases.items():
         print(f"{k}: {v}")

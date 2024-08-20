@@ -220,9 +220,29 @@ _output_var_map = {
     "transformer_part2": List(Int, "xb").src,
     "transformer_part3": List(Int, "output").src,
     "transformer_part4": List(Int, "output").src,
+    "fdtd_2d_part2": List(List[Int], "out").src,
 }
 
 _loop_info_map = {
+    "fdtd_2d_part2": DoubleLoopInfo(
+        outer_loop_var=Int("i").src,
+        inner_loop_var=Int("j").src,
+        outer_loop_read_vars=[
+            Int("nx").src,
+            Int("ny").src,
+            List(List[Int], "ex").src,
+            List(List[Int], "ey").src,
+        ],
+        inner_loop_read_vars=[
+            Int("nx").src,
+            Int("ny").src,
+            List(List[Int], "ex").src,
+            List(List[Int], "ey").src,
+            Int("i").src,
+        ],
+        outer_loop_modified_vars=[List(List[Int], "out").src],
+        inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
+    ),
     "normal_blend_f": SingleLoopInfo(
         loop_var=Int("i").src,
         modified_vars=[List(Int, "out").src],
