@@ -128,6 +128,16 @@ vector<vector<int>> lighten_blend_8(vector<vector<int>> base, vector<vector<int>
 }
 """
 
+example9 = """
+int softmax_part1(vector<int> input, int max_pos) {
+    int max_val = input[0];
+    for (int i = 1; i < max_pos; i++)
+        if (input[i] > max_val)
+            max_val = input[i];
+    return max_val;
+}
+"""
+
 
 #####pattern matching queries
 # matches the for loop
@@ -157,11 +167,9 @@ body_decl_query = """
 )
 """
 
-### if statement
-body_if_query = """
-(for_statement
-  body: (compound_statement (if_statement) @comp)
-)
+### if statement in a compound statement
+if_query = """
+(if_statement)@if_stmt
 """
 
 # if condition
@@ -200,13 +208,11 @@ def build_expression_tree(node):
     elif node.type == "identifier":
         return {"type": "identifier", "value": node.text.decode()}
     elif node.type == "subscript_expression":
-        # import pdb; pdb.set_trace()
         array_name = build_expression_tree(node.child_by_field_name("argument"))
         index = build_expression_tree(node.child_by_field_name("indices"))
         return {"type": "array_access", "array": array_name, "index": index}
     elif node.type == "parenthesized_expression":
         # Unwrap the parenthesized expression
-        # import pdb; pdb.set_trace()
         return build_expression_tree(node.children[1])
     elif node.type == "number_literal":
         return {"type": "literal", "value": node.text.decode()}
@@ -270,7 +276,7 @@ def find_compute(tree_node):
         )
 
     # Check if loop has if statement
-    if_stmts = LANGUAGE.query(body_if_query).captures(tree_node)
+    if_stmts = LANGUAGE.query(if_query).captures(tree_node)
     num_if_stmts = len(if_stmts)
     if num_if_stmts not in {0, 1}:
         raise ParserError(
@@ -281,25 +287,33 @@ def find_compute(tree_node):
         if_conditions = LANGUAGE.query(if_condition_query).captures(tree_node)
         if_then_stmts = LANGUAGE.query(if_then_query).captures(tree_node)
         if_else_stmts = LANGUAGE.query(if_else_query).captures(tree_node)
+
         if len(if_conditions) != 1:
             raise ParserError(
                 f"Expected one if condition, but found {len(if_conditions)}"
             )
+        print(f"If condition: {_capture_to_text(if_conditions[0])}")
+
         if len(if_then_stmts) != 1:
             raise ParserError(
-                f"Expected one left statement, but found {len(if_then_stmts)}"
+                f"Expected one if then statement, but found {len(if_then_stmts)}"
             )
-        if len(if_else_stmts) != 1:
-            raise ParserError(
-                f"Expected one right statement, but found {len(if_else_stmts)}"
-            )
-        print(f"If condition: {_capture_to_text(if_conditions[0])}")
         print(f"If then statement: {_capture_to_text(if_then_stmts[0])}")
-        print(f"If else statement: {_capture_to_text(if_else_stmts[0])}")
-        tree = build_expression_tree(if_stmts[0][0])
-        inorder_expression = preorder_traversal(tree)
-        print(inorder_expression)
-        return
+
+        if len(if_else_stmts) == 0:
+            # In this case we just extract the if then statement
+            tree = build_expression_tree(if_then_stmts[0][0])
+            inorder_expression = preorder_traversal(tree)
+            print(inorder_expression)
+            return
+        elif len(if_else_stmts) == 1:
+            tree = build_expression_tree(if_stmts[0][0])
+            inorder_expression = preorder_traversal(tree)
+            print(inorder_expression)
+        else:
+            raise ParserError(
+                f"Expected zero or one right statement, but found {len(if_else_stmts)}"
+            )
 
     # Check if tree node loop body has compound statements (e.g. sum += a[i] * a[i];)
     compound_stmts = LANGUAGE.query(body_compound_query).captures(tree_node)
@@ -357,6 +371,6 @@ if __name__ == "__main__":
     # print("Attempting to parse the following code:")
     # print(source_code)
     # tree = parser.parse(source_code.encode())
-    tree = PARSER.parse(example8.encode())
+    tree = PARSER.parse(example9.encode())
     root_node = tree.root_node
     find_compute(root_node)
