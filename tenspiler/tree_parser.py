@@ -1,5 +1,24 @@
+import argparse
+import glob
+import os
+from typing import Any
+
 from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
+
+
+def find_cc_file_paths(file_path: str) -> list[str]:
+    all_cc_file_paths: list[str] = []
+    if os.path.isdir(file_path):
+        # Use glob to recursively find all *.cc files in the directory
+        cc_files = glob.glob(os.path.join(file_path, "**", "*.cc"), recursive=True)
+        for file in cc_files:
+            all_cc_file_paths.append(file)
+    else:
+        # Check if the file is a .cc file
+        if file_path.endswith(".cc"):
+            all_cc_file_paths.append(file_path)
+    return all_cc_file_paths
 
 
 class ParserError(Exception):
@@ -141,15 +160,17 @@ int softmax_part1(vector<int> input, int max_pos) {
 
 #####pattern matching queries
 # matches the for loop
-loop_query = "(for_statement) @stmt_str"
+loop_query = "(for_statement)@stmt_str"
+double_loop_query = """'
+(for_statement body: (compound_statement (for_statement)))
+"""
 
-# Matches the body of the for loop that has a push_back expression
-body_push_query = """
-(for_statement
-  body: (expression_statement
-          (call_expression)@expr
-        )
-)
+# Matches the body of a single for loop that has a push_back expression
+single_loop_push_query = """
+(for_statement body: (expression_statement (call_expression)@expr))
+"""
+double_loop_push_query = """
+(for_statement body: (compound_statement (for_statement body: (compound_statement (expression_statement (call_expression)@expr)))))
 """
 
 # Matches the body of the for loop that has a compound statement
@@ -161,10 +182,12 @@ body_compound_query = """
 """
 
 ### declation and compound statement
-body_decl_query = """
-(for_statement
-  body: (compound_statement (declaration) @comp)
-)
+# This is for declaring variables without initialization, such as int i;
+decl_query = """
+(declaration declarator: (identifier)@id)
+"""
+init_decl_query = """
+(declaration (init_declarator (identifier))@id)
 """
 
 ### if statement in a compound statement
@@ -172,26 +195,28 @@ if_query = """
 (if_statement)@if_stmt
 """
 
-# if condition
-if_condition_query = """
-(if_statement condition: (condition_clause value: (binary_expression) @expr))
-"""
+# # if condition
+# if_condition_query = """
+# (if_statement condition: (condition_clause value: (binary_expression) @expr))
+# """
 
-# The then clause of the if statement
-if_then_query = """
-(if_statement
-   consequence: (expression_statement)@expr)
-"""
+# # The then clause of the if statement
+# if_then_query = """
+# (if_statement consequence: (expression_statement)@expr)
+# """
 
-# The else clause of the if statement
-if_else_query = """
-(if_statement
-   alternative: (else_clause (expression_statement)@expr))
-"""
+# # The else clause of the if statement
+# if_else_query = """
+# (if_statement alternative: (else_clause (expression_statement)@expr))
+# """
 
 
 def _capture_to_text(capture: tuple[Node, str]) -> str:
     return capture[0].text.decode()
+
+
+def _node_to_text(node: Node) -> str:
+    return node.text.decode()
 
 
 def build_expression_tree(node):
@@ -219,8 +244,10 @@ def build_expression_tree(node):
     elif node.type == "expression_statement":
         return build_expression_tree(node.children[0])
     elif node.type == "call_expression":
+        # If we enter here, we assume it is a push back call
         return build_expression_tree(node.child_by_field_name("arguments"))
     elif node.type == "argument_list":
+        # We assume this is the argument to the push back call
         return build_expression_tree(node.children[1])
     elif node.type == "declaration":
         return build_expression_tree(node.child_by_field_name("declarator"))
@@ -266,16 +293,26 @@ def preorder_traversal(node):
         return node["value"]
 
 
-def find_compute(tree_node):
+def find_init_decl_to_var(var_name: str, tree_node: Node):
+    init_decl_stmts = LANGUAGE.query(init_decl_query).captures(tree_node)
+    for init_decl_stmt in init_decl_stmts:
+        decl_node = init_decl_stmt[0]
+        if decl_node.child_by_field_name("declarator").text.decode() == var_name:
+            return decl_node
+    return None
+
+
+def find_compute(tree_node: Node) -> dict[str, Any]:
     # Get number of loops
-    captures = LANGUAGE.query(loop_query).captures(tree_node)
-    num_loops = len(captures)
+    loops = LANGUAGE.query(loop_query).captures(tree_node)
+    num_loops = len(loops)
     if num_loops not in {1, 2}:
         raise ParserError(
             f"Only singly or doubly nested loops are supported, but found {num_loops} loops"
         )
 
-    # Check if loop has if statement
+    # Check if loop has if statement. For now we assume the if statement is always inside the
+    # innermost loop
     if_stmts = LANGUAGE.query(if_query).captures(tree_node)
     num_if_stmts = len(if_stmts)
     if num_if_stmts not in {0, 1}:
@@ -284,36 +321,43 @@ def find_compute(tree_node):
         )
 
     if len(if_stmts) > 0:
-        if_conditions = LANGUAGE.query(if_condition_query).captures(tree_node)
-        if_then_stmts = LANGUAGE.query(if_then_query).captures(tree_node)
-        if_else_stmts = LANGUAGE.query(if_else_query).captures(tree_node)
+        if_stmt_node = if_stmts[0][0]
+        if_condition = if_stmt_node.child_by_field_name("condition")
+        if_then_stmt = if_stmt_node.child_by_field_name("consequence")
+        if_else_stmt = if_stmt_node.child_by_field_name("alternative")
 
-        if len(if_conditions) != 1:
-            raise ParserError(
-                f"Expected one if condition, but found {len(if_conditions)}"
-            )
-        print(f"If condition: {_capture_to_text(if_conditions[0])}")
-
-        if len(if_then_stmts) != 1:
-            raise ParserError(
-                f"Expected one if then statement, but found {len(if_then_stmts)}"
-            )
-        print(f"If then statement: {_capture_to_text(if_then_stmts[0])}")
-
-        if len(if_else_stmts) == 0:
-            # In this case we just extract the if then statement
-            tree = build_expression_tree(if_then_stmts[0][0])
-            inorder_expression = preorder_traversal(tree)
-            print(inorder_expression)
-            return
-        elif len(if_else_stmts) == 1:
-            tree = build_expression_tree(if_stmts[0][0])
-            inorder_expression = preorder_traversal(tree)
-            print(inorder_expression)
+        print(f"If condition: {_node_to_text(if_condition)}")
+        print(f"If then statement: {_node_to_text(if_then_stmt)}")
+        if if_else_stmt != None:
+            print(f"If else statement: {_node_to_text(if_else_stmt)}")
+            tree = build_expression_tree(if_stmt_node)
+            return tree
         else:
-            raise ParserError(
-                f"Expected zero or one right statement, but found {len(if_else_stmts)}"
-            )
+            tree = build_expression_tree(if_stmt_node)
+            return tree
+
+    # Check if tree node loop body has push statements (e.g. out.push_back(curr);)
+    is_single_loop = num_loops == 1
+    if is_single_loop:
+        push_stmts = LANGUAGE.query(single_loop_push_query).captures(tree_node)
+    else:
+        push_stmts = LANGUAGE.query(double_loop_push_query).captures(tree_node)
+    num_push_stmts = len(push_stmts)
+    if num_push_stmts not in {0, 1}:
+        raise ParserError(
+            f"Expected <= 1 push statements in the innermost loop, but found {len(push_stmts)}"
+        )
+    if num_push_stmts > 0:
+        for push_stmt in push_stmts:
+            print(f"Push statement: {_capture_to_text(push_stmt)}")
+            push_arg = push_stmt[0].child_by_field_name("arguments").children[1]
+            if push_arg.type == "identifier":
+                decl_node = find_init_decl_to_var(push_arg.text.decode(), tree_node)
+                tree = build_expression_tree(decl_node)
+                return tree
+            else:
+                tree = build_expression_tree(push_arg)
+                return tree
 
     # Check if tree node loop body has compound statements (e.g. sum += a[i] * a[i];)
     compound_stmts = LANGUAGE.query(body_compound_query).captures(tree_node)
@@ -328,49 +372,38 @@ def find_compute(tree_node):
         inner_most_compound = compound_stmts[0]
         print(f"Compound statement: {_capture_to_text(inner_most_compound)}")
         tree = build_expression_tree(inner_most_compound[0])
-        inorder_expression = preorder_traversal(tree)
-        print(inorder_expression)
-
-    # Check if tree node loop body has push statements (e.g. out.push_back(curr);)
-    push_stmts = LANGUAGE.query(body_push_query).captures(tree_node)
-    num_push_stmts = len(push_stmts)
-    if num_push_stmts not in {0, 1, 2}:
-        raise ParserError(f"Expected <= 2 push statements, but found {len(push_stmts)}")
-
-    if num_push_stmts > 0:
-        for i in range(num_push_stmts):
-            print(f"Push statement: {_capture_to_text(push_stmts[i])}")
-            tree = build_expression_tree(push_stmts[i][0])
-            inorder_expression = preorder_traversal(tree)
-            print(inorder_expression)
+        return tree
 
     # Check if tree node loop body has declaration statements
-    captures = LANGUAGE.query(body_decl_query).captures(tree_node)
-    print(f"len of decl captures: {len(captures)}")
-    if len(captures) > 0:
-        for i in range(len(captures)):
-            print(f"converting expression: {captures[i][0].text.decode()}")
-            tree = build_expression_tree(captures[i][0])
-            # print(tree)
-            inorder_expression = preorder_traversal(tree)
-            print(inorder_expression)
+    decl_stmts = LANGUAGE.query(decl_query).captures(tree_node)
+    if len(decl_stmts) > 0:
+        for i in range(len(decl_stmts)):
+            print(f"Declaration statement: {decl_stmts[i][0].text.decode()}")
+            tree = build_expression_tree(decl_stmts[i][0])
+            return tree
 
 
 if __name__ == "__main__":
     # Set up some global variables / paths
 
     # reading arguments from the command line
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--file-path", type=str)
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file-path", type=str, required=True)
+    args = parser.parse_args()
 
-    # # First we find the source code
-    # with open(args.file_path) as f:
-    #     source_code = f.read()
+    cc_file_paths = find_cc_file_paths(args.file_path)
 
-    # print("Attempting to parse the following code:")
-    # print(source_code)
-    # tree = parser.parse(source_code.encode())
-    tree = PARSER.parse(example9.encode())
-    root_node = tree.root_node
-    find_compute(root_node)
+    for idx, cc_file_path in enumerate(cc_file_paths):
+        print(f"Reading file {idx} of {len(cc_file_paths)}: ", cc_file_path)
+        with open(cc_file_path) as f:
+            source_code = f.read()
+        print(f"Source code: {source_code}")
+        tree = PARSER.parse(source_code.encode())
+        root_node = tree.root_node
+        parsed_tree = find_compute(root_node)
+        print("Preorder traversal: ")
+        print(preorder_traversal(parsed_tree))
+        if parsed_tree == None:
+            import pdb
+
+            pdb.set_trace()
