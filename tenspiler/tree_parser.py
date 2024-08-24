@@ -166,11 +166,11 @@ double_loop_query = """'
 """
 
 # Matches the body of a single for loop that has a push_back expression
-single_loop_push_query = """
-(for_statement body: (compound_statement (expression_statement (call_expression)@expr)))
+outer_loop_push_query = """
+(for_statement body: (compound_statement (expression_statement (call_expression)@call_expr)@expr_stmt))
 """
 inner_loop_push_query = """
-(for_statement body: (compound_statement (for_statement body: (compound_statement (expression_statement (call_expression)@expr)))))
+(for_statement body: (compound_statement (for_statement body: (compound_statement (expression_statement (call_expression)@call_expr)@expr_stmt))))
 """
 
 # Matches the body of the for loop that has a compound statement
@@ -321,9 +321,10 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
     # Check if tree node loop body has push statements (e.g. out.push_back(curr);)
     is_single_loop = num_loops == 1
     if is_single_loop:
-        push_stmts = LANGUAGE.query(single_loop_push_query).captures(tree_node)
+        push_stmts = LANGUAGE.query(outer_loop_push_query).captures(tree_node)
     else:
         push_stmts = LANGUAGE.query(inner_loop_push_query).captures(tree_node)
+    push_stmts = [push_stmt for push_stmt in push_stmts if push_stmt[1] == "call_expr"]
     num_push_stmts = len(push_stmts)
     if num_push_stmts not in {0, 1}:
         raise ParserError(
@@ -363,12 +364,29 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
             )
             inner_tree = build_expression_tree(inner_most_compound[0])
         if len(outer_loop_compound_stmts) > 0:
-            outer_most_compound = outer_loop_compound_stmts[0]
-            print(
-                f"Outermost compound statement: {_capture_to_text(outer_most_compound)}"
+            outer_loop_push_stmts = LANGUAGE.query(outer_loop_push_query).captures(
+                tree_node
             )
-            outer_tree = build_expression_tree(outer_most_compound[0])
-        return inner_tree, outer_tree
+            outer_loop_push_stmts = [
+                stmt for stmt in outer_loop_push_stmts if stmt[1] == "expr_stmt"
+            ]
+            outer_loop_push_nodes = [stmt[0] for stmt in outer_loop_push_stmts]
+            outer_loop_compound_capture = outer_loop_compound_stmts[0]
+            outer_loop_compound_node = outer_loop_compound_capture[0]
+            if outer_loop_compound_node not in outer_loop_push_nodes:
+                outer_most_compound = outer_loop_compound_stmts[0]
+                print(
+                    f"Outermost compound statement: {_capture_to_text(outer_loop_compound_capture)}"
+                )
+                outer_tree = build_expression_tree(outer_most_compound[0])
+        if inner_tree is None:
+            return outer_tree
+        elif outer_tree is None:
+            return inner_tree
+        elif inner_tree is not None and outer_tree is not None:
+            return inner_tree, outer_tree
+        else:
+            return None
     else:
         if len(outer_loop_compound_stmts) > 0:
             outer_most_compound = outer_loop_compound_stmts[0]
@@ -410,4 +428,4 @@ if __name__ == "__main__":
             # if parsed_tree == None:
             #     import pdb
 
-            pdb.set_trace()
+            # pdb.set_trace()
