@@ -1,7 +1,7 @@
 import argparse
 import glob
 import os
-from typing import Any
+from typing import Any, Optional
 
 from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
@@ -167,17 +167,20 @@ double_loop_query = """'
 
 # Matches the body of a single for loop that has a push_back expression
 single_loop_push_query = """
-(for_statement body: (expression_statement (call_expression)@expr))
+(for_statement body: (compound_statement (expression_statement (call_expression)@expr)))
 """
-double_loop_push_query = """
+inner_loop_push_query = """
 (for_statement body: (compound_statement (for_statement body: (compound_statement (expression_statement (call_expression)@expr)))))
 """
 
 # Matches the body of the for loop that has a compound statement
 # An example of a compound statment is sum += a[i] * a[i];
-body_compound_query = """
+outer_loop_compound_query = """
+(function_definition body: (compound_statement (for_statement body: (compound_statement (expression_statement)@expr))))
+"""
+inner_loop_compound_query = """
 (for_statement
-  body: (compound_statement (expression_statement) @comp)
+  body: (compound_statement (for_statement (compound_statement (expression_statement)@expr)))
 )
 """
 
@@ -194,21 +197,6 @@ init_decl_query = """
 if_query = """
 (if_statement)@if_stmt
 """
-
-# # if condition
-# if_condition_query = """
-# (if_statement condition: (condition_clause value: (binary_expression) @expr))
-# """
-
-# # The then clause of the if statement
-# if_then_query = """
-# (if_statement consequence: (expression_statement)@expr)
-# """
-
-# # The else clause of the if statement
-# if_else_query = """
-# (if_statement alternative: (else_clause (expression_statement)@expr))
-# """
 
 
 def _capture_to_text(capture: tuple[Node, str]) -> str:
@@ -243,12 +231,6 @@ def build_expression_tree(node):
         return {"type": "literal", "value": node.text.decode()}
     elif node.type == "expression_statement":
         return build_expression_tree(node.children[0])
-    elif node.type == "call_expression":
-        # If we enter here, we assume it is a push back call
-        return build_expression_tree(node.child_by_field_name("arguments"))
-    elif node.type == "argument_list":
-        # We assume this is the argument to the push back call
-        return build_expression_tree(node.children[1])
     elif node.type == "declaration":
         return build_expression_tree(node.child_by_field_name("declarator"))
     elif node.type == "identifier":
@@ -333,7 +315,7 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
             tree = build_expression_tree(if_stmt_node)
             return tree
         else:
-            tree = build_expression_tree(if_stmt_node)
+            tree = build_expression_tree(if_then_stmt)
             return tree
 
     # Check if tree node loop body has push statements (e.g. out.push_back(curr);)
@@ -341,7 +323,7 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
     if is_single_loop:
         push_stmts = LANGUAGE.query(single_loop_push_query).captures(tree_node)
     else:
-        push_stmts = LANGUAGE.query(double_loop_push_query).captures(tree_node)
+        push_stmts = LANGUAGE.query(inner_loop_push_query).captures(tree_node)
     num_push_stmts = len(push_stmts)
     if num_push_stmts not in {0, 1}:
         raise ParserError(
@@ -360,26 +342,40 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
                 return tree
 
     # Check if tree node loop body has compound statements (e.g. sum += a[i] * a[i];)
-    compound_stmts = LANGUAGE.query(body_compound_query).captures(tree_node)
+    inner_loop_compound_stmts = LANGUAGE.query(inner_loop_compound_query).captures(
+        tree_node
+    )
+    outer_loop_compound_stmts = LANGUAGE.query(outer_loop_compound_query).captures(
+        tree_node
+    )
+    assert len(inner_loop_compound_stmts) <= 1
+    assert len(outer_loop_compound_stmts) <= 1
 
-    if len(compound_stmts) not in {0, 1, 2}:
-        raise ParserError(
-            f"Expected zero or one compound statement, but found {len(compound_stmts)}"
-        )
+    if not is_single_loop:
+        # TODO(jie): need to filter out push back statements here
+        inner_tree: Optional[Node] = None
+        outer_tree: Optional[Node] = None
 
-    if len(compound_stmts) > 0:
-        # If there are compound statements for different loops, we only consider the innermost loop
-        inner_most_compound = compound_stmts[0]
-        print(f"Compound statement: {_capture_to_text(inner_most_compound)}")
-        tree = build_expression_tree(inner_most_compound[0])
-        return tree
-
-    # Check if tree node loop body has declaration statements
-    decl_stmts = LANGUAGE.query(decl_query).captures(tree_node)
-    if len(decl_stmts) > 0:
-        for i in range(len(decl_stmts)):
-            print(f"Declaration statement: {decl_stmts[i][0].text.decode()}")
-            tree = build_expression_tree(decl_stmts[i][0])
+        if len(inner_loop_compound_stmts) > 0:
+            inner_most_compound = inner_loop_compound_stmts[0]
+            print(
+                f"Innermost compound statement: {_capture_to_text(inner_most_compound)}"
+            )
+            inner_tree = build_expression_tree(inner_most_compound[0])
+        if len(outer_loop_compound_stmts) > 0:
+            outer_most_compound = outer_loop_compound_stmts[0]
+            print(
+                f"Outermost compound statement: {_capture_to_text(outer_most_compound)}"
+            )
+            outer_tree = build_expression_tree(outer_most_compound[0])
+        return inner_tree, outer_tree
+    else:
+        if len(outer_loop_compound_stmts) > 0:
+            outer_most_compound = outer_loop_compound_stmts[0]
+            print(
+                f"Outermost compound statement: {_capture_to_text(outer_most_compound)}"
+            )
+            tree = build_expression_tree(outer_most_compound[0])
             return tree
 
 
@@ -394,6 +390,9 @@ if __name__ == "__main__":
     cc_file_paths = find_cc_file_paths(args.file_path)
 
     for idx, cc_file_path in enumerate(cc_file_paths):
+        # benchmark_name = cc_file_path.split("/")[-1].split(".")[0]
+        # if benchmark_name in {"transformer_part1", "transformer_part2"}:
+        #     continue
         print(f"Reading file {idx} of {len(cc_file_paths)}: ", cc_file_path)
         with open(cc_file_path) as f:
             source_code = f.read()
@@ -402,8 +401,13 @@ if __name__ == "__main__":
         root_node = tree.root_node
         parsed_tree = find_compute(root_node)
         print("Preorder traversal: ")
-        print(preorder_traversal(parsed_tree))
-        if parsed_tree == None:
-            import pdb
+        if isinstance(parsed_tree, tuple):
+            for tree in parsed_tree:
+                print(preorder_traversal(tree))
+        else:
+            print(preorder_traversal(parsed_tree))
+            # print(preorder_traversal(parsed_tree))
+            # if parsed_tree == None:
+            #     import pdb
 
             pdb.set_trace()
