@@ -304,18 +304,18 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
 
     if len(if_stmts) > 0:
         if_stmt_node = if_stmts[0][0]
-        if_condition = if_stmt_node.child_by_field_name("condition")
-        if_then_stmt = if_stmt_node.child_by_field_name("consequence")
-        if_else_stmt = if_stmt_node.child_by_field_name("alternative")
+        if_condition_node = if_stmt_node.child_by_field_name("condition")
+        if_then_stmt_node = if_stmt_node.child_by_field_name("consequence")
+        if_else_stmt_node = if_stmt_node.child_by_field_name("alternative")
 
-        print(f"If condition: {_node_to_text(if_condition)}")
-        print(f"If then statement: {_node_to_text(if_then_stmt)}")
-        if if_else_stmt != None:
-            print(f"If else statement: {_node_to_text(if_else_stmt)}")
+        print(f"If condition: {_node_to_text(if_condition_node)}")
+        print(f"If then statement: {_node_to_text(if_then_stmt_node)}")
+        if if_else_stmt_node is not None:
+            print(f"If else statement: {_node_to_text(if_else_stmt_node)}")
             tree = build_expression_tree(if_stmt_node)
             return tree
         else:
-            tree = build_expression_tree(if_then_stmt)
+            tree = build_expression_tree(if_then_stmt_node)
             return tree
 
     # Check if tree node loop body has push statements (e.g. out.push_back(curr);)
@@ -346,42 +346,48 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
     inner_loop_compound_stmts = LANGUAGE.query(inner_loop_compound_query).captures(
         tree_node
     )
+    inner_loop_compound_nodes = [stmt[0] for stmt in inner_loop_compound_stmts]
     outer_loop_compound_stmts = LANGUAGE.query(outer_loop_compound_query).captures(
         tree_node
     )
-    assert len(inner_loop_compound_stmts) <= 1
-    assert len(outer_loop_compound_stmts) <= 1
+    outer_loop_compound_nodes = [stmt[0] for stmt in outer_loop_compound_stmts]
+    # If we have a double loop, we exclude push_back statements from the outer loop compound statements
+    if not is_single_loop:
+        outer_loop_push_stmts = LANGUAGE.query(outer_loop_push_query).captures(
+            tree_node
+        )
+        outer_loop_push_stmts = [
+            stmt for stmt in outer_loop_push_stmts if stmt[1] == "expr_stmt"
+        ]
+        outer_loop_push_nodes = [stmt[0] for stmt in outer_loop_push_stmts]
+        outer_loop_compound_nodes = [
+            stmt
+            for stmt in outer_loop_compound_nodes
+            if stmt not in outer_loop_push_nodes
+        ]
+    assert len(inner_loop_compound_nodes) <= 1
+    assert len(outer_loop_compound_nodes) <= 1
 
     if not is_single_loop:
         # TODO(jie): need to filter out push back statements here
         inner_tree: Optional[Node] = None
         outer_tree: Optional[Node] = None
 
-        if len(inner_loop_compound_stmts) > 0:
-            inner_most_compound = inner_loop_compound_stmts[0]
+        if len(inner_loop_compound_nodes) > 0:
+            inner_most_compound_node = inner_loop_compound_nodes[0]
             print(
-                f"Innermost compound statement: {_capture_to_text(inner_most_compound)}"
+                f"Innermost compound statement: {_node_to_text(inner_most_compound_node)}"
             )
-            inner_tree = build_expression_tree(inner_most_compound[0])
-        if len(outer_loop_compound_stmts) > 0:
-            outer_loop_push_stmts = LANGUAGE.query(outer_loop_push_query).captures(
-                tree_node
+            inner_tree = build_expression_tree(inner_most_compound_node)
+        if len(outer_loop_compound_nodes) > 0:
+            outer_most_compound_node = outer_loop_compound_nodes[0]
+            print(
+                f"Outermost compound statement: {_node_to_text(outer_most_compound_node)}"
             )
-            outer_loop_push_stmts = [
-                stmt for stmt in outer_loop_push_stmts if stmt[1] == "expr_stmt"
-            ]
-            outer_loop_push_nodes = [stmt[0] for stmt in outer_loop_push_stmts]
-            outer_loop_compound_capture = outer_loop_compound_stmts[0]
-            outer_loop_compound_node = outer_loop_compound_capture[0]
-            if outer_loop_compound_node not in outer_loop_push_nodes:
-                outer_most_compound = outer_loop_compound_stmts[0]
-                print(
-                    f"Outermost compound statement: {_capture_to_text(outer_loop_compound_capture)}"
-                )
-                outer_tree = build_expression_tree(outer_most_compound[0])
-        if inner_tree is None:
+            outer_tree = build_expression_tree(outer_most_compound_node)
+        if inner_tree is None and outer_tree is not None:
             return outer_tree
-        elif outer_tree is None:
+        elif inner_tree is not None and outer_tree is None:
             return inner_tree
         elif inner_tree is not None and outer_tree is not None:
             return inner_tree, outer_tree
@@ -424,8 +430,3 @@ if __name__ == "__main__":
                 print(preorder_traversal(tree))
         else:
             print(preorder_traversal(parsed_tree))
-            # print(preorder_traversal(parsed_tree))
-            # if parsed_tree == None:
-            #     import pdb
-
-            # pdb.set_trace()
