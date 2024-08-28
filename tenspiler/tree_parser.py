@@ -1,7 +1,7 @@
 import argparse
 import glob
 import os
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
@@ -198,6 +198,14 @@ if_query = """
 (if_statement)@if_stmt
 """
 
+template_types_query = """
+(function_declarator (parameter_list (parameter_declaration(template_type))@type))
+"""
+
+primitive_types_query = """
+(function_declarator (parameter_list (parameter_declaration(primitive_type))@type))
+"""
+
 
 def _capture_to_text(capture: tuple[Node, str]) -> str:
     return capture[0].text.decode()
@@ -207,11 +215,11 @@ def _node_to_text(node: Node) -> str:
     return node.text.decode()
 
 
-def build_expression_tree(node):
+def build_type_expression_tree(node: Node) -> dict[str, Any]:
     if node.type == "binary_expression" or node.type == "assignment_expression":
-        left_child = build_expression_tree(node.child_by_field_name("left"))
+        left_child = build_type_expression_tree(node.child_by_field_name("left"))
         operator = node.child_by_field_name("operator").text.decode()
-        right_child = build_expression_tree(node.child_by_field_name("right"))
+        right_child = build_type_expression_tree(node.child_by_field_name("right"))
         return {
             "type": "operator",
             "operator": operator,
@@ -221,28 +229,105 @@ def build_expression_tree(node):
     elif node.type == "identifier":
         return {"type": "identifier", "value": node.text.decode()}
     elif node.type == "subscript_expression":
-        array_name = build_expression_tree(node.child_by_field_name("argument"))
-        index = build_expression_tree(node.child_by_field_name("indices"))
+        array_name = build_type_expression_tree(node.child_by_field_name("argument"))
+        index = build_type_expression_tree(node.child_by_field_name("indices"))
         return {"type": "array_access", "array": array_name, "index": index}
     elif node.type == "parenthesized_expression":
         # Unwrap the parenthesized expression
-        return build_expression_tree(node.children[1])
+        return build_type_expression_tree(node.children[1])
     elif node.type == "number_literal":
         return {"type": "literal", "value": node.text.decode()}
     elif node.type == "expression_statement":
-        return build_expression_tree(node.children[0])
+        return build_type_expression_tree(node.children[0])
     elif node.type == "declaration":
-        return build_expression_tree(node.child_by_field_name("declarator"))
+        return build_type_expression_tree(node.child_by_field_name("declarator"))
     elif node.type == "identifier":
         return {"type": "identifier", "value": node.text.decode()}
     elif node.type == "init_declarator":
-        return build_expression_tree(node.child_by_field_name("value"))
+        return build_type_expression_tree(node.child_by_field_name("value"))
     elif node.type == "if_statement":
         return {
             "type": "if_statement",
-            "condition": build_expression_tree(node.children[1]),
-            "then": build_expression_tree(node.children[2]),
-            "else": build_expression_tree(node.children[3]),
+            "condition": build_type_expression_tree(node.children[1]),
+            "then": build_type_expression_tree(node.children[2]),
+            "else": build_type_expression_tree(node.children[3]),
+        }
+    else:
+        return {"type": node.type, "value": node.text.decode()}
+
+
+def build_type_expression_tree(node: Node) -> tuple[dict[str, Any], str]:
+    # if node.type == "binary_expression":
+    #     left_child = node.child_by_field_name("left")
+    #     operator = node.child_by_field_name("operator").text.decode()
+    #     right_child = node.child_by_field_name("right")
+    #     import pdb; pdb.set_trace()
+    #     # Get the type of the left child
+    #     left_type: Optional[str] = None
+    #     if left_child.type == "array_access":
+    #         left_array = node.child_by_field_name("argument")
+    #         if left_array.type == "identifier":
+    #             left_type = "vector"
+    #         else:
+    #             left_type = "matrix"
+    #     elif left_child.type == "identifier":
+    #         left_type = "scalar"
+
+    #     # Get the type of the right child
+    #     right_type: Optional[str] = None
+    #     if right_child.type == "array_access":
+    #         right_array = node.child_by_field_name("argument")
+    #         if right_array.type == "identifier":
+    #             right_type = "vector"
+    #         else:
+    #             right_type = "matrix"
+    #     elif right_child.type == "identifier":
+    #         right_type = "scalar"
+
+    #     return {
+    #         "type": "operator",
+    #         "operator": operator,
+    #         "left": left_type,
+    #         "right": right_type,
+    #     }
+    if node.type == "binary_expression" or node.type == "assignment_expression":
+        left_child = build_type_expression_tree(node.child_by_field_name("left"))
+        operator = node.child_by_field_name("operator").text.decode()
+        right_child = build_type_expression_tree(node.child_by_field_name("right"))
+        return {
+            "type": "operator",
+            "operator": operator,
+            "left": left_child,
+            "right": right_child,
+        }
+    elif node.type == "identifier":
+        import pdb
+
+        pdb.set_trace()
+        return {"type": "identifier", "value": node.text.decode()}
+    elif node.type == "subscript_expression":
+        array_name = build_type_expression_tree(node.child_by_field_name("argument"))
+        index = build_type_expression_tree(node.child_by_field_name("indices"))
+        return {"type": "array_access", "array": array_name, "index": index}
+    elif node.type == "parenthesized_expression":
+        # Unwrap the parenthesized expression
+        return build_type_expression_tree(node.children[1])
+    elif node.type == "number_literal":
+        return {"type": "literal", "value": node.text.decode()}
+    elif node.type == "expression_statement":
+        return build_type_expression_tree(node.children[0])
+    elif node.type == "declaration":
+        return build_type_expression_tree(node.child_by_field_name("declarator"))
+    elif node.type == "identifier":
+        return {"type": "identifier", "value": node.text.decode()}
+    elif node.type == "init_declarator":
+        return build_type_expression_tree(node.child_by_field_name("value"))
+    elif node.type == "if_statement":
+        return {
+            "type": "if_statement",
+            "condition": build_type_expression_tree(node.children[1]),
+            "then": build_type_expression_tree(node.children[2]),
+            "else": build_type_expression_tree(node.children[3]),
         }
     else:
         return {"type": node.type, "value": node.text.decode()}
@@ -284,7 +369,24 @@ def find_init_decl_to_var(var_name: str, tree_node: Node):
     return None
 
 
-def find_compute(tree_node: Node) -> dict[str, Any]:
+def find_input_type(var_name: str, tree_node: Node) -> str:
+    template_input_types = LANGUAGE.query(template_types_query).captures(tree_node)
+    primitive_input_types = LANGUAGE.query(primitive_types_query).captures(tree_node)
+    for input_type in template_input_types + primitive_input_types:
+        curr_var_type, curr_var_name = input_type[0].text.decode().split(" ")
+        if curr_var_name == var_name:
+            if curr_var_type == "vector<int>":
+                return "vector"
+            elif curr_var_type == "vector<vector<int>>":
+                return "matrix"
+            else:
+                raise ParserError(f"Unsupported input type: {curr_var_type}")
+    return None
+
+
+def find_compute_from_node(
+    tree_node: Node,
+) -> Union[dict[str, Any], tuple[dict[str, Any], dict[str, Any]]]:
     # Get number of loops
     loops = LANGUAGE.query(loop_query).captures(tree_node)
     num_loops = len(loops)
@@ -312,10 +414,10 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
         print(f"If then statement: {_node_to_text(if_then_stmt_node)}")
         if if_else_stmt_node is not None:
             print(f"If else statement: {_node_to_text(if_else_stmt_node)}")
-            tree = build_expression_tree(if_stmt_node)
+            tree = build_type_expression_tree(if_stmt_node)
             return tree
         else:
-            tree = build_expression_tree(if_then_stmt_node)
+            tree = build_type_expression_tree(if_then_stmt_node)
             return tree
 
     # Check if tree node loop body has push statements (e.g. out.push_back(curr);)
@@ -336,10 +438,10 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
             push_arg = push_stmt[0].child_by_field_name("arguments").children[1]
             if push_arg.type == "identifier":
                 decl_node = find_init_decl_to_var(push_arg.text.decode(), tree_node)
-                tree = build_expression_tree(decl_node)
+                tree = build_type_expression_tree(decl_node)
                 return tree
             else:
-                tree = build_expression_tree(push_arg)
+                tree = build_type_expression_tree(push_arg)
                 return tree
 
     # Check if tree node loop body has compound statements (e.g. sum += a[i] * a[i];)
@@ -378,13 +480,13 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
             print(
                 f"Innermost compound statement: {_node_to_text(inner_most_compound_node)}"
             )
-            inner_tree = build_expression_tree(inner_most_compound_node)
+            inner_tree = build_type_expression_tree(inner_most_compound_node)
         if len(outer_loop_compound_nodes) > 0:
             outer_most_compound_node = outer_loop_compound_nodes[0]
             print(
                 f"Outermost compound statement: {_node_to_text(outer_most_compound_node)}"
             )
-            outer_tree = build_expression_tree(outer_most_compound_node)
+            outer_tree = build_type_expression_tree(outer_most_compound_node)
         if inner_tree is None and outer_tree is not None:
             return outer_tree
         elif inner_tree is not None and outer_tree is None:
@@ -399,13 +501,25 @@ def find_compute(tree_node: Node) -> dict[str, Any]:
             print(
                 f"Outermost compound statement: {_capture_to_text(outer_most_compound)}"
             )
-            tree = build_expression_tree(outer_most_compound[0])
+            tree = build_type_expression_tree(outer_most_compound[0])
             return tree
 
 
-if __name__ == "__main__":
-    # Set up some global variables / paths
+def find_compute_from_file(
+    file_path: str,
+) -> Union[dict[str, Any], tuple[dict[str, Any], dict[str, Any]]]:
+    with open(file_path) as f:
+        source_code = f.read()
+    print(f"Reading file {file_path}: ", file_path)
+    print(f"Source code: {source_code}")
+    tree = PARSER.parse(source_code.encode())
+    print("HAHAH", find_input_type("base", tree.root_node))
+    print("HEHE", find_input_type("opacity", tree.root_node))
+    root_node = tree.root_node
+    return find_compute_from_node(root_node)
 
+
+if __name__ == "__main__":
     # reading arguments from the command line
     parser = argparse.ArgumentParser()
     parser.add_argument("--file-path", type=str, required=True)
@@ -414,16 +528,8 @@ if __name__ == "__main__":
     cc_file_paths = find_cc_file_paths(args.file_path)
 
     for idx, cc_file_path in enumerate(cc_file_paths):
-        # benchmark_name = cc_file_path.split("/")[-1].split(".")[0]
-        # if benchmark_name in {"transformer_part1", "transformer_part2"}:
-        #     continue
-        print(f"Reading file {idx} of {len(cc_file_paths)}: ", cc_file_path)
-        with open(cc_file_path) as f:
-            source_code = f.read()
-        print(f"Source code: {source_code}")
-        tree = PARSER.parse(source_code.encode())
-        root_node = tree.root_node
-        parsed_tree = find_compute(root_node)
+        print(f"Processing file {idx} of {len(cc_file_paths)}")
+        parsed_tree = find_compute_from_file(cc_file_path)
         print("Preorder traversal: ")
         if isinstance(parsed_tree, tuple):
             for tree in parsed_tree:
