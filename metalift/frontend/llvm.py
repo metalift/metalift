@@ -1623,12 +1623,8 @@ class Driver:
             preds=[],
             vc=vc,
             loop_and_ps_info=synths,
-            # cvc_path="cvc5",
-            cvc_path="/code/metalift/cvc5",
-            # fns_to_guess=inv_and_ps, # TODO: might need to change this
+            cvc_path="cvc5",
             fns_to_guess=synths,
-            # TODO: change this to false
-            # no_verify=True,
             **synthesize_kwargs,
         )
 
