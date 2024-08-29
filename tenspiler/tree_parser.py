@@ -11,6 +11,7 @@ from tree_sitter_languages import get_language, get_parser
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose
 from metalift.vc_util import and_objects
+from tenspiler.tenspiler_common import call_reduce_sum, reduce_sum
 
 
 def find_cc_file_paths(file_path: str) -> list[str]:
@@ -302,19 +303,32 @@ def get_scalars_from_node(tree_node: Node) -> list[Int]:
 def build_type_expression_tree(
     node: Node, target_type: str, all_vars_by_name: dict[str, ObjectT]
 ) -> Union[dict[str, Any], str]:
-    def helper(node: Node):
-        if node.type == "binary_expression" or node.type == "assignment_expression":
-            left_child = helper(node.child_by_field_name("left"))
+    def helper(node: Node, target_type: str):
+        if node.type == "assignment_expression":
+            operator = node.child_by_field_name("operator").text.decode()
+            if operator == "+=":
+                right_child = helper(node.child_by_field_name("right"), "vector")
+            else:
+                raise ParserError(f"Unsupported operator: {operator}")
+            return {
+                "type": "operator",
+                "operator": "reduce_sum",
+                "arg": right_child,
+                "return_type": "scalar",
+            }
+        elif node.type == "binary_expression":
+            operator = node.child_by_field_name("operator").text.decode()
+            left_child = helper(node.child_by_field_name("left"), target_type)
             if isinstance(left_child, dict):
                 left_type = left_child["return_type"]
             else:
                 left_type = left_child
-            right_child = helper(node.child_by_field_name("right"))
+            right_child = helper(node.child_by_field_name("right"), target_type)
             if isinstance(right_child, dict):
                 right_type = right_child["return_type"]
             else:
                 right_type = right_child
-            operator = node.child_by_field_name("operator").text.decode()
+
             return_type = "scalar"
             if (left_type, right_type) in {
                 ("vector", "int"),
@@ -346,11 +360,11 @@ def build_type_expression_tree(
             return target_type
         elif node.type == "parenthesized_expression":
             # Unwrap the parenthesized expression
-            return helper(node.children[1])
+            return helper(node.children[1], target_type)
         elif node.type == "number_literal":
             return "scalar"
         elif node.type == "expression_statement":
-            return helper(node.children[0])
+            return helper(node.children[0], target_type)
         elif node.type == "declaration":
             return helper(node.child_by_field_name("declarator"))
         elif node.type == "init_declarator":
@@ -358,14 +372,14 @@ def build_type_expression_tree(
         elif node.type == "if_statement":
             return {
                 "type": "if_statement",
-                "condition": helper(node.children[1]),
-                "then": helper(node.children[2]),
-                "else": helper(node.children[3]),
+                "condition": helper(node.children[1], target_type),
+                "then": helper(node.children[2], target_type),
+                "else": helper(node.children[3], target_type),
             }
         else:
             return {"type": node.type, "value": node.text.decode()}
 
-    return helper(node)
+    return helper(node, target_type)
 
 
 def preorder_traversal(node):
@@ -404,31 +418,37 @@ def preorder_traversal_with_objs(
         return choose(*vars_by_type_str[type_expr_tree])
     if isinstance(type_expr_tree, dict):
         if type_expr_tree["type"] == "operator":
-            {}
             operator = type_expr_tree["operator"]
-            left_expr = preorder_traversal_with_objs(
-                type_expr_tree["left"], vars_by_type_str, target_lang_fns
-            )
-            right_expr = preorder_traversal_with_objs(
-                type_expr_tree["right"], vars_by_type_str, target_lang_fns
-            )
-            if operator == "+":
-                call_obj = List.add(left_expr, right_expr)
-            elif operator == "-":
-                call_obj = List.sub(left_expr, right_expr)
-            elif operator == "*":
-                call_obj = List.mul(left_expr, right_expr)
-            elif operator == "/":
-                call_obj = List.div(left_expr, right_expr)
-            else:
-                raise ParserError(f"Unsupported operator: {operator}")
+            if operator == "reduce_sum":
+                expr = preorder_traversal_with_objs(
+                    type_expr_tree["arg"], vars_by_type_str, target_lang_fns
+                )
+                target_lang_fns.add(reduce_sum)
+                return call_reduce_sum(expr)
+            elif operator in {"+", "-", "*", "/"}:
+                left_expr = preorder_traversal_with_objs(
+                    type_expr_tree["left"], vars_by_type_str, target_lang_fns
+                )
+                right_expr = preorder_traversal_with_objs(
+                    type_expr_tree["right"], vars_by_type_str, target_lang_fns
+                )
+                if operator == "+":
+                    call_obj = List.add(left_expr, right_expr)
+                elif operator == "-":
+                    call_obj = List.sub(left_expr, right_expr)
+                elif operator == "*":
+                    call_obj = List.mul(left_expr, right_expr)
+                elif operator == "/":
+                    call_obj = List.div(left_expr, right_expr)
+                else:
+                    raise ParserError(f"Unsupported operator: {operator}")
 
-            # Get the function definition related to
-            tenspiler_common = importlib.import_module("tenspiler.tenspiler_common")
-            # Get the function or class dynamically
-            function = getattr(tenspiler_common, call_obj.src.name())
-            target_lang_fns.add(function)
-            return call_obj
+                # Get the function definition related to
+                tenspiler_common = importlib.import_module("tenspiler.tenspiler_common")
+                # Get the function or class dynamically
+                function = getattr(tenspiler_common, call_obj.src.name())
+                target_lang_fns.add(function)
+                return call_obj
         else:
             raise ParserError(f"Unsupported type: {type_expr_tree['type']}")
 
