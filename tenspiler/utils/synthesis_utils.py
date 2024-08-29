@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from metalift.frontend.llvm import Driver
@@ -46,6 +45,7 @@ def run_synthesis_with_bound(
     list_bound: int,
     max_rounds: int,
     has_relaxed: bool,
+    no_verify: bool,
 ):
     try:
         print(f"Trying strict grammar with list bound {list_bound}...")
@@ -56,6 +56,7 @@ def run_synthesis_with_bound(
             list_bound=list_bound,
             relaxed_grammar=False,
             rounds_to_guess=max_rounds,
+            no_verify=no_verify,
         )
     except SynthesisFailed as e:
         print(f"Strict grammar with list bound {list_bound} failed")
@@ -117,7 +118,8 @@ def run_synthesis_algorithm(
     benchmark_name: str,
     max_rounds: int = 10,
     has_relaxed: bool = False,
-    list_bound_start: int = 2
+    list_bound_start: int = 2,
+    no_verify: bool = True,
 ):
     print(f"Starting synthesis at list bound {list_bound_start}")
     list_bound_start = int(list_bound_start)
@@ -131,6 +133,7 @@ def run_synthesis_algorithm(
                 list_bound=list_bound,
                 max_rounds=max_rounds,
                 has_relaxed=has_relaxed,
+                no_verify=no_verify,
             )
             return
         except VerificationFailed:
