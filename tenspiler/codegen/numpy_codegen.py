@@ -6,6 +6,7 @@ from metalift.ir import (
     And,
     Bool,
     Call,
+    Choose,
     Div,
     Eq,
     Expr,
@@ -150,7 +151,11 @@ def numpy_codegen(
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
         if not isinstance(expr, Expr):
             return str(expr), None
-
+        if isinstance(expr, Choose):
+            if len(expr.arguments()) == 1:
+                return helper(expr.arguments()[0], vars_to_replace)
+            else:
+                raise ValueError("Choose with more than 1 argument not supported")
         if isinstance(expr, Call):
             processed_args = [
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
@@ -310,4 +315,3 @@ import numpy as np
     print(glued_fn)
 
     return import_stmt + kernel_fn + glued_fn
-
