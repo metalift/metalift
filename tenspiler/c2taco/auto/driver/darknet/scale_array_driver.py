@@ -1,16 +1,16 @@
-import time
 from collections import defaultdict
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Object, choose
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Object
 from tenspiler.axioms_tenspiler import vec_scalar_mul_axiom
 from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import call_vec_scalar_mul, vec_scalar_mul
+from tenspiler.tenspiler_common import vec_scalar_mul
 from tenspiler.tree_parser import (
     find_compute_from_file,
     find_root_node_from_file,
-    get_outer_loop_grammar_fn,
+    get_outer_loop_inv,
+    get_ps,
     make_input_variables,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
@@ -23,17 +23,21 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 def ps_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
-    a, n, s = reads
-    out = writes[0]
-    vec = choose(a[:n])
-    scalar = choose(s)
-    return out == call_vec_scalar_mul(scalar, vec)
+    ps_cond = get_ps(
+        writes=writes,
+        reads=reads,
+        in_scope=in_scope,
+        relaxed=relaxed,
+        loop_bounds=[[("i", 0), ("i", "<", "n")]],
+        compute_node=compute,
+    )
+    return ps_cond
 
 
 def inv_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
-    return get_outer_loop_grammar_fn(
+    return get_outer_loop_inv(
         writes=writes,
         reads=reads,
         in_scope=in_scope,
@@ -69,15 +73,3 @@ if __name__ == "__main__":
         benchmark_name="scale_array",
         has_relaxed=False,
     )
-    exit(0)
-
-    start_time = time.time()
-    scale_array(a, n, s)
-    run_synthesis_algorithm(
-        driver=driver,
-        data_type=DataType.INT32,
-        benchmark_name="scale_array",
-        has_relaxed=False,
-    )
-    end_time = time.time()
-    print(f"Synthesis took {end_time - start_time} seconds")

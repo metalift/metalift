@@ -1,7 +1,7 @@
 import argparse
 import glob
 import os
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 
 from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
@@ -554,9 +554,30 @@ def get_str_type(var: ObjectT) -> str:
         raise ParserError(f"Unsupported type: {var.type}")
 
 
-def get_loop_conditions(
+def get_outer_loop_bounds(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> list[Bool]:
+    outer_loop_bounds = loop_bounds[0]
+    op = outer_loop_bounds[-1][1]
+    if op == "<":
+        left_bound = outer_loop_bounds[0][-1]
+        right_bound = outer_loop_bounds[-1][-1]
+        if isinstance(left_bound, int):
+            left_bound = Int(left_bound)
+        else:
+            left_bound = vars_by_name[left_bound]
+        if isinstance(right_bound, int):
+            right_bound = Int(right_bound)
+        else:
+            right_bound = vars_by_name[right_bound]
+        return [left_bound, right_bound]
+    else:
+        raise ParserError(f"Unsupported operator: {op}")
+
+
+def get_outer_loop_var(
+    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
+) -> Int:
     outer_loop_bounds = loop_bounds[0]
     outer_loop_var_name = outer_loop_bounds[0][0]
     outer_loop_var = vars_by_name[outer_loop_var_name]
@@ -564,22 +585,7 @@ def get_loop_conditions(
         raise ParserError(
             f"Outer loop variable must be of type int, but got {outer_loop_var.type}"
         )
-    op = outer_loop_bounds[-1][1]
-    loop_left_cond: Optional[Bool] = None
-    if op == "<":
-        left_bound = outer_loop_bounds[0][-1]
-        right_bound = outer_loop_bounds[-1][-1]
-        if isinstance(left_bound, int):
-            loop_left_cond = outer_loop_var >= Int(left_bound)
-        else:
-            loop_left_cond = outer_loop_var >= vars_by_name[left_bound]
-        if isinstance(right_bound, int):
-            loop_right_cond = outer_loop_var <= Int(right_bound)
-        else:
-            loop_right_cond = outer_loop_var <= vars_by_name[right_bound]
-        return [loop_left_cond, loop_right_cond]
-    else:
-        raise ParserError(f"Unsupported operator: {op}")
+    return outer_loop_var
 
 
 def get_vars_by_type_str(vars: list[ObjectT]) -> list[ObjectT]:
@@ -590,21 +596,30 @@ def get_vars_by_type_str(vars: list[ObjectT]) -> list[ObjectT]:
     }
 
 
-def get_outer_loop_grammar_fn(
+def get_vars_by_name(vars: list[ObjectT]) -> dict[str, ObjectT]:
+    return {var.src.name(): var for var in vars}
+
+
+def get_outer_loop_inv(
     writes: list[ObjectT],
     reads: list[ObjectT],
     in_scope: list[ObjectT],
     relaxed: bool,
     loop_bounds: list[tuple[Any]],
     compute_node: Node,
-) -> Callable[[list[ObjectT], list[ObjectT], list[ObjectT], Bool], Bool]:
+) -> Bool:
     writes_by_name = {var.src.name(): var for var in writes}
     reads_by_name = {var.src.name(): var for var in reads}
     in_scope_by_name = {var.src.name(): var for var in in_scope}
     all_vars_by_name = {**writes_by_name, **reads_by_name, **in_scope_by_name}
 
     # First get the loop bounds
-    loop_conditions = get_loop_conditions(loop_bounds, all_vars_by_name)
+    left_bound, right_bound = get_outer_loop_bounds(loop_bounds, all_vars_by_name)
+    loop_var = get_outer_loop_var(loop_bounds, all_vars_by_name)
+    loop_conditions = [
+        loop_var >= left_bound,
+        loop_var <= right_bound,
+    ]
 
     # Then we get the expression tree
     # Find in this loop what needs to be on the lhs of loop invariant
@@ -616,20 +631,57 @@ def get_outer_loop_grammar_fn(
         if var.src.name() != loop_var_name and not var.src.name().endswith(".tmp")
     ]
     for write_var in writes_needed:
-        if is_int_vector(write_var):
-            type_expr_tree = build_type_expression_tree(
-                compute_node, "vector", all_vars_by_name
-            )
-        elif is_int_matrix(write_var):
-            type_expr_tree = build_type_expression_tree(
-                compute_node, "matrix", all_vars_by_name
-            )
-        else:
-            raise ParserError(f"Unsupported type: {write_var.type}")
-        read_vars_by_type = get_vars_by_type_str(reads + in_scope)
-        obj_expr_tree = preorder_traversal_with_objs(type_expr_tree, read_vars_by_type)
+        type_expr_tree = build_type_expression_tree(
+            compute_node, get_str_type(write_var), all_vars_by_name
+        )
+        read_and_in_scope_vars_by_type: dict[str, list[ObjectT]] = {}
+        scalar_vars = get_scalar_vars(reads + in_scope)
+        vector_vars = get_vector_vars(reads + in_scope)
+        matrix_vars = get_matrix_vars(reads + in_scope)
+        if len(scalar_vars) > 0:
+            read_and_in_scope_vars_by_type["scalar"] = scalar_vars
+        if len(vector_vars) > 0:
+            vector_vars = [choose(*vector_vars)[left_bound:loop_var]]
+            read_and_in_scope_vars_by_type["vector"] = vector_vars
+        if len(matrix_vars) > 0:
+            read_and_in_scope_vars_by_type["matrix"] = matrix_vars
+        obj_expr_tree = preorder_traversal_with_objs(
+            type_expr_tree, read_and_in_scope_vars_by_type
+        )
         write_conditions.append(write_var == obj_expr_tree)
     return and_objects(*loop_conditions, *write_conditions)
+
+
+def get_ps(
+    writes: list[ObjectT],
+    reads: list[ObjectT],
+    in_scope: list[ObjectT],
+    relaxed: bool,
+    loop_bounds: list[tuple[Any]],
+    compute_node: Node,
+) -> Bool:
+    if len(writes) != 1:
+        raise ParserError("Expected only one write variable in ps")
+    rv = writes[0]
+    all_vars_by_name = get_vars_by_name(writes + reads + in_scope)
+    left_bound, right_bound = get_outer_loop_bounds(loop_bounds, all_vars_by_name)
+    read_vars_by_type: dict[str, list[ObjectT]] = {}
+    scalar_vars = get_scalar_vars(reads)
+    vector_vars = get_vector_vars(reads)
+    matrix_vars = get_matrix_vars(reads)
+    if len(scalar_vars) > 0:
+        read_vars_by_type["scalar"] = scalar_vars
+    if len(vector_vars) > 0:
+        vector_vars = [choose(*vector_vars)[left_bound:right_bound]]
+        read_vars_by_type["vector"] = vector_vars
+    if len(matrix_vars) > 0:
+        matrix_vars = [choose(*matrix_vars)[left_bound:right_bound]]
+        read_vars_by_type["vector"] = matrix_vars
+    type_expr_tree = build_type_expression_tree(
+        compute_node, get_str_type(rv), all_vars_by_name
+    )
+    obj_expr_tree = preorder_traversal_with_objs(type_expr_tree, read_vars_by_type)
+    return rv == obj_expr_tree
 
 
 if __name__ == "__main__":
