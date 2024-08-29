@@ -330,7 +330,7 @@ def preorder_traversal_with_objs(
             right_expr = preorder_traversal_with_objs(
                 type_expr_tree["right"], vars_by_type_str
             )
-            # import pdb; pdb.set_trace()
+            # TODO(jie): support matrix
             if operator == "+":
                 return List.add(left_expr, right_expr)
             elif operator == "-":
