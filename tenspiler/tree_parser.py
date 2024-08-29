@@ -1,13 +1,15 @@
 import argparse
 import glob
+import importlib
 import os
+from collections import defaultdict
 from typing import Any, Optional, Union
 
 from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
 
-from metalift.frontend.llvm import Driver
-from metalift.ir import Bool, Int, List, Matrix, ObjectT, choose
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose
 from metalift.vc_util import and_objects
 
 
@@ -210,6 +212,27 @@ primitive_types_query = """
 (function_declarator (parameter_list (parameter_declaration(primitive_type))@type))
 """
 
+# Loop and scalar queries
+loop_lower_ident_query = """
+(for_statement initializer: (declaration declarator: (init_declarator declarator: (identifier) @ident)))
+"""
+
+loop_lower_init_query = """
+(for_statement initializer: (declaration declarator: (init_declarator value: (number_literal) @literal)))
+"""
+
+loop_lower_assign_query = """
+(for_statement initializer: (assignment_expression)@ident)
+"""
+
+loop_upper_cond_query = """
+(for_statement condition: (binary_expression)@cond)
+"""
+
+scalar_query = """
+(number_literal)@scalar
+"""
+
 
 def _capture_to_text(capture: tuple[Node, str]) -> str:
     return capture[0].text.decode()
@@ -217,6 +240,63 @@ def _capture_to_text(capture: tuple[Node, str]) -> str:
 
 def _node_to_text(node: Node) -> str:
     return node.text.decode()
+
+
+def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple]]:
+    # Queries for lower and upper loop bounds
+    loop_lower_ident = LANGUAGE.query(loop_lower_ident_query).captures(tree_node)
+    loop_lower_init = LANGUAGE.query(loop_lower_init_query).captures(tree_node)
+    loop_lower_assign = LANGUAGE.query(loop_lower_assign_query).captures(tree_node)
+
+    # Ensure identifiers and initializations match in count
+    if len(loop_lower_ident) != len(loop_lower_init):
+        raise ValueError("Mismatch between number of identifiers and initializations")
+
+    # Extract lower bounds
+    lower_bounds = []
+    if loop_lower_ident:
+        lower_bounds = [
+            (ident[0].text.decode(), init[0].text.decode())
+            for ident, init in zip(loop_lower_ident, loop_lower_init)
+        ]
+    elif loop_lower_assign:
+        lower_bounds = [
+            (
+                assign[0].child_by_field_name("left").text.decode(),
+                assign[0].child_by_field_name("right").text.decode(),
+            )
+            for assign in loop_lower_assign
+        ]
+
+    # Query and extract upper bounds
+    loop_upper_cond = LANGUAGE.query(loop_upper_cond_query).captures(tree_node)
+
+    if len(loop_upper_cond) != len(loop_lower_ident) and len(loop_upper_cond) != len(
+        loop_lower_assign
+    ):
+        raise ValueError(
+            "Mismatch between the number of upper conditions and lower bounds"
+        )
+
+    upper_bounds = [
+        (
+            cond[0].child_by_field_name("left").text.decode(),
+            cond[0].child_by_field_name("operator").text.decode(),
+            cond[0].child_by_field_name("right").text.decode(),
+        )
+        for cond in loop_upper_cond
+    ]
+
+    # Combine lower and upper bounds
+    bounds = [[lower, upper] for lower, upper in zip(lower_bounds, upper_bounds)]
+
+    return bounds
+
+
+def get_scalars_from_node(tree_node: Node) -> list[Int]:
+    scalars = LANGUAGE.query(scalar_query).captures(tree_node)
+    scalars = list(set([scalar[0].text.decode() for scalar in scalars]))
+    return [Int(int(s)) for s in scalars]
 
 
 def build_type_expression_tree(
@@ -318,29 +398,37 @@ def preorder_traversal(node):
 def preorder_traversal_with_objs(
     type_expr_tree: Union[dict[str, Any], str],
     vars_by_type_str: dict[str, list[ObjectT]],
-):
+    target_lang_fns: set[Object],
+) -> Object:
     if isinstance(type_expr_tree, str):
         return choose(*vars_by_type_str[type_expr_tree])
     if isinstance(type_expr_tree, dict):
         if type_expr_tree["type"] == "operator":
+            {}
             operator = type_expr_tree["operator"]
             left_expr = preorder_traversal_with_objs(
-                type_expr_tree["left"], vars_by_type_str
+                type_expr_tree["left"], vars_by_type_str, target_lang_fns
             )
             right_expr = preorder_traversal_with_objs(
-                type_expr_tree["right"], vars_by_type_str
+                type_expr_tree["right"], vars_by_type_str, target_lang_fns
             )
-            # TODO(jie): support matrix
             if operator == "+":
-                return List.add(left_expr, right_expr)
+                call_obj = List.add(left_expr, right_expr)
             elif operator == "-":
-                return List.sub(left_expr, right_expr)
+                call_obj = List.sub(left_expr, right_expr)
             elif operator == "*":
-                return List.mul(left_expr, right_expr)
+                call_obj = List.mul(left_expr, right_expr)
             elif operator == "/":
-                return List.div(left_expr, right_expr)
+                call_obj = List.div(left_expr, right_expr)
             else:
                 raise ParserError(f"Unsupported operator: {operator}")
+
+            # Get the function definition related to
+            tenspiler_common = importlib.import_module("tenspiler.tenspiler_common")
+            # Get the function or class dynamically
+            function = getattr(tenspiler_common, call_obj.src.name())
+            target_lang_fns.add(function)
+            return call_obj
         else:
             raise ParserError(f"Unsupported type: {type_expr_tree['type']}")
 
@@ -565,11 +653,17 @@ def get_outer_loop_bounds(
         if isinstance(left_bound, int):
             left_bound = Int(left_bound)
         else:
-            left_bound = vars_by_name[left_bound]
+            if left_bound.isnumeric():
+                left_bound = Int(int(left_bound))
+            else:
+                left_bound = vars_by_name[left_bound]
         if isinstance(right_bound, int):
             right_bound = Int(right_bound)
         else:
-            right_bound = vars_by_name[right_bound]
+            if right_bound.isnumeric():
+                right_bound = Int(int(right_bound))
+            else:
+                right_bound = vars_by_name[right_bound]
         return [left_bound, right_bound]
     else:
         raise ParserError(f"Unsupported operator: {op}")
@@ -607,6 +701,8 @@ def get_outer_loop_inv(
     relaxed: bool,
     loop_bounds: list[tuple[Any]],
     compute_node: Node,
+    scalars: list[Int],
+    target_lang_fns: set[Object],
 ) -> Bool:
     writes_by_name = {var.src.name(): var for var in writes}
     reads_by_name = {var.src.name(): var for var in reads}
@@ -635,7 +731,7 @@ def get_outer_loop_inv(
             compute_node, get_str_type(write_var), all_vars_by_name
         )
         read_and_in_scope_vars_by_type: dict[str, list[ObjectT]] = {}
-        scalar_vars = get_scalar_vars(reads + in_scope)
+        scalar_vars = get_scalar_vars(reads + in_scope) + scalars
         vector_vars = get_vector_vars(reads + in_scope)
         matrix_vars = get_matrix_vars(reads + in_scope)
         if len(scalar_vars) > 0:
@@ -646,7 +742,7 @@ def get_outer_loop_inv(
         if len(matrix_vars) > 0:
             read_and_in_scope_vars_by_type["matrix"] = matrix_vars
         obj_expr_tree = preorder_traversal_with_objs(
-            type_expr_tree, read_and_in_scope_vars_by_type
+            type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns
         )
         write_conditions.append(write_var == obj_expr_tree)
     return and_objects(*loop_conditions, *write_conditions)
@@ -659,6 +755,8 @@ def get_ps(
     relaxed: bool,
     loop_bounds: list[tuple[Any]],
     compute_node: Node,
+    scalars: list[Int],
+    target_lang_fns: list[Object],
 ) -> Bool:
     if len(writes) != 1:
         raise ParserError("Expected only one write variable in ps")
@@ -666,7 +764,7 @@ def get_ps(
     all_vars_by_name = get_vars_by_name(writes + reads + in_scope)
     left_bound, right_bound = get_outer_loop_bounds(loop_bounds, all_vars_by_name)
     read_vars_by_type: dict[str, list[ObjectT]] = {}
-    scalar_vars = get_scalar_vars(reads)
+    scalar_vars = get_scalar_vars(reads) + scalars
     vector_vars = get_vector_vars(reads)
     matrix_vars = get_matrix_vars(reads)
     if len(scalar_vars) > 0:
@@ -680,8 +778,63 @@ def get_ps(
     type_expr_tree = build_type_expression_tree(
         compute_node, get_str_type(rv), all_vars_by_name
     )
-    obj_expr_tree = preorder_traversal_with_objs(type_expr_tree, read_vars_by_type)
+    obj_expr_tree = preorder_traversal_with_objs(
+        type_expr_tree, read_vars_by_type, target_lang_fns
+    )
     return rv == obj_expr_tree
+
+
+# TODO(jie): add return type
+def analyze(file_path: str, func_name: str, axioms: list[Object]):
+    driver = Driver()
+    root_node = find_root_node_from_file(file_path)
+    scalars = get_scalars_from_node(root_node)
+    loop_bounds = get_loop_bounds_from_node(root_node)
+    input_vars = make_input_variables(root_node, driver)
+    compute_node = find_compute_from_file(file_path)
+
+    TARGET_LANG_FNS: set[Object] = set()
+
+    def ps_grammar(
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+    ) -> Bool:
+        ps_cond = get_ps(
+            writes=writes,
+            reads=reads,
+            in_scope=in_scope,
+            relaxed=relaxed,
+            loop_bounds=loop_bounds,
+            compute_node=compute_node,
+            scalars=scalars,
+            target_lang_fns=TARGET_LANG_FNS,
+        )
+        return ps_cond
+
+    def inv_grammar(
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+    ) -> Bool:
+        return get_outer_loop_inv(
+            writes=writes,
+            reads=reads,
+            in_scope=in_scope,
+            relaxed=relaxed,
+            loop_bounds=loop_bounds,
+            compute_node=compute_node,
+            scalars=scalars,
+            target_lang_fns=TARGET_LANG_FNS,
+        )
+
+    ll_path = file_path.replace(".cc", ".ll")
+    loops_path = file_path.replace(".cc", ".loops")
+    fn = driver.analyze(
+        ll_path,
+        loops_path,
+        func_name,
+        lambda: list(TARGET_LANG_FNS) + axioms,
+        defaultdict(lambda: InvGrammar(inv_grammar, [])),
+        ps_grammar,
+    )
+    return driver, input_vars, fn
 
 
 if __name__ == "__main__":

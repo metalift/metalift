@@ -274,14 +274,6 @@
   )
 )
 
-; (define-bounded (integer-sqrt-noerr n)
-;   (define-bounded (sqrt-helper guess)
-;     (if (or (= guess 0) (= guess 1) (> guess 64))
-;         1
-;         (if (>= guess (quotient n guess))
-;             guess
-;             (sqrt-helper (quotient (+ guess (quotient n guess)) 2)))))
-;   (if (<= n 0) 0 (sqrt-helper (quotient n 2))))
 (define-bounded (integer-sqrt-noerr n) n)
 
 (define-bounded (integer-exp-noerr n)
