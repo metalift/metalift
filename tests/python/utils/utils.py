@@ -2,6 +2,7 @@ from metalift.ir import (
     Add,
     And,
     Call,
+    Choose,
     Div,
     Eq,
     Expr,
@@ -50,6 +51,8 @@ def codegen(expr: Expr) -> str:
             return f"{eval(expr.e1())} >= {eval(expr.e2())}"
         if isinstance(expr, And):
             return " and ".join(eval(a) for a in expr.args)
+        if isinstance(expr, Choose) and len(expr.arguments()) == 1:
+            return eval(expr.arguments()[0])
         else:
             return "%s" % (expr)
 

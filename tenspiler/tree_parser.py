@@ -809,6 +809,9 @@ def analyze(file_path: str, func_name: str, axioms: list[Object]):
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalars_from_node(root_node)
+    import pdb
+
+    pdb.set_trace()
     loop_bounds = get_loop_bounds_from_node(root_node)
     input_vars = make_input_variables(root_node, driver)
     compute_node = find_compute_from_file(file_path)
