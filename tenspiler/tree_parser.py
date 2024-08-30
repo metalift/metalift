@@ -383,9 +383,9 @@ def build_type_expression_tree(
         elif node.type == "expression_statement":
             return helper(node.children[0], target_type)
         elif node.type == "declaration":
-            return helper(node.child_by_field_name("declarator"))
+            return helper(node.child_by_field_name("declarator"), target_type)
         elif node.type == "init_declarator":
-            return helper(node.child_by_field_name("value"))
+            return helper(node.child_by_field_name("value"), target_type)
         elif node.type == "if_statement":
             return {
                 "type": "if_statement",

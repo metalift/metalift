@@ -1,4 +1,4 @@
-from tenspiler.axioms_tenspiler import vec_scalar_mul_axiom
+from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom, vec_scalar_mul_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tree_parser import analyze
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
@@ -7,7 +7,7 @@ if __name__ == "__main__":
     driver, input_vars, mult_add_into_cpu = analyze(
         file_path="tenspiler/c2taco/cpp/for_synthesis/darknet/mult_add_into_cpu.cc",
         func_name="mult_add_into_cpu",
-        axioms=[vec_scalar_mul_axiom],
+        axioms=[vec_elemwise_add_axiom, vec_scalar_mul_axiom],
     )
     N, X, Y, Z = input_vars["N"], input_vars["X"], input_vars["Y"], input_vars["Z"]
     driver.add_precondition(N >= 1)
