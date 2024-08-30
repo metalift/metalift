@@ -253,7 +253,7 @@ def _node_to_text(node: Node) -> str:
     return node.text.decode()
 
 
-def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple]]:
+def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple[Node]]]:
     # Queries for lower and upper loop bounds
     loop_lower_ident = LANGUAGE.query(loop_lower_ident_query).captures(tree_node)
     loop_lower_init = LANGUAGE.query(loop_lower_init_query).captures(tree_node)
@@ -267,14 +267,14 @@ def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple]]:
     lower_bounds = []
     if loop_lower_ident:
         lower_bounds = [
-            (ident[0].text.decode(), init[0].text.decode())
+            (ident[0], init[0])
             for ident, init in zip(loop_lower_ident, loop_lower_init)
         ]
     elif loop_lower_assign:
         lower_bounds = [
             (
-                assign[0].child_by_field_name("left").text.decode(),
-                assign[0].child_by_field_name("right").text.decode(),
+                assign[0].child_by_field_name("left"),
+                assign[0].child_by_field_name("right"),
             )
             for assign in loop_lower_assign
         ]
@@ -291,9 +291,9 @@ def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple]]:
 
     upper_bounds = [
         (
-            cond[0].child_by_field_name("left").text.decode(),
-            cond[0].child_by_field_name("operator").text.decode(),
-            cond[0].child_by_field_name("right").text.decode(),
+            cond[0].child_by_field_name("left"),
+            cond[0].child_by_field_name("operator"),
+            cond[0].child_by_field_name("right"),
         )
         for cond in loop_upper_cond
     ]
@@ -302,6 +302,29 @@ def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple]]:
     bounds = [[lower, upper] for lower, upper in zip(lower_bounds, upper_bounds)]
 
     return bounds
+
+
+def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
+    if node.type == "binary_expression":
+        left = parse_scalar_node(node.child_by_field_name("left"), all_vars_by_name)
+        right = parse_scalar_node(node.child_by_field_name("right"), all_vars_by_name)
+        operator = node.child_by_field_name("operator").text.decode()
+        if operator == "+":
+            return left + right
+        elif operator == "-":
+            return left - right
+        elif operator == "*":
+            return left * right
+        elif operator == "/":
+            return left / right
+        else:
+            raise ParserError(f"Unsupported operator: {operator}")
+    elif node.type == "identifier":
+        var_name = node.text.decode()
+        return all_vars_by_name[var_name]
+    elif node.type == "number_literal":
+        return Int(int(node.text.decode()))
+    raise ParserError(f"Unsupported node type: {node.type}")
 
 
 def get_scalars_from_node(tree_node: Node) -> list[Int]:
@@ -691,27 +714,16 @@ def get_str_type(var: ObjectT) -> str:
 
 
 def get_outer_loop_bounds(
-    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
+    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
 ) -> list[Bool]:
     outer_loop_bounds = loop_bounds[0]
     op = outer_loop_bounds[-1][1]
-    if op == "<":
+    op_str = op.text.decode()
+    if op_str == "<":
         left_bound = outer_loop_bounds[0][-1]
         right_bound = outer_loop_bounds[-1][-1]
-        if isinstance(left_bound, int):
-            left_bound = Int(left_bound)
-        else:
-            if left_bound.isnumeric():
-                left_bound = Int(int(left_bound))
-            else:
-                left_bound = vars_by_name[left_bound]
-        if isinstance(right_bound, int):
-            right_bound = Int(right_bound)
-        else:
-            if right_bound.isnumeric():
-                right_bound = Int(int(right_bound))
-            else:
-                right_bound = vars_by_name[right_bound]
+        left_bound = parse_scalar_node(left_bound, vars_by_name)
+        right_bound = parse_scalar_node(right_bound, vars_by_name)
         return [left_bound, right_bound]
     else:
         raise ParserError(f"Unsupported operator: {op}")
@@ -721,8 +733,8 @@ def get_outer_loop_var(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> Int:
     outer_loop_bounds = loop_bounds[0]
-    outer_loop_var_name = outer_loop_bounds[0][0]
-    outer_loop_var = vars_by_name[outer_loop_var_name]
+    outer_loop_var_node = outer_loop_bounds[0][0]
+    outer_loop_var = parse_scalar_node(outer_loop_var_node, vars_by_name)
     if outer_loop_var.type != Int:
         raise ParserError(
             f"Outer loop variable must be of type int, but got {outer_loop_var.type}"
@@ -769,7 +781,7 @@ def get_outer_loop_inv(
     # Then we get the expression tree
     # Find in this loop what needs to be on the lhs of loop invariant
     write_conditions: list[Bool] = []
-    loop_var_name = loop_bounds[0][0][0]
+    loop_var_name = loop_var.src.name()
     writes_needed = [
         var
         for var in writes
@@ -785,7 +797,6 @@ def get_outer_loop_inv(
     outer_loop_init_decl_var_names = [
         node.text.decode() for node, _ in outer_loop_init_decl_vars
     ]
-
     for write_var in writes_needed:
         if (
             write_var.src.name()
