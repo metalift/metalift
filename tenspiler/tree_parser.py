@@ -180,6 +180,16 @@ inner_loop_push_query = """
 (for_statement body: (compound_statement (for_statement body: (compound_statement (expression_statement (call_expression)@call_expr)@expr_stmt))))
 """
 
+# Declare statements within the outer loop
+outer_loop_decl_var_names_query = """
+(for_statement body: (compound_statement (declaration (init_declarator (identifier)@id))
+))
+"""
+outer_loop_init_decl_var_names_query = """
+(for_statement body: (compound_statement (declaration declarator: (identifier)@id))
+)
+"""
+
 # Matches the body of the for loop that has a compound statement
 # An example of a compound statment is sum += a[i] * a[i];
 outer_loop_compound_query = """
@@ -301,7 +311,10 @@ def get_scalars_from_node(tree_node: Node) -> list[Int]:
 
 
 def build_type_expression_tree(
-    node: Node, target_type: str, all_vars_by_name: dict[str, ObjectT]
+    compute_node: Node,
+    root_node: Node,
+    target_type: str,
+    all_vars_by_name: dict[str, ObjectT],
 ) -> Union[dict[str, Any], str]:
     def helper(node: Node, target_type: str):
         if node.type == "assignment_expression":
@@ -351,6 +364,10 @@ def build_type_expression_tree(
             }
         elif node.type == "identifier":
             var_name = node.text.decode()
+            decl_node = find_int_init_decl_to_var(var_name, root_node)
+            if decl_node is not None:
+                return helper(decl_node.child_by_field_name("value"), target_type)
+
             var_type = get_str_type(all_vars_by_name[var_name])
             if var_type == "scalar":
                 return "scalar"
@@ -379,7 +396,7 @@ def build_type_expression_tree(
         else:
             return {"type": node.type, "value": node.text.decode()}
 
-    return helper(node, target_type)
+    return helper(compute_node, target_type)
 
 
 def preorder_traversal(node):
@@ -462,6 +479,15 @@ def find_init_decl_to_var(var_name: str, tree_node: Node):
     return None
 
 
+def find_int_init_decl_to_var(var_name: str, tree_node: Node):
+    init_decl_stmts = LANGUAGE.query(init_decl_query).captures(tree_node)
+    for init_decl_stmt in init_decl_stmts:
+        decl_node = init_decl_stmt[0]
+        if decl_node.child_by_field_name("declarator").text.decode() == var_name:
+            return decl_node
+    return None
+
+
 def find_input_type(var_name: str, tree_node: Node) -> str:
     template_input_types = LANGUAGE.query(template_types_query).captures(tree_node)
     primitive_input_types = LANGUAGE.query(primitive_types_query).captures(tree_node)
@@ -497,7 +523,7 @@ def make_input_variables(tree_node: Node, driver: Driver) -> dict[str, ObjectT]:
 
 def find_compute_from_node(
     tree_node: Node,
-) -> Union[dict[str, Any], tuple[dict[str, Any], dict[str, Any]]]:
+) -> Node:
     # Get number of loops
     loops = LANGUAGE.query(loop_query).captures(tree_node)
     num_loops = len(loops)
@@ -614,8 +640,10 @@ def find_compute_from_node(
 
 def find_compute_from_file(
     file_path: str,
-) -> Union[dict[str, Any], tuple[dict[str, Any], dict[str, Any]]]:
-    return find_compute_from_node(find_root_node_from_file(file_path))
+) -> Node:
+    root_node = find_root_node_from_file(file_path)
+    compute_node = find_compute_from_node(root_node)
+    return compute_node
 
 
 def find_root_node_from_file(file_path: str) -> Node:
@@ -723,6 +751,7 @@ def get_outer_loop_inv(
     compute_node: Node,
     scalars: list[Int],
     target_lang_fns: set[Object],
+    root_node: Node,
 ) -> Bool:
     writes_by_name = {var.src.name(): var for var in writes}
     reads_by_name = {var.src.name(): var for var in reads}
@@ -746,14 +775,33 @@ def get_outer_loop_inv(
         for var in writes
         if var.src.name() != loop_var_name and not var.src.name().endswith(".tmp")
     ]
+    outer_loop_decl_vars = LANGUAGE.query(outer_loop_decl_var_names_query).captures(
+        root_node
+    )
+    outer_loop_decl_var_names = [node.text.decode() for node, _ in outer_loop_decl_vars]
+    outer_loop_init_decl_vars = LANGUAGE.query(
+        outer_loop_init_decl_var_names_query
+    ).captures(root_node)
+    outer_loop_init_decl_var_names = [
+        node.text.decode() for node, _ in outer_loop_init_decl_vars
+    ]
+
     for write_var in writes_needed:
+        if (
+            write_var.src.name()
+            in outer_loop_decl_var_names + outer_loop_init_decl_var_names
+        ):
+            continue
         type_expr_tree = build_type_expression_tree(
-            compute_node, get_str_type(write_var), all_vars_by_name
+            compute_node, root_node, get_str_type(write_var), all_vars_by_name
         )
         read_and_in_scope_vars_by_type: dict[str, list[ObjectT]] = {}
-        scalar_vars = get_scalar_vars(reads + in_scope) + scalars
-        vector_vars = get_vector_vars(reads + in_scope)
-        matrix_vars = get_matrix_vars(reads + in_scope)
+        non_current_write_vars = list(set(writes).difference({write_var}))
+        scalar_vars = (
+            get_scalar_vars(reads + in_scope + non_current_write_vars) + scalars
+        )
+        vector_vars = get_vector_vars(reads + in_scope + non_current_write_vars)
+        matrix_vars = get_matrix_vars(reads + in_scope + non_current_write_vars)
         if len(scalar_vars) > 0:
             read_and_in_scope_vars_by_type["scalar"] = scalar_vars
         if len(vector_vars) > 0:
@@ -777,6 +825,7 @@ def get_ps(
     compute_node: Node,
     scalars: list[Int],
     target_lang_fns: list[Object],
+    root_node: Node,
 ) -> Bool:
     if len(writes) != 1:
         raise ParserError("Expected only one write variable in ps")
@@ -796,7 +845,7 @@ def get_ps(
         matrix_vars = [choose(*matrix_vars)[left_bound:right_bound]]
         read_vars_by_type["vector"] = matrix_vars
     type_expr_tree = build_type_expression_tree(
-        compute_node, get_str_type(rv), all_vars_by_name
+        compute_node, root_node, get_str_type(rv), all_vars_by_name
     )
     obj_expr_tree = preorder_traversal_with_objs(
         type_expr_tree, read_vars_by_type, target_lang_fns
@@ -809,9 +858,6 @@ def analyze(file_path: str, func_name: str, axioms: list[Object]):
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalars_from_node(root_node)
-    import pdb
-
-    pdb.set_trace()
     loop_bounds = get_loop_bounds_from_node(root_node)
     input_vars = make_input_variables(root_node, driver)
     compute_node = find_compute_from_file(file_path)
@@ -830,6 +876,7 @@ def analyze(file_path: str, func_name: str, axioms: list[Object]):
             compute_node=compute_node,
             scalars=scalars,
             target_lang_fns=TARGET_LANG_FNS,
+            root_node=root_node,
         )
         return ps_cond
 
@@ -845,6 +892,7 @@ def analyze(file_path: str, func_name: str, axioms: list[Object]):
             compute_node=compute_node,
             scalars=scalars,
             target_lang_fns=TARGET_LANG_FNS,
+            root_node=root_node,
         )
 
     ll_path = file_path.replace(".cc", ".ll")
