@@ -762,9 +762,6 @@ def synthesize(
                     )
                 else:
                     print("Synthesized PS and INV Candidates\n")
-                    import pdb
-
-                    pdb.set_trace()
                     for candidate in candidates_smt:
                         print(
                             f"def {candidate.name()}({', '.join([a.args[0] for a in candidate.arguments()])})"
