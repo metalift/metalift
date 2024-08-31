@@ -324,6 +324,27 @@ def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
         return all_vars_by_name[var_name]
     elif node.type == "number_literal":
         return Int(int(node.text.decode()))
+    elif node.type == "call_expression":
+        function_node = node.child_by_field_name("function")
+        function_name = function_node.child_by_field_name("field").text.decode()
+        if function_name != "size":
+            raise ParserError(f"Unsupported function: {function_name}")
+        arg_node = function_node.child_by_field_name("argument")
+        return parse_scalar_node(arg_node, all_vars_by_name)
+    elif node.type == "subscript_expression":
+        tensor_node = node.child_by_field_name("argument")
+        if tensor_node.type != "identifier":
+            raise ParserError(f"Unsupported tensor type: {tensor_node.type}")
+        tensor_name = tensor_node.text.decode()
+        tensor = all_vars_by_name[tensor_name]
+        index_str = (
+            node.child_by_field_name("indices").text.decode().strip("[").strip("]")
+        )
+        if not index_str.isnumeric():
+            raise ParserError(f"Unsupported index: {index_str}")
+        index = int(index_str)
+        return tensor[index]
+
     raise ParserError(f"Unsupported node type: {node.type}")
 
 
@@ -713,33 +734,61 @@ def get_str_type(var: ObjectT) -> str:
         raise ParserError(f"Unsupported type: {var.type}")
 
 
-def get_outer_loop_bounds(
+def get_loop_bounds_in_ir(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
 ) -> list[Bool]:
-    outer_loop_bounds = loop_bounds[0]
-    op = outer_loop_bounds[-1][1]
+    op = loop_bounds[-1][1]
     op_str = op.text.decode()
     if op_str == "<":
-        left_bound = outer_loop_bounds[0][-1]
-        right_bound = outer_loop_bounds[-1][-1]
+        left_bound = loop_bounds[0][-1]
+        right_bound = loop_bounds[-1][-1]
         left_bound = parse_scalar_node(left_bound, vars_by_name)
+        import pdb
+
+        pdb.set_trace()
         right_bound = parse_scalar_node(right_bound, vars_by_name)
         return [left_bound, right_bound]
     else:
         raise ParserError(f"Unsupported operator: {op}")
 
 
+def get_outer_loop_bounds(
+    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
+) -> list[Bool]:
+    outer_loop_bounds = loop_bounds[0]
+    return get_loop_bounds_in_ir(outer_loop_bounds, vars_by_name)
+
+
+def get_inner_loop_bounds(
+    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
+) -> list[Bool]:
+    # TODO(jie)
+    inner_loop_bounds = loop_bounds[1]
+    return get_loop_bounds_in_ir(inner_loop_bounds, vars_by_name)
+
+
+def get_loop_var(loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]) -> Int:
+    loop_var_node = loop_bounds[0][0]
+    loop_var = parse_scalar_node(loop_var_node, vars_by_name)
+    if loop_var.type != Int:
+        raise ParserError(
+            f"Outer loop variable must be of type int, but got {loop_var.type}"
+        )
+    return loop_var
+
+
 def get_outer_loop_var(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> Int:
     outer_loop_bounds = loop_bounds[0]
-    outer_loop_var_node = outer_loop_bounds[0][0]
-    outer_loop_var = parse_scalar_node(outer_loop_var_node, vars_by_name)
-    if outer_loop_var.type != Int:
-        raise ParserError(
-            f"Outer loop variable must be of type int, but got {outer_loop_var.type}"
-        )
-    return outer_loop_var
+    return get_loop_var(outer_loop_bounds, vars_by_name)
+
+
+def get_inner_loop_var(
+    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
+) -> Int:
+    inner_loop_bounds = loop_bounds[1]
+    return get_loop_var(inner_loop_bounds, vars_by_name)
 
 
 def get_vars_by_type_str(vars: list[ObjectT]) -> list[ObjectT]:
@@ -865,7 +914,7 @@ def get_ps(
 
 
 # TODO(jie): add return type
-def analyze(file_path: str, func_name: str, axioms: list[Object]):
+def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalars_from_node(root_node)
@@ -917,6 +966,44 @@ def analyze(file_path: str, func_name: str, axioms: list[Object]):
         ps_grammar,
     )
     return driver, input_vars, fn
+
+
+def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
+    driver = Driver()
+    root_node = find_root_node_from_file(file_path)
+    scalars = get_scalars_from_node(root_node)
+    loop_bounds = get_loop_bounds_from_node(root_node)
+    input_vars = make_input_variables(root_node, driver)
+    compute_node = find_compute_from_file(file_path)
+    import pdb
+
+    pdb.set_trace()
+
+    TARGET_LANG_FNS: set[Object] = set()
+
+
+def get_inner_loop_inv(
+    writes: list[ObjectT],
+    reads: list[ObjectT],
+    in_scope: list[ObjectT],
+    relaxed: bool,
+    loop_bounds: list[tuple[Any]],
+    compute_node: Node,
+    scalars: list[Int],
+    target_lang_fns: set[Object],
+    root_node: Node,
+) -> Bool:
+    writes_by_name = {var.src.name(): var for var in writes}
+    reads_by_name = {var.src.name(): var for var in reads}
+    in_scope_by_name = {var.src.name(): var for var in in_scope}
+    all_vars_by_name = {**writes_by_name, **reads_by_name, **in_scope_by_name}
+    inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+        loop_bounds, all_vars_by_name
+    )
+    inner_loop_var = get_inner_loop_var(loop_bounds, all_vars_by_name)
+    import pdb
+
+    pdb.set_trace()
 
 
 if __name__ == "__main__":

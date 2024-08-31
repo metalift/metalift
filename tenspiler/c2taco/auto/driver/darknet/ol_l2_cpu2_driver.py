@@ -1,10 +1,10 @@
 from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom, vec_elemwise_sub_axiom
 from tenspiler.codegen.utils import DataType
-from tenspiler.tree_parser import analyze
+from tenspiler.tree_parser import analyze_single_loop
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 if __name__ == "__main__":
-    driver, input_vars, ol_l2_cpu2 = analyze(
+    driver, input_vars, ol_l2_cpu2 = analyze_single_loop(
         file_path="tenspiler/c2taco/cpp/for_synthesis/darknet/ol_l2_cpu2.cc",
         func_name="ol_l2_cpu2",
         axioms=[vec_elemwise_add_axiom, vec_elemwise_sub_axiom],
