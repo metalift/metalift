@@ -62,6 +62,7 @@ def scale_matrix_inv0_grammar(
 def scale_matrix_inv1_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
+    print("INV 1")
     # m, scale = reads
     # out, i = in_scope
     # j, _, row_vec = writes
