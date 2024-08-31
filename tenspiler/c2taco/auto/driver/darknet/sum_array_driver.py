@@ -1,10 +1,10 @@
 from tenspiler.axioms_tenspiler import reduce_sum_axiom
 from tenspiler.codegen.utils import DataType
-from tenspiler.tree_parser import analyze
+from tenspiler.tree_parser import analyze_single_loop
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 if __name__ == "__main__":
-    driver, input_vars, sum_array = analyze(
+    driver, input_vars, sum_array = analyze_single_loop(
         file_path="tenspiler/c2taco/cpp/for_synthesis/darknet/sum_array.cc",
         func_name="sum_array",
         axioms=[reduce_sum_axiom],
