@@ -9,7 +9,7 @@ from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose, ite
+from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, Var, choose, ite
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import call_reduce_sum, get_no_arg_bool_fn, reduce_sum
 
@@ -391,18 +391,17 @@ def build_type_expression_tree(
                 right_type = right_child["return_type"]
             else:
                 right_type = right_child
-
             return_type = "scalar"
             if (left_type, right_type) in {
-                ("vector", "int"),
-                ("int", "vector"),
+                ("vector", "scalar"),
+                ("scalar", "vector"),
                 ("vector", "vector"),
             }:
                 return_type = "vector"
             elif (left_type, right_type) in {
                 ("matrix", "matrix"),
-                ("matrix", "int"),
-                ("int", "matrix"),
+                ("matrix", "scalar"),
+                ("scalar", "matrix"),
             }:
                 return_type = "matrix"
             return {
@@ -501,6 +500,7 @@ def preorder_traversal_with_objs(
                 )
                 left_type = get_str_type(left_expr)
                 right_type = get_str_type(right_expr)
+                call_obj: Optional[Object] = None
                 if left_type == "matrix" or right_type == "matrix":
                     if operator == "+":
                         call_obj = Matrix.add(left_expr, right_expr)
@@ -523,7 +523,6 @@ def preorder_traversal_with_objs(
                         call_obj = List.div(left_expr, right_expr)
                     else:
                         raise ParserError(f"Unsupported operator: {operator}")
-
                 # Get the function definition related to
                 tenspiler_common = importlib.import_module("tenspiler.tenspiler_common")
                 # Get the function or class dynamically
@@ -784,7 +783,9 @@ def get_inner_loop_bounds(
     return get_loop_bounds_in_ir(inner_loop_bounds, vars_by_name)
 
 
-def get_loop_var(loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]) -> Int:
+def get_loop_var_in_ir(
+    loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
+) -> Int:
     loop_var_node = loop_bounds[0][0]
     loop_var = parse_scalar_node(loop_var_node, vars_by_name)
     if loop_var.type != Int:
@@ -798,14 +799,14 @@ def get_outer_loop_var(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> Int:
     outer_loop_bounds = loop_bounds[0]
-    return get_loop_var(outer_loop_bounds, vars_by_name)
+    return get_loop_var_in_ir(outer_loop_bounds, vars_by_name)
 
 
 def get_inner_loop_var(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> Int:
     inner_loop_bounds = loop_bounds[1]
-    return get_loop_var(inner_loop_bounds, vars_by_name)
+    return get_loop_var_in_ir(inner_loop_bounds, vars_by_name)
 
 
 def get_vars_by_type_str(vars: list[ObjectT]) -> list[ObjectT]:
@@ -830,26 +831,19 @@ def get_outer_loop_inv(
     scalars: list[Int],
     target_lang_fns: set[Object],
     root_node: Node,
-    outer_loop_writes_needed: set[Object],
+    outer_loop_writes_needed: list[Object],
+    is_single_loop: bool,
     is_outer_loop_index_first: Optional[Callable[[], bool]] = None,
+    inner_loop_inv_grammar: Optional[InvGrammar] = None,
 ) -> Bool:
     writes_by_name = {var.src.name(): var for var in writes}
     reads_by_name = {var.src.name(): var for var in reads}
     in_scope_by_name = {var.src.name(): var for var in in_scope}
     all_vars_by_name = {**writes_by_name, **reads_by_name, **in_scope_by_name}
 
-    # First get the loop bounds
-    left_bound, right_bound = get_outer_loop_bounds(loop_bounds, all_vars_by_name)
-    loop_var = get_outer_loop_var(loop_bounds, all_vars_by_name)
-    loop_conditions = [
-        loop_var >= left_bound,
-        loop_var <= right_bound,
-    ]
-
     # Then we get the expression tree
     # Find in this loop what needs to be on the lhs of loop invariant
     write_conditions: list[Bool] = []
-    loop_var_name = loop_var.src.name()
     outer_loop_decl_vars = LANGUAGE.query(outer_loop_decl_var_names_query).captures(
         root_node
     )
@@ -860,20 +854,36 @@ def get_outer_loop_inv(
     outer_loop_init_decl_var_names = [
         node.text.decode() for node, _ in outer_loop_init_decl_vars
     ]
+
+    # First get the outer loop bounds
+    outer_left_bound, outer_right_bound = get_outer_loop_bounds(
+        loop_bounds, all_vars_by_name
+    )
+    outer_loop_var = get_outer_loop_var(loop_bounds, all_vars_by_name)
+    outer_loop_var_name = outer_loop_var.src.name()
+    loop_conditions = [
+        outer_loop_var >= outer_left_bound,
+        outer_loop_var <= outer_right_bound,
+    ]
+
+    write_var_names_to_exclude = {
+        outer_loop_var_name,
+        *outer_loop_decl_var_names,
+        *outer_loop_init_decl_var_names,
+    }
+    # Find inner loop var
+    if not is_single_loop:
+        inner_loop_var = get_inner_loop_var(loop_bounds, all_vars_by_name)
+        inner_loop_var_name = inner_loop_var.src.name()
+        write_var_names_to_exclude.add(inner_loop_var_name)
     writes_needed = [
         var
         for var in writes
-        if var.src.name()
-        not in {
-            loop_var_name,
-            *outer_loop_decl_var_names,
-            *outer_loop_init_decl_var_names,
-        }
+        if var.src.name() not in write_var_names_to_exclude
         and not var.src.name().endswith(".tmp")
     ]
-
     for write_var in writes_needed:
-        outer_loop_writes_needed.add(write_var)
+        outer_loop_writes_needed.append(write_var)
         type_expr_tree = build_type_expression_tree(
             compute_node, root_node, get_str_type(write_var), all_vars_by_name
         )
@@ -885,25 +895,51 @@ def get_outer_loop_inv(
         vector_vars = get_vector_vars(reads + in_scope + non_current_write_vars)
         matrix_vars = get_matrix_vars(reads + in_scope + non_current_write_vars)
         if len(scalar_vars) > 0:
-            read_and_in_scope_vars_by_type["scalar"] = scalar_vars
+            non_loop_var_scalar_vars: list[ObjectT] = []
+            for scalar_var in scalar_vars:
+                if not isinstance(scalar_var.src, Var):
+                    continue
+                if scalar_var.src.name() != outer_loop_var_name:
+                    non_loop_var_scalar_vars.append(scalar_var)
+                if not is_single_loop and scalar_var.src.name() != inner_loop_var_name:
+                    non_loop_var_scalar_vars.append(scalar_var)
+            read_and_in_scope_vars_by_type["scalar"] = non_loop_var_scalar_vars
         if len(vector_vars) > 0:
-            vector_vars = [choose(*vector_vars)[left_bound:loop_var]]
+            vector_vars = [choose(*vector_vars)[outer_left_bound:outer_loop_var]]
             read_and_in_scope_vars_by_type["vector"] = vector_vars
         if len(matrix_vars) > 0:
             if is_outer_loop_index_first is None:
                 raise ParserError("is_outer_loop_index_first function is not provided")
+            if is_single_loop:
+                raise ParserError(
+                    "is_single_loop cannot be true when matrices are involved"
+                )
+            inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+                loop_bounds, all_vars_by_name
+            )
             matrix = choose(*matrix_vars)
-            matrix = ite(
-                is_outer_loop_index_first(),
-                matrix[:loop_var],
-                matrix.col_slice(0, loop_var),
+            matrix = choose(
+                ite(
+                    is_outer_loop_index_first(),
+                    matrix[outer_left_bound:outer_loop_var].col_slice(
+                        inner_left_bound, inner_right_bound
+                    ),
+                    matrix[inner_left_bound:inner_right_bound].col_slice(
+                        outer_left_bound, outer_loop_var
+                    ),
+                )
             )
             matrix = choose(matrix, matrix.transpose())
-            read_and_in_scope_vars_by_type["matrix"] = matrix_vars
+            read_and_in_scope_vars_by_type["matrix"] = [matrix]
         obj_expr_tree = preorder_traversal_with_objs(
             type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns
         )
         write_conditions.append(write_var == obj_expr_tree)
+
+    if inner_loop_inv_grammar is not None:
+        inner_loop_inv_grammar.in_scope_var_names = [
+            var.src.name() for var in outer_loop_writes_needed
+        ] + [outer_loop_var_name]
     return and_objects(*loop_conditions, *write_conditions)
 
 
@@ -917,12 +953,16 @@ def get_ps(
     scalars: list[Int],
     target_lang_fns: list[Object],
     root_node: Node,
+    is_single_loop: bool,
+    is_outer_loop_index_first: Optional[Callable[[], bool]] = None,
 ) -> Bool:
     if len(writes) != 1:
         raise ParserError("Expected only one write variable in ps")
     rv = writes[0]
     all_vars_by_name = get_vars_by_name(writes + reads + in_scope)
-    left_bound, right_bound = get_outer_loop_bounds(loop_bounds, all_vars_by_name)
+    outer_left_bound, outer_right_bound = get_outer_loop_bounds(
+        loop_bounds, all_vars_by_name
+    )
     read_vars_by_type: dict[str, list[ObjectT]] = {}
     scalar_vars = get_scalar_vars(reads) + scalars
     vector_vars = get_vector_vars(reads)
@@ -930,11 +970,32 @@ def get_ps(
     if len(scalar_vars) > 0:
         read_vars_by_type["scalar"] = scalar_vars
     if len(vector_vars) > 0:
-        vector_vars = [choose(*vector_vars)[left_bound:right_bound]]
+        vector_vars = [choose(*vector_vars)[outer_left_bound:outer_right_bound]]
         read_vars_by_type["vector"] = vector_vars
     if len(matrix_vars) > 0:
-        matrix_vars = [choose(*matrix_vars)[left_bound:right_bound]]
-        read_vars_by_type["vector"] = matrix_vars
+        if is_single_loop:
+            raise ParserError(
+                "is_single_loop cannot be true when matrices are involved"
+            )
+        if is_outer_loop_index_first is None:
+            raise ParserError("is_outer_loop_index_first function is not provided")
+        inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+            loop_bounds, all_vars_by_name
+        )
+        matrix = choose(*matrix_vars)
+        matrix = choose(
+            ite(
+                is_outer_loop_index_first(),
+                matrix[outer_left_bound:outer_right_bound].col_slice(
+                    inner_left_bound, inner_right_bound
+                ),
+                matrix[inner_left_bound:inner_right_bound].col_slice(
+                    outer_left_bound, outer_right_bound
+                ),
+            )
+        )
+        matrix = choose(matrix, matrix.transpose())
+        read_vars_by_type["matrix"] = [matrix]
     type_expr_tree = build_type_expression_tree(
         compute_node, root_node, get_str_type(rv), all_vars_by_name
     )
@@ -968,7 +1029,7 @@ def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
             scalars=scalars,
             target_lang_fns=TARGET_LANG_FNS,
             root_node=root_node,
-            outer_loop_writes_needed=set(),
+            outer_loop_writes_needed=[],
         )
         return ps_cond
 
@@ -1009,7 +1070,7 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
     compute_node = find_compute_from_file(file_path)
 
     TARGET_LANG_FNS: set[Object] = set()
-    OUTER_LOOP_WRITES_NEEDED: set[Object] = set()
+    OUTER_LOOP_WRITES_NEEDED: list[Object] = []
 
     # We need some extra functions to determine which matrix subscript corresponds to the outer loop
     outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"
@@ -1018,23 +1079,8 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
         outer_loop_index_first_synth,
         is_outer_loop_index_first,
     ) = get_no_arg_bool_fn(outer_loop_index_first_fn_name)
-
-    def inv0_grammar(
-        writes: list[Object], reads: list[Object], in_scope: list[Object], relaxed: bool
-    ) -> Bool:
-        return get_outer_loop_inv(
-            writes=writes,
-            reads=reads,
-            in_scope=in_scope,
-            relaxed=relaxed,
-            loop_bounds=loop_bounds,
-            compute_node=compute_node,
-            scalars=scalars,
-            target_lang_fns=TARGET_LANG_FNS,
-            root_node=root_node,
-            outer_loop_writes_needed=OUTER_LOOP_WRITES_NEEDED,
-            is_outer_loop_index_first=is_outer_loop_index_first,
-        )
+    TARGET_LANG_FNS.add(outer_loop_index_first_fn_decl)
+    driver.fns_synths = [outer_loop_index_first_synth]
 
     def inv1_grammar(
         writes: list[Object],
@@ -1053,7 +1099,69 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
             target_lang_fns=TARGET_LANG_FNS,
             root_node=root_node,
             outer_loop_writes_needed=OUTER_LOOP_WRITES_NEEDED,
+            is_outer_loop_index_first=is_outer_loop_index_first,
         )
+
+    # Find inv1 grammar name and grammar
+    inv1_grammar_name = f"{func_name}_inv1"
+    inv1_grammar = InvGrammar(inv1_grammar, [])
+
+    def inv0_grammar(
+        writes: list[Object], reads: list[Object], in_scope: list[Object], relaxed: bool
+    ) -> Bool:
+        return get_outer_loop_inv(
+            writes=writes,
+            reads=reads,
+            in_scope=in_scope,
+            relaxed=relaxed,
+            loop_bounds=loop_bounds,
+            compute_node=compute_node,
+            scalars=scalars,
+            target_lang_fns=TARGET_LANG_FNS,
+            root_node=root_node,
+            outer_loop_writes_needed=OUTER_LOOP_WRITES_NEEDED,
+            is_outer_loop_index_first=is_outer_loop_index_first,
+            inner_loop_inv_grammar=inv1_grammar,
+            is_single_loop=False,
+        )
+
+    # Find inv0 grammar name and grammar
+    inv0_grammar_name = f"{func_name}_inv0"
+    inv0_grammar = InvGrammar(inv0_grammar, [])
+
+    def ps_grammar(
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+    ) -> Bool:
+        ps_cond = get_ps(
+            writes=writes,
+            reads=reads,
+            in_scope=in_scope,
+            relaxed=relaxed,
+            loop_bounds=loop_bounds,
+            compute_node=compute_node,
+            scalars=scalars,
+            target_lang_fns=TARGET_LANG_FNS,
+            root_node=root_node,
+            is_outer_loop_index_first=is_outer_loop_index_first,
+            is_single_loop=False,
+        )
+        return ps_cond
+
+    ll_path = file_path.replace(".cc", ".ll")
+    loops_path = file_path.replace(".cc", ".loops")
+
+    fn = driver.analyze(
+        ll_path,
+        loops_path,
+        func_name,
+        lambda: list(TARGET_LANG_FNS) + axioms,
+        {
+            inv0_grammar_name: inv0_grammar,
+            inv1_grammar_name: inv1_grammar,
+        },
+        ps_grammar,
+    )
+    return driver, input_vars, fn
 
 
 def get_inner_loop_inv(
@@ -1091,8 +1199,9 @@ def get_inner_loop_inv(
     outer_loop_var = get_outer_loop_var(loop_bounds, all_vars_by_name)
     outer_loop_conditions = [
         outer_loop_var >= outer_left_bound,
-        outer_loop_var <= outer_right_bound,
+        outer_loop_var < outer_right_bound,
     ]
+    outer_loop_var_name = outer_loop_var.src.name()
 
     inner_loop_var_name = inner_loop_var.src.name()
     inner_loop_decl_vars = LANGUAGE.query(inner_loop_decl_var_names_query).captures(
@@ -1111,6 +1220,7 @@ def get_inner_loop_inv(
         if var.src.name()
         not in {
             inner_loop_var_name,
+            outer_loop_var_name,
             *inner_loop_decl_var_names,
             *inner_loop_init_decl_var_names,
         }
@@ -1126,16 +1236,22 @@ def get_inner_loop_inv(
         non_current_write_vars = list(set(writes).difference({write_var}))
         all_but_current_vars = reads + in_scope + non_current_write_vars
 
-        scalar_vars = get_scalar_vars() + scalars
+        scalar_vars = get_scalar_vars(all_but_current_vars) + scalars
         vector_vars = get_vector_vars(all_but_current_vars)
         matrix_vars = get_matrix_vars(all_but_current_vars)
         matrix_var: Optional[Object] = None
         if len(matrix_vars) > 0:
             matrix_var = choose(*matrix_vars)
-            matrix_var = ite(
-                is_outer_loop_index_first(),
-                matrix_var[outer_left_bound:outer_loop_var],
-                matrix_var.col_slice(outer_left_bound, outer_loop_var),
+            matrix_var = choose(
+                ite(
+                    is_outer_loop_index_first(),
+                    matrix_var[outer_left_bound:outer_loop_var].col_slice(
+                        inner_left_bound, inner_right_bound
+                    ),
+                    matrix_var[inner_left_bound:inner_right_bound].col_slice(
+                        outer_left_bound, outer_loop_var
+                    ),
+                )
             )
             matrix_var = choose(matrix_var, matrix_var.transpose())
             read_and_in_scope_vars_by_type["matrix"] = [matrix_var]
@@ -1146,10 +1262,15 @@ def get_inner_loop_inv(
             read_and_in_scope_vars_by_type["vector"] = vector_vars
 
         if matrix_var is not None:
-            inner_loop_vec = ite(
-                is_outer_loop_index_first(),
-                matrix_var[outer_loop_var][inner_left_bound:inner_loop_var],
-                matrix_var[inner_left_bound:inner_loop_var].col_vec(outer_loop_var),
+            original_matrix = choose(*matrix_vars)
+            inner_loop_vec = choose(
+                ite(
+                    is_outer_loop_index_first(),
+                    original_matrix[outer_loop_var][inner_left_bound:inner_loop_var],
+                    original_matrix[inner_left_bound:inner_loop_var].col_vec(
+                        outer_loop_var
+                    ),
+                )
             )
             if "vector" not in read_and_in_scope_vars_by_type:
                 read_and_in_scope_vars_by_type["vector"] = []
