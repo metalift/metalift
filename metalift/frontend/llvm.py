@@ -654,16 +654,15 @@ LLVMVar = NamedTuple(
     ],
 )
 
-InvGrammar = NamedTuple(
-    "InvGrammar",
-    [
-        (
-            "func",
-            Callable[[List[Object], List[Object], List[Object]], Bool],
-        ),
-        ("in_scope_var_names", List[str]),
-    ],
-)
+
+class InvGrammar:
+    def __init__(
+        self,
+        func: Callable[[List[Object], List[Object], List[Object]], Bool],
+        in_scope_var_names: List[str],
+    ) -> None:
+        self.func = func
+        self.in_scope_var_names = in_scope_var_names
 
 
 class State:
@@ -797,6 +796,8 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Bool:
+        # This is kind of a hack but sometimes we only know what's in scope at runtime when we call gen_synth
+        self.gen_synth(relaxed_grammar=False)
         call_res = call(
             self.name,
             Bool,

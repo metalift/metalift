@@ -1,8 +1,7 @@
-import time
 from typing import List, Union
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, Object, choose, ite
+from metalift.frontend.llvm import Driver
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Object, choose, ite
 from metalift.vc_util import and_objects
 from tenspiler.axioms_tenspiler import matrix_scalar_mul_axiom, vec_scalar_mul_axiom
 from tenspiler.codegen.utils import DataType
@@ -13,6 +12,7 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.tree_parser import (
+    analyze_double_loops,
     find_compute_from_file,
     find_root_node_from_file,
     get_inner_loop_inv,
@@ -123,31 +123,18 @@ if __name__ == "__main__":
     compute_node = find_compute_from_file(
         "tenspiler/c2taco/cpp/for_synthesis/darknet/scale_matrix.cc"
     )
-    scale_matrix = driver.analyze(
-        llvm_filepath="tenspiler/c2taco/cpp/for_synthesis/darknet/scale_matrix.ll",
-        loops_filepath="tenspiler/c2taco/cpp/for_synthesis/darknet/scale_matrix.loops",
-        fn_name="scale_matrix",
-        target_lang_fn=scale_matrix_target_lang,
-        inv_grammars={
-            "scale_matrix_inv0": InvGrammar(scale_matrix_inv0_grammar, []),
-            "scale_matrix_inv1": InvGrammar(
-                scale_matrix_inv1_grammar, ["i", "agg.result"]
-            ),
-        },
-        ps_grammar=scale_matrix_ps_grammar,
-    )
 
-    m = Matrix(Int, "m")
-    scale = Int("scale")
-    driver.add_var_objects([m, scale])
+    driver, input_vars, scale_matrix = analyze_double_loops(
+        file_path="tenspiler/c2taco/cpp/for_synthesis/darknet/scale_matrix.cc",
+        func_name="scale_matrix",
+        axioms=[vec_scalar_mul_axiom, matrix_scalar_mul_axiom],
+    )
+    m, scale = input_vars["m"], input_vars["scale"]
 
     # Add preconditions
     driver.add_precondition(m.len() >= 1)
     driver.add_precondition(m[0].len() >= 1)
 
-    driver.fns_synths = [outer_loop_index_first_synth]
-
-    start_time = time.time()
     scale_matrix(m, scale)
     run_synthesis_algorithm(
         driver=driver,
@@ -155,5 +142,3 @@ if __name__ == "__main__":
         benchmark_name="scale_matrix",
         has_relaxed=False,
     )
-    end_time = time.time()
-    print(f"Synthesis took {end_time - start_time} seconds")
