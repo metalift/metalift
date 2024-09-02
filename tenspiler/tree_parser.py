@@ -15,12 +15,14 @@ from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
     SELECT_TWO_ARGS,
     call_matrix_selection_two_args,
+    call_matrix_vec_mul,
     call_reduce_sum,
     call_selection_two_args,
     get_no_arg_bool_fn,
     int_x,
     int_y,
     matrix_selection_two_args_fn_decl,
+    matrix_vec_mul,
     reduce_sum,
     select_two_args_fn_decl,
     select_two_args_fn_obj,
@@ -342,13 +344,47 @@ def build_type_expression_tree(
             operator = node.child_by_field_name("operator").text.decode()
             assignment_value = node.child_by_field_name("right")
             if operator == "+=":
-                right_child = helper(assignment_value, "vector")
-                return {
-                    "type": "operator",
-                    "operator": "reduce_sum",
-                    "arg": right_child,
-                    "return_type": "scalar",
-                }
+                if target_type == "scalar":
+                    right_child = helper(assignment_value, "vector")
+                    return {
+                        "type": "operator",
+                        "operator": "reduce_sum",
+                        "arg": right_child,
+                        "return_type": "scalar",
+                    }
+                elif target_type == "vector":
+                    # This indicates a matmul operation
+                    # In this we have to assume the right hand is a binary operation with *
+                    if assignment_value.type != "binary_expression":
+                        raise ParserError(
+                            "Expected a binary expression with * operator"
+                        )
+                    rhs_operator = _node_to_text(
+                        assignment_value.child_by_field_name("operator")
+                    )
+                    if rhs_operator != "*":
+                        raise ParserError(
+                            "Expected a binary expression with * operator"
+                        )
+                    # It could also be that the right child is matrix and left child is vector, but
+                    # it doesn't matter that much during synthesis
+                    rhs_left_child = helper(
+                        assignment_value.child_by_field_name("left"), "matrix"
+                    )
+                    rhs_right_child = helper(
+                        assignment_value.child_by_field_name("right"), "vector"
+                    )
+                    return {
+                        "type": "operator",
+                        "operator": "matmul",
+                        "matrix_arg": rhs_left_child,
+                        "vec_arg": rhs_right_child,
+                        "return_type": "vector",
+                    }
+                else:
+                    raise ParserError(
+                        f"Unable to parse += with target type {target_type}"
+                    )
             else:
                 return helper(assignment_value, target_type)
         elif node.type == "binary_expression":
@@ -376,6 +412,11 @@ def build_type_expression_tree(
                 ("scalar", "matrix"),
             }:
                 return_type = "matrix"
+            elif (left_type, right_type) in {
+                ("matrix", "vector"),
+                ("vector", "matrix"),
+            }:
+                return_type = "vector"
             return {
                 "type": "operator",
                 "operator": operator,
@@ -470,6 +511,25 @@ def preorder_traversal_with_objs(
             )
             target_lang_fns.add(reduce_sum)
             return call_reduce_sum(expr)
+        elif operator == "matmul":
+            vars_by_type_str_copy = copy.deepcopy(vars_by_type_str)
+            vars_by_type_str_copy["vector"] = (
+                vars_by_type_str_copy["vector"] + vars_by_type_str_copy["matmul_vector"]
+            )
+            target_lang_fns.add(matrix_vec_mul)
+            matrix_expr = preorder_traversal_with_objs(
+                type_expr_tree["matrix_arg"],
+                vars_by_type_str_copy,
+                target_lang_fns,
+                driver,
+            )
+            vec_expr = preorder_traversal_with_objs(
+                type_expr_tree["vec_arg"],
+                vars_by_type_str_copy,
+                target_lang_fns,
+                driver,
+            )
+            return call_matrix_vec_mul(matrix_expr, vec_expr)
         else:
             left_expr = preorder_traversal_with_objs(
                 type_expr_tree["left"], vars_by_type_str, target_lang_fns, driver
@@ -700,8 +760,8 @@ def find_compute_from_node(
 
     if not is_single_loop:
         # TODO(jie): need to filter out push back statements here
-        inner_tree: Optional[Node] = None
-        outer_tree: Optional[Node] = None
+        inner_most_compound_node: Optional[Node] = None
+        outer_most_compound_node: Optional[Node] = None
 
         if len(inner_loop_compound_nodes) > 0:
             inner_most_compound_node = inner_loop_compound_nodes[0]
@@ -944,6 +1004,13 @@ def get_outer_loop_inv(
         scalar_vars = get_scalar_vars(all_but_current_vars) + scalars
         vector_vars = get_vector_vars(all_but_current_vars)
         matrix_vars = get_matrix_vars(all_but_current_vars)
+
+        # Get inner loop bounds, they might be useful
+        inner_left_bound, inner_right_bound = None, None
+        if not is_single_loop:
+            inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+                loop_bounds, all_vars_by_name
+            )
         if len(scalar_vars) > 0:
             loop_vars_to_exclude = (
                 [outer_loop_var] if is_single_loop else [outer_loop_var, inner_loop_var]
@@ -953,8 +1020,13 @@ def get_outer_loop_inv(
             )
             read_and_in_scope_vars_by_type["scalar"] = non_loop_var_scalar_vars
         if len(vector_vars) > 0:
-            vector_vars = [choose(*vector_vars)[outer_left_bound:outer_loop_var]]
-            read_and_in_scope_vars_by_type["vector"] = vector_vars
+            read_and_in_scope_vars_by_type["vector"] = [
+                choose(*vector_vars)[outer_left_bound:outer_loop_var]
+            ]
+            if not is_single_loop:
+                read_and_in_scope_vars_by_type["matmul_vector"] = [
+                    choose(*vector_vars)[inner_left_bound:inner_right_bound]
+                ]
         if len(matrix_vars) > 0:
             if is_outer_loop_index_first is None:
                 raise ParserError("is_outer_loop_index_first function is not provided")
@@ -962,9 +1034,6 @@ def get_outer_loop_inv(
                 raise ParserError(
                     "is_single_loop cannot be true when matrices are involved"
                 )
-            inner_left_bound, inner_right_bound = get_inner_loop_bounds(
-                loop_bounds, all_vars_by_name
-            )
             matrix = choose(*matrix_vars)
             matrix = choose(
                 ite(
@@ -1012,6 +1081,12 @@ def get_ps(
     outer_left_bound, outer_right_bound = get_outer_loop_bounds(
         loop_bounds, all_vars_by_name
     )
+    # Get inner bounds if they exist
+    inner_left_bound, inner_right_bound = None, None
+    if not is_single_loop:
+        inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+            loop_bounds, all_vars_by_name
+        )
     read_vars_by_type: dict[str, list[ObjectT]] = {}
     scalar_vars = get_scalar_vars(reads) + scalars
     vector_vars = get_vector_vars(reads)
@@ -1019,6 +1094,10 @@ def get_ps(
     if len(scalar_vars) > 0:
         read_vars_by_type["scalar"] = scalar_vars
     if len(vector_vars) > 0:
+        if not is_single_loop:
+            read_vars_by_type["matmul_vector"] = [
+                choose(*vector_vars)[inner_left_bound:inner_right_bound]
+            ]
         vector_vars = [choose(*vector_vars)[outer_left_bound:outer_right_bound]]
         read_vars_by_type["vector"] = vector_vars
     if len(matrix_vars) > 0:
@@ -1028,9 +1107,6 @@ def get_ps(
             )
         if is_outer_loop_index_first is None:
             raise ParserError("is_outer_loop_index_first function is not provided")
-        inner_left_bound, inner_right_bound = get_inner_loop_bounds(
-            loop_bounds, all_vars_by_name
-        )
         matrix = choose(*matrix_vars)
         matrix = choose(
             ite(
@@ -1117,6 +1193,7 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
     loop_bounds = get_loop_bounds_from_node(root_node)
     input_vars = make_input_variables(root_node, driver)
     compute_node = find_compute_from_file(file_path)
+    # TODO(jie): delete this print statement
     print("COMPUTE", compute_node)
 
     TARGET_LANG_FNS: set[Object] = set()
@@ -1317,6 +1394,9 @@ def get_inner_loop_inv(
         if len(scalar_vars) > 0:
             read_and_in_scope_vars_by_type["scalar"] = scalar_vars
         if len(vector_vars) > 0:
+            read_and_in_scope_vars_by_type["matmul_vector"] = [
+                choose(*vector_vars)[inner_left_bound:inner_right_bound]
+            ]
             vector_vars = [choose(*vector_vars)[inner_left_bound:inner_loop_var]]
             read_and_in_scope_vars_by_type["vector"] = vector_vars
 
