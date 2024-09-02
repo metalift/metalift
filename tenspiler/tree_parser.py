@@ -9,7 +9,7 @@ from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, Var, choose, ite
+from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose, ite
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import call_reduce_sum, get_no_arg_bool_fn, reduce_sum
 
@@ -250,6 +250,10 @@ scalar_query = """
 (number_literal)@scalar
 """
 
+sclar_decl_query = """
+(declaration)@scalar_decl
+"""
+
 
 def _capture_to_text(capture: tuple[Node, str]) -> str:
     return capture[0].text.decode()
@@ -354,9 +358,69 @@ def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
     raise ParserError(f"Unsupported node type: {node.type}")
 
 
+def dedup_objs(objs: list[Object]) -> list[Object]:
+    deduped_objs: list[Object] = []
+    for obj in objs:
+        has_seen = False
+        for deduped_obj in deduped_objs:
+            if Object.__eq__(obj, deduped_obj):
+                has_seen = True
+                break
+        if not has_seen:
+            deduped_objs.append(obj)
+    return deduped_objs
+
+
+def remove_objs(objs: list[Object], objs_to_remove: list[Object]) -> list[Object]:
+    final_objs: list[Object] = []
+    for obj in objs:
+        should_remove = False
+        for obj_to_remove in objs_to_remove:
+            if Object.__eq__(obj, obj_to_remove):
+                should_remove = True
+                break
+        if not should_remove:
+            final_objs.append(obj)
+    return final_objs
+
+
 def get_scalars_from_node(tree_node: Node) -> list[Int]:
     scalars = LANGUAGE.query(scalar_query).captures(tree_node)
-    scalars = list(set([scalar[0].text.decode() for scalar in scalars]))
+    scalar_decls = LANGUAGE.query(sclar_decl_query).captures(tree_node)
+    loop_upper_cond = LANGUAGE.query(loop_upper_cond_query).captures(tree_node)
+
+    # get identifiers from the loop upper condition
+    loop_cond_identifiers = [
+        _node_to_text(cond[0].child_by_field_name("right")) for cond in loop_upper_cond
+    ]
+
+    # filtering out the scalars that are not in the for loop initialization
+    scalars = [
+        scalar for scalar in scalars if scalar[0].parent.parent.type != "for_statement"
+    ]
+    # filtering the scalar declarations that are not in the for loop initialization
+    scalar_decls = [
+        decl for decl in scalar_decls if decl[0].parent.type != "for_statement"
+    ]
+    # filtering the templates
+    scalar_decls = [
+        decl for decl in scalar_decls if decl[0].children[0].type != "template_type"
+    ]
+
+    # getting the values
+    scalar_decls_values: list[Node] = []
+    for decl in scalar_decls:
+        val = decl[0].child_by_field_name("declarator").child_by_field_name("value")
+        ident = (
+            decl[0].child_by_field_name("declarator").child_by_field_name("declarator")
+        )
+        if val is not None:
+            if _node_to_text(ident) not in loop_cond_identifiers:
+                scalar_decls_values.append(val)
+
+    scalars = list(set([scalar[0] for scalar in scalars]))
+    scalars = scalars + scalar_decls_values
+    scalars = list(set([scalar.text.decode() for scalar in scalars]))
     return [Int(int(s)) for s in scalars]
 
 
@@ -876,6 +940,7 @@ def get_outer_loop_inv(
         inner_loop_var = get_inner_loop_var(loop_bounds, all_vars_by_name)
         inner_loop_var_name = inner_loop_var.src.name()
         write_var_names_to_exclude.add(inner_loop_var_name)
+
     writes_needed = [
         var
         for var in writes
@@ -888,21 +953,18 @@ def get_outer_loop_inv(
             compute_node, root_node, get_str_type(write_var), all_vars_by_name
         )
         read_and_in_scope_vars_by_type: dict[str, list[ObjectT]] = {}
-        non_current_write_vars = list(set(writes).difference({write_var}))
-        scalar_vars = (
-            get_scalar_vars(reads + in_scope + non_current_write_vars) + scalars
-        )
-        vector_vars = get_vector_vars(reads + in_scope + non_current_write_vars)
-        matrix_vars = get_matrix_vars(reads + in_scope + non_current_write_vars)
+        non_current_write_vars = remove_objs(writes_needed, [write_var])
+        all_but_current_vars = dedup_objs(reads + in_scope + non_current_write_vars)
+        scalar_vars = get_scalar_vars(all_but_current_vars) + scalars
+        vector_vars = get_vector_vars(all_but_current_vars)
+        matrix_vars = get_matrix_vars(all_but_current_vars)
         if len(scalar_vars) > 0:
-            non_loop_var_scalar_vars: list[ObjectT] = []
-            for scalar_var in scalar_vars:
-                if not isinstance(scalar_var.src, Var):
-                    continue
-                if scalar_var.src.name() != outer_loop_var_name:
-                    non_loop_var_scalar_vars.append(scalar_var)
-                if not is_single_loop and scalar_var.src.name() != inner_loop_var_name:
-                    non_loop_var_scalar_vars.append(scalar_var)
+            loop_vars_to_exclude = (
+                [outer_loop_var] if is_single_loop else [outer_loop_var, inner_loop_var]
+            )
+            non_loop_var_scalar_vars = dedup_objs(
+                remove_objs(scalar_vars, loop_vars_to_exclude)
+            )
             read_and_in_scope_vars_by_type["scalar"] = non_loop_var_scalar_vars
         if len(vector_vars) > 0:
             vector_vars = [choose(*vector_vars)[outer_left_bound:outer_loop_var]]
@@ -1233,10 +1295,15 @@ def get_inner_loop_inv(
             compute_node, root_node, get_str_type(write_var), all_vars_by_name
         )
         read_and_in_scope_vars_by_type: dict[str, list[ObjectT]] = {}
-        non_current_write_vars = list(set(writes).difference({write_var}))
-        all_but_current_vars = reads + in_scope + non_current_write_vars
+        non_current_write_vars = remove_objs(
+            dedup_objs(inner_loop_writes_needed + outer_loop_writes_needed), [write_var]
+        )
+        all_but_current_vars = dedup_objs(reads + in_scope + non_current_write_vars)
 
-        scalar_vars = get_scalar_vars(all_but_current_vars) + scalars
+        scalar_vars = remove_objs(
+            get_scalar_vars(all_but_current_vars) + scalars,
+            [inner_loop_var, outer_loop_var],
+        )
         vector_vars = get_vector_vars(all_but_current_vars)
         matrix_vars = get_matrix_vars(all_but_current_vars)
         matrix_var: Optional[Object] = None
