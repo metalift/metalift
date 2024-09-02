@@ -1,4 +1,5 @@
 import argparse
+import copy
 import glob
 import importlib
 import os
@@ -9,9 +10,22 @@ from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose, ite
+from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose, ite, synth
 from metalift.vc_util import and_objects
-from tenspiler.tenspiler_common import call_reduce_sum, get_no_arg_bool_fn, reduce_sum
+from tenspiler.tenspiler_common import (
+    SELECT_TWO_ARGS,
+    call_matrix_selection_two_args,
+    call_reduce_sum,
+    call_selection_two_args,
+    get_no_arg_bool_fn,
+    int_x,
+    int_y,
+    matrix_selection_two_args_fn_decl,
+    reduce_sum,
+    select_two_args_fn_decl,
+    select_two_args_fn_obj,
+    selection_two_args_fn_decl,
+)
 
 
 def find_cc_file_paths(file_path: str) -> list[str]:
@@ -326,16 +340,17 @@ def build_type_expression_tree(
     def helper(node: Node, target_type: str):
         if node.type == "assignment_expression":
             operator = node.child_by_field_name("operator").text.decode()
+            assignment_value = node.child_by_field_name("right")
             if operator == "+=":
-                right_child = helper(node.child_by_field_name("right"), "vector")
+                right_child = helper(assignment_value, "vector")
+                return {
+                    "type": "operator",
+                    "operator": "reduce_sum",
+                    "arg": right_child,
+                    "return_type": "scalar",
+                }
             else:
-                raise ParserError(f"Unsupported operator: {operator}")
-            return {
-                "type": "operator",
-                "operator": "reduce_sum",
-                "arg": right_child,
-                "return_type": "scalar",
-            }
+                return helper(assignment_value, target_type)
         elif node.type == "binary_expression":
             operator = node.child_by_field_name("operator").text.decode()
             left_child = helper(node.child_by_field_name("left"), target_type)
@@ -373,7 +388,6 @@ def build_type_expression_tree(
             decl_node = find_int_init_decl_to_var(var_name, root_node)
             if decl_node is not None:
                 return helper(decl_node.child_by_field_name("value"), target_type)
-
             var_type = get_str_type(all_vars_by_name[var_name])
             if var_type == "scalar":
                 return "scalar"
@@ -395,10 +409,18 @@ def build_type_expression_tree(
         elif node.type == "if_statement":
             return {
                 "type": "if_statement",
-                "condition": helper(node.children[1], target_type),
-                "then": helper(node.children[2], target_type),
-                "else": helper(node.children[3], target_type),
+                "condition": helper(node.children[1], "scalar"),
+                "then": helper(node.children[2], "scalar"),
+                "else": helper(node.children[3], "scalar"),
+                "return_type": target_type,
             }
+        elif node.type == "condition_clause":
+            return helper(node.child_by_field_name("value"), "scalar")
+        elif node.type == "else_clause":
+            if len(node.children) != 2:
+                # Note that we are checking for 2 but that's because "else" is one
+                raise ParserError("Only one statement supported in else clause")
+            return helper(node.children[1], target_type)
         else:
             return {"type": node.type, "value": node.text.decode()}
 
@@ -436,27 +458,28 @@ def preorder_traversal_with_objs(
     type_expr_tree: Union[dict[str, Any], str],
     vars_by_type_str: dict[str, list[ObjectT]],
     target_lang_fns: set[Object],
+    driver: Driver,
 ) -> Object:
     if isinstance(type_expr_tree, str):
         return choose(*vars_by_type_str[type_expr_tree])
-    if isinstance(type_expr_tree, dict):
-        if type_expr_tree["type"] == "operator":
-            operator = type_expr_tree["operator"]
-            if operator == "reduce_sum":
-                expr = preorder_traversal_with_objs(
-                    type_expr_tree["arg"], vars_by_type_str, target_lang_fns
-                )
-                target_lang_fns.add(reduce_sum)
-                return call_reduce_sum(expr)
-            elif operator in {"+", "-", "*", "/"}:
-                left_expr = preorder_traversal_with_objs(
-                    type_expr_tree["left"], vars_by_type_str, target_lang_fns
-                )
-                right_expr = preorder_traversal_with_objs(
-                    type_expr_tree["right"], vars_by_type_str, target_lang_fns
-                )
-                left_type = get_str_type(left_expr)
-                right_type = get_str_type(right_expr)
+    if type_expr_tree["type"] == "operator":
+        operator = type_expr_tree["operator"]
+        if operator == "reduce_sum":
+            expr = preorder_traversal_with_objs(
+                type_expr_tree["arg"], vars_by_type_str, target_lang_fns, driver
+            )
+            target_lang_fns.add(reduce_sum)
+            return call_reduce_sum(expr)
+        else:
+            left_expr = preorder_traversal_with_objs(
+                type_expr_tree["left"], vars_by_type_str, target_lang_fns, driver
+            )
+            right_expr = preorder_traversal_with_objs(
+                type_expr_tree["right"], vars_by_type_str, target_lang_fns, driver
+            )
+            left_type = get_str_type(left_expr)
+            right_type = get_str_type(right_expr)
+            if operator in {"+", "-", "*", "/"}:
                 call_obj: Optional[Object] = None
                 if left_type == "matrix" or right_type == "matrix":
                     if operator == "+":
@@ -486,8 +509,60 @@ def preorder_traversal_with_objs(
                 function = getattr(tenspiler_common, call_obj.src.name())
                 target_lang_fns.add(function)
                 return call_obj
-        else:
-            raise ParserError(f"Unsupported type: {type_expr_tree['type']}")
+            elif operator == "<":
+                return left_expr < right_expr
+            elif operator == "<=":
+                return left_expr <= right_expr
+            elif operator == "==":
+                return left_expr == right_expr
+            elif operator == ">=":
+                return left_expr >= right_expr
+            elif operator == ">":
+                return left_expr > right_expr
+            else:
+                raise ParserError(f"Unsupported operator {operator}")
+    elif type_expr_tree["type"] == "if_statement":
+        existing_synths = [
+            synth for synth in driver.fns_synths if synth.name() == SELECT_TWO_ARGS
+        ]
+        if len(existing_synths) == 0:
+            # Add the synth
+            driver.add_var_objects([int_x, int_y])
+            vars_by_type_str_copy = copy.deepcopy(vars_by_type_str)
+            vars_by_type_str_copy["scalar"] = [int_x, int_y]
+            condition_expr = preorder_traversal_with_objs(
+                type_expr_tree["condition"],
+                vars_by_type_str_copy,
+                target_lang_fns,
+                driver,
+            )
+            then_expr = preorder_traversal_with_objs(
+                type_expr_tree["then"], vars_by_type_str_copy, target_lang_fns, driver
+            )
+            else_expr = preorder_traversal_with_objs(
+                type_expr_tree["else"], vars_by_type_str_copy, target_lang_fns, driver
+            )
+            synth_body = ite(condition_expr, then_expr, else_expr)
+            select_two_args_synth = synth(SELECT_TWO_ARGS, synth_body, int_x, int_y)
+            driver.fns_synths.append(select_two_args_synth)
+        elif len(existing_synths) > 1:
+            raise ParserError(f"Found multiple synths for {SELECT_TWO_ARGS}")
+
+        target_lang_fns.add(select_two_args_fn_decl)
+
+        # try to get the synth object
+        if type_expr_tree["return_type"] == "vector":
+            target_lang_fns.add(selection_two_args_fn_decl)
+            vec = choose(*vars_by_type_str["vector"])
+            return call_selection_two_args(vec, vec, select_two_args_fn_obj)
+        elif type_expr_tree["return_type"] == "matrix":
+            target_lang_fns.add(matrix_selection_two_args_fn_decl)
+            matrix = choose(*vars_by_type_str["matrix"])
+            return call_matrix_selection_two_args(
+                matrix, matrix, select_two_args_fn_obj
+            )
+    else:
+        raise ParserError(f"Unsupported type: {type_expr_tree['type']}")
 
 
 def find_init_decl_to_var(var_name: str, tree_node: Node):
@@ -790,6 +865,7 @@ def get_outer_loop_inv(
     root_node: Node,
     outer_loop_writes_needed: list[Object],
     is_single_loop: bool,
+    driver: Driver,
     is_outer_loop_index_first: Optional[Callable[[], bool]] = None,
     inner_loop_inv_grammar: Optional[InvGrammar] = None,
 ) -> Bool:
@@ -903,9 +979,8 @@ def get_outer_loop_inv(
             )
             matrix = choose(matrix, matrix.transpose())
             read_and_in_scope_vars_by_type["matrix"] = [matrix]
-        print(write_var, type_expr_tree)
         obj_expr_tree = preorder_traversal_with_objs(
-            type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns
+            type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns, driver
         )
         write_conditions.append(write_var == obj_expr_tree)
 
@@ -927,6 +1002,7 @@ def get_ps(
     target_lang_fns: list[Object],
     root_node: Node,
     is_single_loop: bool,
+    driver: Driver,
     is_outer_loop_index_first: Optional[Callable[[], bool]] = None,
 ) -> Bool:
     if len(writes) != 1:
@@ -973,7 +1049,7 @@ def get_ps(
         compute_node, root_node, get_str_type(rv), all_vars_by_name
     )
     obj_expr_tree = preorder_traversal_with_objs(
-        type_expr_tree, read_vars_by_type, target_lang_fns
+        type_expr_tree, read_vars_by_type, target_lang_fns, driver
     )
     return rv == obj_expr_tree
 
@@ -1041,6 +1117,7 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
     loop_bounds = get_loop_bounds_from_node(root_node)
     input_vars = make_input_variables(root_node, driver)
     compute_node = find_compute_from_file(file_path)
+    print("COMPUTE", compute_node)
 
     TARGET_LANG_FNS: set[Object] = set()
     OUTER_LOOP_WRITES_NEEDED: list[Object] = []
@@ -1072,6 +1149,7 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
             target_lang_fns=TARGET_LANG_FNS,
             root_node=root_node,
             outer_loop_writes_needed=OUTER_LOOP_WRITES_NEEDED,
+            driver=driver,
             is_outer_loop_index_first=is_outer_loop_index_first,
         )
 
@@ -1096,6 +1174,7 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
             is_outer_loop_index_first=is_outer_loop_index_first,
             inner_loop_inv_grammar=inv1_grammar,
             is_single_loop=False,
+            driver=driver,
         )
 
     # Find inv0 grammar name and grammar
@@ -1117,6 +1196,7 @@ def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
             root_node=root_node,
             is_outer_loop_index_first=is_outer_loop_index_first,
             is_single_loop=False,
+            driver=driver,
         )
         return ps_cond
 
@@ -1148,6 +1228,7 @@ def get_inner_loop_inv(
     target_lang_fns: set[Object],
     root_node: Node,
     outer_loop_writes_needed: set[Object],
+    driver: Driver,
     is_outer_loop_index_first: Optional[Callable[[], bool]] = None,
 ) -> Bool:
     writes_by_name = {var.src.name(): var for var in writes}
@@ -1254,7 +1335,7 @@ def get_inner_loop_inv(
                 read_and_in_scope_vars_by_type["vector"] = []
             read_and_in_scope_vars_by_type["vector"].append(inner_loop_vec)
         obj_expr_tree = preorder_traversal_with_objs(
-            type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns
+            type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns, driver
         )
         write_var_conditions.append(write_var == obj_expr_tree)
     return and_objects(
