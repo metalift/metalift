@@ -55,9 +55,6 @@ PARSER = get_parser("cpp")
 #####pattern matching queries
 # matches the for loop
 loop_query = "(for_statement)@stmt_str"
-double_loop_query = """'
-(for_statement body: (compound_statement (for_statement)))
-"""
 
 # Matches the body of a single for loop that has a push_back expression
 outer_loop_push_query = """
@@ -96,9 +93,6 @@ inner_loop_compound_query = """
 
 ### declation and compound statement
 # This is for declaring variables without initialization, such as int i;
-decl_query = """
-(declaration declarator: (identifier)@id)
-"""
 init_decl_query = """
 (declaration (init_declarator (identifier))@id)
 """
@@ -150,7 +144,7 @@ def _node_to_text(node: Node) -> str:
     return node.text.decode()
 
 
-def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple[Node]]]:
+def get_loop_bounds_nodes(tree_node: Node) -> list[list[tuple[Node]]]:
     # Queries for lower and upper loop bounds
     loop_lower_ident = LANGUAGE.query(loop_lower_ident_query).captures(tree_node)
     loop_lower_init = LANGUAGE.query(loop_lower_init_query).captures(tree_node)
@@ -218,6 +212,7 @@ def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple[Node]]]:
 
 
 def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
+    """Parse a node that is of type int to an IR int object."""
     if node.type == "binary_expression":
         left = parse_scalar_node(node.child_by_field_name("left"), all_vars_by_name)
         right = parse_scalar_node(node.child_by_field_name("right"), all_vars_by_name)
@@ -236,10 +231,6 @@ def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
         var_name = node.text.decode()
         if var_name in all_vars_by_name.keys():
             return all_vars_by_name[var_name]
-        # TODO(jie)
-        int_decl = find_init_decl_to_var(
-            var_name,
-        )
         return all_vars_by_name[var_name]
     elif node.type == "number_literal":
         return Int(int(node.text.decode()))
@@ -268,6 +259,7 @@ def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
 
 
 def dedup_objs(objs: list[Object]) -> list[Object]:
+    """Deduplicate a list of IR objects."""
     deduped_objs: list[Object] = []
     for obj in objs:
         has_seen = False
@@ -281,6 +273,7 @@ def dedup_objs(objs: list[Object]) -> list[Object]:
 
 
 def remove_objs(objs: list[Object], objs_to_remove: list[Object]) -> list[Object]:
+    """Remove all IR objects in `objs_to_remove` from `objs`"""
     final_objs: list[Object] = []
     for obj in objs:
         should_remove = False
@@ -293,7 +286,7 @@ def remove_objs(objs: list[Object], objs_to_remove: list[Object]) -> list[Object
     return final_objs
 
 
-def get_scalars_from_node(tree_node: Node) -> list[Int]:
+def get_scalar_objs(tree_node: Node) -> list[Int]:
     scalars = LANGUAGE.query(scalar_query).captures(tree_node)
     scalar_decls = LANGUAGE.query(sclar_decl_query).captures(tree_node)
     loop_upper_cond = LANGUAGE.query(loop_upper_cond_query).captures(tree_node)
@@ -468,7 +461,7 @@ def build_type_expression_tree(
     return helper(compute_node, target_type)
 
 
-def preorder_traversal(node):
+def preorder_traversal(node) -> str:
     if node["type"] == "operator":
         # Get the operator
         operator = node["operator"]
@@ -501,6 +494,9 @@ def preorder_traversal_with_objs(
     target_lang_fns: set[Object],
     driver: Driver,
 ) -> Object:
+    """Convert a type expression tree into grammar.
+    This function modifies `target_lang_fns` and some states of `driver`.
+    """
     if isinstance(type_expr_tree, str):
         return choose(*vars_by_type_str[type_expr_tree])
     if type_expr_tree["type"] == "operator":
@@ -643,22 +639,8 @@ def find_int_init_decl_to_var(var_name: str, tree_node: Node):
     return None
 
 
-def find_input_type(var_name: str, tree_node: Node) -> str:
-    template_input_types = LANGUAGE.query(template_types_query).captures(tree_node)
-    primitive_input_types = LANGUAGE.query(primitive_types_query).captures(tree_node)
-    for input_type in template_input_types + primitive_input_types:
-        curr_var_type, curr_var_name = input_type[0].text.decode().split(" ")
-        if curr_var_name == var_name:
-            if curr_var_type == "vector<int>":
-                return "vector"
-            elif curr_var_type == "vector<vector<int>>":
-                return "matrix"
-            else:
-                raise ParserError(f"Unsupported input type: {curr_var_type}")
-    return None
-
-
-def make_input_variables(tree_node: Node, driver: Driver) -> dict[str, ObjectT]:
+def make_input_variables(tree_node: Node, driver: Driver) -> dict[str, Object]:
+    """Return a dictionary from function argument names to their corresponding variable objects."""
     template_input_types = LANGUAGE.query(template_types_query).captures(tree_node)
     primitive_input_types = LANGUAGE.query(primitive_types_query).captures(tree_node)
     input_vars: dict[str, ObjectT] = {}
@@ -679,6 +661,7 @@ def make_input_variables(tree_node: Node, driver: Driver) -> dict[str, ObjectT]:
 def find_compute_from_node(
     tree_node: Node,
 ) -> Node:
+    """Find the compute from the given node. The node should usually be the root node of the file."""
     # Get number of loops
     loops = LANGUAGE.query(loop_query).captures(tree_node)
     num_loops = len(loops)
@@ -759,49 +742,48 @@ def find_compute_from_node(
     assert len(outer_loop_compound_nodes) <= 1
 
     if not is_single_loop:
-        # TODO(jie): need to filter out push back statements here
-        inner_most_compound_node: Optional[Node] = None
-        outer_most_compound_node: Optional[Node] = None
+        inner_loop_compound_node: Optional[Node] = None
+        outer_loop_compound_node: Optional[Node] = None
 
         if len(inner_loop_compound_nodes) > 0:
-            inner_most_compound_node = inner_loop_compound_nodes[0]
+            inner_loop_compound_node = inner_loop_compound_nodes[0]
             print(
-                f"Innermost compound statement: {_node_to_text(inner_most_compound_node)}"
+                f"Innermost compound statement: {_node_to_text(inner_loop_compound_node)}"
             )
         if len(outer_loop_compound_nodes) > 0:
-            outer_most_compound_node = outer_loop_compound_nodes[0]
+            outer_loop_compound_node = outer_loop_compound_nodes[0]
             print(
-                f"Outermost compound statement: {_node_to_text(outer_most_compound_node)}"
+                f"Outermost compound statement: {_node_to_text(outer_loop_compound_node)}"
             )
-        if inner_most_compound_node is None and outer_most_compound_node is not None:
-            return outer_most_compound_node
-        elif inner_most_compound_node is not None and outer_most_compound_node is None:
-            return inner_most_compound_node
+        if inner_loop_compound_node is None and outer_loop_compound_node is not None:
+            return outer_loop_compound_node
+        elif inner_loop_compound_node is not None and outer_loop_compound_node is None:
+            return inner_loop_compound_node
         elif (
-            inner_most_compound_node is not None
-            and outer_most_compound_node is not None
+            inner_loop_compound_node is not None
+            and outer_loop_compound_node is not None
         ):
-            return inner_most_compound_node, outer_most_compound_node
+            return inner_loop_compound_node, outer_loop_compound_node
         else:
             return None
     else:
         if len(outer_loop_compound_stmts) > 0:
-            outer_most_compound = outer_loop_compound_stmts[0]
-            print(
-                f"Outermost compound statement: {_capture_to_text(outer_most_compound)}"
-            )
-            return outer_most_compound[0]
+            outer_loop_compound = outer_loop_compound_stmts[0]
+            print(f"outer loop statement: {_capture_to_text(outer_loop_compound)}")
+            return outer_loop_compound[0]
 
 
 def find_compute_from_file(
     file_path: str,
 ) -> Node:
+    """Find the node that represents the computation of the given file"""
     root_node = find_root_node_from_file(file_path)
     compute_node = find_compute_from_node(root_node)
     return compute_node
 
 
 def find_root_node_from_file(file_path: str) -> Node:
+    """Find the root node for a file"""
     with open(file_path) as f:
         source_code = f.read()
     print(f"Reading file {file_path}: ", file_path)
@@ -845,7 +827,7 @@ def get_str_type(var: ObjectT) -> str:
         raise ParserError(f"Unsupported type: {var.type}")
 
 
-def get_loop_bounds_in_ir(
+def get_loop_bound_objs(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
 ) -> list[Bool]:
     op = loop_bounds[-1][1]
@@ -860,22 +842,21 @@ def get_loop_bounds_in_ir(
         raise ParserError(f"Unsupported operator: {op}")
 
 
-def get_outer_loop_bounds(
+def get_outer_loop_bound_objs(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
 ) -> list[Bool]:
     outer_loop_bounds = loop_bounds[0]
-    return get_loop_bounds_in_ir(outer_loop_bounds, vars_by_name)
+    return get_loop_bound_objs(outer_loop_bounds, vars_by_name)
 
 
-def get_inner_loop_bounds(
+def get_inner_loop_bound_objs(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
 ) -> list[Bool]:
-    # TODO(jie)
     inner_loop_bounds = loop_bounds[1]
-    return get_loop_bounds_in_ir(inner_loop_bounds, vars_by_name)
+    return get_loop_bound_objs(inner_loop_bounds, vars_by_name)
 
 
-def get_loop_var_in_ir(
+def get_loop_var_obj(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, Object]
 ) -> Int:
     loop_var_node = loop_bounds[0][0]
@@ -887,26 +868,18 @@ def get_loop_var_in_ir(
     return loop_var
 
 
-def get_outer_loop_var(
+def get_outer_loop_obj(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> Int:
     outer_loop_bounds = loop_bounds[0]
-    return get_loop_var_in_ir(outer_loop_bounds, vars_by_name)
+    return get_loop_var_obj(outer_loop_bounds, vars_by_name)
 
 
-def get_inner_loop_var(
+def get_inner_loop_obj(
     loop_bounds: list[tuple[Any]], vars_by_name: dict[str, ObjectT]
 ) -> Int:
     inner_loop_bounds = loop_bounds[1]
-    return get_loop_var_in_ir(inner_loop_bounds, vars_by_name)
-
-
-def get_vars_by_type_str(vars: list[ObjectT]) -> list[ObjectT]:
-    return {
-        "vector": get_vector_vars(vars),
-        "matrix": get_matrix_vars(vars),
-        "scalar": get_scalar_vars(vars),
-    }
+    return get_loop_var_obj(inner_loop_bounds, vars_by_name)
 
 
 def get_vars_by_name(vars: list[ObjectT]) -> dict[str, ObjectT]:
@@ -939,10 +912,10 @@ def get_outer_loop_inv(
     write_conditions: list[Bool] = []
 
     # First get the outer loop bounds
-    outer_left_bound, outer_right_bound = get_outer_loop_bounds(
+    outer_left_bound, outer_right_bound = get_outer_loop_bound_objs(
         loop_bounds, all_vars_by_name
     )
-    outer_loop_var = get_outer_loop_var(loop_bounds, all_vars_by_name)
+    outer_loop_var = get_outer_loop_obj(loop_bounds, all_vars_by_name)
     outer_loop_var_name = outer_loop_var.src.name()
     loop_conditions = [
         outer_loop_var >= outer_left_bound,
@@ -983,7 +956,7 @@ def get_outer_loop_inv(
         )
     # Find inner loop var
     if not is_single_loop:
-        inner_loop_var = get_inner_loop_var(loop_bounds, all_vars_by_name)
+        inner_loop_var = get_inner_loop_obj(loop_bounds, all_vars_by_name)
         inner_loop_var_name = inner_loop_var.src.name()
         write_var_names_to_exclude.add(inner_loop_var_name)
 
@@ -1008,7 +981,7 @@ def get_outer_loop_inv(
         # Get inner loop bounds, they might be useful
         inner_left_bound, inner_right_bound = None, None
         if not is_single_loop:
-            inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+            inner_left_bound, inner_right_bound = get_inner_loop_bound_objs(
                 loop_bounds, all_vars_by_name
             )
         if len(scalar_vars) > 0:
@@ -1078,13 +1051,13 @@ def get_ps(
         raise ParserError("Expected only one write variable in ps")
     rv = writes[0]
     all_vars_by_name = get_vars_by_name(writes + reads + in_scope)
-    outer_left_bound, outer_right_bound = get_outer_loop_bounds(
+    outer_left_bound, outer_right_bound = get_outer_loop_bound_objs(
         loop_bounds, all_vars_by_name
     )
     # Get inner bounds if they exist
     inner_left_bound, inner_right_bound = None, None
     if not is_single_loop:
-        inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+        inner_left_bound, inner_right_bound = get_inner_loop_bound_objs(
             loop_bounds, all_vars_by_name
         )
     read_vars_by_type: dict[str, list[ObjectT]] = {}
@@ -1134,8 +1107,8 @@ def get_ps(
 def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
-    scalars = get_scalars_from_node(root_node)
-    loop_bounds = get_loop_bounds_from_node(root_node)
+    scalars = get_scalar_objs(root_node)
+    loop_bounds = get_loop_bounds_nodes(root_node)
     input_vars = make_input_variables(root_node, driver)
     compute_node = find_compute_from_file(file_path)
 
@@ -1154,7 +1127,8 @@ def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
             scalars=scalars,
             target_lang_fns=TARGET_LANG_FNS,
             root_node=root_node,
-            outer_loop_writes_needed=[],
+            is_single_loop=True,
+            driver=driver,
         )
         return ps_cond
 
@@ -1171,6 +1145,9 @@ def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
             scalars=scalars,
             target_lang_fns=TARGET_LANG_FNS,
             root_node=root_node,
+            outer_loop_writes_needed=[],
+            is_single_loop=True,
+            driver=driver,
         )
 
     ll_path = file_path.replace(".cc", ".ll")
@@ -1189,12 +1166,10 @@ def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
 def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
-    scalars = get_scalars_from_node(root_node)
-    loop_bounds = get_loop_bounds_from_node(root_node)
+    scalars = get_scalar_objs(root_node)
+    loop_bounds = get_loop_bounds_nodes(root_node)
     input_vars = make_input_variables(root_node, driver)
     compute_node = find_compute_from_file(file_path)
-    # TODO(jie): delete this print statement
-    print("COMPUTE", compute_node)
 
     TARGET_LANG_FNS: set[Object] = set()
     OUTER_LOOP_WRITES_NEEDED: list[Object] = []
@@ -1314,20 +1289,20 @@ def get_inner_loop_inv(
     all_vars_by_name = {**writes_by_name, **reads_by_name, **in_scope_by_name}
 
     # Get inner loop conditions
-    inner_left_bound, inner_right_bound = get_inner_loop_bounds(
+    inner_left_bound, inner_right_bound = get_inner_loop_bound_objs(
         loop_bounds, all_vars_by_name
     )
-    inner_loop_var = get_inner_loop_var(loop_bounds, all_vars_by_name)
+    inner_loop_var = get_inner_loop_obj(loop_bounds, all_vars_by_name)
     inner_loop_conditions = [
         inner_loop_var >= inner_left_bound,
         inner_loop_var <= inner_right_bound,
     ]
 
     # Get outer loop conditions
-    outer_left_bound, outer_right_bound = get_outer_loop_bounds(
+    outer_left_bound, outer_right_bound = get_outer_loop_bound_objs(
         loop_bounds, all_vars_by_name
     )
-    outer_loop_var = get_outer_loop_var(loop_bounds, all_vars_by_name)
+    outer_loop_var = get_outer_loop_obj(loop_bounds, all_vars_by_name)
     outer_loop_conditions = [
         outer_loop_var >= outer_left_bound,
         outer_loop_var < outer_right_bound,
