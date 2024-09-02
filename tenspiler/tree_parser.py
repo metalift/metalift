@@ -35,135 +35,6 @@ class ParserError(Exception):
 LANGUAGE = get_language("cpp")
 PARSER = get_parser("cpp")
 
-example1 = """
-vector<int> normal_blend_f(vector<int> base, vector<int> active, int opacity)
-{
-  vector<int> out;
-  for (int i = 0; i < base.size(); ++i)
-    out.push_back(opacity * active[i] + (1 - opacity) * base[i]);
-  return out;
-}
-"""
-
-example2 = """
-vector<int> normal_blend_8(vector<int> base, vector<int> active, int opacity)
-{
-  vector<int> out;
-  for (int i = 0; i < base.size(); ++i)
-    out.push_back(opacity * active[i] + (32 - opacity) * base[i]);
-
-  return out;
-}
-"""
-
-example3 = """
-int mag_array(vector<int> a, int n) {
-    int i;
-    int sum = 0;
-    for(i = 0; i < n; ++i){
-        sum += a[i] * a[i];
-    }
-    return sum;
-}
-"""
-
-example4 = """
-vector<vector<int>> matrix_add_matrix(vector<vector<int>> from_matrix, vector<vector<int>> to_matrix)
-{
-    int i, j;
-    vector<vector<int>> out;
-    for (i = 0; i < from_matrix.size(); ++i) {
-        vector<int> row_vec;
-        for (j = 0; j < from_matrix[0].size(); ++j) {
-            row_vec.push_back(from_matrix[i][j] + to_matrix[i][j]);
-        }
-        out.push_back(row_vec);
-    }
-    return out;
-}
-"""
-example5 = """
-vector<int> lmsfir2(int NTAPS, vector<int> input, vector<int> coefficient, int error) {
-    vector<int> out;
-    for (int i = 0; i < NTAPS - 1; ++i) {
-        int curr = coefficient[i] + input[i] * error;
-        out.push_back(curr);
-    }
-    return out;
-}
-
-"""
-
-
-example6 = """
-vector<vector<int>> screen_blend_8(vector<vector<int>> base, vector<vector<int>> active)
-{
-    vector<vector<int>> out;
-    int m = base.size();
-    int n = base[0].size();
-    for (int row = 0; row < m; row++) {
-        vector<int> row_vec;
-        for (int col = 0; col < n; col++) {
-            int pixel = base[row][col] + active[row][col] - (base[row][col] * active[row][col]) / 32;
-            row_vec.push_back(pixel);
-        }
-        out.push_back(row_vec);
-    }
-    return out;
-}
-"""
-
-
-example7 = """
-vector<vector<int>> linear_burn_8(vector<vector<int>> base, vector<vector<int>> active)
-{
-    vector<vector<int>> out;
-    int m = base.size();
-    int n = base[0].size();
-	for (int row = 0; row < m; row++) {
-        vector<int> row_vec;
-		for (int col = 0; col < n; col++) {
-            int pixel = (base[row][col] + active[row][col]) - 32;
-			row_vec.push_back(pixel);
-		}
-		out.push_back(row_vec);
-	}
-	return out;
-}
-"""
-
-example8 = """
-vector<vector<int>> lighten_blend_8(vector<vector<int>> base, vector<vector<int>> active)
-{
-    vector<vector<int>> out;
-    int m = base.size();
-    int n = base[0].size();
-	for (int row = 0; row < m; row++) {
-        vector<int> row_vec;
-		for (int col = 0; col < n; col++) {
-			int pixel;
-			if (base[row][col] < active[row][col])
-				pixel = active[row][col];
-			else
-				pixel = base[row][col];
-			row_vec.push_back(pixel);
-		}
-		out.push_back(row_vec);
-	}
-	return out;
-}
-"""
-
-example9 = """
-int softmax_part1(vector<int> input, int max_pos) {
-    int max_val = input[0];
-    for (int i = 1; i < max_pos; i++)
-        if (input[i] > max_val)
-            max_val = input[i];
-    return max_val;
-}
-"""
-
 
 #####pattern matching queries
 # matches the for loop
@@ -277,17 +148,25 @@ def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple[Node]]]:
     lower_bounds = []
     if loop_lower_ident:
         lower_bounds = [
-            (ident[0], init[0])
+            [ident[0], init[0]]
             for ident, init in zip(loop_lower_ident, loop_lower_init)
         ]
     elif loop_lower_assign:
         lower_bounds = [
-            (
+            [
                 assign[0].child_by_field_name("left"),
                 assign[0].child_by_field_name("right"),
-            )
+            ]
             for assign in loop_lower_assign
         ]
+
+    for i in range(len(lower_bounds)):
+        value = lower_bounds[i][1]
+        if value.type == "identifier":
+            decl_node = find_int_init_decl_to_var(value.text.decode(), tree_node)
+            if decl_node is not None:
+                decl_value_node = decl_node.child_by_field_name("value")
+                lower_bounds[i][1] = decl_value_node
 
     # Query and extract upper bounds
     loop_upper_cond = LANGUAGE.query(loop_upper_cond_query).captures(tree_node)
@@ -300,13 +179,21 @@ def get_loop_bounds_from_node(tree_node: Node) -> list[list[tuple[Node]]]:
         )
 
     upper_bounds = [
-        (
+        [
             cond[0].child_by_field_name("left"),
             cond[0].child_by_field_name("operator"),
             cond[0].child_by_field_name("right"),
-        )
+        ]
         for cond in loop_upper_cond
     ]
+
+    for i in range(len(upper_bounds)):
+        value = upper_bounds[i][2]
+        if value.type == "identifier":
+            decl_node = find_int_init_decl_to_var(value.text.decode(), tree_node)
+            if decl_node is not None:
+                decl_value_node = decl_node.child_by_field_name("value")
+                upper_bounds[i][2] = decl_value_node
 
     # Combine lower and upper bounds
     bounds = [[lower, upper] for lower, upper in zip(lower_bounds, upper_bounds)]
@@ -331,6 +218,12 @@ def parse_scalar_node(node: Node, all_vars_by_name: dict[str, Object]) -> Int:
             raise ParserError(f"Unsupported operator: {operator}")
     elif node.type == "identifier":
         var_name = node.text.decode()
+        if var_name in all_vars_by_name.keys():
+            return all_vars_by_name[var_name]
+        # TODO(jie)
+        int_decl = find_init_decl_to_var(
+            var_name,
+        )
         return all_vars_by_name[var_name]
     elif node.type == "number_literal":
         return Int(int(node.text.decode()))
@@ -421,7 +314,7 @@ def get_scalars_from_node(tree_node: Node) -> list[Int]:
     scalars = list(set([scalar[0] for scalar in scalars]))
     scalars = scalars + scalar_decls_values
     scalars = list(set([scalar.text.decode() for scalar in scalars]))
-    return [Int(int(s)) for s in scalars]
+    return [Int(int(s)) for s in scalars if s.isnumeric()]
 
 
 def build_type_expression_tree(
@@ -908,16 +801,6 @@ def get_outer_loop_inv(
     # Then we get the expression tree
     # Find in this loop what needs to be on the lhs of loop invariant
     write_conditions: list[Bool] = []
-    outer_loop_decl_vars = LANGUAGE.query(outer_loop_decl_var_names_query).captures(
-        root_node
-    )
-    outer_loop_decl_var_names = [node.text.decode() for node, _ in outer_loop_decl_vars]
-    outer_loop_init_decl_vars = LANGUAGE.query(
-        outer_loop_init_decl_var_names_query
-    ).captures(root_node)
-    outer_loop_init_decl_var_names = [
-        node.text.decode() for node, _ in outer_loop_init_decl_vars
-    ]
 
     # First get the outer loop bounds
     outer_left_bound, outer_right_bound = get_outer_loop_bounds(
@@ -930,11 +813,38 @@ def get_outer_loop_inv(
         outer_loop_var <= outer_right_bound,
     ]
 
+    # Find variables declared within the outer loop
+    outer_loop_decl_vars = LANGUAGE.query(outer_loop_decl_var_names_query).captures(
+        root_node
+    )
+    outer_loop_decl_var_names = [node.text.decode() for node, _ in outer_loop_decl_vars]
+    outer_loop_init_decl_vars = LANGUAGE.query(
+        outer_loop_init_decl_var_names_query
+    ).captures(root_node)
+    outer_loop_init_decl_var_names = [
+        node.text.decode() for node, _ in outer_loop_init_decl_vars
+    ]
     write_var_names_to_exclude = {
         outer_loop_var_name,
         *outer_loop_decl_var_names,
         *outer_loop_init_decl_var_names,
     }
+    if not is_single_loop:
+        inner_loop_decl_vars = LANGUAGE.query(inner_loop_decl_var_names_query).captures(
+            root_node
+        )
+        inner_loop_decl_var_names = [
+            node.text.decode() for node, _ in inner_loop_decl_vars
+        ]
+        inner_loop_init_decl_vars = LANGUAGE.query(
+            inner_loop_init_decl_var_names_query
+        ).captures(root_node)
+        inner_loop_init_decl_var_names = [
+            node.text.decode() for node, _ in inner_loop_init_decl_vars
+        ]
+        write_var_names_to_exclude = write_var_names_to_exclude.union(
+            set(inner_loop_decl_var_names + inner_loop_init_decl_var_names)
+        )
     # Find inner loop var
     if not is_single_loop:
         inner_loop_var = get_inner_loop_var(loop_bounds, all_vars_by_name)
@@ -993,6 +903,7 @@ def get_outer_loop_inv(
             )
             matrix = choose(matrix, matrix.transpose())
             read_and_in_scope_vars_by_type["matrix"] = [matrix]
+        print(write_var, type_expr_tree)
         obj_expr_tree = preorder_traversal_with_objs(
             type_expr_tree, read_and_in_scope_vars_by_type, target_lang_fns
         )
