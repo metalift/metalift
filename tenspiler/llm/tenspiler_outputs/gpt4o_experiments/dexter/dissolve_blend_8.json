@@ -1,0 +1,3 @@
+{
+    "dissolve_blend_8": "\nfrom typing import List\n\n\ndef dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:\n    return matrix_where(\n        active,\n        base,\n        lambda active_elem, base_elem: ite(\n            opacity - (((rand_cons % 100) + 1) // 100) >= 0,\n            active_elem,\n            base_elem\n        )\n    )\n"
+}

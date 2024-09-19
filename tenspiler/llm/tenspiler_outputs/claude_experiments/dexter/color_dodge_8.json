@@ -1,0 +1,3 @@
+{
+    "color_dodge_8": "\ndef color_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_where(\n        base,\n        active,\n        lambda b, a: ite(a == 255, 255, b // (255 - a))\n    )\n"
+}

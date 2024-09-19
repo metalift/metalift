@@ -12,6 +12,7 @@ from tenspiler.llm.scripts.utils import (
     extract,
     extract_and_save,
     get_ps_choice_and_save_prompt,
+    run_claude,
 )
 
 # Global variables
@@ -285,11 +286,40 @@ if __name__ == "__main__":
         dsl_code = f.read()
 
     print(f"Found benchmark {args.benchmark} in suite {benchmark_suite}")
-    print(source_code)
-    run_end_to_end_llm(
-        benchmark_suite=benchmark_suite,
-        benchmark_name=args.benchmark,
+    # run_end_to_end_llm(
+    #     benchmark_suite=benchmark_suite,
+    #     benchmark_name=args.benchmark,
+    #     source_code=source_code,
+    #     dsl_code=dsl_code,
+    #     fanout=args.fanout,
+    # )
+    # get_ps_choice_and_save_prompt(
+    #     client=openai_client,
+    #     source_code=source_code,
+    #     dsl_code=dsl_code,
+    #     output_file=f"{args.benchmark}.json",
+    #     prev_incorrect_sols={incorrect_sol1}
+    # )
+    with open(
+        "tenspiler/llm/tenspiler_outputs/claude_experiments/polybench/fdtd_2d_part1.json",
+        "r",
+    ) as f:
+        solution = list(json.load(f).values())[0]
+        print(solution)
+        # feedback = "function `matrix_map` is not in the defined functions. Generate a solution using the defined functions."
+        # feedback = "Expected type builtins.list[builtins.int] but got builtins.int for 1th argument of scalar_vec_div"
+        feedback = "This solution is incorrect. Please try again."
+    # response, _ = run_gemini(
+    #     dsl_code=dsl_code,
+    #     source_code=source_code,
+    #     solution=solution,
+    #     feedback=feedback,
+    # )
+    # print(response[0])
+    run_claude(
+        claude_client=claude_client,
         source_code=source_code,
         dsl_code=dsl_code,
-        fanout=args.fanout,
+        solution=solution,
+        feedback=feedback,
     )

@@ -1,0 +1,3 @@
+{
+    "softmax_part2": "\nfrom typing import List\n\ndef test(input: List[int], max_pos: int, max_val: int) -> List[int]:\n    return vec_map(vec_slice(input, 0, max_pos), lambda x: integer_exp(x - max_val))\n"
+}

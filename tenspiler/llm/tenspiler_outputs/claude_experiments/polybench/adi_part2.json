@@ -1,0 +1,3 @@
+{
+    "adi_part2": "\ndef adi_part2(n: int, X: List[List[int]], A: List[List[int]], B: List[List[int]]) -> List[List[int]]:\n    return matrix_col_slice(\n        matrix_where(\n            B,\n            matrix_scalar_div(\n                1,\n                matrix_elemwise_mul(\n                    A,\n                    matrix_scalar_div(\n                        1,\n                        matrix_col_slice(B, 0, n-1)\n                    )\n                )\n            ),\n            lambda x, y: x - y\n        ),\n        1,\n        n\n    )\n"
+}

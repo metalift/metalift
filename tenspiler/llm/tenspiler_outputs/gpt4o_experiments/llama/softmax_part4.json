@@ -1,0 +1,3 @@
+{
+    "softmax_part4": "\nfrom typing import List\n\ndef softmax_part4(unnormalized_output: List[int], max_pos: int, sum: int) -> List[int]:\n    return vec_slice(vec_scalar_div(sum, unnormalized_output), 0, max_pos)\n"
+}
