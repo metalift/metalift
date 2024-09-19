@@ -1,0 +1,3 @@
+{
+    "transformer_part4": "\n#include <vector>\nusing namespace std;\n\nvector<int> transformer_part4(vector<int> input1, vector<int> input2, int hidden_dim) {\n    return vec_elemwise_mul(vec_slice(input1, 0, hidden_dim), vec_slice(input2, 0, hidden_dim));\n}\n\n"
+}

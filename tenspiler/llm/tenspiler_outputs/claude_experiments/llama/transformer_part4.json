@@ -1,0 +1,3 @@
+{
+    "transformer_part4": "\ndef transformer_part4(input1: List[int], input2: List[int], hidden_dim: int) -> List[int]:\n    return vec_elemwise_mul(input1[:hidden_dim], input2[:hidden_dim])\n"
+}

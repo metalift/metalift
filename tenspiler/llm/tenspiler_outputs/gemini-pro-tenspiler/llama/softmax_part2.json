@@ -1,0 +1,3 @@
+{
+    "softmax_part2": "\nvector<int> softmax_part2(vector<int> input, int max_pos, int max_val) {\n  return vec_map(vec_slice(input, 0, max_pos), [max_val](int x) { return integer_exp(x - max_val); });\n}\n\n"
+}

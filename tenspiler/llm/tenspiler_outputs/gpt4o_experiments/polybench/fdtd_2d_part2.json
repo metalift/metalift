@@ -1,0 +1,3 @@
+{
+    "fdtd_2d_part2": "\nfrom typing import List\n\ndef fdtd_2d_part2(\n    nx: int,\n    ny: int,\n    ex: List[List[int]],\n    hz: List[List[int]]\n) -> List[List[int]]:\n    return matrix_row_slice(matrix_elemwise_sub(ex, matrix_scalar_mul(5, matrix_elemwise_sub(hz, matrix_col_slice(hz, 0, ny-1)))), 0, nx)\n"
+}

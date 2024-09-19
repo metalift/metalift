@@ -1,0 +1,3 @@
+{
+    "adi_part5": "\nfrom typing import List\n\ndef adi_part5(\n    n: int,\n    X: List[List[int]],\n    A: List[List[int]],\n    B: List[List[int]]\n) -> List[List[int]]:\n    return matrix_row_slice(\n        matrix_elemwise_sub(\n            X,\n            matrix_elemwise_div(\n                matrix_elemwise_mul(\n                    matrix_row_slice(X, 0, n - 1),\n                    matrix_row_slice(A, 1, n)\n                ),\n                matrix_row_slice(B, 0, n - 1)\n            )\n        ),\n        1,\n        n\n    )\n"
+}

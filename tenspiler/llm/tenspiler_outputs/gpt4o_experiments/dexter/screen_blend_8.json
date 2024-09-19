@@ -1,0 +1,3 @@
+{
+    "screen_blend_8": "\ndef screen_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_elemwise_sub(\n        matrix_elemwise_add(base, active),\n        matrix_elemwise_div(\n            matrix_elemwise_mul(base, active),\n            [[255]*len(base[0])] * len(base)\n        )\n    )\n"
+}

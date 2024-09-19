@@ -1,0 +1,3 @@
+{
+    "rmsnorm_part2": "\ndef rmsnorm_part2(input: List[int], weight: List[int], ss: int) -> List[int]:\n    return vec_elemwise_mul(vec_scalar_mul(1 // integer_sqrt(ss // len(input) + 1), input), weight)\n"
+}
