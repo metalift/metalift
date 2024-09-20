@@ -6,9 +6,8 @@ import textwrap
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union, get_args
+from typing import Any, Union, get_args
 
-import anthropic
 import google.generativeai as genai
 
 from metalift.frontend.llvm import Driver
@@ -45,32 +44,47 @@ from tenspiler.llm.analysis import (
     analyze_transformer_part3,
     analyze_transformer_part4,
 )
-from tenspiler.llm.parser import check_solution
 
 hf_token = os.getenv("HUGGING_FACE_API")
 if not hf_token:
     raise ValueError("Please set the environment variable HUGGING_FACE_API")
 
-# Define all the clients that are needed
-claude_client = anthropic.Anthropic(
-    api_key=os.getenv("CLAUDE_API_KEY"),
-)
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same. Please generate another program."
-TEMPLATE_ERR_EXEC = f""""
-The translated program does not match the source program on the following inputs.
-Inputs:
-    - active: [[1, 2, 3], [4, 5, 6]]
-    - base: [[7, 8, 9], [10, 11, 12]]
-Expected Output: [[-3, 9, -5], [-1, -1, -3]]
-Generated Output: [[2, -10, 4], [0, 0, 2]]
-
-Please fix the current program.
-"""
 
 llama_repo = "meta-llama/Meta-Llama-3-8B-Instruct"
 mistral_repo = "mistralai/Mistral-Nemo-Instruct-2407"
+
+
+def get_fuzzer_feedback(
+    inputs: dict[str, Any], expected_output: Any, actual_output: Any
+) -> str:
+    return f"""
+    The translated program does not match the source program on the following inputs.
+    Inputs: {inputs}
+    Expected Output: {expected_output}
+    Generated Output: {actual_output}
+
+    Please fix the current program.
+    """
+
+
+def get_ps_text(dsl_code: str, source_code: str) -> str:
+    return f"""
+    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+    #Instructions
+    # 1. Do not use for/while loops for rewriting the function.
+    # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
+    # 3. Inline all the expressions. Do not use intermediate variables. Return the Python function signature as well as the function body.
+    #defined functions
+    {dsl_code}
+    ```
+    ```
+    //test function
+    {source_code}
+    ```
+    """
 
 
 # regex to extract the code from the completions
@@ -111,22 +125,7 @@ def get_ps_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    ps_template_text = f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
-    #Instructions
-    # 1. Do not use for/while loops for rewriting the function.
-    # 2. The rewritten program should be a function with a single return statement of the form return_var = provided_function(...).
-    # 3. Inline all the expressions. Do not use intermediate variables.
-    # 4. Enclose the rewritten program in a code block.
-    ```
-    #defined functions
-    {dsl_code}
-    ```
-    ```
-    //test function
-    {source_code}
-    ```
-    """
+    ps_template_text = get_ps_text(dsl_code, source_code)
     # call the completions endpoint to get the completions for the prompt
     messages = [
         {"role": "system", "content": TEMPLATE_SYS},
@@ -519,14 +518,6 @@ def get_inv_choice_and_save_prompt(
     output_file: Path,
     prev_incorrect_sols: set[str],
 ):
-    # TODO(jie)
-    # ps_solution = f"""
-    # def normal_blend_f(base: List[int], active: List[int], opacity: int) -> List[int]:
-    #     return vec_elemwise_add(
-    #         vec_scalar_mul(opacity, active),
-    #         vec_scalar_mul(1 - opacity, base)
-    #     )
-    # """
     inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
     #Instructions:
@@ -1026,49 +1017,3 @@ def run_gemini(dsl_code: str, source_code: str, solution: str, feedback: str):
 
     response = extract(response.text)
     return response, gemini_template_text
-
-
-def run_claude(*, dsl_code: str, source_code: str):
-    max_parser_tries = 5
-    claude_template_text = f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
-    #Instructions
-    # 1. Do not use for/while loops for rewriting the function.
-    # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
-    # 3. Inline all the expressions. Do not use intermediate variables. Return the Python function signature as well as the function body.
-    #defined functions
-    {dsl_code}
-    ```
-    ```
-    //test function
-    {source_code}
-    ```
-    """
-    # We start with a single message, will append with feedback
-    messages = [
-        {"role": "user", "content": claude_template_text},
-    ]
-    all_solutions: list[str] = []
-    for _ in range(max_parser_tries):
-        message = claude_client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=1000,
-            temperature=0.0,
-            system=TEMPLATE_SYS,
-            messages=messages,
-        )
-        solution = message.content[0].text
-        all_solutions.append(solution)
-        print("Solution is", solution)
-        try:
-            check_solution(solution, 1)
-            return solution, all_solutions
-        except Exception as e:
-            print("Failed to pass the parser", e)
-            messages.extend(
-                [
-                    {"role": "assistant", "content": solution},
-                    {"role": "user", "content": str(e)},
-                ]
-            )
-    return None, all_solutions
