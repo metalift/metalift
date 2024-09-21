@@ -45,6 +45,7 @@ from tenspiler.llm.analysis import (
     analyze_transformer_part4,
 )
 
+INDENTATION = " " * 4
 hf_token = os.getenv("HUGGING_FACE_API")
 if not hf_token:
     raise ValueError("Please set the environment variable HUGGING_FACE_API")
@@ -58,33 +59,55 @@ mistral_repo = "mistralai/Mistral-Nemo-Instruct-2407"
 
 
 def get_fuzzer_feedback(
-    inputs: dict[str, Any], expected_output: Any, actual_output: Any
+    inputs: list[dict[str, Any]],
+    expected_outputs: list[Any],
+    actual_or_errors: list[Any],
 ) -> str:
-    return f"""
-    The translated program does not match the source program on the following inputs.
-    Inputs: {inputs}
-    Expected Output: {expected_output}
-    Generated Output: {actual_output}
+    test_cases_info = []
+    for i in range(len(inputs)):
+        curr_info = textwrap.dedent(
+            f"""
+            # Test case {i}
+            Inputs: {inputs[i]}
+            Expected Output: {expected_outputs[i]}
+            Generated Output: {actual_or_errors[i]}
+            """
+        )
+        test_cases_info.append(curr_info)
 
-    Please fix the current program.
-    """
+    test_case_str = "\n\n".join(test_cases_info)
+    return textwrap.dedent(
+        f"""
+        The translated program does not match the source program on the following inputs.
+
+        {test_case_str}
+
+        Please fix the current program.
+        """
+    )
 
 
 def get_ps_text(dsl_code: str, source_code: str) -> str:
-    return f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
-    #Instructions
-    # 1. Do not use for/while loops for rewriting the function.
-    # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
-    # 3. Inline all the expressions. Do not use intermediate variables. Return the Python function signature as well as the function body.
-    #defined functions
-    {dsl_code}
-    ```
-    ```
-    //test function
-    {source_code}
-    ```
-    """
+    return textwrap.dedent(
+        f"""
+        Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+
+        #Instructions
+        # 1. Do not use for/while loops for rewriting the function.
+        # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
+        # 3. Inline all the expressions. Do not use intermediate variables. Return the function signature as well as the function body in python.
+
+        #defined functions
+        ```python
+        {dsl_code}
+        ```
+
+        ```cpp
+        //test function
+        {source_code}
+        ```
+        """
+    )
 
 
 # regex to extract the code from the completions

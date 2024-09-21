@@ -506,7 +506,8 @@ def check_solution(solution: str, expected_num_funcs: int) -> None:
     in_calls: pyList[pyTuple[str, str]] = []
     for target_func_def in target_func_defs:
         mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
-    return fn_decls, in_calls
+    target_func_names = [func_def.name for func_def in target_func_defs]
+    return target_func_names, fn_decls, in_calls
 
 
 def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
