@@ -10,12 +10,7 @@ from typing import Any
 import anthropic
 
 from tenspiler.llm.parser import check_solution, remove_comments
-from tenspiler.llm.scripts.utils import (
-    TEMPLATE_SYS,
-    extract,
-    get_fuzzer_feedback,
-    get_ps_text,
-)
+from tenspiler.llm.scripts.utils import TEMPLATE_SYS, extract, get_fuzzer_feedback
 
 
 def _found_correct_parser_solution(info: dict[str, Any]) -> bool:
@@ -96,163 +91,192 @@ def run_claude(
         "num_parser_tries": 0,
         "num_fuzzer_tries": 0,
     }
-    ps_text = get_ps_text(dsl_code, source_code)
+    ps_text = f"""
+    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+
+    #Instructions
+    # 1. Do not use for/while loops for rewriting the function.
+    # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
+    # 3. Inline all the expressions. Do not use intermediate variables. Return the function signature as well as the function body in python.
+
+    #defined functions
+    ```python
+    {dsl_code}
+    ```
+
+    ```cpp
+    //test function
+    {source_code}
+    ```
+    """
     # We start with a single message, will append with feedback
+
     messages = [
         {"role": "user", "content": ps_text},
     ]
-    # with open("test.txt", "w") as f:
-    #     f.write(ps_text)
-    # exit(0)
+    with open("test.txt", "w") as f:
+        f.write(ps_text)
 
     # This is the function name to run. Will be updated once we pass the parser.
     func_name = None
-    for _ in range(20):
-        curr_solution = claude_client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=1000,
-            temperature=1.0,
-            system=TEMPLATE_SYS,
-            messages=messages,
-        )
-        curr_solution = replace_ite(extract(curr_solution.content[0].text)[0])
-        print("Parser solution is", curr_solution)
-        curr_parser_feedback = None
-        try:
-            func_names, _, _ = check_solution(curr_solution, 1)
-            func_name = func_names[0]
-            print("Parser solution passed the parser")
-        except Exception as e:
-            print("Failed to pass the parser", e)
-            continue
 
-        # run fuzzer
-        failed_count = 0
-        for test_case_file in test_case_dir.rglob("*.json"):
-            with open(test_case_file) as f:
-                test_data = json.load(f)
-                expected = test_data["result"]
-                del test_data["result"]
-                # run the function here
-                assert func_name is not None
-                actual, error = _run_test(
-                    func_name=func_name, ps_sol=curr_solution, inputs=test_data
+    # for i in range(20):
+    #     # if i != 0:
+    #     #     assert current_solution is not None
+    #     #     messages.append({"role": "assistant", "content": current_solution})
+    #     #     messages.append({"role": "user", "content": "please generate a different solution"})
+    #     # import pdb; pdb.set_trace()
+    #     claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+    #     time.sleep(120)
+    #     curr_solution = claude_client.messages.create(
+    #         model="claude-3-5-sonnet-20240620",
+    #         max_tokens=1000,
+    #         temperature=0.7,
+    #         system=TEMPLATE_SYS,
+    #         messages=messages,
+    #     )
+    #     curr_solution = replace_ite(extract(curr_solution.content[0].text)[0])
+    #     print("Parser solution is", curr_solution)
+    #     curr_parser_feedback = None
+    #     try:
+    #         func_names, _, _ = check_solution(curr_solution, 1)
+    #         func_name = func_names[0]
+    #         print("Parser solution passed the parser")
+    #     except Exception as e:
+    #         print("Failed to pass the parser", e)
+    #         continue
+
+    #     # run fuzzer
+    #     failed_count = 0
+    #     for test_case_file in test_case_dir.rglob("*.json"):
+    #         with open(test_case_file) as f:
+    #             test_data = json.load(f)
+    #             expected = test_data["result"]
+    #             del test_data["result"]
+    #             # run the function here
+    #             assert func_name is not None
+    #             actual, error = _run_test(
+    #                 func_name=func_name, ps_sol=curr_solution, inputs=test_data
+    #             )
+    #             if actual != expected or error is not None:
+    #                 failed_count += 1
+    #     print(f"Failed {failed_count} test cases")
+    # exit(0)
+
+    # TODO: change this 1
+    for i in range(1):
+        for _ in range(max_parser_tries):
+            parser_try_start_time = time.time()
+            curr_solution = get_solution_from_claude(messages)
+            print("Parser solution is", curr_solution)
+            curr_parser_feedback = None
+            try:
+                func_names, _, _ = check_solution(curr_solution, 1)
+                func_name = func_names[0]
+                print("Parser solution passed the parser")
+                break
+            except Exception as e:
+                print("Failed to pass the parser", e)
+                messages.extend(
+                    [
+                        {"role": "assistant", "content": curr_solution},
+                        {"role": "user", "content": curr_parser_feedback},
+                    ]
                 )
-                if actual != expected or error is not None:
-                    failed_count += 1
-        print(f"Failed {failed_count} test cases")
-    exit(0)
-    # for _ in range(max_parser_tries):
-
-    for _ in range(max_parser_tries):
-        parser_try_start_time = time.time()
-        curr_solution = get_solution_from_claude(messages)
-        print("Parser solution is", curr_solution)
-        curr_parser_feedback = None
-        try:
-            func_names, _, _ = check_solution(curr_solution, 1)
-            func_name = func_names[0]
-            print("Parser solution passed the parser")
-            break
-        except Exception as e:
-            print("Failed to pass the parser", e)
-            messages.extend(
-                [
-                    {"role": "assistant", "content": curr_solution},
-                    {"role": "user", "content": curr_parser_feedback},
-                ]
-            )
-        finally:
-            parser_try_end_time = time.time()
-            parser_try_time_taken = parser_try_end_time - parser_try_start_time
-            info["parser_solutions"].append(
-                (curr_solution, curr_parser_feedback, parser_try_time_taken)
-            )
-
-    if not _found_correct_parser_solution(info):
-        # For now, we just claim it failed and returned. In the future, we might want to go back to the beginning and ask the model to rewrite the function.
-        return info
-
-    print("===================")
-    print("Moving on to fuzzer")
-    for _ in range(max_fuzzer_tries):
-        wrong_test_cases = []
-        curr_fuzzer_feedback = None
-        fuzzer_try_start_time = time.time()
-        for test_case_file in test_case_dir.rglob("*.json"):
-            with open(test_case_file) as f:
-                test_data = json.load(f)
-                expected = test_data["result"]
-                del test_data["result"]
-                # run the function here
-                assert func_name is not None
-                actual, error = _run_test(
-                    func_name=func_name, ps_sol=curr_solution, inputs=test_data
+            finally:
+                parser_try_end_time = time.time()
+                parser_try_time_taken = parser_try_end_time - parser_try_start_time
+                info["parser_solutions"].append(
+                    (curr_solution, curr_parser_feedback, parser_try_time_taken)
                 )
-                if actual != expected or error is not None:
-                    wrong_test_cases.append((test_data, expected, actual, error))
-                    if len(wrong_test_cases) == 3:
-                        inputs = [test_case[0] for test_case in wrong_test_cases]
-                        expected_outputs = [
-                            test_case[1] for test_case in wrong_test_cases
-                        ]
-                        actual_or_errors = [
-                            test_case[2] or test_case[3]
-                            for test_case in wrong_test_cases
-                        ]
-                        curr_fuzzer_feedback = get_fuzzer_feedback(
-                            inputs=inputs,
-                            expected_outputs=expected_outputs,
-                            actual_or_errors=actual_or_errors,
-                        )
-                        messages.extend(
-                            [
-                                {"role": "assistant", "content": curr_solution},
-                                {
-                                    "role": "user",
-                                    "content": curr_fuzzer_feedback
-                                    + "\nplease enclose your solution in a python code block",
-                                },
-                            ]
-                        )
-                        break
 
-        fuzzer_try_end_time = time.time()
-        fuzzer_try_time_taken = fuzzer_try_end_time - fuzzer_try_start_time
-        if len(wrong_test_cases) > 0 and len(wrong_test_cases) < 3:
-            inputs = [test_case[0] for test_case in wrong_test_cases]
-            expected_outputs = [test_case[1] for test_case in wrong_test_cases]
-            actual_or_errors = [
-                test_case[2] or test_case[3] for test_case in wrong_test_cases
-            ]
-            curr_fuzzer_feedback = get_fuzzer_feedback(
-                inputs=inputs,
-                expected_outputs=expected_outputs,
-                actual_or_errors=actual_or_errors,
-            )
-            messages.extend(
-                [
-                    {"role": "assistant", "content": curr_solution},
-                    {
-                        "role": "user",
-                        "content": curr_fuzzer_feedback
-                        + "\nplease enclose your solution in a python code block",
-                    },
-                ]
-            )
-
-        info["fuzzer_solutions"].append(
-            (curr_solution, curr_fuzzer_feedback, fuzzer_try_time_taken)
-        )
-
-        if _found_correct_fuzzer_solution(info):
+        if not _found_correct_parser_solution(info):
+            # For now, we just claim it failed and returned. In the future, we might want to go back to the beginning and ask the model to rewrite the function.
+            # TODO: need to go back to beginning
             return info
 
-        import pdb
+        print("===================")
+        print("Moving on to fuzzer")
+        for _ in range(max_fuzzer_tries):
+            wrong_test_cases = []
+            curr_fuzzer_feedback = None
+            fuzzer_try_start_time = time.time()
+            count = 0
+            for test_case_file in test_case_dir.rglob("*.json"):
+                count += 1
+                if count == 500:
+                    break
+                with open(test_case_file) as f:
+                    test_data = json.load(f)
+                    expected = test_data["result"]
+                    del test_data["result"]
+                    # run the function here
+                    assert func_name is not None
+                    actual, error = _run_test(
+                        func_name=func_name, ps_sol=curr_solution, inputs=test_data
+                    )
+                    if actual != expected or error is not None:
+                        wrong_test_cases.append((test_data, expected, actual, error))
+                        if len(wrong_test_cases) == 3:
+                            inputs = [test_case[0] for test_case in wrong_test_cases]
+                            expected_outputs = [
+                                test_case[1] for test_case in wrong_test_cases
+                            ]
+                            actual_or_errors = [
+                                test_case[2] or test_case[3]
+                                for test_case in wrong_test_cases
+                            ]
+                            curr_fuzzer_feedback = get_fuzzer_feedback(
+                                inputs=inputs,
+                                expected_outputs=expected_outputs,
+                                actual_or_errors=actual_or_errors,
+                            )
+                            messages.extend(
+                                [
+                                    {"role": "assistant", "content": curr_solution},
+                                    {
+                                        "role": "user",
+                                        "content": curr_fuzzer_feedback
+                                        + "\nplease enclose your solution in a python code block",
+                                    },
+                                ]
+                            )
+                            break
 
-        pdb.set_trace()
-        curr_solution = get_solution_from_claude(messages)
-        print("Fuzzer solution is", curr_solution)
+            fuzzer_try_end_time = time.time()
+            fuzzer_try_time_taken = fuzzer_try_end_time - fuzzer_try_start_time
+            if len(wrong_test_cases) > 0 and len(wrong_test_cases) < 3:
+                inputs = [test_case[0] for test_case in wrong_test_cases]
+                expected_outputs = [test_case[1] for test_case in wrong_test_cases]
+                actual_or_errors = [
+                    test_case[2] or test_case[3] for test_case in wrong_test_cases
+                ]
+                curr_fuzzer_feedback = get_fuzzer_feedback(
+                    inputs=inputs,
+                    expected_outputs=expected_outputs,
+                    actual_or_errors=actual_or_errors,
+                )
+                messages.extend(
+                    [
+                        {"role": "assistant", "content": curr_solution},
+                        {
+                            "role": "user",
+                            "content": curr_fuzzer_feedback
+                            + "\nplease enclose your solution in a python code block",
+                        },
+                    ]
+                )
+
+            info["fuzzer_solutions"].append(
+                (curr_solution, curr_fuzzer_feedback, fuzzer_try_time_taken)
+            )
+
+            if _found_correct_fuzzer_solution(info):
+                print("Fuzzer solution is correct, returning")
+                return info
+            print("Failed some tests, new solution is needed")
+            curr_solution = get_solution_from_claude(messages)
+            print("Fuzzer solution is", curr_solution)
 
     return info
 
@@ -283,10 +307,7 @@ if __name__ == "__main__":
                 benchmark_name=file.stem,
                 dsl_code=dsl_code,
                 source_code=source_code,
-                test_case_dir=Path("/Users/jieq/Downloads/color_burn_data_updated"),
+                test_case_dir=Path(f"/Users/jieq/Downloads/outputs_dexter/{file.stem}"),
             )
-            with open(f"{file.name}.json", "w") as f:
+            with open(f"{file.stem}.json", "w") as f:
                 json.dump(info, f, indent=2)
-            import pdb
-
-            pdb.set_trace()
