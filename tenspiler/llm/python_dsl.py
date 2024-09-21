@@ -2,6 +2,7 @@ from typing import Callable, List
 
 
 def matrix_scalar_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    """matrix_x - a"""
     return (
         []
         if len(matrix_x) < 1
@@ -10,6 +11,7 @@ def matrix_scalar_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
 
 
 def matrix_scalar_mul(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    """matrix_x * a"""
     return (
         []
         if len(matrix_x) < 1
@@ -18,6 +20,7 @@ def matrix_scalar_mul(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
 
 
 def matrix_scalar_div(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    """matrix_x // a"""
     return (
         []
         if len(matrix_x) < 1
@@ -26,6 +29,7 @@ def matrix_scalar_div(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
 
 
 def scalar_matrix_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    """a - matrix_x"""
     return (
         []
         if len(matrix_x) < 1
@@ -34,6 +38,7 @@ def scalar_matrix_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
 
 
 def scalar_matrix_div(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    """a // matrix_x"""
     return (
         []
         if len(matrix_x) < 1
@@ -245,6 +250,7 @@ def scalar_vec_div(a: int, x: List[int]) -> List[int]:
 
 
 def matrix_scalar_add(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    """matrix_x + a"""
     return (
         []
         if len(matrix_x) < 1
