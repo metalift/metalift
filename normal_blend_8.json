@@ -1,0 +1,23 @@
+{
+  "parser_solutions": [
+    [
+      "\ndef normal_blend_8(base: List[int], active: List[int], opacity: int) -> List[int]:\n    return vec_scalar_div(32, vec_elemwise_add(\n        vec_scalar_mul(opacity, active),\n        vec_scalar_mul(32 - opacity, base)\n    ))\n",
+      null,
+      12.094624042510986
+    ]
+  ],
+  "fuzzer_solutions": [
+    [
+      "\ndef normal_blend_8(base: List[int], active: List[int], opacity: int) -> List[int]:\n    return vec_scalar_div(32, vec_elemwise_add(\n        vec_scalar_mul(opacity, active),\n        vec_scalar_mul(32 - opacity, base)\n    ))\n",
+      "\n        The translated program does not match the source program on the following inputs.\n\n\n# Test case 0\nInputs: {'active': [8, 21], 'base': [27, 14], 'opacity': 3}\nExpected Output: [807, 469]\nGenerated Output: [25, 14]\n\n\n\n# Test case 1\nInputs: {'active': [29, 0], 'base': [7, 30], 'opacity': 3}\nExpected Output: [290, 870]\nGenerated Output: [9, 27]\n\n\n\n# Test case 2\nInputs: {'active': [24, 32], 'base': [30, 27], 'opacity': 10}\nExpected Output: [900, 914]\nGenerated Output: [28, 28]\n\n\n        Please fix the current program. Explain your fix.\n",
+      0.15703606605529785
+    ],
+    [
+      "\ndef normal_blend_8(base: List[int], active: List[int], opacity: int) -> List[int]:\n    return vec_elemwise_add(\n        vec_scalar_mul(opacity, active),\n        vec_scalar_mul(32 - opacity, base)\n    )\n",
+      null,
+      0.5821480751037598
+    ]
+  ],
+  "num_parser_tries": 0,
+  "num_fuzzer_tries": 0
+}

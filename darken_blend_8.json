@@ -1,0 +1,18 @@
+{
+  "parser_solutions": [
+    [
+      "\ndef darken_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_where(base, active, lambda x, y: y if x > y else x)\n",
+      null,
+      11.513294696807861
+    ]
+  ],
+  "fuzzer_solutions": [
+    [
+      "\ndef darken_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_where(base, active, lambda x, y: y if x > y else x)\n",
+      null,
+      0.7941927909851074
+    ]
+  ],
+  "num_parser_tries": 0,
+  "num_fuzzer_tries": 0
+}
