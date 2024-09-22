@@ -53,6 +53,7 @@ if not hf_token:
 
 TEMPLATE_SYS = "You are a helpful expert in programming languages."
 TEMPLATE_ERR = "These generated programs are incorrect. Do not generate the same. Please generate another program."
+TEMPLATE_ENCLOSE_CODE = "Please enclose your solution in a python code block"
 
 llama_repo = "meta-llama/Meta-Llama-3-8B-Instruct"
 mistral_repo = "mistralai/Mistral-Nemo-Instruct-2407"
