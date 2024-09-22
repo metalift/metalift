@@ -173,7 +173,7 @@ def mypy_parse(
     ]
     if len(target_func_defs) != expected_num_funcs:
         raise Exception(
-            f"{expected_num_funcs} function definition expected but found {len(target_func_defs)}"
+            f"Only rewrite the given {expected_num_funcs} functions and don't include any additional functions"
         )
 
     # TODO(jie): right now we are rejecting functions that don't have type information in the signature

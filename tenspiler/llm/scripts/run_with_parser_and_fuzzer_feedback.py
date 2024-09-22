@@ -28,12 +28,17 @@ class LLMModel(Enum):
 def _run_fuzzer_tests_and_get_messages(
     func_name: str, ps_sol: str, test_case_dir: Path
 ) -> str:
+    print("Running fuzzer tests")
     # Now we pass the solution to the fuzzer
     wrong_test_cases: list[str] = []
     curr_fuzzer_feedback = None
     for test_case_file in test_case_dir.rglob("*.json"):
         with open(test_case_file) as f:
-            test_data = json.load(f)
+            try:
+                test_data = json.load(f)
+            except:
+                print("Skipping file", test_case_file)
+                continue
             expected = test_data["result"]
             del test_data["result"]
             # run the function here
@@ -54,9 +59,9 @@ def _run_fuzzer_tests_and_get_messages(
             test_case[2] or test_case[3] for test_case in wrong_test_cases
         ]
         curr_fuzzer_feedback = get_fuzzer_feedback(
-            inputs=inputs,
-            expected_outputs=expected_outputs,
-            actual_or_errors=actual_or_errors,
+            inputs=inputs[:1],
+            expected_outputs=expected_outputs[:1],
+            actual_or_errors=actual_or_errors[:1],
         )
         return curr_fuzzer_feedback
     return None
@@ -90,13 +95,13 @@ def _run_test(func_name: str, ps_sol: str, inputs: dict[str, Any]) -> tuple[Any,
 
 def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -> str:
     if llm_model == LLMModel.CLAUDE:
-        return get_solution_from_llm(messages)
+        return get_solution_from_claude(messages)
     elif llm_model == LLMModel.GPT:
         return get_solution_from_gpt(messages)
     raise ValueError(f"Invalid LLM model {llm_model}")
 
 
-def get_solution_from_llm(messages: list[dict[str, Any]]) -> str:
+def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
     message = claude_client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
@@ -114,11 +119,11 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
     outputs = openai_client.chat.completions.create(
         model="gpt-4o",  # model to use
         messages=messages_with_sys,
-        n=1,
+        n=20,
         temperature=0.7,
     )
     return replace_ite(
-        extract([choice.message.content for choice in outputs.choices][0])
+        extract([choice.message.content for choice in outputs.choices][0])[0]
     )
 
 
@@ -240,7 +245,9 @@ def run_llm(
                         },
                     ]
                     print("Trying to fix the solution to pass parser")
-                    curr_solution = get_solution_from_llm(messages_for_parser)
+                    curr_solution = get_solution_from_llm(
+                        llm_model, messages_for_parser
+                    )
                     print("New solution is", curr_solution)
                     # Increment the number of fixes
                     num_fixes += 1
