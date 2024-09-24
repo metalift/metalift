@@ -1,0 +1,22 @@
+--------------------------
+Running benchmark transformer_part3 in suite llama
+===== Starting iteration 0 =====
+
+def transformer_part3(input: List[int], hidden_dim: int) -> List[int]:
+    return vec_map(vec_slice(input, 0, hidden_dim), lambda x: x * (1 // (1 + integer_exp(0 - x))))
+
+Passing solution to the parser
+Passed the parser
+===== Starting iteration 1 =====
+
+def transformer_part3(input: List[int], hidden_dim: int) -> List[int]:
+    return vec_elemwise_mul(
+        input,
+        vec_elemwise_div(
+            vec_scalar_add(1, [0] * hidden_dim),
+            vec_scalar_add(1, vec_map(vec_scalar_mul(-1, input), integer_exp))
+        )
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.int] and builtins.int

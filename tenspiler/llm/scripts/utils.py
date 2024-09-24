@@ -83,7 +83,7 @@ def get_fuzzer_feedback(
 
         {test_case_str}
 
-        Please fix the current program. Explain your fix.
+        Please fix the current program to pass the above cases. Explain your fix.
         """
     )
 

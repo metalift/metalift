@@ -1,0 +1,29 @@
+--------------------------
+Running benchmark softmax_part1 in suite llama
+Running gemini
+```python
+def softmax_part1(input: List[int], max_pos: int) -> int:
+    return reduce_max(vec_slice(input, 0, max_pos))
+
+```
+===== Starting iteration 0 =====
+
+def softmax_part1(input: List[int], max_pos: int) -> int:
+    return reduce_max(vec_slice(input, 0, max_pos))
+
+
+Passing solution to the parser
+Passed the parser
+Running gemini
+```python
+def softmax_part1(input: List[int], max_pos: int) -> int:
+    return reduce_max(vec_slice(input, 0, max_pos))
+
+```
+===== Starting iteration 1 =====
+
+def softmax_part1(input: List[int], max_pos: int) -> int:
+    return reduce_max(vec_slice(input, 0, max_pos))
+
+
+Passing solution to the parser

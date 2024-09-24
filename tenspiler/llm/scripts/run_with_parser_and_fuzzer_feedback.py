@@ -1,13 +1,15 @@
 import argparse
+import copy
 import json
 import os
 import re
 from enum import Enum
 from pathlib import Path
 from textwrap import dedent
-from typing import Any
+from typing import Any, Optional
 
 import anthropic
+import google.generativeai as genai
 from openai import OpenAI
 
 from tenspiler.llm.parser import check_solution, remove_comments
@@ -23,15 +25,31 @@ from tenspiler.llm.scripts.utils import (
 class LLMModel(Enum):
     CLAUDE = "claude"
     GPT = "gpt"
+    GEMINI = "gemini"
 
 
 def _run_fuzzer_tests_and_get_messages(
-    func_name: str, ps_sol: str, test_case_dir: Path
+    func_name: str, ps_sol: str, test_case_dir: Path, limit: Optional[int] = None
 ) -> str:
     print("Running fuzzer tests")
     # Now we pass the solution to the fuzzer
     wrong_test_cases: list[str] = []
     curr_fuzzer_feedback = None
+    # input = {
+    #     "base": [[7, 8, 9], [10, 11, 12]],
+    #     "active": [[1, 2, 3], [4, 5, 6]],
+    # }
+    # expected_output = [[7, 20, 25], [27, 28, 29]]
+    # actual, error = _run_test(func_name=func_name, ps_sol=ps_sol, inputs=input)
+    # if actual != expected_output or error is not None:
+    #     curr_fuzzer_feedback = get_fuzzer_feedback(
+    #         inputs=[input],
+    #         expected_outputs=[expected_output],
+    #         actual_or_errors=[actual or error],
+    #     )
+    #     return curr_fuzzer_feedback
+    # return None
+
     for test_case_file in test_case_dir.rglob("*.json"):
         with open(test_case_file) as f:
             try:
@@ -48,9 +66,8 @@ def _run_fuzzer_tests_and_get_messages(
             )
             if actual != expected or error is not None:
                 wrong_test_cases.append((test_data, expected, actual, error))
-                if len(wrong_test_cases) == 3:
+                if limit is not None and len(wrong_test_cases) == limit:
                     break
-
     if len(wrong_test_cases) > 0:
         print("Found failed test cases")
         inputs = [test_case[0] for test_case in wrong_test_cases]
@@ -59,9 +76,9 @@ def _run_fuzzer_tests_and_get_messages(
             test_case[2] or test_case[3] for test_case in wrong_test_cases
         ]
         curr_fuzzer_feedback = get_fuzzer_feedback(
-            inputs=inputs[:1],
-            expected_outputs=expected_outputs[:1],
-            actual_or_errors=actual_or_errors[:1],
+            inputs=inputs,
+            expected_outputs=expected_outputs,
+            actual_or_errors=actual_or_errors,
         )
         return curr_fuzzer_feedback
     return None
@@ -98,10 +115,44 @@ def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -
         return get_solution_from_claude(messages)
     elif llm_model == LLMModel.GPT:
         return get_solution_from_gpt(messages)
+    elif llm_model == LLMModel.GEMINI:
+        return get_solution_from_gemini(messages)
     raise ValueError(f"Invalid LLM model {llm_model}")
 
 
+def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
+    print("running with gemini")
+    genai.configure(api_key="AIzaSyBbELW0-tYAuIHPf7DQiJ3Csik_LCbsy9c")
+
+    generation_config = {
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 64,
+        "max_output_tokens": 8192,
+        "response_mime_type": "text/plain",
+    }
+
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro-exp-0827",  # "gemini-1.5-pro-exp-0827",
+        generation_config=generation_config,
+        # safety_settings = Adjust safety settings
+        # See https://ai.google.dev/gemini-api/docs/safety-settings
+    )
+
+    messages_copy = copy.deepcopy(messages)
+    for message in messages_copy:
+        if message["role"] == "assistant":
+            message["role"] = "model"
+        message["parts"] = message["content"]
+        del message["content"]
+
+    chat_session = model.start_chat(history=messages_copy[:-1])
+    response = chat_session.send_message(messages_copy[-1]["parts"])
+    return extract(response.text)[0]
+
+
 def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
+    print("running with claude")
     message = claude_client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
@@ -114,17 +165,17 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
 
 
 def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
+    print("running with gpt")
     # messages don't include the system message
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = openai_client.chat.completions.create(
-        model="gpt-4o",  # model to use
+        model="gpt-4o-2024-08-06",  # model to use
         messages=messages_with_sys,
-        n=20,
+        n=1,
         temperature=0.7,
     )
-    return replace_ite(
-        extract([choice.message.content for choice in outputs.choices][0])[0]
-    )
+    outputs = [choice.message.content for choice in outputs.choices]
+    return replace_ite(extract(outputs[0])[0])
 
 
 # Define all the clients that are needed
@@ -154,7 +205,7 @@ def run_llm(
     """
     info: list[Any] = []
     ps_text = f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function.
+    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
 
     #Instructions
     # 1. Do not use for/while loops for rewriting the function.
@@ -172,9 +223,151 @@ def run_llm(
     ```
     """
     # We start with a single message, will append with feedback
+    sol = f"""
+    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+        return matrix_where(
+            active,
+            matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
+            lambda a, b: 32 if a == 0 else b
+        )
+    """
+    sol2 = f"""
+    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+        return matrix_where(
+            active,
+            matrix_scalar_sub(32, scalar_matrix_div(32, matrix_scalar_sub(32, base))),
+            lambda a, b: 32 if a == 0 else b
+        )
+    """
+    sol3 = f"""
+    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+        return matrix_where(
+            active,
+            matrix_scalar_sub(
+                32, matrix_elemwise_div(scalar_matrix_sub(32, base), active)
+            ),
+            lambda a, b: 32 if a == 0 else b,
+        )
+    """
+    manual_test_feedback = f"""
+    The translated program does not match the source program on the following inputs.
 
-    with open("test.txt", "w") as f:
-        f.write(ps_text)
+    Test case 1:
+    Inputs:
+    - base: [[1, 2], [3, 4]]
+    - active: [[1, 2], [3, 4]]
+    Expected output: [[1, 17], [23, 25]]
+    Generated output: [[-63, -47], [-42, -39]]
+    """
+    manual_test_feedback2 = f"""
+    The translated program does not match the source program on the following inputs.
+
+    Test case 1:
+    Inputs:
+    - base: [[1, 2], [3, 4]]
+    - active: [[1, 2], [3, 4]]
+    Expected output: [[1, 17], [23, 25]]
+    Generated output: [[-34, -34], [-34, -34]]
+    """
+    manual_test_feedback3 = f"""
+    The translated program does not match the source program on the following inputs.
+
+    Test case 1:
+    Inputs:
+    - base: [[1, 2], [3, 4]]
+    - active: [[1, 2], [3, 4]]
+    Expected output: [[1, 17], [23, 25]]
+    Generated output: [[-1, -17], [-23, -25]]
+    """
+
+    # ps_text += "\n" + f"""
+    # <Generated solution>:
+    # {sol}
+
+    # <Feedback>:
+    # {manual_test_feedback}
+
+    # <Generated solution>:
+    # {sol3}
+
+    # <Feedback>:
+    # {manual_test_feedback3}
+
+    # Please fix the program to pass the test cases. Don't generate the same solution as before. Explain your fix.
+    # """
+    messages = [
+        {"role": "user", "content": ps_text},
+        # {"role": "assistant", "content": sol},
+        # {"role": "user", "content": manual_test_feedback},
+        # {"role": "assistant", "content": sol3},
+        # {"role": "user", "content": manual_test_feedback3},
+    ]
+    for i in range(50):
+        # sleep(10)
+        curr_solution = get_solution_from_llm(llm_model, messages)
+        # check
+        print(f"===== Starting iteration {i} =====")
+        print(curr_solution)
+        try:
+            print("Passing solution to the parser")
+            func_names, _, _ = check_solution(curr_solution, 1)
+            func_name = func_names[0]
+            print("Passed the parser")
+        except Exception as e:
+            print("Failed to pass the parser", e)
+            continue
+
+        # fuzzer
+        # fuzzer_feedback = _run_fuzzer_tests_and_get_messages(func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir)
+        # if fuzzer_feedback is None:
+        #     print("Correct")
+        # else:
+        #     print("Incorrect")
+    exit(0)
+
+    parser_feedback = f"""
+    The generated solution is incorrect because matrix_scalar_sub expects a list of lists of integers as the first argument, but got an integer instead.
+    """
+    # messages_for_parser = [
+    #     *messages,
+    #     {"role": "assistant", "content": curr_solution},
+    #     {"role": "user", "content": parser_feedback},
+    # ]
+
+    # passed_parser = False
+    # passed_fuzzer = False
+    # while not passed_fuzzer:
+    #     while not passed_parser:
+    #         try:
+    #             print("Passing solution to the parser")
+    #             func_names, _, _ = check_solution(curr_solution, 1)
+    #             func_name = func_names[0]
+    #             print("Parser solution passed the parser")
+    #             passed_parser = True
+    #         except Exception as e:
+    #             print("Failed to pass the parser", e)
+    #             curr_parser_feedback = str(e)
+    #             messages_for_parser = [
+    #                 *messages,
+    #                 {"role": "assistant", "content": curr_solution},
+    #                 {
+    #                     "role": "user",
+    #                     "content": curr_parser_feedback
+    #                     + f"\n{TEMPLATE_ENCLOSE_CODE}",
+    #                 },
+    #             ]
+    #             print("Trying to fix the solution to pass parser")
+    #             curr_solution = get_solution_from_llm(
+    #                 llm_model, messages_for_parser
+    #             )
+    #             print("New solution is", curr_solution)
+    #     fuzzer_feedback = _run_fuzzer_tests_and_get_messages(func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir)
+    #     print("Fuzzer feedback is", fuzzer_feedback)
+    #     passed_fuzzer = fuzzer_feedback is None
+    # exit(0)
+
+    # with open("test.txt", "w") as f:
+    #     f.write(ps_text)
 
     # This is the function name to run. Will be updated once we pass the parser.
     func_name = None
@@ -209,15 +402,19 @@ def run_llm(
 
             if curr_fuzzer_feedback is not None:
                 print("Trying to fix the solution to pass fuzzer")
-                messages_for_fuzzer = [
-                    template_message,
-                    {"role": "assistant", "content": curr_solution},
-                    {
-                        "role": "user",
-                        "content": curr_fuzzer_feedback + f"\n{TEMPLATE_ENCLOSE_CODE}",
-                    },
-                ]
-                curr_solution = get_solution_from_llm(llm_model, messages_for_fuzzer)
+                messages_for_fuzzer = {
+                    "role": "user",
+                    "content": f"""
+                    {ps_text}
+
+                    <Generated solution>:
+                    {curr_solution}
+
+                    <Feedback>:
+                    {curr_fuzzer_feedback}
+                    """,
+                }
+                curr_solution = get_solution_from_llm(llm_model, [messages_for_fuzzer])
                 print("New solution is", curr_solution)
                 info[i].append((curr_solution, curr_fuzzer_feedback))
                 num_fixes += 1
@@ -241,6 +438,7 @@ def run_llm(
                         {
                             "role": "user",
                             "content": curr_parser_feedback
+                            + f"\nbe creative in trying to fix the solution"
                             + f"\n{TEMPLATE_ENCLOSE_CODE}",
                         },
                     ]
@@ -257,6 +455,9 @@ def run_llm(
             curr_fuzzer_feedback = _run_fuzzer_tests_and_get_messages(
                 func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir
             )
+            import pdb
+
+            pdb.set_trace()
 
             if curr_fuzzer_feedback is None:
                 print("All test cases passed, found correct solution")
@@ -281,7 +482,7 @@ if __name__ == "__main__":
     BENCHMARKS_PATH = TENSPILER_LLM_PATH / "benchmarks"
     DSL_CODE_PATH = TENSPILER_LLM_PATH / "python_dsl.py"
 
-    with open(DSL_CODE_PATH) as f:
+    with open("tenspiler/llm/python_dsl.py") as f:
         dsl_code = f.read()
 
     all_suites = {"blend", "llama", "polybench"}
@@ -295,12 +496,12 @@ if __name__ == "__main__":
                 source_code = f.read()
 
             info = run_llm(
-                llm_model=LLMModel.GPT,
+                llm_model=LLMModel.CLAUDE,
                 benchmark_name=file.stem,
                 dsl_code=dsl_code,
                 source_code=source_code,
                 test_case_dir=Path(
-                    f"/Users/jieq/Downloads/outputs_dexter_3/{file.stem}"
+                    f"/Users/jieq/Downloads/outputs_llama_3/{file.stem}"
                 ),
             )
             with open(f"{file.stem}.json", "w") as f:

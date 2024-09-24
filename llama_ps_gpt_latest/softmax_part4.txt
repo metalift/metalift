@@ -1,0 +1,20 @@
+--------------------------
+Running benchmark softmax_part4 in suite llama
+===== Starting iteration 0 =====
+
+def softmax_part4(unnormalized_output: List[int], max_pos: int, sum: int) -> List[int]:
+    return vec_scalar_div(sum, vec_slice(unnormalized_output, 0, max_pos))
+
+Passing solution to the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/parser.py(515)check_solution()
+-> full_prog = dedent(remove_comments(dedent(universal_imports) + dedent(solution)))
+(Pdb) Passed the parser
+===== Starting iteration 1 =====
+
+def softmax_part4(unnormalized_output: List[int], max_pos: int, sum: int) -> List[int]:
+    return vec_scalar_div(sum, vec_slice(unnormalized_output, 0, max_pos))
+
+Passing solution to the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/parser.py(515)check_solution()
+-> target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
+(Pdb)

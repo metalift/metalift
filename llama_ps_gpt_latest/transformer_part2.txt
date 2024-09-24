@@ -1,0 +1,545 @@
+--------------------------
+Running benchmark transformer_part2 in suite llama
+running with gpt
+===== Starting iteration 0 =====
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 1 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_elemwise_mul(
+            matrix_row_slice(key_cache_layer, 0, token_position + 1),
+            matrix_scalar_add(head * head_size, [[1] * head_size] * (token_position + 1))
+        ),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+running with gpt
+===== Starting iteration 2 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(key_cache_layer, 0, token_position + 1), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 3 =====
+
+from typing import List
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(
+        matrix_row_slice(
+            matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size),
+            0,
+            token_position + 1
+        ),
+        attention
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 4 =====
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(
+            matrix_row_slice(key_cache_layer, 0, token_position + 1),
+            head * head_size,
+            head * head_size + head_size
+        ),
+        attention[:token_position + 1]
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 5 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 6 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 7 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 8 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 9 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 10 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 11 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(
+            matrix_row_slice(key_cache_layer, 0, token_position + 1),
+            head * head_size,
+            head * head_size + head_size
+        ),
+        attention
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 12 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size),
+        attention[:token_position + 1]
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 13 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 14 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 15 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 16 =====
+
+from typing import List
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(key_cache_layer, 0, token_position + 1), vec_elemwise_mul(attention, vec_slice(firsts(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size)), 0, token_position + 1)))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 17 =====
+
+from typing import List
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(key_cache_layer, 0, token_position + 1), vec_elemwise_mul(attention, [1] * len(attention)))
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.int] and builtins.int
+running with gpt
+===== Starting iteration 18 =====
+
+from typing import List
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return [reduce_sum(vec_elemwise_mul(attention[:token_position+1], [row[head * head_size + i] for row in key_cache_layer[:token_position+1]])) for i in range(head_size)]
+
+Passing solution to the parser
+Failed to pass the parser List comprehensions are not supported
+running with gpt
+===== Starting iteration 19 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 20 =====
+
+from typing import List
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(
+            matrix_row_slice(key_cache_layer, 0, token_position + 1),
+            head * head_size, head * head_size + head_size
+        ),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 21 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 22 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(key_cache_layer[:token_position + 1], head * head_size, (head + 1) * head_size), attention[:token_position + 1])
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 23 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 24 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(
+            matrix_row_slice(key_cache_layer, 0, token_position + 1),
+            head * head_size,
+            head * head_size + head_size
+        ),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 25 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 26 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 27 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 28 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 29 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 30 =====
+
+from typing import List
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 31 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(key_cache_layer[:token_position + 1], head * head_size, head * head_size + head_size), attention[:token_position + 1])
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 32 =====
+
+from typing import List
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 33 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 34 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 35 =====
+
+from typing import List
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_row_slice(
+            matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size),
+            0, token_position + 1
+        ),
+        attention
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 36 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(key_cache_layer, head * head_size, head * head_size + head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 37 =====
+
+from typing import List
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(
+            matrix_transpose(key_cache_layer),
+            head * head_size,
+            (head + 1) * head_size
+        ),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 38 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 39 =====
+
+from typing import List
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + head_size), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 40 =====
+
+def transformer_part2(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    attention: List[int]
+) -> List[int]:
+    return matrix_vec_mul(
+        matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size),
+        attention
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 41 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 42 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_row_slice(
+            matrix_col_slice(key_cache_layer, head * head_size, head * head_size + head_size),
+            0,
+            token_position + 1
+        ),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 43 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_elemwise_mul(matrix_row_slice(key_cache_layer, 0, token_position + 1), matrix_scalar_sub(head * head_size, matrix_scalar_add(i, matrix_col_slice(matrix_transpose(key_cache_layer), head * head_size, (head + 1) * head_size)))), attention)
+
+Passing solution to the parser
+Failed to pass the parser 'NoneType' object is not callable
+running with gpt
+===== Starting iteration 44 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 45 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), 0, token_position + 1), vec_slice(attention, 0, token_position + 1))
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 46 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, (head + 1) * head_size), attention)
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 47 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return vec_map(list(range(head_size)), lambda i: reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, token_position + 1), vec_slice([row[head * head_size + i] for row in key_cache_layer], 0, token_position + 1))))
+
+Passing solution to the parser
+Failed to pass the parser Function list is not supported
+running with gpt
+===== Starting iteration 48 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(
+        matrix_transpose(
+            matrix_col_slice(
+                matrix_row_slice(key_cache_layer, 0, token_position + 1),
+                head * head_size,
+                head * head_size + head_size
+            )
+        ),
+        vec_slice(attention, 0, token_position + 1)
+    )
+
+Passing solution to the parser
+Passed the parser
+running with gpt
+===== Starting iteration 49 =====
+
+def transformer_part2(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], attention: List[int]) -> List[int]:
+    return matrix_vec_mul(matrix_row_slice(matrix_col_slice(key_cache_layer, head * head_size, head * head_size + head_size), 0, token_position + 1), attention)
+
+Passing solution to the parser
+Passed the parser

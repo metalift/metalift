@@ -222,6 +222,19 @@ def remove_comments(python_code):
     return code_without_comments
 
 
+def _simplify_type_name(type_name: str) -> str:
+    if type_name == "builtins.int" or "Literal" in type_name:
+        return "integer"
+    elif type_name == "builtins.bool":
+        return "boolean"
+    elif type_name == "builtins.list[builtins.int]":
+        return "a list of integers"
+    elif type_name == "builtins.list[builtins.list[builtins.int]]":
+        return "a list of lists of integers"
+    else:
+        raise Exception(f"Type {type_name} cannot be simplified to natural language")
+
+
 def mypy_node_to_ir(
     root_node: Node,
     func_sign: Dict[str, pyList[Union[Type, type]]],
@@ -333,7 +346,7 @@ def mypy_node_to_ir(
                     arg_expr = parse_node(arg)
                     if arg_expr.type != expected_ir_type:
                         raise Exception(
-                            f"Expected type {expected_type} but got {types[arg]} for {idx}th argument of {func_name}"
+                            f"{func_name} expects {_simplify_type_name(str(expected_type))} for the {idx}th argument but got {_simplify_type_name(str(types[arg]))}"
                         )
 
                     # If the argument is a function, then we need to define another function for it
