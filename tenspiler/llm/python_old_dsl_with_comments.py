@@ -290,13 +290,3 @@ def matrix_elemwise_mul(
             *matrix_elemwise_mul(matrix_x[1:], matrix_y[1:]),
         ]
     )
-
-
-def integer_sqrt(n: int) -> int:
-    """Return the integer square root of n."""
-    return n
-
-
-def integer_exp(n: int) -> int:
-    """Returns e raised to the power of n as integer."""
-    return n

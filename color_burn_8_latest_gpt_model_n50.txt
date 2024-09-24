@@ -1,0 +1,800 @@
+--------------------------
+Running benchmark color_burn_8 in suite blend
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/run_with_parser_and_fuzzer_feedback.py(172)get_solution_from_gpt()
+-> outputs = openai_client.chat.completions.create(
+(Pdb) ===== Starting iteration 0 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_scalar_sub(32, matrix_scalar_div(32, matrix_elemwise_sub(matrix_scalar_sub(32, base), active))), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 1 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_elemwise_sub(matrix_scalar_sub(32, base), scalar_matrix_div(32, active)), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 2 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_scalar_div(
+                active,
+                scalar_matrix_sub(32, base)
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Failed to pass the parser matrix_scalar_div expects integer for the 0th argument but got a list of lists of integers
+===== Starting iteration 3 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(matrix_scalar_sub(32, base), active)
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 4 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_div(
+            matrix_scalar_sub(32, matrix_scalar_sub(32, base)),
+            active
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 5 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_scalar_sub(32, scalar_matrix_div(32, matrix_elemwise_sub(matrix_scalar_sub(32, base), active))), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 6 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, _: 32 if a == 0 else 0
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 7 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 8 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)
+        ),
+        lambda a, _: 32 if a == 0 else _
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 9 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, base, lambda a, b: 32 if a == 0 else 32 - (32 - b) // a)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Correct
+===== Starting iteration 10 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_scalar_div(
+                active,
+                matrix_scalar_sub(32, base)
+            )
+        ),
+        lambda active_elem, _: 32 if active_elem == 0 else active_elem
+    )
+
+Passing solution to the parser
+Failed to pass the parser matrix_scalar_div expects integer for the 0th argument but got a list of lists of integers
+===== Starting iteration 11 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 12 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        base,
+        lambda a, b: 32 if a == 0 else 32 - (32 - b // a)
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 13 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, scalar_matrix_sub(32, matrix_elemwise_div(scalar_matrix_sub(32, base), active)), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 14 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [vec_scalar_sub(32, base[i]) for i in range(len(base))],
+            scalar_matrix_div(32, active)
+        ),
+        lambda a, b: 32 if a == 0 else 32 - b
+    )
+
+Passing solution to the parser
+Failed to pass the parser List comprehensions are not supported
+===== Starting iteration 15 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        scalar_matrix_sub(
+            32,
+            matrix_scalar_div(
+                32,
+                matrix_elemwise_sub(
+                    scalar_matrix_sub(32, base),
+                    active
+                )
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 16 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 17 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,  # Matrix Y
+        matrix_elemwise_div(matrix_scalar_sub(32, base), active),  # Matrix X
+        lambda a, b: 32 if a == 0 else 32 - b  # Conditional function
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 18 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, base, lambda a, b: 32 if a == 0 else 32 - (32 - b) // a)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Correct
+===== Starting iteration 19 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, scalar_matrix_sub(32, matrix_scalar_div(32, matrix_elemwise_sub(scalar_matrix_sub(32, base), active))), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 20 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        base,
+        lambda a, b: 32 if a == 0 else 32 - (32 - b // a)
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 21 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                scalar_matrix_sub(32, base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 22 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 23 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_div(matrix_scalar_sub(32, base), active),
+        lambda x, y: 32 if x == 0 else 32 - y
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 24 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_scalar_div(
+                32,
+                matrix_elemwise_sub(matrix_scalar_sub(32, base), active)
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 25 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(matrix_scalar_sub(32, base), active)
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 26 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 27 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda x, y: 32 if x == 0 else y
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 28 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, base, lambda a, b: 32 if a == 0 else 32 - scalar_vec_div(32, [a][0] + b))
+
+Passing solution to the parser
+Failed to pass the parser scalar_vec_div expects a list of integers for the 1th argument but got integer
+===== Starting iteration 29 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [ [32] * len(base[0]) ] * len(base),
+            matrix_elemwise_div(
+                matrix_elemwise_sub(
+                    [ [32] * len(base[0]) ] * len(base),
+                    base
+                ),
+                active
+            ),
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+===== Starting iteration 30 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, base, lambda a, b: 32 if a == 0 else 32 - (32 - b) // a)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Correct
+===== Starting iteration 31 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [32] * len(base),
+            matrix_elemwise_div(
+                matrix_elemwise_sub([32] * len(base), base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+===== Starting iteration 32 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [32] * len(base), matrix_elemwise_div(matrix_elemwise_sub([32] * len(base), base), active)
+        ),
+        lambda a, b: 32 if a == 0 else b,
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+===== Starting iteration 33 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [ [32] * len(base[0]) for _ in range(len(base))],
+            matrix_elemwise_div(
+                matrix_elemwise_sub(
+                    [ [32] * len(base[0]) for _ in range(len(base))],
+                    base
+                ),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Failed to pass the parser List comprehensions are not supported
+===== Starting iteration 34 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_elemwise_div(matrix_scalar_sub(32, base), active), lambda a, b: 32 if a == 0 else 32 - b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 35 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, scalar_matrix_div(32, matrix_elemwise_div(scalar_matrix_sub(32, base), active)), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 36 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_scalar_div(
+                32,
+                matrix_elemwise_sub(
+                    matrix_scalar_sub(32, base),
+                    active
+                )
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 37 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 38 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [32] * len(base),
+            matrix_elemwise_div(matrix_elemwise_sub([32] * len(base), base), active)
+        ),
+        lambda a, _: 32 if a == 0 else _
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+===== Starting iteration 39 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32, matrix_scalar_div(32, matrix_elemwise_sub(matrix_scalar_sub(32, base), active))
+        ),
+        lambda a, _: 32 if a == 0 else a
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 40 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [[32] * len(base[0])] * len(base),
+            matrix_elemwise_div(
+                matrix_elemwise_sub(
+                    [[32] * len(base[0])] * len(base),
+                    base
+                ),
+                active
+            )
+        ),
+        lambda a, _: 32 if a == 0 else 32 - (32 - base[0][0] // a)
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+===== Starting iteration 41 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_scalar_div(32, matrix_elemwise_sub(matrix_scalar_sub(32, base), active)), lambda a, b: 32 if a == 0 else b)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 42 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_scalar_div(
+                32,
+                matrix_elemwise_sub(
+                    matrix_scalar_sub(32, base),
+                    active
+                )
+            )
+        ),
+        lambda a, _: 32 if a == 0 else 32 - (32 - _ // a)
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 43 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, _: 32 if a == 0 else 32 - (32 - a // _)
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 44 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_elemwise_sub(
+            [32] * len(base),
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Failed to pass the parser Binary operation * is not supported on types builtins.list[builtins.list[builtins.int]] and builtins.int
+===== Starting iteration 45 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
+        lambda a, _: 32 if a == 0 else _
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 46 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
+        lambda x, y: 32 if x == 0 else y,
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 47 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
+        lambda a, _: 32 if a == 0 else _
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 48 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(
+        active,
+        matrix_scalar_sub(
+            32,
+            matrix_elemwise_div(
+                matrix_scalar_sub(32, base),
+                active
+            )
+        ),
+        lambda a, b: 32 if a == 0 else b
+    )
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect
+===== Starting iteration 49 =====
+
+def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+    return matrix_where(active, matrix_scalar_sub(32, base), lambda a, b: 32 if a == 0 else 32 - b // a)
+
+Passing solution to the parser
+Passed the parser
+Running fuzzer tests
+Skipping file /Users/jieq/Downloads/outputs_dexter_3/color_burn_8/color_burn_8_1_5180.json
+Found failed test cases
+Incorrect

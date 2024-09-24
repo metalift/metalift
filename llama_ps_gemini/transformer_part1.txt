@@ -1,0 +1,137 @@
+--------------------------
+Running benchmark transformer_part1 in suite llama
+running with gemini
+===== Starting iteration 0 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 1 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else vec_scalar_div(integer_sqrt(head_size * 1), matrix_vec_mul(matrix_row_slice(key_cache_layer, 0, token_position), vec_slice(q, head * head_size, (head + 1) * head_size)))
+
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 2 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 3 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 4 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 5 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 6 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 7 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 8 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 0 else [*transformer_part1(token_position - 1, head, head_size, key_cache_layer, q), reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[token_position -1])) // integer_sqrt(head_size * 1)]
+
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 9 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 10 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 11 =====
+
+def transformer_part1(
+    token_position: int,
+    head: int,
+    head_size: int,
+    key_cache_layer: List[List[int]],
+    q: List[int],
+) -> List[int]:
+    return vec_map(vec_row_slice(key_cache_layer, 0, token_position), lambda timestep_row: reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), timestep_row)) // integer_sqrt(head_size * 1))
+
+
+Passing solution to the parser
+Failed to pass the parser Function vec_row_slice is not supported
+running with gemini
+===== Starting iteration 12 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+Passing solution to the parser
+Passed the parser
+running with gemini
+===== Starting iteration 13 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position <= 0 else vec_scalar_div(integer_sqrt(head_size * 1), vec_map(key_cache_layer[:token_position], lambda timestep: reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), vec_slice(timestep, head * head_size, (head + 1) * head_size)))))
+
+
+Passing solution to the parser
+Failed to pass the parser vec_map expects a list of integers for the 0th argument but got a list of lists of integers
+running with gemini
+===== Starting iteration 14 =====
+
+def transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:
+    return [] if token_position < 1 else [reduce_sum(vec_elemwise_mul(vec_slice(q, head * head_size, (head + 1) * head_size), key_cache_layer[0])) // integer_sqrt(head_size * 1), *transformer_part1(token_position - 1, head, head_size, key_cache_layer[1:], q)]
+
+
+Passing solution to the parser
+Passed the parser
+running with gemini

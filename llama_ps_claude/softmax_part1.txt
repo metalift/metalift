@@ -1,0 +1,8 @@
+--------------------------
+Running benchmark softmax_part1 in suite llama
+===== Starting iteration 0 =====
+
+def softmax_part1(input: List[int], max_pos: int) -> int:
+    return reduce_max(vec_slice(input, 0, max_pos))
+
+Passing solution to the parser
