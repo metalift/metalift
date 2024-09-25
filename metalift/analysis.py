@@ -1,27 +1,4 @@
 import re
-from llvmlite import binding as llvm
-
-from metalift.ir import (
-    Expr,
-    MLInst_Eq,
-    MLInst_Or,
-    MLInst_Return,
-    Synth,
-    Type,
-    MLInst,
-    Bool,
-    MLInst_Call,
-    MLInst_Load,
-    MLInst_Assert,
-    MLInst_Assume,
-    MLInst_Havoc,
-    MLInst_Not,
-    String,
-    Lit,
-    Var,
-)
-from metalift.vc import Block, VC
-from llvmlite.binding import ValueRef
 from typing import (
     Any,
     Callable,
@@ -32,9 +9,35 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     Union,
     cast,
 )
+
+from llvmlite import binding as llvm
+from llvmlite.binding import ValueRef
+
+from metalift.ir import (
+    Bool,
+    Expr,
+    Lit,
+    MLInst,
+    MLInst_Assert,
+    MLInst_Assume,
+    MLInst_Call,
+    MLInst_Eq,
+    MLInst_Havoc,
+    MLInst_Load,
+    MLInst_Not,
+    MLInst_Or,
+    MLInst_Return,
+    Object,
+    ObjectT,
+    Synth,
+    Var,
+)
+from metalift.vc import VC, Block
+from metalift.types import String
 
 orig_value_ref_operands = ValueRef.operands
 
@@ -201,7 +204,7 @@ class CodeInfo:
     def __init__(
         self,
         name: str,
-        retT: Type,
+        retT: ObjectT,
         modifiedVars: List[Union[ValueRef, Expr]],
         readVars: List[Union[ValueRef, Expr]],
     ) -> None:
@@ -244,7 +247,7 @@ def processLoops(
 
     global invNum
     inv = MLInst_Call(
-        "inv%s" % invNum, Bool(), *[MLInst_Load(h) for h in havocs], *fnArgs
+        "inv%s" % invNum, Bool, *[MLInst_Load(h) for h in havocs], *fnArgs
     )
     invNum = invNum + 1
 
@@ -326,15 +329,15 @@ def processBranches(
                 filter(lambda a: b"sret" not in a.attributes, fnArgs)
             )  # remove the sret args
             ps: Union[MLInst, Expr] = MLInst_Call(
-                fnName, Bool(), returnArg, *filteredArgs
+                fnName, Bool, returnArg, *filteredArgs
             )
-            # Jie TODO: not sure what wrapSummaryCheck is doing
+            # TODO(jie): not sure what wrapSummaryCheck is doing
             if wrapSummaryCheck:
                 ps, transformedArgs = wrapSummaryCheck(cast(MLInst, ps))
                 returnArg = transformedArgs[0]
                 filteredArgs = transformedArgs[1:]
             b.instructions.insert(-1, MLInst_Assert(ps))
-            retCodeInfo.append(CodeInfo(fnName, Bool(), [returnArg], filteredArgs))
+            retCodeInfo.append(CodeInfo(fnName, Bool, [returnArg], filteredArgs))
 
     return retCodeInfo
 
@@ -379,7 +382,7 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                             i,
                             "my_operands",
                             [
-                                Lit(fieldName, String()),
+                                Lit(fieldName, String()),  # type: ignore
                                 ops[0],
                                 ops[1],
                                 "setField",
@@ -390,7 +393,7 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                         setattr(
                             i,
                             "my_operands",
-                            [Lit(fieldName, String()), ops[0], "getField"],
+                            [Lit(fieldName, String()), ops[0], "getField"],  # type: ignore
                         )
                         # print("inst: %s" % i)
 

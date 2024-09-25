@@ -1,47 +1,63 @@
+from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, SetT, Int,
-                         FnDeclRecursive, IntLit, Ite, Var)
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import (Bool, Int, Object, Set as mlSet,
+                         choose, ite, fn_decl_recursive)
 from tests.python.utils.utils import codegen
 
-def double(t):
-    return Call("double", Int(), t)
 
 def target_lang():
-    x = Var("x", Int())
-    double = FnDeclRecursive(
-        "double", Int(), Add(x, x), x
+    x = Int("x")
+    double = fn_decl_recursive(
+        "double",
+        Int,
+        (x + x).src,
+        x.src
     )
     return [double]
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
     raise Exception("no invariant")
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    inputS = reads[0]
-    inputAdd = reads[1]
-    inputValue = reads[2]
-    outputVar = writes[0]
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    ret_val = writes[0]
+    input_s = reads[0]
+    input_add = reads[1]
+    input_value = reads[2]
+    output_var = writes[0]
 
-    emptySet = Call("set-create", SetT(Int()))
+    empty_set = mlSet.empty(Int)
 
-    intLit = Choose(IntLit(0), IntLit(1), IntLit(2), IntLit(3))
-    intValue = Choose(inputValue, intLit)
+    int_lit = choose(
+        Int(0),
+        Int(1),
+        Int(2),
+        Int(3)
+    )
+    int_value = choose(input_value, int_lit)
 
-    condition = Eq(inputAdd, intLit)
+    condition = input_add == int_lit
 
-    setIn = Choose(inputS, emptySet, Call("set-singleton", SetT(Int()), intValue))
-
-    setTransform = Choose(
-        setIn,
-        Call("set-union", SetT(Int()), setIn, setIn),
-        Call("set-minus", SetT(Int()), setIn, setIn),
+    set_in = choose(
+        input_s,
+        empty_set,
+        mlSet.singleton(int_value)
     )
 
-    chosenTransform = Ite(condition, setTransform, setTransform)
+    set_transform = choose(
+        set_in,
+        set_in.union(set_in),
+        set_in.difference(set_in)
+    )
 
-    summary = Eq(outputVar, chosenTransform)
+    chosen_transform = ite(
+        condition,
+        set_transform,
+        set_transform
+    )
+
+    summary = output_var == chosen_transform
     return summary
 
 if __name__ == "__main__":
@@ -51,15 +67,16 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/set1.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammar=inv_grammar,
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 
-    s = driver.variable("s", SetT(Int()))
-    x = driver.variable("add", Int())
-    y = driver.variable("value", Int())
+    s = mlSet(Int, "s")
+    add = Int("add")
+    value = Int("value")
+    driver.add_var_objects([s, add, value])
 
-    test(s, x, y)
+    test(s, add, value)
 
     driver.synthesize()
 

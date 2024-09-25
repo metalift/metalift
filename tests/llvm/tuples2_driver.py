@@ -1,28 +1,36 @@
+from collections import defaultdict
 from typing import List
 
-from metalift.frontend.llvm import Driver
-from metalift.ir import (Add, Call, Choose, Eq, Expr, FnDecl, Int, 
-                         FnDeclRecursive, IntLit, Mul, Sub, Tuple, TupleGet, TupleT, Var)
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import (Int, Object, Tuple as mlTuple,
+                         call, choose, make_tuple, fn_decl_recursive)
 from tests.python.utils.utils import codegen
 
+
 def tuple_add(t):
-    return Call("tuple_add", Int(), t)
+    return call("tuple_add", Int, t)
 
 def target_lang():
-    x = Var("x", TupleT(Int(), Int()))
-    tuple_add = FnDeclRecursive(
-        "tuple_add", Int(), Add(TupleGet(x, IntLit(0)), TupleGet(x, IntLit(1))), x
+    x = mlTuple((Int, Int), "x")
+    tuple_add = fn_decl_recursive(
+        "tuple_add",
+        Int,
+        (x[0] + x[1]),
+        x
     )
     return [tuple_add]
 
-def inv_grammar(v: Var, writes: List[Var], reads: List[Var]) -> Expr:
-    raise Exception("no invariant")
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
+    raise Exception("no invariants")
 
-def ps_grammar(ret_val: Var, writes: List[Var], reads: List[Var]) -> Expr:
+def ps_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Object:
+    ret_val = writes[0]
     (x, y) = reads
-    summary = Choose(
-        Eq(ret_val, Add(tuple_add(Tuple(x, x)), tuple_add(Tuple(y, y)))),
-        Eq(ret_val, Sub(tuple_add(Tuple(x, x)), tuple_add(Tuple(y, y)))),
+    x_tuple = make_tuple(x, x)
+    y_tuple = make_tuple(y, y)
+    summary = choose(
+        ret_val == tuple_add(x_tuple) + tuple_add(y_tuple),
+        ret_val == tuple_add(x_tuple) - tuple_add(y_tuple)
     )
     return summary
 
@@ -33,12 +41,13 @@ if __name__ == "__main__":
         loops_filepath="tests/llvm/tuples2.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammar=inv_grammar,
+        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
         ps_grammar=ps_grammar
     )
 
-    x = driver.variable("x", Int())
-    y = driver.variable("y", Int())
+    x = Int("x")
+    y = Int("y")
+    driver.add_var_objects([x, y])
 
     test(x, y)
 

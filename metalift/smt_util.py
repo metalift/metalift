@@ -3,13 +3,14 @@ from metalift import utils
 
 from metalift.ir import *
 import typing
-from typing import Any, Union
+from typing import Any, Union, get_args
 
 
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
-        if a.type.name != "Function":
+        # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
+        if not is_fn_decl_type(a.type):
             newArgs.append(a)
     return newArgs
 
@@ -24,7 +25,8 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
     elif isinstance(funDef, Call) and funDef.args[0] == funCall:
         newArgs = []
         for i in range(1, len(funDef.args)):
-            if funDef.args[i].type.name != "Function":
+            # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
+            if not is_fn_decl_type(funDef.args[i].type):
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
         return Call(funCall + "_" + inCall, funDef.type, *newArgs)
     elif isinstance(funDef, CallValue):
@@ -78,7 +80,7 @@ def toSMT(
                         fnDecls.append(
                             FnDeclRecursive(
                                 t.args[0] + "_" + i[1],
-                                t.type.args[0],
+                                t.returnT(),
                                 newBody,
                                 *newArgs,
                             )
@@ -86,7 +88,7 @@ def toSMT(
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
                                 t.args[0] + "_" + i[1],
-                                t.type.args[0],
+                                t.returnT(),
                                 newBody,
                                 *newArgs,
                             )
@@ -113,7 +115,11 @@ def toSMT(
                 )
             else:
                 decl = FnDeclRecursive(
-                    cand.args[0], cand.type.args[0], newBody, *cand.args[2:]
+                    # TODO: cand.type no longer has args, find proper substitution
+                    cand.args[0],
+                    get_fn_return_type(cand.type),
+                    newBody,
+                    *cand.args[2:],
                 )
 
             if cand.args[0] in early_candidates_names:
@@ -136,7 +142,7 @@ def toSMT(
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
-        declarations: typing.List[typing.Tuple[str, Type]] = []
+        declarations: typing.List[typing.Tuple[str, ObjectT]] = []
         for v in vars:
             declarations.append((v.args[0], v.type))
 
@@ -145,7 +151,8 @@ def toSMT(
             "\n%s\n\n"
             % "\n".join(
                 [
-                    "(%s %s %s)" % (var_decl_command, v[0], v[1].toSMT())
+                    "(%s %s %s)"
+                    % (var_decl_command, v[0], v[1].toSMTType(get_args(v[1])))  # type: ignore
                     for v in declarations
                 ]
             )

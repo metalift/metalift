@@ -1,7 +1,17 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import And, Expr, Lit, Bool, Int, Or
+from metalift.frontend.utils import ObjectSet
+from metalift.ir import (
+    And,
+    BoolLit,
+    Expr,
+    Lit,
+    Bool,
+    Int,
+    Or,
+    get_object_exprs,
+)
 from typing import Dict
 
 
@@ -19,49 +29,39 @@ def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Ex
     elif hasType:  # i32 0
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, Bool())
+            return Lit(True, Bool)
         elif val == "false":
-            return Lit(False, Bool())
+            return Lit(False, Bool)
         else:  # assuming it's a number
-            return Lit(int(val), Int())
+            return Lit(int(val), Int)
     else:  # 0
-        return Lit(int(op), Int())
-
-
-# TODO(colin): this is for old llvm interface. delete after migration
-# def parseOperand(op: ValueRef, reg: Dict[ValueRef, Expr], hasType: bool = True) -> Expr:
-#     # op is a ValueRef, and if it has a name then it's a register
-#     if op.name:  # a reg
-#         try:
-#             return reg[op]
-#         except KeyError:
-#             # hack due to ValueRef only using referential equality
-#             for regKey in reg.keys():
-#                 if str(regKey) == str(op):
-#                     return reg[regKey]
-#             raise KeyError("")
-#     elif hasType:  # i32 0
-#         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
-#         if val == "true":
-#             return Lit(True, Bool())
-#         elif val == "false":
-#             return Lit(False, Bool())
-#         else:  # assuming it's a number
-#             return Lit(int(val), Int())
-#     else:  # 0
-#         return Lit(int(op), Int())
+        return Lit(int(op), Int)
 
 
 def and_exprs(*exprs: Expr) -> Expr:
-    if len(exprs) == 1:
-        return exprs[0]
-    else:
-        return And(*exprs)
+    if len(exprs) == 0:
+        raise Exception("Must provide at least one expression!")
+    result = exprs[0]
+    for expr in exprs[1:]:
+        result = And(result, expr)
+    return result
 
 
-# TODO: should this belong to the same function as and_exprs or different?
+# TODO(jie): should this belong to the same function as and_exprs or different?
 def or_exprs(*exprs: Expr) -> Expr:
-    if len(exprs) == 1:
-        return exprs[0]
-    else:
-        return Or(*exprs)
+    if len(exprs) == 0:
+        raise Exception("Must provide at least one expression!")
+    result = exprs[0]
+    for expr in exprs[1:]:
+        result = Or(result, expr)
+    return result
+
+
+def and_objects(*objects: Bool) -> Bool:
+    deduped_objects = ObjectSet(objects).objects()
+    return Bool(and_exprs(*get_object_exprs(*deduped_objects)))
+
+
+def or_objects(*objects: Bool) -> Bool:
+    deduped_objects = ObjectSet(objects).objects()
+    return Bool(or_exprs(*get_object_exprs(*deduped_objects)))

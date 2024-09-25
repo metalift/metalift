@@ -1,28 +1,29 @@
-from typing import List
-from metalift.frontend.python import Driver
-
-from metalift.ir import Eq, Expr, FnDecl, Int, IntLit, Ite, Le, Var
-from mypy.nodes import WhileStmt
-
 import sys
+from typing import List
+
+from metalift.frontend.python import Driver
+from metalift.ir import Bool, FnDecl, Int, Object, ite
+
 
 # ps: y = ite(y<=x, x, 0)
 def ps_grammar(
-    ret_val: Var,
-    ast: WhileStmt,
-    writes: List[Var],
-    reads: List[Var],
-    in_scope: List[Var],
-) -> Expr:
+    writes: List[Object],
+    reads: List[Object],
+    in_scope: List[Object],
+) -> Bool:
+    ret_val = writes[0]
     x = reads[0]
-    return Eq(ret_val, Ite(Le(IntLit(0), x), x, IntLit(0)))
+    return ret_val == ite(0 <= x, x, Int(0))
 
 
-# inv: ite(y<=x, y<=x, y=0)
-def inv_grammar(
-    v: Var, o: WhileStmt, writes: List[Var], reads: List[Var], in_scope: List[Var]
-) -> Expr:
-    return Ite(Le(v, reads[0]), Le(IntLit(0), reads[0]), Eq(v, IntLit(0)))
+# inv: ite(y<=x, 0<=x, y=0)
+def inv_grammar(writes: List[Object], reads: List[Object], in_scope: List[Object]) -> Bool:
+    x, y = reads
+    return ite(
+        y <= x,
+        0 <= x,
+        y == 0
+    )
 
 
 def target() -> List[FnDecl]:
@@ -35,8 +36,9 @@ if __name__ == "__main__":
     driver = Driver()
     test = driver.analyze(filename, "test", target, inv_grammar, ps_grammar)
 
-    i = driver.variable("i", Int())
-    r = test(i)
+    x = Int("x")
+    driver.add_var_object(x)
+    r = test(x)
 
     driver.synthesize()
     # no codegen

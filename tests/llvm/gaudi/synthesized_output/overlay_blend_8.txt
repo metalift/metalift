@@ -1,0 +1,30 @@
+def overlay_blend_8_inv0(active agg.result base col pixel row row_vec)
+row >= 0 and row <= list_length(list_get(base, 0)) and agg.result == nested_selection_two_args(list_take(base, row), list_take(base, row), select_two_args)
+
+
+
+def overlay_blend_8_inv1(active base col pixel row_vec agg.result row)
+row >= 0 and row <= list_length(list_get(base, 0)) and col >= 0 and col <= list_length(list_get(base, 0)) and row_vec == selection_two_args(list_take(list_get(base, row), col), list_take(list_get(base, 0), col), select_two_args) and agg.result == nested_selection_two_args(list_take(base, row), list_take(active, row), select_two_args)
+
+
+
+def overlay_blend_8_ps(base active overlay_blend_8_rv)
+overlay_blend_8_rv == nested_selection_two_args(base, active, select_two_args)
+
+
+
+def select_two_args(int_x int_y)
+(Mul:Int (Lit:Int 2) int_x) + int_x - (Div:Int (Mul:Int (Mul:Int (Lit:Int 2) int_x) int_x) (Lit:Int 255)) - 255 if int_x >= 128 else (Div:Int (Mul:Int (Mul:Int (Lit:Int 2) int_x) int_x) (Lit:Int 255))
+
+
+
+def selection_two_args(x y select_two_args)
+list_empty() if (Or:Bool (Lt:Bool (list_length:Int x) (Lit:Int 1)) (Not:Bool (Eq:Bool (list_length:Int x) (list_length:Int y)))) else list_prepend((CallValue:Int select_two_args (list_get:Int x (Lit:Int 0)) (list_get:Int y (Lit:Int 0))), selection_two_args(list_tail(x, 1), list_tail(y, 1), select_two_args))
+
+
+
+overlay_blend_8 synthesized: (nested_selection_two_args:List List Int base active select_two_args)
+Synthesis took 171.82689714431763 seconds
+
+
+generated code:nested_selection_two_args(base, active, select_two_args)
