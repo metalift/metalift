@@ -19,3 +19,4 @@ nixos.qcow2
 .venv/
 .3.9venv/
 .coverage
+test.py

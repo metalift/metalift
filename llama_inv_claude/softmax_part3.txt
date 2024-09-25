@@ -1,0 +1,12 @@
+--------------------------
+Running benchmark softmax_part3 in suite llama
+===== Starting iteration 0 =====
+running with claude
+
+def invariant(i: int, max_pos: int, output: List[int], sum: int) -> bool:
+    return i >= 0 and i <= max_pos and sum == reduce_sum(vec_slice(output, 0, i))
+
+Passing solution to the parser
+Parser solution passed the parser
+===== Starting iteration 1 =====
+running with claude

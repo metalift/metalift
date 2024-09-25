@@ -1,0 +1,17 @@
+--------------------------
+Running benchmark transformer_part2 in suite llama
+===== Starting iteration 0 =====
+running with claude
+
+def invariant1(attention: List[int], head: int, head_size: int, i: int, key_cache_layer: List[List[int]], token_position: int, xb: List[int]) -> bool:
+    return (0 <= i <= head_size) and (xb == matrix_vec_mul(matrix_transpose(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + i)), vec_slice(attention, 0, token_position + 1)))
+
+
+def invariant2(attention: List[int], curr: int, head: int, head_size: int, i: int, key_cache_layer: List[List[int]], timestep: int, token_position: int, xb: List[int]) -> bool:
+    return (0 <= i < head_size) and (0 <= timestep <= token_position + 1) and (xb == vec_slice(matrix_vec_mul(matrix_transpose(matrix_col_slice(matrix_row_slice(key_cache_layer, 0, token_position + 1), head * head_size, head * head_size + i)), vec_slice(attention, 0, token_position + 1)), 0, i)) and (curr == reduce_sum(vec_elemwise_mul(vec_slice(attention, 0, timestep), col_vec(matrix_row_slice(key_cache_layer, 0, timestep), head * head_size + i))))
+
+Passing solution to the parser
+Parser solution passed the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/run_with_parser_and_fuzzer_feedback.py(298)run_llm()
+-> for i in range(10):
+(Pdb)

@@ -1,2 +1,0 @@
---------------------------
-Running benchmark color_burn_8 in suite blend

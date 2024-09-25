@@ -8,5 +8,3 @@ vector<int> transformer_part4(vector<int> input1, vector<int> input2, int hidden
     }
     return output;
 }
-// def transformer_part4_ps(input1 input2 hidden_dim transformer_part4_rv)
-// transformer_part4_rv == vec_elemwise_mul(list_take(input2, hidden_dim), list_take(input1, hidden_dim))

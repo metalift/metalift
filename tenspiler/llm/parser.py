@@ -438,36 +438,38 @@ def mypy_node_to_ir(
                 parse_node(node.else_expr),
             ).src
         elif isinstance(node, ComparisonExpr):
-            if len(node.operators) != 1:
-                raise Exception("Multiple comparison operators are not supported")
-            if len(node.operands) != 2:
-                raise Exception("Comparision must be performed on exactly two operands")
-            op = node.operators[0]
-            left_node, right_node = node.operands[0], node.operands[1]
-            left_expr, right_expr = parse_node(left_node), parse_node(right_node)
-            if op == "==":
-                if left_expr.type != right_expr.type:
-                    raise Exception(
-                        f"Comparison operator {op} only supported on objects of the same type, but got {types[left_node]} and {types[right_node]}"
-                    )
-                return Eq(left_expr, right_expr)
-            else:
-                if left_expr.type is not Int or right_expr.type is not Int:
-                    raise Exception(
-                        f"Comparison operator {op} only supported on integers, but got {types[left_node]} and {types[right_node]}"
-                    )
-                if op == ">":
-                    return Gt(left_expr, right_expr)
-                elif op == "<":
-                    return Lt(left_expr, right_expr)
-                elif op == ">=":
-                    return Ge(left_expr, right_expr)
-                elif op == "<=":
-                    return Le(left_expr, right_expr)
-                elif op == "!=":
-                    return Not(Eq(left_expr, right_expr))
+            clauses: list[Expr] = []
+            for i in range(len(node.operators)):
+                op = node.operators[i]
+                left_node, right_node = node.operands[i], node.operands[i + 1]
+                left_expr, right_expr = parse_node(left_node), parse_node(right_node)
+                if op == "==":
+                    if left_expr.type != right_expr.type:
+                        raise Exception(
+                            f"Comparison operator {op} only supported on objects of the same type, but got {types[left_node]} and {types[right_node]}"
+                        )
+                    clauses.append(Eq(left_expr, right_expr))
                 else:
-                    raise Exception(f"{op} is not supported")
+                    if left_expr.type is not Int or right_expr.type is not Int:
+                        raise Exception(
+                            f"Comparison operator {op} only supported on integers, but got {types[left_node]} and {types[right_node]}"
+                        )
+                    if op == ">":
+                        clauses.append(Gt(left_expr, right_expr))
+                    elif op == "<":
+                        clauses.append(Lt(left_expr, right_expr))
+                    elif op == ">=":
+                        clauses.append(Ge(left_expr, right_expr))
+                    elif op == "<=":
+                        clauses.append(Le(left_expr, right_expr))
+                    elif op == "!=":
+                        clauses.append(Not(Eq(left_expr, right_expr)))
+                    else:
+                        raise Exception(f"{op} is not supported")
+            if len(clauses) == 1:
+                return clauses[0]
+            else:
+                return And(*clauses)
         elif isinstance(node, IndexExpr):
             base_expr = parse_node(node.base)
             base_object = create_object(base_expr.type, base_expr)

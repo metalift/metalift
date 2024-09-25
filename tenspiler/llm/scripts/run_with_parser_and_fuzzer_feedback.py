@@ -17,6 +17,8 @@ from tenspiler.llm.scripts.utils import (
     TEMPLATE_ENCLOSE_CODE,
     TEMPLATE_ERR,
     TEMPLATE_SYS,
+    _generate_invariant_template,
+    _loop_info_map,
     extract,
     get_fuzzer_feedback,
 )
@@ -160,8 +162,8 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
         system=TEMPLATE_SYS,
         messages=messages,
     )
-    raw_solution = extract(message.content[0].text)[0]
-    return replace_ite(raw_solution)
+    raw_solutions = extract(message.content[0].text)
+    return [replace_ite(raw_solution) for raw_solution in raw_solutions]
 
 
 def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
@@ -175,7 +177,7 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
         temperature=0.7,
     )
     outputs = [choice.message.content for choice in outputs.choices]
-    return replace_ite(extract(outputs[0])[0])
+    return [replace_ite(code_block) for code_block in extract(outputs[0])]
 
 
 # Define all the clients that are needed
@@ -187,6 +189,7 @@ def run_llm(
     *,
     llm_model: LLMModel,
     benchmark_name: str,
+    suite_name: str,
     dsl_code: str,
     source_code: str,
     test_case_dir: Path,
@@ -222,153 +225,94 @@ def run_llm(
     {source_code}
     ```
     """
-    # We start with a single message, will append with feedback
-    sol = f"""
-    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-        return matrix_where(
-            active,
-            matrix_scalar_sub(32, matrix_elemwise_div(matrix_scalar_sub(32, base), active)),
-            lambda a, b: 32 if a == 0 else b
-        )
+    with open(f"tenspiler/llm/inv_code/{suite_name}/{benchmark_name}.txt") as f:
+        inv_code_with_assert = f.read()
+    inv_text = f"""
+    Your task is to generate the loop invariant `Inv` such that it is true at all the locations it is defined at.  Generate only a single `Inv` expression which holds at all the locations. The invariant needs to be generated using only the functions defined below. Write the loop invariant as a python boolean formula.
+    #Instructions:
+    1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct.
+    2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code in a code block.
+    Example1:
+
+    {dsl_code}
+
+    //test function
+    {inv_code_with_assert}
+
+    ```
+    Use the following template to generate the loop invariant
+    ```
+
+    # A strong loop invariant should have the following properties:
+    # 1. It should have boolean expressions over the loop index variable `i` to describe the valid range of `i`.
+    # 2. It should have an inductive expression describing the output variable `out` using the defined functions.
+    {_generate_invariant_template(benchmark_name)}
+    ```
     """
-    sol2 = f"""
-    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-        return matrix_where(
-            active,
-            matrix_scalar_sub(32, scalar_matrix_div(32, matrix_scalar_sub(32, base))),
-            lambda a, b: 32 if a == 0 else b
-        )
-    """
-    sol3 = f"""
-    def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-        return matrix_where(
-            active,
-            matrix_scalar_sub(
-                32, matrix_elemwise_div(scalar_matrix_sub(32, base), active)
-            ),
-            lambda a, b: 32 if a == 0 else b,
-        )
-    """
-    manual_test_feedback = f"""
-    The translated program does not match the source program on the following inputs.
-
-    Test case 1:
-    Inputs:
-    - base: [[1, 2], [3, 4]]
-    - active: [[1, 2], [3, 4]]
-    Expected output: [[1, 17], [23, 25]]
-    Generated output: [[-63, -47], [-42, -39]]
-    """
-    manual_test_feedback2 = f"""
-    The translated program does not match the source program on the following inputs.
-
-    Test case 1:
-    Inputs:
-    - base: [[1, 2], [3, 4]]
-    - active: [[1, 2], [3, 4]]
-    Expected output: [[1, 17], [23, 25]]
-    Generated output: [[-34, -34], [-34, -34]]
-    """
-    manual_test_feedback3 = f"""
-    The translated program does not match the source program on the following inputs.
-
-    Test case 1:
-    Inputs:
-    - base: [[1, 2], [3, 4]]
-    - active: [[1, 2], [3, 4]]
-    Expected output: [[1, 17], [23, 25]]
-    Generated output: [[-1, -17], [-23, -25]]
-    """
-
-    # ps_text += "\n" + f"""
-    # <Generated solution>:
-    # {sol}
-
-    # <Feedback>:
-    # {manual_test_feedback}
-
-    # <Generated solution>:
-    # {sol3}
-
-    # <Feedback>:
-    # {manual_test_feedback3}
-
-    # Please fix the program to pass the test cases. Don't generate the same solution as before. Explain your fix.
-    # """
-    messages = [
-        {"role": "user", "content": ps_text},
-        # {"role": "assistant", "content": sol},
-        # {"role": "user", "content": manual_test_feedback},
-        # {"role": "assistant", "content": sol3},
-        # {"role": "user", "content": manual_test_feedback3},
+    double_loop_info = _loop_info_map[benchmark_name]
+    outer_loop_var = double_loop_info.outer_loop_var.name()
+    inner_loop_var = double_loop_info.inner_loop_var.name()
+    outer_loop_modified_vars = double_loop_info.outer_loop_modified_vars
+    assert len(outer_loop_modified_vars) == 1
+    inner_modified_vars_not_in_outer = [
+        var
+        for var in double_loop_info.inner_loop_modified_vars
+        if var not in outer_loop_modified_vars
     ]
-    for i in range(50):
-        # sleep(10)
-        curr_solution = get_solution_from_llm(llm_model, messages)
-        # check
+    assert len(inner_modified_vars_not_in_outer) == 1
+    inner_modified_var = inner_modified_vars_not_in_outer[0].name()
+
+    rv_var = outer_loop_modified_vars[0].name()
+    outer_inv, inner_inv = _generate_invariant_template(benchmark_name)
+    double_loop_inv_text = f"""
+    Your task is to generate two loop invariants `invariant1` and `invariant2` such that the given assertion holds. The invariants need to be generated using only the functions defined below. Write the loop invariants as python boolean formulas.
+
+    #Instructions:
+    1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct such as list comprehensions or the `all` function.
+    2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code.
+
+    ```
+    #defined functions
+    {dsl_code}
+
+    //test function
+    {inv_code_with_assert}
+    ```
+
+    Use the following template to generate the outer loop invariant
+    ```
+    # A strong loop invariant should have the following properties:
+    # 1. It should have boolean expressions over the loop index variable `{outer_loop_var}` to describe the valid range of `{outer_loop_var}`.
+    # 2. It should have an inductive expression describing the output variable `{rv_var}` using the defined functions.
+    {outer_inv}
+
+    Use the following template to generate the inner loop invariant
+    # A strong loop invariant should have the following properties:
+    # 1. It should have boolean expressions over the loop index variable `{outer_loop_var}` to describe the valid range of `{outer_loop_var}` and the loop index variable `{inner_loop_var}` to describe the valid range of `{inner_loop_var}`.
+    # 2. It should have an inductive expression describing the output variable `{rv_var}` using the defined functions and `{inner_modified_var}` variable.
+    {inner_inv}
+    ```
+    """
+    with open(f"{benchmark_name}.txt", "w") as f:
+        f.write(double_loop_inv_text)
+    exit(0)
+    for i in range(10):
         print(f"===== Starting iteration {i} =====")
-        print(curr_solution)
+        messages = [{"role": "user", "content": double_loop_inv_text}]
+        solution = "\n".join(get_solution_from_llm(llm_model, messages))
+        print(solution)
         try:
             print("Passing solution to the parser")
-            func_names, _, _ = check_solution(curr_solution, 1)
+            func_names, _, _ = check_solution(solution, 2)
             func_name = func_names[0]
-            print("Passed the parser")
+            print("Parser solution passed the parser")
         except Exception as e:
             print("Failed to pass the parser", e)
             continue
+        import pdb
 
-        # fuzzer
-        # fuzzer_feedback = _run_fuzzer_tests_and_get_messages(func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir)
-        # if fuzzer_feedback is None:
-        #     print("Correct")
-        # else:
-        #     print("Incorrect")
+        pdb.set_trace()
     exit(0)
-
-    parser_feedback = f"""
-    The generated solution is incorrect because matrix_scalar_sub expects a list of lists of integers as the first argument, but got an integer instead.
-    """
-    # messages_for_parser = [
-    #     *messages,
-    #     {"role": "assistant", "content": curr_solution},
-    #     {"role": "user", "content": parser_feedback},
-    # ]
-
-    # passed_parser = False
-    # passed_fuzzer = False
-    # while not passed_fuzzer:
-    #     while not passed_parser:
-    #         try:
-    #             print("Passing solution to the parser")
-    #             func_names, _, _ = check_solution(curr_solution, 1)
-    #             func_name = func_names[0]
-    #             print("Parser solution passed the parser")
-    #             passed_parser = True
-    #         except Exception as e:
-    #             print("Failed to pass the parser", e)
-    #             curr_parser_feedback = str(e)
-    #             messages_for_parser = [
-    #                 *messages,
-    #                 {"role": "assistant", "content": curr_solution},
-    #                 {
-    #                     "role": "user",
-    #                     "content": curr_parser_feedback
-    #                     + f"\n{TEMPLATE_ENCLOSE_CODE}",
-    #                 },
-    #             ]
-    #             print("Trying to fix the solution to pass parser")
-    #             curr_solution = get_solution_from_llm(
-    #                 llm_model, messages_for_parser
-    #             )
-    #             print("New solution is", curr_solution)
-    #     fuzzer_feedback = _run_fuzzer_tests_and_get_messages(func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir)
-    #     print("Fuzzer feedback is", fuzzer_feedback)
-    #     passed_fuzzer = fuzzer_feedback is None
-    # exit(0)
-
-    # with open("test.txt", "w") as f:
-    #     f.write(ps_text)
-
     # This is the function name to run. Will be updated once we pass the parser.
     func_name = None
     for i in range(max_num_tries):
@@ -498,6 +442,7 @@ if __name__ == "__main__":
             info = run_llm(
                 llm_model=LLMModel.CLAUDE,
                 benchmark_name=file.stem,
+                suite_name=suite,
                 dsl_code=dsl_code,
                 source_code=source_code,
                 test_case_dir=Path(

@@ -1,0 +1,17 @@
+--------------------------
+Running benchmark rmsnorm_part1 in suite llama
+===== Starting iteration 0 =====
+running with gpt
+```python
+def invariant(i: int, input: List[int], ss: int, weight: List[int]) -> bool:
+    return i >= 0 and i <= len(input) and ss == reduce_sum(vec_elemwise_mul(vec_slice(input, 0, i), vec_slice(input, 0, i)))
+```
+
+def invariant(i: int, input: List[int], ss: int, weight: List[int]) -> bool:
+    return i >= 0 and i <= len(input) and ss == reduce_sum(vec_elemwise_mul(vec_slice(input, 0, i), vec_slice(input, 0, i)))
+
+Passing solution to the parser
+Parser solution passed the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/run_with_parser_and_fuzzer_feedback.py(252)run_llm()
+-> for i in range(10):
+(Pdb)

@@ -331,7 +331,7 @@ _loop_info_map = {
     ),
     "softmax_part2": SingleLoopInfo(
         loop_var=Int("i").src,
-        modified_vars=[Int("cur").src, Int("output").src],
+        modified_vars=[Int("output").src],
         read_vars=[List(Int, "input").src, Int("max_pos").src, Int("max_val").src],
     ),
     "softmax_part3": SingleLoopInfo(
@@ -490,15 +490,15 @@ def _generate_invariant_template(benchmark_name: str) -> str:
         )
         inner_loop_var_cond = f"{inner_loop_var} op expr() and {inner_loop_var} op expr() and {outer_loop_var_cond}"
 
-        return textwrap.dedent(
-            f"""
-            def invariant1({outer_inv_args_with_types}) -> bool:
-                return {outer_loop_var_cond} and {outer_modified_vars_cond}
-
-            def invariant2({inner_inv_args_with_types}) -> bool:
-                return {inner_loop_var_cond} and {inner_modified_vars_cond}
-            """
-        )
+        inv1_template = f"""
+        def invariant1({outer_inv_args_with_types}) -> bool:
+            return expression over loop index variable `{outer_loop_var}` and {outer_modified_vars_cond}
+        """
+        inv2_template = f"""
+        def invariant2({inner_inv_args_with_types}) -> bool:
+            return expression over loop index variable `{outer_loop_var}` and `{inner_loop_var}` and {inner_modified_vars_cond}
+        """
+        return [textwrap.dedent(inv1_template), textwrap.dedent(inv2_template)]
 
 
 def _get_ps_expr(ps_solution: str) -> str:

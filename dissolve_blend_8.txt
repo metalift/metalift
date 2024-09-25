@@ -1,5 +1,321 @@
-Found benchmark dissolve_blend_8 in suite blend
-#include <vector>
+
+    Your task is to generate two loop invariants `invariant1` and `invariant2` such that the given assertion holds. The invariants need to be generated using only the functions defined below. Write the loop invariants as python boolean formulas.
+
+    #Instructions:
+    1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct such as list comprehensions or the `all` function.
+    2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code.
+
+    ```
+    #defined functions
+    from typing import Any, Callable, List
+
+
+def ite(cond: bool, if_then: Any, if_else: Any) -> Any:
+    # Return if_then if cond else if_else
+    return if_then if cond else if_else
+
+
+def reduce_sum(x: List[int]) -> int:
+    # Sum all elements in a vector.
+    return 0 if len(x) < 1 else x[0] + reduce_sum(x[1:])
+
+
+def vec_elemwise_mul(x: List[int], y: List[int]) -> List[int]:
+    # Element-wise multiplication of two vectors.
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] * y[0], *vec_elemwise_mul(x[1:], y[1:])]
+    )
+
+
+def reduce_max(x: List[int]) -> int:
+    # Return the maximum element in a vector.
+    return (
+        x[0]
+        if len(x) <= 1
+        else (x[0] if x[0] > reduce_max(x[1:]) else reduce_max(x[1:]))
+    )
+
+
+def vec_elemwise_add(x: List[int], y: List[int]) -> List[int]:
+    # Element-wise addition of two vectors.
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] + y[0], *vec_elemwise_add(x[1:], y[1:])]
+    )
+
+
+def vec_elemwise_sub(x: List[int], y: List[int]) -> List[int]:
+    # Element-wise subtraction of two vectors.
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
+    )
+
+
+def vec_elemwise_div(x: List[int], y: List[int]) -> List[int]:
+    # Element-wise division of two vectors.
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [x[0] // y[0], *vec_elemwise_div(x[1:], y[1:])]
+    )
+
+
+def matrix_elemwise_add(
+    matrix_x: List[List[int]], matrix_y: List[List[int]]
+) -> List[List[int]]:
+    # Element-wise addition of two matrices.
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            vec_elemwise_add(matrix_x[0], matrix_y[0]),
+            *matrix_elemwise_add(matrix_x[1:], matrix_y[1:]),
+        ]
+    )
+
+
+def matrix_elemwise_sub(
+    matrix_x: List[List[int]], matrix_y: List[List[int]]
+) -> List[List[int]]:
+    # Element-wise subtraction of two matrices.
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            vec_elemwise_sub(matrix_x[0], matrix_y[0]),
+            *matrix_elemwise_sub(matrix_x[1:], matrix_y[1:]),
+        ]
+    )
+
+
+def matrix_scalar_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    # Subtract a scalar 'a' from each element of the matrix.
+    # matrix_x[i][j] = matrix_x[i][j] - a
+    return (
+        []
+        if len(matrix_x) < 1
+        else [vec_scalar_sub(a, matrix_x[0]), *matrix_scalar_sub(a, matrix_x[1:])]
+    )
+
+
+def matrix_scalar_mul(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    # Multiply a scalar 'a' with each element of the matrix.
+    # matrix_x[i][j] = matrix_x[i][j] * a
+    return (
+        []
+        if len(matrix_x) < 1
+        else [vec_scalar_mul(a, matrix_x[0]), *matrix_scalar_mul(a, matrix_x[1:])]
+    )
+
+
+def matrix_transpose(matrix: List[List[int]]) -> List[List[int]]:
+    # Transpose a matrix.
+    return [] if len(matrix) < 1 else [firsts(matrix), *matrix_transpose(rests(matrix))]
+
+
+def matrix_elemwise_div(
+    matrix_x: List[List[int]], matrix_y: List[List[int]]
+) -> List[List[int]]:
+    # Element-wise division of two matrices.
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            vec_elemwise_div(matrix_x[0], matrix_y[0]),
+            *matrix_elemwise_div(matrix_x[1:], matrix_y[1:]),
+        ]
+    )
+
+
+def vec_scalar_add(a: int, x: List[int]) -> List[int]:
+    # Add a scalar to each element in a vector.
+    return [] if len(x) < 1 else [a + x[0], *vec_scalar_add(a, x[1:])]
+
+
+def vec_scalar_sub(a: int, x: List[int]) -> List[int]:
+    # Subtract a scalar from each element in a vector.
+    # x[i] = x[i] - a
+    return [] if len(x) < 1 else [x[0] - a, *vec_scalar_sub(a, x[1:])]
+
+
+def vec_scalar_mul(a: int, x: List[int]) -> List[int]:
+    # Multiply a scalar with each element in a vector.
+    return [] if len(x) < 1 else [a * x[0], *vec_scalar_mul(a, x[1:])]
+
+
+def vec_scalar_div(a: int, x: List[int]) -> List[int]:
+    # Divide each element of the vector by scalar 'a' using integer division.
+    # x[i] = x[i] // a
+    return [] if len(x) < 1 else [x[0] // a, *vec_scalar_div(a, x[1:])]
+
+
+def scalar_vec_sub(a: int, x: List[int]) -> List[int]:
+    # Subtract each element of the vector from scalar 'a'.
+    # x[i] = a - x[i]
+    return [] if len(x) < 1 else [a - x[0], *scalar_vec_sub(a, x[1:])]
+
+
+def scalar_vec_div(a: int, x: List[int]) -> List[int]:
+    # Divide scalar 'a' by each element of the vector using integer division.
+    # x[i] = a // x[i]
+    return [] if len(x) < 1 else [a // x[0], *scalar_vec_div(a, x[1:])]
+
+
+def matrix_scalar_add(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    # Add a scalar to each element of the matrix.
+
+    return (
+        []
+        if len(matrix_x) < 1
+        else [vec_scalar_add(a, matrix_x[0]), *matrix_scalar_add(a, matrix_x[1:])]
+    )
+
+
+def matrix_vec_mul(matrix_x: List[List[int]], x: List[int]) -> List[int]:
+    # Multiply a matrix with a vector.
+    return (
+        []
+        if len(matrix_x) < 1 or len(matrix_x[0]) < 1 or not len(matrix_x[0]) == len(x)
+        else [
+            reduce_sum(vec_elemwise_mul(matrix_x[0], x)),
+            *matrix_vec_mul(matrix_x[1:], x),
+        ]
+    )
+
+
+def reduce_mul(x: List[int]) -> int:
+    # Multiply all elements in a vector.
+    return 1 if len(x) < 1 else x[0] * reduce_mul(x[1:])
+
+
+def matrix_scalar_div(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    # Divide a scalar by each element of the matrix using integer division.
+    # matrix_x[i][j] = matrix_x[i][j] // a
+    return (
+        []
+        if len(matrix_x) < 1
+        else [vec_scalar_div(a, matrix_x[0]), *matrix_scalar_div(a, matrix_x[1:])]
+    )
+
+
+def scalar_matrix_sub(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    # Subtract each element of the matrix from scalar 'a'.
+    # matrix_x[i][j] = a - matrix_x[i][j]
+    return (
+        []
+        if len(matrix_x) < 1
+        else [scalar_vec_sub(a, matrix_x[0]), *scalar_matrix_sub(a, matrix_x[1:])]
+    )
+
+
+def scalar_matrix_div(a: int, matrix_x: List[List[int]]) -> List[List[int]]:
+    # Divide scalar 'a' by each element of the matrix using integer division.
+    # matrix_x[i][j] = a // matrix_x[i][j]
+    return (
+        []
+        if len(matrix_x) < 1
+        else [scalar_vec_div(a, matrix_x[0]), *scalar_matrix_div(a, matrix_x[1:])]
+    )
+
+
+def vec_map(x: List[int], map_int_to_int: Callable[[int], int]) -> List[int]:
+    # Apply a mapping function to each element in a vector.
+    return [] if len(x) < 1 else [map_int_to_int(x[0]), *vec_map(x[1:], map_int_to_int)]
+
+
+def matrix_selection_two_args(
+    matrix_x: List[List[int]],
+    matrix_y: List[List[int]],
+    select_two_args_arg: Callable[[int, int], int],
+) -> List[List[int]]:
+    # Apply a conditional selection function to each pair of elements in two matrices.
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            selection_two_args(matrix_x[0], matrix_y[0], select_two_args_arg),
+            *matrix_selection_two_args(matrix_x[1:], matrix_y[1:], select_two_args_arg),
+        ]
+    )
+
+
+def selection_two_args(
+    x: List[int], y: List[int], select_two_args_arg: Callable[[int, int], int]
+) -> List[int]:
+    # Apply a conditional selection function to each pair of elements in two vectors.
+    return (
+        []
+        if len(x) < 1 or not len(x) == len(y)
+        else [
+            select_two_args_arg(x[0], y[0]),
+            *selection_two_args(x[1:], y[1:], select_two_args_arg),
+        ]
+    )
+
+
+def vec_slice(lst: List[int], start: int, end: int) -> List[int]:
+    # Slice a vector from start to end.
+    return lst[:end][start:]
+
+
+def matrix_row_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
+    # Slice rows of a matrix from index 'start' to 'end'
+    return matrix[:end][start:]
+
+
+def matrix_col_slice(matrix: List[List[int]], start: int, end: int) -> List[List[int]]:
+    # Slice columns of a matrix from index 'start' to 'end'
+    return (
+        []
+        if len(matrix) < 1
+        else [matrix[0][start:end], *matrix_col_slice(matrix[1:], start, end)]
+    )
+
+
+def firsts(matrix: List[List[int]]) -> List[int]:
+    # Helper function to get the first element of each row in a matrix.
+    return [] if len(matrix) < 1 else [matrix[0][0], *firsts(matrix[1:])]
+
+
+def rests(matrix: List[List[int]]) -> List[List[int]]:
+    # Helper function to get the rest of the elements in each row in a matrix.
+    return [] if len(matrix) < 1 else matrix_col_slice(matrix, 1, len(matrix[0]))
+
+
+def matrix_elemwise_mul(
+    matrix_x: List[List[int]], matrix_y: List[List[int]]
+) -> List[List[int]]:
+    # Element-wise multiplication of two matrices.
+    return (
+        []
+        if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
+        else [
+            vec_elemwise_mul(matrix_x[0], matrix_y[0]),
+            *matrix_elemwise_mul(matrix_x[1:], matrix_y[1:]),
+        ]
+    )
+
+
+def integer_sqrt(n: int) -> int:
+    """Return the integer square root of n."""
+    return n
+
+
+def integer_exp(n: int) -> int:
+    """Returns e raised to the power of n as integer."""
+    return n
+
+def col_vec(matrix: List[List[int]], col_index: int) -> List[int]:
+    """Extract a column vector from a matrix at index `col_index`"""
+    return matrix_transpose(matrix_col_slice(matrix, col_index, col_index + 1))[0]
+
+    //test function
+    #include <vector>
 using namespace std;
 
 vector<vector<int>> dissolve_blend_8(vector<vector<int>> base, vector<vector<int>> active, int opacity, int rand_cons)
@@ -20,217 +336,27 @@ vector<vector<int>> dissolve_blend_8(vector<vector<int>> base, vector<vector<int
 		}
 		out.push_back(row_vec);
 	}
-	return out;
+	assert out == matrix_selection_two_args(active, base, opacity, lambda a, b: a if (opacity - (((rand_cons % 100) + 1) // 100)) >= 0 else b);
 }
 
-Analyzing benchmark dissolve_blend_8
-yoyo
-name: for.cond<header><exiting>
-name: for.body
-name: for.cond4
-name: for.end
-name: invoke.cont16
-name: for.inc17<latch>
-name: for.body6
-name: if.else
-name: if.then
-name: if.end
-name: invoke.cont
-name: for.inc
-name: for.cond4<header><exiting>
-name: for.body6
-name: if.else
-name: if.then
-name: if.end
-name: invoke.cont
-name: for.inc<latch>
-found loop: header: for.cond, body: ['for.body', 'for.cond4', 'for.end', 'invoke.cont16', 'for.body6', 'if.else', 'if.then', 'if.end', 'invoke.cont', 'for.inc'], exits: ['for.cond'], latches: ['for.inc17']
-found loop: header: for.cond4, body: ['for.body6', 'if.else', 'if.then', 'if.end', 'invoke.cont'], exits: ['for.cond4'], latches: ['for.inc']
-  %result.ptr = alloca i8*, align 8
-  %opacity.addr = alloca i32, align 4
-  %rand_cons.addr = alloca i32, align 4
-  %nrvo = alloca i1, align 1
-  %m = alloca i32, align 4
-  %n = alloca i32, align 4
-  %row = alloca i32, align 4
-  %row_vec = alloca %"class.std::__1::vector.0", align 8
-  %col = alloca i32, align 4
-  %rand_val = alloca i32, align 4
-  %pixel = alloca i32, align 4
-  %exn.slot = alloca i8*, align 8
-  %ehselector.slot = alloca i32, align 4
-  %i = bitcast %"class.std::__1::vector"* %agg.result to i8*
-  store i8* %i, i8** %result.ptr, align 8
-  store i32 %opacity, i32* %opacity.addr, align 4
-  store i32 %rand_cons, i32* %rand_cons.addr, align 4
-  store i1 false, i1* %nrvo, align 1
-  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEC1Ev(%"class.std::__1::vector"* %agg.result) #11
-  %call = call i64 @_ZNKSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE4sizeEv(%"class.std::__1::vector"* %base) #11
-  %conv = trunc i64 %call to i32
-  store i32 %conv, i32* %m, align 4
-  %call1 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 0) #11
-  %call2 = call i64 @_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv(%"class.std::__1::vector.0"* %call1) #11
-  %conv3 = trunc i64 %call2 to i32
-  store i32 %conv3, i32* %n, align 4
-  store i32 0, i32* %row, align 4
-  br label %for.cond
-  %i1 = load i32, i32* %row, align 4
-  %i2 = load i32, i32* %m, align 4
-  %cmp = icmp slt i32 %i1, %i2
-  br i1 %cmp, label %for.body, label %for.end19
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev(%"class.std::__1::vector.0"* %row_vec) #11
-  store i32 0, i32* %col, align 4
-  br label %for.cond4
-  %i3 = load i32, i32* %col, align 4
-  %i4 = load i32, i32* %n, align 4
-  %cmp5 = icmp slt i32 %i3, %i4
-  br i1 %cmp5, label %for.body6, label %for.end
-  %i5 = load i32, i32* %rand_cons.addr, align 4
-  %rem = srem i32 %i5, 100
-  %add = add nsw i32 %rem, 1
-  %div = sdiv i32 %add, 100
-  store i32 %div, i32* %rand_val, align 4
-  %i6 = load i32, i32* %opacity.addr, align 4
-  %i7 = load i32, i32* %rand_val, align 4
-  %sub = sub nsw i32 %i6, %i7
-  %cmp7 = icmp sge i32 %sub, 0
-  br i1 %cmp7, label %if.then, label %if.else
-  %i8 = load i32, i32* %row, align 4
-  %conv8 = sext i32 %i8 to i64
-  %call9 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %active, i64 %conv8) #11
-  %i9 = load i32, i32* %col, align 4
-  %conv10 = sext i32 %i9 to i64
-  %call11 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call9, i64 %conv10) #11
-  %i10 = load i32, i32* %call11, align 4
-  store i32 %i10, i32* %pixel, align 4
-  br label %if.end
-  %i11 = load i32, i32* %row, align 4
-  %conv12 = sext i32 %i11 to i64
-  %call13 = call nonnull align 8 dereferenceable(24) %"class.std::__1::vector.0"* @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEEixEm(%"class.std::__1::vector"* %base, i64 %conv12) #11
-  %i12 = load i32, i32* %col, align 4
-  %conv14 = sext i32 %i12 to i64
-  %call15 = call nonnull align 4 dereferenceable(4) i32* @_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm(%"class.std::__1::vector.0"* %call13, i64 %conv14) #11
-  %i13 = load i32, i32* %call15, align 4
-  store i32 %i13, i32* %pixel, align 4
-  br label %if.end
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi(%"class.std::__1::vector.0"* %row_vec, i32* nonnull align 4 dereferenceable(4) %pixel)
-  br label %invoke.cont
-  br label %for.inc
-  %i14 = load i32, i32* %col, align 4
-  %inc = add nsw i32 %i14, 1
-  store i32 %inc, i32* %col, align 4
-  br label %for.cond4
-  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEE9push_backERKS3_(%"class.std::__1::vector"* %agg.result, %"class.std::__1::vector.0"* nonnull align 8 dereferenceable(24) %row_vec)
-  br label %invoke.cont16
-  call void @_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev(%"class.std::__1::vector.0"* %row_vec) #11
-  br label %for.inc17
-  %i15 = load i32, i32* %row, align 4
-  %inc18 = add nsw i32 %i15, 1
-  store i32 %inc18, i32* %row, align 4
-  br label %for.cond
-  store i1 true, i1* %nrvo, align 1
-  %nrvo.val = load i1, i1* %nrvo, align 1
-  br i1 %nrvo.val, label %nrvo.skipdtor, label %nrvo.unused
-  call void @_ZNSt3__16vectorINS0_IiNS_9allocatorIiEEEENS1_IS3_EEED1Ev(%"class.std::__1::vector"* %agg.result) #11
-  br label %nrvo.skipdtor
-  ret void
-ps: (Implies:Bool (Or:Bool (And:Bool (And:Bool (And:Bool (And:Bool (Not:Bool (Lt:Bool row (matrix_length:Int base))) (Gt:Bool (matrix_length:Int base) (Lit:Int 1))) (Eq:Bool (matrix_length:Int base) (matrix_length:Int active))) (Eq:Bool (list_length:Int (matrix_get:List Int base (Lit:Int 0))) (list_length:Int (matrix_get:List Int active (Lit:Int 0))))) (dissolve_blend_8_inv0:Bool active base opacity agg.result rand_cons row)) (And:Bool (And:Bool (And:Bool (And:Bool (And:Bool (Not:Bool (Lit:Bool True)) (Not:Bool (Lt:Bool row (matrix_length:Int base)))) (Gt:Bool (matrix_length:Int base) (Lit:Int 1))) (Eq:Bool (matrix_length:Int base) (matrix_length:Int active))) (Eq:Bool (list_length:Int (matrix_get:List Int base (Lit:Int 0))) (list_length:Int (matrix_get:List Int active (Lit:Int 0))))) (dissolve_blend_8_inv0:Bool active base opacity agg.result rand_cons row))) (dissolve_blend_8_ps:Bool active base opacity rand_cons agg.result))
-Analyze took 0.7430481910705566s
-ps call took 6.838536977767944s
-------0th PS solution---------
+    ```
 
-def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
-    return matrix_where(
-        base,
-        active,
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
-
-
-Total time to date 7.581585168838501
-> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/end_to_end.py(151)run_end_to_end_llm()
--> if ps_sol in ps_solutions_seen:
-(Pdb) Passing through parser
-Passed parser!
-Parser took 5.497031927108765s
-Total time taken: 13.078617095947266s
-Generating invariants for the 0th PS solution
-CALLING INV for PS
-def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
-    return matrix_where(
-        base,
-        active,
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
-
-> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/utils.py(565)get_inv_choice_and_save_prompt()
--> call_start_time = time.time()
-(Pdb) inv call took 9.307171106338501s
----0th INV solution for the 0th PS solution---
+    Use the following template to generate the outer loop invariant
+    ```
+    # A strong loop invariant should have the following properties:
+    # 1. It should have boolean expressions over the loop index variable `row` to describe the valid range of `row`.
+    # 2. It should have an inductive expression describing the output variable `out` using the defined functions.
 
 def invariant1(active: List[List[int]], base: List[List[int]], opacity: int, out: List[List[int]], rand_cons: int, row: int) -> bool:
-    return row >= 0 and row <= len(base) and out == matrix_where(
-        matrix_row_slice(base, 0, row),
-        matrix_row_slice(active, 0, row),
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
+    return expression over loop index variable `row` and out == operation over defined functions
+
+
+    Use the following template to generate the inner loop invariant
+    # A strong loop invariant should have the following properties:
+    # 1. It should have boolean expressions over the loop index variable `row` to describe the valid range of `row` and the loop index variable `col` to describe the valid range of `col`.
+    # 2. It should have an inductive expression describing the output variable `out` using the defined functions and `row_vec` variable.
 
 def invariant2(active: List[List[int]], base: List[List[int]], col: int, opacity: int, out: List[List[int]], rand_cons: int, row: int, row_vec: List[int]) -> bool:
-    return col >= 0 and col <= len(base[0]) and row >= 0 and row < len(base) and out == matrix_where(
-        matrix_row_slice(base, 0, row),
-        matrix_row_slice(active, 0, row),
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    ) and row_vec == vector_where(
-        vec_slice(base[row], 0, col),
-        vec_slice(active[row], 0, col),
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
+    return expression over loop index variable `row` and `col` and out == operation over defined functions and row_vec == operation over defined functions
 
-Total time to date 22.385788202285767
-Passing through parser
-Passed parser!
-Total time to date 23.20255708694458
-CALLING INV for PS
-def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
-    return matrix_where(
-        base,
-        active,
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
-
-> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/utils.py(565)get_inv_choice_and_save_prompt()
--> call_start_time = time.time()
-(Pdb) inv call took 9.742547035217285s
----1th INV solution for the 0th PS solution---
-
-def invariant1(active: List[List[int]], base: List[List[int]], opacity: int, out: List[List[int]], rand_cons: int, row: int) -> bool:
-    return row >= 0 and row <= len(base) and out == matrix_where(
-        matrix_row_slice(base, 0, row),
-        matrix_row_slice(active, 0, row),
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
-
-def invariant2(active: List[List[int]], base: List[List[int]], col: int, opacity: int, out: List[List[int]], rand_cons: int, row: int, row_vec: List[int]) -> bool:
-    return col >= 0 and col <= len(base[0]) and row >= 0 and row < len(base) and out == matrix_where(
-        matrix_row_slice(base, 0, row),
-        matrix_row_slice(active, 0, row),
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    ) and row_vec == vector_where(
-        vec_slice(base[row], 0, col),
-        vec_slice(active[row], 0, col),
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
-
-Total time to date 32.945104122161865
-Skipping 1th INV solution because it was already seen
-CALLING INV for PS
-def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
-    return matrix_where(
-        base,
-        active,
-        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)
-    )
-
-> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/utils.py(565)get_inv_choice_and_save_prompt()
--> call_start_time = time.time()
-(Pdb)
+    ```
