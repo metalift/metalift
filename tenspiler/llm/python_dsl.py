@@ -300,3 +300,8 @@ def integer_sqrt(n: int) -> int:
 def integer_exp(n: int) -> int:
     """Returns e raised to the power of n as integer."""
     return n
+
+
+def col_vec(matrix: List[List[int]], col_index: int) -> List[int]:
+    """Extract a column vector from a matrix at index `col_index`"""
+    return matrix_transpose(matrix_col_slice(matrix, col_index, col_index + 1))[0]

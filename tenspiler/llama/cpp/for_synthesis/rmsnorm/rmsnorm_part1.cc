@@ -7,4 +7,3 @@ int rmsnorm_part1(vector<int> input, vector<int> weight) {
         ss += input[i] * input[i];
     return ss;
 }
-

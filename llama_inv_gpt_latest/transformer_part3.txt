@@ -1,0 +1,41 @@
+--------------------------
+Running benchmark transformer_part3 in suite llama
+===== Starting iteration 0 =====
+running with gpt
+```python
+def invariant(hidden_dim: int, i: int, input: List[int], output: List[int]) -> bool:
+    return (0 <= i <= hidden_dim) and output == vec_elemwise_mul(
+        vec_slice(input, 0, i),
+        scalar_vec_div(
+            1,
+            vec_scalar_add(
+                1,
+                vec_map(
+                    scalar_vec_sub(0, vec_slice(input, 0, i)),
+                    lambda x: integer_exp(x)
+                )
+            )
+        )
+    )
+```
+
+def invariant(hidden_dim: int, i: int, input: List[int], output: List[int]) -> bool:
+    return (0 <= i <= hidden_dim) and output == vec_elemwise_mul(
+        vec_slice(input, 0, i),
+        scalar_vec_div(
+            1,
+            vec_scalar_add(
+                1,
+                vec_map(
+                    scalar_vec_sub(0, vec_slice(input, 0, i)),
+                    lambda x: integer_exp(x)
+                )
+            )
+        )
+    )
+
+Passing solution to the parser
+Parser solution passed the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/run_with_parser_and_fuzzer_feedback.py(252)run_llm()
+-> for i in range(10):
+(Pdb)

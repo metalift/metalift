@@ -1,0 +1,17 @@
+--------------------------
+Running benchmark normal_blend_f in suite blend
+===== Starting iteration 0 =====
+running with gpt
+```python
+def invariant(active: List[int], base: List[int], i: int, opacity: int, out: List[int]) -> bool:
+    return (0 <= i <= len(base)) and out == vec_elemwise_add(vec_scalar_mul(opacity, vec_slice(active, 0, i)), vec_scalar_mul((1 - opacity), vec_slice(base, 0, i)))
+```
+
+def invariant(active: List[int], base: List[int], i: int, opacity: int, out: List[int]) -> bool:
+    return (0 <= i <= len(base)) and out == vec_elemwise_add(vec_scalar_mul(opacity, vec_slice(active, 0, i)), vec_scalar_mul((1 - opacity), vec_slice(base, 0, i)))
+
+Passing solution to the parser
+Parser solution passed the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/run_with_parser_and_fuzzer_feedback.py(252)run_llm()
+-> for i in range(10):
+(Pdb)

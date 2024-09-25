@@ -1,0 +1,17 @@
+--------------------------
+Running benchmark matmul in suite llama
+===== Starting iteration 0 =====
+running with claude
+
+def invariant1(input: List[int], output: List[int], row: int, weight: List[List[int]]) -> bool:
+    return (0 <= row <= len(weight)) and (output == matrix_vec_mul(matrix_row_slice(weight, 0, row), input))
+
+
+def invariant2(col: int, curr: int, input: List[int], output: List[int], row: int, weight: List[List[int]]) -> bool:
+    return (0 <= row < len(weight)) and (0 <= col <= len(input)) and (output == matrix_vec_mul(matrix_row_slice(weight, 0, row), input)) and (curr == reduce_sum(vec_elemwise_mul(vec_slice(weight[row], 0, col), vec_slice(input, 0, col))))
+
+Passing solution to the parser
+Parser solution passed the parser
+> /Users/jieq/Desktop/metalift/tenspiler/llm/scripts/run_with_parser_and_fuzzer_feedback.py(298)run_llm()
+-> for i in range(10):
+(Pdb)
