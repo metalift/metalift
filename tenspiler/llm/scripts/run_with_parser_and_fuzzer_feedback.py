@@ -34,6 +34,9 @@ def _run_fuzzer_tests_and_get_messages(
     func_name: str, ps_sol: str, test_case_dir: Path, limit: Optional[int] = None
 ) -> str:
     print("Running fuzzer tests")
+    import pdb
+
+    pdb.set_trace()
     # Now we pass the solution to the fuzzer
     wrong_test_cases: list[str] = []
     curr_fuzzer_feedback = None
@@ -150,7 +153,11 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
 
     chat_session = model.start_chat(history=messages_copy[:-1])
     response = chat_session.send_message(messages_copy[-1]["parts"])
-    return extract(response.text)[0]
+    raw_solution = extract(response.text)[0]
+    print("Raw response", response.text)
+    extracted_solution = replace_ite(raw_solution)
+    print("Extracted response", extracted_solution)
+    return extracted_solution
 
 
 def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
@@ -166,68 +173,11 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
     return [replace_ite(raw_solution) for raw_solution in raw_solutions]
 
 
-def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
-    print("running with gpt")
-    # messages don't include the system message
-    messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
-    outputs = openai_client.chat.completions.create(
-        model="gpt-4o-2024-08-06",  # model to use
-        messages=messages_with_sys,
-        n=1,
-        temperature=0.7,
-    )
-    outputs = [choice.message.content for choice in outputs.choices]
-    return [replace_ite(code_block) for code_block in extract(outputs[0])]
-
-
-# Define all the clients that are needed
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
-
-
-def run_llm(
-    *,
-    llm_model: LLMModel,
-    benchmark_name: str,
-    suite_name: str,
-    dsl_code: str,
-    source_code: str,
-    test_case_dir: Path,
-    max_num_tries_per_solution: int = 5,
-    max_num_tries: int = 5,
-) -> dict[str, Any]:
-    """
-    The flow of the function is as follows:
-    1. Start with asking the model to rewrite the function.
-    2. Check if solution passes the parser. If it does, proceed. Otherwise, give parser feedback and ask the model to fix the function. Repeat this step for `max_parser_tries` times.
-    3. If the solution passes the parser, ask the model to run all test cases in the directory `test_case_dir`. If all test cases pass, return the solution. Otherwise, give feedback on the failed fuzzer input-output pair and ask the model to fix the function. Repeat this step for `max_fuzzer_tries` times.
-    4. If the solution passes all test cases, return the solution. Otherwise, return None.
-
-    we return a list with maximum length of `max_num_tries` and each element containing the following information:
-    - solutions: A list of solutions that we tried to pass to parser and fuzzer. Each solution is in the form of (solution, feedback, time_taken) tuple. For the correct solution, feedback is None.
-    """
-    info: list[Any] = []
-    ps_text = f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
-
-    #Instructions
-    # 1. Do not use for/while loops for rewriting the function.
-    # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
-    # 3. Inline all the expressions. Do not use intermediate variables. Return the function signature as well as the function body in python.
-
-    #defined functions
-    ```python
-    {dsl_code}
-    ```
-
-    ```cpp
-    //test function
-    {source_code}
-    ```
-    """
+def get_inv(suite_name: str, benchmark_name: str, dsl_code: str) -> None:
+    # TODO(jie): move this to utils
     with open(f"tenspiler/llm/inv_code/{suite_name}/{benchmark_name}.txt") as f:
         inv_code_with_assert = f.read()
-    inv_text = f"""
+    single_loop_inv_text = f"""
     Your task is to generate the loop invariant `Inv` such that it is true at all the locations it is defined at.  Generate only a single `Inv` expression which holds at all the locations. The invariant needs to be generated using only the functions defined below. Write the loop invariant as a python boolean formula.
     #Instructions:
     1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct.
@@ -295,24 +245,79 @@ def run_llm(
     """
     with open(f"{benchmark_name}.txt", "w") as f:
         f.write(double_loop_inv_text)
-    exit(0)
-    for i in range(10):
-        print(f"===== Starting iteration {i} =====")
-        messages = [{"role": "user", "content": double_loop_inv_text}]
-        solution = "\n".join(get_solution_from_llm(llm_model, messages))
-        print(solution)
-        try:
-            print("Passing solution to the parser")
-            func_names, _, _ = check_solution(solution, 2)
-            func_name = func_names[0]
-            print("Parser solution passed the parser")
-        except Exception as e:
-            print("Failed to pass the parser", e)
-            continue
-        import pdb
+    return double_loop_inv_text
 
-        pdb.set_trace()
-    exit(0)
+
+def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
+    print("running with gpt")
+    # messages don't include the system message
+    import pdb
+
+    pdb.set_trace()
+    messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
+    outputs = openai_client.chat.completions.create(
+        model="gpt-4o-2024-08-06",  # model to use
+        messages=messages_with_sys,
+        n=1,
+        temperature=0.7,
+    )
+    outputs = [choice.message.content for choice in outputs.choices]
+    raw_output = extract(outputs[0])[0]
+    extracted_output = replace_ite(raw_output)
+    print("Raw output", raw_output)
+    print("Extracted output", extracted_output)
+    return extracted_output
+
+
+# Define all the clients that are needed
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+
+
+def run_llm(
+    *,
+    llm_model: LLMModel,
+    benchmark_name: str,
+    suite_name: str,
+    dsl_code: str,
+    source_code: str,
+    test_case_dir: Path,
+    max_num_tries_per_solution: int = 5,
+    max_num_tries: int = 5,
+) -> dict[str, Any]:
+    """
+    The flow of the function is as follows:
+    1. Start with asking the model to rewrite the function.
+    2. Check if solution passes the parser. If it does, proceed. Otherwise, give parser feedback and ask the model to fix the function. Repeat this step for `max_parser_tries` times.
+    3. If the solution passes the parser, ask the model to run all test cases in the directory `test_case_dir`. If all test cases pass, return the solution. Otherwise, give feedback on the failed fuzzer input-output pair and ask the model to fix the function. Repeat this step for `max_fuzzer_tries` times.
+    4. If the solution passes all test cases, return the solution. Otherwise, return None.
+
+    we return a list with maximum length of `max_num_tries` and each element containing the following information:
+    - solutions: A list of solutions that we tried to pass to parser and fuzzer. Each solution is in the form of (solution, feedback, time_taken) tuple. For the correct solution, feedback is None.
+    """
+    info: list[Any] = []
+    ps_text = f"""
+    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
+
+    #Instructions
+    # 1. Do not use for/while loops for rewriting the function.
+    # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
+    # 3. Inline all the expressions. Do not use intermediate variables. Return the function signature as well as the function body in python.
+
+    #defined functions
+    ```python
+    {dsl_code}
+    ```
+
+    ```cpp
+    //test function
+    {source_code}
+    ```
+    """
+    with open(f"{benchmark_name}.txt", "w") as f:
+        f.write(ps_text)
+        f.flush()
+
     # This is the function name to run. Will be updated once we pass the parser.
     func_name = None
     for i in range(max_num_tries):
@@ -346,18 +351,21 @@ def run_llm(
 
             if curr_fuzzer_feedback is not None:
                 print("Trying to fix the solution to pass fuzzer")
+                fuzzer_message_content = f"""
+                {ps_text}
+
+                <Generated solution>:
+                {curr_solution}
+
+                <Feedback>:
+                {curr_fuzzer_feedback}
+                """
+                print("Fuzzer message content", fuzzer_message_content)
                 messages_for_fuzzer = {
                     "role": "user",
-                    "content": f"""
-                    {ps_text}
-
-                    <Generated solution>:
-                    {curr_solution}
-
-                    <Feedback>:
-                    {curr_fuzzer_feedback}
-                    """,
+                    "content": fuzzer_message_content,
                 }
+
                 curr_solution = get_solution_from_llm(llm_model, [messages_for_fuzzer])
                 print("New solution is", curr_solution)
                 info[i].append((curr_solution, curr_fuzzer_feedback))
@@ -376,14 +384,18 @@ def run_llm(
                 except Exception as e:
                     print("Failed to pass the parser", e)
                     curr_parser_feedback = str(e)
+                    print("Parser message content is", curr_parser_feedback)
+                    content = (
+                        curr_parser_feedback
+                        + f"\nbe creative in trying to fix the solution"
+                        + f"\n{TEMPLATE_ENCLOSE_CODE}"
+                    )
                     messages_for_parser = [
                         template_message,
                         {"role": "assistant", "content": curr_solution},
                         {
                             "role": "user",
-                            "content": curr_parser_feedback
-                            + f"\nbe creative in trying to fix the solution"
-                            + f"\n{TEMPLATE_ENCLOSE_CODE}",
+                            "content": content,
                         },
                     ]
                     print("Trying to fix the solution to pass parser")
@@ -440,13 +452,13 @@ if __name__ == "__main__":
                 source_code = f.read()
 
             info = run_llm(
-                llm_model=LLMModel.CLAUDE,
+                llm_model=LLMModel.GEMINI,
                 benchmark_name=file.stem,
                 suite_name=suite,
                 dsl_code=dsl_code,
                 source_code=source_code,
                 test_case_dir=Path(
-                    f"/Users/jieq/Downloads/outputs_llama_3/{file.stem}"
+                    f"/Users/jieq/Downloads/outputs_{suite}_3/{file.stem}"
                 ),
             )
             with open(f"{file.stem}.json", "w") as f:

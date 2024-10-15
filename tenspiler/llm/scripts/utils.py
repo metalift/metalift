@@ -65,7 +65,7 @@ def get_fuzzer_feedback(
     actual_or_errors: list[Any],
 ) -> str:
     test_cases_info = []
-    for i in range(len(inputs)):
+    for i in range(min(len(inputs), 3)):
         curr_info = textwrap.dedent(
             f"""
             # Test case {i}
@@ -485,11 +485,6 @@ def _generate_invariant_template(benchmark_name: str) -> str:
                 for var in loop_info.inner_loop_modified_vars
             ]
         )
-        outer_loop_var_cond = (
-            f"{outer_loop_var} op expr() and {outer_loop_var} op expr()"
-        )
-        inner_loop_var_cond = f"{inner_loop_var} op expr() and {inner_loop_var} op expr() and {outer_loop_var_cond}"
-
         inv1_template = f"""
         def invariant1({outer_inv_args_with_types}) -> bool:
             return expression over loop index variable `{outer_loop_var}` and {outer_modified_vars_cond}
