@@ -21,6 +21,7 @@ from tenspiler.llm.scripts.utils import (
     _loop_info_map,
     extract,
     get_fuzzer_feedback,
+    is_single_loop,
 )
 
 
@@ -127,6 +128,17 @@ def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -
 
 def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
     print("running with gemini")
+    messages_copy = copy.deepcopy(messages)
+    for message in messages_copy:
+        if message["role"] == "assistant":
+            message["role"] = "model"
+        message["parts"] = message["content"]
+        del message["content"]
+
+    import pdb
+
+    pdb.set_trace()
+
     genai.configure(api_key="AIzaSyBbELW0-tYAuIHPf7DQiJ3Csik_LCbsy9c")
 
     generation_config = {
@@ -144,19 +156,11 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
         # See https://ai.google.dev/gemini-api/docs/safety-settings
     )
 
-    messages_copy = copy.deepcopy(messages)
-    for message in messages_copy:
-        if message["role"] == "assistant":
-            message["role"] = "model"
-        message["parts"] = message["content"]
-        del message["content"]
-
     chat_session = model.start_chat(history=messages_copy[:-1])
     response = chat_session.send_message(messages_copy[-1]["parts"])
+    print("RAW RESPONSE", response.text)
     raw_solution = extract(response.text)[0]
-    print("Raw response", response.text)
     extracted_solution = replace_ite(raw_solution)
-    print("Extracted response", extracted_solution)
     return extracted_solution
 
 
@@ -173,129 +177,7 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
     return [replace_ite(raw_solution) for raw_solution in raw_solutions]
 
 
-def get_inv(suite_name: str, benchmark_name: str, dsl_code: str) -> None:
-    # TODO(jie): move this to utils
-    with open(f"tenspiler/llm/inv_code/{suite_name}/{benchmark_name}.txt") as f:
-        inv_code_with_assert = f.read()
-    single_loop_inv_text = f"""
-    Your task is to generate the loop invariant `Inv` such that it is true at all the locations it is defined at.  Generate only a single `Inv` expression which holds at all the locations. The invariant needs to be generated using only the functions defined below. Write the loop invariant as a python boolean formula.
-    #Instructions:
-    1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct.
-    2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code in a code block.
-    Example1:
-
-    {dsl_code}
-
-    //test function
-    {inv_code_with_assert}
-
-    ```
-    Use the following template to generate the loop invariant
-    ```
-
-    # A strong loop invariant should have the following properties:
-    # 1. It should have boolean expressions over the loop index variable `i` to describe the valid range of `i`.
-    # 2. It should have an inductive expression describing the output variable `out` using the defined functions.
-    {_generate_invariant_template(benchmark_name)}
-    ```
-    """
-    double_loop_info = _loop_info_map[benchmark_name]
-    outer_loop_var = double_loop_info.outer_loop_var.name()
-    inner_loop_var = double_loop_info.inner_loop_var.name()
-    outer_loop_modified_vars = double_loop_info.outer_loop_modified_vars
-    assert len(outer_loop_modified_vars) == 1
-    inner_modified_vars_not_in_outer = [
-        var
-        for var in double_loop_info.inner_loop_modified_vars
-        if var not in outer_loop_modified_vars
-    ]
-    assert len(inner_modified_vars_not_in_outer) == 1
-    inner_modified_var = inner_modified_vars_not_in_outer[0].name()
-
-    rv_var = outer_loop_modified_vars[0].name()
-    outer_inv, inner_inv = _generate_invariant_template(benchmark_name)
-    double_loop_inv_text = f"""
-    Your task is to generate two loop invariants `invariant1` and `invariant2` such that the given assertion holds. The invariants need to be generated using only the functions defined below. Write the loop invariants as python boolean formulas.
-
-    #Instructions:
-    1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct such as list comprehensions or the `all` function.
-    2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code.
-
-    ```
-    #defined functions
-    {dsl_code}
-
-    //test function
-    {inv_code_with_assert}
-    ```
-
-    Use the following template to generate the outer loop invariant
-    ```
-    # A strong loop invariant should have the following properties:
-    # 1. It should have boolean expressions over the loop index variable `{outer_loop_var}` to describe the valid range of `{outer_loop_var}`.
-    # 2. It should have an inductive expression describing the output variable `{rv_var}` using the defined functions.
-    {outer_inv}
-
-    Use the following template to generate the inner loop invariant
-    # A strong loop invariant should have the following properties:
-    # 1. It should have boolean expressions over the loop index variable `{outer_loop_var}` to describe the valid range of `{outer_loop_var}` and the loop index variable `{inner_loop_var}` to describe the valid range of `{inner_loop_var}`.
-    # 2. It should have an inductive expression describing the output variable `{rv_var}` using the defined functions and `{inner_modified_var}` variable.
-    {inner_inv}
-    ```
-    """
-    with open(f"{benchmark_name}.txt", "w") as f:
-        f.write(double_loop_inv_text)
-    return double_loop_inv_text
-
-
-def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
-    print("running with gpt")
-    # messages don't include the system message
-    import pdb
-
-    pdb.set_trace()
-    messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
-    outputs = openai_client.chat.completions.create(
-        model="gpt-4o-2024-08-06",  # model to use
-        messages=messages_with_sys,
-        n=1,
-        temperature=0.7,
-    )
-    outputs = [choice.message.content for choice in outputs.choices]
-    raw_output = extract(outputs[0])[0]
-    extracted_output = replace_ite(raw_output)
-    print("Raw output", raw_output)
-    print("Extracted output", extracted_output)
-    return extracted_output
-
-
-# Define all the clients that are needed
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
-
-
-def run_llm(
-    *,
-    llm_model: LLMModel,
-    benchmark_name: str,
-    suite_name: str,
-    dsl_code: str,
-    source_code: str,
-    test_case_dir: Path,
-    max_num_tries_per_solution: int = 5,
-    max_num_tries: int = 5,
-) -> dict[str, Any]:
-    """
-    The flow of the function is as follows:
-    1. Start with asking the model to rewrite the function.
-    2. Check if solution passes the parser. If it does, proceed. Otherwise, give parser feedback and ask the model to fix the function. Repeat this step for `max_parser_tries` times.
-    3. If the solution passes the parser, ask the model to run all test cases in the directory `test_case_dir`. If all test cases pass, return the solution. Otherwise, give feedback on the failed fuzzer input-output pair and ask the model to fix the function. Repeat this step for `max_fuzzer_tries` times.
-    4. If the solution passes all test cases, return the solution. Otherwise, return None.
-
-    we return a list with maximum length of `max_num_tries` and each element containing the following information:
-    - solutions: A list of solutions that we tried to pass to parser and fuzzer. Each solution is in the form of (solution, feedback, time_taken) tuple. For the correct solution, feedback is None.
-    """
-    info: list[Any] = []
+def get_ps_prompt(dsl_code: str, source_code: str) -> str:
     ps_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
 
@@ -314,8 +196,177 @@ def run_llm(
     {source_code}
     ```
     """
+    return ps_text
+
+
+def get_inv(suite_name: str, benchmark_name: str, dsl_code: str) -> None:
+    # TODO(jie): move this to utils
+    with open(f"tenspiler/llm/inv_code/{suite_name}/{benchmark_name}.txt") as f:
+        inv_code_with_assert = f.read()
+    if is_single_loop(benchmark_name):
+        single_loop_info = _loop_info_map[benchmark_name]
+        loop_var_name = single_loop_info.loop_var.name()
+        single_loop_inv_text = f"""
+        Your task is to generate the loop invariant `Inv` such that it is true at all the locations it is defined at.  Generate only a single `Inv` expression which holds at all the locations. The invariant needs to be generated using only the functions defined below. Write the loop invariant as a python boolean formula.
+        #Instructions:
+        1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct.
+        2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code in a code block.
+        3. Do not define intermediate variables. Inline all expressions.
+        Example1:
+
+        {dsl_code}
+
+        //test function
+        {inv_code_with_assert}
+
+        ```
+        Use the following template to generate the loop invariant
+        ```
+
+        # A strong loop invariant should have the following properties:
+        # 1. It should have boolean expressions over the loop index variable `{loop_var_name}` to describe the valid range of `{loop_var_name}`.
+        # 2. It should have an inductive expression describing the output variable `out` using the defined functions.
+        {_generate_invariant_template(benchmark_name)}
+        ```
+        """
+        # single_loop_one_shot_inv_text = f"""
+        # Your task is to prove that `assertion` is true in the `test` function. The assertion can be proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
+
+        # #Instructions:
+        # 1. You need to use only the defined functions to write the loop invariant.
+        # 2. Do not use for/while loops for rewriting the function.
+        # 3. The rewritten program should just be a single return statement of the form return\_var = provided\_function(...)
+        # 4. Inline all the expressions. Do not use intermediate variables.
+        # 5. Generate separate loop invariants for each loop in the test function.
+        # 6. invariant structure
+        # {_generate_invariant_template(benchmark_name)}
+
+        # Example1:
+        # #defined functions
+        # {dsl_code}
+
+        # //test function
+        # vector<vector<uint8_t>> test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active) {{
+        #     vector<vector<uint8_t>> out;
+        #     uint8_t m = base.size();
+        #     uint8_t n = base[0].size();
+        #     for (uint8_t row = 0; row < m; row++) {{
+        #         vector<uint8_t> row_vec;
+        #         for (uint8_t col = 0; col < n; col++) {{
+        #             uint8_t pixel = base[row][col] - active[row][col] ;
+        #             row_vec.push_back(pixel);
+        #         }}
+        #         out.push_back(row_vec);
+        #     }}
+        #     assert out == matrix_elemwise_sub(base, active);
+        # }}
+        # def invariant1(row, col, base, active, out):
+        #     return row >= 0 and row <= base.size() and out == matrix_elemwise_sub(base[:row], active[:row])
+
+        # def invariant2(row, col, base, active, row_vec, out):
+        # return row >= 0 and row < base.size() and col >= 0 and col <= base[0].size() and
+        #     row_vec == vec_elemwise_sub(base[row][:col], active[row][:col]) and
+        #     out == matrix_elemwise_sub(base[:row], active[:row])
+
+        # Example2:
+        # {inv_code_with_assert}
+        # """
+        return single_loop_inv_text
+    else:
+        double_loop_info = _loop_info_map[benchmark_name]
+        outer_loop_var = double_loop_info.outer_loop_var.name()
+        inner_loop_var = double_loop_info.inner_loop_var.name()
+        outer_loop_modified_vars = double_loop_info.outer_loop_modified_vars
+        assert len(outer_loop_modified_vars) == 1
+        inner_modified_vars_not_in_outer = [
+            var
+            for var in double_loop_info.inner_loop_modified_vars
+            if var not in outer_loop_modified_vars
+        ]
+        assert len(inner_modified_vars_not_in_outer) == 1
+        inner_modified_var = inner_modified_vars_not_in_outer[0].name()
+
+        rv_var = outer_loop_modified_vars[0].name()
+        outer_inv, inner_inv = _generate_invariant_template(benchmark_name)
+        double_loop_inv_text = f"""
+        Your task is to generate two loop invariants `invariant1` and `invariant2` such that the given assertion holds. The invariants need to be generated using only the functions defined below. Write the loop invariants as python boolean formulas.
+
+        #Instructions:
+        1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct such as list comprehensions or the `all` function.
+        2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code.
+        3. Do not define intermediate variables. Inline all expressions.
+
+        ```
+        #defined functions
+        {dsl_code}
+
+        //test function
+        {inv_code_with_assert}
+        ```
+
+        Use the following template to generate the outer loop invariant
+        ```
+        # A strong loop invariant should have the following properties:
+        # 1. It should have boolean expressions over the loop index variable `{outer_loop_var}` to describe the valid range of `{outer_loop_var}`.
+        # 2. It should have an inductive expression describing the output variable `{rv_var}` using the defined functions.
+        {outer_inv}
+
+        Use the following template to generate the inner loop invariant
+        # A strong loop invariant should have the following properties:
+        # 1. It should have boolean expressions over the loop index variable `{outer_loop_var}` to describe the valid range of `{outer_loop_var}` and the loop index variable `{inner_loop_var}` to describe the valid range of `{inner_loop_var}`.
+        # 2. It should have an inductive expression describing the output variable `{rv_var}` using the defined functions and `{inner_modified_var}` variable.
+        {inner_inv}
+        ```
+        """
+        return double_loop_inv_text
+
+
+def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
+    print("running with gpt")
+    messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
+    outputs = openai_client.chat.completions.create(
+        model="gpt-4",  # model to use gpt-4o-2024-08-06
+        messages=messages_with_sys,
+        n=1,
+        temperature=0.7,
+    )
+    outputs = [choice.message.content for choice in outputs.choices]
+    raw_output = extract(outputs[0])[0]
+    extracted_output = replace_ite(raw_output)
+    return extracted_output
+
+
+# Define all the clients that are needed
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+
+
+def run_llm(
+    *,
+    llm_model: LLMModel,
+    benchmark_name: str,
+    suite_name: str,
+    dsl_code: str,
+    source_code: str,
+    test_case_dir: Path,
+    max_num_tries_per_solution: int = 5,
+    max_num_tries: int = 10,
+) -> dict[str, Any]:
+    """
+    The flow of the function is as follows:
+    1. Start with asking the model to rewrite the function.
+    2. Check if solution passes the parser. If it does, proceed. Otherwise, give parser feedback and ask the model to fix the function. Repeat this step for `max_parser_tries` times.
+    3. If the solution passes the parser, ask the model to run all test cases in the directory `test_case_dir`. If all test cases pass, return the solution. Otherwise, give feedback on the failed fuzzer input-output pair and ask the model to fix the function. Repeat this step for `max_fuzzer_tries` times.
+    4. If the solution passes all test cases, return the solution. Otherwise, return None.
+
+    we return a list with maximum length of `max_num_tries` and each element containing the following information:
+    - solutions: A list of solutions that we tried to pass to parser and fuzzer. Each solution is in the form of (solution, feedback, time_taken) tuple. For the correct solution, feedback is None.
+    """
+    info: list[Any] = []
+
+    message = get_inv(suite_name, benchmark_name, dsl_code)
     with open(f"{benchmark_name}.txt", "w") as f:
-        f.write(ps_text)
+        f.write(message)
         f.flush()
 
     # This is the function name to run. Will be updated once we pass the parser.
@@ -325,7 +376,7 @@ def run_llm(
         prev_solutions = [solutions[-1][0] for solutions in info]
 
         print(f"===== Starting iteration {i} =====")
-        template_message = {"role": "user", "content": ps_text}
+        template_message = {"role": "user", "content": message}
 
         if len(prev_solutions) > 0:
             all_prev_solutions = "\n".join(prev_solutions)
@@ -337,9 +388,15 @@ def run_llm(
         else:
             messages_for_new_sol = [template_message]
         curr_solution = get_solution_from_llm(llm_model, messages_for_new_sol)
+        try:
+            check_solution(curr_solution, 1 if is_single_loop(benchmark_name) else 2)
+            print("Passed the parser")
+        except Exception as e:
+            print("Failed to pass the parser", e)
         info.append([])
         info[i].append((curr_solution, None))
         print("New solution is", curr_solution)
+        continue
 
         # Now we try and fix this solution
         num_fixes = 0
@@ -352,7 +409,7 @@ def run_llm(
             if curr_fuzzer_feedback is not None:
                 print("Trying to fix the solution to pass fuzzer")
                 fuzzer_message_content = f"""
-                {ps_text}
+                {message}
 
                 <Generated solution>:
                 {curr_solution}
@@ -452,7 +509,7 @@ if __name__ == "__main__":
                 source_code = f.read()
 
             info = run_llm(
-                llm_model=LLMModel.GEMINI,
+                llm_model=LLMModel.GPT,
                 benchmark_name=file.stem,
                 suite_name=suite,
                 dsl_code=dsl_code,
