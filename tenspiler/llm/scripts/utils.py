@@ -434,9 +434,13 @@ def get_num_inv_funcs(benchmark_name: str) -> int:
         raise ValueError(f"Invalid loop info for {benchmark_name}")
 
 
+def is_single_loop(benchmark_name: str) -> bool:
+    return isinstance(_loop_info_map[benchmark_name], SingleLoopInfo)
+
+
 def _generate_invariant_template(benchmark_name: str) -> str:
     loop_info = _loop_info_map[benchmark_name]
-    if isinstance(loop_info, SingleLoopInfo):
+    if is_single_loop(benchmark_name):
         arguments = get_args_for_invariants(benchmark_name)
         args_with_types = ", ".join(
             [
@@ -454,7 +458,7 @@ def _generate_invariant_template(benchmark_name: str) -> str:
         return textwrap.dedent(
             f"""
             def invariant({args_with_types}) -> bool:
-                return {loop_var} op expr() and {loop_var} op expr() and {modified_vars_cond}
+                return expression over loop index variable {loop_var} and {modified_vars_cond}
             """
         )
     else:
