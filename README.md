@@ -2,7 +2,7 @@
 Tenspiler is a verified lifting-based compiler that translates sequential programs written in C++ into tensor operations to leverage high performance tensor processing infrastructures such as deep learning frameworks and specialized hardware accelerators. Currently, Tenspiler supports six distinct software or backend backends including NumPy, TensorFlow, PyTorch, MLX (an ML framework on Apple silicon), TPC-C (C-based programming language for Intel’s
 Gaudi processor), and Gemmini (an open-source neural network accelerator generator).
 
-
+Check out [our paper](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ECOOP.2024.32) that was presented in ECOOP this year.
 
 ## Getting started
 
