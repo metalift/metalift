@@ -2,10 +2,13 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     get_matrix_select_holing_search_space,
     lighten_blend_8_hole_body,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()
@@ -16,11 +19,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_matrix_select_holing_search_space(driver, lighten_blend_8_hole_body)
+
+    def target_lang_axiom():
+        return target_lang() + [matrix_selection_two_args_axiom]
+
     lighten_blend_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/lighten_blend_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/lighten_blend_8.loops",
         fn_name="lighten_blend_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "lighten_blend_8_inv0": inv0_grammar,
             "lighten_blend_8_inv1": inv1_grammar,
@@ -38,9 +45,14 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    lighten_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="lighten_blend_8", rounds_to_guess=0, no_verify=True)
+    lighten_blend_8(base, active)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="lighten_blend_8",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

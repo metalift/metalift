@@ -25,16 +25,14 @@ def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def softmax_part4_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     unnormalized_output, max_pos, sum = reads
     lower_bound = Int(0)
     upper_bound = max_pos
-    slice_index = choose(lower_bound, upper_bound, sum).maybe_relaxed(
-        parser_args.relaxed
-    )
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    int_var = choose(lower_bound, upper_bound, sum).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = unnormalized_output[slice_index:slice_index]
     return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec, int_vars=[sum, max_pos], depth=parser_args.depth
@@ -42,17 +40,17 @@ def softmax_part4_ps_grammar(
 
 
 def softmax_part4_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     unnormalized_output, max_pos, sum = reads
     out, i, _ = writes
 
     lower_bound = Int(0)
     upper_bound = max_pos
-    slice_index = choose(lower_bound, upper_bound, i, sum).maybe_relaxed(
+    int_var = choose(lower_bound, upper_bound, i, sum).maybe_relaxed(
         parser_args.relaxed
     )
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = unnormalized_output[slice_index:slice_index]
 
     return and_objects(

@@ -37,7 +37,7 @@ def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursi
 
 
 def multiquery_attention_part1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     attention = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
@@ -88,13 +88,13 @@ def multiquery_attention_part1_ps_grammar(
     vec = choose(
         q,
         q[slice_index:slice_index],
-        matrix[slice_index],  # TODO(jie): do we want to include this?
+        matrix[slice_index],  # TODO: do we want to include this?
     )
     return ret_val == call_matrix_vec_mul(matrix, vec)
 
 
 def multiquery_attention_part1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
@@ -159,7 +159,7 @@ def multiquery_attention_part1_inv0_grammar(
 
 
 def multiquery_attention_part1_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes
@@ -262,7 +262,7 @@ def multiquery_attention_part1_inv1_grammar(
 
 
 def multiquery_attention_part2_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # ## More general grammar
     # token_position, head, head_size, key_cache_layer, attention = reads
@@ -331,7 +331,7 @@ def multiquery_attention_part2_inv0_grammar(
         attention[outer_loop_index_slice_start:outer_loop_index_slice_end],
         attention[inner_loop_lower_bound:inner_loop_upper_bound],
     )
-    # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
+    # TODO: we know loop bound is head_size, so vec/matrix cannot be the full thing
     return and_objects(
         outer_loop_index >= outer_loop_lower_bound,
         outer_loop_index <= outer_loop_upper_bound,
@@ -356,7 +356,7 @@ def multiquery_attention_part2_inv0_grammar(
 
 
 def multiquery_attention_part2_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     curr, timestep = writes
@@ -499,7 +499,7 @@ def multiquery_attention_part2_inv1_grammar(
 
 
 def multiquery_attention_part2_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, attention = reads
     xb = writes[0]
@@ -764,7 +764,7 @@ if __name__ == "__main__":
     # ])
     # driver.add_precondition(token_position_var > 0)
 
-    # # TODO(jie) are these redundant
+    # # TODO are these redundant
     # driver.add_precondition(key_cache_layer_var.len() > 0)
     # driver.add_precondition(key_cache_layer_var[0].len() > 0)
     # driver.add_precondition(attention_var.len() > 0)

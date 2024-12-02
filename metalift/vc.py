@@ -418,7 +418,7 @@ class VC:
             elif opcode == "call":  # last arg is fn to be called
                 fnName = ops[-1] if isinstance(ops[-1], str) else ops[-1].name
                 if fnName == "":
-                    # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+                    # TODO: this is a hack around LLVM bitcasting the function before calling it on aarch64
                     fnName = str(ops[-1]).split("@")[-1].split(" ")[0]
                 if fnName in models.fn_models:
                     rv = models.fn_models[fnName](s.regs, s.mem, s.gvars, *ops[:-1])
@@ -506,7 +506,7 @@ class VC:
         reg: Dict[ValueRef, Expr],
         mem: Dict[ValueRef, Expr],
     ) -> Union[str, ValueRef, Expr]:
-        # TODO(shadaj): fix this hack
+        # TODO: fix this hack
         if isinstance(i, ValueRef) and str(i) == "i32 0":
             return IntLit(0)
         if isinstance(i, ValueRef):

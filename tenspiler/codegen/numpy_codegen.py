@@ -6,6 +6,7 @@ from metalift.ir import (
     And,
     Bool,
     Call,
+    Choose,
     Div,
     Eq,
     Expr,
@@ -14,6 +15,7 @@ from metalift.ir import (
     Ge,
     Gt,
     Int,
+    Ite,
     Le,
 )
 from metalift.ir import List as mlList
@@ -82,26 +84,26 @@ translations = {
     "matrix_vec_mul": lambda processed_args: f"np.matmul({processed_args[0]}, {processed_args[1]})",
     "list_eq": lambda processed_args: f"np.equal({processed_args[0]}, {processed_args[1]})",
     "list_empty": lambda processed_args: f"np.empty((0))",
-    "list_list_empty": lambda processed_args: f"np.empty((0, 0))",
+    "matrix_empty": lambda processed_args: f"np.empty((0, 0))",
     "list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
-    "list_list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
+    "matrix_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
     "list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
-    "list_list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "matrix_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
     "list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
-    "list_list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "matrix_prepand": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
     "list_concat": lambda processed_args: f"np.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
-    "list_list_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
+    "matrix_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
-    "list_list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
+    "matrix_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "vec_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
-    "list_list_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
+    "matrix_row_slice": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[2]}]",
     "vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_vec_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_list_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
-    "list_list_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_row_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
+    "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
+    "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size",
-    "list_list_length": lambda processed_args: f"{processed_args[0]}.size",
+    "matrix_length": lambda processed_args: f"{processed_args[0]}.size",
     "matrix_transpose": lambda processed_args: f"np.transpose({processed_args[0]})",
     "reduce_max": lambda processed_args: f"np.max({processed_args[0]})",
     "reduce_sum": lambda processed_args: f"np.sum({processed_args[0]})",
@@ -149,6 +151,11 @@ def numpy_codegen(
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
         if not isinstance(expr, Expr):
             return str(expr), None
+        if isinstance(expr, Choose):
+            if len(expr.arguments()) == 1:
+                return helper(expr.arguments()[0], vars_to_replace)
+            else:
+                raise ValueError("Choose with more than 1 argument not supported")
         if isinstance(expr, Call):
             processed_args = [
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
@@ -194,11 +201,28 @@ def numpy_codegen(
                     MATRIX_SCALAR_DIV,
                 }:
                     return (
-                        translations[fn_name](processed_args, d_type == DataType.INT),
+                        translations[fn_name](processed_args, d_type != DataType.FLOAT),
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body())
+
             raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace)
+            else:
+                return (
+                    f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}",
+                    expr.e1().type,
+                )
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -238,18 +262,23 @@ def numpy_codegen(
             if expr.name() in vars_to_replace:
                 return helper(vars_to_replace[expr.name()], vars_to_replace)
             return expr.name(), expr.type
+
         return str(expr)
 
     ###############################
     # Begins actual code generation
     ###############################
-    print("####### import statements ########\n")
-    print("import numpy as np\n")
+    import_stmt = """
+####### import statements ########
+import numpy as np
+"""
+    print(import_stmt)
 
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
     arguments_str = ", ".join(arguments)
     kernel_name = f"{fn_name}_np"
+
     print("####### kernel code ########")
     kernel_fn = f"""
     def {kernel_name} ({arguments_str}):
@@ -265,7 +294,13 @@ def numpy_codegen(
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "np.uint8" if d_type == DataType.INT else "np.float32"
+            lib_dtype = "np.uint8"
+            if d_type == DataType.FLOAT:
+                lib_dtype = "np.float32"
+
+            if d_type == DataType.INT32:
+                lib_dtype = "np.int32"
+
             conversions.append(
                 f"{arguments[i]} = np.array({arguments[i]}).astype({lib_dtype})"
             )
@@ -279,4 +314,4 @@ def numpy_codegen(
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
 
-    return
+    return import_stmt + kernel_fn + glued_fn

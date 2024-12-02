@@ -7,20 +7,28 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_vec_elemwise_add,
     call_vec_scalar_mul,
     vec_elemwise_add,
     vec_scalar_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom, vec_scalar_mul_axiom
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_add, vec_scalar_mul]
+    return [
+        vec_elemwise_add,
+        vec_scalar_mul,
+        vec_elemwise_add_axiom,
+        vec_scalar_mul_axiom,
+    ]
 
 
 def ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     base, active, opacity = reads
     out = writes[0]
@@ -34,7 +42,7 @@ def ps_grammar(
 
 
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     base, active, opacity = reads
     out = writes[0]
@@ -72,10 +80,13 @@ if __name__ == "__main__":
     driver.add_precondition(base_var.len() == active_var.len())
     driver.add_precondition(base_var.len() > 0)
 
-    normal_blend_8(base_var, active_var, opacity_var)
-
     start_time = time.time()
-    print(driver.var_tracker.all())
-    driver.synthesize(filename="normal_blend_8")
+    normal_blend_8(base_var, active_var, opacity_var)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="normal_blend_8",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

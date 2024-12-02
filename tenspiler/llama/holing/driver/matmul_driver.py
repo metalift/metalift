@@ -1,3 +1,4 @@
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,6 +6,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_matrix_vec_mul,
     call_reduce_sum,
@@ -15,6 +17,12 @@ from tenspiler.tenspiler_common import (
     reduce_sum,
     vec_elemwise_mul,
     vec_scalar_mul,
+)
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    vec_scalar_mul_axiom,
+    reduce_sum_axiom,
+    matrix_vec_mul_axiom,
 )
 
 # Some loop functions
@@ -41,11 +49,14 @@ def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         reduce_sum,
         matrix_outer_loop_index_first_fn_decl,
         vector_outer_loop_index_fn_decl,
+        vec_scalar_mul_axiom,
+        reduce_sum_axiom,
+        matrix_vec_mul_axiom,
     ]
 
 
 def matmul_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     weight, input = reads
@@ -60,7 +71,7 @@ def matmul_ps_grammar(
 
 
 def matmul_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     weight, input = reads
     out, col, _, row = writes
@@ -78,7 +89,7 @@ def matmul_inv0_grammar(
 
 
 def matmul_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     col, curr = writes
     weight, input = reads
@@ -135,5 +146,13 @@ if __name__ == "__main__":
         vector_outer_loop_index_synth,
     ]
 
+    start_time = time.time()
     matmul(weight_var, input_var)
-    driver.synthesize(filename="matmul", no_verify=True)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="matmul",
+        has_relaxed=False,
+    )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")

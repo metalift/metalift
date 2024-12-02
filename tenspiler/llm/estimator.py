@@ -11,7 +11,7 @@ def estimator(n: int, c: int, k: int, choices: List[Any]) -> float:
     :param k: k in pass@$k$
     """
     # First find all correct solutions
-    # TODO(jie): implement is_correct
+    # TODO: implement is_correct
     correct_indices = set(i for i, choice in enumerate(choices) if is_correct(choice))
     c = 0
     for comb in combinations(range(len(choices)), k):

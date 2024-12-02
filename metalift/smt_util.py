@@ -104,7 +104,7 @@ def toSMT(
         if not isSynthesis:
             out.write(resources.read_text(utils, "integer-fn-axioms.smt"))
             out.write(resources.read_text(utils, "list-axioms.smt"))
-            out.write(resources.read_text(utils, "map-axioms.smt"))
+            # out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
         synthesized_fn_names = set(fn.name() for fn in invAndPs)
@@ -130,7 +130,7 @@ def toSMT(
                         newArgs = filter_args(t.args[2:])
                         fn_decls.append(
                             FnDeclRecursive(
-                                t.name(),  # TODO(jie): this only handles single function param
+                                t.name(),  # TODO: this only handles single function param
                                 # t.args[0] + "_" + i[1],
                                 t.returnT(),
                                 newBody,
@@ -139,7 +139,7 @@ def toSMT(
                             # if t.kind == Expr.Kind.FnDecl
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
-                                t.name(),  # TODO(jie): this only handles single function param
+                                t.name(),  # TODO: this only handles single function param
                                 # t.args[0] + "_" + i[1],
                                 t.returnT(),
                                 newBody,

@@ -35,7 +35,7 @@ def ps_grammar(
 
 # invariant: i <= arg2 and p = arg1 * i
 def inv_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     (arg1, arg2, i, p) = reads
 

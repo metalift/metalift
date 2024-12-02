@@ -1,3 +1,4 @@
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,20 +6,23 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_reduce_sum,
     call_vec_elemwise_mul,
     reduce_sum,
     vec_elemwise_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import vec_elemwise_mul_axiom, reduce_sum_axiom
 
 
 def rmsnorm_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [vec_elemwise_mul, reduce_sum]
+    return [vec_elemwise_mul, reduce_sum, vec_elemwise_mul_axiom, reduce_sum_axiom]
 
 
 def rmsnorm_part1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     input, weight = reads
@@ -27,7 +31,7 @@ def rmsnorm_part1_ps_grammar(
 
 
 def rmsnorm_part1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # First loop
     input, weight = reads
@@ -59,5 +63,13 @@ if __name__ == "__main__":
     driver.add_precondition(input_var.len() == weight_var.len())
     driver.add_precondition(input_var.len() > 0)
 
+    start_time = time.time()
     rmsnorm_part1(input_var, weight_var)
-    driver.synthesize(filename="rmsnorm_part1")
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="rmsnorm_part1",
+        has_relaxed=False,
+    )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")

@@ -1,3 +1,4 @@
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -5,6 +6,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_integer_exp,
     call_scalar_vec_div,
@@ -21,6 +23,12 @@ from tenspiler.tenspiler_common import (
     vec_map,
     vec_scalar_add,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    vec_elemwise_mul_axiom,
+    vec_scalar_add_axiom,
+    scalar_vec_div_axiom,
+)
 
 
 def transformer_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -31,11 +39,14 @@ def transformer_part3_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
         vec_elemwise_mul,
         vec_map,
         map_int_to_int,
+        vec_elemwise_mul_axiom,
+        vec_scalar_add_axiom,
+        scalar_vec_div_axiom,
     ]
 
 
 def transformer_part3_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     input, hidden_dim = reads
@@ -54,7 +65,7 @@ def transformer_part3_ps_grammar(
 
 
 def transformer_part3_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     input, hidden_dim = reads
     out, _, i = writes
@@ -97,8 +108,17 @@ if __name__ == "__main__":
     driver.add_precondition(hidden_dim_var >= 0)
     driver.add_precondition(input_var.len() >= hidden_dim_var)
 
-    transformer_part3(input_var, hidden_dim_var)
     int_x = Int("int_x")
     map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
     driver.fns_synths = [map_int_to_int_synth]
-    driver.synthesize(filename="transformer_part3", no_verify=True)
+
+    start_time = time.time()
+    transformer_part3(input_var, hidden_dim_var)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.FLOAT,
+        benchmark_name="transformer_part3",
+        has_relaxed=False,
+    )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")

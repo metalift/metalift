@@ -33,7 +33,7 @@ def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
         return issubclass(ty, Matrix)
 
 
-def get_matrix_element_type(ty: _GenericAlias) -> ObjectT:
+def get_element_type(ty: _GenericAlias) -> ObjectT:
     return get_args(ty)[0]  # type: ignore
 
 
@@ -49,6 +49,13 @@ def is_matrix_type(ty: Union[type, _GenericAlias]) -> bool:
         return issubclass(get_origin(ty), Matrix)  # type: ignore
     else:
         return issubclass(ty, Matrix)
+
+
+def is_tensor3d_type(ty: Union[type, _GenericAlias]) -> bool:
+    if isinstance(ty, _GenericAlias):
+        return issubclass(get_origin(ty), Tensor3D)  # type: ignore
+    else:
+        return issubclass(ty, Tensor3D)
 
 
 def is_nested_list_type(ty: Union[type, _GenericAlias]) -> bool:
@@ -119,7 +126,7 @@ class Expr:
     # TODO: move into per-type implementations
     def map_args(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
         if isinstance(self, Var):
-            # TODO(jie)
+            # TODO
             return Var(typing.cast(str, f(self.args[0])), self.type)
         elif isinstance(self, Lit):
             return Lit(typing.cast(Union[bool, int, str], f(self.args[0])), self.type)
@@ -175,14 +182,14 @@ class Expr:
             return FnDeclRecursive(
                 self.name(),
                 self.returnT(),
-                self.body().map_args(f),
+                f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
         elif isinstance(self, FnDecl):
             return FnDecl(
                 self.name(),
                 self.returnT(),
-                self.body().map_args(f),
+                f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
         else:
@@ -342,8 +349,8 @@ class Expr:
     def to_python(self) -> str:
         raise NotImplementedError
 
-    def accept(self, v: "Visitor[T]") -> T:
-        raise NotImplementedError("not implemented")
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     raise NotImplementedError("not implemented")
 
     @staticmethod
     def toSMTSimple(e: "Expr", name: str) -> str:
@@ -387,34 +394,50 @@ class Expr:
             return "list-ref-noerr"
         elif fn_name == "matrix_get":
             return "matrix-ref-noerr"
+        elif fn_name == "tensor3d_get":
+            return "tensor3d-ref-noerr"
         elif fn_name == "list_append":
             return "list-append"
         elif fn_name == "matrix_append":
             return "matrix-append"
+        elif fn_name == "tensor3d_append":
+            return "tensor3d-append"
         elif fn_name == "list_empty":
             return "list-empty"
         elif fn_name == "matrix_empty":
             return "matrix-empty"
+        elif fn_name == "tensor3d_empty":
+            return "tensor3d-empty"
         elif fn_name == "list_tail":
             return "list-tail-noerr"
         elif fn_name == "matrix_tail":
             return "matrix-tail-noerr"
+        elif fn_name == "tensor3d_tail":
+            return "tensor3d-tail-noerr"
         elif fn_name == "list_length":
             return "length"
         elif fn_name == "matrix_length":
             return "matrix-length"
+        elif fn_name == "tensor3d_length":
+            return "tensor3d-length"
         elif fn_name == "list_take":
             return "list-take-noerr"
         elif fn_name == "matrix_take":
             return "matrix-take-noerr"
+        elif fn_name == "tensor3d_take":
+            return "tensor3d-take-noerr"
         elif fn_name == "vec_slice":
             return "vec-slice-noerr"
         elif fn_name == "matrix_row_slice":
             return "matrix-row-slice-noerr"
+        elif fn_name == "tensor3d_slice":
+            return "tensor3d-slice-noerr"
         elif fn_name == "vec_slice_with_length":
             return "vec-slice-with-length-noerr"
         elif fn_name == "matrix_row_slice_with_length":
             return "matrix-row-slice-with-length-noerr"
+        elif fn_name == "tensor3d_slice_with_length":
+            return "tensor3d-slice-with-length-noerr"
         elif fn_name == "matrix_col_slice":
             return "matrix-col-slice-noerr"
         elif fn_name == "matrix_col_slice_with_length":
@@ -431,6 +454,8 @@ class Expr:
             return "list-prepend"
         elif fn_name == "matrix_prepend":
             return "matrix-prepend"
+        elif fn_name == "tensor3d_prepend":
+            return "tensor3d-prepend"
         elif fn_name == "list_eq":
             return "equal?"
         elif fn_name == "list_concat":
@@ -606,7 +631,7 @@ def toRosetteType(t: ObjectT) -> str:
         raise Exception("NYI: %s" % t)
 
 
-# TODO(jie): fix the type in the function signature
+# TODO: fix the type in the function signature
 def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     if is_new_object_type(t):
         return t  # type: ignore
@@ -616,8 +641,8 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     elif ty_str in {"i1", "i8", "i8*"}:
         return Bool
     elif ty_str in {"%struct.list*", "%struct.list**"}:
-        # TODO(colin): add generic type support
-        # TODO(jie): retire struct.list and use STL?
+        # TODO: add generic type support
+        # TODO: retire struct.list and use STL?
         return List[Int]
     elif re.match('%"class.std::__1::List(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::List"*, llvmlite will turn it into %"class.std::__1::List.0"*
@@ -627,7 +652,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
         return List[List[Int]]
 
     elif ty_str in {"%struct.set*"}:
-        # TODO jie: how to support different contained types
+        # TODO : how to support different contained types
         return Set[Int]
     elif ty_str in {"%struct.tup*"}:
         return Tuple[typing.Tuple[Int, Int]]
@@ -653,6 +678,11 @@ def parse_c_or_cpp_type_to_obj(ty_str: str) -> ObjectT:
         == "std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >"
     ):
         return List[List[Int]]
+    if (
+        ty_str
+        == "std::__1::vector<std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > >, std::__1::allocator<std::__1::vector<std::__1::vector<int, std::__1::allocator<int> >, std::__1::allocator<std::__1::vector<int, std::__1::allocator<int> > > > > >"
+    ):
+        return List[List[List[Int]]]
 
     raise Exception(f"no type defined for {ty_str}")
 
@@ -717,7 +747,9 @@ def implies(e1: "Bool", e2: "Bool") -> "Bool":
 
 
 def call(
-    fn_name: str, return_type: ObjectT, *object_args: Union["Object", Expr]
+    fn_name: str,
+    return_type: ObjectT,
+    *object_args: Union["Object", Expr],
 ) -> "Object":
     call_expr = Call(fn_name, return_type, *get_object_exprs(*object_args))
     return create_object(return_type, call_expr)
@@ -1083,8 +1115,12 @@ class List(Generic[T], Object):
         return List[self.containedT]  # type: ignore
 
     @property
-    def is_nested(self) -> bool:
-        return is_nested_list_type(self.type) or is_matrix_type(self.type)
+    def is_matrix(self) -> bool:
+        return is_matrix_type(self.type)
+
+    @property
+    def is_tensor3d(self) -> bool:
+        return is_tensor3d_type(self.type)
 
     @staticmethod
     def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
@@ -1102,11 +1138,7 @@ class List(Generic[T], Object):
         raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
-        if self.is_nested:
-            fn_name = "matrix_length"
-        else:
-            fn_name = "list_length"
-        return Int(Call(fn_name, Int, self.src))
+        return Int(Call("list_length", Int, self.src))
 
     def __getitem__(self, index: Union[Int, int, slice]) -> Object:
         if isinstance(index, int):
@@ -1116,16 +1148,20 @@ class List(Generic[T], Object):
             if stop is None and step is None:
                 if isinstance(start, int):
                     start = Int(start)
-                if self.is_nested:
+                if self.is_matrix:
                     fn_name = "matrix_tail"
+                elif self.is_tensor3d:
+                    fn_name = "tensor3d_tail"
                 else:
                     fn_name = "list_tail"
                 return call(fn_name, self.type, self, start)  # type: ignore
             elif start is None and step is None:
                 if isinstance(stop, int):
                     stop = Int(stop)
-                if self.is_nested:
+                if self.is_matrix:
                     fn_name = "matrix_take"
+                elif self.is_tensor3d:
+                    fn_name = "tensor3d_take"
                 else:
                     fn_name = "list_take"
                 return call(fn_name, self.type, self, stop)  # type: ignore
@@ -1134,8 +1170,10 @@ class List(Generic[T], Object):
                     start = Int(start)
                 if isinstance(stop, int):
                     stop = Int(stop)
-                if self.is_nested:
+                if self.is_matrix:
                     fn_name = "matrix_row_slice"
+                elif self.is_tensor3d:
+                    fn_name = "tensor3d_slice"
                 else:
                     fn_name = "vec_slice"
                 return call(fn_name, self.type, self, start, stop)
@@ -1143,8 +1181,10 @@ class List(Generic[T], Object):
                 raise NotImplementedError(
                     f"Slices with both start and stop indices specified are not implemented: {index}"
                 )
-        if self.is_nested:
+        if self.is_matrix:
             fn_name = "matrix_get"
+        elif self.is_tensor3d:
+            fn_name = "tensor3d_get"
         else:
             fn_name = "list_get"
         return call(fn_name, self.containedT, self, index)
@@ -1164,11 +1204,7 @@ class List(Generic[T], Object):
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
-        if self.is_nested:
-            fn_name = "matrix_append"
-        else:
-            fn_name = "list_append"
-        self.src = call(fn_name, self.type, self, value).src
+        self.src = call("list_append", self.type, self, value).src
         return self
 
     # in place prepend
@@ -1177,11 +1213,7 @@ class List(Generic[T], Object):
             raise TypeError(
                 f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
             )
-        if self.is_nested:
-            fn_name = "matrix_prepend"
-        else:
-            fn_name = "list_prepend"
-        self.src = call(fn_name, self.type, value, self).src
+        self.src = call("list_prepend", self.type, value, self).src
         return self
 
     def slice_with_length(
@@ -1191,8 +1223,10 @@ class List(Generic[T], Object):
             start = Int(start)
         if isinstance(lst_length, int):
             lst_length = Int(lst_length)
-        if self.is_nested:
+        if self.is_matrix:
             fn_name = "matrix_row_slice_with_length"
+        elif self.is_tensor3d:
+            fn_name = "tensor3d_slice_with_length"
         else:
             fn_name = "vec_slice_with_length"
         return call(fn_name, self.type, self, start, lst_length)
@@ -1353,15 +1387,12 @@ class Matrix(List[T], Generic[T], Object):
         return Matrix[self.elemT]  # type: ignore
 
     @staticmethod
-    def empty(containedT: ObjectContainedT) -> "List":  # type: ignore
+    def empty(containedT: ObjectContainedT) -> "Matrix":  # type: ignore
         return Matrix(containedT, Call("matrix_empty", Matrix[containedT]))  # type: ignore
 
     @staticmethod
     def default_value() -> "Matrix[Int]":
         return Matrix.empty(Int)
-
-    def __len__(self) -> int:
-        raise NotImplementedError("len must return an int, call len() instead")
 
     def len(self) -> Int:
         return Int(Call("matrix_length", Int, self.src))
@@ -1446,15 +1477,6 @@ class Matrix(List[T], Generic[T], Object):
             return call("matrix_scalar_div", Matrix[Int], second, first)
         return call("matrix_elemwise_div", Matrix[Int], first, second)
 
-    def __setitem__(self, index: Union[Int, int], value: Object) -> None:
-        if isinstance(index, int):
-            index = Int(index)
-        if value.type != self.containedT:
-            raise TypeError(
-                f"Trying to set list element of type: {value.type} to list containing: {self.containedT}"
-            )
-        self.src = Call("matrix_set", self.type, self.src, index.src, value.src)
-
     # in place append
     def append(self, value: Object) -> "Matrix":  # type: ignore
         if value.type != self.containedT:
@@ -1519,15 +1541,6 @@ class Matrix(List[T], Generic[T], Object):
             )
         return Matrix(self.elemT, Call("list_concat", self.type, self.src, other.src))  # type: ignore
 
-    def __eq__(self, other: "Matrix") -> Bool:  # type: ignore
-        if other is None or self.type != other.type:
-            return Bool(False)
-        else:
-            return cast(Bool, call("list_eq", Bool, self, other))
-
-    def __repr__(self) -> str:
-        return f"{self.src}"
-
     @staticmethod
     def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
         elem_type = type_args[0]
@@ -1564,6 +1577,62 @@ class Matrix(List[T], Generic[T], Object):
             return f"List {get_origin(contained_type).cls_str(get_args(contained_type))}"  # type: ignore
         else:
             return f"List {contained_type.cls_str()}"
+
+
+class Tensor3D(List[T], Generic[T], Object):
+    containedT: ObjectContainedT
+
+    def __init__(
+        self,
+        containedT: ObjectContainedT = Int,
+        value: Optional[Union[Expr, str]] = None,
+    ) -> None:
+        src: Expr
+        if value is None:
+            src = Var("v", Tensor3D[containedT])
+        elif isinstance(value, Expr):
+            src = value
+        elif isinstance(value, str):
+            src = Var(value, Tensor3D[containedT])
+        else:
+            raise TypeError(f"Cannot create 3D tensors from {value}")
+        self.elemT = containedT
+        # TODO: is this used anywhere?
+        self.containedT = Matrix[containedT]  # type: ignore
+        Object.__init__(self, src)
+
+    @property
+    def type(self) -> Type["Tensor3D"]:  # type: ignore
+        return Tensor3D[self.elemT]  # type: ignore
+
+    @staticmethod
+    def empty(containedT: ObjectContainedT) -> "Tensor3D":  # type: ignore
+        return Tensor3D(containedT, Call("tensor3d_empty", Tensor3D[containedT]))
+
+    @staticmethod
+    def default_value() -> "Tensor3D[Int]":
+        return Tensor3D.empty(Int)
+
+    def len(self) -> Int:
+        return call("tensor3d_length", Int, self)
+
+    # in place prepend
+    def prepend(self, value: Object) -> "Tensor3D":  # type: ignore
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+
+        self.src = call("tensor3d_prepend", self.type, value, self).src
+        return self
+
+    def append(self, value: Object) -> "Tensor3D":  # type: ignore
+        if value.type != self.containedT:
+            raise TypeError(
+                f"Trying to append element of type: {value.type} to list containing: {self.containedT}"
+            )
+        self.src = call("tensor3d_append", self.type, self, value).src
+        return self
 
 
 class Set(Generic[T], Object):
@@ -1683,7 +1752,7 @@ class Tuple(Generic[TupleContainedT], Object):
             index_lit = index.src.val()  # type: ignore
             item_type = self.containedT[index_lit]
             if issubclass(item_type, Object):
-                # TODO(jie) create a function to wrap objects around expession
+                # TODO create a function to wrap objects around expession
                 return call("tupleGet", item_type, self, index)
             else:
                 raise Exception(
@@ -1717,7 +1786,7 @@ class Tuple(Generic[TupleContainedT], Object):
     def type(self) -> Type["Tuple"]:  # type: ignore
         return Tuple[typing.Tuple[self.containedT]]  # type: ignore
 
-    # TODO(jie): handle contained type
+    # TODO: handle contained type
     @staticmethod
     def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
         contained_type_strs: pyList[str] = []
@@ -1840,8 +1909,8 @@ class Var(Expr):
     def to_python(self) -> str:
         return self.name()
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Var(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Var(self)
 
 
 # used in defining grammars
@@ -1855,8 +1924,8 @@ class NonTerm(Var):
         Var.__init__(self, name, t)
         self.isStart = isStart
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_NonTerm(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_NonTerm(self)
 
 
 class Pointer(Expr):
@@ -1892,8 +1961,8 @@ class Lit(Expr):
     def to_python(self) -> str:
         return str(self.val())
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Lit(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Lit(self)
 
 
 class ObjectExpr(Expr):
@@ -1908,8 +1977,8 @@ class ObjectExpr(Expr):
     def toSMT(self) -> str:
         raise Exception("NYI")
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Object(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Object(self)
 
 
 def IntLit(val: int) -> Expr:
@@ -1918,7 +1987,7 @@ def IntLit(val: int) -> Expr:
 
 def EnumIntLit(val: int) -> Expr:
     return Lit(val, Int)
-    # TODO(colin): bring EnumBack
+    # TODO: bring EnumBack
     # return Lit(val, EnumInt())
 
 
@@ -1948,8 +2017,8 @@ class Add(Expr):
     def to_python(self) -> str:
         return f"{' + '.join([arg.to_python() for arg in self.args])}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Add(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Add(self)
 
 
 class Sub(Expr):
@@ -1976,8 +2045,8 @@ class Sub(Expr):
     def to_python(self) -> str:
         return f"({self.args[0].to_python()} - {self.args[1].to_python()})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Sub(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Sub(self)
 
 
 class Mul(Expr):
@@ -2004,8 +2073,8 @@ class Mul(Expr):
     def to_python(self) -> str:
         return f"{' * '.join([arg.to_python() for arg in self.args])}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Mul(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Mul(self)
 
 
 class Div(Expr):
@@ -2033,8 +2102,8 @@ class Div(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Div(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Div(self)
 
 
 class Mod(Expr):
@@ -2062,8 +2131,8 @@ class Mod(Expr):
     def to_python(self) -> str:
         return f"({self.args[0].to_python()} % {self.args[1].to_python()})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Mod(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Mod(self)
 
 
 class Eq(Expr):
@@ -2096,11 +2165,11 @@ class Eq(Expr):
         return Expr.toSMTSimple(self, self.SMTName)
 
     def to_python(self) -> str:
-        # TODO(jie): might need more handling for lists
+        # TODO: might need more handling for lists
         return f"{self.e1().to_python()} == {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Eq(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Eq(self)
 
 
 class Lt(Expr):
@@ -2130,8 +2199,8 @@ class Lt(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} < {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Lt(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Lt(self)
 
 
 class Le(Expr):
@@ -2161,8 +2230,8 @@ class Le(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} <= {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Le(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Le(self)
 
 
 class Gt(Expr):
@@ -2192,8 +2261,8 @@ class Gt(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} > {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Gt(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Gt(self)
 
 
 class Ge(Expr):
@@ -2223,8 +2292,8 @@ class Ge(Expr):
     def to_python(self) -> str:
         return f"{self.e1().to_python()} >= {self.e2().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Ge(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Ge(self)
 
 
 class And(Expr):
@@ -2235,7 +2304,7 @@ class And(Expr):
         if len(args) < 1:
             raise Exception(f"Arg list must be non-empty: {args}")
         if not all(map(lambda e: e.type == Bool, args)):
-            # TODO(jie) how to check this type?
+            # TODO how to check this type?
             raise Exception(f"Cannot apply AND to values of type {args}")
         Expr.__init__(self, Bool, args)
 
@@ -2250,8 +2319,8 @@ class And(Expr):
     def to_python(self) -> str:
         return " and ".join([arg.to_python() for arg in self.args])
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_And(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_And(self)
 
 
 class Or(Expr):
@@ -2278,8 +2347,8 @@ class Or(Expr):
     def to_python(self) -> str:
         return " or ".join([arg.to_python() for arg in self.args])
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Or(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Or(self)
 
 
 class Not(Expr):
@@ -2302,8 +2371,8 @@ class Not(Expr):
     def to_python(self) -> str:
         return f"not {self.args[0].to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Not(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Not(self)
 
 
 class Implies(Expr):
@@ -2324,8 +2393,8 @@ class Implies(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Implies(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Implies(self)
 
 
 class Ite(Expr):
@@ -2363,8 +2432,8 @@ class Ite(Expr):
     def to_python(self) -> str:
         return f"({self.e1().to_python()} if {self.c().to_python()} else {self.e2().to_python()})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Ite(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Ite(self)
 
 
 class Let(Expr):
@@ -2400,8 +2469,8 @@ class Let(Expr):
             self.args[2].toSMT(),
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Let(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Let(self)
 
 
 class Call(Expr):
@@ -2440,10 +2509,17 @@ class Call(Expr):
                 return callStr
             elif isinstance(self.args[0], str) and (
                 self.args[0].startswith("list")
+                or self.args[0].startswith("vec")
                 or self.args[0].startswith("matrix")
                 or self.args[0].startswith("integer")
+                or self.args[0].startswith("tensor3d")
             ):
-                if self.args[0].startswith("list") or self.args[0].startswith("matrix"):
+                if (
+                    self.args[0].startswith("list")
+                    or self.args[0].startswith("matrix")
+                    or self.args[0].startswith("vec")
+                    or self.args[0].startswith("tensor3d")
+                ):
                     callStr = f"({Expr.get_list_fn(self) or self.args[0]} "
                 elif self.args[0].startswith("integer"):
                     callStr = f"({Expr.get_integer_fn(self) or self.args[0]} "
@@ -2576,8 +2652,8 @@ class Call(Expr):
         else:
             return f"{self.name()}({', '.join(processed_args)})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Call(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Call(self)
 
 
 class CallValue(Expr):
@@ -2692,8 +2768,8 @@ class CallValue(Expr):
     def to_python(self) -> str:
         return f"{self.value().to_python()}({', '.join([arg.to_python() for arg in self.arguments()])})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_CallValue(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_CallValue(self)
 
 
 class Assert(Expr):
@@ -2716,8 +2792,8 @@ class Assert(Expr):
     def to_python(self) -> str:
         return f"assert {self.e().to_python()}"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Assert(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Assert(self)
 
 
 class Constraint(Expr):
@@ -2737,8 +2813,8 @@ class Constraint(Expr):
     def toSMT(self) -> str:
         return Expr.toSMTSimple(self, self.SMTName)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Constraint(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Constraint(self)
 
 
 ## tuple functions
@@ -2766,8 +2842,8 @@ class TupleExpr(Expr):
     def to_python(self) -> str:
         return f"({', '.join([arg.to_python() for arg in self.args])})"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TupleExpr(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_TupleExpr(self)
 
 
 class TupleGet(Expr):
@@ -2799,8 +2875,8 @@ class TupleGet(Expr):
     def to_python(self) -> str:
         return f"{self.t().to_python()}[{self.i().to_python()}]"
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TupleGet(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_TupleGet(self)
 
 
 class Axiom(Expr):
@@ -2827,8 +2903,8 @@ class Axiom(Expr):
         ]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Axiom(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Axiom(self)
 
 
 # the body of a synth-fun
@@ -2950,8 +3026,8 @@ class Synth(Expr):
             body,
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Synth(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Synth(self)
 
 
 class Choose(Expr):
@@ -2998,8 +3074,8 @@ class Choose(Expr):
     def chooseArbitrarily(self) -> "Expr":
         return self.args[0]  # type: ignore
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Choose(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Choose(self)
 
 
 class FnDeclRecursive(Expr):
@@ -3102,8 +3178,8 @@ class FnDeclRecursive(Expr):
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_FnDeclRecursive(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_FnDeclRecursive(self)
 
 
 class FnDefine(Expr):
@@ -3134,8 +3210,8 @@ class FnDefine(Expr):
             parse_type_ref_to_obj(self.type),
         )
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_FnDefine(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_FnDefine(self)
 
 
 class Lambda(Expr):
@@ -3166,11 +3242,11 @@ class Lambda(Expr):
         )
 
     def toSMT(self) -> str:
-        # TODO(shadaj): extract during filtering assuming no captures
+        # TODO: extract during filtering assuming no captures
         raise Exception("Lambda not supported")
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Lambda(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Lambda(self)
 
 
 class FnDecl(Expr):
@@ -3271,8 +3347,8 @@ class FnDecl(Expr):
         full_fn = f"{fn_declaration}\n{TAB}return {body}"
         return full_fn
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_FnDecl(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_FnDecl(self)
 
 
 class TargetCall(Call):
@@ -3291,8 +3367,8 @@ class TargetCall(Call):
     def codegen(self) -> str:
         return self._codegen(*self.args[1:])  # type: ignore
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_TargetCall(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_TargetCall(self)
 
 
 class Target(FnDecl):
@@ -3320,8 +3396,8 @@ class Target(FnDecl):
     def call(self, *args: Expr) -> Call:
         return TargetCall(self.name(), self.returnT(), self._codegen, *args)
 
-    def accept(self, v: "Visitor[T]") -> T:
-        return v.visit_Target(self)
+    # def accept(self, v: "Visitor[T]") -> T:
+    #     return v.visit_Target(self)
 
 
 # class to represent the extra instructions that are inserted into the llvm code during analysis

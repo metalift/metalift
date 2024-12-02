@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# TODO(jie): add these back to tests after adding support for them
+# TODO: add these back to tests after adding support for them
 # "tests.llvm.list1"
 # "tests.llvm.list1_fns"
 # "tests.llvm.struct1"

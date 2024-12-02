@@ -8,6 +8,7 @@ from metalift.ir import (
     Matrix,
     Object,
     Synth,
+    Tensor3D,
     call,
     call_value,
     choose,
@@ -17,6 +18,7 @@ from metalift.ir import (
     is_list_type,
     is_matrix_type,
     is_primitive_type,
+    is_tensor3d_type,
     ite,
     synth,
 )
@@ -30,12 +32,16 @@ REDUCEMAX = "reduce_max"
 # Elemwise functions
 VEC_ELEMWISE_ADD = "vec_elemwise_add"
 MATRIX_ELEMWISE_ADD = "matrix_elemwise_add"
+TENSOR3D_ELEMWISE_ADD = "tensor3d_elemwise_add"
 VEC_ELEMWISE_SUB = "vec_elemwise_sub"
 MATRIX_ELEMWISE_SUB = "matrix_elemwise_sub"
+TENSOR3D_ELEMWISE_SUB = "tensor3d_elemwise_sub"
 VEC_ELEMWISE_MUL = "vec_elemwise_mul"
 MATRIX_ELEMWISE_MUL = "matrix_elemwise_mul"
+TENSOR3D_ELEMWISE_MUL = "tensor3d_elemwise_mul"
 VEC_ELEMWISE_DIV = "vec_elemwise_div"
 MATRIX_ELEMWISE_DIV = "matrix_elemwise_div"
+TENSOR3D_ELEMWISE_DIV = "tensor3d_elemwise_div"
 
 # Scalar functions
 VEC_SCALAR_ADD = "vec_scalar_add"
@@ -75,73 +81,77 @@ VEC_MAP = "vec_map"
 # Other helper functions
 MATRIX_VEC_MUL = "matrix_vec_mul"
 
-MatrixOrVecT = Union[mlList[Int], Matrix[Int]]
+TensorT = Union[mlList[Int], Matrix[Int], Tensor3D[Int]]
 
 
-def call_elemwise_add(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
-    if is_matrix_type(left.type):
+def call_elemwise_add(left: TensorT, right: TensorT) -> TensorT:
+    if is_tensor3d_type(left.type):
+        return call_tensor_3d_elemwise_add(left, right)
+    elif is_matrix_type(left.type):
         return call_matrix_elemwise_add(left, right)
     else:
         return call_vec_elemwise_add(left, right)
 
 
-def call_elemwise_sub(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
+def call_elemwise_sub(left: TensorT, right: TensorT) -> TensorT:
     if is_matrix_type(left.type):
         return call_matrix_elemwise_sub(left, right)
     else:
         return call_vec_elemwise_sub(left, right)
 
 
-def call_elemwise_mul(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
-    if is_matrix_type(left.type):
+def call_elemwise_mul(left: TensorT, right: TensorT) -> TensorT:
+    if is_tensor3d_type(left.type):
+        return call_tensor_3d_elemwise_mul(left, right)
+    elif is_matrix_type(left.type):
         return call_matrix_elemwise_mul(left, right)
     else:
         return call_vec_elemwise_mul(left, right)
 
 
-def call_elemwise_div(left: MatrixOrVecT, right: MatrixOrVecT) -> MatrixOrVecT:
+def call_elemwise_div(left: TensorT, right: TensorT) -> TensorT:
     if is_matrix_type(left.type):
         return call_matrix_elemwise_div(left, right)
     else:
         return call_vec_elemwise_div(left, right)
 
 
-def call_scalar_add(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def call_scalar_add(scalar: Int, matrix_or_vec: TensorT) -> TensorT:
     if is_matrix_type(matrix_or_vec.type):
         return call_matrix_scalar_add(scalar, matrix_or_vec)
     else:
         return call_vec_scalar_add(scalar, matrix_or_vec)
 
 
-def call_scalar_sub(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def call_scalar_sub(scalar: Int, matrix_or_vec: TensorT) -> TensorT:
     if is_matrix_type(matrix_or_vec.type):
         return call_matrix_scalar_sub(scalar, matrix_or_vec)
     else:
         return call_vec_scalar_sub(scalar, matrix_or_vec)
 
 
-def call_scalar_mul(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def call_scalar_mul(scalar: Int, matrix_or_vec: TensorT) -> TensorT:
     if is_matrix_type(matrix_or_vec.type):
         return call_matrix_scalar_mul(scalar, matrix_or_vec)
     else:
         return call_vec_scalar_mul(scalar, matrix_or_vec)
 
 
-def call_scalar_div(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def call_scalar_div(scalar: Int, matrix_or_vec: TensorT) -> TensorT:
     if is_matrix_type(matrix_or_vec.type):
         return call_matrix_scalar_div(scalar, matrix_or_vec)
     else:
         return call_vec_scalar_div(scalar, matrix_or_vec)
 
 
-def call_scalar_rsub(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def call_scalar_rsub(scalar: Int, matrix_or_vec: TensorT) -> TensorT:
     if is_matrix_type(matrix_or_vec.type):
         return call_scalar_matrix_sub(scalar, matrix_or_vec)
     else:
         return call_scalar_vec_sub(scalar, matrix_or_vec)
 
 
-def call_scalar_rdiv(scalar: Int, matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def call_scalar_rdiv(scalar: Int, matrix_or_vec: TensorT) -> TensorT:
     if is_matrix_type(matrix_or_vec.type):
         return call_scalar_matrix_div(scalar, matrix_or_vec)
     else:
@@ -228,6 +238,18 @@ def call_scalar_matrix_div(scalar: Int, matrix: Matrix[Int]) -> Matrix[Int]:
     return call(SCALAR_MATRIX_DIV, Matrix[Int], scalar, matrix)
 
 
+def call_tensor_3d_elemwise_add(
+    left: Tensor3D[Int], right: Tensor3D[Int]
+) -> Tensor3D[Int]:
+    return call(TENSOR3D_ELEMWISE_ADD, Tensor3D[Int], left, right)
+
+
+def call_tensor_3d_elemwise_mul(
+    left: Tensor3D[Int], right: Tensor3D[Int]
+) -> Tensor3D[Int]:
+    return call(TENSOR3D_ELEMWISE_MUL, Tensor3D[Int], left, right)
+
+
 def call_reduce_sum(lst) -> Int:
     return call(REDUCESUM, Int, lst)
 
@@ -268,6 +290,30 @@ def call_matrix_selection_two_args(
     left: Matrix[Int], right: Matrix[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
 ) -> Matrix[Int]:
     return call(MATRIX_WHERE, Matrix[Int], left, right, select_fn)
+
+
+def call_matrix_selection(left: Matrix[Int], right: Matrix[Int]) -> Matrix[Int]:
+    return call(MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right)
+
+
+def call_selection(left: mlList[Int], right: mlList[Int]) -> mlList[Int]:
+    return call(SELECTION_TWO_ARGS, mlList[Int], left, right)
+
+
+def call_dissolve_matrix_selection(
+    left: Matrix[Int], right: Matrix[Int], opacity: Int, rand_cons: Int
+) -> Matrix[Int]:
+    return call(
+        DISSOLVE_MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right, opacity, rand_cons
+    )
+
+
+def call_dissolve_selection(
+    left: mlList[Int], right: mlList[Int], opacity: Int, rand_cons: Int
+) -> mlList[Int]:
+    return call(
+        DISSOLVE_SELECTION_TWO_ARGS, mlList[Int], left, right, opacity, rand_cons
+    )
 
 
 def call_dissolve_matrix_selection_two_args(
@@ -334,6 +380,8 @@ x = mlList(Int, "x")
 y = mlList(Int, "y")
 matrix_x = Matrix(Int, "matrix_x")
 matrix_y = Matrix(Int, "matrix_y")
+tensor3d_x = Tensor3D(Int, "tensor3d_x")
+tensor3d_y = Tensor3D(Int, "tensor3d_y")
 int_x = Int("int_x")
 int_y = Int("int_y")
 opacity = Int("opacity")
@@ -440,17 +488,17 @@ def matrix_linear_burn_body(
 
 
 # Helper functions for compute benchmarks using the holing approach
-def multiply_blend_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def multiply_blend_8_hole_body(matrix_or_vec: TensorT) -> TensorT:
     cons = choose(Int(32))
     return call_scalar_div(cons, call_elemwise_mul(matrix_or_vec, matrix_or_vec))
 
 
-def linear_burn_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def linear_burn_8_hole_body(matrix_or_vec: TensorT) -> TensorT:
     cons = choose(Int(32))
     return call_scalar_sub(cons, call_elemwise_add(matrix_or_vec, matrix_or_vec))
 
 
-def screen_blend_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def screen_blend_8_hole_body(matrix_or_vec: TensorT) -> TensorT:
     cons = choose(Int(32))
     return call_elemwise_sub(
         call_elemwise_add(matrix_or_vec, matrix_or_vec),
@@ -458,7 +506,7 @@ def screen_blend_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
     )
 
 
-def linear_dodge_8_hole_body(matrix_or_vec: MatrixOrVecT) -> MatrixOrVecT:
+def linear_dodge_8_hole_body(matrix_or_vec: TensorT) -> TensorT:
     return call_elemwise_add(matrix_or_vec, matrix_or_vec)
 
 
@@ -654,7 +702,7 @@ dissolve_selection_two_args_fn_decl = fn_decl_recursive(
 
 
 def selection_two_args_ps_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     base, active = reads
@@ -665,7 +713,7 @@ def selection_two_args_ps_grammar_fn(
 
 
 def selection_two_args_inv0_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # outer loop grammar
     writes_by_name = {w.var_name(): w for w in writes}
@@ -689,7 +737,7 @@ def selection_two_args_inv0_grammar_fn(
 
 
 def selection_two_args_inv1_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     # inner loop grammar
     writes_by_name = {w.var_name(): w for w in writes}
@@ -729,13 +777,23 @@ selection_two_args_inv1_grammar = InvGrammar(
 
 
 def elemwise_body(
-    left: Union[mlList[Int], Matrix[Int]],
-    right: Union[mlList[Int], Matrix[Int]],
+    left: Union[mlList[Int], Matrix[Int], Tensor3D[Int]],
+    right: Union[mlList[Int], Matrix[Int], Tensor3D[Int]],
     compute_fn: Callable[[Int, Int], Int],
     vec_fn_name: str,
     matrix_fn_name: str,
+    tensor3d_fn_name: str,
 ) -> Union[mlList[Int], Matrix[Int]]:
-    if is_matrix_type(left.type) and is_matrix_type(right.type):
+    if is_tensor3d_type(left.type) and is_tensor3d_type(right.type):
+        cur = call(matrix_fn_name, Matrix[Int], left[0], right[0])
+        recursed = call(tensor3d_fn_name, Tensor3D[Int], left[1:], right[1:])
+        general_answer = recursed.prepend(cur)
+        return ite(
+            or_objects(left.len() < 1, left.len() != right.len()),
+            Tensor3D.empty(Int),
+            general_answer,
+        )
+    elif is_matrix_type(left.type) and is_matrix_type(right.type):
         cur = call(vec_fn_name, mlList[Int], left[0], right[0])
         recursed = call(matrix_fn_name, Matrix[Int], left[1:], right[1:])
         general_answer = recursed.prepend(cur)
@@ -821,6 +879,7 @@ vec_elemwise_add = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x + int_y,
         vec_fn_name=VEC_ELEMWISE_ADD,
         matrix_fn_name=MATRIX_ELEMWISE_ADD,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
     ),
     x,
     y,
@@ -834,9 +893,24 @@ matrix_elemwise_add = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x + int_y,
         vec_fn_name=VEC_ELEMWISE_ADD,
         matrix_fn_name=MATRIX_ELEMWISE_ADD,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_add = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_ADD,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_ADD,
+        matrix_fn_name=MATRIX_ELEMWISE_ADD,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_ADD,
+    ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_elemwise_sub = fn_decl_recursive(
@@ -848,6 +922,7 @@ vec_elemwise_sub = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x - int_y,
         vec_fn_name=VEC_ELEMWISE_SUB,
         matrix_fn_name=MATRIX_ELEMWISE_SUB,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
     ),
     x,
     y,
@@ -861,9 +936,24 @@ matrix_elemwise_sub = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x + int_y,
         vec_fn_name=VEC_ELEMWISE_SUB,
         matrix_fn_name=MATRIX_ELEMWISE_SUB,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_sub = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_SUB,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_SUB,
+        matrix_fn_name=MATRIX_ELEMWISE_SUB,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
+    ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_elemwise_mul = fn_decl_recursive(
@@ -875,6 +965,7 @@ vec_elemwise_mul = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x * int_y,
         vec_fn_name=VEC_ELEMWISE_MUL,
         matrix_fn_name=MATRIX_ELEMWISE_MUL,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
     ),
     x,
     y,
@@ -888,9 +979,24 @@ matrix_elemwise_mul = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x * int_y,
         vec_fn_name=VEC_ELEMWISE_MUL,
         matrix_fn_name=MATRIX_ELEMWISE_MUL,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_mul = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_MUL,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_MUL,
+        matrix_fn_name=MATRIX_ELEMWISE_MUL,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_MUL,
+    ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_elemwise_div = fn_decl_recursive(
@@ -902,6 +1008,7 @@ vec_elemwise_div = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x // int_y,
         vec_fn_name=VEC_ELEMWISE_DIV,
         matrix_fn_name=MATRIX_ELEMWISE_DIV,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
     ),
     x,
     y,
@@ -915,9 +1022,24 @@ matrix_elemwise_div = fn_decl_recursive(
         compute_fn=lambda int_x, int_y: int_x // int_y,
         vec_fn_name=VEC_ELEMWISE_DIV,
         matrix_fn_name=MATRIX_ELEMWISE_DIV,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
     ),
     matrix_x,
     matrix_y,
+)
+tensor3d_elemwise_div = fn_decl_recursive(
+    TENSOR3D_ELEMWISE_DIV,
+    Tensor3D[Int],
+    elemwise_body(
+        left=tensor3d_x,
+        right=tensor3d_y,
+        compute_fn=lambda int_x, int_y: int_x + int_y,
+        vec_fn_name=VEC_ELEMWISE_DIV,
+        matrix_fn_name=MATRIX_ELEMWISE_DIV,
+        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
+    ),
+    tensor3d_x,
+    tensor3d_y,
 )
 
 vec_scalar_add = fn_decl_recursive(
@@ -1096,7 +1218,7 @@ vec_map = fn_decl_recursive(
 )
 
 # Uninterpreted functions
-# TODO(jie): this is returning a random prime
+# TODO: this is returning a random prime
 vec_vec_to_vec_target_lang = [
     vec_elemwise_add,
     vec_elemwise_sub,
@@ -1185,15 +1307,16 @@ def get_matrix_computation_general_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         out, col, pixel, row, row_vec = writes
         base, active = reads
         lower_bound = Int(0)
         upper_bound = base.len()
-        slice_index = choose(lower_bound, upper_bound, row, *int_vars).maybe_relaxed(
+        int_var = choose(lower_bound, upper_bound, row, *int_vars).maybe_relaxed(
             relaxed
         )
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = choose(base, active)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
@@ -1202,12 +1325,12 @@ def get_matrix_computation_general_search_space(
             row <= upper_bound.maybe_relaxed(relaxed),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
+                matrix_or_vec_var=matrix, int_var=int_var, depth=depth
             ),
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         col, pixel, row_vec = writes
         out, row = in_scope
@@ -1216,9 +1339,10 @@ def get_matrix_computation_general_search_space(
         outer_loop_upper_bound = base.len()
         inner_loop_lower_bound = Int(0)
         inner_loop_upper_bound = base[0].len()
-        slice_index = choose(
+        int_var = choose(
             Int(0), base.len(), base[0].len(), row, col, *int_vars
         ).maybe_relaxed(relaxed)
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = choose(base, active)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
@@ -1231,29 +1355,30 @@ def get_matrix_computation_general_search_space(
             row_vec
             == get_matrix_or_vec_expr_eq_or_below_depth(
                 matrix_or_vec_var=vec,
-                int_vars=int_vars,
+                int_var=int_var,
                 depth=depth,
                 additional_matrix=matrix,
             ),
             out
             == get_matrix_or_vec_expr_eq_or_below_depth(
-                matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
+                matrix_or_vec_var=matrix, int_var=int_var, depth=depth
             ),
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         base, active = reads
         matrix = choose(base, active)
-        slice_index = choose(
-            Int(0), base.len(), base[0].len(), *int_vars
-        ).maybe_relaxed(relaxed)
+        int_var = choose(Int(0), base.len(), base[0].len(), *int_vars).maybe_relaxed(
+            relaxed
+        )
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
-            matrix_or_vec_var=matrix, int_vars=int_vars, depth=depth
+            matrix_or_vec_var=matrix, int_var=int_var, depth=depth
         )
 
     inv0_grammar = InvGrammar(inv0_grammar_fn, [])
@@ -1262,7 +1387,7 @@ def get_matrix_computation_general_search_space(
 
 
 def get_matrix_computation_holing_search_space(
-    hole_body: Callable[[MatrixOrVecT], MatrixOrVecT]
+    hole_body: Callable[[TensorT], TensorT]
 ) -> Tuple[
     InvGrammar,
     InvGrammar,
@@ -1291,7 +1416,7 @@ def get_matrix_computation_holing_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         out, col, pixel, row, row_vec = writes
         base, active = reads
@@ -1310,7 +1435,7 @@ def get_matrix_computation_holing_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         col, pixel, row_vec = writes
         out, row = in_scope
@@ -1338,7 +1463,7 @@ def get_matrix_computation_holing_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         base, active = reads
@@ -1387,7 +1512,7 @@ def get_matrix_select_general_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1401,7 +1526,8 @@ def get_matrix_select_general_search_space(
         matrix = choose(base, active)
         lower_bound = Int(0)
         upper_bound = base.len()
-        slice_index = choose(lower_bound, upper_bound, row).maybe_relaxed(relaxed)
+        int_var = choose(Int(0), base.len(), base[0].len(), row).maybe_relaxed(relaxed)
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         return and_objects(
@@ -1412,7 +1538,7 @@ def get_matrix_select_general_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1429,9 +1555,10 @@ def get_matrix_select_general_search_space(
         active = reads_by_name["active"]
 
         matrix = choose(base, active)
-        slice_index = choose(Int(0), base.len(), base[0].len(), row, col).maybe_relaxed(
+        int_var = choose(Int(0), base.len(), base[0].len(), row, col).maybe_relaxed(
             relaxed
         )
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
         matrix = choose(matrix, matrix.transpose())
         vec = matrix[slice_index]
@@ -1452,13 +1579,14 @@ def get_matrix_select_general_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
         base = reads_by_name["base"]
         active = reads_by_name["active"]
-        slice_index = choose(Int(0), base.len(), base[0].len()).maybe_relaxed(relaxed)
+        int_var = choose(Int(0), base.len(), base[0].len()).maybe_relaxed(relaxed)
+        slice_index = get_int_expr_eq_or_below_depth(int_var, depth)
         matrix = choose(base, active)
         matrix = choose(matrix, matrix.transpose())
         matrix = matrix[slice_index:slice_index].col_slice(slice_index, slice_index)
@@ -1502,7 +1630,7 @@ def get_matrix_select_holing_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1527,7 +1655,7 @@ def get_matrix_select_holing_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1569,7 +1697,7 @@ def get_matrix_select_holing_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
@@ -1626,7 +1754,7 @@ def get_dissolve_holing_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1656,7 +1784,7 @@ def get_dissolve_holing_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1710,7 +1838,7 @@ def get_dissolve_holing_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
@@ -1769,7 +1897,7 @@ def get_dissolve_general_search_space(
 
     # inv0 grammar
     def inv0_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1798,7 +1926,7 @@ def get_dissolve_general_search_space(
         )
 
     def inv1_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1845,7 +1973,7 @@ def get_dissolve_general_search_space(
         )
 
     def ps_grammar_fn(
-        writes: List[Object], reads: List[Object], in_scope: List[Object]
+        writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}
@@ -1867,12 +1995,12 @@ def get_dissolve_general_search_space(
 
 
 def get_matrix_or_vec_expr_with_depth(
-    matrix_or_vec_var: MatrixOrVecT,
-    int_vars: List[Int],
+    matrix_or_vec_var: TensorT,
+    int_var: Int,
     depth: int,
     depth_to_expr: Dict[int, Any],
     additional_matrix: Optional[Matrix[Int]] = None,
-) -> MatrixOrVecT:
+) -> TensorT:
     if depth in depth_to_expr.keys():
         return depth_to_expr[depth]
     if depth == 0:
@@ -1881,17 +2009,17 @@ def get_matrix_or_vec_expr_with_depth(
     expr_choices: List[Any] = []
     depth_minus_one_expr = get_matrix_or_vec_expr_with_depth(
         matrix_or_vec_var=matrix_or_vec_var,
-        int_vars=int_vars,
+        int_var=int_var,
         depth=depth - 1,
         depth_to_expr=depth_to_expr,
         additional_matrix=additional_matrix,
     )
-    if not depth_minus_one_expr.is_nested:
+    if not depth_minus_one_expr.is_matrix:
         expr_choices.append(vec_to_vec(depth_minus_one_expr))
     for other_depth in range(depth):
         other_expr = get_matrix_or_vec_expr_with_depth(
             matrix_or_vec_var=matrix_or_vec_var,
-            int_vars=int_vars,
+            int_var=int_var,
             depth=other_depth,
             depth_to_expr=depth_to_expr,
             additional_matrix=additional_matrix,
@@ -1900,15 +2028,15 @@ def get_matrix_or_vec_expr_with_depth(
         expr_choices.append(call_elemwise_sub(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_mul(depth_minus_one_expr, other_expr))
         expr_choices.append(call_elemwise_div(depth_minus_one_expr, other_expr))
-        if len(int_vars) > 0:
-            scalar = get_int_expr_with_depth(choose(*int_vars), other_depth, {})
-            expr_choices.append(call_scalar_add(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_sub(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_mul(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_div(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_rsub(scalar, depth_minus_one_expr))
-            expr_choices.append(call_scalar_rdiv(scalar, depth_minus_one_expr))
-        if additional_matrix is not None and not matrix_or_vec_var.is_nested:
+
+        scalar = get_int_expr_with_depth(int_var, other_depth, {})
+        expr_choices.append(call_scalar_add(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_sub(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_mul(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_div(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_rsub(scalar, depth_minus_one_expr))
+        expr_choices.append(call_scalar_rdiv(scalar, depth_minus_one_expr))
+        if additional_matrix is not None and not matrix_or_vec_var.is_matrix:
             expr_choices.append(
                 call_matrix_vec_mul(additional_matrix, depth_minus_one_expr)
             )
@@ -1916,7 +2044,7 @@ def get_matrix_or_vec_expr_with_depth(
         if other_depth != depth - 1:
             expr_choices.append(call_elemwise_sub(other_expr, depth_minus_one_expr))
             expr_choices.append(call_elemwise_div(other_expr, depth_minus_one_expr))
-            scalar = get_int_expr_with_depth(choose(*int_vars), depth - 1, {})
+            scalar = get_int_expr_with_depth(int_var, depth - 1, {})
             expr_choices.append(call_scalar_add(scalar, other_expr))
             expr_choices.append(call_scalar_sub(scalar, other_expr))
             expr_choices.append(call_scalar_mul(scalar, other_expr))
@@ -1928,15 +2056,15 @@ def get_matrix_or_vec_expr_with_depth(
 
 
 def get_matrix_or_vec_expr_eq_or_below_depth(
-    matrix_or_vec_var: MatrixOrVecT,
-    int_vars: List[Int],
+    matrix_or_vec_var: TensorT,
+    int_var: Int,
     depth: int,
     additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
     if depth >= 3:
         return get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
             matrix_or_vec_var=matrix_or_vec_var,
-            int_vars=int_vars,
+            int_var=int_var,
             depth=depth,
             additional_matrix=additional_matrix,
         )
@@ -1944,7 +2072,7 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
     for curr_depth in range(0, depth + 1):
         get_matrix_or_vec_expr_with_depth(
             matrix_or_vec_var=matrix_or_vec_var,
-            int_vars=int_vars,
+            int_var=int_var,
             depth=curr_depth,
             depth_to_expr=depth_to_expr,
             additional_matrix=additional_matrix,
@@ -1954,12 +2082,12 @@ def get_matrix_or_vec_expr_eq_or_below_depth(
 
 
 def get_matrix_or_vec_expr_eq_or_below_depth_with_sym_grammar(
-    matrix_or_vec_var: MatrixOrVecT,
-    int_vars: List[Int],
+    matrix_or_vec_var: TensorT,
+    int_var: Int,
     depth: int,
     additional_matrix: Optional[Matrix[Int]] = None,
 ) -> Int:
-    scalar = choose(*int_vars)
+    scalar = int_var
     matrix_or_vec = matrix_or_vec_var
     for _ in range(depth):
         scalar = choose(
@@ -2150,7 +2278,7 @@ def get_loop_fns(
     right_bound_choices: List[Int],
     prefix: str = "OUTER_LOOP",
 ) -> Tuple[List[FnDecl], List[Synth], Callable, Callable, Callable]:
-    # TODO(jie): add return type
+    # TODO: add return type
     if prefix not in {"OUTER_LOOP", "INNER_LOOP"}:
         raise Exception("Prefix must be one of OUTER_LOOP and INNER_LOOP")
 

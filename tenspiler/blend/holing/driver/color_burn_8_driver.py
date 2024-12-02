@@ -2,10 +2,13 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     color_burn_8_hole_body,
     get_matrix_select_holing_search_space,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()
@@ -16,11 +19,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_matrix_select_holing_search_space(driver, color_burn_8_hole_body)
+
+    def target_lang_axiom():
+        return target_lang() + [matrix_selection_two_args_axiom]
+
     color_burn_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/color_burn_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/color_burn_8.loops",
         fn_name="color_burn_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "color_burn_8_inv0": inv0_grammar,
             "color_burn_8_inv1": inv1_grammar,
@@ -38,9 +45,14 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    color_burn_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="color_burn_8", rounds_to_guess=0, no_verify=True)
+    color_burn_8(base, active)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="color_burn_8",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

@@ -30,7 +30,7 @@ def matmul_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def matmul_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     weight, input = reads
@@ -44,7 +44,7 @@ def matmul_ps_grammar(
     vec = choose(input[slice_index:slice_index], matrix[slice_index])
     vec = get_matrix_or_vec_expr_eq_or_below_depth(
         matrix_or_vec_var=vec,
-        int_vars=[Int(0), Int(1)],
+        int_var=choose(Int(0), Int(1)),
         depth=parser_args.depth,
         additional_matrix=matrix,
     )
@@ -52,7 +52,7 @@ def matmul_ps_grammar(
 
 
 def matmul_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     weight, input = reads
     out, col, _, row = writes
@@ -82,7 +82,7 @@ def matmul_inv0_grammar(
 
 
 def matmul_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     col, curr = writes
     weight, input = reads

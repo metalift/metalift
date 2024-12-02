@@ -243,7 +243,7 @@ def mypy_node_to_ir(
     in_calls: pyList[pyTuple[str, str]],
 ) -> Expr:
     def parse_node(node: Node) -> Expr:
-        # TODO(jie): add support for non-lambda inline functions
+        # TODO: add support for non-lambda inline functions
         if isinstance(node, FuncDef) or isinstance(node, LambdaExpr):
             if isinstance(node, FuncDef):
                 _, func_ir_type, _ = func_sign[node.name]
@@ -302,7 +302,7 @@ def mypy_node_to_ir(
             return parse_node(node.expr)
         elif isinstance(node, CallExpr):
             if isinstance(node.callee, MemberExpr):
-                # TODO(jie): here we need to identify the list append calls, etc
+                # TODO: here we need to identify the list append calls, etc
                 raise Exception("Method calls not supported")
             elif isinstance(node.callee, NameExpr):
                 func_name = cast(NameExpr, node.callee).name
@@ -375,7 +375,7 @@ def mypy_node_to_ir(
             # Nothing can go wrong with a name expression (which are basically variables)
             ir_type = mypy_type_to_ir_type(types[node])
             return create_object(ir_type, node.name).src
-        # TODO(jie): check not
+        # TODO: check not
         elif isinstance(node, OpExpr):
             left_expr = parse_node(node.left)
             right_expr = parse_node(node.right)

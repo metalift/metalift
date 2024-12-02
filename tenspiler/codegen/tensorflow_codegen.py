@@ -14,6 +14,7 @@ from metalift.ir import (
     Ge,
     Gt,
     Int,
+    Ite,
     Le,
 )
 from metalift.ir import List as mlList
@@ -204,11 +205,28 @@ def tensorflow_codegen(
                     "matrix_length",
                 }:
                     return (
-                        translations[fn_name](processed_args, d_type == DataType.INT),
+                        translations[fn_name](processed_args, d_type != DataType.FLOAT),
                         expr.type,
                     )
                 return translations[fn_name](processed_args), expr.type
+            elif fn_name in all_synthesized_fns.keys():
+                return helper(all_synthesized_fns[fn_name].body())
+
             raise Exception(f"Unknown function name: {fn_name}")
+
+        # Ite expression. Some condition are constants
+        if isinstance(expr, Ite):
+            cond = helper(expr.c())[0]
+
+            if cond == "True":
+                return helper(expr.e1(), vars_to_replace)
+            elif cond == "False":
+                return helper(expr.e2(), vars_to_replace)
+            else:
+                return (
+                    f"{helper(expr.e1(), vars_to_replace)[0]} if {cond} else {helper(expr.e2(), vars_to_replace)[0]}",
+                    expr.e1().type,
+                )
 
         # Arithmetic operations
         processed_args = [helper(arg, vars_to_replace) for arg in expr.args]
@@ -253,8 +271,11 @@ def tensorflow_codegen(
     ###############################
     # Begins actual code generation
     ###############################
-    print("####### import statements ########\n")
-    print("import tensorflow as tf\n")
+    import_stmt = """
+####### import statements ########
+import tensorflow as tf
+"""
+    print(import_stmt)
 
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
@@ -275,7 +296,13 @@ def tensorflow_codegen(
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "tf.uint8" if d_type == DataType.INT else "tf.float32"
+            lib_dtype = "tf.uint8"
+            if d_type == DataType.FLOAT:
+                lib_dtype = "tf.float32"
+
+            if d_type == DataType.INT32:
+                lib_dtype = "tf.int32"
+
             conversions.append(
                 f"{arguments[i]} = tf.convert_to_tensor({arguments[i]}, dtype={lib_dtype})"
             )
@@ -289,4 +316,4 @@ def tensorflow_codegen(
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
 
-    return
+    return import_stmt + kernel_fn + glued_fn

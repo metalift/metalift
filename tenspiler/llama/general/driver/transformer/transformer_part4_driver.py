@@ -25,36 +25,32 @@ def transformer_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def transformer_part4_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
     input1, input2, hidden_dim = reads
     lower_bound = Int(0)
     upper_bound = hidden_dim
-    slice_index = choose(lower_bound, upper_bound, Int(1)).maybe_relaxed(
-        parser_args.relaxed
-    )
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    int_var = choose(lower_bound, upper_bound).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = choose(
         input1[slice_index:slice_index],
         input2[slice_index:slice_index],
     )
     return ret_val == get_matrix_or_vec_expr_eq_or_below_depth(
-        matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+        matrix_or_vec_var=vec, int_var=int_var, depth=parser_args.depth
     )
 
 
 def transformer_part4_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     input1, input2, hidden_dim = reads
     out, i, _ = writes
     lower_bound = Int(0)
     upper_bound = hidden_dim
-    slice_index = choose(lower_bound, upper_bound, i, Int(1)).maybe_relaxed(
-        parser_args.relaxed
-    )
-    slice_index = get_int_expr_eq_or_below_depth(slice_index, depth=parser_args.depth)
+    int_var = choose(lower_bound, upper_bound, i).maybe_relaxed(parser_args.relaxed)
+    slice_index = get_int_expr_eq_or_below_depth(int_var, depth=parser_args.depth)
     vec = choose(
         input1[slice_index:slice_index],
         input2[slice_index:slice_index],
@@ -65,7 +61,7 @@ def transformer_part4_inv0_grammar(
         i <= upper_bound.maybe_relaxed(parser_args.relaxed),
         out
         == get_matrix_or_vec_expr_eq_or_below_depth(
-            matrix_or_vec_var=vec, int_vars=[Int(0), Int(1)], depth=parser_args.depth
+            matrix_or_vec_var=vec, int_var=int_var, depth=parser_args.depth
         ),
     )
 

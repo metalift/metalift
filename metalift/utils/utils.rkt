@@ -274,14 +274,6 @@
   )
 )
 
-; (define-bounded (integer-sqrt-noerr n)
-;   (define-bounded (sqrt-helper guess)
-;     (if (or (= guess 0) (= guess 1) (> guess 64))
-;         1
-;         (if (>= guess (quotient n guess))
-;             guess
-;             (sqrt-helper (quotient (+ guess (quotient n guess)) 2)))))
-;   (if (<= n 0) 0 (sqrt-helper (quotient n 2))))
 (define-bounded (integer-sqrt-noerr n) n)
 
 (define-bounded (integer-exp-noerr n)
@@ -291,3 +283,36 @@
     (remainder (* 3 (integer-exp-noerr (- n 1))) 64)
   )
 )
+
+; 3D tensors
+(define (tensor3d-length l) (length l))
+
+(define (tensor3d-empty)
+  (list))
+
+(define (tensor3d-ref-noerr l i)
+  (if (&&  (>= i 0) (< i (length l))) (list-ref l i)
+      (list)))
+
+(define (tensor3d-tail-noerr l i)
+  (if (&& (>= i 0) (<= i (length l))) (list-tail l i)
+      (list)))
+
+(define (tensor3d-take-noerr l i)
+  (if (<= i 0) (list) (if (&& (>= i 0) (< i (length l))) (take l i) l )))
+
+(define (tensor3d-slice-noerr l start end)
+  (tensor3d-tail-noerr (tensor3d-take-noerr l end) start)
+)
+
+(define (tensor3d-slice-with-length-noerr l start lst_length)
+  (tensor3d-slice-noerr l start (+ start lst_length))
+)
+
+(define (tensor3d-prepend i l)
+  (if (list? i)
+    (if (> (length i ) 0)
+    (append (list i) l) (append l i)) (append (list i) l) ))
+
+(define (tensor3d-append l i)
+(append l (list i)))

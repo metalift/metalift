@@ -3,21 +3,30 @@
 (require "./utils.rkt")
 (require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)
 (require rosette/solver/smt/bitwuzla)
-(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash ':seed 0)))
+(current-solver (bitwuzla #:path "/bitwuzla/build/src/main/bitwuzla" #:options (hash ':seed 0)))
 
+
+ (define-bounded (reduce_max x)
+(if (<= (length x ) 1 ) (list-ref-noerr x 0 ) (if (> (list-ref-noerr x 0 ) (reduce_max (list-tail-noerr x 1 )) ) (list-ref-noerr x 0 ) (reduce_max (list-tail-noerr x 1 )) ) ))
 
 
  (define-bounded (reduce_sum x)
 (if (< (length x ) 1 ) 0 (+ (list-ref-noerr x 0 ) (reduce_sum (list-tail-noerr x 1 )) ) ))
 
+
+ (define-bounded (reduce_mul x)
+(if (< (length x ) 1 ) 1 (* (list-ref-noerr x 0 ) (reduce_mul (list-tail-noerr x 1 )) ) ))
+
 (define-grammar (softmax_part3_inv0_gram i max_pos output sum)
- [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? sum (reduce_sum (vec-slice-noerr output (v0) (v0) )) ) ))]
-[v0 (choose 0 max_pos i)]
+ [rv (choose (&& (&& (>= i 0 ) (<= i max_pos ) ) (equal? sum (v0) ) ))]
+[v0 (choose (reduce_sum (vec-slice-noerr output (v1) (v1) )) (reduce_mul (vec-slice-noerr output (v1) (v1) )) (reduce_max (vec-slice-noerr output (v1) (v1) )))]
+[v1 (choose 0 max_pos i)]
 )
 
 (define-grammar (softmax_part3_ps_gram output max_pos softmax_part3_rv)
- [rv (choose (equal? softmax_part3_rv (reduce_sum (vec-slice-noerr output (v0) (v0) )) ))]
-[v0 (choose 0 max_pos)]
+ [rv (choose (equal? softmax_part3_rv (v0) ))]
+[v0 (choose (reduce_sum (vec-slice-noerr output (v1) (v1) )) (reduce_mul (vec-slice-noerr output (v1) (v1) )) (reduce_max (vec-slice-noerr output (v1) (v1) )))]
+[v1 (choose 0 max_pos)]
 )
 
 (define (softmax_part3_inv0 i max_pos output sum) (softmax_part3_inv0_gram i max_pos output sum #:depth 10))

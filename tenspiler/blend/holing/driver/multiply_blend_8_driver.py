@@ -2,9 +2,15 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     get_matrix_computation_holing_search_space,
     multiply_blend_8_hole_body,
+)
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    matrix_scalar_div_axiom,
+    matrix_elemwise_mul_axiom,
 )
 
 if __name__ == "__main__":
@@ -16,11 +22,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_matrix_computation_holing_search_space(multiply_blend_8_hole_body)
+
+    def target_lang_axiom():
+        return target_lang() + [matrix_scalar_div_axiom, matrix_elemwise_mul_axiom]
+
     multiply_blend_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/multiply_blend_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/multiply_blend_8.loops",
         fn_name="multiply_blend_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "multiply_blend_8_inv0": inv0_grammar,
             "multiply_blend_8_inv1": inv1_grammar,
@@ -38,9 +48,14 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    multiply_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="multiply_blend_8", rounds_to_guess=0, no_verify=True)
+    multiply_blend_8(base, active)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="multiply_blend_8",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

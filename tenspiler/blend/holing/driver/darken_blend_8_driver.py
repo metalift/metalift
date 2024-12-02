@@ -2,12 +2,13 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tenspiler.codegen.mlx_codegen import mlx_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     darken_blend_8_hole_body,
     get_matrix_select_holing_search_space,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()
@@ -18,11 +19,15 @@ if __name__ == "__main__":
         target_lang,
         fns_synths,
     ) = get_matrix_select_holing_search_space(driver, darken_blend_8_hole_body)
+
+    def target_lang_axiom():
+        return target_lang() + [matrix_selection_two_args_axiom]
+
     darken_blend_8 = driver.analyze(
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/darken_blend_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/darken_blend_8.loops",
         fn_name="darken_blend_8",
-        target_lang_fn=target_lang,
+        target_lang_fn=target_lang_axiom,
         inv_grammars={
             "darken_blend_8_inv0": inv0_grammar,
             "darken_blend_8_inv1": inv1_grammar,
@@ -40,13 +45,14 @@ if __name__ == "__main__":
     driver.add_precondition(base[0].len() == active[0].len())
 
     driver.fns_synths = fns_synths
-    darken_blend_8(base, active)
 
     start_time = time.time()
-    driver.synthesize(filename="darken_blend_8", rounds_to_guess=0, no_verify=True)
+    darken_blend_8(base, active)
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.UINT_8,
+        benchmark_name="darken_blend_8",
+        has_relaxed=False,
+    )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
-
-    mlx_codegen(
-        driver.get_actual_ps_fn_decl(), driver.synthesized_fns, d_type=DataType.INT
-    )

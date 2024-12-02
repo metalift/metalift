@@ -1,4 +1,4 @@
-import argparse
+import time
 from typing import List, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -6,6 +6,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, call, choose, fn_decl, ite, synth
 from metalift.vc_util import and_objects
+from tenspiler.codegen.utils import DataType
 from tenspiler.llama.holing.driver.transformer.utils import (
     call_matrix_composed_index_fn,
     call_vec_composed_index_fn,
@@ -17,6 +18,7 @@ from tenspiler.llama.holing.driver.transformer.utils import (
     vec_composed_index_synth,
 )
 from tenspiler.tenspiler_common import (
+    call_integer_sqrt,
     call_matrix_vec_mul,
     call_reduce_sum,
     call_vec_elemwise_mul,
@@ -30,19 +32,28 @@ from tenspiler.tenspiler_common import (
     vec_scalar_div,
     vec_scalar_mul,
 )
+from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tenspiler.axioms_tenspiler import (
+    vec_scalar_mul_axiom,
+    vec_scalar_div_axiom,
+    vec_elemwise_mul_axiom,
+    vec_elemwise_div_axiom,
+    reduce_sum_axiom,
+    matrix_vec_mul_axiom,
+)
 
 token_position_var = Int("token_position")
-head_var = Int("head")
+head1_var = Int("head1")
 head_size_var = Int("head_size")
 sqrt_arg_fn_name = "SQRT_ARG_FN"
 sqrt_arg_fn_decl = fn_decl(
-    sqrt_arg_fn_name, Int, None, token_position_var, head_var, head_size_var
+    sqrt_arg_fn_name, Int, None, token_position_var, head1_var, head_size_var
 )
 sqrt_arg_synth = synth(
     sqrt_arg_fn_name,
-    choose(Int(0), Int(1)) * choose(token_position_var, head_var, head_size_var),
+    Int(1) * head_size_var,
     token_position_var,
-    head_var,
+    head1_var,
     head_size_var,
 )
 
@@ -63,6 +74,12 @@ target_lang = [
     vec_composed_index_fn_decl,
     sqrt_arg_fn_decl,
     *common_fn_decls,
+    vec_scalar_mul_axiom,
+    vec_scalar_div_axiom,
+    vec_elemwise_mul_axiom,
+    vec_elemwise_div_axiom,
+    reduce_sum_axiom,
+    matrix_vec_mul_axiom,
 ]
 
 # Define initial synths
@@ -74,7 +91,7 @@ def transformer_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def transformer_part1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     attention = writes[0]
     token_position, head, head_size, key_cache_layer, q = reads
@@ -93,9 +110,6 @@ def transformer_part1_ps_grammar(
             matrix_composed_int_var + token_position,
         ),
     )
-    key_cache_layer_matrix = choose(
-        key_cache_layer_matrix, key_cache_layer_matrix.transpose()
-    )
     q_vec = ite(
         is_vector_outer_loop_index(),
         q[vec_composed_int_var : vec_composed_int_var + token_position],
@@ -104,13 +118,13 @@ def transformer_part1_ps_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_div(call_sqrt_arg(token_position, head, head_size), vec)
+    vec = call_vec_scalar_div(call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec)
 
     return attention == vec
 
 
 def transformer_part1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     attention, i, score, timestep = writes
@@ -131,9 +145,6 @@ def transformer_part1_inv0_grammar(
             matrix_composed_int_var + timestep,
         ),
     )
-    key_cache_layer_matrix = choose(
-        key_cache_layer_matrix, key_cache_layer_matrix.transpose()
-    )
     q_vec = ite(
         is_vector_outer_loop_index(),
         q[vec_composed_int_var : vec_composed_int_var + timestep],
@@ -142,7 +153,7 @@ def transformer_part1_inv0_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_div(call_sqrt_arg(token_position, head, head_size), vec)
+    vec = call_vec_scalar_div(call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec)
 
     return and_objects(
         timestep >= 0,
@@ -152,7 +163,7 @@ def transformer_part1_inv0_grammar(
 
 
 def transformer_part1_inv1_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object]
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     token_position, head, head_size, key_cache_layer, q = reads
     i, score = writes
@@ -174,9 +185,6 @@ def transformer_part1_inv1_grammar(
             matrix_composed_int_var + timestep,
         ),
     )
-    key_cache_layer_outer_loop_matrix = choose(
-        key_cache_layer_outer_loop_matrix, key_cache_layer_outer_loop_matrix.transpose()
-    )
     q_outer_loop_vec = ite(
         is_vector_outer_loop_index(),
         q[vec_composed_int_var : vec_composed_int_var + timestep],
@@ -188,7 +196,7 @@ def transformer_part1_inv1_grammar(
     )
     outer_loop_vec = choose(q_outer_loop_vec, outer_loop_computed_vec)
     outer_loop_vec = call_vec_scalar_div(
-        call_sqrt_arg(token_position, head, head_size), outer_loop_vec
+        call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), outer_loop_vec
     )
 
     inner_loop_key_cache_layer_vec = ite(
@@ -220,12 +228,6 @@ def transformer_part1_inv1_grammar(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--list-bound", type=int, required=True)
-    parser.add_argument("--rounds-to-guess", type=int, required=True)
-    parser.add_argument("--relaxed", action="store_true")
-    parser_args = parser.parse_args()
-
     # Synthesize part 1
     transformer_part1 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part1.ll",
@@ -242,43 +244,42 @@ if __name__ == "__main__":
     )
 
     token_position_var = Int("token_position")
-    head_var = Int("head")
+    head1_var = Int("head1")
     head_size_var = Int("head_size")
     key_cache_layer_var = Matrix(Int, "key_cache_layer")
     q_var = mlList(Int, "q")
     driver.add_var_objects(
-        [token_position_var, head_var, head_size_var, key_cache_layer_var, q_var]
+        [token_position_var, head1_var, head_size_var, key_cache_layer_var, q_var]
     )
     driver.add_precondition(token_position_var > 0)
     driver.add_precondition(key_cache_layer_var.len() > token_position_var)
-    driver.add_precondition(head_var >= 0)
-    driver.add_precondition(head_var <= q_var.len())
-    driver.add_precondition(head_var <= key_cache_layer_var.len())
+    driver.add_precondition(head1_var >= 0)
+    driver.add_precondition(head1_var <= q_var.len())
+    driver.add_precondition(head1_var <= key_cache_layer_var.len())
     driver.add_precondition(head_size_var > 0)
     driver.add_precondition(head_size_var <= q_var.len())
     driver.add_precondition(head_size_var <= key_cache_layer_var.len())
     driver.add_precondition(
-        (head_var * head_size_var + head_size_var) < key_cache_layer_var[0].len()
+        (head1_var * head_size_var + head_size_var) < key_cache_layer_var[0].len()
     )
-    driver.add_precondition((head_var * head_size_var + head_size_var) < q_var.len())
+    driver.add_precondition((head1_var * head_size_var + head_size_var) < q_var.len())
 
     driver.fns_synths = fns_synths
 
+    start_time = time.time()
     transformer_part1(
         token_position_var,
-        head_var,
+        head1_var,
         head_size_var,
         key_cache_layer_var,
         q_var,
     )
-
-    rounds_to_guess_suffix = f"_rounds{parser_args.rounds_to_guess}"
-    list_bound_suffix = f"_listbound{parser_args.list_bound}"
-    relaxed_suffix = "_relaxed" if parser_args.relaxed else ""
-
-    driver.synthesize(
-        filename=f"transformer_part1{rounds_to_guess_suffix}{list_bound_suffix}{relaxed_suffix}",
-        list_bound=parser_args.list_bound,
-        rounds_to_guess=parser_args.rounds_to_guess,
-        no_verify=True,
+    run_synthesis_algorithm(
+        driver=driver,
+        data_type=DataType.INT32,
+        benchmark_name="transformer_part1",
+        has_relaxed=False,
+        list_bound_start=3
     )
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")

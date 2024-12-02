@@ -13,12 +13,11 @@ from metalift.ir import (
     FnDeclRecursive,
     Int,
     Var,
-    get_matrix_element_type,
-    get_nested_list_element_type,
+    get_element_type,
     is_list_type,
     is_matrix_type,
-    is_nested_list_type,
     is_set_type,
+    is_tensor3d_type,
     is_tuple_type,
 )
 
@@ -31,7 +30,7 @@ def generate_ast(expr: str) -> Union[List[Any], pp.ParseResults]:
     return ast
 
 
-def gen_var(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
+def gen_var(v: Expr, decls: List[str], vars_all: List[str], list_bound: int) -> None:
     if v.type == Int:
         decls.append("(define-symbolic %s integer?)" % v.to_rosette())
         vars_all.append(v.args[0])
@@ -42,85 +41,88 @@ def gen_var(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> N
 
     elif is_matrix_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        gen_var(Var(len_name, ir.Int), decls, vars_all, listBound)
+        gen_var(Var(len_name, ir.Int), decls, vars_all, list_bound)
 
         tmp = [
-            v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound * listBound)
+            v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(list_bound * list_bound)
         ]
-        nested_element_type = get_matrix_element_type(v.type)
+        element_type = get_element_type(v.type)
         for t in tmp:
-            gen_var(Var(t, nested_element_type), decls, vars_all, listBound)
-        nested_lsts: List[str] = [
-            f"(list {' '.join(tmp[i : i + listBound])})"
-            for i in range(0, len(tmp) - 1, listBound)
+            gen_var(Var(t, element_type), decls, vars_all, list_bound)
+        lsts: List[str] = [
+            f"(list {' '.join(tmp[i : i + list_bound])})"
+            for i in range(0, len(tmp) - 1, list_bound)
         ]
-        decl = f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+        decl = f"(define {v.args[0]} (take (list {' '.join(lsts)}) {len_name}))"
         decls.append(decl)
+    elif is_tensor3d_type(v.type):
+        len_name = v.args[0] + "_BOUNDEDSET-len"
+        gen_var(Var(len_name, ir.Int), decls, vars_all, list_bound)
 
+        tmp = [
+            v.args[0] + "_BOUNDEDSET-" + str(i)
+            for i in range(list_bound * list_bound * list_bound)
+        ]
+        element_type = get_element_type(v.type)
+        for t in tmp:
+            gen_var(Var(t, element_type), decls, vars_all, list_bound)
+        matrices: List[str] = []
+        for i in range(list_bound):
+            matrix_index_start = i * list_bound * list_bound
+            lsts: List[str] = []
+            for j in range(list_bound):
+                matrix_index = matrix_index_start + j * list_bound
+                lsts.append(
+                    f"(list {' '.join(tmp[matrix_index : matrix_index + list_bound])})"
+                )
+            matrices.append(f"(list {' '.join(lsts)})")
+        decl = f"(define {v.args[0]} (take (list {' '.join(matrices)}) {len_name}))"
+        decls.append(decl)
     elif is_list_type(v.type) or is_set_type(v.type):
         len_name = v.args[0] + "_BOUNDEDSET-len"
-        gen_var(Var(len_name, ir.Int), decls, vars_all, listBound)
+        gen_var(Var(len_name, ir.Int), decls, vars_all, list_bound)
+        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(list_bound)]
 
-        is_nested_list = is_nested_list_type(v.type)
-        if is_nested_list:
-            tmp = [
-                v.args[0] + "_BOUNDEDSET-" + str(i)
-                for i in range(listBound * listBound)
-            ]
-            nested_element_type = get_nested_list_element_type(v.type)
-            for t in tmp:
-                gen_var(Var(t, nested_element_type), decls, vars_all, listBound)
-            nested_lsts: List[str] = [  # type: ignore
-                f"(list {' '.join(tmp[i : i + listBound])})"
-                for i in range(0, len(tmp) - 1, listBound)
-            ]
-            decl = (
-                f"(define {v.args[0]} (take (list {' '.join(nested_lsts)}) {len_name}))"
+        for t in tmp:
+            gen_var(Var(t, typing.get_args(v.type)[0]), decls, vars_all, list_bound)
+
+        if is_set_type(v.type):
+            decls.append(
+                "(define %s (sort (remove-duplicates (take %s %s)) <))"
+                % (v.args[0], "(list " + " ".join(tmp[:list_bound]) + ")", len_name)
             )
-            decls.append(decl)
         else:
-            tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
-
-            for t in tmp:
-                gen_var(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
-
-            if is_set_type(v.type):
-                decls.append(
-                    "(define %s (sort (remove-duplicates (take %s %s)) <))"
-                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-                )
-            else:
-                decls.append(
-                    "(define %s (take %s %s))"
-                    % (v.args[0], "(list " + " ".join(tmp[:listBound]) + ")", len_name)
-                )
+            decls.append(
+                "(define %s (take %s %s))"
+                % (v.args[0], "(list " + " ".join(tmp[:list_bound]) + ")", len_name)
+            )
     elif is_tuple_type(v.type):
         elem_names = []
         for i, t in enumerate(typing.get_args(v.type)):
             elem_name = v.args[0] + "_TUPLE-" + str(i)
-            gen_var(Var(elem_name, t), decls, vars_all, listBound)
+            gen_var(Var(elem_name, t), decls, vars_all, list_bound)
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
     # TODO: change this once MapObject is ready
     elif hasattr(v.type, "name") and v.type.name == "Map":
-        tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
-        tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]
+        tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(list_bound)]
+        tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(list_bound)]
         for t in tmp_k:
             # TODO: v.type no longer has args, find proper solution
-            gen_var(Var(t, v.type.args[0]), decls, vars_all, listBound)  # type: ignore
+            gen_var(Var(t, v.type.args[0]), decls, vars_all, list_bound)  # type: ignore
         for t in tmp_v:
             # TODO: v.type no longer has args, find proper solution
-            gen_var(Var(t, v.type.args[1]), decls, vars_all, listBound)  # type: ignore
+            gen_var(Var(t, v.type.args[1]), decls, vars_all, list_bound)  # type: ignore
 
         len_name = v.args[0] + "-len"
-        gen_var(Var(len_name, Int), decls, vars_all, listBound)
+        gen_var(Var(len_name, Int), decls, vars_all, list_bound)
 
         all_pairs = ["(cons %s %s)" % (k, v) for k, v in zip(tmp_k, tmp_v)]
 
         decls.append(
             "(define %s (map-normalize (take %s %s)))"
-            % (v.args[0], "(list " + " ".join(all_pairs[:listBound]) + ")", len_name)
+            % (v.args[0], "(list " + " ".join(all_pairs[:list_bound]) + ")", len_name)
         )
     else:
         raise Exception(f"Unknown type: {v.type}")
@@ -138,6 +140,7 @@ def generate_vars(vars: Set[Var], listBound: int) -> Tuple[str, List[str]]:
 
 
 def generate_synth(
+    basename: str,
     vars: List[str],
     rounds_to_guess: int = 0,
     fns_to_guess: List[FnDeclRecursive] = [],
@@ -159,6 +162,16 @@ def generate_synth(
             )
         )
         (sat? sol)
+        (with-output-to-file
+            "synthesisLogs/{basename}_sol"
+            (lambda ()
+                (begin
+                    (printf (~a (sat? sol)))
+                    (printf "\\n")
+                    (print-forms sol)
+                )
+            )
+        )
         (print-forms sol)
         """
     all_synth_funs: List[str] = []
@@ -170,6 +183,16 @@ def generate_synth(
         )
     )
     (sat? sol0)
+    (with-output-to-file
+        "synthesisLogs/{basename}_sol0"
+        (lambda ()
+            (begin
+                (printf (~a (sat? sol0)))
+                (printf "\\n")
+                (print-forms sol0)
+            )
+        )
+    )
     (print-forms sol0)
     """
     all_synth_funs.append(synth_fun)
@@ -197,6 +220,16 @@ def generate_synth(
             )
         )
         (sat? sol{i})
+        (with-output-to-file
+            "synthesisLogs/{basename}_sol{i}"
+            (lambda ()
+                (begin
+                    (printf (~a (sat? sol{i})))
+                    (printf "\\n")
+                    (print-forms sol{i})
+                )
+            )
+        )
         (print-forms sol{i})
         """
         all_synth_funs.append(synth_fun)
@@ -223,6 +256,7 @@ def generate_inv_ps(loop_and_ps_info: Sequence[Union[CodeInfo, Expr]]) -> str:
 
 
 def to_rosette(
+    basename: str,
     filename: str,
     target_lang: Sequence[Union[FnDeclRecursive, FnDecl, ir.Axiom]],
     vars: Set[Var],
@@ -246,11 +280,7 @@ def to_rosette(
         + '(require "./utils.rkt")\n'
         + "(require rosette/lib/angelic rosette/lib/match rosette/lib/synthax)\n"
         + "(require rosette/solver/smt/bitwuzla)\n"
-        + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n'
-        + "\n",
-        # + "(require rosette/solver/smt/z3)\n"
-        # + "(current-solver (z3 #:options (hash ':random-seed 0)))\n"
-        # + "\n",
+        + '(current-solver (bitwuzla #:path "/Users/jieq/Desktop/bitwuzla/build/src/main/bitwuzla" #:options (hash \':seed 0)))\n',
         file=f,
     )
 
@@ -301,7 +331,13 @@ def to_rosette(
     # synthesis function
     if not verify_mode:
         print(
-            generate_synth(vars_all, rounds_to_guess, fns_to_guess, fn_defs_to_exclude),
+            generate_synth(
+                basename,
+                vars_all,
+                rounds_to_guess,
+                fns_to_guess,
+                fn_defs_to_exclude,
+            ),
             file=f,
         )
     else:

@@ -1,0 +1,23 @@
+#t
+./Documents/metalift_ecoop/metalift/synthesisLogs/lmsfir2.rkt:28:0
+(define (lmsfir2_inv0 NTAPS agg.result coefficient curr error i input)
+  (choose
+   (&&
+    (&& (>= i 0) (<= i (- NTAPS 1)))
+    (equal?
+     agg.result
+     (vec_elemwise_add
+      (list-take-noerr coefficient i)
+      (vec_scalar_mul (v1) (list-take-noerr input i)))))))
+./Documents/metalift_ecoop/metalift/synthesisLogs/lmsfir2.rkt:29:0
+(define (lmsfir2_ps NTAPS input coefficient error lmsfir2_rv)
+  (choose
+   (equal?
+    lmsfir2_rv
+    (vec_elemwise_add
+     (list-take-noerr coefficient (- NTAPS 1))
+     (vec_scalar_mul (v1) (list-take-noerr input (- NTAPS 1)))))))
+
+real	0m2.760s
+user	0m1.942s
+sys	0m0.231s

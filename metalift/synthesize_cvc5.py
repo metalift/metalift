@@ -186,7 +186,7 @@ def toExpr(
                     *arg_eval,
                 )
         elif ast[0] == "as" and ast[1] == "set.empty":
-            return Call("set-create", mlSet[Int])  # TODO(shadaj): parse the type
+            return Call("set-create", mlSet[Int])  # TODO: parse the type
         elif ast[0] == "set.insert":
             v = toExpr(ast[1], funName, returnType, varType, letVars)
             s1 = toExpr(ast[2], funName, returnType, varType, letVars)
@@ -236,7 +236,7 @@ def synthesize(
     preds: typing.List[Expr],
     vc: Expr,
     loopAndPsInfo: typing.Sequence[Union[CodeInfo, Expr]],
-    cvcPath: str = "cvc5",
+    cvcPath: str,
     uid: int = 0,
     noVerify: bool = False,  # currently ignored
     unboundedInts: bool = False,  # currently ignored

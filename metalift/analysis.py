@@ -238,7 +238,7 @@ def processLoops(
             opcode = i.opcode
             ops = list(i.operands)
             # prevent duplicate havocs in nested loops
-            # TODO jie: why are havocs only from store instructions
+            # TODO : why are havocs only from store instructions
             if opcode == "store" and ops[1] not in havocs:
                 havocs.append(ops[1])
 
@@ -328,7 +328,7 @@ def processBranches(
             ps: Union[MLInst, Expr] = MLInst_Call(
                 fnName, Bool, returnArg, *filteredArgs
             )
-            # TODO(jie): not sure what wrapSummaryCheck is doing
+            # TODO: not sure what wrapSummaryCheck is doing
             if wrapSummaryCheck:
                 ps, transformedArgs = wrapSummaryCheck(cast(MLInst, ps))
                 returnArg = transformedArgs[0]

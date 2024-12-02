@@ -28,15 +28,14 @@ from metalift.ir import Lit, Matrix, Object, ObjectT
 from metalift.ir import Set as mlSet
 from metalift.ir import (
     Synth,
+    Tensor3D,
     Var,
     call,
     create_object,
-    get_list_element_type,
     get_object_exprs,
     implies,
     is_pointer_type,
     make_tuple_type,
-    parse_c_or_cpp_type_to_obj,
     parse_type_ref_to_obj,
 )
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
@@ -55,6 +54,7 @@ ReturnValue = NamedTuple(
 PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
 PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >)"
 NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >)"
+DOUBLE_NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({NESTED_VECTOR_TYPE_REGEX}), std::__1::allocator<({NESTED_VECTOR_TYPE_REGEX}) > >)"
 
 
 def set_create(
@@ -119,7 +119,7 @@ def list_length(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    # TODO(jie) think of how to better handle list of lists
+    # TODO think of how to better handle list of lists
     lst = state.read_or_load_operand(args[0])
     return ReturnValue(
         lst.len(),  # type: ignore
@@ -185,25 +185,21 @@ def new_vector(
     nested_match = re.match(
         rf"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
     )
+    double_nested_match = re.match(
+        rf"{DOUBLE_NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
+    )
     if primitive_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
+        list_obj = mlList.empty(Int)
     elif nested_match:
-        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
+        list_obj = Matrix.empty(Int)
+    elif double_nested_match:
+        list_obj = Tensor3D.empty(Int)
     else:
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
 
     var_name: str = args[0].name
-    contained_type = get_list_element_type(list_type)
-
-    if (
-        contained_type == mlList[Int]
-    ):  # special case when the vector is a matrix (2d array)
-        list_obj = Matrix.empty(get_list_element_type(contained_type))
-    else:
-        list_obj = mlList.empty(contained_type)
-
     list_loc = state.get_var_location(var_name)
     return ReturnValue(None, [(var_name, list_obj, list_loc)])
 
@@ -219,9 +215,10 @@ def vector_append(
 
     lst = state.read_or_load_operand(args[0])
     value = state.read_or_load_operand(args[1])
-
-    if lst.is_nested:
+    if lst.is_matrix:
         fn_name = "matrix_append"
+    elif lst.is_tensor3d:
+        fn_name = "tensor3d_append"
     else:
         fn_name = "list_append"
 
@@ -251,18 +248,22 @@ def vector_length(
     nested_match = re.match(
         rf"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
     )
+    double_nested_match = re.match(
+        rf"{DOUBLE_NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
+    )
+    lst = state.read_or_load_operand(args[0])
+    if not isinstance(lst, mlList):
+        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
     if primitive_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(primitive_match.group(1))
+        lst.containedT = Int
     elif nested_match is not None:
-        list_type = parse_c_or_cpp_type_to_obj(nested_match.group(1))
+        lst.containedT = mlList[Int]
+    elif double_nested_match is not None:
+        lst.containedT = Matrix[Int]
     else:
         raise Exception(
             f"Could not determine vector type from demangled function name {full_demangled_name}"
         )
-    lst = state.read_or_load_operand(args[0])
-    if not isinstance(lst, mlList) and not isinstance(lst, Matrix):
-        raise Exception(f"{args[0]} is not a list! Cannot extract its length")
-    lst.containedT = get_list_element_type(list_type)
 
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)
@@ -295,7 +296,7 @@ def new_tuple(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    # TODO(jie): handle types other than Int
+    # TODO: handle types other than Int
     return ReturnValue(call("newTuple", make_tuple_type(Int, Int)), None)
 
 
@@ -305,7 +306,7 @@ def make_tuple(
     full_demangled_name: str,
     *args: ValueRef,
 ) -> ReturnValue:
-    # TODO(jie): handle types other than Int
+    # TODO: handle types other than Int
     reg_vals = [state.read_or_load_operand(args[i]) for i in range(len(args))]
     contained_type = [Int for _ in range(len(args))]
     return_type = make_tuple_type(*contained_type)
@@ -478,7 +479,7 @@ def get_fn_name_from_call_instruction(o: ValueRef) -> str:
     raw_fn_name = get_raw_fn_name_from_call_instruction(o)
     ops = list(o.operands)
     if raw_fn_name == "":
-        # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+        # TODO: this is a hack around LLVM bitcasting the function before calling it on aarch64
         fn_name = str(ops[-1]).split("@")[-1].split(" ")[0]
     else:
         demangled_name = get_demangled_fn_name(raw_fn_name)
@@ -657,13 +658,11 @@ LLVMVar = NamedTuple(
 class InvGrammar:
     def __init__(
         self,
-        func: Optional[Callable[[List[Object], List[Object], List[Object]], Bool]],
-        in_scope_var_names: List[str] = [],
-        override_args: List[Object] = [],
-    ):
+        func: Callable[[List[Object], List[Object], List[Object]], Bool],
+        in_scope_var_names: List[str],
+    ) -> None:
         self.func = func
         self.in_scope_var_names = in_scope_var_names
-        self.override_args = override_args
 
 
 class State:
@@ -797,6 +796,8 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Bool:
+        # This is kind of a hack but sometimes we only know what's in scope at runtime when we call gen_synth
+        self.gen_synth(relaxed_grammar=False)
         call_res = call(
             self.name,
             Bool,
@@ -804,8 +805,8 @@ class Predicate:
         )
         return cast(Bool, call_res)
 
-    def gen_Synth(self) -> Synth:
-        body = self.grammar(self.writes, self.reads, self.in_scope).src
+    def gen_synth(self, relaxed_grammar: bool) -> Synth:
+        body = self.grammar(self.writes, self.reads, self.in_scope, relaxed_grammar).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
@@ -857,9 +858,6 @@ class PredicateTracker:
             ps = Predicate(ins + outs, outs, ins, in_scope, f"{fn_name}_ps", grammar)
             self.predicates[fn_name] = ps
             return ps
-
-    def VCall(self, name: str, s: State) -> Bool:
-        return self.predicates[name].call(s)
 
 
 class VCVisitor:
@@ -1014,7 +1012,7 @@ class VCVisitor:
         for var in loop_info.havocs:
             var_type = self.get_var_type(var.name)
             # var_type = blk_state.read_or_load_var(var.name).type
-            # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
+            # TODO: add generic (ie containedT) support needed for objects and different types of objects
             obj = create_object(var_type, var.name)
             if var.type.is_pointer:
                 pointer_havocs.append(obj)
@@ -1099,7 +1097,7 @@ class VCVisitor:
             if len(pred_preconds) >= 1:
                 blk_state.precond = [or_objects(*pred_preconds)]
 
-            # TODO(jie): handle global vars and uninterpreted functions
+            # TODO: handle global vars and uninterpreted functions
 
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
@@ -1197,7 +1195,7 @@ class VCVisitor:
             self.driver.add_var_objects(havocs)
             inv_name = f"{self.fn_name}_inv{self.loops.index(loop)}"
 
-            # TODO(jie): extract this logic to be better
+            # TODO: extract this logic to be better
             in_scope_objs: List[Object] = []
             for var_name, var_obj in blk_state.primitive_vars.items():
                 in_scope_objs.append(create_object(var_obj.type, var_name))
@@ -1262,7 +1260,10 @@ class VCVisitor:
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
-                    implies(and_objects(*blk_state.precond), inv.call(blk_state))
+                    implies(
+                        and_objects(*blk_state.precond),
+                        inv.call(blk_state),
+                    )
                 )
             else:
                 blk_state.asserts.append(inv.call(blk_state))
@@ -1278,7 +1279,7 @@ class VCVisitor:
         )  # bug: ops[0] always return i32 1 regardless of type
         obj_type = parse_type_ref_to_obj(t)
 
-        # TODO(jie): handle custom contained types
+        # TODO: handle custom contained types
         default_val = obj_type.default_value()
 
         # o.name is the register name
@@ -1437,7 +1438,7 @@ class VCVisitor:
         )
 
         # Call postcondition
-        # TODO(jie) use the call method of the predicate
+        # TODO use the call method of the predicate
         ps = call(
             self.pred_tracker.predicates[self.fn_name].name,
             Bool,
@@ -1459,7 +1460,7 @@ class VCVisitor:
         fn_name = get_fn_name_from_call_instruction(o)
 
         if fn_name in fn_models:
-            # TODO(colin): handle global var
+            # TODO: handle global var
             # last argument is ValuRef of arguments to call and is used to index into primitive and pointer variable, format need to match
             # process the mangled name -> name, type
             raw_fn_name = get_raw_fn_name_from_call_instruction(o)
@@ -1528,7 +1529,7 @@ class Driver:
         return self.var_tracker.variable(name, type)
 
     def add_var_object(self, var_object: Object) -> None:
-        # TODO(jie): extract this check to a more generic function
+        # TODO: extract this check to a more generic function
         if not isinstance(var_object.src, Var):
             raise Exception("source is not variable!")
         self.var_tracker.variable(var_object.var_name(), var_object.type)
@@ -1575,7 +1576,7 @@ class Driver:
                     )
 
     def get_ps_fn_decl(self) -> Union[FnDecl, FnDeclRecursive]:
-        # TODO(jie): delete potentially
+        # TODO: delete potentially
         for fname, f in self.synthesized_fns.items():
             if re.match("(\w+)_ps", fname):
                 return f
@@ -1605,83 +1606,53 @@ class Driver:
                 return f.__class__(f.name(), actual_return_type, body, *actual_args)
         raise Exception("ps function is not found!")
 
-    def synthesize(self, filename: str, **synthesize_kwargs) -> None:  # type: ignore
-        synths = [i.gen_Synth() for i in self.pred_tracker.predicates.values()]
+    def synthesize(
+        self,
+        filename: str,
+        relaxed_grammar: bool = False,
+        **synthesize_kwargs,
+    ) -> None:  # type: ignore
+        # First we need to call the function
+        synths = [
+            i.gen_synth(relaxed_grammar) for i in self.pred_tracker.predicates.values()
+        ]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
         target = []
         for fn in self.fns.values():
             target += fn.target_lang_fn()
         inv_and_ps = synths + self.fns_synths
-        fn_defs_to_exclude: List[FnDeclRecursive] = []
-        for i in range(1):
-            synthesized: List[FnDeclRecursive] = run_synthesis(
-                basename=filename,
-                target_lang=target,
-                vars=set(self.var_tracker.all()),
-                inv_and_ps=inv_and_ps,
-                preds=[],
-                vc=vc,
-                loop_and_ps_info=synths,
-                cvc_path="cvc5",
-                # fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
-                fns_to_guess=synths,
-                **synthesize_kwargs,
-            )
-            for f in synthesized:
-                if "inv0" in f.name():
-                    fn_defs_to_exclude.append(f)
+        synthesized: List[FnDeclRecursive] = run_synthesis(
+            basename=filename,
+            target_lang=target,
+            vars=set(self.var_tracker.all()),
+            inv_and_ps=inv_and_ps,
+            preds=[],
+            vc=vc,
+            loop_and_ps_info=synths,
+            cvc_path="cvc5",
+            fns_to_guess=synths,
+            **synthesize_kwargs,
+        )
 
-            for f in synthesized:
-                name = f.name()
-                if name not in [ip.name() for ip in inv_and_ps]:
-                    continue
-                self.synthesized_fns[name] = f
+        for f in synthesized:
+            name = f.name()
+            if name not in [ip.name() for ip in inv_and_ps]:
+                continue
+            self.synthesized_fns[name] = f
 
-                # TODO: added back for codegen
-                m = re.match("(\w+)_ps", f.name())  # ignore the invariants
-                if m:
-                    name = m.groups()[0]
-                    if isinstance(f.body(), Eq):
-                        self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
-                        print(f"{name} synthesized: {self.fns[name].synthesized}")
-                    elif (
-                        isinstance(f.body(), Call)
-                        and cast(Call, f.body()).name() == "list_eq"
-                    ):
-                        self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
-                        print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # TODO: figure out why was it commented out
-                # if isinstance(f.body(), Eq):
-                #     self.synthesized_fns.append(cast(Eq, f.body()).e2())
-                #     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # elif (
-                #     isinstance(f.body(), Call)
-                #     and cast(Call, f.body()).name() == "list_eq"
-                # ):
-                #     self.synthesized_fns.append(cast(Call, f.body()).arguments()[1])
-                #     print(f"{name} synthesized: {self.fns[name].synthesized}")
-                # else:
-                #     import pdb; pdb.set_trace()
-                #     raise Exception(
-                #         f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                #     )
-                # m = re.match("(\w+)_ps", f.name())  # ignore the invariants
-                # if m:
-                #     name = m.groups()[0]
-                #     if isinstance(f.body(), Eq):
-                #         self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
-                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #     elif (
-                #         isinstance(f.body(), Call)
-                #         and cast(Call, f.body()).name() == "list_eq"
-                #     ):
-                #         self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
-                #         print(f"{name} synthesized: {self.fns[name].synthesized}")
-                #     else:
-                #         raise Exception(
-                #             f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                #         )
+            # TODO: added back for codegen
+            m = re.match("(\w+)_ps", f.name())  # ignore the invariants
+            if m:
+                name = m.groups()[0]
+                if isinstance(f.body(), Eq):
+                    self.fns[name].synthesized = cast(Eq, f.body()).e2()  # type: ignore
+                    print(f"{name} synthesized: {self.fns[name].synthesized}")
+                elif (
+                    isinstance(f.body(), Call)
+                    and cast(Call, f.body()).name() == "list_eq"
+                ):
+                    self.fns[name].synthesized = cast(Call, f.body()).arguments()[1]  # type: ignore
 
     def add_precondition(self, e: Object) -> None:
         # this gets propagated to the State when it is created
@@ -1700,7 +1671,7 @@ class MetaliftFunc:
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
     ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
-    synthesized: Optional[Object]  # TODO(colin): change this into list
+    synthesized: Optional[Object]  # TODO: change this into list
 
     loops: List[LoopInfo]
 
@@ -1762,24 +1733,6 @@ class MetaliftFunc:
         ]
 
     def __call__(self, *args: Object, **kwds: Any) -> Any:
-        # Check that the arguments passed in have the same names and types as the function definition.
-        # num_actual_args, num_expected_args = len(args), len(list(self.fn_args))
-        # if num_expected_args != num_actual_args:
-        #     raise RuntimeError(
-        #         f"expect {num_expected_args} args passed to {self.fn_name} got {num_actual_args} instead"
-        #     )
-        # for i in range(len(args)):
-        #     passed_in_arg_name, passed_in_arg_type = args[i].var_name(), args[i].type
-        #     fn_arg_name, fn_arg_type = self.fn_args[i].name, self.fn_args_types[i]
-        #     if passed_in_arg_name != fn_arg_name:
-        #         raise Exception(
-        #             f"Expecting the {i}th argument to have name {fn_arg_name} but instead got {passed_in_arg_name}"
-        #         )
-        #     if passed_in_arg_type != fn_arg_type:
-        #         raise RuntimeError(
-        #             f"expect {fn_arg_name} to have type {fn_arg_type} rather than {passed_in_arg_type}"
-        #         )
-
         if self.fn_sret_arg is not None:
             sret_obj_type = parse_type_ref_to_obj(self.fn_sret_arg.type)
             sret_obj = create_object(sret_obj_type, self.fn_sret_arg.name)
@@ -1812,14 +1765,14 @@ class MetaliftFunc:
                     v.visit_llvm_block(b)
                     done = False
 
-        # TODO(jie): now we should update the return type
+        # TODO: now we should update the return type
         # if sret_obj is not None:
         #     self.fn_ret_type = sret_obj.type
         #     import pdb; pdb.set_trace()
         # ret_val = create_object(self.fn_ret_type, f"{self.fn_name}_rv")
         # self.driver.add_var_object(ret_val)
 
-        # # TODO(jie) instead of constructin this call manually can we replace it with a method call.
+        # # TODO instead of constructin this call manually can we replace it with a method call.
         # ps = call(f"{self.fn_name}_ps", Bool, *args, ret_val)
 
         # self.driver.postconditions.append(cast(Bool, ps))
