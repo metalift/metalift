@@ -1040,3 +1040,15 @@ def run_gemini(dsl_code: str, source_code: str, solution: str, feedback: str):
 
     response = extract(response.text)
     return response, gemini_template_text
+
+
+# Define the replacement function
+def replace_ite(ps_sol: str) -> str:
+    def repl_func(match):
+        cond = match.group(1).strip()
+        a = match.group(2).strip()
+        b = match.group(3).strip()
+        return f"{a} if {cond} else {b}"
+
+    ite_pattern = r"ite\(([^,]+),\s*([^,]+),\s*([^)]+)\)"
+    return re.sub(ite_pattern, repl_func, ps_sol)
