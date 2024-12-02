@@ -616,9 +616,11 @@ def synthesize(
 
     synth_names = to_synthesize(loop_and_ps_info, target_lang)
 
-    last_result_synth = [""]
     last_processed_sol_idx = -1
 
+    # before we start synthesis, we need to delete all previous solutions.
+    for sol_file in Path(synth_dir).glob(f"{basename}_sol*"):
+        sol_file.unlink()
     proc_synthesis = subprocess.Popen(
         ["racket", synth_file],
         stdout=subprocess.PIPE,
