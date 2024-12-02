@@ -5,7 +5,7 @@ from tenspiler.llm.scripts.utils import (
 )
 
 
-def get_ps_prompt(dsl_code: str, source_code: str) -> str:
+def get_ps_prompt(*, dsl_code: str, source_code: str) -> str:
     ps_text = f"""
     Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
 

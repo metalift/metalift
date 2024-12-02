@@ -4,6 +4,8 @@ from metalift.frontend.llvm import Driver
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
+from tenspiler.llm.scripts.models import LLMModel
+from tenspiler.llm.scripts.prompts import get_ps_prompt
 
 tpcc_benchmarks = {
     "normal_blend_f",
@@ -137,3 +139,24 @@ def run_synthesis_algorithm(
             list_bound += 1
         except Exception as e:
             raise e
+
+def run_llm_synthesis_algorithm(
+    *,
+    driver: Driver,
+    source_file: Path,
+    data_type: DataType,
+    benchmark_name: str,
+    model: LLMModel
+):
+    # First we need to get DSL and source code
+    dsl_code = "\n\n".join(fn.to_python() for fn in driver.target_lang_fns)
+    source_code = source_file.read_text()
+
+    # First we need to generate prompts
+    ps_prompt = get_ps_prompt(dsl_code=dsl_code, source_code=source_code)
+
+    # Get result from LLM
+
+    # Run parser
+
+    # Generate inv if need to

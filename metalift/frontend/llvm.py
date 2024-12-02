@@ -1525,6 +1525,13 @@ class Driver:
         self.var_tracker = VariableTracker()
         self.pred_tracker = PredicateTracker()
 
+    @property
+    def target_lang_fns(self) -> List[FnDecl | FnDeclRecursive]:
+        fns: List[FnDecl | FnDeclRecursive] = []
+        for fn in self.fns.values():
+            fns.extend(fn.target_lang_fn())
+        return fns
+
     def variable(self, name: str, type: ObjectT) -> Var:
         return self.var_tracker.variable(name, type)
 
@@ -1618,9 +1625,7 @@ class Driver:
         ]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
-        target = []
-        for fn in self.fns.values():
-            target += fn.target_lang_fn()
+        target = self.target_lang_fns
         inv_and_ps = synths + self.fns_synths
         synthesized: List[FnDeclRecursive] = run_synthesis(
             basename=filename,
