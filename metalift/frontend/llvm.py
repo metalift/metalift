@@ -56,6 +56,8 @@ PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std
 NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >)"
 DOUBLE_NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({NESTED_VECTOR_TYPE_REGEX}), std::__1::allocator<({NESTED_VECTOR_TYPE_REGEX}) > >)"
 
+GrammarT = Callable[[List[Object], List[Object], List[Object]], Bool]
+
 
 def set_create(
     state: "State",
@@ -659,7 +661,7 @@ LLVMVar = NamedTuple(
 class InvGrammar:
     def __init__(
         self,
-        func: Callable[[List[Object], List[Object], List[Object]], Bool],
+        func: Optional[GrammarT],
         in_scope_var_names: List[str],
     ) -> None:
         self.func = func
@@ -773,7 +775,7 @@ class Predicate:
     reads: List[Object]
     in_scope: List[Object]
     name: str
-    grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
+    grammar: Optional[GrammarT]
     synth: Optional[Synth]
 
     # argument ordering convention:
@@ -786,7 +788,7 @@ class Predicate:
         reads: List[Object],
         in_scope: List[Object],
         name: str,
-        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        grammar: Optional[GrammarT],
     ) -> None:
         self.args = args
         self.writes = writes
@@ -797,8 +799,9 @@ class Predicate:
         self.synth = None
 
     def call(self, state: State) -> Bool:
-        # This is kind of a hack but sometimes we only know what's in scope at runtime when we call gen_synth
-        self.gen_synth(relaxed_grammar=False)
+        # This is kind of a hack but sometimes we only know what's in scope at runtime when we call the predicate.
+        if self.grammar is not None:
+            self.grammar(self.writes, self.reads, self.in_scope, relaxed_grammar=False)
         call_res = call(
             self.name,
             Bool,
@@ -807,6 +810,8 @@ class Predicate:
         return cast(Bool, call_res)
 
     def gen_synth(self, relaxed_grammar: bool) -> Synth:
+        if self.grammar is None:
+            raise Exception(f"Grammar for {self.name} is not defined!")
         body = self.grammar(self.writes, self.reads, self.in_scope, relaxed_grammar).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
@@ -826,7 +831,7 @@ class PredicateTracker:
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        grammar: Optional[GrammarT],
     ) -> Predicate:
         if inv_name in self.predicates.keys():
             return self.predicates[inv_name]
@@ -851,7 +856,7 @@ class PredicateTracker:
         outs: List[Object],
         ins: List[Object],
         in_scope: List[Object],
-        grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        grammar: Optional[GrammarT],
     ) -> Predicate:
         if fn_name in self.predicates:
             return self.predicates[fn_name]
@@ -873,7 +878,7 @@ class VCVisitor:
     pred_tracker: PredicateTracker
 
     inv_grammars: Dict[str, InvGrammar]
-    ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
+    ps_grammar: Optional[GrammarT]
 
     loops: List[LoopInfo]
 
@@ -892,7 +897,7 @@ class VCVisitor:
         var_tracker: VariableTracker,
         pred_tracker: PredicateTracker,
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        ps_grammar: Optional[GrammarT],
         loops: List[LoopInfo],
         uninterp_fns: List[str],
     ) -> None:
@@ -1553,7 +1558,7 @@ class Driver:
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        ps_grammar: Optional[GrammarT],
     ) -> "MetaliftFunc":
         f = MetaliftFunc(
             driver=self,
@@ -1676,7 +1681,7 @@ class MetaliftFunc:
 
     target_lang_fn: Callable[[], List[FnDecl]]
     inv_grammars: Dict[str, InvGrammar]
-    ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool]
+    ps_grammar: Optional[GrammarT]
     synthesized: Optional[Object]  # TODO: change this into list
 
     loops: List[LoopInfo]
@@ -1689,7 +1694,7 @@ class MetaliftFunc:
         fn_name: str,
         target_lang_fn: Callable[[], List[FnDecl]],
         inv_grammars: Dict[str, InvGrammar],
-        ps_grammar: Callable[[List[Object], List[Object], List[Object]], Bool],
+        ps_grammar: Optional[GrammarT],
     ) -> None:
         self.driver = driver
         self.fn_name = fn_name

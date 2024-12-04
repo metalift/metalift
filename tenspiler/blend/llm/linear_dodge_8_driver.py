@@ -4,11 +4,12 @@ from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
 from tenspiler.constants import TENSPILER_FNS
 from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
+from tenspiler.utils.synthesis_utils import llm_analyze, run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
     driver = Driver()
-    linear_dodge_8 = driver.analyze(
+    linear_dodge_8 = llm_analyze(
+        driver=driver,
         llvm_filepath="tenspiler/blend/cpp/for_synthesis/linear_dodge_8.ll",
         loops_filepath="tenspiler/blend/cpp/for_synthesis/linear_dodge_8.loops",
         fn_name="linear_dodge_8",

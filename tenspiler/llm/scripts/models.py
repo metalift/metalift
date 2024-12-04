@@ -37,10 +37,13 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
 
 
 def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
+    import pdb
+
+    pdb.set_trace()
     print("running with gpt")
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = openai_client.chat.completions.create(
-        model="gpt-4",  # model to use gpt-4o-2024-08-06
+        model="gpt-4o",
         messages=messages_with_sys,
         n=1,
         temperature=0.7,
