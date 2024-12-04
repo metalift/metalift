@@ -456,11 +456,13 @@ def analyze(
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)
 
+
 def format_with_index(a: str, idx: int) -> str:
     if idx == 0:
         return a
     else:
         return f"{a}_{idx}"
+
 
 class VariableTracker(object):
     groups: Dict[str, int]
@@ -540,4 +542,3 @@ class VariableGroup(object):
             format_with_index(my_name, self.tracker.existing[my_name])
         ] = type
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
-

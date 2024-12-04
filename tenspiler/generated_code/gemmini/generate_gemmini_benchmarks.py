@@ -15,20 +15,27 @@ def find_all_drivers(driver_dirs):
         for dirpath, dirnames, filenames in os.walk(root_dir):
             for filename in filenames:
                 if filename.endswith("_driver.py"):
-                    benchmark_name = filename[:-10] # remove the _driver.py at the end
+                    benchmark_name = filename[:-10]  # remove the _driver.py at the end
                     full_path = join(dirpath, filename)
                     driver_files[benchmark_name] = full_path
     return driver_files
 
 
-driver_dirs = ["tenspiler/c2taco/holing/driver/", "tenspiler/blend/holing/driver/", "tenspiler/llama/holing/driver/"]
+driver_dirs = [
+    "tenspiler/c2taco/holing/driver/",
+    "tenspiler/blend/holing/driver/",
+    "tenspiler/llama/holing/driver/",
+]
 driver_files = find_all_drivers(driver_dirs)
 
 stored_path = "./tenspiler/generated_code/gemmini/"
 
+
 def generate_benchmark(benchmark_name):
     if benchmark_name not in all_test:
-        print(f"Benchmark name {benchmark_name} is not in predefined benchmark name list!")
+        print(
+            f"Benchmark name {benchmark_name} is not in predefined benchmark name list!"
+        )
         exit(1)
 
     data_type = None
@@ -36,20 +43,24 @@ def generate_benchmark(benchmark_name):
         if benchmark_name in gemmini_blend_func_names:
             data_type = DataType.UINT_8
         else:
-            print(f"Benchmark name {benchmark_name} is not supported in Gemmini backend")
+            print(
+                f"Benchmark name {benchmark_name} is not supported in Gemmini backend"
+            )
             return
-    elif benchmark_name in llama_test_name: 
+    elif benchmark_name in llama_test_name:
         if benchmark_name in gemmini_llama_func_names:
             data_type = DataType.FLOAT
         else:
-            print(f"Benchmark name {benchmark_name} is not supported in Gemmini backend")
+            print(
+                f"Benchmark name {benchmark_name} is not supported in Gemmini backend"
+            )
             return
     elif benchmark_name not in gemmini_not_comp:
         data_type = DataType.INT32
     else:
         print(f"Benchmark name {benchmark_name} is not supported in Gemmini backend")
         return
-    
+
     script_path = driver_files[benchmark_name]
     script_dir = dirname(script_path)
     script_basename = basename(script_path)
@@ -155,6 +166,7 @@ def generate_benchmarks(benchmark_name):
     else:
         generate_benchmark(benchmark_name)
     print("Finished generation")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

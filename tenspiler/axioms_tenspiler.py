@@ -1,6 +1,6 @@
-from metalift.ir import Axiom, Bool, Int, ite
+from metalift.ir import Axiom, Bool, Int
 from metalift.ir import List as mlList
-from metalift.ir import Matrix, implies
+from metalift.ir import Matrix, implies, ite
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
     call_dissolve_matrix_selection,
@@ -109,12 +109,18 @@ def reduce_sum_axiom(data: mlList[int], index: int, max_pos: int) -> Bool:
         == call_reduce_sum(data[:index]) + data[index],
     )
 
+
 def reduce_max_axiom(data: mlList[int], index: int, max_pos: int) -> Bool:
     return implies(
         and_objects(index >= 0, index <= max_pos, max_pos >= 0),
         call_reduce_max(data[: index + 1])
-        == ite(data[index] > (call_reduce_max(data[:index])), data[index], (call_reduce_max(data[:index])))
+        == ite(
+            data[index] > (call_reduce_max(data[:index])),
+            data[index],
+            (call_reduce_max(data[:index])),
+        ),
     )
+
 
 def vec_scalar_div_axiom(a: mlList[int], i: int, index: int) -> Bool:
     return implies(

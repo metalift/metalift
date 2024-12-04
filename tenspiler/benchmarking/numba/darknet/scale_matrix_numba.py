@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def scale_matrix_numba(m, scale, res):

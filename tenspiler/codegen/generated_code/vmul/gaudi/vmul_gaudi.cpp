@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t VmulPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

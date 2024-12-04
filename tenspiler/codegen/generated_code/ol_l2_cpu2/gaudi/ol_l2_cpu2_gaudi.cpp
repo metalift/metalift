@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t OlL2Cpu2PsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

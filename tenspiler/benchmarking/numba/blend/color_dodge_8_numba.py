@@ -1,22 +1,25 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def color_dodge_8_numba(base, active, res):
-#   output = []
-  m = len(base)
-  n = len(base[0])
-  for i in range(m):
-    # curr_row = []
-    for j in range(n):
-      if active[i][j] == 255:
-        pixel = 255
-      else:
-        pixel = base[i][j] // (255 - active[i][j])
-    #   curr_row.append(pixel)
-      res[i][j] = pixel
-    # output.append(curr_row)
+    #   output = []
+    m = len(base)
+    n = len(base[0])
+    for i in range(m):
+        # curr_row = []
+        for j in range(n):
+            if active[i][j] == 255:
+                pixel = 255
+            else:
+                pixel = base[i][j] // (255 - active[i][j])
+            #   curr_row.append(pixel)
+            res[i][j] = pixel
+        # output.append(curr_row)
+
+
 #   return output
 
 import os

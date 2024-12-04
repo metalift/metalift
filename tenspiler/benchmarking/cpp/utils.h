@@ -3,7 +3,7 @@
 #include <vector>
 using namespace std;
 
-#include <opencv2/opencv.hpp> 
+#include <opencv2/opencv.hpp>
 using namespace cv;
 
 extern vector<cv::String> fn;
@@ -21,7 +21,7 @@ std::array<vector<vector<uint8_t>>,2> get_base_active(int i);
 std::array<vector<vector<int32_t>>,2> get_base_active_int(int i);
 
 void setup_timer(bool, bool, bool);
-void setup_timer_7b(bool, bool, bool); 
+void setup_timer_7b(bool, bool, bool);
 
 float random_float();
 uint8_t random_grayscale();
@@ -40,4 +40,3 @@ std::vector<std::string> glob(const std::string& directory, const std::string& p
 
 double average(std::vector<long long> v);
 double stdiv(std::vector<long long> v);
-

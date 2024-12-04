@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t FirSmallPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

@@ -10,4 +10,3 @@ float softmax_part3(vector<float> output, int max_pos) {
     }
     return sum;
 }
-

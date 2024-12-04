@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t MseArrayPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

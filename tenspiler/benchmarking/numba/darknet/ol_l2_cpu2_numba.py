@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def ol_l2_cpu2_numba(n, pred, truth, res):
@@ -47,7 +48,7 @@ blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
 ol_l2_cpu2_numba[blockspergrid, threadsperblock](n, b, a, res)
-    
+
 runs = 10
 times = []
 for _ in range(runs):

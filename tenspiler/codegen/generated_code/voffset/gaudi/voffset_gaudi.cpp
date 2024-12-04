@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t VoffsetPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

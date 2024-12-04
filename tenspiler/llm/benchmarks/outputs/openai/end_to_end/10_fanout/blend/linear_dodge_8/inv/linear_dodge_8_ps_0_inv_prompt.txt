@@ -8,7 +8,7 @@ Your task is to prove that `assertion` is true in the `test` function. The asser
     5. Generate separate loop invariants for each loop in the test function.
     6. invariant structure
     ```
-    
+
 def invariant1(active: List[List[int]], base: List[List[int]], out: List[List[int]], row: int) -> bool:
     return row op expr() and row op expr() and out == operation over defined functions
 
@@ -332,4 +332,3 @@ assert out == matrix_elemwise_add(base, active)
 }
 
     ```
-    

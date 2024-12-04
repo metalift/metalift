@@ -1,40 +1,46 @@
-
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
-def rmsnorm_part1_numba (input, weight, res):
+def rmsnorm_part1_numba(input, weight, res):
     ss = 0
     for i in range(len(input)):
         ss += input[i] * input[i]
     res[0] = ss
     # return ss
 
+
 ####### more import statements for benchmarking ########
 import time
+
 import h5py
 
 ####### setup for benchmarking ########
 rng = np.random.default_rng(1)
 
-weights_path = './vicuna_weight.h5'
+weights_path = "./vicuna_weight.h5"
 
 weights = []
 w_input = []
 
 
-with h5py.File(weights_path, 'r') as weight_file:
+with h5py.File(weights_path, "r") as weight_file:
     for layer_name in weight_file:
         w = np.squeeze(np.array(weight_file[layer_name])).astype(np.float32)
-        if "model" in layer_name and "embed_tokens" not in layer_name and "layernorm" not in layer_name:
+        if (
+            "model" in layer_name
+            and "embed_tokens" not in layer_name
+            and "layernorm" not in layer_name
+        ):
             weights.append(w)
-            w_input.append(rng.random(w.shape, dtype = np.float32))
+            w_input.append(rng.random(w.shape, dtype=np.float32))
 
-####### runner. need to manually update for each file ########  
+####### runner. need to manually update for each file ########
 inp = w_input[-1].flatten()
 w = weights[-1].flatten()
-res = np.array([0], dtype = np.float32)
+res = np.array([0], dtype=np.float32)
 
 threadsperblock = 32
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
@@ -48,7 +54,7 @@ for _ in range(runs):
     for i in range(len(weights)):
         inp = w_input[i].flatten()
         w = weights[i].flatten()
-        res = np.array([0], dtype = np.float32)
+        res = np.array([0], dtype=np.float32)
 
         threadsperblock = 32
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
@@ -61,8 +67,8 @@ for _ in range(runs):
 
     times.append(total_time)
 
-times = np.array(times)   
+times = np.array(times)
 
 print("rmsnorm_part1_nb")
-print(f"{np.average(times)} {np.std(times)}") 
-print(f"{np.average(times)} {np.std(times)}") 
+print(f"{np.average(times)} {np.std(times)}")
+print(f"{np.average(times)} {np.std(times)}")

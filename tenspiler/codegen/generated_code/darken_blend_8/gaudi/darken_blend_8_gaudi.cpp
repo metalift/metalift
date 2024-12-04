@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t DarkenBlend8PsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

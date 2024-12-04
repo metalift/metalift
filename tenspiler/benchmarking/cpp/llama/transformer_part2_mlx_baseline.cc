@@ -64,15 +64,15 @@ int main() {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<float>> k_matrix = k_weights[j]; 
-            
+            vector<vector<float>> k_matrix = k_weights[j];
+
             int token_position = k_matrix.size() - 1;
             int num_head = 32;
             int head = static_cast<int>(random_float() * num_head);
             int head_size = k_matrix.size() / num_head;
 
 
-            vector<float> q = flatten(q_weights[j]); 
+            vector<float> q = flatten(q_weights[j]);
 
             vector<float> attention = transformer_part1(token_position, head, head_size, k_matrix, q);
             attention.push_back(0);
@@ -80,10 +80,10 @@ int main() {
             auto start_time = high_resolution_clock::now();
             transformer_part2(token_position, head, head_size, k_matrix, attention);
             auto end_time = high_resolution_clock::now();
-            
+
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         cout << "transformer_part2_mlx_baseline" << endl;
         times.push_back(time);

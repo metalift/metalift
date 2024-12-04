@@ -1104,9 +1104,7 @@ def get_ps(
 
 
 def analyze_single_loop(
-    file_path: str,
-    func_name: str,
-    axioms: list[Object]
+    file_path: str, func_name: str, axioms: list[Object]
 ) -> tuple[Driver, dict[str, Object], MetaliftFunc]:
     driver = Driver()
     root_node = find_root_node_from_file(file_path)

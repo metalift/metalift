@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t SumOfSquaresPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

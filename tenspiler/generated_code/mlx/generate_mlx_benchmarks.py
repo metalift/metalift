@@ -8,25 +8,34 @@ from tenspiler.codegen.mlx_codegen import mlx_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.generated_code.benchmark_names import *
 
+
 def find_all_drivers(driver_dirs):
     driver_files = {}
     for root_dir in driver_dirs:
         for dirpath, dirnames, filenames in os.walk(root_dir):
             for filename in filenames:
                 if filename.endswith("_driver.py"):
-                    benchmark_name = filename[:-10] # remove the _driver.py at the end
+                    benchmark_name = filename[:-10]  # remove the _driver.py at the end
                     full_path = join(dirpath, filename)
                     driver_files[benchmark_name] = full_path
     return driver_files
 
-driver_dirs = ["tenspiler/c2taco/holing/driver/", "tenspiler/blend/holing/driver/", "tenspiler/llama/holing/driver/"]
+
+driver_dirs = [
+    "tenspiler/c2taco/holing/driver/",
+    "tenspiler/blend/holing/driver/",
+    "tenspiler/llama/holing/driver/",
+]
 driver_files = find_all_drivers(driver_dirs)
 
 stored_path = "./tenspiler/generated_code/mlx/"
 
+
 def generate_benchmark(benchmark_name):
     if benchmark_name not in all_test:
-        print(f"Benchmark name {benchmark_name} is not in predefined benchmark name list!")
+        print(
+            f"Benchmark name {benchmark_name} is not in predefined benchmark name list!"
+        )
         exit(1)
 
     data_type = None
@@ -38,7 +47,6 @@ def generate_benchmark(benchmark_name):
     else:
         data_type = DataType.INT32
 
-    
     script_path = driver_files[benchmark_name]
     script_dir = dirname(script_path)
     script_basename = basename(script_path)
@@ -120,7 +128,7 @@ def generate_benchmark(benchmark_name):
         folder_name = "blend"
     elif benchmark_name in llama_test_name:
         folder_name = "llama"
-    
+
     e2e_filename = join(stored_path, folder_name, f"{e2e_fn_name}.py")
 
     e2e_filepath = Path(e2e_filename)
@@ -132,6 +140,7 @@ def generate_benchmark(benchmark_name):
 
     print(f"Stored the genereted code into {e2e_filename}")
 
+
 def generate_benchmarks(benchmark_name):
     if benchmark_name == "ALL":
         for test in all_test:
@@ -139,6 +148,7 @@ def generate_benchmarks(benchmark_name):
     else:
         generate_benchmark(benchmark_name)
     print("Finished generation")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

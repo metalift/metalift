@@ -7,10 +7,10 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
+from tenspiler.axioms_tenspiler import reduce_sum_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import call_reduce_sum, reduce_sum
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import reduce_sum_axiom
 
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:

@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def sum_array_numba(a, n, res):
@@ -46,7 +47,7 @@ threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 sum_array_numba[blockspergrid, threadsperblock](b, n, res)
-    
+
 runs = 10
 times = []
 for _ in range(runs):

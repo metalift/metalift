@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t NRealUpdatesPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

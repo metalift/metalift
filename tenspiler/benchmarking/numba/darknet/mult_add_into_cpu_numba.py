@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def mult_add_into_cpu_numba(N, X, Y, Z, res):
@@ -48,7 +49,6 @@ blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
 mult_add_into_cpu_numba[blockspergrid, threadsperblock](n, b, a, rand_f, res)
-
 
 
 runs = 10

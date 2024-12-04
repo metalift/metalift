@@ -58,12 +58,7 @@ darknet_test_name = [
 
 
 utdsp_test_name = ["fir_small", "lmsfir1", "lmsfir2"]
-all_test = (
-    blend_test_name
-    + llama_test_name
-    + darknet_test_name
-    + utdsp_test_name
-)
+all_test = blend_test_name + llama_test_name + darknet_test_name + utdsp_test_name
 
 
 def execute_file(filepath):

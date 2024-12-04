@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t FourthInPlacePsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

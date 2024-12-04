@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t DiveqScaPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

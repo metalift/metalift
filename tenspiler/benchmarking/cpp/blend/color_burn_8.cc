@@ -46,13 +46,13 @@ int main() {
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base = res[0]; 
-            vector<vector<uint8_t>> active = res[1]; 
-            
+            vector<vector<uint8_t>> base = res[0];
+            vector<vector<uint8_t>> active = res[1];
+
             auto start_time = high_resolution_clock::now();
             color_burn_8(base, active);
             auto end_time = high_resolution_clock::now();
-            
+
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
         }

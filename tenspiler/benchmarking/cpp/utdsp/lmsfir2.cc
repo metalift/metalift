@@ -30,17 +30,17 @@ int main() {
 
     vector<long long> times;
     vector<long long> times_k;
-        
+
     size_t count = fn.size();
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<int32_t>>,2> res = get_base_active_int(j);
-            vector<vector<int32_t>> base = res[0]; 
-            vector<vector<int32_t>> active = res[1]; 
-            vector<int32_t> base_f = flatten_int32(base); 
-            vector<int32_t> active_f = flatten_int32(active); 
+            vector<vector<int32_t>> base = res[0];
+            vector<vector<int32_t>> active = res[1];
+            vector<int32_t> base_f = flatten_int32(base);
+            vector<int32_t> active_f = flatten_int32(active);
 
             int N = base_f.size();
             int32_t err = rand();
@@ -51,7 +51,7 @@ int main() {
 
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         times.push_back(time);
         times_k.push_back(time_k);
@@ -61,5 +61,3 @@ int main() {
     cout << average(times_k) / 1000.0 << " " << stdiv(times_k) / 1000.0 << endl;
 
 }
-
-

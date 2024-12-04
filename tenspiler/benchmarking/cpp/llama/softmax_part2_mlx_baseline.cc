@@ -45,7 +45,7 @@ int main() {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<float> inp1 = flatten(attn_weights[j]); 
+            vector<float> inp1 = flatten(attn_weights[j]);
             int max_pos = inp1.size();
 
             float max_val = softmax_part1(inp1, max_pos);
@@ -53,10 +53,10 @@ int main() {
             auto start_time = high_resolution_clock::now();
             softmax_part2(inp1, max_pos, max_val);
             auto end_time = high_resolution_clock::now();
-            
+
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         times.push_back(time);
         times_k.push_back(time_k);

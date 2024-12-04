@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t SumEltsPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

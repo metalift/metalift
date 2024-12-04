@@ -6,6 +6,12 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
+from tenspiler.axioms_tenspiler import (
+    matrix_vec_mul_axiom,
+    reduce_sum_axiom,
+    vec_elemwise_mul_axiom,
+    vec_scalar_mul_axiom,
+)
 from tenspiler.codegen.utils import DataType
 from tenspiler.llama.holing.driver.transformer.utils import (
     call_matrix_composed_index_fn,
@@ -25,12 +31,6 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import (
-    matrix_vec_mul_axiom,
-    reduce_sum_axiom,
-    vec_elemwise_mul_axiom,
-    vec_scalar_mul_axiom,
-)
 
 
 def transformer_part2_inv0_grammar(

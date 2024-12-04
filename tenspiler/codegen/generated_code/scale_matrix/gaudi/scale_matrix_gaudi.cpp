@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t ScaleMatrixPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

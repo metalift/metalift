@@ -1,8 +1,6 @@
 import os
 import sys
 
-import numpy as np
-
 from tenspiler.benchmarking.utils import *
 
 python_dir = os.path.join(parent_path, "numba")

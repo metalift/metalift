@@ -30,14 +30,14 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         long long time_k = 0;
-        for (int j = 0; j < count; j++) { 
-            vector<float> inp1 = flatten(weights[j]); 
-            vector<float> inp2 = flatten(w_input[j]); 
+        for (int j = 0; j < count; j++) {
+            vector<float> inp1 = flatten(weights[j]);
+            vector<float> inp2 = flatten(w_input[j]);
 
             auto start_time = high_resolution_clock::now();
             auto result = rmsnorm_part1(inp2, inp1);
             auto end_time = high_resolution_clock::now();
-            
+
             cout << result << endl;
 
             time += duration_cast<microseconds>(end_time - start_time).count();
@@ -45,7 +45,7 @@ int main() {
         }
         times.push_back(time);
         times_k.push_back(time_k);
-        
+
     }
 
     cout << "rmsnorm_part1" << endl;

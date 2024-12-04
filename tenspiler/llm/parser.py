@@ -4,8 +4,7 @@ import uuid
 from functools import lru_cache
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional
-from typing import Type, Union, cast, get_args
+from typing import Optional, Type, Union, cast, get_args
 
 from mypy import build
 from mypy.defaults import PYTHON3_VERSION
@@ -507,11 +506,9 @@ def mypy_node_to_ir(
     fn_decls.append(ps_fn_decl)
 
 
-def check_solution(solution: str, expected_num_funcs: int) -> tuple[
-    list[str],
-    list[FnDeclRecursive],
-    list[tuple[str, str]],
-]:
+def check_solution(
+    solution: str, expected_num_funcs: int
+) -> tuple[list[str], list[FnDeclRecursive], list[tuple[str, str]],]:
     universal_imports = f"""
     from tenspiler.llm.python_dsl import *
     from typing import Any, Callable, List

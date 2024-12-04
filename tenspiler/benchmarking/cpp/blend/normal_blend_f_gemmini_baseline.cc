@@ -24,7 +24,7 @@ vector<float> normal_blend_f(vector<float> base, vector<float> active, float opa
 
 int main() {
     srand(1);
-    
+
     vector<long long> times;
     vector<long long> times_k;
     size_t count = 10000;
@@ -33,8 +33,8 @@ int main() {
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
 
-            vector<float> base_f = random_vector(488); 
-            vector<float> active_f = random_vector(488); 
+            vector<float> base_f = random_vector(488);
+            vector<float> active_f = random_vector(488);
             float opacity = random_float();
 
             auto start_time = high_resolution_clock::now();

@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t MatsubPsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

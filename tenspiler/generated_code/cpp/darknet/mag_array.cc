@@ -10,6 +10,6 @@ int32_t mag_array(vector<int32_t> a, int n) {
     for(i = 0; i < n; ++i){
         sum += a[i] * a[i];
     }
-    
+
     return sum;
 }

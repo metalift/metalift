@@ -33,23 +33,23 @@ int main() {
 
     vector<long long> times;
     vector<long long> times_k;
-        
+
     size_t count = 10000;
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<int32_t>> base = random_matrix_int(500, 500); 
-            
+            vector<vector<int32_t>> base = random_matrix_int(500, 500);
+
             int32_t s = rand();
 
             auto start_time = high_resolution_clock::now();
             scale_matrix(base, s);
             auto end_time = high_resolution_clock::now();
-            
+
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         times.push_back(time);
         times_k.push_back(time_k);
@@ -59,4 +59,3 @@ int main() {
     cout << average(times_k) / 1000.0 << " " << stdiv(times_k) / 1000.0 << endl;
 
 }
-

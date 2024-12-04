@@ -5,7 +5,7 @@ import mlx.core as mx
 def transformer_part2_mx(token_position, head, head_size, key_cache_layer, attention):
     return mx.matmul(
         mx.transpose(
-            key_cache_layer[0: (token_position) + (1)][
+            key_cache_layer[0 : (token_position) + (1)][
                 :, (head) * (head_size) : (head) * (head_size) + head_size
             ]
         ),

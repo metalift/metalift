@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t Lmsfir2PsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

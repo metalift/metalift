@@ -1,9 +1,10 @@
-
 ####### import statements ########
 import tensorflow as tf
 
+
 def n_real_updates_tf(N, A, B, C):
     return ((A[:N]) * (B[:N])) + (C[:N])
+
 
 def n_real_updates_tf_glued(N, A, B, C):
     A = tf.convert_to_tensor(A, dtype=tf.int32)

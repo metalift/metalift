@@ -29,4 +29,3 @@ gcapi::GlueCodeReturn_t CubeInPlacePsGaudi2::GetGcDefinitions(
 
     return retVal;
 }
-

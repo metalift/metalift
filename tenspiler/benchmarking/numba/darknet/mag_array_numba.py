@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def mag_array_numba(a, n, res):
@@ -9,6 +10,7 @@ def mag_array_numba(a, n, res):
         sum += a[i] * a[i]
     res[0] = sum
     # return sum
+
 
 import os
 

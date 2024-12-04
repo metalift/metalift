@@ -4,6 +4,7 @@ from typing import List, Union
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
+from tenspiler.axioms_tenspiler import matrix_scalar_mul_axiom, vec_scalar_mul_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_matrix_scalar_mul,
@@ -13,7 +14,6 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import vec_scalar_mul_axiom, matrix_scalar_mul_axiom
 
 # Some loop functions
 outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"

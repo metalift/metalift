@@ -1,19 +1,22 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def linear_dodge_8_numba(base, active, res):
-#   output = []
-  m = len(base)
-  n = len(base[0])
-  for i in range(m):
-    # curr_row = []
-    for j in range(n):
-      pixel = base[i][j] + active[i][j]
-      res[i][j] = pixel
-    #   curr_row.append(pixel)
-    # output.append(curr_row)
+    #   output = []
+    m = len(base)
+    n = len(base[0])
+    for i in range(m):
+        # curr_row = []
+        for j in range(n):
+            pixel = base[i][j] + active[i][j]
+            res[i][j] = pixel
+        #   curr_row.append(pixel)
+        # output.append(curr_row)
+
+
 #   return output
 
 
