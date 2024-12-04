@@ -1,6 +1,8 @@
 from pathlib import Path
+from typing import Callable
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import FnDecl, FnDeclRecursive
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
@@ -146,7 +148,7 @@ def run_synthesis_algorithm(
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
-    source_file: Path,
+    source_file: str,
     suite_name: str,
     benchmark_name: str,
     llm_model: LLMModel,
@@ -164,7 +166,7 @@ def run_llm_synthesis_algorithm(
     """
     # First we need to get DSL and source code
     dsl_code = "\n\n".join(fn.to_python() for fn in driver.target_lang_fns)
-    source_code = source_file.read_text()
+    source_code = Path(source_file).read_text()
 
     # First we need to generate prompts
     ps_prompt = get_ps_prompt(dsl_code=dsl_code, source_code=source_code)
@@ -252,3 +254,24 @@ def run_llm_synthesis_algorithm(
 
     print("Found PS solution")
     print(ps_sol)
+
+
+def llm_analyze(
+    driver: Driver,
+    llvm_filepath: str,
+    loops_filepath: str,
+    fn_name: str,
+    target_lang_fn: Callable[[], list[FnDeclRecursive | FnDecl]],
+    inv_in_scope_vars: dict[str, list[str]] = {},
+):
+    return driver.analyze(
+        llvm_filepath=llvm_filepath,
+        loops_filepath=loops_filepath,
+        fn_name=fn_name,
+        target_lang_fn=target_lang_fn,
+        ps_grammar=None,
+        inv_grammars={
+            inv_name: InvGrammar(None, in_scope_var_names=var_names)
+            for inv_name, var_names in inv_in_scope_vars.items()
+        },
+    )
