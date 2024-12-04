@@ -130,11 +130,11 @@ def get_dsl_func_defs() -> List[FuncDef]:
     options.preserve_asts = True
     options.export_types = True
     mypy_build = build.build(
-        sources=[BuildSource(path=None, module="tenspiler.llm.python_dsl")],
+        sources=[BuildSource(path=None, module="tenspiler.llm.dsl")],
         options=options,
     )
     python_dsl_tree: MypyFile = cast(
-        MypyFile, mypy_build.graph["tenspiler.llm.python_dsl"].tree
+        MypyFile, mypy_build.graph["tenspiler.llm.dsl"].tree
     )  # tree of the entire module / file
 
     # Get function signatures of the python dsl module
@@ -157,7 +157,7 @@ def mypy_parse(
     mypy_build = build.build(
         sources=[
             BuildSource(path=None, module="target_code", text=code),
-            BuildSource(path=None, module="tenspiler.llm.python_dsl"),
+            BuildSource(path=None, module="tenspiler.llm.dsl"),
         ],
         options=options,
     )
@@ -507,13 +507,18 @@ def mypy_node_to_ir(
 
 
 def check_solution(
-    solution: str, expected_num_funcs: int
+    *, solution: str, expected_num_funcs: int, dsl_code: str
 ) -> tuple[list[str], list[FnDeclRecursive], list[tuple[str, str]],]:
-    universal_imports = f"""
-    from tenspiler.llm.python_dsl import *
-    from typing import Any, Callable, List
-    """
-    full_prog = dedent(remove_comments(dedent(universal_imports) + dedent(solution)))
+    universal_imports = "from typing import Any, Callable, List\n"
+    dsl_imports = "from tenspiler.llm.dsl import *\n"
+    with open(TENSPILER_LLM_PATH / "dsl.py", "w") as f:
+        dsl_code_with_imports = dedent(
+            remove_comments(dedent(universal_imports) + dedent(dsl_code))
+        )
+        f.write(dsl_code_with_imports)
+    full_prog = dedent(
+        remove_comments(universal_imports + dsl_imports + dedent(solution))
+    )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
     fn_decls: list[FnDeclRecursive] = []
     in_calls: list[tuple[str, str]] = []

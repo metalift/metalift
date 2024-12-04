@@ -8,7 +8,12 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from tenspiler.llm.scripts.utils import TEMPLATE_SYS, extract, replace_ite
+from tenspiler.llm.scripts.utils import (
+    TEMPLATE_SYS,
+    extract,
+    extract_all_python_functions,
+    replace_ite,
+)
 
 load_dotenv()
 
@@ -37,9 +42,6 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
 
 
 def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
-    import pdb
-
-    pdb.set_trace()
     print("running with gpt")
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = openai_client.chat.completions.create(
@@ -49,7 +51,7 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
         temperature=0.7,
     )
     outputs = [choice.message.content for choice in outputs.choices]
-    raw_output = extract(outputs[0])[0]
+    raw_output = "\n\n".join(extract_all_python_functions(outputs[0]))
     extracted_output = replace_ite(raw_output)
     return extracted_output
 
