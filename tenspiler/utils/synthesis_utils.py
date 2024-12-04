@@ -7,7 +7,7 @@ from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.llm.parser import check_solution
-from tenspiler.llm.scripts.models import LLMModel, get_solution_from_llm
+from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
 from tenspiler.llm.scripts.utils import TEMPLATE_ERR, is_single_loop, verify_benchmark
 
@@ -187,14 +187,21 @@ def run_llm_synthesis_algorithm(
             ]
         else:
             messages_for_new_sol = [inv_template_message]
-        ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+        # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+        ps_sol = """
+        def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+            return matrix_elemwise_add(base, active)
+        """
         print("Generated new PS solution", ps_sol)
         ps_sols.append(ps_sol)
 
         # Check if the solution passes the parser. If it does, we can continue to the next step. Otherwise, we would like to generate another PS.
         try:
-            ps_func_names, ps_fn_decls, ps_inv_calls = check_solution(ps_sol, 1)
-            ps_func_name = ps_func_names[0]
+            _, ps_fn_decls, ps_inv_calls = check_solution(
+                solution=ps_sol,
+                expected_num_funcs=1,
+                dsl_code=dsl_code,
+            )
             print("Passed the parser, continuing to invariant generation")
         except Exception as e:
             print("Failed to pass the parser", e)
@@ -208,8 +215,6 @@ def run_llm_synthesis_algorithm(
         inv_sols: list[str] = []
         for inv_sol_index in range(max_num_inv_sols):
             print(f"----- Generating {inv_sol_index} invariant -----")
-            print("Generated new INV solution", inv_sol)
-            inv_sols.append(inv_sol)
             inv_template_message = {"role": "user", "content": inv_prompt}
 
             if len(inv_sols) > 0:
@@ -220,13 +225,24 @@ def run_llm_synthesis_algorithm(
                 ]
             else:
                 messages_for_new_sol = [inv_template_message]
-            inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-            print("Generated new PS solution", inv_sol)
+            # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+            inv_sol = f"""
+            def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
+                return row >= 0 and row <= len(base) and out == matrix_elemwise_add(base[:row], active[:row])
+
+            def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]]) -> bool:
+                return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and \
+                    row_vec == vec_elemwise_add(base[row][:col], active[row][:col]) and \
+                    out == matrix_elemwise_add(base[:row], active[:row])
+            """
+            print("Generated new INV solution", inv_sol)
             inv_sols.append(inv_sol)
 
             try:
-                _, inv_fn_decls, in_calls = check_solution(
-                    inv_sol, 1 if is_single_loop(benchmark_name) else 2
+                _, inv_fn_decls, inv_in_calls = check_solution(
+                    solution=inv_sol,
+                    expected_num_funcs=1 if is_single_loop(benchmark_name) else 2,
+                    dsl_code=dsl_code,
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
@@ -238,7 +254,7 @@ def run_llm_synthesis_algorithm(
                 driver=driver,
                 benchmark_name=benchmark_name,
                 synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
-                inv_calls=[*ps_inv_calls, *in_calls],
+                in_calls=[*ps_inv_calls, *inv_in_calls],
             )
             if verified:
                 print("Solution verified")

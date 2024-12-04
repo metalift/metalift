@@ -116,7 +116,33 @@ def _get_func_def_arg_names(func_def: FuncDef) -> list[str]:
     return [arg.variable.name for arg in func_def.arguments]
 
 
-# TODO: add return type
+@lru_cache(maxsize=None)
+def get_dsl_func_defs() -> List[FuncDef]:
+    """
+    Get the function definitions of the python dsl module.
+    This is cached because the dsl file never changes.
+    """
+    options = Options()
+    options.incremental = False  # turn off caching of previously typed results
+    options.show_traceback = True
+    options.python_version = PYTHON3_VERSION
+    options.preserve_asts = True
+    options.export_types = True
+    mypy_build = build.build(
+        sources=[BuildSource(path=None, module="tenspiler.llm.dsl")],
+        options=options,
+    )
+    python_dsl_tree: MypyFile = cast(
+        MypyFile, mypy_build.graph["tenspiler.llm.dsl"].tree
+    )  # tree of the entire module / file
+
+    # Get function signatures of the python dsl module
+    dsl_func_defs = [
+        func_def for func_def in python_dsl_tree.defs if isinstance(func_def, FuncDef)
+    ]
+    return dsl_func_defs
+
+
 def mypy_parse(
     code: str, expected_num_funcs: int = 1
 ) -> tuple[list[FuncDef], dict[str, list[ObjectT]], dict[Node, MypyType]]:
@@ -130,7 +156,7 @@ def mypy_parse(
     mypy_build = build.build(
         sources=[
             BuildSource(path=None, module="target_code", text=code),
-            BuildSource(path=None, module="tenspiler.llm.python_dsl"),
+            BuildSource(path=None, module="tenspiler.llm.dsl"),
         ],
         options=options,
     )
@@ -471,13 +497,18 @@ def mypy_node_to_ir(
 
 
 def check_solution(
-    solution: str, expected_num_funcs: int
+    *, solution: str, expected_num_funcs: int, dsl_code: str
 ) -> tuple[list[str], list[FnDeclRecursive], list[tuple[str, str]],]:
-    universal_imports = f"""
-    from tenspiler.llm.python_dsl import *
-    from typing import Any, Callable, List
-    """
-    full_prog = dedent(remove_comments(dedent(universal_imports) + dedent(solution)))
+    universal_imports = "from typing import Any, Callable, List\n"
+    dsl_imports = "from tenspiler.llm.dsl import *\n"
+    with open(TENSPILER_LLM_PATH / "dsl.py", "w") as f:
+        dsl_code_with_imports = dedent(
+            remove_comments(dedent(universal_imports) + dedent(dsl_code))
+        )
+        f.write(dsl_code_with_imports)
+    full_prog = dedent(
+        remove_comments(universal_imports + dsl_imports + dedent(solution))
+    )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
     fn_decls: list[FnDeclRecursive] = []
     in_calls: list[tuple[str, str]] = []

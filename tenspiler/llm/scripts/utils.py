@@ -124,6 +124,17 @@ def extract(s) -> list[str]:
     return extracted_result
 
 
+def extract_all_python_functions(s: str) -> list[str]:
+    # TODO(sahil): use this instead of the extract function in all models.
+    extracted_result = [
+        x.group(1)
+        for x in re.finditer(
+            r"```(?:Python|python|assembly|cpp|c|c\+\+)?(.*?)```", s, re.DOTALL
+        )
+    ]
+    return extracted_result
+
+
 # TODO(jie): add type
 def extract_and_save(choices, output_file: Path) -> str:
     final_content: list[str] = []

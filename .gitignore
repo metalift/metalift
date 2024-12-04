@@ -49,3 +49,6 @@ tenspiler/generated_code/gaudi/generate_gaudi_benchmarks.py
 
 # tenspiler/generated_code/mlx/*
 tenspiler/generated_code/mlx/generate_mlx_benchmarks.py
+
+# Customly generated DSLs
+tenspiler/llm/dsl.py
