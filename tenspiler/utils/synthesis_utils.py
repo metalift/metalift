@@ -1,11 +1,14 @@
 from pathlib import Path
+from typing import Optional
 
 from metalift.frontend.llvm import Driver
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
-from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.llm.scripts.prompts import get_ps_prompt
+from tenspiler.llm.parser import check_solution
+from tenspiler.llm.scripts.models import LLMModel, get_solution_from_llm
+from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
+from tenspiler.llm.scripts.utils import TEMPLATE_ERR, is_single_loop, verify_benchmark
 
 tpcc_benchmarks = {
     "normal_blend_f",
@@ -144,10 +147,21 @@ def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
     source_file: Path,
-    data_type: DataType,
+    suite_name: str,
     benchmark_name: str,
-    model: LLMModel
-):
+    llm_model: LLMModel,
+    max_num_ps_sols: int = 10,
+    max_num_inv_sols: int = 10,
+) -> None:
+    """
+    The flow of the function is as follows:
+    1. Start with asking the model to rewrite the function.
+    2. Check if solution passes the parser. If it does, proceed. Otherwise, give parser feedback and ask the model to fix the function. Repeat this step for `max_parser_tries` times.
+    4. Return the solution. Otherwise, return None.
+
+    we return a list with maximum length of `max_num_tries` and each element containing the following information:
+    - solutions: A list of solutions that we tried to pass to parser. Each solution is in the form of (solution, feedback, time_taken) tuple.
+    """
     # First we need to get DSL and source code
     dsl_code = "\n\n".join(fn.to_python() for fn in driver.target_lang_fns)
     source_code = source_file.read_text()
@@ -156,7 +170,88 @@ def run_llm_synthesis_algorithm(
     ps_prompt = get_ps_prompt(dsl_code=dsl_code, source_code=source_code)
 
     # Get result from LLM
+    ps_sols: list[str] = []
+    found_sol = False
+    for ps_sol_index in range(max_num_ps_sols):
+        # First we get a new solution. If there are previous incorrect solutions, we show them to the model.
+        print(f"===== Starting iteration {ps_sol_index} =====")
+        inv_template_message = {"role": "user", "content": ps_prompt}
 
-    # Run parser
+        if len(ps_sols) > 0:
+            messages_for_new_sol = [
+                inv_template_message,
+                {"role": "assistant", "content": "\n".join(ps_sols)},
+                {"role": "user", "content": TEMPLATE_ERR},
+            ]
+        else:
+            messages_for_new_sol = [inv_template_message]
+        ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+        print("Generated new PS solution", ps_sol)
+        ps_sols.append(ps_sol)
 
-    # Generate inv if need to
+        # Check if the solution passes the parser. If it does, we can continue to the next step. Otherwise, we would like to generate another PS.
+        try:
+            ps_func_names, ps_fn_decls, ps_inv_calls = check_solution(ps_sol, 1)
+            ps_func_name = ps_func_names[0]
+            print("Passed the parser, continuing to invariant generation")
+        except Exception as e:
+            print("Failed to pass the parser", e)
+            print("Skipping invariant generation")
+            continue
+
+        # Generate the invariant
+        inv_prompt = get_inv_prompt(
+            suite_name=suite_name,
+            benchmark_name=benchmark_name,
+            dsl_code=dsl_code
+        )
+        inv_sols: list[str] = []
+        for inv_sol_index in range(max_num_inv_sols):
+            print(f"----- Generating {inv_sol_index} invariant -----")
+            print("Generated new INV solution", inv_sol)
+            inv_sols.append(inv_sol)
+            inv_template_message = {"role": "user", "content": inv_prompt}
+
+            if len(inv_sols) > 0:
+                messages_for_new_sol = [
+                    inv_template_message,
+                    {"role": "assistant", "content": "\n".join(inv_sols)},
+                    {"role": "user", "content": TEMPLATE_ERR},
+                ]
+            else:
+                messages_for_new_sol = [inv_template_message]
+            inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+            print("Generated new PS solution", inv_sol)
+            inv_sols.append(inv_sol)
+
+            try:
+                _, inv_fn_decls, in_calls = check_solution(
+                    inv_sol,
+                    1 if is_single_loop(benchmark_name) else 2
+                )
+                print("Passed the parser, continuing to verification")
+            except Exception as e:
+                print("Failed to pass the parser", e)
+                continue
+
+            # Verify the solution
+            verified = verify_benchmark(
+                driver=driver,
+                benchmark_name=benchmark_name,
+                synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+                inv_calls=[*ps_inv_calls, *in_calls],
+            )
+            if verified:
+                print("Solution verified")
+                found_sol = True
+                break
+
+        # If we have a correct solution, we can break out of the loop.
+        if found_sol:
+            break
+
+    if not found_sol:
+        raise Exception("No correct solution found")
+
+    print("Found PS solution")
+    print(ps_sol)

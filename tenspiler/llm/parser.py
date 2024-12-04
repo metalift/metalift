@@ -4,10 +4,7 @@ import uuid
 from functools import lru_cache
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict
-from typing import List as pyList
 from typing import Optional
-from typing import Tuple as pyTuple
 from typing import Type, Union, cast, get_args
 
 from mypy import build
@@ -97,7 +94,7 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
                 raise Exception("First argument of Callable type must be a list")
             ret_type = mypy_type_to_ir_type(mypy_type.args[1])
             arg_types = (mypy_type_to_ir_type(arg) for arg in mypy_type.args[0].items)
-            return Fn[pyTuple[(ret_type, *arg_types)]]
+            return Fn[tuple[(ret_type, *arg_types)]]
     elif isinstance(mypy_type, Instance):
         if mypy_type.type.fullname == "builtins.int":
             return Int
@@ -108,7 +105,7 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
     elif isinstance(mypy_type, CallableType):
         arg_types = (mypy_type_to_ir_type(arg) for arg in mypy_type.arg_types)
         ret_type = mypy_type_to_ir_type(mypy_type.ret_type)
-        return Fn[pyTuple[(ret_type, *arg_types)]]
+        return Fn[tuple[(ret_type, *arg_types)]]
     elif isinstance(mypy_type, AnyType):
         return None
     elif mypy_type is None:
@@ -117,7 +114,7 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
         raise Exception(f"{mypy_type} is not supported")
 
 
-def _get_func_def_arg_names(func_def: FuncDef) -> pyList[str]:
+def _get_func_def_arg_names(func_def: FuncDef) -> list[str]:
     return [arg.variable.name for arg in func_def.arguments]
 
 
@@ -150,7 +147,7 @@ def get_dsl_func_defs() -> List[FuncDef]:
 
 def mypy_parse(
     code: str, expected_num_funcs: int = 1
-) -> pyTuple[pyList[FuncDef], Dict[str, pyList[ObjectT]], Dict[Node, MypyType]]:
+) -> tuple[list[FuncDef], dict[str, list[ObjectT]], dict[Node, MypyType]]:
     options = Options()
     # Incremental mode so we don't build the dsl code every time
     options.incremental = True
@@ -176,7 +173,7 @@ def mypy_parse(
             f"Only rewrite the given {expected_num_funcs} functions and don't include any additional functions"
         )
 
-    # TODO(jie): right now we are rejecting functions that don't have type information in the signature
+    # We reject functions that don't have type information in the signature
     func_sign: dict[str, tuple[Type | None, ObjectT | None, list[str]]] = {}
     for func_def in [*target_func_defs, *get_dsl_func_defs()]:
         func_ir_type = mypy_type_to_ir_type(func_def.type)
@@ -237,10 +234,10 @@ def _simplify_type_name(type_name: str) -> str:
 
 def mypy_node_to_ir(
     root_node: Node,
-    func_sign: Dict[str, pyList[Union[Type, type]]],
-    types: Dict[Node, MypyType],
-    fn_decls: pyList[FnDeclRecursive],
-    in_calls: pyList[pyTuple[str, str]],
+    func_sign: dict[str, list[Union[Type, type]]],
+    types: dict[Node, MypyType],
+    fn_decls: list[FnDeclRecursive],
+    in_calls: list[tuple[str, str]],
 ) -> Expr:
     def parse_node(node: Node) -> Expr:
         # TODO: add support for non-lambda inline functions
@@ -252,7 +249,7 @@ def mypy_node_to_ir(
             arg_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
             ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
             # Create one variable for each argument
-            variables: pyList[Object] = []
+            variables: list[Object] = []
             for arg, ir_type in zip(node.arguments, arg_ir_types):
                 variables.append(create_object(ir_type, arg.variable.name))
             if isinstance(node, FuncDef):
@@ -510,15 +507,19 @@ def mypy_node_to_ir(
     fn_decls.append(ps_fn_decl)
 
 
-def check_solution(solution: str, expected_num_funcs: int) -> None:
+def check_solution(solution: str, expected_num_funcs: int) -> tuple[
+    list[str],
+    list[FnDeclRecursive],
+    list[tuple[str, str]],
+]:
     universal_imports = f"""
     from tenspiler.llm.python_dsl import *
     from typing import Any, Callable, List
     """
     full_prog = dedent(remove_comments(dedent(universal_imports) + dedent(solution)))
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
-    fn_decls: pyList[FnDeclRecursive] = []
-    in_calls: pyList[pyTuple[str, str]] = []
+    fn_decls: list[FnDeclRecursive] = []
+    in_calls: list[tuple[str, str]] = []
     for target_func_def in target_func_defs:
         mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
     target_func_names = [func_def.name for func_def in target_func_defs]

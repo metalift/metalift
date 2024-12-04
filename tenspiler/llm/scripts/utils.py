@@ -978,7 +978,6 @@ def verify_benchmark(
 
     # Run the verification
     print(f"Running verification for benchmark {benchmark_name}")
-    return False
     verification_output = subprocess.run(
         ["racket", verify_file_name], check=True, capture_output=True
     )
@@ -1052,3 +1051,6 @@ def replace_ite(ps_sol: str) -> str:
 
     ite_pattern = r"ite\(([^,]+),\s*([^,]+),\s*([^)]+)\)"
     return re.sub(ite_pattern, repl_func, ps_sol)
+
+
+def get_solutions_with_
