@@ -13,7 +13,7 @@ import google.generativeai as genai
 from openai import OpenAI
 
 from tenspiler.llm.scripts.models import LLMModel, get_solution_from_llm
-from tenspiler.llm.scripts.prompts import get_inv
+from tenspiler.llm.scripts.prompts import get_inv_prompt
 from tenspiler.llm.parser import check_solution, remove_comments
 from tenspiler.llm.scripts.utils import (
     TEMPLATE_ENCLOSE_CODE,
@@ -27,9 +27,6 @@ def _run_fuzzer_tests_and_get_messages(
     func_name: str, ps_sol: str, test_case_dir: Path, limit: Optional[int] = None
 ) -> str:
     print("Running fuzzer tests")
-    import pdb
-
-    pdb.set_trace()
     # Now we pass the solution to the fuzzer
     wrong_test_cases: list[str] = []
     curr_fuzzer_feedback = None
@@ -119,7 +116,7 @@ def run_llm(
     """
     info: list[Any] = []
 
-    message = get_inv(suite_name, benchmark_name, dsl_code)
+    message = get_inv_prompt(suite_name, benchmark_name, dsl_code)
     with open(f"{benchmark_name}.txt", "w") as f:
         f.write(message)
         f.flush()

@@ -9,7 +9,7 @@ from typing import Any, Callable, Optional, Union
 from tree_sitter import Node
 from tree_sitter_languages import get_language, get_parser
 
-from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.frontend.llvm import Driver, InvGrammar, MetaliftFunc
 from metalift.ir import Bool, Int, List, Matrix, Object, ObjectT, choose, ite, synth
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
@@ -1103,8 +1103,11 @@ def get_ps(
     return rv == obj_expr_tree
 
 
-# TODO(jie): add return type
-def analyze_single_loop(file_path: str, func_name: str, axioms: list[Object]):
+def analyze_single_loop(
+    file_path: str,
+    func_name: str,
+    axioms: list[Object]
+) -> tuple[Driver, dict[str, Object], MetaliftFunc]:
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalar_objs(root_node)

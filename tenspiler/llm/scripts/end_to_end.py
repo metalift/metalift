@@ -58,7 +58,7 @@ def run_end_to_end_llm(
 
     # Analyze the benchmark
     analyze_time_start = time.time()
-    # driver = analyze_benchmark(benchmark_name)
+    driver = analyze_benchmark(benchmark_name)
     analyze_time_end = time.time()
     print(f"Analyze took {analyze_time_end - analyze_time_start}s")
     total_time += analyze_time_end - analyze_time_start
