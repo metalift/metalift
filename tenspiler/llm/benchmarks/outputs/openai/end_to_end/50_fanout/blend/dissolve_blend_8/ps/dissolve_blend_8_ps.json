@@ -1,1 +1,0 @@
-["\ndef dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:\n    return matrix_where(\n        base,\n        active,\n        lambda x, y: ite(opacity - ((rand_cons % 100) + 1) // 100 >= 0, y, x)\n    )\n"]

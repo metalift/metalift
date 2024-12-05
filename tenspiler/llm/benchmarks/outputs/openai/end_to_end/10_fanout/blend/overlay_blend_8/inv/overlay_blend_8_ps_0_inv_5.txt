@@ -1,6 +1,0 @@
-
-    def invariant1(base: List[List[int]], active: List[List[int]], out: List[List[int]], row: int) -> bool:
-        return row >= 0 and row <= len(base) and out == matrix_where(base[:row], active[:row], lambda b, a: ite( b >= 16, 2 * b + b - 2 * b * b // 32 - 32, 2 * b * b // 32 ) )
-
-    def invariant2(base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]], row: int, col: int) -> bool:
-        return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and row_vec == vector_where(base[row][:col], active[row][:col], lambda b, a: ite( b >= 16, 2 * b + b - 2 * b * b // 32 - 32, 2 * b * b // 32 )) and out == matrix_where(base[:row], active[:row], lambda b, a: ite( b >= 16, 2 * b + b - 2 * b * b // 32 - 32, 2 * b * b // 32 ) )

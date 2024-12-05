@@ -1,6 +1,0 @@
-
-    def dissolve_blend_8(base: List[List[int]], active: List[List[int]], opacity: int, rand_cons: int) -> List[List[int]]:
-        return matrix_selection_two_args(
-            base,
-            active,
-            lambda base_pixel, active_pixel: active_pixel if opacity - ((rand_cons % 100) + 1) // 100 >= 0 else base_pixel)
