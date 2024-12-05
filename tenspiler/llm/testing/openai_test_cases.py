@@ -174,9 +174,6 @@ exceptions_count: dict[str, int] = {}
 num_passed_test_cases: dict[str, list[int]] = {"passed_parser": [], "failed_parser": []}
 
 if __name__ == "__main__":
-    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/color_burn_8_ps.json"
-    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/transformer_part1_ps.json"
-    # filename = "/Users/jieq/Desktop/metalift/tenspiler/llm/testing/ps_sols/transformer_part2_ps.json"
     filename = "tenspiler/llm/testing/ps_sols/fdtd_2d_part2_ps.json"
     seen_ps_sols = set()
     with open(filename, "r") as f:
