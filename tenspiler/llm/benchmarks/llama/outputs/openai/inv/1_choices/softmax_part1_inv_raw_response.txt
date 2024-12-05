@@ -1,9 +1,0 @@
-For the provided test function, the loop invariant can be defined as follows:
-
-```python
-def invariant(i: int, input: List[int], max_val: int):
-    return i > 0 and i <= len(input) and max_val == reduce_max(vec_slice(input, 0, i))
-```
-The invariant suggests that:
-- The index `i` is within the range of the list `input`.
-- The maximum value `max_val` is the maximum value in the sub-list of `input` from index `0` to `i`.
