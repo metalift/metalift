@@ -1,8 +1,0 @@
---------------------------
-Running benchmark rmsnorm_part1 in suite llama
-===== Starting iteration 0 =====
-
-def rmsnorm_part1(input: List[int], weight: List[int]) -> int:
-    return reduce_sum(vec_elemwise_mul(input, input))
-
-Passing solution to the parser

@@ -1,8 +1,0 @@
---------------------------
-Running benchmark matmul in suite llama
-===== Starting iteration 0 =====
-
-def matmul(weight: List[List[int]], input: List[int]) -> List[int]:
-    return matrix_vec_mul(weight, input)
-
-Passing solution to the parser
