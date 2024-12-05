@@ -1,3 +1,0 @@
-
-def invariant(base: list[int], active: list[int], out: list[int], opacity: int, i: int) -> bool:
-    return i >= 0 and i <= len(base) and out == vec_elemwise_add(vec_scalar_mul(opacity, active[:i]), vec_scalar_mul((1 - opacity), base[:i]))

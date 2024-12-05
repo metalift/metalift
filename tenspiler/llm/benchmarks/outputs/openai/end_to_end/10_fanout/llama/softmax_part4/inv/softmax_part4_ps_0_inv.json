@@ -1,1 +1,0 @@
-["\n        def invariant(i: int, max_pos: int, sum: int, unnormalized_output: List[int], output: List[int]) -> bool:\n            return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, vec_slice(unnormalized_output, 0, i))\n        "]
