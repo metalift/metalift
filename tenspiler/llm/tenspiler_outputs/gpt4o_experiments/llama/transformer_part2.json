@@ -1,3 +1,0 @@
-{
-    "transformer_part2": "\ndef transformer_part2(\n    token_position: int,\n    head: int,\n    head_size: int,\n    key_cache_layer: List[List[int]],\n    attention: List[int]\n) -> List[int]:\n    return matrix_vec_mul(matrix_col_slice(key_cache_layer, head * head_size, (head + 1) * head_size), vec_slice(attention, 0, token_position + 1))\n"
-}

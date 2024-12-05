@@ -1,3 +1,0 @@
-{
-    "darken_blend_8": "\ndef darken_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_where(base, active, lambda x, y: x if x < y else y)\n"
-}

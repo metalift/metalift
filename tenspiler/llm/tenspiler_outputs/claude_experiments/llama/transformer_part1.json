@@ -1,3 +1,0 @@
-{
-    "transformer_part1": "\ndef transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:\n    return vec_scalar_div(\n        integer_sqrt(head_size * 1),\n        matrix_vec_mul(\n            matrix_col_slice(\n                matrix_row_slice(key_cache_layer, 0, token_position),\n                head * head_size,\n                (head + 1) * head_size\n            ),\n            vec_slice(q, head * head_size, (head + 1) * head_size)\n        )\n    )\n"
-}

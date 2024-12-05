@@ -1,3 +1,0 @@
-{
-    "adi_part4": "\ndef adi_part4(n: int, X: List[List[int]], A: List[List[int]], B: List[List[int]]) -> List[List[int]]:\n    return matrix_transpose(matrix_map(matrix_transpose(matrix_col_slice(X, 0, n - 1)), lambda row: vec_map(vec_elemwise_div(vec_elemwise_sub(vec_slice(row, 0, len(row) - 1), vec_elemwise_mul(vec_slice(row, 1, len(row)), vec_slice(matrix_transpose(A)[0], 2, len(matrix_transpose(A)[0])))), vec_slice(matrix_transpose(B)[0], 0, len(matrix_transpose(B)[0]) - 2)), lambda x: x)))\n\n"
-}

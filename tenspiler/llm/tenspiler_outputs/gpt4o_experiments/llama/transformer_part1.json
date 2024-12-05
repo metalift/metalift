@@ -1,3 +1,0 @@
-{
-    "transformer_part1": "\nfrom typing import List\n\ndef integer_sqrt(x: int) -> int:\n    return x\n\ndef transformer_part1(token_position: int, head: int, head_size: int, key_cache_layer: List[List[int]], q: List[int]) -> List[int]:\n    return matrix_vec_mul(matrix_col_slice(key_cache_layer, 0, token_position), vec_scalar_div(integer_sqrt(head_size * 1), vec_slice(q, head * head_size, (head + 1) * head_size)))\n\n# Example usage:\n# transformer_part1(3, 0, 2, [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]], [1, 1, 1, 1])\n"
-}
