@@ -1,9 +1,0 @@
---------------------------
-Running benchmark softmax_part2 in suite llama
-===== Starting iteration 0 =====
-
-def softmax_part2(input: List[int], max_pos: int, max_val: int) -> List[int]:
-    return vec_map(vec_slice(input, 0, max_pos), lambda x: integer_exp(x - max_val))
-
-
-Passing solution to the parser
