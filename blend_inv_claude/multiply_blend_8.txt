@@ -1,2 +1,0 @@
---------------------------
-Running benchmark multiply_blend_8 in suite blend
