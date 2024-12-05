@@ -1,1 +1,0 @@
-{"darken_blend_8": ["\ndef darken_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_selection_two_args(base, active, min)\n"]}

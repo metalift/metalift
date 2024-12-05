@@ -1,3 +1,0 @@
-[
-    "The provided C++ function \"normal_blend_8\" can be rewritten using the provided set of functions in Python as follows:\n\n```python\ndef normal_blend_8(base, active, opacity):\n    return vec_elemwise_add(vec_scalar_mul(opacity, active), vec_scalar_mul(32 - opacity, base))\n```\nThis Python function does the same thing as the C++ function; elementwise multiplication of the vectors \"active\" and \"base\" with the scalar \"opacity\" and \"32 - opacity\" respectively. These two resulting vectors are then added together elementwise to produce the final output vector."
-]

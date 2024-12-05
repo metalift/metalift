@@ -1,3 +1,0 @@
-[
-    "Rewriting:\n```\nfrom typing import List\n\ndef softmax_part1(input: List[int], max_pos: int) -> int:\n    return reduce_max(input[:max_pos])\n```\n\nInvariants:\n\n```\n# For loop invariant where reduce_max is used to find the maximum value in the list up to max_pos.\n\ndef invariant(i: int, input: List[int], max_val: int) -> bool:\n    return i >= 0 and i <= max_pos and max_val == reduce_max(input[:i])\n```\nThe invariant checks that the index `i` is within the valid range (0 to `max_pos` inclusive) and that `max_val` is always the maximum value in the list up to the current index `i`. If this condition holds for each iteration of the loop, it guarantees that the loop correctly calculates the maximum value in the list up to `max_pos`."
-]

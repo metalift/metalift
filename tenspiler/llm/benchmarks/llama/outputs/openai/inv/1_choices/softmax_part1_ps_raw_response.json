@@ -1,1 +1,0 @@
-{"softmax_part1": ["\ndef invariant(i: int, input: List[int], max_pos: int, max_val: int) -> bool:\n    return i > 0 and i <= max_pos and max_val == reduce_max(vec_slice(input, 0, i))\n"]}
