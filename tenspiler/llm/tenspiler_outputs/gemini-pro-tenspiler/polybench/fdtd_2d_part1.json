@@ -1,3 +1,0 @@
-{
-    "fdtd_2d_part1": "\nvector<vector<int>> fdtd_2d_part1(\n    int nx,\n    int ny,\n    vector<vector<int>> ey,\n    vector<vector<int>> hz\n) {\nreturn matrix_row_slice(matrix_elemwise_sub(matrix_row_slice(ey, 1, nx), matrix_scalar_mul(5, matrix_elemwise_sub(matrix_row_slice(hz, 1, nx), matrix_row_slice(hz, 0, nx - 1)))),0,nx-1);\n}\n\n"
-}

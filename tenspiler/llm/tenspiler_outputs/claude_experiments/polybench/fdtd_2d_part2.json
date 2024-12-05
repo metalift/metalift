@@ -1,3 +1,0 @@
-{
-    "fdtd_2d_part2": "\ndef fdtd_2d_part2(nx: int, ny: int, ex: List[List[int]], hz: List[List[int]]) -> List[List[int]]:\n    return matrix_elemwise_sub(\n        matrix_col_slice(ex, 1, ny),\n        matrix_scalar_mul(\n            5,\n            matrix_elemwise_sub(\n                matrix_col_slice(hz, 1, ny),\n                matrix_col_slice(hz, 0, ny - 1)\n            )\n        )\n    )\n"
-}

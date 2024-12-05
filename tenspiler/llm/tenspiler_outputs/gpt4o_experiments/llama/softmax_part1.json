@@ -1,3 +1,0 @@
-{
-    "softmax_part1": "\nfrom typing import List\n\ndef softmax_part1(input: List[int], max_pos: int) -> int:\n    return reduce_max(input[:max_pos])\n"
-}

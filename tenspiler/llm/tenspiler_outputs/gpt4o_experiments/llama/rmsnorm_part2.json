@@ -1,3 +1,0 @@
-{
-    "rmsnorm_part2": "\nfrom typing import List\n\ndef rmsnorm_part2(input: List[int], weight: List[int], ss: int) -> List[int]:\n    return vec_elemwise_mul(\n        vec_elemwise_mul(\n            vec_scalar_mul(\n                1 // integer_sqrt(ss // len(input) + 1), \n                input\n            ), \n            weight\n        )\n    )\n\ndef integer_sqrt(x: int) -> int:\n    return x\n"
-}

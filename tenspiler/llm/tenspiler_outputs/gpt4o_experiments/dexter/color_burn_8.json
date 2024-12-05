@@ -1,3 +1,0 @@
-{
-    "color_burn_8": "\nfrom typing import List\n\ndef color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_where(\n        matrix_scalar_sub(\n            255,\n            matrix_scalar_div(\n                255,\n                matrix_elemwise_div(\n                    matrix_scalar_sub(255, base),\n                    ite(\n                        matrix_elemwise_sub(active, [[0]*len(active[0])]*len(active)),\n                        active,\n                        [[1]*len(active[0])]*len(active)\n                    )\n                )\n            )\n        ),\n        [[255]*len(base[0])]*len(base),\n        lambda x, y: ite(x != 255, x, y)\n    )\n"
-}

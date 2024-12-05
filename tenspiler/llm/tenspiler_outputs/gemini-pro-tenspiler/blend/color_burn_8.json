@@ -1,3 +1,0 @@
-{
-    "color_burn_8": "\ndef color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:\n    return matrix_where(\n        active,\n        matrix_scalar_sub(\n            255,\n            matrix_elemwise_div(\n                matrix_scalar_sub(255, base),\n                matrix_where(active, active, lambda x, y: ite(x == 0, 1, y)),\n            ),\n        ),\n        lambda x, y: ite(x == 0, 255, y),\n    )\n\n"
-}

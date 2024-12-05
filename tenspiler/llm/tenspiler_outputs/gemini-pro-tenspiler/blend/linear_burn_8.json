@@ -1,3 +1,0 @@
-{
-    "linear_burn_8": "\nvector<vector<int>> linear_burn_8(vector<vector<int>> base, vector<vector<int>> active) {\n    return matrix_scalar_sub(255, matrix_elemwise_add(base, active));\n}\n\n"
-}

@@ -1,3 +1,0 @@
-{
-    "adi_part6": "\ndef adi_part5(n: int, X: List[List[int]], A: List[List[int]], B: List[List[int]]) -> List[List[int]]:\n    return matrix_row_slice(matrix_elemwise_sub(B, matrix_elemwise_div(matrix_elemwise_mul(A, A), matrix_row_slice(B, 0, n - 1))), 1, n)\n"
-}

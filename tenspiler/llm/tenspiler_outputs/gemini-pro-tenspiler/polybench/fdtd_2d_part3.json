@@ -1,3 +1,0 @@
-{
-    "fdtd_2d_part3": "\ndef fdtd_2d_part3(\n    nx: int, ny: int, ex: List[List[int]], ey: List[List[int]], hz: List[List[int]]\n) -> List[List[int]]:\n    return matrix_row_slice(\n        matrix_where(\n            matrix_row_slice(hz, 0, nx - 1),\n            matrix_elemwise_add(\n                matrix_elemwise_sub(\n                    matrix_col_slice(ex, 1, ny), matrix_col_slice(ex, 0, ny - 1)\n                ),\n                matrix_elemwise_sub(\n                    matrix_row_slice(ey, 1, nx), matrix_row_slice(ey, 0, nx - 1)\n                ),\n            ),\n            lambda x, y: x - 7 * y,\n        ),\n        0,\n        nx - 1,\n    )\n\n"
-}
