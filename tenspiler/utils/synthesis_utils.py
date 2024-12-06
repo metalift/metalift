@@ -6,6 +6,7 @@ from metalift.ir import FnDecl, FnDeclRecursive
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
+from tenspiler.constants import TENSPILER_FNS
 from tenspiler.llm.parser import check_solution
 from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
@@ -148,12 +149,13 @@ def run_synthesis_algorithm(
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
-    source_file: str,
+    source_code: str,
     suite_name: str,
     benchmark_name: str,
     llm_model: LLMModel,
     max_num_ps_sols: int = 10,
     max_num_inv_sols: int = 10,
+    dsl_fns: list[FnDecl | FnDeclRecursive] = TENSPILER_FNS,
 ) -> None:
     """
     The flow of the function is as follows:
@@ -164,9 +166,8 @@ def run_llm_synthesis_algorithm(
     we return a list with maximum length of `max_num_tries` and each element containing the following information:
     - solutions: A list of solutions that we tried to pass to parser. Each solution is in the form of (solution, feedback, time_taken) tuple.
     """
-    # First we need to get DSL and source code
-    dsl_code = "\n\n".join(fn.to_python() for fn in driver.target_lang_fns)
-    source_code = Path(source_file).read_text()
+    # First we need to get DSL code
+    dsl_code = "\n\n".join(fn.to_python() for fn in dsl_fns)
 
     # First we need to generate prompts
     ps_prompt = get_ps_prompt(dsl_code=dsl_code, source_code=source_code)
@@ -187,6 +188,7 @@ def run_llm_synthesis_algorithm(
             ]
         else:
             messages_for_new_sol = [inv_template_message]
+        # TODO(jie)
         # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
         ps_sol = """
         def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
@@ -225,6 +227,7 @@ def run_llm_synthesis_algorithm(
                 ]
             else:
                 messages_for_new_sol = [inv_template_message]
+            # TODO(jie)
             # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
             inv_sol = f"""
             def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
