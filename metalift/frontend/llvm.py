@@ -663,9 +663,11 @@ class InvGrammar:
         self,
         func: Optional[GrammarT],
         in_scope_var_names: List[str],
+        override_args: List[Object] = [],
     ) -> None:
         self.func = func
         self.in_scope_var_names = in_scope_var_names
+        self.override_args = override_args
 
 
 class State:

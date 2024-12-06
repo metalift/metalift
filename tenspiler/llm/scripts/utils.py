@@ -754,9 +754,8 @@ def process_ps_fn_decl(
     )
 
 
-def analyze_benchmark(benchmark_name: str) -> Driver:
+def analyze_benchmark(driver: Driver, benchmark_name: str) -> str:
     print(f"Analyzing benchmark {benchmark_name}")
-    driver = Driver()
     inv_args = get_args_for_invariants(benchmark_name)
     if benchmark_name in {
         "darken_blend_8",
@@ -769,38 +768,37 @@ def analyze_benchmark(benchmark_name: str) -> Driver:
         "color_dodge_8",
         "overlay_blend_8",
     }:
-        analyze_blend_double_loop(driver, benchmark_name, inv_args)
+        return analyze_blend_double_loop(driver, benchmark_name, inv_args)
     elif benchmark_name == "dissolve_blend_8":
-        analyze_dissolve_blend_8(driver, inv_args)
+        return analyze_dissolve_blend_8(driver, inv_args)
     elif benchmark_name == "normal_blend_f":
-        analyze_normal_blend_f(driver, inv_args)
+        return analyze_normal_blend_f(driver, inv_args)
     elif benchmark_name == "normal_blend_8":
-        analyze_normal_blend_8(driver, inv_args)
+        return analyze_normal_blend_8(driver, inv_args)
     elif benchmark_name == "softmax_part1":
-        analyze_softmax_part1(driver, inv_args)
+        return analyze_softmax_part1(driver, inv_args)
     elif benchmark_name == "softmax_part2":
-        analyze_softmax_part2(driver, inv_args)
+        return analyze_softmax_part2(driver, inv_args)
     elif benchmark_name == "softmax_part3":
-        analyze_softmax_part3(driver, inv_args)
+        return analyze_softmax_part3(driver, inv_args)
     elif benchmark_name == "softmax_part4":
-        analyze_softmax_part4(driver, inv_args)
+        return analyze_softmax_part4(driver, inv_args)
     elif benchmark_name == "rmsnorm_part1":
-        analyze_rmsnorm_part1(driver, inv_args)
+        return analyze_rmsnorm_part1(driver, inv_args)
     elif benchmark_name == "rmsnorm_part2":
-        analyze_rmsnorm_part2(driver, inv_args)
+        return analyze_rmsnorm_part2(driver, inv_args)
     elif benchmark_name == "matmul":
-        analyze_matmul(driver, inv_args)
+        return analyze_matmul(driver, inv_args)
     elif benchmark_name == "transformer_part1":
-        analyze_transformer_part1(driver, inv_args)
+        return analyze_transformer_part1(driver, inv_args)
     elif benchmark_name == "transformer_part2":
-        analyze_transformer_part2(driver, inv_args)
+        return analyze_transformer_part2(driver, inv_args)
     elif benchmark_name == "transformer_part3":
-        analyze_transformer_part3(driver, inv_args)
+        return analyze_transformer_part3(driver, inv_args)
     elif benchmark_name == "transformer_part4":
-        analyze_transformer_part4(driver, inv_args)
+        return analyze_transformer_part4(driver, inv_args)
     else:
         raise ValueError(f"Unknown benchmark: {benchmark_name}")
-    return driver
 
 
 def get_inv_and_ps(
@@ -923,6 +921,14 @@ def verify_benchmark(
 
     synthesis_logs_dir = Path("./synthesisLogs")
     synthesis_logs_dir.mkdir(exist_ok=True)
+
+    # Copy over the utils.rkt and bounded.rkt files
+    Path(synthesis_logs_dir / "utils.rkt").write_text(
+        Path("metalift/utils/utils.rkt").read_text()
+    )
+    Path(synthesis_logs_dir / "bounded.rkt").write_text(
+        Path("metalift/utils/bounded.rkt").read_text()
+    )
     verify_file_name = f"./synthesisLogs/verify_{benchmark_name}.rkt"
     f = open(verify_file_name, "w")
     print(

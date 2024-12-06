@@ -1116,7 +1116,7 @@ class List(Generic[T], Object):
 
     @property
     def is_matrix(self) -> bool:
-        return is_matrix_type(self.type)
+        return is_matrix_type(self.type) or is_nested_list_type(self.type)
 
     @property
     def is_tensor3d(self) -> bool:

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List, Matrix, Object, create_object
 
@@ -12,7 +14,7 @@ def _process_args(args: list[Object], replace_args: dict[str, str]) -> list[Obje
 
 def analyze_dissolve_blend_8(
     driver: Driver, inv_args: tuple[list[Object], list[Object]]
-) -> None:
+) -> str:
     inv0_args, inv1_args = inv_args
     replace_args = {"out": "agg.result"}
     inv0_args = _process_args(inv0_args, replace_args)
@@ -44,10 +46,15 @@ def analyze_dissolve_blend_8(
 
     dissolve_blend_8(base, active, opacity, rand_cons)
 
+    input_code = Path(
+        f"tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.cc"
+    ).read_text()
+    return input_code
+
 
 def analyze_blend_double_loop(
     driver: Driver, benchmark_name: str, inv_args: tuple[list[Object], list[Object]]
-):
+) -> str:
     inv0_args, inv1_args = inv_args
     replace_args = {"out": "agg.result"}
     inv0_args = _process_args(inv0_args, replace_args)
@@ -77,8 +84,13 @@ def analyze_blend_double_loop(
 
     benchmark(base, active)
 
+    input_code = Path(
+        f"tenspiler/blend/cpp/for_synthesis/{benchmark_name}.cc"
+    ).read_text()
+    return input_code
 
-def analyze_normal_blend_f(driver: Driver, inv_args: list):
+
+def analyze_normal_blend_f(driver: Driver, inv_args: list) -> str:
     inv_args = _process_args(inv_args, {"out": "agg.result"})
     normal_blend_f = driver.analyze(
         "tenspiler/blend/cpp/for_synthesis/normal_blend_f.ll",
@@ -98,8 +110,13 @@ def analyze_normal_blend_f(driver: Driver, inv_args: list):
 
     normal_blend_f(base_var, active_var, opacity_var)
 
+    input_code = Path(
+        f"tenspiler/blend/cpp/for_synthesis/normal_blend_f.cc"
+    ).read_text()
+    return input_code
 
-def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]):
+
+def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {"out": "agg.result"})
     normal_blend_8 = driver.analyze(
         "tenspiler/blend/cpp/for_synthesis/normal_blend_8.ll",
@@ -119,8 +136,13 @@ def analyze_normal_blend_8(driver: Driver, inv_args: list[Object]):
 
     normal_blend_8(base_var, active_var, opacity_var)
 
+    input_code = Path(
+        f"tenspiler/blend/cpp/for_synthesis/normal_blend_8.cc"
+    ).read_text()
+    return input_code
 
-def analyze_softmax_part1(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_softmax_part1(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {})
     softmax_part1 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll",
@@ -139,6 +161,11 @@ def analyze_softmax_part1(driver: Driver, inv_args: list[Object]) -> None:
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part1(input_var, max_pos_var)
+
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc"
+    ).read_text()
+    return input_code
 
 
 def analyze_softmax_part2(driver: Driver, inv_args: list[Object]):
@@ -161,6 +188,11 @@ def analyze_softmax_part2(driver: Driver, inv_args: list[Object]):
     driver.add_precondition(max_pos_var >= 1)
 
     softmax_part2(input_var, max_pos_var, max_val_var)
+
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/softmax/softmax_part2.cc"
+    ).read_text()
+    return input_code
 
 
 def analyze_softmax_part3(driver: Driver, inv_args: list[Object]):
@@ -185,8 +217,13 @@ def analyze_softmax_part3(driver: Driver, inv_args: list[Object]):
 
     softmax_part3(output_var, max_pos_var)
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/softmax/softmax_part3.cc"
+    ).read_text()
+    return input_code
 
-def analyze_softmax_part4(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_softmax_part4(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {"output": "agg.result"})
     softmax_part4 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.ll",
@@ -207,8 +244,13 @@ def analyze_softmax_part4(driver: Driver, inv_args: list[Object]) -> None:
 
     softmax_part4(unnormalized_output_var, max_pos_var, sum_var)
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.cc"
+    ).read_text()
+    return input_code
 
-def analyze_rmsnorm_part1(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_rmsnorm_part1(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {})
     rmsnorm_part1 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part1.ll",
@@ -227,8 +269,13 @@ def analyze_rmsnorm_part1(driver: Driver, inv_args: list[Object]) -> None:
 
     rmsnorm_part1(input_var, weight_var)
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part1.cc"
+    ).read_text()
+    return input_code
 
-def analyze_rmsnorm_part2(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_rmsnorm_part2(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {"output": "agg.result"})
     rmsnorm_part2 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part2.ll",
@@ -248,8 +295,13 @@ def analyze_rmsnorm_part2(driver: Driver, inv_args: list[Object]) -> None:
 
     rmsnorm_part2(input_var, weight_var, ss)
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part2.cc"
+    ).read_text()
+    return input_code
 
-def analyze_matmul(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_matmul(driver: Driver, inv_args: list[Object]) -> str:
     inv0_args, inv1_args = inv_args
     replace_args = {"output": "agg.result"}
     inv0_args = _process_args(inv0_args, replace_args)
@@ -275,8 +327,11 @@ def analyze_matmul(driver: Driver, inv_args: list[Object]) -> None:
 
     matmul(weight_var, input_var)
 
+    input_code = Path(f"tenspiler/llama/cpp/for_synthesis/matmul.cc").read_text()
+    return input_code
 
-def analyze_transformer_part1(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_transformer_part1(driver: Driver, inv_args: list[Object]) -> str:
     inv0_args, inv1_args = inv_args
     inv0_args = _process_args(inv0_args, {"attention": "agg.result"})
     inv1_args = _process_args(inv1_args, {"attention": "agg.result"})
@@ -321,8 +376,13 @@ def analyze_transformer_part1(driver: Driver, inv_args: list[Object]) -> None:
         q_var,
     )
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/transformer/transformer_part1.cc"
+    ).read_text()
+    return input_code
 
-def analyze_transformer_part2(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_transformer_part2(driver: Driver, inv_args: list[Object]) -> str:
     inv0_args, inv1_args = inv_args
     inv0_args = _process_args(inv0_args, {"xb": "agg.result"})
     inv1_args = _process_args(inv1_args, {"xb": "agg.result"})
@@ -371,8 +431,13 @@ def analyze_transformer_part2(driver: Driver, inv_args: list[Object]) -> None:
         token_position_var, head_var, head_size_var, key_cache_layer_var, attention_var
     )
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/transformer/transformer_part2.cc"
+    ).read_text()
+    return input_code
 
-def analyze_transformer_part3(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_transformer_part3(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {"output": "agg.result"})
     transformer_part3 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part3.ll",
@@ -392,8 +457,13 @@ def analyze_transformer_part3(driver: Driver, inv_args: list[Object]) -> None:
 
     transformer_part3(input_var, hidden_dim_var)
 
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/transformer/transformer_part3.cc"
+    ).read_text()
+    return input_code
 
-def analyze_transformer_part4(driver: Driver, inv_args: list[Object]) -> None:
+
+def analyze_transformer_part4(driver: Driver, inv_args: list[Object]) -> str:
     inv_args = _process_args(inv_args, {"output": "agg.result"})
     transformer_part4 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/transformer/transformer_part4.ll",
@@ -414,3 +484,8 @@ def analyze_transformer_part4(driver: Driver, inv_args: list[Object]) -> None:
     driver.add_precondition(input2_var.len() >= hidden_dim_var)
 
     transformer_part4(input1_var, input2_var, hidden_dim_var)
+
+    input_code = Path(
+        f"tenspiler/llama/cpp/for_synthesis/transformer/transformer_part4.cc"
+    ).read_text()
+    return input_code
