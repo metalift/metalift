@@ -5,7 +5,7 @@ from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
     DISSOLVE_SELECT_TWO_ARGS,
     MAP_INT_TO_INT,
-    MATRIX_WHERE,
+    MATRIX_SELECTION_TWO_ARGS,
     SELECT_TWO_ARGS,
     call_dissolve_matrix_selection_two_args,
     call_integer_exp,
@@ -116,7 +116,7 @@ def darken_blend_8():
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
-        MATRIX_WHERE: matrix_selection_two_args_fn_decl,
+        MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "darken_blend_8_ps": fn_decl,
     }
     return fn_decl, all_fn_decls, DataType.UINT_8
@@ -168,7 +168,7 @@ def color_burn_8():
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
-        MATRIX_WHERE: matrix_selection_two_args_fn_decl,
+        MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "color_burn_8_ps": fn_decl,
     }
     return fn_decl, all_fn_decls, DataType.UINT_8
@@ -196,7 +196,7 @@ def lighten_blend_8():
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
-        MATRIX_WHERE: matrix_selection_two_args_fn_decl,
+        MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "lighten_blend_8_ps": fn_decl,
     }
     return fn_decl, all_fn_decls, DataType.UINT_8
@@ -251,7 +251,7 @@ def color_dodge_8():
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
-        MATRIX_WHERE: matrix_selection_two_args_fn_decl,
+        MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "color_dodge_8_ps": fn_decl,
     }
     return fn_decl, all_fn_decls, DataType.UINT_8
@@ -283,7 +283,7 @@ def overlay_blend_8():
     )
     all_fn_decls = {
         SELECT_TWO_ARGS: select_two_args_fn_decl,
-        MATRIX_WHERE: matrix_selection_two_args_fn_decl,
+        MATRIX_SELECTION_TWO_ARGS: matrix_selection_two_args_fn_decl,
         "overlay_blend_8_ps": fn_decl,
     }
     return fn_decl, all_fn_decls, DataType.UINT_8
