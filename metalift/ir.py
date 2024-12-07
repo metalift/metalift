@@ -729,9 +729,9 @@ def choose(*objects: Union["Object", Expr]) -> "Object":
 
 
 def ite(
-    cond: "Bool",
-    then_object: "Object",
-    else_object: "Object",
+    cond: "Object | Expr",
+    then_object: "Object | Expr",
+    else_object: "Object | Expr",
 ) -> "Object":
     ite_type = then_object.type
     ite_expr = Ite(
@@ -799,7 +799,7 @@ def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> Type["Tuple"]:  
 
 
 def make_fn_type(*containedT: ObjectT) -> Type["Fn"]:  # type: ignore
-    return Fn[typing.Tuple[containedT]]  # type: ignore
+    return Fn[tuple[containedT]]  # type: ignore
 
 
 class ObjectWrapper:
@@ -2430,9 +2430,6 @@ class Ite(Expr):
 
     def to_python(self) -> str:
         return f"({self.e1().to_python()} if {self.c().to_python()} else {self.e2().to_python()})"
-
-    # def accept(self, v: "Visitor[T]") -> T:
-    #     return v.visit_Ite(self)
 
 
 class Let(Expr):

@@ -42,7 +42,6 @@ from metalift.ir import (
     Div,
     Eq,
     Expr,
-    Fn,
     FnDeclRecursive,
     Ge,
     Gt,
@@ -65,6 +64,7 @@ from metalift.ir import (
     is_matrix_type,
     is_nested_list_type,
     ite,
+    make_fn_type,
 )
 
 TENSPILER_LLM_PATH = Path(__file__).parent.resolve()
@@ -92,7 +92,7 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
                 raise Exception("First argument of Callable type must be a list")
             ret_type = mypy_type_to_ir_type(mypy_type.args[1])
             arg_types = (mypy_type_to_ir_type(arg) for arg in mypy_type.args[0].items)
-            return Fn[tuple[(ret_type, *arg_types)]]
+            return make_fn_type(ret_type, *arg_types)
     elif isinstance(mypy_type, Instance):
         if mypy_type.type.fullname == "builtins.int":
             return Int
@@ -103,7 +103,7 @@ def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
     elif isinstance(mypy_type, CallableType):
         arg_types = (mypy_type_to_ir_type(arg) for arg in mypy_type.arg_types)
         ret_type = mypy_type_to_ir_type(mypy_type.ret_type)
-        return Fn[tuple[(ret_type, *arg_types)]]
+        return make_fn_type(ret_type, *arg_types)
     elif isinstance(mypy_type, AnyType):
         return None
     elif mypy_type is None:

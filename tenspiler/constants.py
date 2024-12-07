@@ -25,6 +25,7 @@ from tenspiler.tenspiler_common import (
     integer_exp_fn_decl,
     integer_sqrt_fn_decl,
     integer_sqrt_helper_fn_decl,
+    ite_int,
     matrix_col_slice_fn_decl,
     matrix_matrix_to_matrix_target_lang,
     matrix_row_slice_fn_decl,
@@ -62,6 +63,7 @@ _UNSORTED_TENSPILER_FNS = list(
             integer_exp_fn_decl,
             integer_sqrt_helper_fn_decl,
             integer_sqrt_fn_decl,
+            ite_int,
         ]
     )
 )
