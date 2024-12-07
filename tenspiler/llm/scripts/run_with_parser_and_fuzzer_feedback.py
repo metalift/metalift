@@ -212,9 +212,6 @@ def run_llm(
             curr_fuzzer_feedback = _run_fuzzer_tests_and_get_messages(
                 func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir
             )
-            import pdb
-
-            pdb.set_trace()
 
             if curr_fuzzer_feedback is None:
                 print("All test cases passed, found correct solution")

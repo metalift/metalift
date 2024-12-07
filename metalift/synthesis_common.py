@@ -223,7 +223,6 @@ def verify_synth_result(
 
         inCalls = list(set(inCalls))
         fnCalls = list(set(fnCalls))
-
         toSMT(
             targetLang,
             vars,

@@ -23,10 +23,10 @@ from metalift.ir import (
     Lit,
     Object,
     Var,
+    is_fn_decl_type,
 )
 from metalift.rosette_translator import generate_vars
-from metalift.vc_util import and_objects
-from tenspiler.constants import TENSPILER_FNS
+from metalift.smt_util import toSMT
 from tenspiler.llm.analysis import (
     analyze_blend_double_loop,
     analyze_dissolve_blend_8,
@@ -57,6 +57,8 @@ TEMPLATE_ENCLOSE_CODE = "Please enclose your solution in a python code block"
 
 llama_repo = "meta-llama/Meta-Llama-3-8B-Instruct"
 mistral_repo = "mistralai/Mistral-Nemo-Instruct-2407"
+
+SYNTHESIS_LOGS_DIR = Path("./synthesisLogs")
 
 
 def get_fuzzer_feedback(
@@ -908,28 +910,57 @@ def get_inv_and_ps(
     return outputs.choices, call_end_time - call_start_time
 
 
+def process_dsl_fns(
+    dsl_fns: list[FnDecl | FnDeclRecursive], in_calls: list[tuple[str, str]]
+) -> list[FnDecl | FnDeclRecursive]:
+    final_dsl_fns: list[FnDecl | FnDeclRecursive] = []
+    # write dsl code
+    for fn_decl in dsl_fns:
+        # Skip some functions that are already in utils.rkt
+        # TODO(jie): this is a bit hacky. We could remove all these functions in utils.rkt, but then we need to make sure that they are added to perspective driver files.
+        if fn_decl.name().startswith("integer"):
+            continue
+        if fn_decl.name() in {"firsts"}:
+            continue
+        if fn_decl.body() is None:
+            continue
+
+        # If we have functions in the grammar that takes in lambda functions,
+        # but not used anywhere, then we don't include them. This is due to the fact that we inline all these lambda functions, and we can't do so if there is no actual definitions for them.
+        all_fns_with_inline_fns = set(in_call[0] for in_call in in_calls)
+        if (
+            any(is_fn_decl_type(arg.type) for arg in fn_decl.arguments())
+            and fn_decl.name() not in all_fns_with_inline_fns
+        ):
+            continue
+
+        final_dsl_fns.append(fn_decl)
+    return final_dsl_fns
+
+
 def verify_benchmark(
     *,
     driver: Driver,
     benchmark_name: str,
     synthesized_fn_decls: list[Union[FnDecl, FnDeclRecursive]],
     in_calls: list[tuple[str, str]],
+    dsl_fns: list[FnDecl | FnDeclRecursive],
+    vc: Expr,
     list_bound: int = 2,
     bitwidth: int = 6,
 ) -> bool:
     print(f"Generating verification file for benchmark {benchmark_name}")
 
-    synthesis_logs_dir = Path("./synthesisLogs")
-    synthesis_logs_dir.mkdir(exist_ok=True)
+    SYNTHESIS_LOGS_DIR.mkdir(exist_ok=True)
 
     # Copy over the utils.rkt and bounded.rkt files
-    Path(synthesis_logs_dir / "utils.rkt").write_text(
+    Path(SYNTHESIS_LOGS_DIR / "utils.rkt").write_text(
         Path("metalift/utils/utils.rkt").read_text()
     )
-    Path(synthesis_logs_dir / "bounded.rkt").write_text(
+    Path(SYNTHESIS_LOGS_DIR / "bounded.rkt").write_text(
         Path("metalift/utils/bounded.rkt").read_text()
     )
-    verify_file_name = f"./synthesisLogs/verify_{benchmark_name}.rkt"
+    verify_file_name = SYNTHESIS_LOGS_DIR / f"verify_{benchmark_name}.rkt"
     f = open(verify_file_name, "w")
     print(
         "#lang rosette\n"
@@ -945,16 +976,7 @@ def verify_benchmark(
         file=f,
     )
     # write dsl code
-    for fn_decl in TENSPILER_FNS:
-        # Skip some functions that are already in utils.rkt
-        # TODO(jie): this is a bit hacky. We could remove all these functions in utils.rkt, but then we need to make sure that they are added to perspective driver files.
-        if fn_decl.name().startswith("integer"):
-            continue
-        if fn_decl.name() in {"firsts"}:
-            continue
-        if fn_decl.body() is None:
-            continue
-
+    for fn_decl in process_dsl_fns(dsl_fns, in_calls):
         fn_decl = replace_in_calls(fn_decl, in_calls)
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
@@ -984,10 +1006,6 @@ def verify_benchmark(
     # Write bitwidth
     print(f"(current-bitwidth {bitwidth})", file=f)
 
-    # Write assertions
-    vc = and_objects(*driver.asserts).src.simplify()
-    vc = replace_in_calls(vc, in_calls)
-
     print(f"(define vc (verify (assert {vc.to_rosette()})))\n", file=f)
     print("vc", file=f)
 
@@ -1007,6 +1025,53 @@ def verify_benchmark(
         print(verification_output.stdout.decode("utf-8"))
         print("\n\n")
         return False
+
+
+def verify_benchmark_smt(
+    *,
+    driver: Driver,
+    benchmark_name: str,
+    synthesized_fn_decls: list[Union[FnDecl, FnDeclRecursive]],
+    in_calls: list[tuple[str, str]],
+    dsl_fns: list[FnDecl | FnDeclRecursive],
+    vc: Expr,
+) -> None:
+    SYNTHESIS_LOGS_DIR.mkdir(exist_ok=True)
+    verify_file_name = SYNTHESIS_LOGS_DIR / f"verify_{benchmark_name}.smt"
+    final_dsl_fns = process_dsl_fns(dsl_fns, in_calls)
+    synthesized_fn_names = [fn_decl.name() for fn_decl in synthesized_fn_decls]
+    target_lang_fn_names = [fn_decl.name() for fn_decl in final_dsl_fns]
+
+    toSMT(
+        target_lang=final_dsl_fns,
+        vars=set(driver.var_tracker.all()),
+        inv_and_ps=synthesized_fn_decls,
+        preds=[],
+        vc=vc,
+        out_file=verify_file_name,  # todo
+        in_calls=in_calls,
+        fn_calls=[*target_lang_fn_names, *synthesized_fn_names],
+    )
+
+    # TODO(haha)
+    # run external verification subprocess
+    # procVerify = subprocess.run(
+    #     [
+    #         cvcPath,
+    #         "--lang=smt",
+    #         "--produce-models",
+    #         "--tlimit=1",
+    #         verifFile,
+    #     ],
+    #     stdout=subprocess.PIPE,
+    #     stderr=subprocess.DEVNULL,
+    # )
+
+    # if procVerify.returncode < 0:
+    #     resultVerify = "SAT/UNKNOWN"
+    # else:
+    #     procOutput = procVerify.stdout
+    #     resultVerify = procOutput.decode("utf-8").split("\n")[0]
 
 
 def run_gemini(dsl_code: str, source_code: str, solution: str, feedback: str):

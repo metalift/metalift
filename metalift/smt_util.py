@@ -79,7 +79,6 @@ def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
         return Call(fun_def.name(), fun_def.type, *new_args)
     elif isinstance(fun_def, CallValue):
         new_args = []
-
         for i in range(1, len(fun_def.args)):
             new_args.append(filter_body(fun_def.args[i], fn_call, in_call))
         return Call(in_call, fun_def.type, *new_args)
@@ -88,39 +87,37 @@ def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
 
 
 def toSMT(
-    targetLang: typing.Sequence[Any],
-    vars: typing.Set[Var],
-    invAndPs: typing.Sequence[Union[FnDeclRecursive, Synth]],
+    target_lang: list[FnDecl | FnDeclRecursive],
+    vars: set[Var],
+    inv_and_ps: typing.Sequence[Union[FnDeclRecursive, Synth]],
     preds: Union[str, typing.List[Any]],
     vc: Expr,
-    outFile: str,
-    inCalls: typing.List[Any],
-    fnCalls: typing.List[Any],
-    isSynthesis: bool = False,
+    out_file: str,
+    in_calls: list[tuple[str, str]],
+    fn_calls: list[str],
+    is_synthesis: bool = False,
 ) -> None:
     # order of appearance: inv and ps grammars, vars, non inv and ps preds, vc
-    with open(outFile, mode="w") as out:
+    with open(out_file, mode="w") as out:
         out.write(resources.read_text(utils, "tuples.smt"))
-        if not isSynthesis:
+        if not is_synthesis:
             out.write(resources.read_text(utils, "integer-fn-axioms.smt"))
             out.write(resources.read_text(utils, "list-axioms.smt"))
             # out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
-        synthesized_fn_names = set(fn.name() for fn in invAndPs)
+        synthesized_fn_names = set(fn.name() for fn in inv_and_ps)
 
         fn_decls = []
         axioms = []
-        targetLang = topological_sort(targetLang)
-        for t in targetLang:
+        target_lang = topological_sort(target_lang)
+        for t in target_lang:
             if (
-                isinstance(t, FnDeclRecursive)
-                or isinstance(t, FnDecl)
-                # t.kind == Expr.Kind.FnDecl or t.kind == Expr.Kind.FnDeclNonRecursive
-            ) and t.args[0] in fnCalls:
+                isinstance(t, FnDeclRecursive) or isinstance(t, FnDecl)
+            ) and t.name() in fn_calls:
                 found_inline = False
-                for i in inCalls:
-                    if i[0] == t.args[0]:
+                for i in in_calls:
+                    if i[0] == t.name():
                         found_inline = True
                         early_candidates_names.add(i[1])
                         # parse body
@@ -157,19 +154,17 @@ def toSMT(
         candidates = []
         filtered_axioms = []
 
-        for cand in invAndPs:
+        for cand in inv_and_ps:
             newBody = cand.args[1]
-            for i in inCalls:
+            for i in in_calls:
                 newBody = filter_body(newBody, i[0], i[1])
 
-            # if cand.kind == Expr.Kind.Synth:
             if isinstance(cand, Synth):
                 decl: Union[Synth, FnDeclRecursive] = Synth(
                     cand.args[0], newBody, *cand.args[2:]
                 )
             else:
                 decl = FnDeclRecursive(
-                    # TODO: cand.type no longer has args, find proper substitution
                     cand.args[0],
                     get_fn_return_type(cand.type),
                     newBody,
@@ -183,12 +178,12 @@ def toSMT(
 
         for axiom in axioms:
             newBody = axiom.args[0]
-            for i in inCalls:
+            for i in in_calls:
                 newBody = filter_body(newBody, i[0], i[1])
 
             filtered_axioms.append(Axiom(newBody, *axiom.args[1:]))
 
-        for i in inCalls:
+        for i in in_calls:
             vc = filter_body(vc, i[0], i[1])
 
         candidates = topological_sort(candidates)
@@ -201,7 +196,7 @@ def toSMT(
         for v in vars:
             declarations.append((v.args[0], v.type))
 
-        var_decl_command = "declare-var" if isSynthesis else "declare-const"
+        var_decl_command = "declare-var" if is_synthesis else "declare-const"
         out.write(
             "\n%s\n\n"
             % "\n".join(
@@ -238,7 +233,7 @@ def toSMT(
         else:
             raise Exception("unknown type passed in for preds: %s" % preds)
 
-        if isSynthesis:
+        if is_synthesis:
             out.write("%s\n\n" % Constraint(vc).toSMT())
             out.write("(check-synth)")
         else:
