@@ -1,4 +1,4 @@
-from tenspiler.axioms_tenspiler import (
+from tenspiler.axioms import (
     matrix_elemwise_add_axiom,
     matrix_elemwise_mul_axiom,
     matrix_elemwise_sub_axiom,

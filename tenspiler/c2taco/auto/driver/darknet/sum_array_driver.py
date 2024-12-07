@@ -1,4 +1,4 @@
-from tenspiler.axioms_tenspiler import reduce_sum_axiom
+from tenspiler.axioms import reduce_sum_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tree_parser import analyze_single_loop
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm

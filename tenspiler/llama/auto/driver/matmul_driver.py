@@ -1,5 +1,5 @@
 from metalift.frontend.llvm import Driver
-from tenspiler.axioms_tenspiler import (
+from tenspiler.axioms import (
     matrix_vec_mul_axiom,
     reduce_sum_axiom,
     vec_scalar_mul_axiom,

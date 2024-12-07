@@ -2,7 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
+from tenspiler.axioms import matrix_selection_two_args_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     color_dodge_8_hole_body,

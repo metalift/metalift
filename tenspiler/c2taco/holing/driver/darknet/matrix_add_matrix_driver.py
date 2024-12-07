@@ -4,7 +4,7 @@ from typing import List, Union
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Matrix, Object, choose, ite
 from metalift.vc_util import and_objects
-from tenspiler.axioms_tenspiler import matrix_elemwise_add_axiom, vec_elemwise_add_axiom
+from tenspiler.axioms import matrix_elemwise_add_axiom, vec_elemwise_add_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     call_matrix_elemwise_add,

@@ -1,5 +1,5 @@
 from metalift.frontend.llvm import Driver
-from tenspiler.axioms_tenspiler import matrix_scalar_mul_axiom, vec_scalar_mul_axiom
+from tenspiler.axioms import matrix_scalar_mul_axiom, vec_scalar_mul_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tree_parser import analyze_double_loops
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
