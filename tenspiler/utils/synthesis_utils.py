@@ -206,9 +206,13 @@ def run_llm_synthesis_algorithm(
             messages_for_new_sol = [inv_template_message]
         # TODO(jie)
         # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+        # ps_sol = """
+        # def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+        #     return matrix_elemwise_add(base, active)
+        # """
         ps_sol = """
-        def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-            return matrix_elemwise_add(base, active)
+        def darken_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
+            return matrix_selection_two_args(base, active, lambda x, y: ite_int(x > y, y, x))
         """
         print("Generated new PS solution", ps_sol)
         ps_sols.append(ps_sol)
@@ -245,14 +249,23 @@ def run_llm_synthesis_algorithm(
                 messages_for_new_sol = [inv_template_message]
             # TODO(jie)
             # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-            inv_sol = f"""
+            # inv_sol = f"""
+            # def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
+            #     return row >= 0 and row <= len(base) and out == matrix_elemwise_add(base[:row], active[:row])
+
+            # def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]]) -> bool:
+            #     return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and \
+            #         row_vec == vec_elemwise_add(base[row][:col], active[row][:col]) and \
+            #         out == matrix_elemwise_add(base[:row], active[:row])
+            # """
+            inv_sol = """
             def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
-                return row >= 0 and row <= len(base) and out == matrix_elemwise_add(base[:row], active[:row])
+                return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x > y, y, x))
 
             def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]]) -> bool:
                 return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and \
-                    row_vec == vec_elemwise_add(base[row][:col], active[row][:col]) and \
-                    out == matrix_elemwise_add(base[:row], active[:row])
+                    row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int(x > y, y, x)) and \
+                    out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x > y, y, x))
             """
             print("Generated new INV solution", inv_sol)
             inv_sols.append(inv_sol)

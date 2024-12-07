@@ -80,6 +80,7 @@ VEC_MAP = "vec_map"
 
 # Other helper functions
 MATRIX_VEC_MUL = "matrix_vec_mul"
+ITE_INT = "ite_int"
 
 TensorT = Union[mlList[Int], Matrix[Int], Tensor3D[Int]]
 
@@ -386,6 +387,7 @@ int_x = Int("int_x")
 int_y = Int("int_y")
 opacity = Int("opacity")
 rand_cons = Int("rand_cons")
+cond = Bool("cond")
 
 
 def reduce_sum_body(lst: List[Int]) -> Int:
@@ -436,6 +438,8 @@ def matrix_vec_mul_body(matrix: Matrix[Int], vec: mlList[Int]) -> mlList[Int]:
 matrix_vec_mul = fn_decl_recursive(
     MATRIX_VEC_MUL, mlList[Int], matrix_vec_mul_body(matrix_x, x), matrix_x, x
 )
+
+ite_int = fn_decl(ITE_INT, Int, ite(cond, int_x, int_y), cond, int_x, int_y)
 
 
 # Helper functions for selections
