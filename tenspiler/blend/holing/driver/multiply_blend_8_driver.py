@@ -2,10 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tenspiler.axioms_tenspiler import (
-    matrix_elemwise_mul_axiom,
-    matrix_scalar_div_axiom,
-)
+from tenspiler.axioms import matrix_elemwise_mul_axiom, matrix_scalar_div_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     get_matrix_computation_holing_search_space,

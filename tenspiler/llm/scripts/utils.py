@@ -958,6 +958,7 @@ def process_dsl_fns_for_rosette(
             continue
         if fn_decl.body() is None:
             continue
+        final_dsl_fns.append(fn_decl)
 
     return final_dsl_fns
 
@@ -1026,9 +1027,7 @@ def verify_benchmark(
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
     # write ps and inv
-    synthesized_fn_decls = process_synthesized_fn_decls(
-        benchmark_name, synthesized_fn_decls
-    )
+    process_synthesized_fn_decls(benchmark_name, synthesized_fn_decls)
     for fn_decl in synthesized_fn_decls:
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
@@ -1072,7 +1071,7 @@ def verify_benchmark_smt(
     dsl_fn_name_to_axioms: dict[str, list[Axiom]],
 ) -> None:
     SYNTHESIS_LOGS_DIR.mkdir(exist_ok=True)
-    verify_file_name = SYNTHESIS_LOGS_DIR / f"verify_{benchmark_name}.smt"
+    verify_file = SYNTHESIS_LOGS_DIR / f"verify_{benchmark_name}.smt"
     final_dsl_fns = process_dsl_fns_for_smt(dsl_fns, in_calls)
     process_synthesized_fn_decls(benchmark_name, synthesized_fn_decls)
 
@@ -1091,30 +1090,31 @@ def verify_benchmark_smt(
         inv_and_ps=synthesized_fn_decls,
         preds=[],
         vc=vc,
-        out_file=verify_file_name,  # todo
+        out_file=verify_file,
         in_calls=in_calls,
         fn_calls=[*target_lang_fn_names, *synthesized_fn_names],
     )
 
-    # TODO(haha)
-    # run external verification subprocess
-    # procVerify = subprocess.run(
-    #     [
-    #         cvcPath,
-    #         "--lang=smt",
-    #         "--produce-models",
-    #         "--tlimit=1",
-    #         verifFile,
-    #     ],
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.DEVNULL,
-    # )
+    # Run external verification subprocess.
+    verify_proc = subprocess.run(
+        [
+            "cvc5",
+            "--lang=smt",
+            "--produce-models",
+            "--tlimit=100000",
+            verify_file,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
 
-    # if procVerify.returncode < 0:
-    #     resultVerify = "SAT/UNKNOWN"
-    # else:
-    #     procOutput = procVerify.stdout
-    #     resultVerify = procOutput.decode("utf-8").split("\n")[0]
+    if verify_proc.returncode < 0:
+        return False
+    else:
+        proc_output = verify_proc.stdout
+        result_verify = proc_output.decode("utf-8").split("\n")[0]
+        print(result_verify)
+        return True
 
 
 def run_gemini(dsl_code: str, source_code: str, solution: str, feedback: str):

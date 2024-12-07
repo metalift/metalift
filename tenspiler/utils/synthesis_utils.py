@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Callable
 
@@ -15,6 +16,7 @@ from tenspiler.llm.scripts.utils import (
     TEMPLATE_ERR,
     is_single_loop,
     replace_in_calls,
+    verify_benchmark,
     verify_benchmark_smt,
 )
 
@@ -152,6 +154,12 @@ def run_synthesis_algorithm(
             raise e
 
 
+class VerificationMethod(Enum):
+    NONE = "none"
+    ROSETTE = "rosette"
+    SMT = "smt"
+
+
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
@@ -163,6 +171,7 @@ def run_llm_synthesis_algorithm(
     max_num_inv_sols: int = 10,
     dsl_fns: list[FnDecl | FnDeclRecursive] = TENSPILER_FNS,
     dsl_fn_name_to_axioms: dict[str, list[Axiom]] = TENSPILER_FN_NAME_TO_AXIOMS,
+    verification_method: VerificationMethod = VerificationMethod.ROSETTE,
 ) -> None:
     """
     The flow of the function is as follows:
@@ -266,23 +275,32 @@ def run_llm_synthesis_algorithm(
             vc = replace_in_calls(vc, in_calls)
 
             # Verify the solution
-            verified = verify_benchmark_smt(
-                driver=driver,
-                benchmark_name=benchmark_name,
-                synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
-                in_calls=in_calls,
-                dsl_fns=dsl_fns,
-                vc=vc,
-                dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
-            )
-            # verified = verify_benchmark(
-            #     driver=driver,
-            #     benchmark_name=benchmark_name,
-            #     synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
-            #     in_calls=in_calls,
-            #     dsl_fns=dsl_fns,
-            #     vc=vc
-            # )
+            if verification_method == VerificationMethod.SMT:
+                verified = verify_benchmark_smt(
+                    driver=driver,
+                    benchmark_name=benchmark_name,
+                    synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+                    in_calls=in_calls,
+                    dsl_fns=dsl_fns,
+                    vc=vc,
+                    dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
+                )
+            elif verification_method == VerificationMethod.ROSETTE:
+                verified = verify_benchmark(
+                    driver=driver,
+                    benchmark_name=benchmark_name,
+                    synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+                    in_calls=in_calls,
+                    dsl_fns=dsl_fns,
+                    vc=vc,
+                )
+            elif verification_method == VerificationMethod.NONE:
+                print("Skpping verification...")
+            else:
+                raise Exception(
+                    f"Unsupported verification method {verification_method}"
+                )
+
             if verified:
                 print("Solution verified")
                 found_sol = True

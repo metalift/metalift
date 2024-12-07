@@ -1,4 +1,4 @@
-from tenspiler.axioms_tenspiler import (
+from tenspiler.axioms import (
     vec_elemwise_add_axiom,
     vec_elemwise_mul_axiom,
     vec_elemwise_sub_axiom,

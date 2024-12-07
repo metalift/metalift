@@ -6,7 +6,7 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, call, choose, fn_decl, ite, synth
 from metalift.vc_util import and_objects
-from tenspiler.axioms_tenspiler import (
+from tenspiler.axioms import (
     matrix_vec_mul_axiom,
     reduce_sum_axiom,
     vec_elemwise_div_axiom,

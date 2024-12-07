@@ -1,4 +1,4 @@
-from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom, vec_scalar_mul_axiom
+from tenspiler.axioms import vec_elemwise_add_axiom, vec_scalar_mul_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tree_parser import analyze_single_loop
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
