@@ -72,15 +72,20 @@ def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
     ):
         return fun_def
     if isinstance(fun_def, Call):
+        if "select" in fun_def.name():
+            print(fun_def.name())
         new_args = []
-        for i in range(1, len(fun_def.args)):
-            if not is_fn_decl_type(fun_def.args[i].type):
-                new_args.append(filter_body(fun_def.args[i], fn_call, in_call))
-        return Call(fun_def.name(), fun_def.type, *new_args)
+        for arg in fun_def.arguments():
+            if not is_fn_decl_type(arg.type):
+                new_args.append(filter_body(arg, fn_call, in_call))
+        fn_name = fun_def.name()
+        if fn_call == fn_name:
+            fn_name = f"{fn_call}_{in_call}"
+        return Call(fn_name, fun_def.type, *new_args)
     elif isinstance(fun_def, CallValue):
         new_args = []
-        for i in range(1, len(fun_def.args)):
-            new_args.append(filter_body(fun_def.args[i], fn_call, in_call))
+        for arg in fun_def.arguments():
+            new_args.append(filter_body(arg, fn_call, in_call))
         return Call(in_call, fun_def.type, *new_args)
     else:
         return fun_def.map_args(lambda x: filter_body(x, fn_call, in_call))
@@ -108,36 +113,40 @@ def toSMT(
         early_candidates_names = set()
         synthesized_fn_names = set(fn.name() for fn in inv_and_ps)
 
-        fn_decls = []
-        axioms = []
+        fn_decls: list[FnDecl | FnDeclRecursive] = []
+        axioms: list[Axiom] = []
         target_lang = topological_sort(target_lang)
         for t in target_lang:
             if (
                 isinstance(t, FnDeclRecursive) or isinstance(t, FnDecl)
             ) and t.name() in fn_calls:
                 found_inline = False
+                fn_call_to_in_call = {}
+                for i in in_calls:
+                    if i[0] not in fn_call_to_in_call:
+                        fn_call_to_in_call[i[0]] = []
+                    fn_call_to_in_call[i[0]].append(i[1])
+                import pdb
+
+                pdb.set_trace()
                 for i in in_calls:
                     if i[0] == t.name():
                         found_inline = True
                         early_candidates_names.add(i[1])
                         # parse body
-                        newBody = filter_body(t.args[1], i[0], i[1])
-
+                        newBody = filter_body(t.body(), i[0], i[1])
                         # remove function type args
-                        newArgs = filter_args(t.args[2:])
+                        newArgs = filter_args(t.arguments())
                         fn_decls.append(
                             FnDeclRecursive(
-                                t.name(),  # TODO: this only handles single function param
-                                # t.args[0] + "_" + i[1],
+                                t.name() + "_" + i[1],
                                 t.returnT(),
                                 newBody,
                                 *newArgs,
                             )
-                            # if t.kind == Expr.Kind.FnDecl
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
-                                t.name(),  # TODO: this only handles single function param
-                                # t.args[0] + "_" + i[1],
+                                t.name() + "_" + i[1],
                                 t.returnT(),
                                 newBody,
                                 *newArgs,
@@ -146,7 +155,6 @@ def toSMT(
                 if not found_inline and t.name() not in synthesized_fn_names:
                     out.write("\n" + t.toSMT() + "\n")
 
-            # elif t.kind == Expr.Kind.Axiom:
             elif isinstance(t, Axiom):
                 axioms.append(t)
 
@@ -155,20 +163,20 @@ def toSMT(
         filtered_axioms = []
 
         for cand in inv_and_ps:
-            newBody = cand.args[1]
+            newBody = cand.body()
             for i in in_calls:
                 newBody = filter_body(newBody, i[0], i[1])
 
             if isinstance(cand, Synth):
                 decl: Union[Synth, FnDeclRecursive] = Synth(
-                    cand.args[0], newBody, *cand.args[2:]
+                    cand.name(), newBody, *cand.arguments()
                 )
             else:
                 decl = FnDeclRecursive(
-                    cand.args[0],
+                    cand.name(),
                     get_fn_return_type(cand.type),
                     newBody,
-                    *cand.args[2:],
+                    *cand.arguments(),
                 )
 
             if cand.args[0] in early_candidates_names:
@@ -177,7 +185,7 @@ def toSMT(
                 candidates.append(decl)
 
         for axiom in axioms:
-            newBody = axiom.args[0]
+            newBody = axiom.e()
             for i in in_calls:
                 newBody = filter_body(newBody, i[0], i[1])
 
