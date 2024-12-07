@@ -696,6 +696,7 @@ def synthesize(
         all_candidates_by_name = {c.name(): c for c in candidates_smt}
         # Prune ite branches
         all_candidates_by_name = prune_fn_decls(all_candidates_by_name)
+        # This is basically a list of synthesized functions.
         candidates_smt = list(all_candidates_by_name.values())
 
         ##### verification of synthesized ps/inv

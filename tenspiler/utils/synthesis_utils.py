@@ -4,13 +4,19 @@ from typing import Callable
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import FnDecl, FnDeclRecursive
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
+from metalift.vc_util import and_objects
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
 from tenspiler.constants import TENSPILER_FNS
 from tenspiler.llm.parser import check_solution
 from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
-from tenspiler.llm.scripts.utils import TEMPLATE_ERR, is_single_loop, verify_benchmark
+from tenspiler.llm.scripts.utils import (
+    TEMPLATE_ERR,
+    is_single_loop,
+    replace_in_calls,
+    verify_benchmark_smt,
+)
 
 tpcc_benchmarks = {
     "normal_blend_f",
@@ -252,13 +258,29 @@ def run_llm_synthesis_algorithm(
                 print("Failed to pass the parser", e)
                 continue
 
+            # Generate VC.
+            # Write assertions
+            in_calls = [*ps_inv_calls, *inv_in_calls]
+            vc = and_objects(*driver.asserts).src.simplify()
+            vc = replace_in_calls(vc, in_calls)
+
             # Verify the solution
-            verified = verify_benchmark(
+            verified = verify_benchmark_smt(
                 driver=driver,
                 benchmark_name=benchmark_name,
                 synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
-                in_calls=[*ps_inv_calls, *inv_in_calls],
+                in_calls=in_calls,
+                dsl_fns=dsl_fns,
+                vc=vc,
             )
+            # verified = verify_benchmark(
+            #     driver=driver,
+            #     benchmark_name=benchmark_name,
+            #     synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+            #     in_calls=in_calls,
+            #     dsl_fns=dsl_fns,
+            #     vc=vc
+            # )
             if verified:
                 print("Solution verified")
                 found_sol = True

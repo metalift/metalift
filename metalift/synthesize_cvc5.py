@@ -280,7 +280,7 @@ def synthesize(
         vc,
         sygusFile,
         [],
-        [f.args[0] for f in targetLang],
+        [f.name() for f in targetLang],
         True,
     )
 
