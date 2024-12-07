@@ -2,12 +2,12 @@ from pathlib import Path
 from typing import Callable
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import FnDecl, FnDeclRecursive
+from metalift.ir import Axiom, FnDecl, FnDeclRecursive
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from metalift.vc_util import and_objects
 from tenspiler.codegen.numpy_codegen import numpy_codegen
 from tenspiler.codegen.utils import DataType
-from tenspiler.constants import TENSPILER_FNS
+from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 from tenspiler.llm.parser import check_solution
 from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
@@ -162,6 +162,7 @@ def run_llm_synthesis_algorithm(
     max_num_ps_sols: int = 10,
     max_num_inv_sols: int = 10,
     dsl_fns: list[FnDecl | FnDeclRecursive] = TENSPILER_FNS,
+    dsl_fn_name_to_axioms: dict[str, list[Axiom]] = TENSPILER_FN_NAME_TO_AXIOMS,
 ) -> None:
     """
     The flow of the function is as follows:
@@ -272,6 +273,7 @@ def run_llm_synthesis_algorithm(
                 in_calls=in_calls,
                 dsl_fns=dsl_fns,
                 vc=vc,
+                dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
             )
             # verified = verify_benchmark(
             #     driver=driver,

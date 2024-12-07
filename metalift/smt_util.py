@@ -87,7 +87,7 @@ def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
 
 
 def toSMT(
-    target_lang: list[FnDecl | FnDeclRecursive],
+    target_lang: list[FnDecl | FnDeclRecursive | Axiom],
     vars: set[Var],
     inv_and_ps: typing.Sequence[Union[FnDeclRecursive, Synth]],
     preds: Union[str, typing.List[Any]],
