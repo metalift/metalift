@@ -18,7 +18,7 @@ if __name__ == "__main__":
         suite_name="blend",
         benchmark_name="darken_blend_8",
         llm_model=LLMModel.GPT,
-        verification_method=VerificationMethod.ROSETTE,
+        verification_method=VerificationMethod.SMT,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
