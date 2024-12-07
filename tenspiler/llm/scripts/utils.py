@@ -12,6 +12,7 @@ import google.generativeai as genai
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import (
+    Axiom,
     Bool,
     Call,
     Eq,
@@ -27,6 +28,7 @@ from metalift.ir import (
 )
 from metalift.rosette_translator import generate_vars
 from metalift.smt_util import toSMT
+from metalift.synthesis_common import get_used_fn_names
 from tenspiler.llm.analysis import (
     analyze_blend_double_loop,
     analyze_dissolve_blend_8,
@@ -910,19 +912,23 @@ def get_inv_and_ps(
     return outputs.choices, call_end_time - call_start_time
 
 
-def process_dsl_fns(
+def process_dsl_fns_for_smt(
     dsl_fns: list[FnDecl | FnDeclRecursive], in_calls: list[tuple[str, str]]
 ) -> list[FnDecl | FnDeclRecursive]:
     final_dsl_fns: list[FnDecl | FnDeclRecursive] = []
-    # write dsl code
     for fn_decl in dsl_fns:
-        # Skip some functions that are already in utils.rkt
-        # TODO(jie): this is a bit hacky. We could remove all these functions in utils.rkt, but then we need to make sure that they are added to perspective driver files.
+        # Skip functions that are already in list-axioms.smt.
+        # TODO(jie): this is a bit hacky. We could remove all these functions in list-axioms.smt, but then we need to make sure that they are added to perspective driver files.
         if fn_decl.name().startswith("integer"):
             continue
-        if fn_decl.name() in {"firsts"}:
-            continue
-        if fn_decl.body() is None:
+        if fn_decl.name() in {
+            "vec_slice",
+            "matrix_col_slice",
+            "firsts",
+            "rests",
+            "matrix_transpose",
+            "matrix_row_slice",
+        }:
             continue
 
         # If we have functions in the grammar that takes in lambda functions,
@@ -936,6 +942,45 @@ def process_dsl_fns(
 
         final_dsl_fns.append(fn_decl)
     return final_dsl_fns
+
+
+def process_dsl_fns_for_rosette(
+    dsl_fns: list[FnDecl | FnDeclRecursive],
+) -> list[FnDecl | FnDeclRecursive]:
+    final_dsl_fns: list[FnDecl | FnDeclRecursive] = []
+    # write dsl code
+    for fn_decl in dsl_fns:
+        # Skip some functions that are already in utils.rkt
+        # TODO(jie): this is a bit hacky. We could remove all these functions in utils.rkt, but then we need to make sure that they are added to perspective driver files.
+        if fn_decl.name().startswith("integer"):
+            continue
+        if fn_decl.name() in {"firsts"}:
+            continue
+        if fn_decl.body() is None:
+            continue
+
+    return final_dsl_fns
+
+
+def process_synthesized_fn_decls(
+    benchmark_name: str, synthesized_fn_decls: list[FnDecl | FnDeclRecursive]
+) -> None:
+    for idx, fn_decl in enumerate(synthesized_fn_decls):
+        # Change function names
+        # Change single loop invariant names
+        if fn_decl.name() == "invariant":
+            fn_decl.set_name(f"{benchmark_name}_inv0")
+
+        # Change double loop invariant names
+        if fn_decl.name() == "invariant1":
+            fn_decl.set_name(f"{benchmark_name}_inv0")
+        if fn_decl.name() == "invariant2":
+            fn_decl.set_name(f"{benchmark_name}_inv1")
+
+        # Change ps function name
+        if fn_decl.name() == benchmark_name:
+            fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
+            synthesized_fn_decls[idx] = fn_decl
 
 
 def verify_benchmark(
@@ -976,26 +1021,15 @@ def verify_benchmark(
         file=f,
     )
     # write dsl code
-    for fn_decl in process_dsl_fns(dsl_fns, in_calls):
+    for fn_decl in process_dsl_fns_for_rosette(dsl_fns):
         fn_decl = replace_in_calls(fn_decl, in_calls)
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
     # write ps and inv
+    synthesized_fn_decls = process_synthesized_fn_decls(
+        benchmark_name, synthesized_fn_decls
+    )
     for fn_decl in synthesized_fn_decls:
-        # Change function names
-        # Change single loop invariant names
-        if fn_decl.name() == "invariant":
-            fn_decl.set_name(f"{benchmark_name}_inv0")
-
-        # Change double loop invariant names
-        if fn_decl.name() == "invariant1":
-            fn_decl.set_name(f"{benchmark_name}_inv0")
-        if fn_decl.name() == "invariant2":
-            fn_decl.set_name(f"{benchmark_name}_inv1")
-
-        # Change ps function name
-        if fn_decl.name() == benchmark_name:
-            fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
     # Write variables
@@ -1035,15 +1069,24 @@ def verify_benchmark_smt(
     in_calls: list[tuple[str, str]],
     dsl_fns: list[FnDecl | FnDeclRecursive],
     vc: Expr,
+    dsl_fn_name_to_axioms: dict[str, list[Axiom]],
 ) -> None:
     SYNTHESIS_LOGS_DIR.mkdir(exist_ok=True)
     verify_file_name = SYNTHESIS_LOGS_DIR / f"verify_{benchmark_name}.smt"
-    final_dsl_fns = process_dsl_fns(dsl_fns, in_calls)
+    final_dsl_fns = process_dsl_fns_for_smt(dsl_fns, in_calls)
+    process_synthesized_fn_decls(benchmark_name, synthesized_fn_decls)
+
+    # Find axioms that are needed
+    used_fn_names = get_used_fn_names(synthesized_fn_decls)
+    axioms: list[Axiom] = []
+    for fn_name in used_fn_names:
+        axioms.extend(dsl_fn_name_to_axioms.get(fn_name, []))
+
     synthesized_fn_names = [fn_decl.name() for fn_decl in synthesized_fn_decls]
     target_lang_fn_names = [fn_decl.name() for fn_decl in final_dsl_fns]
 
     toSMT(
-        target_lang=final_dsl_fns,
+        target_lang=[*final_dsl_fns, *axioms],
         vars=set(driver.var_tracker.all()),
         inv_and_ps=synthesized_fn_decls,
         preds=[],

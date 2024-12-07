@@ -20,6 +20,11 @@ class VerificationFailed(Exception):
 
 
 def prune_fn_decls(all_fns: Dict[str, Union[FnDecl, FnDeclRecursive]]) -> FnDecl:
+    """
+    We process any ite expressions where the condition is a simple boolean.
+    This is mostly to simplify reading.
+    """
+
     def prune_ite(expr: Expr) -> Expr:
         if (
             (not isinstance(expr, Expr))
@@ -48,6 +53,22 @@ def prune_fn_decls(all_fns: Dict[str, Union[FnDecl, FnDeclRecursive]]) -> FnDecl
     for fn_name, fn in all_fns.items():
         new_fns[fn_name] = fn.map_args(prune_ite)
     return new_fns
+
+
+def get_used_fn_names(synthesized_fn_decls: list[FnDecl | FnDeclRecursive]) -> set[str]:
+    """Given all synthesized functions, return a set of DSL function names used in these function definitions."""
+
+    def get_fn_names(expr: Expr | Any, fn_names: set[str]) -> Expr:
+        if not isinstance(expr, Expr):
+            return expr
+        if isinstance(expr, Call):
+            fn_names.add(expr.name())
+        return expr.map_args(lambda expr: get_fn_names(expr, fn_names))
+
+    fn_names: set[str] = set()
+    for fn_decl in synthesized_fn_decls:
+        fn_decl.map_args(lambda expr: get_fn_names(expr, fn_names))
+    return fn_names
 
 
 def generate_types(lang: typing.Sequence[Union[Expr, ValueRef]]) -> Dict[str, ObjectT]:
