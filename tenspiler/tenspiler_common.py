@@ -1,4 +1,3 @@
-import typing
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from metalift.frontend.llvm import Driver, InvGrammar
@@ -264,7 +263,7 @@ def call_reduce_max(lst) -> Int:
 
 
 def call_selection_two_args(
-    left: mlList[Int], right: mlList[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
+    left: mlList[Int], right: mlList[Int], select_fn: Fn[tuple[Int, Int, Int]]
 ) -> mlList[Int]:
     return call(SELECTION_TWO_ARGS, mlList[Int], left, right, select_fn)
 
@@ -274,7 +273,7 @@ def call_dissolve_selection_two_args(
     right: mlList[Int],
     opacity: Int,
     rand_cons: Int,
-    select_fn: Fn[typing.Tuple[Int, Int, Int]],
+    select_fn: Fn[tuple[Int, Int, Int]],
 ) -> mlList[Int]:
     return call(
         DISSOLVE_SELECTION_TWO_ARGS,
@@ -288,7 +287,7 @@ def call_dissolve_selection_two_args(
 
 
 def call_matrix_selection_two_args(
-    left: Matrix[Int], right: Matrix[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
+    left: Matrix[Int], right: Matrix[Int], select_fn: Fn[tuple[Int, Int, Int]]
 ) -> Matrix[Int]:
     return call(MATRIX_SELECTION_TWO_ARGS, Matrix[Int], left, right, select_fn)
 
@@ -322,7 +321,7 @@ def call_dissolve_matrix_selection_two_args(
     right: Matrix[Int],
     opacity: Int,
     rand_cons: Int,
-    select_fn: Fn[typing.Tuple[Int, Int, Int]],
+    select_fn: Fn[tuple[Int, Int, Int]],
 ) -> Matrix[Int]:
     return call(
         DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -347,7 +346,7 @@ def call_map_int_to_int(x: Int) -> Int:
     return call(MAP_INT_TO_INT, Int, x)
 
 
-def call_vec_map(x: mlList[Int], map_fn: Fn[typing.Tuple[Int, Int]]) -> mlList[Int]:
+def call_vec_map(x: mlList[Int], map_fn: Fn[tuple[Int, Int]]) -> mlList[Int]:
     return call(VEC_MAP, mlList[Int], x, map_fn)
 
 
@@ -592,7 +591,7 @@ map_int_to_int = fn_decl(MAP_INT_TO_INT, Int, None, int_x)
 
 
 def matrix_selection_two_args_body(
-    left: Matrix[Int], right: Matrix[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
+    left: Matrix[Int], right: Matrix[Int], select_fn: Fn[tuple[Int, Int, Int]]
 ) -> Matrix[Int]:
     cur = call_selection_two_args(left[0], right[0], select_fn)
     recursed = call_matrix_selection_two_args(left[1:], right[1:], select_fn)
@@ -619,7 +618,7 @@ def dissolve_matrix_selection_two_args_body(
     right: Matrix[Int],
     opacity: Int,
     rand_cons: Int,
-    dissolve_select_fn: Fn[typing.Tuple[Int, Int, Int, Int]],
+    dissolve_select_fn: Fn[tuple[Int, Int, Int, Int]],
 ) -> Matrix[Int]:
     cur = call_dissolve_selection_two_args(
         left[0], right[0], opacity, rand_cons, dissolve_select_fn
@@ -650,7 +649,7 @@ dissolve_matrix_selection_two_args_fn_decl = fn_decl_recursive(
 
 
 def selection_two_args_body(
-    left: mlList[Int], right: mlList[Int], select_fn: Fn[typing.Tuple[Int, Int, Int]]
+    left: mlList[Int], right: mlList[Int], select_fn: Fn[tuple[Int, Int, Int]]
 ) -> mlList[Int]:
     cur = call_value(select_fn, left[0], right[0])
     recursed = call_selection_two_args(left[1:], right[1:], select_fn)
@@ -677,7 +676,7 @@ def dissolve_selection_two_args_body(
     right: mlList[Int],
     opacity: Int,
     rand_cons: Int,
-    dissolve_select_fn: Fn[typing.Tuple[Int, Int, Int, Int, Int]],
+    dissolve_select_fn: Fn[tuple[Int, Int, Int, Int, Int]],
 ) -> mlList[Int]:
     cur = call_value(dissolve_select_fn, left[0], right[0], opacity, rand_cons)
     recursed = call_dissolve_selection_two_args(
@@ -1207,7 +1206,7 @@ scalar_matrix_sub = fn_decl_recursive(
 )
 
 
-def vec_map_body(vec: mlList[Int], map_fn: Fn[typing.Tuple[Int, Int]]) -> mlList[Int]:
+def vec_map_body(vec: mlList[Int], map_fn: Fn[tuple[Int, Int]]) -> mlList[Int]:
     cur = call_value(map_fn, vec[0])
     recursed = call_vec_map(vec[1:], map_fn)
     return ite(vec.len() < 1, mlList.empty(Int), recursed.prepend(cur))

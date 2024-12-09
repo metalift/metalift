@@ -1,6 +1,7 @@
+import copy
 import json
 import re
-import uuid
+from functools import lru_cache
 from pathlib import Path
 from textwrap import dedent
 from typing import Optional, Type, Union, cast, get_args
@@ -227,6 +228,8 @@ def mypy_node_to_ir(
     types: dict[Node, MypyType],
     fn_decls: list[FnDeclRecursive],
     in_calls: list[tuple[str, str]],
+    lambda_exprs: dict[Expr, str],
+    arg_name_to_count: dict[str, int],
 ) -> Expr:
     def parse_node(node: Node) -> Expr:
         # TODO: add support for non-lambda inline functions
@@ -338,7 +341,16 @@ def mypy_node_to_ir(
                     # If the argument is a function, then we need to define another function for it
                     if is_fn_decl_type(arg_expr.type):
                         if isinstance(arg, LambdaExpr):
-                            arg_fn_name = f"{arg_names[idx]}_{str(uuid.uuid4())[:8]}"
+                            if arg_expr in lambda_exprs:
+                                arg_fn_name = lambda_exprs[arg_expr]
+                            else:
+                                arg_name_count = arg_name_to_count.get(
+                                    arg_names[idx], 0
+                                )
+                                arg_fn_name = f"{arg_names[idx]}_{arg_name_count}"
+                                arg_name_to_count[arg_names[idx]] = arg_name_count + 1
+                                lambda_exprs[arg_expr] = arg_fn_name
+                            arg_expr = copy.deepcopy(arg_expr)
                             arg_expr.set_name(arg_fn_name)
                         elif isinstance(arg, NameExpr):
                             arg_fn_name = cast(NameExpr, arg).name
@@ -497,8 +509,13 @@ def mypy_node_to_ir(
 
 
 def check_solution(
-    *, solution: str, expected_num_funcs: int, dsl_code: str
-) -> tuple[list[str], list[FnDeclRecursive], list[tuple[str, str]],]:
+    *,
+    solution: str,
+    expected_num_funcs: int,
+    dsl_code: str,
+    lambda_exprs: dict[Expr, str],
+    arg_name_to_count: dict[str, int],
+) -> tuple[list[str], list[FnDeclRecursive], dict[str, list[tuple[str, str]]]]:
     universal_imports = "from typing import Any, Callable, List\n"
     dsl_imports = "from tenspiler.llm.dsl import *\n"
     with open(TENSPILER_LLM_PATH / "dsl.py", "w") as f:
@@ -511,11 +528,22 @@ def check_solution(
     )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
     fn_decls: list[FnDeclRecursive] = []
-    in_calls: list[tuple[str, str]] = []
+    fn_name_to_in_calls: dict[str, list[tuple[str, str]]] = {}
+
     for target_func_def in target_func_defs:
-        mypy_node_to_ir(target_func_def, func_sigs, types, fn_decls, in_calls)
+        in_calls: list[tuple[str, str]] = []
+        mypy_node_to_ir(
+            target_func_def,
+            func_sigs,
+            types,
+            fn_decls,
+            in_calls,
+            lambda_exprs,
+            arg_name_to_count,
+        )
+        fn_name_to_in_calls[target_func_def.name] = in_calls
     target_func_names = [func_def.name for func_def in target_func_defs]
-    return target_func_names, fn_decls, in_calls
+    return target_func_names, fn_decls, fn_name_to_in_calls
 
 
 def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:

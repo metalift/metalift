@@ -8,6 +8,77 @@ from metalift import utils
 from metalift.ir import *
 
 
+def get_direct_calls(
+    target_lang: list[FnDecl | FnDeclRecursive],
+) -> dict[str, set[str]]:
+    """Returns a mapping from function names to a set of function names that call them."""
+
+    def get_fn_direct_calls(
+        expr: Expr | Any, fn_call: str, direct_calls: dict[str, set[str]]
+    ) -> Expr:
+        if not isinstance(expr, Expr):
+            return expr
+        if isinstance(expr, Call):
+            if expr.name() != fn_call:
+                if expr.name() not in direct_calls:
+                    direct_calls[expr.name()] = set()
+                direct_calls[expr.name()].add(fn_call)
+        return expr.map_args(
+            lambda expr: get_fn_direct_calls(expr, fn_call, direct_calls)
+        )
+
+    direct_calls: dict[str, set[str]] = {}
+    for fn_decl in target_lang:
+        fn_decl.map_args(
+            lambda expr: get_fn_direct_calls(expr, fn_decl.name(), direct_calls)
+        )
+    return direct_calls
+
+
+def get_direct_in_calls(
+    fn_decls: list[FnDecl | FnDeclRecursive],
+    in_calls: list[tuple[str, str]],
+) -> list[tuple[str, str]]:
+    """Sometimes, only indirect in calls are provided. For example, matrix selection two args takes in select_two_args_arg argument, and it is used in selection_two_args as well.
+
+    At the time of this function being invoked, in_calls should only have
+    (matrix_selection_two_args, select_two_args_arg), but we want in_calls to have (selection_two_args, select_two_args_arg) as well.
+    """
+
+    def get_fn_direct_in_calls(
+        expr: Expr | Any,
+        fn_call: str,
+        in_call: str,
+        direct_in_calls: list[tuple[str, str]],
+    ) -> Expr:
+        if not isinstance(expr, Expr):
+            return expr
+        if isinstance(expr, Call):
+            if any(is_fn_decl_type(arg.type) for arg in expr.arguments()):
+                if expr.name() != fn_call:
+                    direct_in_calls.append((expr.name(), in_call))
+        return expr.map_args(
+            lambda expr: get_fn_direct_in_calls(expr, fn_call, in_call, direct_in_calls)
+        )
+
+    fn_name_to_in_calls: dict[str, set[str]] = {}
+    for fn_name, in_call in in_calls:
+        if fn_name not in fn_name_to_in_calls:
+            fn_name_to_in_calls[fn_name] = set()
+        fn_name_to_in_calls[fn_name].add(in_call)
+
+    direct_in_calls: list[tuple[str, str]] = []
+    for fn_decl in fn_decls:
+        relevant_in_calls = fn_name_to_in_calls.get(fn_decl.name(), set())
+        for in_call in relevant_in_calls:
+            fn_decl.map_args(
+                lambda expr: get_fn_direct_in_calls(
+                    expr, fn_decl.name(), in_call, direct_in_calls
+                )
+            )
+    return direct_in_calls
+
+
 def get_dependent_fn_names(
     expr: Any, all_fn_names: List[str], dependent_fn_names: List[str]
 ) -> None:
@@ -64,7 +135,29 @@ def filter_args(argList: typing.List[Expr]) -> typing.List[Expr]:
     return newArgs
 
 
-def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
+def replace_fn_name(*, expr: Expr, new_fn_name: str, fn_name: str) -> Expr:
+    if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
+        return expr
+    if isinstance(expr, Call):
+        new_args = []
+        for arg in expr.arguments():
+            if not is_fn_decl_type(arg.type):
+                new_args.append(
+                    replace_fn_name(expr=arg, new_fn_name=new_fn_name, fn_name=fn_name)
+                )
+        if expr.name() == fn_name:
+            fn_name = new_fn_name
+        return Call(fn_name, expr.type, *new_args)
+    else:
+        return expr.map_args(
+            lambda x: replace_fn_name(expr=x, new_fn_name=new_fn_name, fn_name=fn_name)
+        )
+
+
+def filter_body(
+    *, fun_def: Expr, new_fn_call: str, fn_call: str, in_call: Optional[str] = None
+) -> Expr:
+    # TODO(jie): add docstring
     if (
         (not isinstance(fun_def, Expr))
         or isinstance(fun_def, Var)
@@ -72,23 +165,41 @@ def filter_body(fun_def: Expr, fn_call: str, in_call: str) -> Expr:
     ):
         return fun_def
     if isinstance(fun_def, Call):
-        if "select" in fun_def.name():
-            print(fun_def.name())
         new_args = []
         for arg in fun_def.arguments():
             if not is_fn_decl_type(arg.type):
-                new_args.append(filter_body(arg, fn_call, in_call))
+                new_args.append(
+                    filter_body(
+                        fun_def=arg,
+                        new_fn_call=new_fn_call,
+                        fn_call=fn_call,
+                        in_call=in_call,
+                    )
+                )
         fn_name = fun_def.name()
         if fn_call == fn_name:
-            fn_name = f"{fn_call}_{in_call}"
+            fn_name = new_fn_call
         return Call(fn_name, fun_def.type, *new_args)
     elif isinstance(fun_def, CallValue):
         new_args = []
         for arg in fun_def.arguments():
-            new_args.append(filter_body(arg, fn_call, in_call))
+            new_args.append(
+                filter_body(
+                    fun_def=arg,
+                    new_fn_call=new_fn_call,
+                    fn_call=fn_call,
+                    in_call=in_call,
+                )
+            )
+        if in_call is None:
+            raise Exception("in call is None!")
         return Call(in_call, fun_def.type, *new_args)
     else:
-        return funDef.map_args(lambda x: filterBody(x, funCall, inCall))
+        return fun_def.map_args(
+            lambda x: filter_body(
+                fun_def=x, new_fn_call=new_fn_call, fn_call=fn_call, in_call=in_call
+            )
+        )
 
 
 def toSMT(
@@ -111,71 +222,156 @@ def toSMT(
             # out.write(resources.read_text(utils, "map-axioms.smt"))
 
         early_candidates_names = set()
-        synthesized_fn_names = set(fn.name() for fn in inv_and_ps)
 
         fn_decls: list[FnDecl | FnDeclRecursive] = []
         axioms: list[Axiom] = []
         target_lang = topological_sort(target_lang)
+
+        direct_calls = get_direct_calls(
+            [fn_decl for fn_decl in target_lang if not isinstance(fn_decl, Axiom)]
+        )
+        direct_in_calls = get_direct_in_calls(
+            fn_decls=[
+                fn_decl for fn_decl in target_lang if not isinstance(fn_decl, Axiom)
+            ],
+            in_calls=in_calls,
+        )
+
+        rewritten_fn_decls_and_axioms: set[Expr] = set()
+        fn_name_to_rewritten_names: dict[str, set[str]] = {}
+
+        # First, we want to replace all the
         for t in target_lang:
             if (
                 isinstance(t, FnDeclRecursive) or isinstance(t, FnDecl)
             ) and t.name() in fn_calls:
-                found_inline = False
-                fn_call_to_in_call = {}
-                for i in in_calls:
-                    if i[0] not in fn_call_to_in_call:
-                        fn_call_to_in_call[i[0]] = []
-                    fn_call_to_in_call[i[0]].append(i[1])
-                import pdb
-
-                pdb.set_trace()
-                for i in in_calls:
+                fn_name_to_rewritten_names[t.name()] = set()
+                for i in direct_in_calls:
                     if i[0] == t.name():
-                        found_inline = True
+                        rewritten_fn_decls_and_axioms.add(t)
                         early_candidates_names.add(i[1])
-                        # parse body
-                        newBody = filter_body(t.body(), i[0], i[1])
+                        # If we are doing the first round, then it means we are rewritting
+                        # functions that have direct calls to the inlined function. An example
+                        # of such a function is selection_two_args.
+                        new_fn_name = f"{t.name()}_{i[1]}"
+                        new_body = filter_body(
+                            fun_def=t.body(),
+                            new_fn_call=new_fn_name,
+                            fn_call=i[0],
+                            in_call=i[1],
+                        )
                         # remove function type args
-                        newArgs = filter_args(t.arguments())
+                        new_args = filter_args(t.arguments())
+
+                        fn_name_to_rewritten_names[t.name()].add(new_fn_name)
                         fn_decls.append(
                             FnDeclRecursive(
-                                t.name() + "_" + i[1],
+                                new_fn_name,
                                 t.returnT(),
-                                newBody,
-                                *newArgs,
+                                new_body,
+                                *new_args,
                             )
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
-                                t.name() + "_" + i[1],
+                                new_fn_name,
                                 t.returnT(),
-                                newBody,
-                                *newArgs,
+                                new_body,
+                                *new_args,
                             )
                         )
-                if not found_inline and t.name() not in synthesized_fn_names:
-                    out.write("\n" + t.toSMT() + "\n")
 
+        import pdb
+
+        pdb.set_trace()
+        # Now, we start iteratively replacing function calls with the inlined-function-rewritten versions.
+        while len(fn_name_to_rewritten_names) > 0:
+            new_fn_name_to_rewritten_names: dict[str, set[str]] = {}
+            for fn_name, rewritten_fn_names in fn_name_to_rewritten_names.items():
+                for t in target_lang:
+                    if isinstance(t, Axiom):
+                        for rewritten_fn_name in rewritten_fn_names:
+                            axiom = replace_fn_name(
+                                expr=t, new_fn_name=rewritten_fn_name, fn_name=fn_name
+                            )
+                        rewritten_fn_decls_and_axioms.add(axiom)
+                        axioms.append(axiom)
+
+            for fn_name, rewritten_fn_names in fn_name_to_rewritten_names.items():
+                fn_callers = direct_calls.get(fn_name, set())
+                for t in target_lang:
+                    if isinstance(t, Axiom):
+                        continue
+                    if t.name() not in fn_callers:
+                        continue
+                    new_fn_name_to_rewritten_names[t.name()] = set()
+                    for rewritten_fn_name in rewritten_fn_names:
+                        new_body = filter_body(
+                            fun_def=t.body(),
+                            new_fn_call=rewritten_fn_name,
+                            fn_call=fn_name,
+                            in_call=None,
+                        )
+
+                        new_fn_name = f"{t.name()}_{rewritten_fn_name}"
+                        new_body = filter_body(
+                            fun_def=new_body,
+                            new_fn_call=new_fn_name,
+                            fn_call=t.name(),
+                            in_call=None,
+                        )
+                        new_args = filter_args(t.arguments())
+
+                        new_fn_name_to_rewritten_names[t.name()].add(new_fn_name)
+                        rewritten_fn_decls_and_axioms.add(t)
+                        fn_decls.append(
+                            FnDeclRecursive(
+                                new_fn_name,
+                                t.returnT(),
+                                new_body,
+                                *new_args,
+                            )
+                            if isinstance(t, FnDeclRecursive)
+                            else FnDecl(
+                                new_fn_name,
+                                t.returnT(),
+                                new_body,
+                                *new_args,
+                            )
+                        )
+            fn_name_to_rewritten_names = new_fn_name_to_rewritten_names
+
+        for t in target_lang:
+            if t in rewritten_fn_decls_and_axioms:
+                continue
             elif isinstance(t, Axiom):
                 axioms.append(t)
+            else:
+                # At this point, we have
+                out.write("\n" + t.toSMT() + "\n")
 
         early_candidates = []
         candidates = []
         filtered_axioms = []
 
         for cand in inv_and_ps:
-            newBody = cand.body()
+            new_body = cand.body()
             for i in in_calls:
-                newBody = filter_body(newBody, i[0], i[1])
+                new_body = filter_body(
+                    fun_def=new_body,
+                    new_fn_call=i[0],
+                    fn_call=i[0],  # TODO(jie): fix this
+                    in_call=i[1],
+                )
 
             if isinstance(cand, Synth):
                 decl: Union[Synth, FnDeclRecursive] = Synth(
-                    cand.name(), newBody, *cand.arguments()
+                    cand.name(), new_body, *cand.arguments()
                 )
             else:
                 decl = FnDeclRecursive(
                     cand.name(),
                     get_fn_return_type(cand.type),
-                    newBody,
+                    new_body,
                     *cand.arguments(),
                 )
 
@@ -185,14 +381,24 @@ def toSMT(
                 candidates.append(decl)
 
         for axiom in axioms:
-            newBody = axiom.e()
+            new_body = axiom.e()
             for i in in_calls:
-                newBody = filter_body(newBody, i[0], i[1])
+                new_body = filter_body(
+                    fun_def=new_body,
+                    new_fn_call=i[0],
+                    fn_call=i[0],  # TODO(jie): fix this
+                    in_call=i[1],
+                )
 
-            filtered_axioms.append(Axiom(newBody, *axiom.args[1:]))
+            filtered_axioms.append(Axiom(new_body, *axiom.args[1:]))
 
         for i in in_calls:
-            vc = filter_body(vc, i[0], i[1])
+            vc = filter_body(
+                fun_def=vc,
+                new_fn_call=i[0],
+                fn_call=i[0],  # TODO(jie): fix this
+                in_call=i[1],
+            )
 
         candidates = topological_sort(candidates)
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
@@ -200,7 +406,7 @@ def toSMT(
         out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
-        declarations: typing.List[typing.Tuple[str, ObjectT]] = []
+        declarations: typing.List[tuple[str, ObjectT]] = []
         for v in vars:
             declarations.append((v.args[0], v.type))
 
