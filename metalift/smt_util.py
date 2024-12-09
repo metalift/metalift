@@ -328,13 +328,10 @@ def toSMT(
                             )
                         )
 
-        early_candidates = []
-        candidates = []
-
         # Now, we start iteratively replacing function calls with the inlined-function-rewritten versions.
         while len(in_calls_to_renamed_fn_name) > 0:
             # We need to rename all such functions in the synthesized ones.
-            for cand in inv_and_ps:
+            for idx, cand in enumerate(inv_and_ps):
                 for (
                     fn_name,
                     in_call,
@@ -346,11 +343,7 @@ def toSMT(
                         in_call=in_call,
                     )
                     cand.set_body(new_body)
-                cand = filter_fn_args(cand)
-                if cand.name() in early_candidates_names:
-                    early_candidates.append(cand)
-                else:
-                    candidates.append(cand)
+                inv_and_ps[idx] = cand
 
             new_in_calls_to_renamed_fn_name: dict[tuple[str, str], str] = {}
             for idx, t in enumerate(target_lang):
@@ -417,6 +410,15 @@ def toSMT(
                 out.write("\n" + t.toSMT() + "\n")
 
         vc = filter_fn_args(vc)
+
+        early_candidates: list[FnDeclRecursive | Synth] = []
+        candidates: list[FnDeclRecursive | Synth] = []
+        for cand in inv_and_ps:
+            cand = filter_fn_args(cand)
+            if cand.name() in early_candidates_names:
+                early_candidates.append(cand)
+            else:
+                candidates.append(cand)
 
         candidates = topological_sort(candidates)
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
