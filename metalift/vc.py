@@ -113,7 +113,7 @@ class VC:
         arguments: typing.List[ValueRef],
         gvars: Dict[str, str],
         uninterpFuncs: typing.List[str] = [],
-    ) -> typing.Tuple[typing.Set[Var], typing.List[Synth], typing.List[Expr], Expr]:
+    ) -> tuple[typing.Set[Var], typing.List[Synth], typing.List[Expr], Expr]:
         initBlock = blocksMap[firstBlockName]
         initBlock.state.assumes.append(BoolLit(True))
         initBlock.state.gvars = gvars
@@ -164,9 +164,7 @@ class VC:
     # merge either the registers or mem dict passed in containers
     def merge(
         self,
-        containers: typing.List[
-            typing.Tuple[str, typing.List[Expr], Dict[ValueRef, Expr]]
-        ],
+        containers: typing.List[tuple[str, typing.List[Expr], Dict[ValueRef, Expr]]],
     ) -> Dict[ValueRef, Expr]:
         groups: Dict[
             ValueRef, Dict[Expr, typing.List[typing.List[Expr]]]

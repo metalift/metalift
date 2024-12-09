@@ -655,10 +655,10 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
         # TODO : how to support different contained types
         return Set[Int]
     elif ty_str in {"%struct.tup*"}:
-        return Tuple[typing.Tuple[Int, Int]]
+        return Tuple[tuple[Int, Int]]
     elif ty_str.startswith("%struct.tup."):
         contained_types = [Int for i in range(int(t[-2]) + 1)]
-        return Tuple[typing.Tuple[contained_types]]  # type: ignore
+        return Tuple[tuple[contained_types]]  # type: ignore
     else:
         raise Exception(f"no type defined for {ty_str}")
 
@@ -795,7 +795,7 @@ def make_tuple(*objects: Union["Object", Expr]) -> "Tuple":  # type: ignore
 
 
 def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> Type["Tuple"]:  # type: ignore
-    return Tuple[typing.Tuple[containedT]]  # type: ignore
+    return Tuple[tuple[containedT]]  # type: ignore
 
 
 def make_fn_type(*containedT: ObjectT) -> Type["Fn"]:  # type: ignore
@@ -1728,10 +1728,10 @@ TupleContainedT = TypeVar("TupleContainedT")
 class Tuple(Generic[TupleContainedT], Object):
     def __init__(
         self,
-        containedT: typing.Tuple[Union[type, _GenericAlias]],
+        containedT: tuple[Union[type, _GenericAlias]],
         value: Optional[Union[Expr, str]] = None,
     ) -> None:
-        full_type = Tuple[typing.Tuple[containedT]]  # type: ignore
+        full_type = Tuple[tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", full_type)
@@ -1766,7 +1766,7 @@ class Tuple(Generic[TupleContainedT], Object):
         return len(self.containedT)
 
     @staticmethod
-    def default_value() -> "Tuple[typing.Tuple[Int, Int]]":
+    def default_value() -> "Tuple[tuple[Int, Int]]":
         return Tuple((Int, Int), None)  # type: ignore
 
     @staticmethod
@@ -1784,7 +1784,7 @@ class Tuple(Generic[TupleContainedT], Object):
 
     @property
     def type(self) -> Type["Tuple"]:  # type: ignore
-        return Tuple[typing.Tuple[self.containedT]]  # type: ignore
+        return Tuple[tuple[self.containedT]]  # type: ignore
 
     # TODO: handle contained type
     @staticmethod
@@ -1807,10 +1807,10 @@ FnContainedT = TypeVar("FnContainedT")
 class Fn(Generic[FnContainedT], Object):
     def __init__(
         self,
-        containedT: typing.Tuple[Union[type, _GenericAlias]],
+        containedT: tuple[Union[type, _GenericAlias]],
         value: Optional[Union["FnDeclRecursive", "FnDecl", str]] = None,
     ) -> None:
-        self._full_type = Fn[typing.Tuple[containedT]]  # type: ignore
+        self._full_type = Fn[tuple[containedT]]  # type: ignore
         src: Expr
         if value is None:  # a symbolic variable
             src = Var("v", self._full_type)
@@ -2900,9 +2900,6 @@ class Axiom(Expr):
         ]
         return "(assert (forall ( %s ) %s ))" % (" ".join(vs), self.args[0].toSMT())
 
-    # def accept(self, v: "Visitor[T]") -> T:
-    #     return v.visit_Axiom(self)
-
 
 # the body of a synth-fun
 class Synth(Expr):
@@ -3149,9 +3146,14 @@ class FnDeclRecursive(Expr):
             for a in self.arguments():
                 declarations.append((a.args[0], a.type))
 
-            args = " ".join(
-                "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
-            )
+            try:
+                args = " ".join(
+                    "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
+                )
+            except:
+                import pdb
+
+                pdb.set_trace()
 
             return_type = self.returnT().toSMTType(get_args(self.returnT()))  # type: ignore
             return "(define-fun-rec %s (%s) %s\n%s)" % (

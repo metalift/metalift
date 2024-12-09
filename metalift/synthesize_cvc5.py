@@ -63,7 +63,7 @@ def generateAST(expr: str) -> Union[Any, pp.ParseResults]:
 
 def extractFuns(
     targetLang: typing.Sequence[Expr],
-) -> typing.Tuple[typing.List[str], typing.List[ObjectT]]:
+) -> tuple[typing.List[str], typing.List[ObjectT]]:
     funName, returnType = (
         [],
         [],
@@ -79,7 +79,7 @@ def generateCandidates(
     line: str,
     funName: typing.List[str],
     returnType: typing.List[ObjectT],
-) -> typing.Tuple[typing.List[FnDeclRecursive], Dict[str, Expr]]:
+) -> tuple[typing.List[FnDeclRecursive], Dict[str, Expr]]:
     candidates, candidatesExpr = [], {}
     ast = generateAST(line)
     for ce in invAndPs:

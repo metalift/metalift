@@ -99,9 +99,7 @@ def parse_candidates(
     fn_calls: typing.List[Any],
     extracted_lambdas: typing.List[FnDecl],
     in_function_name: str,
-) -> typing.Tuple[
-    Union[Expr, str], Optional[typing.Tuple[typing.List[Any], typing.List[Any]]]
-]:
+) -> tuple[Union[Expr, str], Optional[tuple[typing.List[Any], typing.List[Any]]]]:
     if not isinstance(candidate, Expr):
         return candidate, (in_calls, fn_calls)
     else:
@@ -165,7 +163,7 @@ def verify_synth_result(
     fnsType: Dict[str, ObjectT],
     uid: int,
     use_rosette: bool = False,
-) -> typing.Tuple[str, typing.List[str]]:
+) -> tuple[str, typing.List[str]]:
     if use_rosette:
         verifFile = synthDir + basename + f"_{uid}_verif" + ".rkt"
     else:

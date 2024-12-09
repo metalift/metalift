@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Axiom, FnDecl, FnDeclRecursive
+from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from metalift.vc_util import and_objects
 from tenspiler.codegen.numpy_codegen import numpy_codegen
@@ -218,11 +218,15 @@ def run_llm_synthesis_algorithm(
         ps_sols.append(ps_sol)
 
         # Check if the solution passes the parser. If it does, we can continue to the next step. Otherwise, we would like to generate another PS.
+        lambda_exprs: dict[Expr, str] = {}
+        arg_name_to_count: dict[str, int] = {}
         try:
             _, ps_fn_decls, ps_inv_calls = check_solution(
                 solution=ps_sol,
                 expected_num_funcs=1,
                 dsl_code=dsl_code,
+                lambda_exprs=lambda_exprs,
+                arg_name_to_count=arg_name_to_count,
             )
             print("Passed the parser, continuing to invariant generation")
         except Exception as e:
@@ -275,6 +279,8 @@ def run_llm_synthesis_algorithm(
                     solution=inv_sol,
                     expected_num_funcs=1 if is_single_loop(benchmark_name) else 2,
                     dsl_code=dsl_code,
+                    lambda_exprs=lambda_exprs,
+                    arg_name_to_count=arg_name_to_count,
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
@@ -284,6 +290,7 @@ def run_llm_synthesis_algorithm(
             # Generate VC.
             # Write assertions
             in_calls = [*ps_inv_calls, *inv_in_calls]
+            synthesized_fn_decls = [*ps_fn_decls, *inv_fn_decls]
             vc = and_objects(*driver.asserts).src.simplify()
             vc = replace_in_calls(vc, in_calls)
 
@@ -292,7 +299,7 @@ def run_llm_synthesis_algorithm(
                 verified = verify_benchmark_smt(
                     driver=driver,
                     benchmark_name=benchmark_name,
-                    synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+                    synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
                     vc=vc,
@@ -302,7 +309,7 @@ def run_llm_synthesis_algorithm(
                 verified = verify_benchmark(
                     driver=driver,
                     benchmark_name=benchmark_name,
-                    synthesized_fn_decls=[*ps_fn_decls, *inv_fn_decls],
+                    synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
                     vc=vc,
