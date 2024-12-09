@@ -135,22 +135,71 @@ def filter_args(argList: typing.List[Expr]) -> typing.List[Expr]:
     return newArgs
 
 
-def replace_fn_name(*, expr: Expr, new_fn_name: str, fn_name: str) -> Expr:
+def filter_fn_args(expr: Expr) -> Expr:
     if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
         return expr
     if isinstance(expr, Call):
         new_args = []
         for arg in expr.arguments():
             if not is_fn_decl_type(arg.type):
+                new_args.append(filter_fn_args(arg))
+        return Call(expr.name(), expr.type, *new_args)
+    else:
+        return expr.map_args(lambda x: filter_fn_args(x))
+
+
+def replace_fn_name(
+    *,
+    expr: Expr,
+    new_fn_name: str,
+    fn_name: str,
+) -> Expr:
+    if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
+        return expr
+    if isinstance(expr, Call):
+        new_args = []
+        final_fn_name = expr.name()
+        for arg in expr.arguments():
+            if not is_fn_decl_type(arg.type):
                 new_args.append(
                     replace_fn_name(expr=arg, new_fn_name=new_fn_name, fn_name=fn_name)
                 )
         if expr.name() == fn_name:
-            fn_name = new_fn_name
-        return Call(fn_name, expr.type, *new_args)
+            final_fn_name = new_fn_name
+        return Call(final_fn_name, expr.type, *new_args)
     else:
         return expr.map_args(
             lambda x: replace_fn_name(expr=x, new_fn_name=new_fn_name, fn_name=fn_name)
+        )
+
+
+def replace_fn_name_with_in_call(
+    *, expr: Expr, new_fn_name: str, fn_name: str, in_call: str
+) -> Expr:
+    if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
+        return expr
+    if isinstance(expr, Call):
+        final_fn_name = expr.name()
+        if expr.name() == fn_name and any(
+            is_fn_decl_type(arg.type) and arg.name() == in_call
+            for arg in expr.arguments()
+        ):
+            final_fn_name = new_fn_name
+        return Call(
+            final_fn_name,
+            expr.type,
+            *[
+                replace_fn_name_with_in_call(
+                    expr=arg, new_fn_name=new_fn_name, fn_name=fn_name, in_call=in_call
+                )
+                for arg in expr.arguments()
+            ],
+        )
+    else:
+        return expr.map_args(
+            lambda x: replace_fn_name_with_in_call(
+                expr=x, new_fn_name=new_fn_name, fn_name=fn_name, in_call=in_call
+            )
         )
 
 
@@ -237,18 +286,17 @@ def toSMT(
             in_calls=in_calls,
         )
 
-        rewritten_fn_decls_and_axioms: set[Expr] = set()
-        fn_name_to_rewritten_names: dict[str, set[str]] = {}
+        rewritten_fn_decls: set[Expr] = set()
+        in_calls_to_renamed_fn_name: dict[tuple[str, str], str] = {}
 
-        # First, we want to replace all the
+        # First, we want to replace all the direct in calls.
         for t in target_lang:
             if (
                 isinstance(t, FnDeclRecursive) or isinstance(t, FnDecl)
             ) and t.name() in fn_calls:
-                fn_name_to_rewritten_names[t.name()] = set()
                 for i in direct_in_calls:
                     if i[0] == t.name():
-                        rewritten_fn_decls_and_axioms.add(t)
+                        rewritten_fn_decls.add(t)
                         early_candidates_names.add(i[1])
                         # If we are doing the first round, then it means we are rewritting
                         # functions that have direct calls to the inlined function. An example
@@ -263,7 +311,7 @@ def toSMT(
                         # remove function type args
                         new_args = filter_args(t.arguments())
 
-                        fn_name_to_rewritten_names[t.name()].add(new_fn_name)
+                        in_calls_to_renamed_fn_name[(t.name(), i[1])] = new_fn_name
                         fn_decls.append(
                             FnDeclRecursive(
                                 new_fn_name,
@@ -280,68 +328,87 @@ def toSMT(
                             )
                         )
 
-        import pdb
+        early_candidates = []
+        candidates = []
 
-        pdb.set_trace()
         # Now, we start iteratively replacing function calls with the inlined-function-rewritten versions.
-        while len(fn_name_to_rewritten_names) > 0:
-            new_fn_name_to_rewritten_names: dict[str, set[str]] = {}
-            for fn_name, rewritten_fn_names in fn_name_to_rewritten_names.items():
-                for t in target_lang:
-                    if isinstance(t, Axiom):
-                        for rewritten_fn_name in rewritten_fn_names:
-                            axiom = replace_fn_name(
-                                expr=t, new_fn_name=rewritten_fn_name, fn_name=fn_name
-                            )
-                        rewritten_fn_decls_and_axioms.add(axiom)
-                        axioms.append(axiom)
+        while len(in_calls_to_renamed_fn_name) > 0:
+            # We need to rename all such functions in the synthesized ones.
+            for cand in inv_and_ps:
+                for (
+                    fn_name,
+                    in_call,
+                ), new_fn_name in in_calls_to_renamed_fn_name.items():
+                    new_body = replace_fn_name_with_in_call(
+                        expr=cand.body(),
+                        new_fn_name=new_fn_name,
+                        fn_name=fn_name,
+                        in_call=in_call,
+                    )
+                    cand.set_body(new_body)
+                cand = filter_fn_args(cand)
+                if cand.name() in early_candidates_names:
+                    early_candidates.append(cand)
+                else:
+                    candidates.append(cand)
 
-            for fn_name, rewritten_fn_names in fn_name_to_rewritten_names.items():
+            new_in_calls_to_renamed_fn_name: dict[tuple[str, str], str] = {}
+            for idx, t in enumerate(target_lang):
+                if isinstance(t, Axiom):
+                    axiom = t
+                    for (
+                        fn_name,
+                        in_call,
+                    ), new_fn_name in in_calls_to_renamed_fn_name.items():
+                        axiom = replace_fn_name(
+                            expr=axiom, new_fn_name=new_fn_name, fn_name=fn_name
+                        )
+                    target_lang[idx] = axiom
+
+            for (fn_name, in_call), new_fn_name in in_calls_to_renamed_fn_name.items():
                 fn_callers = direct_calls.get(fn_name, set())
                 for t in target_lang:
                     if isinstance(t, Axiom):
                         continue
                     if t.name() not in fn_callers:
                         continue
-                    new_fn_name_to_rewritten_names[t.name()] = set()
-                    for rewritten_fn_name in rewritten_fn_names:
-                        new_body = filter_body(
-                            fun_def=t.body(),
-                            new_fn_call=rewritten_fn_name,
-                            fn_call=fn_name,
-                            in_call=None,
-                        )
+                    new_body = filter_body(
+                        fun_def=t.body(),
+                        new_fn_call=new_fn_name,
+                        fn_call=fn_name,
+                        in_call=None,
+                    )
 
-                        new_fn_name = f"{t.name()}_{rewritten_fn_name}"
-                        new_body = filter_body(
-                            fun_def=new_body,
-                            new_fn_call=new_fn_name,
-                            fn_call=t.name(),
-                            in_call=None,
-                        )
-                        new_args = filter_args(t.arguments())
+                    new_fn_name = f"{t.name()}_{new_fn_name}"
+                    new_body = filter_body(
+                        fun_def=new_body,
+                        new_fn_call=new_fn_name,
+                        fn_call=t.name(),
+                        in_call=None,
+                    )
+                    new_args = filter_args(t.arguments())
 
-                        new_fn_name_to_rewritten_names[t.name()].add(new_fn_name)
-                        rewritten_fn_decls_and_axioms.add(t)
-                        fn_decls.append(
-                            FnDeclRecursive(
-                                new_fn_name,
-                                t.returnT(),
-                                new_body,
-                                *new_args,
-                            )
-                            if isinstance(t, FnDeclRecursive)
-                            else FnDecl(
-                                new_fn_name,
-                                t.returnT(),
-                                new_body,
-                                *new_args,
-                            )
+                    new_in_calls_to_renamed_fn_name[(t.name(), in_call)] = new_fn_name
+                    rewritten_fn_decls.add(t)
+                    fn_decls.append(
+                        FnDeclRecursive(
+                            new_fn_name,
+                            t.returnT(),
+                            new_body,
+                            *new_args,
                         )
-            fn_name_to_rewritten_names = new_fn_name_to_rewritten_names
+                        if isinstance(t, FnDeclRecursive)
+                        else FnDecl(
+                            new_fn_name,
+                            t.returnT(),
+                            new_body,
+                            *new_args,
+                        )
+                    )
+            in_calls_to_renamed_fn_name = new_in_calls_to_renamed_fn_name
 
         for t in target_lang:
-            if t in rewritten_fn_decls_and_axioms:
+            if t in rewritten_fn_decls:
                 continue
             elif isinstance(t, Axiom):
                 axioms.append(t)
@@ -349,61 +416,12 @@ def toSMT(
                 # At this point, we have
                 out.write("\n" + t.toSMT() + "\n")
 
-        early_candidates = []
-        candidates = []
-        filtered_axioms = []
-
-        for cand in inv_and_ps:
-            new_body = cand.body()
-            for i in in_calls:
-                new_body = filter_body(
-                    fun_def=new_body,
-                    new_fn_call=i[0],
-                    fn_call=i[0],  # TODO(jie): fix this
-                    in_call=i[1],
-                )
-
-            if isinstance(cand, Synth):
-                decl: Union[Synth, FnDeclRecursive] = Synth(
-                    cand.name(), new_body, *cand.arguments()
-                )
-            else:
-                decl = FnDeclRecursive(
-                    cand.name(),
-                    get_fn_return_type(cand.type),
-                    new_body,
-                    *cand.arguments(),
-                )
-
-            if cand.args[0] in early_candidates_names:
-                early_candidates.append(decl)
-            else:
-                candidates.append(decl)
-
-        for axiom in axioms:
-            new_body = axiom.e()
-            for i in in_calls:
-                new_body = filter_body(
-                    fun_def=new_body,
-                    new_fn_call=i[0],
-                    fn_call=i[0],  # TODO(jie): fix this
-                    in_call=i[1],
-                )
-
-            filtered_axioms.append(Axiom(new_body, *axiom.args[1:]))
-
-        for i in in_calls:
-            vc = filter_body(
-                fun_def=vc,
-                new_fn_call=i[0],
-                fn_call=i[0],  # TODO(jie): fix this
-                in_call=i[1],
-            )
+        vc = filter_fn_args(vc)
 
         candidates = topological_sort(candidates)
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
         out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fn_decls]))
-        out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in filtered_axioms]))
+        out.write("\n\n".join(["\n%s\n" % axiom.toSMT() for axiom in axioms]))
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in candidates]))
 
         declarations: typing.List[tuple[str, ObjectT]] = []

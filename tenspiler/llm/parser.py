@@ -528,10 +528,9 @@ def check_solution(
     )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
     fn_decls: list[FnDeclRecursive] = []
-    fn_name_to_in_calls: dict[str, list[tuple[str, str]]] = {}
+    in_calls: list[tuple[str, str]] = []
 
     for target_func_def in target_func_defs:
-        in_calls: list[tuple[str, str]] = []
         mypy_node_to_ir(
             target_func_def,
             func_sigs,
@@ -541,9 +540,8 @@ def check_solution(
             lambda_exprs,
             arg_name_to_count,
         )
-        fn_name_to_in_calls[target_func_def.name] = in_calls
     target_func_names = [func_def.name for func_def in target_func_defs]
-    return target_func_names, fn_decls, fn_name_to_in_calls
+    return target_func_names, fn_decls, in_calls
 
 
 def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:

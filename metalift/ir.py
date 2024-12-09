@@ -192,6 +192,8 @@ class Expr:
                 f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
+        elif isinstance(self, Axiom):
+            return Axiom(f(self.e()), *[f(var) for var in self.vars()])
         else:
             raise Exception("NYI: %s" % self)
 
@@ -2913,6 +2915,9 @@ class Synth(Expr):
     def arguments(self) -> typing.List[Expr]:  # avoid name clash with Expr.args
         return self.args[2:]  # type: ignore
 
+    def set_body(self, body: Expr) -> None:
+        self.args[1] = body
+
     def to_rosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
@@ -3083,6 +3088,9 @@ class FnDeclRecursive(Expr):
     def set_name(self, name: str) -> None:
         self.args[0] = name
 
+    def set_body(self, body: Expr) -> None:
+        self.args[1] = body
+
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
@@ -3141,14 +3149,9 @@ class FnDeclRecursive(Expr):
             for a in self.arguments():
                 declarations.append((a.args[0], a.type))
 
-            try:
-                args = " ".join(
-                    "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
-                )
-            except:
-                import pdb
-
-                pdb.set_trace()
+            args = " ".join(
+                "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
+            )
 
             return_type = self.returnT().toSMTType(get_args(self.returnT()))  # type: ignore
             return "(define-fun-rec %s (%s) %s\n%s)" % (
@@ -3255,6 +3258,9 @@ class FnDecl(Expr):
 
     def set_name(self, name: str) -> None:
         self.args[0] = name
+
+    def set_body(self, body: Expr) -> None:
+        self.args[1] = body
 
     def name(self) -> str:
         return self.args[0]  # type: ignore

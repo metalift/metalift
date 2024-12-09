@@ -1085,9 +1085,9 @@ def verify_benchmark_smt(
     target_lang_fn_names = [fn_decl.name() for fn_decl in final_dsl_fns]
 
     toSMT(
-        target_lang=[*final_dsl_fns, *axioms],
+        target_lang=list(set([*final_dsl_fns, *axioms])),
         vars=set(driver.var_tracker.all()),
-        inv_and_ps=synthesized_fn_decls,
+        inv_and_ps=list(set(synthesized_fn_decls)),
         preds=[],
         vc=vc,
         out_file=verify_file,
