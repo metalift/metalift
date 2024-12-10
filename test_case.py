@@ -191,11 +191,11 @@ def invariant(i: int, input: List[int], max_pos: int, max_val: int) -> bool:
 # softmax_part2
 softmax_part2_ps = """
 def softmax_part2(input: List[int], max_pos: int, max_val: int) -> List[int]:
-    return vec_map(vec_slice(input, 0, max_pos), lambda x: integer_exp(x - max_val))
+    return vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, max_pos)), lambda x: integer_exp(x))
 """
 softmax_part2_inv = """
 def invariant(i: int, input: List[int], max_pos: int, max_val: int, output: List[int]) -> bool:
-    return i >= 0 and i <= max_pos and output == vec_map(vec_slice(input, 0, i), lambda x: integer_exp(x - max_val))
+    return i >= 0 and i <= max_pos and output == vec_map(vec_scalar_sub(max_val, vec_slice(input, 0, i)), lambda x: integer_exp(x))
 """
 
 # softmax_part3
