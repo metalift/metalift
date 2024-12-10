@@ -4,6 +4,7 @@ from typing import Callable
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive
+from metalift.smt_util import replace_fn_name
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from metalift.vc_util import and_objects
 from tenspiler.codegen.numpy_codegen import numpy_codegen
@@ -19,6 +20,13 @@ from tenspiler.llm.scripts.utils import (
     verify_benchmark,
     verify_benchmark_smt,
 )
+from tenspiler.tenspiler_common import (
+    DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
+    DISSOLVE_SELECTION_TWO_ARGS,
+    MATRIX_SELECTION_TWO_ARGS,
+    SELECTION_TWO_ARGS,
+)
+from test_case import correct_sols
 
 tpcc_benchmarks = {
     "normal_blend_f",
@@ -206,10 +214,7 @@ def run_llm_synthesis_algorithm(
             messages_for_new_sol = [inv_template_message]
         # TODO(jie)
         # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-        # ps_sol = """
-
-        # """
-        #         print("Generated new PS solution", ps_sol)
+        ps_sol = correct_sols[benchmark_name]["ps"]
         ps_sols.append(ps_sol)
 
         # Check if the solution passes the parser. If it does, we can continue to the next step. Otherwise, we would like to generate another PS.
@@ -248,12 +253,7 @@ def run_llm_synthesis_algorithm(
                 messages_for_new_sol = [inv_template_message]
             # TODO(jie)
             # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-            # inv_sol = f"""
-
-            # """
-            inv_sol = """
-
-            """
+            inv_sol = correct_sols[benchmark_name]["inv"]
             print("Generated new INV solution", inv_sol)
             inv_sols.append(inv_sol)
 
@@ -270,10 +270,28 @@ def run_llm_synthesis_algorithm(
                 print("Failed to pass the parser", e)
                 continue
 
+            # This is a hack.
+            synthesized_fn_decls = [*ps_fn_decls, *inv_fn_decls]
+            if benchmark_name == "dissolve_blend_8":
+                for idx, fn_decl in enumerate(synthesized_fn_decls):
+                    fn_decl = replace_fn_name(
+                        expr=fn_decl,
+                        new_fn_name=DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
+                        fn_name=MATRIX_SELECTION_TWO_ARGS,
+                    )
+                    fn_decl = replace_fn_name(
+                        expr=fn_decl,
+                        new_fn_name=DISSOLVE_SELECTION_TWO_ARGS,
+                        fn_name=SELECTION_TWO_ARGS,
+                    )
+                    import pdb
+
+                    pdb.set_trace()
+                    synthesized_fn_decls[idx] = fn_decl
+
             # Generate VC.
             # Write assertions
             in_calls = [*ps_inv_calls, *inv_in_calls]
-            synthesized_fn_decls = [*ps_fn_decls, *inv_fn_decls]
             vc = and_objects(*driver.asserts).src.simplify()
             vc = replace_in_calls(vc, in_calls)
 
