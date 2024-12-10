@@ -46,6 +46,7 @@ def get_direct_in_calls(
     """
 
     def get_fn_direct_in_calls(
+        *,
         expr: Expr | Any,
         fn_call: str,
         in_call: str,
@@ -55,10 +56,26 @@ def get_direct_in_calls(
             return expr
         if isinstance(expr, Call):
             if any(is_fn_decl_type(arg.type) for arg in expr.arguments()):
-                if expr.name() != fn_call:
-                    direct_in_calls.append((expr.name(), in_call))
+                # Then this is a higher order function
+                fn_call = expr.name()
+            for arg in expr.arguments():
+                arg.map_args(
+                    lambda arg: get_fn_direct_in_calls(
+                        expr=arg,
+                        fn_call=expr.name(),
+                        in_call=in_call,
+                        direct_in_calls=direct_in_calls,
+                    )
+                )
+        elif isinstance(expr, CallValue):
+            direct_in_calls.append((fn_call, in_call))
         return expr.map_args(
-            lambda expr: get_fn_direct_in_calls(expr, fn_call, in_call, direct_in_calls)
+            lambda expr: get_fn_direct_in_calls(
+                expr=expr,
+                fn_call=fn_call,
+                in_call=in_call,
+                direct_in_calls=direct_in_calls,
+            )
         )
 
     fn_name_to_in_calls: dict[str, set[str]] = {}
@@ -73,7 +90,10 @@ def get_direct_in_calls(
         for in_call in relevant_in_calls:
             fn_decl.map_args(
                 lambda expr: get_fn_direct_in_calls(
-                    expr, fn_decl.name(), in_call, direct_in_calls
+                    expr=expr,
+                    fn_call=fn_decl.name(),
+                    in_call=in_call,
+                    direct_in_calls=direct_in_calls,
                 )
             )
     return direct_in_calls
@@ -440,8 +460,12 @@ def toSMT(
             elif isinstance(t, Axiom):
                 axioms.append(t)
             else:
-                # At this point, we have
-                out.write("\n" + t.toSMT() + "\n")
+                try:
+                    out.write("\n" + t.toSMT() + "\n")
+                except:
+                    import pdb
+
+                    pdb.set_trace()
 
         vc = filter_fn_args(vc)
 

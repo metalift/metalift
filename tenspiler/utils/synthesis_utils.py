@@ -183,7 +183,7 @@ def run_llm_synthesis_algorithm(
     max_num_inv_sols: int = 10,
     dsl_fns: list[FnDecl | FnDeclRecursive] = TENSPILER_FNS,
     dsl_fn_name_to_axioms: dict[str, list[Axiom]] = TENSPILER_FN_NAME_TO_AXIOMS,
-    verification_method: VerificationMethod = VerificationMethod.ROSETTE,
+    verification_method: VerificationMethod = VerificationMethod.SMT,
 ) -> None:
     """
     The flow of the function is as follows:
