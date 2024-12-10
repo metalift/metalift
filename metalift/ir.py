@@ -3096,6 +3096,9 @@ class FnDeclRecursive(Expr):
     def set_body(self, body: Expr) -> None:
         self.args[1] = body
 
+    def set_arguments(self, arguments: list[Expr]) -> None:
+        self.args[2:] = arguments
+
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
@@ -3269,6 +3272,9 @@ class FnDecl(Expr):
 
     def set_body(self, body: Expr) -> None:
         self.args[1] = body
+
+    def set_arguments(self, arguments: list[Expr]) -> None:
+        self.args[2:] = arguments
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
