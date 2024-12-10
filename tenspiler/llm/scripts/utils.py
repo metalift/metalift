@@ -434,7 +434,11 @@ _loop_info_map = {
     ),
     "transformer_part4": SingleLoopInfo(
         loop_var=Int("i").src,
-        read_vars=[List(Int, "input1").src, List(Int, "input2").src],
+        read_vars=[
+            List(Int, "input1").src,
+            List(Int, "input2").src,
+            Int("hidden_dim").src,
+        ],
         modified_vars=[List(Int, "output").src],
     ),
 }
