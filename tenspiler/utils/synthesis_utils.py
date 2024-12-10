@@ -17,7 +17,7 @@ from tenspiler.llm.scripts.utils import (
     TEMPLATE_ERR,
     is_single_loop,
     replace_in_calls,
-    verify_benchmark,
+    verify_benchmark_rosette,
     verify_benchmark_smt,
 )
 from tenspiler.tenspiler_common import (
@@ -274,7 +274,7 @@ def run_llm_synthesis_algorithm(
                 print("Failed to pass the parser", e)
                 continue
 
-            synthesized_fn_decls = [*ps_fn_decls, *inv_fn_decls]
+            synthesized_fn_decls = list(set([*ps_fn_decls, *inv_fn_decls]))
             in_calls = [*ps_inv_calls, *inv_in_calls]
 
             # This is a hack for dissolve_blend_8
@@ -303,11 +303,13 @@ def run_llm_synthesis_algorithm(
                         expr=fn_decl,
                         fn_name=DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
                         new_args=[Int("opacity").src, Int("rand_cons").src],
+                        start_index=2,
                     )
                     fn_decl = augment_arguments(
                         expr=fn_decl,
                         fn_name=DISSOLVE_SELECTION_TWO_ARGS,
                         new_args=[Int("opacity").src, Int("rand_cons").src],
+                        start_index=2,
                     )
 
                     synthesized_fn_decls[idx] = fn_decl
@@ -350,7 +352,7 @@ def run_llm_synthesis_algorithm(
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
-                verified = verify_benchmark(
+                verified = verify_benchmark_rosette(
                     driver=driver,
                     benchmark_name=benchmark_name,
                     synthesized_fn_decls=synthesized_fn_decls,
