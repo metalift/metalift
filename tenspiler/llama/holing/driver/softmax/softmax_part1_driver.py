@@ -17,11 +17,14 @@ def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
 
 
 def softmax_part1_ps_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+    writes: List[Object],
+    reads: List[Object],
+    in_scope: List[Object],
+    relaxed_grammar: bool,
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
-    if relaxed:
+    if relaxed_grammar:
         lower_bound = choose(Int(0), Int(1), Int(2))
         upper_bound = choose(max_pos, max_pos - 1, max_pos + 1)
         vec = input[lower_bound:upper_bound]
@@ -32,11 +35,14 @@ def softmax_part1_ps_grammar(
 
 
 def softmax_part1_inv0_grammar(
-    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+    writes: List[Object],
+    reads: List[Object],
+    in_scope: List[Object],
+    relaxed_grammar: bool,
 ) -> Bool:
     input, max_pos = reads
     i, max_val = writes
-    if relaxed:
+    if relaxed_grammar:
         lower_bound = choose(Int(0), Int(1), Int(2))
         upper_bound = choose(max_pos, max_pos - 1, max_pos + 1)
         vec = input[lower_bound:i]

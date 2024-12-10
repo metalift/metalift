@@ -178,7 +178,101 @@ def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]
         out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x >= 128, 2 * x + x - 2 * x * x // 32 - 32, 2 * x * x // 32))
 """
 
+# softmax_part1
+softmax_part1_ps = """
+def softmax_part1(input: List[int], max_pos: int) -> int:
+    return reduce_max(vec_slice(input, 0, max_pos))
+"""
+softmax_part1_inv = """
+def invariant(i: int, input: List[int], max_pos: int, max_val: int) -> bool:
+    return i >= 0 and i <= max_pos and max_val == reduce_max(vec_slice(input, 0, i))
+"""
+
+# softmax_part2
+softmax_part2_ps = """
+def softmax_part2(input: List[int], max_pos: int, max_val: int) -> List[int]:
+    return vec_map(vec_slice(input, 0, max_pos), lambda x: integer_exp(x - max_val))
+"""
+softmax_part2_inv = """
+def invariant(i: int, input: List[int], max_pos: int, max_val: int, output: List[int]) -> bool:
+    return i >= 0 and i <= max_pos and output == vec_map(vec_slice(input, 0, i), lambda x: integer_exp(x - max_val))
+"""
+
+# softmax_part3
+softmax_part3_ps = """
+def softmax_part3(output: list[int], max_pos: int) -> int:
+    return reduce_sum(output[:max_pos])
+"""
+softmax_part3_inv = """
+def invariant(i: int, max_pos: int, output: list[int], sum: int) -> bool:
+    return i >= 0 and i <= max_pos and sum == reduce_sum(output[:i])
+"""
+
+# softmax_part4
+softmax_part4_ps = """
+def softmax_part4(unnormalized_output: List[int], max_pos: int, sum: int) -> List[int]:
+    return vec_scalar_div(sum, vec_slice(unnormalized_output, 0, max_pos))
+"""
+softmax_part4_inv = """
+def invariant(i: int, max_pos: int, output: List[int], sum: int, unnormalized_output: List[int]) -> bool:
+    return i >= 0 and i <= max_pos and output == vec_scalar_div(sum, vec_slice(unnormalized_output, 0, i))
+"""
+
+# rmsnorm_part1
+rmsnorm_part1_ps = """
+def rmsnorm_part1(input: List[int], weight: List[int]) -> int:
+    return reduce_sum(vec_elemwise_mul(input, input))
+"""
+rmsnorm_part1_inv = """
+def invariant(i: int, input: List[int], ss: int, weight: List[int]) -> bool:
+    return i >= 0 and i <= len(input) and ss == reduce_sum(vec_elemwise_mul(input[:i], input[:i]))
+"""
+
+# rmsnorm_part2
+rmsnorm_part2_ps = """
+def rmsnorm_part2(input: List[int], weight: List[int], ss: int) -> List[int]:
+    return vec_elemwise_mul(vec_scalar_mul(1 // integer_sqrt(ss // len(input) + 1), input), weight)
+"""
+rmsnorm_part2_inv = """
+def invariant(i: int, input: List[int], output: List[int], ss: int, weight: List[int]) -> bool:
+    return i >= 0 and i <= len(input) and output == vec_elemwise_mul(vec_scalar_mul(1 // integer_sqrt(ss // len(input) + 1), input[:i]), weight[:i])
+"""
+
+# matmul
+matmul_ps = """
+def matmul(weight: List[List[int]], input: List[int]) -> List[int]:
+    return matrix_vec_mul(weight, input)
+"""
+matmul_inv = """
+def invariant1(input: List[int], output: List[int], row: int, weight: List[List[int]]) -> bool:
+    return (0 <= row <= len(weight)) and (output == matrix_vec_mul(matrix_row_slice(weight, 0, row), input))
+
+def invariant2(col: int, curr: int, input: List[int], output: List[int], row: int, weight: List[List[int]]) -> bool:
+    return (0 <= row < len(weight)) and (0 <= col <= len(input)) and (output == matrix_vec_mul(matrix_row_slice(weight, 0, row), input)) and (curr == reduce_sum(vec_elemwise_mul(vec_slice(weight[row], 0, col), vec_slice(input, 0, col))))
+"""
+
+# transformer_part3
+transformer_part3_ps = """
+def transformer_part3(input: List[int], hidden_dim: int) -> List[int]:
+    return vec_elemwise_mul(input[:hidden_dim], scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, input[:hidden_dim]), lambda x: integer_exp(x)))))
+"""
+transformer_part3_inv = """
+def invariant(hidden_dim: int, i: int, input: List[int], output: List[int]) -> bool:
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input, 0, i), scalar_vec_div(1, vec_scalar_add(1, vec_map(scalar_vec_sub(0, vec_slice(input, 0, i)), lambda x: integer_exp(x)))))
+"""
+
+# transformer_part4
+transformer_part4_ps = """
+def transformer_part4(input1: List[int], input2: List[int], hidden_dim: int) -> List[int]:
+    return vec_elemwise_mul(vec_slice(input1, 0, hidden_dim), vec_slice(input2, 0, hidden_dim))
+"""
+transformer_part4_inv = """
+def invariant(hidden_dim: int, i: int, input1: List[int], input2: List[int], output: List[int]) -> bool:
+    return i >= 0 and i <= hidden_dim and output == vec_elemwise_mul(vec_slice(input2, 0, i), vec_slice(input1, 0, i))
+"""
+
 correct_sols = {
+    # blend
     "normal_blend_f": {"ps": normal_blend_f_ps, "inv": normal_blend_f_inv},
     "normal_blend_8": {"ps": normal_blend_8_ps, "inv": normal_blend_8_inv},
     "dissolve_blend_8": {"ps": dissolve_blend_8_ps, "inv": dissolve_blend_8_inv},
@@ -191,4 +285,14 @@ correct_sols = {
     "linear_dodge_8": {"ps": linear_dodge_8_ps, "inv": linear_dodge_8_inv},
     "color_dodge_8": {"ps": color_dodge_8_ps, "inv": color_dodge_8_inv},
     "overlay_blend_8": {"ps": overlay_blend_8_ps, "inv": overlay_blend_8_inv},
+    # llama
+    "softmax_part1": {"ps": softmax_part1_ps, "inv": softmax_part1_inv},
+    "softmax_part2": {"ps": softmax_part2_ps, "inv": softmax_part2_inv},
+    "softmax_part3": {"ps": softmax_part3_ps, "inv": softmax_part3_inv},
+    "softmax_part4": {"ps": softmax_part4_ps, "inv": softmax_part4_inv},
+    "rmsnorm_part1": {"ps": rmsnorm_part1_ps, "inv": rmsnorm_part1_inv},
+    "rmsnorm_part2": {"ps": rmsnorm_part2_ps, "inv": rmsnorm_part2_inv},
+    "matmul": {"ps": matmul_ps, "inv": matmul_inv},
+    "transformer_part3": {"ps": transformer_part3_ps, "inv": transformer_part3_inv},
+    "transformer_part4": {"ps": transformer_part4_ps, "inv": transformer_part4_inv},
 }
