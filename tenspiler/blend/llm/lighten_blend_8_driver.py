@@ -3,10 +3,7 @@ import time
 from metalift.frontend.llvm import Driver
 from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.utils import analyze_benchmark
-from tenspiler.utils.synthesis_utils import (
-    VerificationMethod,
-    run_llm_synthesis_algorithm,
-)
+from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -18,7 +15,6 @@ if __name__ == "__main__":
         suite_name="blend",
         benchmark_name="lighten_blend_8",
         llm_model=LLMModel.GPT,
-        verification_method=VerificationMethod.SMT,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

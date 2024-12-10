@@ -173,10 +173,7 @@ def replace_fn_name(
 
 
 def augment_arguments(
-    *,
-    expr: Expr,
-    fn_name: str,
-    new_args: list[Expr],
+    *, expr: Expr, fn_name: str, new_args: list[Expr], start_index: int
 ) -> Expr:
     if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
         return expr
@@ -184,15 +181,28 @@ def augment_arguments(
         processed_args: list[Expr] = []
         for arg in expr.arguments():
             processed_args.append(
-                augment_arguments(expr=arg, fn_name=fn_name, new_args=new_args)
+                augment_arguments(
+                    expr=arg,
+                    fn_name=fn_name,
+                    new_args=new_args,
+                    start_index=start_index,
+                )
             )
         if expr.name() == fn_name:
-            return Call(fn_name, expr.type, *processed_args, *new_args)
+            return Call(
+                fn_name,
+                expr.type,
+                *processed_args[:start_index],
+                *new_args,
+                *processed_args[start_index:],
+            )
         else:
             return Call(expr.name(), expr.type, *processed_args)
     else:
         return expr.map_args(
-            lambda x: augment_arguments(expr=x, fn_name=fn_name, new_args=new_args)
+            lambda x: augment_arguments(
+                expr=x, fn_name=fn_name, new_args=new_args, start_index=start_index
+            )
         )
 
 

@@ -984,7 +984,7 @@ def process_synthesized_fn_decls(
             synthesized_fn_decls[idx] = fn_decl
 
 
-def verify_benchmark(
+def verify_benchmark_rosette(
     *,
     driver: Driver,
     benchmark_name: str,
@@ -1087,7 +1087,7 @@ def verify_benchmark_smt(
     toSMT(
         target_lang=list(set([*final_dsl_fns, *axioms])),
         vars=set(driver.var_tracker.all()),
-        inv_and_ps=list(set(synthesized_fn_decls)),
+        inv_and_ps=synthesized_fn_decls,
         preds=[],
         vc=vc,
         out_file=verify_file,
