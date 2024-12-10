@@ -125,8 +125,8 @@ def reduce_max_axiom(data: mlList[int], index: int, max_pos: int) -> Bool:
 def vec_scalar_div_axiom(a: mlList[int], i: int, index: int) -> Bool:
     return implies(
         and_objects(index >= 0, index < a.len()),
-        call_vec_scalar_div(a[:index], i)
-        == call_vec_scalar_div(a[1:index], i).prepend(a[0] // i),
+        call_vec_scalar_div(i, a[:index])
+        == call_vec_scalar_div(i, a[1:index]).prepend(a[0] // i),
     )
 
 
