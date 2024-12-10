@@ -1,4 +1,5 @@
 from tenspiler.axioms import (
+    dissolve_matrix_selection_two_args_axiom,
     matrix_elemwise_add_axiom,
     matrix_elemwise_mul_axiom,
     matrix_elemwise_sub_axiom,
@@ -93,4 +94,5 @@ TENSPILER_FN_NAME_TO_AXIOMS = {
     "matrix_scalar_div": [matrix_scalar_div_axiom],
     "matrix_scalar_sub": [matrix_scalar_sub_axiom],
     "matrix_selection_two_args": [matrix_selection_two_args_axiom],
+    "dissolve_matrix_selection_two_args": [dissolve_matrix_selection_two_args_axiom],
 }

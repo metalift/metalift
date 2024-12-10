@@ -34,16 +34,16 @@ def invariant2(base: List[List[int]], active: List[List[int]], col: int, opacity
 # darken_blend_8
 darken_blend_8_ps = """
 def darken_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-    return matrix_selection_two_args(base, active, lambda x, y: ite_int_int(x > y, y, x))
+    return matrix_selection_two_args(base, active, lambda x, y: ite_int(x > y, y, x))
 """
 darken_blend_8_inv = """
 def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
-    return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int_int(x > y, y, x))
+    return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x > y, y, x))
 
 def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]]) -> bool:
     return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and \
-        row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int_int(x > y, y, x)) and \
-        out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int_int(x > y, y, x))
+        row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int(x > y, y, x)) and \
+        out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x > y, y, x))
 """
 
 # multiply_blend_8
@@ -75,31 +75,31 @@ def invariant2(active: List[List[int]], base: List[List[int]], col: int, out: Li
 # color_burn_8
 color_burn_8_ps = """
 def color_burn_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-    return matrix_selection_two_args(base, active, lambda x, y: ite_int_int(y == 0, 32, 32 - (32 - x) // y))
+    return matrix_selection_two_args(base, active, lambda x, y: ite_int(y == 0, 32, 32 - (32 - x) // y))
 """
 color_burn_8_inv = """
 def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
-    return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int_int(y == 0, 32, 32 - (32 - x) // y))
+    return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(y == 0, 32, 32 - (32 - x) // y))
 
 def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]]) -> bool:
     return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and \
-        row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int_int(y == 0, 32, 32 - (32 - x) // y)) and \
-        out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int_int(y == 0, 32, 32 - (32 - x) // y))
+        row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int(y == 0, 32, 32 - (32 - x) // y)) and \
+        out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(y == 0, 32, 32 - (32 - x) // y))
 """
 
 # lighten_blend_8
 lighten_blend_8_ps = """
 def lighten_blend_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
-    return matrix_selection_two_args(base, active, lambda x, y: ite_int_int(x < y, y, x))
+    return matrix_selection_two_args(base, active, lambda x, y: ite_int(x < y, y, x))
 """
 lighten_blend_8_inv = """
 def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
-    return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int_int(x < y, y, x))
+    return row >= 0 and row <= len(base) and out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x < y, y, x))
 
 def invariant2(row: int, col: int, base: List[List[int]], active: List[List[int]], row_vec: List[int], out: List[List[int]]) -> bool:
     return row >= 0 and row < len(base) and col >= 0 and col <= len(base[0]) and \
-        row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int_int(x < y, y, x)) and \
-        out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int_int(x < y, y, x))
+        row_vec == selection_two_args(base[row][:col], active[row][:col], lambda x, y: ite_int(x < y, y, x)) and \
+        out == matrix_selection_two_args(base[:row], active[:row], lambda x, y: ite_int(x < y, y, x))
 """
 
 # screen_blend_8

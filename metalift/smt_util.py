@@ -160,16 +160,39 @@ def replace_fn_name(
         new_args = []
         final_fn_name = expr.name()
         for arg in expr.arguments():
-            if not is_fn_decl_type(arg.type):
-                new_args.append(
-                    replace_fn_name(expr=arg, new_fn_name=new_fn_name, fn_name=fn_name)
-                )
+            new_args.append(
+                replace_fn_name(expr=arg, new_fn_name=new_fn_name, fn_name=fn_name)
+            )
         if expr.name() == fn_name:
             final_fn_name = new_fn_name
         return Call(final_fn_name, expr.type, *new_args)
     else:
         return expr.map_args(
             lambda x: replace_fn_name(expr=x, new_fn_name=new_fn_name, fn_name=fn_name)
+        )
+
+
+def augment_arguments(
+    *,
+    expr: Expr,
+    fn_name: str,
+    new_args: list[Expr],
+) -> Expr:
+    if (not isinstance(expr, Expr)) or isinstance(expr, Var) or isinstance(expr, Lit):
+        return expr
+    if isinstance(expr, Call):
+        processed_args: list[Expr] = []
+        for arg in expr.arguments():
+            processed_args.append(
+                augment_arguments(expr=arg, fn_name=fn_name, new_args=new_args)
+            )
+        if expr.name() == fn_name:
+            return Call(fn_name, expr.type, *processed_args, *new_args)
+        else:
+            return Call(expr.name(), expr.type, *processed_args)
+    else:
+        return expr.map_args(
+            lambda x: augment_arguments(expr=x, fn_name=fn_name, new_args=new_args)
         )
 
 
@@ -356,6 +379,7 @@ def toSMT(
                         axiom = replace_fn_name(
                             expr=axiom, new_fn_name=new_fn_name, fn_name=fn_name
                         )
+                        axiom = filter_fn_args(axiom)
                     target_lang[idx] = axiom
 
             for (fn_name, in_call), new_fn_name in in_calls_to_renamed_fn_name.items():

@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Callable
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive
-from metalift.smt_util import replace_fn_name
+from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive, Int
+from metalift.smt_util import augment_arguments, replace_fn_name
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from metalift.vc_util import and_objects
 from tenspiler.codegen.numpy_codegen import numpy_codegen
@@ -22,9 +22,13 @@ from tenspiler.llm.scripts.utils import (
 )
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
+    DISSOLVE_SELECT_TWO_ARGS_ARG,
     DISSOLVE_SELECTION_TWO_ARGS,
     MATRIX_SELECTION_TWO_ARGS,
+    SELECT_TWO_ARGS_ARG,
     SELECTION_TWO_ARGS,
+    dissolve_matrix_selection_two_args_fn_decl,
+    dissolve_selection_two_args_fn_decl,
 )
 from test_case import correct_sols
 
@@ -270,10 +274,21 @@ def run_llm_synthesis_algorithm(
                 print("Failed to pass the parser", e)
                 continue
 
-            # This is a hack.
             synthesized_fn_decls = [*ps_fn_decls, *inv_fn_decls]
+            in_calls = [*ps_inv_calls, *inv_in_calls]
+
+            # This is a hack for dissolve_blend_8
             if benchmark_name == "dissolve_blend_8":
+                # Process synthesized functions.
                 for idx, fn_decl in enumerate(synthesized_fn_decls):
+                    if "select_two_args_arg" in fn_decl.name():
+                        new_args = [
+                            *fn_decl.arguments(),
+                            Int("opacity").src,
+                            Int("rand_cons").src,
+                        ]
+                        fn_decl.set_arguments(new_args)
+
                     fn_decl = replace_fn_name(
                         expr=fn_decl,
                         new_fn_name=DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
@@ -284,14 +299,42 @@ def run_llm_synthesis_algorithm(
                         new_fn_name=DISSOLVE_SELECTION_TWO_ARGS,
                         fn_name=SELECTION_TWO_ARGS,
                     )
-                    import pdb
+                    fn_decl = augment_arguments(
+                        expr=fn_decl,
+                        fn_name=DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
+                        new_args=[Int("opacity").src, Int("rand_cons").src],
+                    )
+                    fn_decl = augment_arguments(
+                        expr=fn_decl,
+                        fn_name=DISSOLVE_SELECTION_TWO_ARGS,
+                        new_args=[Int("opacity").src, Int("rand_cons").src],
+                    )
 
-                    pdb.set_trace()
                     synthesized_fn_decls[idx] = fn_decl
+
+                # Process in_calls.
+                for idx, in_call in enumerate(in_calls):
+                    new_in_call: list[str] = []
+                    for i in range(len(in_call)):
+                        if in_call[i] == MATRIX_SELECTION_TWO_ARGS:
+                            new_in_call.append(DISSOLVE_MATRIX_SELECTION_TWO_ARGS)
+                        elif in_call[i] == SELECTION_TWO_ARGS:
+                            new_in_call.append(DISSOLVE_SELECTION_TWO_ARGS)
+                        elif in_call[i] == SELECT_TWO_ARGS_ARG:
+                            new_in_call.append(DISSOLVE_SELECT_TWO_ARGS_ARG)
+                        else:
+                            new_in_call.append(in_call[i])
+                    in_calls[idx] = tuple(new_in_call)
+
+                # Process DSL functions.
+                for idx, fn_decl in enumerate(dsl_fns):
+                    if fn_decl.name() == MATRIX_SELECTION_TWO_ARGS:
+                        dsl_fns[idx] = dissolve_matrix_selection_two_args_fn_decl
+                    elif fn_decl.name() == SELECTION_TWO_ARGS:
+                        dsl_fns[idx] = dissolve_selection_two_args_fn_decl
 
             # Generate VC.
             # Write assertions
-            in_calls = [*ps_inv_calls, *inv_in_calls]
             vc = and_objects(*driver.asserts).src.simplify()
             vc = replace_in_calls(vc, in_calls)
 
