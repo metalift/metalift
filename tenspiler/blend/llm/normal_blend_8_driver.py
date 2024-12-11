@@ -3,7 +3,6 @@ from pathlib import Path
 
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
-from tenspiler.llm.analysis import replace_args
 from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.utils import SingleLoopInfo, get_args_for_invariants
 from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm

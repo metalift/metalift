@@ -123,17 +123,22 @@ def get_inv_prompt(
     else:
         outer_loop_var = loop_info.outer_loop_var.src.name()
         inner_loop_var = loop_info.inner_loop_var.src.name()
-        outer_loop_modified_vars = loop_info.outer_loop_modified_vars
+        inner_loop_modified_vars = [
+            var.src for var in loop_info.inner_loop_modified_vars
+        ]
+        outer_loop_modified_vars = [
+            var.src for var in loop_info.outer_loop_modified_vars
+        ]
         assert len(outer_loop_modified_vars) == 1
         inner_modified_vars_not_in_outer = [
             var
-            for var in loop_info.inner_loop_modified_vars
+            for var in inner_loop_modified_vars
             if var not in outer_loop_modified_vars
         ]
         assert len(inner_modified_vars_not_in_outer) == 1
         inner_modified_var = inner_modified_vars_not_in_outer[0].name()
 
-        rv_var = outer_loop_modified_vars[0].src.name()
+        rv_var = outer_loop_modified_vars[0].name()
         outer_inv, inner_inv = generate_invariant_template(loop_info)
         if num_shots == 0:
             double_loop_zero_shot_inv_text = f"""
