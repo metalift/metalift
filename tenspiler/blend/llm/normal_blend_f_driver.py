@@ -1,10 +1,10 @@
 import time
 from pathlib import Path
 
+from llm.scripts.models import LLMModel
+from llm.scripts.utils import SingleLoopInfo, get_inv_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
-from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.llm.scripts.utils import SingleLoopInfo, get_args_for_invariants
 from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     output_var = List(Int, "out")
 
     inv_args = replace_args(
-        args=get_args_for_invariants(loop_info), replace_args={"out": "agg.result"}
+        args=get_inv_args(loop_info), replace_args={"out": "agg.result"}
     )
     normal_blend_f = driver.analyze(
         "tenspiler/blend/cpp/for_synthesis/normal_blend_f.ll",

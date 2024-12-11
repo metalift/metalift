@@ -2,18 +2,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable
 
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive, Int, Object
-from metalift.smt_util import augment_arguments, replace_fn_name
-from metalift.synthesis_common import SynthesisFailed, VerificationFailed
-from metalift.vc_util import and_objects
-from tenspiler.codegen.numpy_codegen import numpy_codegen
-from tenspiler.codegen.utils import DataType
-from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
-from tenspiler.llm.parser import check_solution
-from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
-from tenspiler.llm.scripts.utils import (
+from llm.parser import check_solution
+from llm.scripts.models import LLMModel
+from llm.scripts.prompts import get_inv_prompt, get_ps_prompt
+from llm.scripts.utils import (
     TEMPLATE_ERR,
     DoubleLoopInfo,
     SingleLoopInfo,
@@ -22,6 +14,14 @@ from tenspiler.llm.scripts.utils import (
     verify_benchmark_rosette,
     verify_benchmark_smt,
 )
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive, Int, Object
+from metalift.smt_util import augment_arguments, replace_fn_name
+from metalift.synthesis_common import SynthesisFailed, VerificationFailed
+from metalift.vc_util import and_objects
+from tenspiler.codegen.numpy_codegen import numpy_codegen
+from tenspiler.codegen.utils import DataType
+from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
     DISSOLVE_SELECT_TWO_ARGS_ARG,
