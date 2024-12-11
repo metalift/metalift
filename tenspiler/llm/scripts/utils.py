@@ -24,27 +24,13 @@ from metalift.ir import (
     Lit,
     Object,
     Var,
+    create_object,
     is_fn_decl_type,
 )
 from metalift.rosette_translator import generate_vars
 from metalift.smt_util import toSMT
 from metalift.synthesis_common import get_used_fn_names
-from tenspiler.llm.analysis import (
-    analyze_blend_double_loop,
-    analyze_dissolve_blend_8,
-    analyze_matmul,
-    analyze_normal_blend_f,
-    analyze_rmsnorm_part1,
-    analyze_rmsnorm_part2,
-    analyze_softmax_part1,
-    analyze_softmax_part2,
-    analyze_softmax_part3,
-    analyze_softmax_part4,
-    analyze_transformer_part1,
-    analyze_transformer_part2,
-    analyze_transformer_part3,
-    analyze_transformer_part4,
-)
+from tenspiler.llm.analysis import analyze_transformer_part4
 
 INDENTATION = " " * 4
 hf_token = os.getenv("HUGGING_FACE_API")
@@ -253,195 +239,6 @@ blend_double_loops = DoubleLoopInfo(
     inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
 )
 
-_output_var_map = {
-    "normal_blend_f": List(Int, "out"),
-    "normal_blend_8": List(Int, "out"),
-    "darken_blend_8": List(List[Int], "out"),
-    "multiply_blend_8": List(List[Int], "out"),
-    "linear_burn_8": List(List[Int], "out"),
-    "color_burn_8": List(List[Int], "out"),
-    "lighten_blend_8": List(List[Int], "out"),
-    "screen_blend_8": List(List[Int], "out"),
-    "linear_dodge_8": List(List[Int], "out"),
-    "color_dodge_8": List(List[Int], "out"),
-    "overlay_blend_8": List(List[Int], "out"),
-    "dissolve_blend_8": List(List[Int], "out"),
-    "softmax_part1": Int("max_val"),
-    "softmax_part2": List(Int, "output"),
-    "softmax_part3": Int("sum"),
-    "softmax_part4": List(Int, "output"),
-    "rmsnorm_part1": Int("ss"),
-    "rmsnorm_part2": List(Int, "output"),
-    "matmul": List(Int, "output"),
-    "transformer_part1": List(Int, "attention"),
-    "transformer_part2": List(Int, "xb"),
-    "transformer_part3": List(Int, "output"),
-    "transformer_part4": List(Int, "output"),
-    "fdtd_2d_part2": List(List[Int], "out"),
-}
-
-_loop_info_map = {
-    "fdtd_2d_part2": DoubleLoopInfo(
-        outer_loop_var=Int("i"),
-        inner_loop_var=Int("j"),
-        outer_loop_read_vars=[
-            Int("nx"),
-            Int("ny"),
-            List(List[Int], "ex"),
-            List(List[Int], "ey"),
-        ],
-        inner_loop_read_vars=[
-            Int("nx"),
-            Int("ny"),
-            List(List[Int], "ex"),
-            List(List[Int], "ey"),
-            Int("i"),
-        ],
-        outer_loop_modified_vars=[List(List[Int], "out")],
-        inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
-    ),
-    "normal_blend_f": SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[List(Int, "out")],
-        read_vars=[List(Int, "base"), List(Int, "active"), Int("opacity")],
-    ),
-    "normal_blend_8": SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[List(Int, "out")],
-        read_vars=[List(Int, "base"), List(Int, "active"), Int("opacity")],
-    ),
-    "darken_blend_8": blend_double_loops,
-    "multiply_blend_8": blend_double_loops,
-    "linear_burn_8": blend_double_loops,
-    "color_burn_8": blend_double_loops,
-    "lighten_blend_8": blend_double_loops,
-    "screen_blend_8": blend_double_loops,
-    "linear_dodge_8": blend_double_loops,
-    "color_dodge_8": blend_double_loops,
-    "overlay_blend_8": blend_double_loops,
-    "dissolve_blend_8": DoubleLoopInfo(
-        outer_loop_var=Int("row"),
-        inner_loop_var=Int("col"),
-        outer_loop_read_vars=[
-            List(List[Int], "base"),
-            List(List[Int], "active"),
-            Int("opacity"),
-            Int("rand_cons"),
-        ],
-        inner_loop_read_vars=[
-            List(List[Int], "base"),
-            List(List[Int], "active"),
-            Int("opacity"),
-            Int("rand_cons"),
-            Int("row"),
-        ],
-        outer_loop_modified_vars=[List(List[Int], "out")],
-        inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
-    ),
-    "softmax_part1": SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[Int("max_val")],
-        read_vars=[List(Int, "input"), Int("max_pos")],
-    ),
-    "softmax_part2": SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[Int("output")],
-        read_vars=[List(Int, "input"), Int("max_pos"), Int("max_val")],
-    ),
-    "softmax_part3": SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[Int("sum")],
-        read_vars=[List(Int, "output"), Int("max_pos")],
-    ),
-    "softmax_part4": SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[List(Int, "output")],
-        read_vars=[
-            List(Int, "unnormalized_output"),
-            Int("max_pos"),
-            Int("sum"),
-        ],
-    ),
-    "rmsnorm_part1": SingleLoopInfo(
-        loop_var=Int("i"),
-        read_vars=[List(Int, "input"), List(Int, "weight")],
-        modified_vars=[Int("ss")],
-    ),
-    "rmsnorm_part2": SingleLoopInfo(
-        loop_var=Int("i"),
-        read_vars=[List(Int, "input"), List(Int, "weight"), Int("ss")],
-        modified_vars=[List(Int, "output")],
-    ),
-    "matmul": DoubleLoopInfo(
-        outer_loop_var=Int("row"),
-        inner_loop_var=Int("col"),
-        outer_loop_read_vars=[List(Int, "weight"), List(Int, "input")],
-        inner_loop_read_vars=[
-            List(Int, "weight"),
-            List(Int, "input"),
-            List(Int, "output"),
-            Int("row"),
-        ],
-        outer_loop_modified_vars=[List(Int, "output")],
-        inner_loop_modified_vars=[List(Int, "output"), Int("curr")],
-    ),
-    "transformer_part1": DoubleLoopInfo(
-        outer_loop_var=Int("timestep"),
-        inner_loop_var=Int("i"),
-        outer_loop_read_vars=[
-            Int("token_position"),
-            Int("head"),
-            Int("head_size"),
-            List(Int, "q"),
-            List(List[Int], "key_cache_layer"),
-        ],
-        inner_loop_read_vars=[
-            Int("token_position"),
-            Int("head"),
-            Int("head_size"),
-            List(Int, "q"),
-            List(List[Int], "key_cache_layer"),
-            Int("timestep"),
-        ],
-        outer_loop_modified_vars=[List(Int, "attention")],
-        inner_loop_modified_vars=[List(Int, "attention"), Int("score")],
-    ),
-    "transformer_part2": DoubleLoopInfo(
-        outer_loop_var=Int("i"),
-        inner_loop_var=Int("timestep"),
-        outer_loop_read_vars=[
-            Int("token_position"),
-            Int("head"),
-            Int("head_size"),
-            List(List[Int], "key_cache_layer"),
-            List(Int, "attention"),
-        ],
-        inner_loop_read_vars=[
-            Int("token_position"),
-            Int("head"),
-            Int("head_size"),
-            List(List[Int], "key_cache_layer"),
-            List(Int, "attention"),
-        ],
-        outer_loop_modified_vars=[List(Int, "xb")],
-        inner_loop_modified_vars=[List(Int, "xb"), Int("curr")],
-    ),
-    "transformer_part3": SingleLoopInfo(
-        loop_var=Int("i"),
-        read_vars=[List(Int, "input"), Int("hidden_dim")],
-        modified_vars=[List(Int, "output")],
-    ),
-    "transformer_part4": SingleLoopInfo(
-        loop_var=Int("i"),
-        read_vars=[
-            List(Int, "input1"),
-            List(Int, "input2"),
-            Int("hidden_dim"),
-        ],
-        modified_vars=[List(Int, "output")],
-    ),
-}
-
 
 def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> str:
     if isinstance(loop_info, SingleLoopInfo):
@@ -579,11 +376,19 @@ def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
     return expr
 
 
+def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Object]:
+    new_args: list[Object] = []
+    for arg in args:
+        arg_name = replace_args.get(arg.var_name(), arg.var_name())
+        new_args.append(create_object(arg.type, arg_name))
+    return new_args
+
+
 def get_args_for_invariants(
     loop_info: SingleLoopInfo | DoubleLoopInfo,
 ) -> Union[list[Object], tuple[list[Object], list[Object]]]:
     if isinstance(loop_info, SingleLoopInfo):
-        return sorted(
+        vars = sorted(
             list(
                 set(
                     [var.src for var in loop_info.read_vars]
@@ -593,6 +398,7 @@ def get_args_for_invariants(
             ),
             key=lambda x: x.name(),
         )
+        return [create_object(var.type, var.name()) for var in vars]
     else:
         outer_inv_args = sorted(
             list(
@@ -614,6 +420,8 @@ def get_args_for_invariants(
             ),
             key=lambda x: x.name(),
         )
+        outer_inv_args = [create_object(var.type, var.name()) for var in outer_inv_args]
+        inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
         return outer_inv_args, inner_inv_args
 
 
@@ -649,8 +457,6 @@ def analyze_benchmark(driver: Driver, benchmark_name: str) -> str:
         return analyze_dissolve_blend_8(driver, inv_args)
     elif benchmark_name == "normal_blend_f":
         return analyze_normal_blend_f(driver, inv_args)
-    elif benchmark_name == "normal_blend_8":
-        return analyze_normal_blend_8(driver, inv_args)
     elif benchmark_name == "softmax_part1":
         return analyze_softmax_part1(driver, inv_args)
     elif benchmark_name == "softmax_part2":

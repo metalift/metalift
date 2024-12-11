@@ -1,18 +1,70 @@
 import time
+from pathlib import Path
 
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
+from metalift.ir import Int, List, Matrix
 from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.llm.scripts.utils import analyze_benchmark
+from tenspiler.llm.scripts.utils import DoubleLoopInfo, get_args_for_invariants
 from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
     start_time = time.time()
     driver = Driver()
-    input_code = analyze_benchmark(driver, "darken_blend_8")
+
+    loop_info = DoubleLoopInfo(
+        outer_loop_var=Int("row"),
+        inner_loop_var=Int("col"),
+        outer_loop_read_vars=[
+            List(List[Int], "base"),
+            List(List[Int], "active"),
+        ],
+        inner_loop_read_vars=[
+            List(List[Int], "base"),
+            List(List[Int], "active"),
+            Int("row"),
+        ],
+        outer_loop_modified_vars=[List(List[Int], "out")],
+        inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
+    )
+    output_var = List(List[Int], "out")
+
+    inv0_args, inv1_args = get_args_for_invariants(loop_info)
+    inv0_args = replace_args(args=inv0_args, replace_args={"out": "agg.result"})
+    inv1_args = replace_args(args=inv1_args, replace_args={"out": "agg.result"})
+    inv0_grammar = InvGrammar(None, [], inv0_args)
+    inv1_grammar = InvGrammar(None, [], inv1_args)
+    darken_blend_8 = driver.analyze(
+        llvm_filepath="tenspiler/blend/cpp/for_synthesis/darken_blend_8.ll",
+        loops_filepath="tenspiler/blend/cpp/for_synthesis/darken_blend_8.loops",
+        fn_name="darken_blend_8",
+        target_lang_fn=[],
+        inv_grammars={
+            "darken_blend_8_inv0": inv0_grammar,
+            "darken_blend_8_inv1": inv1_grammar,
+        },
+        ps_grammar=None,
+    )
+
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
+    driver.add_var_objects([base, active])
+
+    # Add preconditions
+    driver.add_precondition(base.len() > 1)
+    driver.add_precondition(base.len() == active.len())
+    driver.add_precondition(base[0].len() == active[0].len())
+
+    darken_blend_8(base, active)
+
+    input_code = Path(
+        f"tenspiler/blend/cpp/for_synthesis/darken_blend_8.cc"
+    ).read_text()
+
     run_llm_synthesis_algorithm(
         driver=driver,
+        loop_info=loop_info,
+        output_var=output_var,
         source_code=input_code,
-        suite_name="blend",
         benchmark_name="darken_blend_8",
         llm_model=LLMModel.GPT,
     )
