@@ -460,12 +460,7 @@ def toSMT(
             elif isinstance(t, Axiom):
                 axioms.append(t)
             else:
-                try:
-                    out.write("\n" + t.toSMT() + "\n")
-                except:
-                    import pdb
-
-                    pdb.set_trace()
+                out.write("\n" + t.toSMT() + "\n")
 
         vc = filter_fn_args(vc)
 

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable
 
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive, Int
+from metalift.ir import Axiom, Expr, FnDecl, FnDeclRecursive, Int, Object
 from metalift.smt_util import augment_arguments, replace_fn_name
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
 from metalift.vc_util import and_objects
@@ -15,7 +15,9 @@ from tenspiler.llm.scripts.models import LLMModel
 from tenspiler.llm.scripts.prompts import get_inv_prompt, get_ps_prompt
 from tenspiler.llm.scripts.utils import (
     TEMPLATE_ERR,
-    is_single_loop,
+    DoubleLoopInfo,
+    SingleLoopInfo,
+    process_synthesized_fn_decls,
     replace_in_calls,
     verify_benchmark_rosette,
     verify_benchmark_smt,
@@ -175,8 +177,9 @@ class VerificationMethod(Enum):
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
+    loop_info: SingleLoopInfo | DoubleLoopInfo,
+    output_var: Object,
     source_code: str,
-    suite_name: str,
     benchmark_name: str,
     llm_model: LLMModel,
     max_num_ps_sols: int = 10,
@@ -238,9 +241,19 @@ def run_llm_synthesis_algorithm(
             print("Skipping invariant generation")
             continue
 
+        process_synthesized_fn_decls(
+            output_var=output_var,
+            benchmark_name=benchmark_name,
+            synthesized_fn_decls=ps_fn_decls,
+        )
+
         # Generate the invariant
+        ps_fn_decl = next(fn_decl for fn_decl in ps_fn_decls if "ps" in fn_decl.name())
         inv_prompt = get_inv_prompt(
-            suite_name=suite_name, benchmark_name=benchmark_name, dsl_code=dsl_code
+            source_code=source_code,
+            ps_fn_decl=ps_fn_decl,
+            loop_info=loop_info,
+            dsl_code=dsl_code,
         )
         inv_sols: list[str] = []
         for inv_sol_index in range(max_num_inv_sols):
@@ -264,7 +277,9 @@ def run_llm_synthesis_algorithm(
             try:
                 _, inv_fn_decls, inv_in_calls = check_solution(
                     solution=inv_sol,
-                    expected_num_funcs=1 if is_single_loop(benchmark_name) else 2,
+                    expected_num_funcs=1
+                    if isinstance(loop_info, SingleLoopInfo)
+                    else 2,
                     dsl_code=dsl_code,
                     lambda_exprs=lambda_exprs,
                     arg_name_to_count=arg_name_to_count,
@@ -273,6 +288,12 @@ def run_llm_synthesis_algorithm(
             except Exception as e:
                 print("Failed to pass the parser", e)
                 continue
+
+            process_synthesized_fn_decls(
+                output_var=output_var,
+                benchmark_name=benchmark_name,
+                synthesized_fn_decls=inv_fn_decls,
+            )
 
             synthesized_fn_decls = list(set([*ps_fn_decls, *inv_fn_decls]))
             in_calls = [*ps_inv_calls, *inv_in_calls]

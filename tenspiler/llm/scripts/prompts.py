@@ -1,9 +1,11 @@
+import re
 import textwrap
 
+from metalift.ir import FnDecl, FnDeclRecursive
 from tenspiler.llm.scripts.utils import (
-    _generate_invariant_template,
-    _loop_info_map,
-    is_single_loop,
+    DoubleLoopInfo,
+    SingleLoopInfo,
+    generate_invariant_template,
 )
 
 
@@ -31,13 +33,15 @@ def get_ps_prompt(*, dsl_code: str, source_code: str) -> str:
 
 def get_inv_prompt(
     *,
-    suite_name: str,
-    benchmark_name: str,
+    source_code: str,
+    ps_fn_decl: FnDecl | FnDeclRecursive,
+    loop_info: SingleLoopInfo | DoubleLoopInfo,
     dsl_code: str,
     num_shots: int = 1,
 ) -> str:
-    with open(f"tenspiler/llm/inv_code/{suite_name}/{benchmark_name}.txt") as f:
-        inv_code_with_assert = f.read()
+    assertion_code = ps_fn_decl.body().to_python()
+    inv_code_with_assert = re.sub(r"\breturn\b.*?;", rf"{assertion_code};", source_code)
+
     one_shot_example = f"""
     //test function
     vector<vector<uint8_t>> test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active) {{
@@ -73,7 +77,7 @@ def get_inv_prompt(
     4. Inline all the expressions. Do not use intermediate variables.
     5. Generate separate loop invariants for each loop in the test function.
     6. invariant structure
-    {_generate_invariant_template(benchmark_name)}
+    {generate_invariant_template(loop_info)}
 
     Example1:
     #defined functions
@@ -83,9 +87,8 @@ def get_inv_prompt(
     Example2:
     {inv_code_with_assert}
     """
-    if is_single_loop(benchmark_name):
-        single_loop_info = _loop_info_map[benchmark_name]
-        loop_var_name = single_loop_info.loop_var.name()
+    if isinstance(loop_info, SingleLoopInfo):
+        loop_var_name = loop_info.loop_var.src.name()
         if num_shots == 0:
             single_loop_zero_shot_inv_text = f"""
             Your task is to generate the loop invariant `Inv` such that it is true at all the locations it is defined at.  Generate only a single `Inv` expression which holds at all the locations. The invariant needs to be generated using only the functions defined below. Write the loop invariant as a python boolean formula.
@@ -107,7 +110,7 @@ def get_inv_prompt(
             # A strong loop invariant should have the following properties:
             # 1. It should have boolean expressions over the loop index variable `{loop_var_name}` to describe the valid range of `{loop_var_name}`.
             # 2. It should have an inductive expression describing the output variable `out` using the defined functions.
-            {_generate_invariant_template(benchmark_name)}
+            {generate_invariant_template(loop_info)}
             ```
             """
             return textwrap.dedent(single_loop_zero_shot_inv_text)
@@ -118,21 +121,20 @@ def get_inv_prompt(
                 f"Invalid number of shots for invariant prompt: {num_shots}"
             )
     else:
-        double_loop_info = _loop_info_map[benchmark_name]
-        outer_loop_var = double_loop_info.outer_loop_var.name()
-        inner_loop_var = double_loop_info.inner_loop_var.name()
-        outer_loop_modified_vars = double_loop_info.outer_loop_modified_vars
+        outer_loop_var = loop_info.outer_loop_var.src.name()
+        inner_loop_var = loop_info.inner_loop_var.src.name()
+        outer_loop_modified_vars = loop_info.outer_loop_modified_vars
         assert len(outer_loop_modified_vars) == 1
         inner_modified_vars_not_in_outer = [
             var
-            for var in double_loop_info.inner_loop_modified_vars
+            for var in loop_info.inner_loop_modified_vars
             if var not in outer_loop_modified_vars
         ]
         assert len(inner_modified_vars_not_in_outer) == 1
         inner_modified_var = inner_modified_vars_not_in_outer[0].name()
 
-        rv_var = outer_loop_modified_vars[0].name()
-        outer_inv, inner_inv = _generate_invariant_template(benchmark_name)
+        rv_var = outer_loop_modified_vars[0].src.name()
+        outer_inv, inner_inv = generate_invariant_template(loop_info)
         if num_shots == 0:
             double_loop_zero_shot_inv_text = f"""
             Your task is to generate two loop invariants `invariant1` and `invariant2` such that the given assertion holds. The invariants need to be generated using only the functions defined below. Write the loop invariants as python boolean formulas.
