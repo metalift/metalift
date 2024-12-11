@@ -259,7 +259,6 @@ def replace_fn_name_with_in_call(
 def filter_body(
     *, fun_def: Expr, new_fn_call: str, fn_call: str, in_call: Optional[str] = None
 ) -> Expr:
-    # TODO(jie): add docstring
     if (
         (not isinstance(fun_def, Expr))
         or isinstance(fun_def, Var)

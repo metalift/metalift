@@ -51,13 +51,13 @@ python3 tenspiler/(blend|llama)/llm/driver/{benchmark_name}_driver.py
 ## Writing Your Own Verified-Lifting Tool Using LLM
 Follow the following instructions to build your own tool.
 
-1. Describe the semantics of your DSL. An example is the set of Tensor IR functions we define [here](# todo)
+1. Describe the semantics of your DSL. An example is the set of some tensor functions we define [here](./tenspiler/constants.py#L74)
 2. Write your own driver file. This includes
   - Compiling your C++ source code to `*.ll` and `*.loops` file using by running
   ```
   ./metalift/utils/llvm/compile-add-blocks /path/to/{your_file_name}.cc
   ```
   This will output `{your_file_name}.ll` and `{your_file_name}.loops` in the same directory as your input file.
-  - Supply some information about the loops in your programs, if any. This is to help LLMLift generate a template for synthesizing invariants. We are working to automate this step.
-  - Specify the output variable. We are working to automate this step as well.
-3. For initial testing, we recommend using bounded verification, which can be set through the `verification_method` argument. Full verification requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](TODO(jie)). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
+  - Supply some information about the loops in your programs, if any, to help LLMLift generate a template for synthesizing invariants. [Here](./tenspiler/blend/llm/linear_dodge_8_driver.py#L14-L28) is an example. We are working to automate this step!
+  - Specify the output variable, as the example [here](./tenspiler/blend/llm/linear_dodge_8_driver.py#L29). We are working to automate this step as well!
+3. For initial testing, we recommend using bounded verification, which can be set through the `verification_method` argument (example [here](./tenspiler/blend/llm/linear_dodge_8_driver.py#L14-L28)). Full verification requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](./tenspiler/axioms.py#L141-149). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
