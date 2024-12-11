@@ -1,9 +1,16 @@
 import time
 from pathlib import Path
 
-from llm.synthesis import DoubleLoopInfo, LLMModel, run_llm_synthesis_algorithm
+from llm.synthesis import (
+    DoubleLoopInfo,
+    LLMModel,
+    VerificationMethod,
+    run_llm_synthesis_algorithm,
+)
+from llm.utils import get_inv_args, replace_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List, Matrix
+from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -65,6 +72,9 @@ if __name__ == "__main__":
         source_code=input_code,
         benchmark_name="overlay_blend_8",
         llm_model=LLMModel.GPT,
+        dsl_fns=TENSPILER_FNS,
+        dsl_fn_name_to_axioms=TENSPILER_FN_NAME_TO_AXIOMS,
+        verification_method=VerificationMethod.ROSETTE,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

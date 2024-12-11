@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 
-from llm.synthesis import LLMModel, run_llm_synthesis_algorithm
+from llm.synthesis import LLMModel, VerificationMethod, run_llm_synthesis_algorithm
 from llm.utils import SingleLoopInfo, get_inv_args, replace_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
@@ -56,6 +56,7 @@ if __name__ == "__main__":
         llm_model=LLMModel.GPT,
         dsl_fns=TENSPILER_FNS,
         dsl_fn_name_to_axioms=TENSPILER_FN_NAME_TO_AXIOMS,
+        verification_method=VerificationMethod.ROSETTE,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

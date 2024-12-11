@@ -104,7 +104,6 @@ def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
 
 
 def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
-    # TODO(jie): add comment
     for in_call in in_calls:
         expr = replace_in_call(expr, in_call)
     return expr
