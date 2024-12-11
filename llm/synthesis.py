@@ -51,7 +51,6 @@ from tenspiler.tenspiler_common import (
     dissolve_matrix_selection_two_args_fn_decl,
     dissolve_selection_two_args_fn_decl,
 )
-from test_case import correct_sols
 
 
 class VerificationMethod(Enum):
@@ -391,9 +390,7 @@ def run_llm_synthesis_algorithm(
             ]
         else:
             messages_for_new_sol = [inv_template_message]
-        # TODO(jie)
-        # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-        ps_sol = correct_sols[benchmark_name]["ps"]
+        ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
         ps_sols.append(ps_sol)
 
         # Check if the solution passes the parser. If it does, we can continue to the next step. Otherwise, we would like to generate another PS.
@@ -440,9 +437,7 @@ def run_llm_synthesis_algorithm(
                 ]
             else:
                 messages_for_new_sol = [inv_template_message]
-            # TODO(jie)
-            # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-            inv_sol = correct_sols[benchmark_name]["inv"]
+            inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
             print("Generated new INV solution", inv_sol)
             inv_sols.append(inv_sol)
 
