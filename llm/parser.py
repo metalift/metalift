@@ -526,7 +526,7 @@ def check_solution(
     arg_name_to_count: dict[str, int],
 ) -> tuple[list[str], list[FnDeclRecursive], dict[str, list[tuple[str, str]]]]:
     universal_imports = "from typing import Any, Callable, List\n"
-    dsl_imports = "from tenspiler.llm.dsl import *\n"
+    dsl_imports = "from llm.dsl import *\n"
     with open(TENSPILER_LLM_PATH / "dsl.py", "w") as f:
         dsl_code_with_imports = dedent(
             remove_comments(dedent(universal_imports) + dedent(dsl_code))

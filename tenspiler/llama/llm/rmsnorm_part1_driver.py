@@ -1,10 +1,10 @@
 import time
 from pathlib import Path
 
+from llm.scripts.models import LLMModel
+from llm.scripts.utils import SingleLoopInfo, get_inv_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
-from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.llm.scripts.utils import SingleLoopInfo, get_args_for_invariants
 from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
@@ -16,7 +16,7 @@ if __name__ == "__main__":
         modified_vars=[Int("ss")],
     )
     output_var = Int("ss")
-    inv_args = get_args_for_invariants(loop_info)
+    inv_args = get_inv_args(loop_info)
 
     rmsnorm_part1 = driver.analyze(
         llvm_filepath="tenspiler/llama/cpp/for_synthesis/rmsnorm/rmsnorm_part1.ll",

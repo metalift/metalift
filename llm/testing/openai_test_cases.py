@@ -1,7 +1,7 @@
 import json
 from textwrap import dedent
 
-from tenspiler.llm.parser import check_solution, remove_comments
+from llm.parser import check_solution, remove_comments
 
 outputs_mapping = {
     "color_burn_8": [
@@ -144,7 +144,7 @@ inputs_mapping = {
 
 def run_test(func_name: str, ps_sol: str) -> int:
     universal_imports = f"""
-    from tenspiler.llm.python_dsl import *
+    from llm.python_dsl import *
     from typing import Any, Callable, List
     """
     ps_sol = dedent(remove_comments(dedent(universal_imports) + dedent(ps_sol)))

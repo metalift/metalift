@@ -1,10 +1,10 @@
 import time
 from pathlib import Path
 
+from llm.scripts.models import LLMModel
+from llm.scripts.utils import DoubleLoopInfo, get_inv_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List, Matrix
-from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.llm.scripts.utils import DoubleLoopInfo, get_args_for_invariants
 from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         inner_loop_modified_vars=[List(Int, "xb"), Int("curr")],
     )
     output_var = List(Int, "xb")
-    inv_args = get_args_for_invariants(loop_info)
+    inv_args = get_inv_args(loop_info)
 
     inv0_args, inv1_args = inv_args
     inv0_args = replace_args(args=inv0_args, replace_args={"xb": "agg.result"})

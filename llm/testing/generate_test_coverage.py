@@ -4,7 +4,7 @@
 # from test import transformer_part2
 import pytest
 
-from tenspiler.llm.testing.generate_expected_outputs import fdtd_2d_part2
+from llm.testing.generate_expected_outputs import fdtd_2d_part2
 
 
 @pytest.mark.parametrize(
