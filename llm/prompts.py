@@ -2,7 +2,7 @@ import re
 import textwrap
 from typing import get_args
 
-from llm.synthesis import DoubleLoopInfo, SingleLoopInfo, get_inv_args
+from llm.utils import DoubleLoopInfo, SingleLoopInfo, get_inv_args
 from metalift.ir import FnDecl, FnDeclRecursive
 
 
@@ -102,9 +102,6 @@ def get_inv_prompt(
     inv_code_with_assert = re.sub(
         r"\breturn\b.*?;", rf"assert {assertion_code};", source_code
     )
-    import pdb
-
-    pdb.set_trace()
 
     one_shot_example = f"""
     //test function

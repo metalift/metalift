@@ -1,13 +1,7 @@
 import time
 from pathlib import Path
 
-from llm.synthesis import (
-    DoubleLoopInfo,
-    LLMModel,
-    get_inv_args,
-    replace_args,
-    run_llm_synthesis_algorithm,
-)
+from llm.synthesis import DoubleLoopInfo, LLMModel, run_llm_synthesis_algorithm
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List, Matrix
 

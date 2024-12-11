@@ -1,7 +1,6 @@
 import copy
 import os
 import subprocess
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Union
@@ -17,7 +16,12 @@ from llm.constants import (
 )
 from llm.parser import check_solution
 from llm.prompts import get_inv_prompt, get_ps_prompt
-from llm.utils import extract_all_python_functions, replace_ite
+from llm.utils import (
+    DoubleLoopInfo,
+    SingleLoopInfo,
+    extract_all_python_functions,
+    replace_ite,
+)
 from metalift.frontend.llvm import Driver
 from metalift.ir import (
     Axiom,
@@ -31,7 +35,6 @@ from metalift.ir import (
     Lit,
     Object,
     Var,
-    create_object,
     is_fn_decl_type,
 )
 from metalift.rosette_translator import generate_vars
@@ -61,23 +64,6 @@ class LLMModel(Enum):
     CLAUDE = "claude"
     GPT = "gpt"
     GEMINI = "gemini"
-
-
-@dataclass
-class SingleLoopInfo:
-    loop_var: Object
-    read_vars: list[Object]
-    modified_vars: list[Object]
-
-
-@dataclass
-class DoubleLoopInfo:
-    outer_loop_var: Object
-    inner_loop_var: Object
-    outer_loop_read_vars: list[Object]
-    inner_loop_read_vars: list[Object]
-    outer_loop_modified_vars: list[Object]
-    inner_loop_modified_vars: list[Object]
 
 
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
@@ -123,57 +109,6 @@ def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
     for in_call in in_calls:
         expr = replace_in_call(expr, in_call)
     return expr
-
-
-def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Object]:
-    """In the given list of args, replace the variable names according to the given `replace_args`."""
-    new_args: list[Object] = []
-    for arg in args:
-        arg_name = replace_args.get(arg.var_name(), arg.var_name())
-        new_args.append(create_object(arg.type, arg_name))
-    return new_args
-
-
-def get_inv_args(
-    loop_info: SingleLoopInfo | DoubleLoopInfo,
-) -> Union[list[Object], tuple[list[Object], list[Object]]]:
-    """Given some loop info, return the invariant arguments."""
-    if isinstance(loop_info, SingleLoopInfo):
-        vars = sorted(
-            list(
-                set(
-                    [var.src for var in loop_info.read_vars]
-                    + [var.src for var in loop_info.modified_vars]
-                    + [loop_info.loop_var.src]
-                )
-            ),
-            key=lambda x: x.name(),
-        )
-        return [create_object(var.type, var.name()) for var in vars]
-    else:
-        outer_inv_args = sorted(
-            list(
-                set(
-                    [var.src for var in loop_info.outer_loop_read_vars]
-                    + [var.src for var in loop_info.outer_loop_modified_vars]
-                    + [loop_info.outer_loop_var.src]
-                )
-            ),
-            key=lambda x: x.name(),
-        )
-        inner_inv_args = sorted(
-            list(
-                set(
-                    [var.src for var in loop_info.inner_loop_read_vars]
-                    + [var.src for var in loop_info.inner_loop_modified_vars]
-                    + [loop_info.inner_loop_var.src]
-                )
-            ),
-            key=lambda x: x.name(),
-        )
-        outer_inv_args = [create_object(var.type, var.name()) for var in outer_inv_args]
-        inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
-        return outer_inv_args, inner_inv_args
 
 
 def process_ps_fn_decl(
