@@ -1,11 +1,15 @@
 import time
 from pathlib import Path
 
-from llm.scripts.models import LLMModel
-from llm.scripts.utils import DoubleLoopInfo, get_inv_args
+from llm.synthesis import (
+    DoubleLoopInfo,
+    LLMModel,
+    get_inv_args,
+    replace_args,
+    run_llm_synthesis_algorithm,
+)
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List, Matrix
-from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
     start_time = time.time()

@@ -130,11 +130,11 @@ def get_dsl_func_defs() -> List[FuncDef]:
     options.preserve_asts = True
     options.export_types = True
     mypy_build = build.build(
-        sources=[BuildSource(path=None, module="tenspiler.llm.dsl")],
+        sources=[BuildSource(path=None, module="llm.dsl")],
         options=options,
     )
     python_dsl_tree: MypyFile = cast(
-        MypyFile, mypy_build.graph["tenspiler.llm.dsl"].tree
+        MypyFile, mypy_build.graph["llm.dsl"].tree
     )  # tree of the entire module / file
 
     # Get function signatures of the python dsl module
@@ -157,7 +157,7 @@ def mypy_parse(
     mypy_build = build.build(
         sources=[
             BuildSource(path=None, module="target_code", text=code),
-            BuildSource(path=None, module="tenspiler.llm.dsl"),
+            BuildSource(path=None, module="llm.dsl"),
         ],
         options=options,
     )
