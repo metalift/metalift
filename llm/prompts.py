@@ -2,11 +2,12 @@ import re
 import textwrap
 from typing import get_args
 
-from llm.scripts.utils import DoubleLoopInfo, SingleLoopInfo, get_inv_args
+from llm.synthesis import DoubleLoopInfo, SingleLoopInfo, get_inv_args
 from metalift.ir import FnDecl, FnDeclRecursive
 
 
 def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> str:
+    """Given the loop information, generate the invariant template."""
     if isinstance(loop_info, SingleLoopInfo):
         arguments = get_inv_args(loop_info)
         args_with_types = ", ".join(
@@ -98,7 +99,12 @@ def get_inv_prompt(
     num_shots: int = 1,
 ) -> str:
     assertion_code = ps_fn_decl.body().to_python()
-    inv_code_with_assert = re.sub(r"\breturn\b.*?;", rf"{assertion_code};", source_code)
+    inv_code_with_assert = re.sub(
+        r"\breturn\b.*?;", rf"assert {assertion_code};", source_code
+    )
+    import pdb
+
+    pdb.set_trace()
 
     one_shot_example = f"""
     //test function

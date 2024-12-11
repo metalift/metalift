@@ -1,11 +1,15 @@
 import time
 from pathlib import Path
 
-from llm.scripts.models import LLMModel
-from llm.scripts.utils import SingleLoopInfo, get_inv_args
+from llm.synthesis import (
+    LLMModel,
+    SingleLoopInfo,
+    get_inv_args,
+    replace_args,
+    run_llm_synthesis_algorithm,
+)
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
-from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -52,7 +56,7 @@ if __name__ == "__main__":
         loop_info=loop_info,
         output_var=output_var,
         source_code=input_code,
-        benchmark_name="transformer_part3",
+        benchmark_name="transformer_part4",
         llm_model=LLMModel.GPT,
     )
     end_time = time.time()

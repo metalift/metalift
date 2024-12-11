@@ -2,7 +2,7 @@ import re
 import textwrap
 from typing import get_args
 
-from llm.scripts.utils import DoubleLoopInfo, SingleLoopInfo, get_inv_args
+from llm.synthesis import DoubleLoopInfo, SingleLoopInfo, get_inv_args
 from metalift.ir import FnDecl, FnDeclRecursive
 
 
