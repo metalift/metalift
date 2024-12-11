@@ -3,9 +3,7 @@ import typing
 from collections import Counter
 from enum import Enum
 from inspect import isclass
-from typing import Any, Callable, Dict, Generic
-from typing import List as pyList  # type: ignore
-from typing import Optional
+from typing import Any, Callable, Dict, Generic, Optional
 from typing import Tuple as pyTuple
 from typing import Type, TypeVar, Union, _GenericAlias, cast, get_args, get_origin
 
@@ -112,7 +110,7 @@ def get_fn_return_type(ty: Union[type, _GenericAlias]) -> ObjectT:
     return get_args(tuple_types)[0]  # type: ignore
 
 
-def get_fn_args_types(ty: Union[type, _GenericAlias]) -> pyList[ObjectT]:
+def get_fn_args_types(ty: Union[type, _GenericAlias]) -> list[ObjectT]:
     tuple_types = get_args(ty)[0]
     return list(get_args(tuple_types)[1:])
 
@@ -204,8 +202,8 @@ class Expr:
 
     @staticmethod
     def findCommonExprs(
-        e: "Expr", cnts: pyList[pyTuple["Expr", int]]
-    ) -> pyList[pyTuple["Expr", int]]:
+        e: "Expr", cnts: list[pyTuple["Expr", int]]
+    ) -> list[pyTuple["Expr", int]]:
         def expr_index_in_cnts(e: Expr) -> int:
             for i, (existing_expr, _) in enumerate(cnts):
                 if Expr.__eq__(e, existing_expr):
@@ -706,7 +704,7 @@ def create_object(
         return object_type(cast(Expr, value))
 
 
-def get_object_exprs(*objects: Union["Object", Expr]) -> pyList[Expr]:
+def get_object_exprs(*objects: Union["Object", Expr]) -> list[Expr]:
     return [get_object_expr(obj) for obj in objects]
 
 
@@ -1332,11 +1330,11 @@ class List(Generic[T], Object):
     def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
         contained_type = type_args[0]
         if isinstance(contained_type, _GenericAlias):
-            return pyList[
+            return list[
                 {get_origin(contained_type).to_python_type(get_args(contained_type))}
             ]
         else:
-            return pyList[contained_type.to_python_type()]
+            return list[contained_type.to_python_type()]
 
     @staticmethod
     def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
@@ -1546,13 +1544,13 @@ class Matrix(List[T], Generic[T], Object):
     @staticmethod
     def to_python_type(type_args: pyTuple[ObjectContainedT] = ()) -> PythonT:
         elem_type = type_args[0]
-        contained_type = pyList[elem_type]
+        contained_type = list[elem_type]
         if isinstance(contained_type, _GenericAlias):
-            return pyList[
+            return list[
                 {get_origin(contained_type).to_python_type(get_args(contained_type))}
             ]
         else:
-            return pyList[{contained_type.to_python_type()}]
+            return list[{contained_type.to_python_type()}]
 
     @staticmethod
     def to_python_type_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:
@@ -1791,7 +1789,7 @@ class Tuple(Generic[TupleContainedT], Object):
     # TODO: handle contained type
     @staticmethod
     def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
-        contained_type_strs: pyList[str] = []
+        contained_type_strs: list[str] = []
         for contained_type in get_args(type_args[0]):
             if isinstance(contained_type, _GenericAlias):
                 contained_type_str = get_origin(contained_type).toSMTType(  # type: ignore
@@ -1871,8 +1869,9 @@ class Fn(Generic[FnContainedT], Object):
 
     @staticmethod
     def cls_str(type_args: pyTuple[ObjectContainedT] = ()) -> str:  # type: ignore
-        contained_type_strs: pyList[str] = []
-        for contained_type in get_args(type_args[0]):
+        contained_type_strs: list[str] = []
+        contained_types = get_args(get_args(type_args[0]))
+        for contained_type in contained_types:
             if isinstance(contained_type, _GenericAlias):
                 contained_type_str = get_origin(contained_type).toSMTType(  # type: ignore
                     get_args(contained_type)
@@ -2975,7 +2974,7 @@ class Synth(Expr):
         ]
 
         return_type = self.type.toSMTType(get_args(self.type))  # type: ignore
-        common_exprs_types: pyList[str] = []
+        common_exprs_types: list[str] = []
         for expr in commonExprs:
             expr_type = parse_type_ref_to_obj(expr.type)
             expr_smt_type = expr_type.toSMTType(get_args(expr_type))  # type: ignore

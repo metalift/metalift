@@ -33,7 +33,6 @@ from tenspiler.llm.analysis import (
     analyze_blend_double_loop,
     analyze_dissolve_blend_8,
     analyze_matmul,
-    analyze_normal_blend_8,
     analyze_normal_blend_f,
     analyze_rmsnorm_part1,
     analyze_rmsnorm_part2,
@@ -223,93 +222,93 @@ def get_ps_choice_and_save_prompt(
 ######
 @dataclass
 class SingleLoopInfo:
-    loop_var: Var
-    read_vars: list[Var]
-    modified_vars: list[Var]
+    loop_var: Object
+    read_vars: list[Object]
+    modified_vars: list[Object]
 
 
 @dataclass
 class DoubleLoopInfo:
-    outer_loop_var: Var
-    inner_loop_var: Var
-    outer_loop_read_vars: list[Var]
-    inner_loop_read_vars: list[Var]
-    outer_loop_modified_vars: list[Var]
-    inner_loop_modified_vars: list[Var]
+    outer_loop_var: Object
+    inner_loop_var: Object
+    outer_loop_read_vars: list[Object]
+    inner_loop_read_vars: list[Object]
+    outer_loop_modified_vars: list[Object]
+    inner_loop_modified_vars: list[Object]
 
 
 blend_double_loops = DoubleLoopInfo(
-    outer_loop_var=Int("row").src,
-    inner_loop_var=Int("col").src,
+    outer_loop_var=Int("row"),
+    inner_loop_var=Int("col"),
     outer_loop_read_vars=[
-        List(List[Int], "base").src,
-        List(List[Int], "active").src,
+        List(List[Int], "base"),
+        List(List[Int], "active"),
     ],
     inner_loop_read_vars=[
-        List(List[Int], "base").src,
-        List(List[Int], "active").src,
-        Int("row").src,
+        List(List[Int], "base"),
+        List(List[Int], "active"),
+        Int("row"),
     ],
-    outer_loop_modified_vars=[List(List[Int], "out").src],
-    inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
+    outer_loop_modified_vars=[List(List[Int], "out")],
+    inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
 )
 
 _output_var_map = {
-    "normal_blend_f": List(Int, "out").src,
-    "normal_blend_8": List(Int, "out").src,
-    "darken_blend_8": List(List[Int], "out").src,
-    "multiply_blend_8": List(List[Int], "out").src,
-    "linear_burn_8": List(List[Int], "out").src,
-    "color_burn_8": List(List[Int], "out").src,
-    "lighten_blend_8": List(List[Int], "out").src,
-    "screen_blend_8": List(List[Int], "out").src,
-    "linear_dodge_8": List(List[Int], "out").src,
-    "color_dodge_8": List(List[Int], "out").src,
-    "overlay_blend_8": List(List[Int], "out").src,
-    "dissolve_blend_8": List(List[Int], "out").src,
-    "softmax_part1": Int("max_val").src,
-    "softmax_part2": List(Int, "output").src,
-    "softmax_part3": Int("sum").src,
-    "softmax_part4": List(Int, "output").src,
-    "rmsnorm_part1": Int("ss").src,
-    "rmsnorm_part2": List(Int, "output").src,
-    "matmul": List(Int, "output").src,
-    "transformer_part1": List(Int, "attention").src,
-    "transformer_part2": List(Int, "xb").src,
-    "transformer_part3": List(Int, "output").src,
-    "transformer_part4": List(Int, "output").src,
-    "fdtd_2d_part2": List(List[Int], "out").src,
+    "normal_blend_f": List(Int, "out"),
+    "normal_blend_8": List(Int, "out"),
+    "darken_blend_8": List(List[Int], "out"),
+    "multiply_blend_8": List(List[Int], "out"),
+    "linear_burn_8": List(List[Int], "out"),
+    "color_burn_8": List(List[Int], "out"),
+    "lighten_blend_8": List(List[Int], "out"),
+    "screen_blend_8": List(List[Int], "out"),
+    "linear_dodge_8": List(List[Int], "out"),
+    "color_dodge_8": List(List[Int], "out"),
+    "overlay_blend_8": List(List[Int], "out"),
+    "dissolve_blend_8": List(List[Int], "out"),
+    "softmax_part1": Int("max_val"),
+    "softmax_part2": List(Int, "output"),
+    "softmax_part3": Int("sum"),
+    "softmax_part4": List(Int, "output"),
+    "rmsnorm_part1": Int("ss"),
+    "rmsnorm_part2": List(Int, "output"),
+    "matmul": List(Int, "output"),
+    "transformer_part1": List(Int, "attention"),
+    "transformer_part2": List(Int, "xb"),
+    "transformer_part3": List(Int, "output"),
+    "transformer_part4": List(Int, "output"),
+    "fdtd_2d_part2": List(List[Int], "out"),
 }
 
 _loop_info_map = {
     "fdtd_2d_part2": DoubleLoopInfo(
-        outer_loop_var=Int("i").src,
-        inner_loop_var=Int("j").src,
+        outer_loop_var=Int("i"),
+        inner_loop_var=Int("j"),
         outer_loop_read_vars=[
-            Int("nx").src,
-            Int("ny").src,
-            List(List[Int], "ex").src,
-            List(List[Int], "ey").src,
+            Int("nx"),
+            Int("ny"),
+            List(List[Int], "ex"),
+            List(List[Int], "ey"),
         ],
         inner_loop_read_vars=[
-            Int("nx").src,
-            Int("ny").src,
-            List(List[Int], "ex").src,
-            List(List[Int], "ey").src,
-            Int("i").src,
+            Int("nx"),
+            Int("ny"),
+            List(List[Int], "ex"),
+            List(List[Int], "ey"),
+            Int("i"),
         ],
-        outer_loop_modified_vars=[List(List[Int], "out").src],
-        inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
+        outer_loop_modified_vars=[List(List[Int], "out")],
+        inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
     ),
     "normal_blend_f": SingleLoopInfo(
-        loop_var=Int("i").src,
-        modified_vars=[List(Int, "out").src],
-        read_vars=[List(Int, "base").src, List(Int, "active").src, Int("opacity").src],
+        loop_var=Int("i"),
+        modified_vars=[List(Int, "out")],
+        read_vars=[List(Int, "base"), List(Int, "active"), Int("opacity")],
     ),
     "normal_blend_8": SingleLoopInfo(
-        loop_var=Int("i").src,
-        modified_vars=[List(Int, "out").src],
-        read_vars=[List(Int, "base").src, List(Int, "active").src, Int("opacity").src],
+        loop_var=Int("i"),
+        modified_vars=[List(Int, "out")],
+        read_vars=[List(Int, "base"), List(Int, "active"), Int("opacity")],
     ),
     "darken_blend_8": blend_double_loops,
     "multiply_blend_8": blend_double_loops,
@@ -321,153 +320,139 @@ _loop_info_map = {
     "color_dodge_8": blend_double_loops,
     "overlay_blend_8": blend_double_loops,
     "dissolve_blend_8": DoubleLoopInfo(
-        outer_loop_var=Int("row").src,
-        inner_loop_var=Int("col").src,
+        outer_loop_var=Int("row"),
+        inner_loop_var=Int("col"),
         outer_loop_read_vars=[
-            List(List[Int], "base").src,
-            List(List[Int], "active").src,
-            Int("opacity").src,
-            Int("rand_cons").src,
+            List(List[Int], "base"),
+            List(List[Int], "active"),
+            Int("opacity"),
+            Int("rand_cons"),
         ],
         inner_loop_read_vars=[
-            List(List[Int], "base").src,
-            List(List[Int], "active").src,
-            Int("opacity").src,
-            Int("rand_cons").src,
-            Int("row").src,
+            List(List[Int], "base"),
+            List(List[Int], "active"),
+            Int("opacity"),
+            Int("rand_cons"),
+            Int("row"),
         ],
-        outer_loop_modified_vars=[List(List[Int], "out").src],
-        inner_loop_modified_vars=[List(List[Int], "out").src, List(Int, "row_vec").src],
+        outer_loop_modified_vars=[List(List[Int], "out")],
+        inner_loop_modified_vars=[List(List[Int], "out"), List(Int, "row_vec")],
     ),
     "softmax_part1": SingleLoopInfo(
-        loop_var=Int("i").src,
-        modified_vars=[Int("max_val").src],
-        read_vars=[List(Int, "input").src, Int("max_pos").src],
+        loop_var=Int("i"),
+        modified_vars=[Int("max_val")],
+        read_vars=[List(Int, "input"), Int("max_pos")],
     ),
     "softmax_part2": SingleLoopInfo(
-        loop_var=Int("i").src,
-        modified_vars=[Int("output").src],
-        read_vars=[List(Int, "input").src, Int("max_pos").src, Int("max_val").src],
+        loop_var=Int("i"),
+        modified_vars=[Int("output")],
+        read_vars=[List(Int, "input"), Int("max_pos"), Int("max_val")],
     ),
     "softmax_part3": SingleLoopInfo(
-        loop_var=Int("i").src,
-        modified_vars=[Int("sum").src],
-        read_vars=[List(Int, "output").src, Int("max_pos").src],
+        loop_var=Int("i"),
+        modified_vars=[Int("sum")],
+        read_vars=[List(Int, "output"), Int("max_pos")],
     ),
     "softmax_part4": SingleLoopInfo(
-        loop_var=Int("i").src,
-        modified_vars=[List(Int, "output").src],
+        loop_var=Int("i"),
+        modified_vars=[List(Int, "output")],
         read_vars=[
-            List(Int, "unnormalized_output").src,
-            Int("max_pos").src,
-            Int("sum").src,
+            List(Int, "unnormalized_output"),
+            Int("max_pos"),
+            Int("sum"),
         ],
     ),
     "rmsnorm_part1": SingleLoopInfo(
-        loop_var=Int("i").src,
-        read_vars=[List(Int, "input").src, List(Int, "weight").src],
-        modified_vars=[Int("ss").src],
+        loop_var=Int("i"),
+        read_vars=[List(Int, "input"), List(Int, "weight")],
+        modified_vars=[Int("ss")],
     ),
     "rmsnorm_part2": SingleLoopInfo(
-        loop_var=Int("i").src,
-        read_vars=[List(Int, "input").src, List(Int, "weight").src, Int("ss").src],
-        modified_vars=[List(Int, "output").src],
+        loop_var=Int("i"),
+        read_vars=[List(Int, "input"), List(Int, "weight"), Int("ss")],
+        modified_vars=[List(Int, "output")],
     ),
     "matmul": DoubleLoopInfo(
-        outer_loop_var=Int("row").src,
-        inner_loop_var=Int("col").src,
-        outer_loop_read_vars=[List(Int, "weight").src, List(Int, "input").src],
+        outer_loop_var=Int("row"),
+        inner_loop_var=Int("col"),
+        outer_loop_read_vars=[List(Int, "weight"), List(Int, "input")],
         inner_loop_read_vars=[
-            List(Int, "weight").src,
-            List(Int, "input").src,
-            List(Int, "output").src,
-            Int("row").src,
+            List(Int, "weight"),
+            List(Int, "input"),
+            List(Int, "output"),
+            Int("row"),
         ],
-        outer_loop_modified_vars=[List(Int, "output").src],
-        inner_loop_modified_vars=[List(Int, "output").src, Int("curr").src],
+        outer_loop_modified_vars=[List(Int, "output")],
+        inner_loop_modified_vars=[List(Int, "output"), Int("curr")],
     ),
     "transformer_part1": DoubleLoopInfo(
-        outer_loop_var=Int("timestep").src,
-        inner_loop_var=Int("i").src,
+        outer_loop_var=Int("timestep"),
+        inner_loop_var=Int("i"),
         outer_loop_read_vars=[
-            Int("token_position").src,
-            Int("head").src,
-            Int("head_size").src,
-            List(Int, "q").src,
-            List(List[Int], "key_cache_layer").src,
+            Int("token_position"),
+            Int("head"),
+            Int("head_size"),
+            List(Int, "q"),
+            List(List[Int], "key_cache_layer"),
         ],
         inner_loop_read_vars=[
-            Int("token_position").src,
-            Int("head").src,
-            Int("head_size").src,
-            List(Int, "q").src,
-            List(List[Int], "key_cache_layer").src,
-            Int("timestep").src,
+            Int("token_position"),
+            Int("head"),
+            Int("head_size"),
+            List(Int, "q"),
+            List(List[Int], "key_cache_layer"),
+            Int("timestep"),
         ],
-        outer_loop_modified_vars=[List(Int, "attention").src],
-        inner_loop_modified_vars=[List(Int, "attention").src, Int("score").src],
+        outer_loop_modified_vars=[List(Int, "attention")],
+        inner_loop_modified_vars=[List(Int, "attention"), Int("score")],
     ),
     "transformer_part2": DoubleLoopInfo(
-        outer_loop_var=Int("i").src,
-        inner_loop_var=Int("timestep").src,
+        outer_loop_var=Int("i"),
+        inner_loop_var=Int("timestep"),
         outer_loop_read_vars=[
-            Int("token_position").src,
-            Int("head").src,
-            Int("head_size").src,
-            List(List[Int], "key_cache_layer").src,
-            List(Int, "attention").src,
+            Int("token_position"),
+            Int("head"),
+            Int("head_size"),
+            List(List[Int], "key_cache_layer"),
+            List(Int, "attention"),
         ],
         inner_loop_read_vars=[
-            Int("token_position").src,
-            Int("head").src,
-            Int("head_size").src,
-            List(List[Int], "key_cache_layer").src,
-            List(Int, "attention").src,
+            Int("token_position"),
+            Int("head"),
+            Int("head_size"),
+            List(List[Int], "key_cache_layer"),
+            List(Int, "attention"),
         ],
-        outer_loop_modified_vars=[List(Int, "xb").src],
-        inner_loop_modified_vars=[List(Int, "xb").src, Int("curr").src],
+        outer_loop_modified_vars=[List(Int, "xb")],
+        inner_loop_modified_vars=[List(Int, "xb"), Int("curr")],
     ),
     "transformer_part3": SingleLoopInfo(
-        loop_var=Int("i").src,
-        read_vars=[List(Int, "input").src, Int("hidden_dim").src],
-        modified_vars=[List(Int, "output").src],
+        loop_var=Int("i"),
+        read_vars=[List(Int, "input"), Int("hidden_dim")],
+        modified_vars=[List(Int, "output")],
     ),
     "transformer_part4": SingleLoopInfo(
-        loop_var=Int("i").src,
+        loop_var=Int("i"),
         read_vars=[
-            List(Int, "input1").src,
-            List(Int, "input2").src,
-            Int("hidden_dim").src,
+            List(Int, "input1"),
+            List(Int, "input2"),
+            Int("hidden_dim"),
         ],
-        modified_vars=[List(Int, "output").src],
+        modified_vars=[List(Int, "output")],
     ),
 }
 
 
-def get_num_inv_funcs(benchmark_name: str) -> int:
-    if isinstance(_loop_info_map[benchmark_name], SingleLoopInfo):
-        return 1
-    elif isinstance(_loop_info_map[benchmark_name], DoubleLoopInfo):
-        return 2
-    else:
-        raise ValueError(f"Invalid loop info for {benchmark_name}")
-
-
-def is_single_loop(benchmark_name: str) -> bool:
-    return isinstance(_loop_info_map[benchmark_name], SingleLoopInfo)
-
-
-def _generate_invariant_template(benchmark_name: str) -> str:
-    loop_info = _loop_info_map[benchmark_name]
-    if is_single_loop(benchmark_name):
-        arguments = get_args_for_invariants(benchmark_name)
+def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> str:
+    if isinstance(loop_info, SingleLoopInfo):
+        arguments = get_args_for_invariants(loop_info)
         args_with_types = ", ".join(
             [
                 f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
                 for arg in arguments
             ]
         )
-        loop_var = loop_info.loop_var.name()
+        loop_var = loop_info.loop_var.src.name()
         modified_vars_cond = " and ".join(
             [
                 f"{var} == operation over defined functions"
@@ -481,7 +466,7 @@ def _generate_invariant_template(benchmark_name: str) -> str:
             """
         )
     else:
-        outer_inv_args, inner_inv_args = get_args_for_invariants(benchmark_name)
+        outer_inv_args, inner_inv_args = get_args_for_invariants(loop_info)
         outer_inv_args_with_types = ", ".join(
             [
                 f"{arg}: {arg.type.to_python_type_str(get_args(arg.type))}"
@@ -494,8 +479,8 @@ def _generate_invariant_template(benchmark_name: str) -> str:
                 for arg in inner_inv_args
             ]
         )
-        outer_loop_var = loop_info.outer_loop_var.name()
-        inner_loop_var = loop_info.inner_loop_var.name()
+        outer_loop_var = loop_info.outer_loop_var.src.name()
+        inner_loop_var = loop_info.inner_loop_var.src.name()
         outer_modified_vars_cond = " and ".join(
             [
                 f"{var} == operation over defined functions"
@@ -550,124 +535,6 @@ def _get_inv_source_code(ps_code: str, source_code: str) -> str:
     return "\n".join(lines)
 
 
-def get_inv_choice_and_save_prompt(
-    *,
-    client,
-    benchmark_name: str,
-    ps_solution: str,
-    source_code: str,
-    dsl_code: str,
-    output_file: Path,
-    prev_incorrect_sols: set[str],
-):
-    inv_template_text = f"""Your task is to prove that `assertion` is true in the `test` function. The assertion can proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
-
-    #Instructions:
-    1. You need to use only the defined functions to write the loop invariant.
-    2. Do not use for/while loops for rewriting the function.
-    3. The rewritten program should be a function with a single return statement of the form return_var = provided_function(...).
-    4. Inline all the expressions. Do not use intermediate variables.
-    5. Generate separate loop invariants for each loop in the test function.
-    6. Enclose the rewritten program in a code block.
-    6. invariant structure
-    ```
-    {_generate_invariant_template(benchmark_name)}
-    ```
-
-    Example1:
-    ```
-    #defined functions
-
-    def vec_elemwise_sub(x: list[int], y: list[int]) -> list[int]:
-        return (
-            []
-            if len(x) < 1 or not len(x) == len(y)
-            else [x[0] - y[0], *vec_elemwise_sub(x[1:], y[1:])]
-        )
-    def matrix_elemwise_sub(matrix_x,: list[list[int]], matrix_y: list[list[int]]) -> list[list[int]]:
-        return (
-            []
-            if len(matrix_x) < 1 or not len(matrix_x) == len(matrix_y)
-            else [
-                vec_elemwise_sub(matrix_x[0], matrix_y[0]),
-                *matrix_elemwise_sub(matrix_x[1:], matrix_y[1:]),
-            ]
-        )
-    //test function
-    vector<vector<uint8_t>> test(vector<vector<uint8_t>> base, vector<vector<uint8_t>> active)
-    {{
-        vector<vector<uint8_t>> out;
-        uint8_t m = base.size();
-        uint8_t n = base[0].size();
-        for (uint8_t row = 0; row < m; row++) {{
-            vector<uint8_t> row_vec;
-            for (uint8_t col = 0; col < n; col++) {{
-                uint8_t pixel = base[row][col] - active[row][col] ;
-                row_vec.push_back(pixel);
-
-            }}
-            out.push_back(row_vec);
-        }}
-        assert out == matrix_elemwise_sub(base, active);
-    }}
-    def invariant1(row, col, base, active, out):
-        return row >= 0 and row <= base.size() and out == matrix_elemwise_sub(base[:row], active[:row])
-    def invariant2(row, col, base, active, row_vec, out):
-        return row >= 0 and row < base.size() and col >= 0 and col <= base[0].size() and row_vec == vec_elemwise_sub(base[row][:col], active[row][:col]) and out == matrix_elemwise_sub(base[:row], active[:row])
-    ```
-
-    Example2:
-    ```
-    #defined functions
-    {dsl_code}
-
-    //test function
-    {_get_inv_source_code(ps_solution, source_code)}
-    ```
-    """
-    messages = [
-        # {"role": "system", "content": TEMPLATE_SYS},
-        {"role": "user", "content": inv_template_text},
-    ]
-    if len(prev_incorrect_sols) > 0:
-        messages.append(
-            {"role": "assistant", "content": "\n\n".join(prev_incorrect_sols)}
-        )
-        messages.append({"role": "user", "content": TEMPLATE_ERR})
-
-    with open(output_file, "w") as f:
-        json.dump(messages, f)
-
-    call_start_time = time.time()
-    message = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
-        max_tokens=1000,
-        temperature=0.0,
-        system=TEMPLATE_SYS,
-        messages=messages,
-    )
-    # # outputs = client.chat.completions.create(
-    # #     model="gpt-4",  # model to use
-    # #     messages=messages,
-    # #     n=50,
-    # #     temperature=0.7,
-    # # )
-    # inference_client = InferenceClient(
-    #     mistral_repo,
-    #     token=hf_token,
-    #     headers={"X-use-cache": "false"}
-    # )
-    # outputs = inference_client.chat_completion(
-    #     messages=messages,
-    #     max_tokens=500,
-    #     temperature=0.7,
-    # )
-    call_end_time = time.time()
-    print(f"inv call took {call_end_time - call_start_time}s")
-    # return [outputs.choices[0].message.content]
-    return [message.content[0].text], call_end_time - call_start_time
-
-
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
     caller_fn_name, callee_fn_name = in_call
     if (
@@ -713,14 +580,15 @@ def replace_in_calls(expr: Expr, in_calls: list[tuple[str, str]]) -> Expr:
 
 
 def get_args_for_invariants(
-    benchmark_name: str,
+    loop_info: SingleLoopInfo | DoubleLoopInfo,
 ) -> Union[list[Object], tuple[list[Object], list[Object]]]:
-    loop_info = _loop_info_map[benchmark_name]
     if isinstance(loop_info, SingleLoopInfo):
         return sorted(
             list(
                 set(
-                    loop_info.read_vars + loop_info.modified_vars + [loop_info.loop_var]
+                    [var.src for var in loop_info.read_vars]
+                    + [var.src for var in loop_info.modified_vars]
+                    + [loop_info.loop_var.src]
                 )
             ),
             key=lambda x: x.name(),
@@ -729,9 +597,9 @@ def get_args_for_invariants(
         outer_inv_args = sorted(
             list(
                 set(
-                    loop_info.outer_loop_read_vars
-                    + loop_info.outer_loop_modified_vars
-                    + [loop_info.outer_loop_var]
+                    [var.src for var in loop_info.outer_loop_read_vars]
+                    + [var.src for var in loop_info.outer_loop_modified_vars]
+                    + [loop_info.outer_loop_var.src]
                 )
             ),
             key=lambda x: x.name(),
@@ -739,9 +607,9 @@ def get_args_for_invariants(
         inner_inv_args = sorted(
             list(
                 set(
-                    loop_info.inner_loop_read_vars
-                    + loop_info.inner_loop_modified_vars
-                    + [loop_info.inner_loop_var]
+                    [var.src for var in loop_info.inner_loop_read_vars]
+                    + [var.src for var in loop_info.inner_loop_modified_vars]
+                    + [loop_info.inner_loop_var.src]
                 )
             ),
             key=lambda x: x.name(),
@@ -756,9 +624,9 @@ def process_ps_fn_decl(
     return fn_decl.__class__(
         f"{fn_decl.name()}_ps",
         Bool,
-        Eq(output_var, fn_decl.body()),
+        Eq(output_var.src, fn_decl.body()),
         *fn_decl.arguments(),
-        output_var,
+        output_var.src,
     )
 
 
@@ -831,7 +699,7 @@ def get_inv_and_ps(
     # 5. Generate separate loop invariants for each loop in the test function.
     # 6. invariant structure
     ```
-    {_generate_invariant_template(benchmark_name)}
+    {generate_invariant_template(benchmark_name)}
     ```
 
     Example1:
@@ -968,7 +836,10 @@ def process_dsl_fns_for_rosette(
 
 
 def process_synthesized_fn_decls(
-    benchmark_name: str, synthesized_fn_decls: list[FnDecl | FnDeclRecursive]
+    *,
+    output_var: Object,
+    benchmark_name: str,
+    synthesized_fn_decls: list[FnDecl | FnDeclRecursive],
 ) -> None:
     for idx, fn_decl in enumerate(synthesized_fn_decls):
         # Change function names
@@ -984,7 +855,7 @@ def process_synthesized_fn_decls(
 
         # Change ps function name
         if fn_decl.name() == benchmark_name:
-            fn_decl = process_ps_fn_decl(fn_decl, _output_var_map[benchmark_name])
+            fn_decl = process_ps_fn_decl(fn_decl, output_var)
             synthesized_fn_decls[idx] = fn_decl
 
 
@@ -1030,8 +901,6 @@ def verify_benchmark_rosette(
         fn_decl = replace_in_calls(fn_decl, in_calls)
         print("\n", fn_decl.to_rosette(), "\n", file=f)
 
-    # write ps and inv
-    process_synthesized_fn_decls(benchmark_name, synthesized_fn_decls)
     for fn_decl in synthesized_fn_decls:
         print("\n", replace_in_calls(fn_decl, in_calls).to_rosette(), "\n", file=f)
 
@@ -1077,7 +946,6 @@ def verify_benchmark_smt(
     SYNTHESIS_LOGS_DIR.mkdir(exist_ok=True)
     verify_file = SYNTHESIS_LOGS_DIR / f"verify_{benchmark_name}.smt"
     final_dsl_fns = process_dsl_fns_for_smt(dsl_fns, in_calls)
-    process_synthesized_fn_decls(benchmark_name, synthesized_fn_decls)
 
     # Find axioms that are needed
     used_fn_names = get_used_fn_names(synthesized_fn_decls)
