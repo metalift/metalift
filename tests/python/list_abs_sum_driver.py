@@ -7,8 +7,6 @@ from metalift.ir import Object, call, choose, fn_decl_recursive, ite
 from metalift.vc_util import and_objects
 from tests.python.utils.utils import codegen
 
-# We use test_abs instead of abs because abs is reserved in cvc5.
-TEST_ABS_FN_NAME = "test_abs"
 LIST_ABS_SUM_FN_NAME = "list_abs_sum"
 
 

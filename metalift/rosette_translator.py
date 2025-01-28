@@ -21,8 +21,6 @@ from metalift.ir import (
     is_tuple_type,
 )
 
-from metalift.ir_util import is_list_type_expr, is_set_type_expr, is_tuple_type_expr
-
 
 # TODO: mypy 0.95 says parseString returns Any instead of ParseResults despite what pyparse's doc says
 def generate_ast(expr: str) -> Union[List[Any], pp.ParseResults]:

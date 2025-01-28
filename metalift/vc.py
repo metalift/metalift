@@ -101,11 +101,6 @@ class VC:
 
         return e
 
-    def callPred(self, name: str, returnT: ObjectT, *args: Expr) -> Expr:
-        newArgs = [Var("v%s" % i, a.type) for (i, a) in zip(range(len(args)), args)]
-        self.preds[name] = Call(name, returnT, *newArgs)
-        return Call(name, returnT, *args)
-
     def computeVC(
         self,
         blocksMap: Dict[str, Block],
@@ -452,24 +447,6 @@ class VC:
 
             elif opcode == "assert":
                 e = VC.evalMLInst(ops[0], s.regs, s.mem)
-                # e = ops[0]
-                # if e.opcode == "call":
-                #   name = e.operands[-1]
-                #   if name.startswith("inv"):
-                #     parsed = [VC.evalMLInst(arg, s.regs, s.mem) for arg in e.operands[0:-1]]
-                #     e = self.callPred(name, Bool(), *parsed)
-                #     #parsed = VC.parseExpr(e, s.regs, s.mem)
-                #     #e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:])
-                #
-                #   elif name == "ps":
-                #     parsed = [VC.evalMLInst(arg, s.regs, s.mem) for arg in e.operands[0:-1]]
-                #     e = self.callPred(name, Bool(), *parsed)
-                #
-                #     # parsed = VC.evalMLInst(e, s.regs, s.mem)
-                #     # e = self.callPred(parsed.args[0], parsed.type, *parsed.args[1:])
-                #   else: raise Exception("NYI: %s" % i)
-                # else: raise Exception("NYI: %s" % i)
-
                 asserts.append(e)
 
             elif opcode == "assume":

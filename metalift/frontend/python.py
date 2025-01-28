@@ -821,7 +821,6 @@ class Driver:
     asserts: List[Bool]
     postconditions: List[Bool]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
-    target_fn: Callable[[], List[FnDecl]]
     fns_synths: List[Synth]
     uninterp_fns: List[str]
 

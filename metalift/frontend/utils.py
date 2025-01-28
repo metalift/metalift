@@ -1,7 +1,7 @@
 import typing
 from typing import Any, Generator, Iterable, List
 
-from metalift.ir import Expr, Object
+from metalift.ir import Object
 
 
 # print the short name of a type: a.b.c.D -> D
@@ -13,39 +13,6 @@ def qual_name(t: type) -> str:
         return f"{qual_name(typing.get_origin(t))}[{' '.join(qual_name(arg) for arg in args)}]"
     else:
         raise NotImplementedError(t)
-
-
-class ExprDict:
-    def __init__(self) -> None:
-        self.kv_pairs = []  # type: ignore
-
-    def __getitem__(self, key: Expr) -> typing.Any:
-        for k, v in self.kv_pairs:
-            if Expr.__eq__(k, key):
-                return v
-        raise Exception(f"{key} does not exist!")
-
-    def __setitem__(self, key: Expr, value: typing.Any) -> None:
-        for i, (k, _) in enumerate(self.kv_pairs):
-            if Expr.__eq__(k, key):
-                self.kv_pairs[i] = (k, value)
-                return
-        self.kv_pairs.append((key, value))
-
-    def __contains__(self, key: Expr) -> bool:
-        return any([Expr.__eq__(k, key) for (k, _) in self.kv_pairs])
-
-    def __len__(self) -> int:
-        return len(self.kv_pairs)
-
-    def keys(self) -> typing.List[Expr]:
-        return [kv_pair[0] for kv_pair in self.kv_pairs]
-
-    def values(self) -> typing.List[typing.Any]:
-        return [kv_pair[1] for kv_pair in self.kv_pairs]
-
-    def items(self) -> typing.List[Expr]:
-        return self.kv_pairs
 
 
 class ObjectSet:

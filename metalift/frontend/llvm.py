@@ -596,7 +596,6 @@ def parse_object_func(blocksMap: Dict[str, Block]) -> None:
                 fnName = ops[-1].name
                 r = p.search(fnName)
                 if r:
-                    className = r.group(1)  # not used
                     op = r.group(2)
                     fieldName = r.group(3)
                     if op == "set":
@@ -647,15 +646,6 @@ def get_demangled_fn_name(maybe_mangled_name: str) -> Optional[str]:
         return match.group(3)
 
     return None
-
-
-LLVMVar = NamedTuple(
-    "LLVMVar",
-    [
-        ("var_name", str),
-        ("var_type", ObjectT),
-    ],
-)
 
 
 class InvGrammar:
@@ -962,10 +952,6 @@ class VCVisitor:
     ) -> None:
         blk_state = self.fn_blocks_states[block_name]
         return blk_state.write_or_store_operand(op, val)
-
-    def read_var_from_block(self, block_name: str, var_name: str) -> Object:
-        blk_state = self.fn_blocks_states[block_name]
-        return blk_state.read_var(var_name)
 
     def load_var_from_block(self, block_name: str, var_name: str) -> Object:
         blk_state = self.fn_blocks_states[block_name]
@@ -1515,7 +1501,6 @@ class Driver:
     asserts: List[Bool]
     postconditions: List[Bool]
     fns: Dict[str, "MetaliftFunc"]  # maps analyzed function names to returned object
-    target_fn: Callable[[], List[FnDecl]]
     fns_synths: List[Synth]
     synthesized_fns: Dict[str, Any]
 
@@ -1573,29 +1558,6 @@ class Driver:
         )
         self.fns[fn_name] = f
         return f
-
-    def get_ps_expr(self) -> Expr:
-        for fname, f in self.synthesized_fns.items():
-            m = re.match("(\w+)_ps", fname)  # ignore the invariants
-            if m:
-                if isinstance(f.body(), Eq):
-                    return cast(Eq, f.body()).e2()
-                elif (
-                    isinstance(f.body(), Call)
-                    and cast(Call, f.body()).name() == "list_eq"
-                ):
-                    return cast(Call, f.body()).arguments()[1]
-                else:
-                    raise Exception(
-                        f"synthesized fn body doesn't have form val = ...: {f.body()}"
-                    )
-
-    def get_ps_fn_decl(self) -> Union[FnDecl, FnDeclRecursive]:
-        # TODO: delete potentially
-        for fname, f in self.synthesized_fns.items():
-            if re.match("(\w+)_ps", fname):
-                return f
-        raise Exception("Cannot find PS function!")
 
     def get_actual_ps_fn_decl(self) -> Union[FnDecl, FnDeclRecursive]:
         """Currently, the ps function decl is in the form of ret_val == body, and the return value is a boolean.
@@ -1676,7 +1638,6 @@ class MetaliftFunc:
     driver: Driver
     fn_name: str
     fn_ret_type: ObjectT
-    fn_args_types: List[ObjectT]
     fn_args: List[ValueRef]
     fn_sret_arg: ValueRef
     fn_blocks: Dict[str, Block]
@@ -1728,7 +1689,6 @@ class MetaliftFunc:
             fn_ref, self.fn_blocks.values()
         )
         self.fn_args = list(filter(lambda arg: not is_sret_arg(arg), fn_ref.arguments))
-        self.fn_args_types = [parse_type_ref_to_obj(a.type) for a in self.fn_args]
 
         # Parse and process object functions
         parse_object_func(self.fn_blocks)

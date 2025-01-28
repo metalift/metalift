@@ -1,5 +1,4 @@
 import copy
-import json
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -542,36 +541,3 @@ def check_solution(
         )
     target_func_names = [func_def.name for func_def in target_func_defs]
     return target_func_names, fn_decls, in_calls
-
-
-def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
-    with open(json_filename, "r") as f:
-        all_solutions = json.load(f)
-
-    for benchmark_name, benchmark_solutions in all_solutions.items():
-        solutions_seen = set()
-        for idx, solution in enumerate(benchmark_solutions):
-            if solution in solutions_seen:
-                print(f"Duplicate solution {idx} for {benchmark_name}")
-                continue
-            print(solution)
-
-            try:
-                check_solution(solution, expected_num_funcs)
-                print(f"Solution {idx} for {benchmark_name} is correct")
-            except Exception as e:
-                print(f"Error in solution {idx} for {benchmark_name}")
-                print(e)
-
-            print("\n")
-            print("============================================")
-            print("\n")
-            solutions_seen.add(solution)
-
-
-if __name__ == "__main__":
-    # solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
-    # solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
-    # solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
-    solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
-    check_solutions(solutions_filename, 2)

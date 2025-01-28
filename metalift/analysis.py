@@ -96,43 +96,6 @@ def parseSrets(fnArgs: List[ValueRef], blks: Iterable[Block]) -> None:
                     b.instructions[-1] = MLInst_Return(sret)
 
 
-# previous attempt in rewriting all STL vector fn calls
-# def lowerVectorCalls(blks):
-#   for b in blks:
-#     for i in range(len(b.instructions)):
-#       inst = b.instructions[i]
-#
-#       if inst.opcode == "call":
-#         ops = list(inst.operands)
-#         fnName = ops[-1].name
-#         if fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev":
-#           newInst = MLInstruction("call", "newlist")
-#           newInst.name = ops[0].name
-#           newInst.type = ops[0].type
-#           b.instructions[i] = newInst
-#
-#         elif fnName == "_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv":
-#           newInst = MLInstruction("call", ops[0], "listLength")
-#           newInst.name = inst.name
-#           newInst.type = inst.type
-#           b.instructions[i] = newInst
-#
-#         elif fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEEixEm":
-#           newInst = MLInstruction("call", ops[0], ops[1], "listGet")
-#           newInst.name = inst.name
-#           newInst.type = inst.type
-#           b.instructions[i] = newInst
-#
-#         elif fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi":
-#           newInst = MLInstruction("call", ops[0], ops[1], "listAppend")
-#           newInst.name = ops[0].name
-#           newInst.type = ops[0].type
-#           b.instructions[i] = newInst
-#
-#         elif fnName == "_ZNSt3__16vectorIiNS_9allocatorIiEEED1Ev": # destructor
-#           newInst = MLInstruction("call", ops[0], "listDestruct")
-#           b.instructions[i] = newInst
-
 LoopInfo = NamedTuple(
     "LoopInfo",
     [
@@ -371,11 +334,9 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                 fnName = ops[-1].name
                 r = p.search(fnName)
                 if r:
-                    className = r.group(1)  # not used
                     op = r.group(2)
                     fieldName = r.group(3)
                     if op == "set":
-                        # newInst = MLInst_Call("setField", i.type, Lit(fieldName, String()), ops[0], ops[1])
                         setattr(
                             i,
                             "my_operands",
@@ -387,13 +348,11 @@ def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
                             ],
                         )
                     else:
-                        # i.operands = ["getField", i.type, Lit(fieldName, String()), ops[0], "getField"]
                         setattr(
                             i,
                             "my_operands",
                             [Lit(fieldName, String()), ops[0], "getField"],  # type: ignore
                         )
-                        # print("inst: %s" % i)
 
 
 # run all code analysis
@@ -495,42 +454,6 @@ class VariableGroup(object):
     def __init__(self, tracker: VariableTracker, name: str):
         self.tracker = tracker
         self.name = name
-
-    def existing_variable(self, name: str, type: ObjectT) -> Var:
-        my_name = f"{self.name}_{name}"
-
-        if my_name not in self.tracker.existing:
-            raise Exception(f"Variable {my_name} does not exist")
-        else:
-            if self.tracker.existing[my_name] > 0:
-                raise Exception(f"There are multiple instances of variable {my_name}")
-
-        assert (
-            self.tracker.var_to_type[
-                format_with_index(my_name, self.tracker.existing[my_name])
-            ]
-            == type
-        )
-        return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
-
-    def variable_or_existing(self, name: str, type: ObjectT) -> Var:
-        my_name = f"{self.name}_{name}"
-        if my_name not in self.tracker.existing:
-            self.tracker.existing[my_name] = 0
-            self.tracker.var_to_type[
-                format_with_index(my_name, self.tracker.existing[my_name])
-            ] = type
-        else:
-            if self.tracker.existing[my_name] > 0:
-                raise Exception(f"There are multiple instances of variable {my_name}")
-
-        assert (
-            self.tracker.var_to_type[
-                format_with_index(my_name, self.tracker.existing[my_name])
-            ]
-            == type
-        )
-        return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
 
     def variable(self, name: str, type: ObjectT) -> Var:
         my_name = f"{self.name}_{name}"

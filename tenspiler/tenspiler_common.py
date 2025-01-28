@@ -40,7 +40,6 @@ MATRIX_ELEMWISE_MUL = "matrix_elemwise_mul"
 TENSOR3D_ELEMWISE_MUL = "tensor3d_elemwise_mul"
 VEC_ELEMWISE_DIV = "vec_elemwise_div"
 MATRIX_ELEMWISE_DIV = "matrix_elemwise_div"
-TENSOR3D_ELEMWISE_DIV = "tensor3d_elemwise_div"
 
 # Scalar functions
 VEC_SCALAR_ADD = "vec_scalar_add"
@@ -465,32 +464,6 @@ def matrix_mul8x8_div32_body(
     return call_matrix_scalar_div(Int(32), call_matrix_elemwise_mul(nested_x, nested_y))
 
 
-def vec_screen8x8_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
-    return call_vec_elemwise_sub(
-        call_vec_elemwise_add(x, y), vec_mul8x8_div32_body(x, y)
-    )
-
-
-def matrix_screen8x8_body(nested_x: Matrix[Int], nested_y: Matrix[Int]) -> Matrix[Int]:
-    return call_matrix_elemwise_sub(
-        call_matrix_elemwise_add(nested_x, nested_y),
-        matrix_mul8x8_div32_body(nested_x, nested_y),
-    )
-
-
-def vec_linear_burn_body(x: mlList[Int], y: mlList[Int]) -> mlList[Int]:
-    return call_vec_scalar_sub(
-        Int(32),
-        call_vec_elemwise_add(x, y),
-    )
-
-
-def matrix_linear_burn_body(
-    nested_x: Matrix[Int], nested_y: Matrix[Int]
-) -> Matrix[Int]:
-    return call_matrix_scalar_sub(Int(32), call_matrix_elemwise_add(nested_x, nested_y))
-
-
 # Helper functions for compute benchmarks using the holing approach
 def multiply_blend_8_hole_body(matrix_or_vec: TensorT) -> TensorT:
     cons = choose(Int(32))
@@ -545,31 +518,6 @@ def overlay_blend_8_hole_body(int_var: Int) -> Int:
         int_var >= cons,
         cons * int_var + int_var - cons * int_var * int_var // cons - cons,
         cons * int_var * int_var // cons,
-    )
-
-
-# Selection criteria
-def select_darken_blend_body(int_x: IntObject, int_y: IntObject) -> IntObject:
-    return ite(int_x > int_y, int_y, int_x)
-
-
-def select_color_burn_body(int_x: Int, int_y: Int) -> Int:
-    return ite(int_y == 0, Int(32), 32 - (32 - int_x) // int_y)
-
-
-def select_lighten_blend_body(int_x: Int, int_y: Int) -> Int:
-    return ite(int_x < int_y, int_y, int_x)
-
-
-def select_color_dodge_body(int_x: Int, int_y: Int) -> Int:
-    return ite(int_y == 32, Int(32), int_x // (32 - int_y))
-
-
-def select_overlay_blend_body(int_x: Int, int_y: Int) -> Int:
-    return ite(
-        int_x >= 16,
-        screen8x8_body(2 * int_x, int_x) - 32,
-        mul8x8_div32_body(2 * int_x, int_x),
     )
 
 
@@ -705,17 +653,6 @@ dissolve_selection_two_args_fn_decl = fn_decl_recursive(
 )
 
 
-def selection_two_args_ps_grammar_fn(
-    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
-) -> Bool:
-    ret_val = writes[0]
-    base, active = reads
-    base_or_active = choose(base, active)
-    return ret_val == call_matrix_selection_two_args(
-        base_or_active, base_or_active, select_two_args_fn_obj
-    )
-
-
 def selection_two_args_inv0_grammar_fn(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
@@ -764,20 +701,6 @@ def selection_two_args_inv1_grammar_fn(
         row_vec == call_selection_two_args(vec, vec, select_two_args_fn_obj),
         out == call_matrix_selection_two_args(matrix, matrix, select_two_args_fn_obj),
     )
-
-
-def selection_two_args_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
-    return [
-        select_two_args_fn_decl,
-        selection_two_args_fn_decl,
-        matrix_selection_two_args_fn_decl,
-    ]
-
-
-selection_two_args_inv0_grammar = InvGrammar(selection_two_args_inv0_grammar_fn, [])
-selection_two_args_inv1_grammar = InvGrammar(
-    selection_two_args_inv1_grammar_fn, ["row", "agg.result"]
-)
 
 
 def elemwise_body(
@@ -842,31 +765,6 @@ def scalar_body(
     ):
         cur = compute_fn(scalar, vec_or_matrix[0])
         recursed = call(vec_fn_name, mlList[Int], scalar, vec_or_matrix[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(vec_or_matrix.len() < 1), mlList.empty(Int), general_answer
-        )
-    raise Exception("Unsupported types for scalar operations!")
-
-
-def map_body(
-    vec_or_matrix: Union[mlList[Int], Matrix[Int]],
-    map_fn: Callable[[Int], Int],
-    vec_map_fn_name: str,
-    matrix_map_fn_name: str,
-) -> Union[mlList[Int], Matrix[Int]]:
-    if is_matrix_type(vec_or_matrix.type):
-        cur = call(vec_map_fn_name, mlList[Int], vec_or_matrix[0])
-        recursed = call(matrix_map_fn_name, Matrix[Int], vec_or_matrix[1:])
-        general_answer = recursed.prepend(cur)
-        return ite(
-            or_objects(vec_or_matrix.len() < 1), Matrix.empty(Int), general_answer
-        )
-    elif is_list_type(vec_or_matrix.type) and is_primitive_type(
-        get_list_element_type(vec_or_matrix.type)
-    ):
-        cur = map_fn(vec_or_matrix[0])
-        recursed = call(vec_map_fn_name, mlList[Int], vec_or_matrix[1:])
         general_answer = recursed.prepend(cur)
         return ite(
             or_objects(vec_or_matrix.len() < 1), mlList.empty(Int), general_answer
@@ -945,20 +843,6 @@ matrix_elemwise_sub = fn_decl_recursive(
     matrix_x,
     matrix_y,
 )
-tensor3d_elemwise_sub = fn_decl_recursive(
-    TENSOR3D_ELEMWISE_SUB,
-    Tensor3D[Int],
-    elemwise_body(
-        left=tensor3d_x,
-        right=tensor3d_y,
-        compute_fn=lambda int_x, int_y: int_x + int_y,
-        vec_fn_name=VEC_ELEMWISE_SUB,
-        matrix_fn_name=MATRIX_ELEMWISE_SUB,
-        tensor3d_fn_name=TENSOR3D_ELEMWISE_SUB,
-    ),
-    tensor3d_x,
-    tensor3d_y,
-)
 
 vec_elemwise_mul = fn_decl_recursive(
     VEC_ELEMWISE_MUL,
@@ -1030,20 +914,6 @@ matrix_elemwise_div = fn_decl_recursive(
     ),
     matrix_x,
     matrix_y,
-)
-tensor3d_elemwise_div = fn_decl_recursive(
-    TENSOR3D_ELEMWISE_DIV,
-    Tensor3D[Int],
-    elemwise_body(
-        left=tensor3d_x,
-        right=tensor3d_y,
-        compute_fn=lambda int_x, int_y: int_x + int_y,
-        vec_fn_name=VEC_ELEMWISE_DIV,
-        matrix_fn_name=MATRIX_ELEMWISE_DIV,
-        tensor3d_fn_name=TENSOR3D_ELEMWISE_DIV,
-    ),
-    tensor3d_x,
-    tensor3d_y,
 )
 
 vec_scalar_add = fn_decl_recursive(
@@ -2225,10 +2095,6 @@ def get_select_synth_from_hole(
     return synth(SELECT_TWO_ARGS, hole_body(var), int_x, int_y)
 
 
-def get_select_two_args_synth(select_bodies: List[Object], args: List[Object]) -> Synth:
-    return synth(SELECT_TWO_ARGS, choose(*select_bodies), *args)
-
-
 def get_map_int_to_int_synth(
     bodies: List[Object] = [call_integer_exp(int_x), call_integer_sqrt(int_x)]
 ) -> Synth:
@@ -2236,10 +2102,6 @@ def get_map_int_to_int_synth(
 
 
 # Some **general** helper functions to get loop bounds.
-outer_loop_left_bound_fn_name = "OUTER_LOOP_LEFT_BOUND"
-outer_loop_right_bound_fn_name = "OUTER_LOOP_RIGHT_BOUND"
-
-
 def get_lower_bound_fn_body(
     is_left_bound_smaller: Bool, left_bound: Int, right_bound: Int
 ) -> Int:
@@ -2293,83 +2155,6 @@ def get_loop_bound_fn(
     return bound_fn_decl, bound_synth, get_loop_bound
 
 
-def get_loop_fns(
-    loop_bound_fn_args: List[Int],
-    loop_index_fn_args: List[Int],
-    left_bound_choices: List[Int],
-    right_bound_choices: List[Int],
-    prefix: str = "OUTER_LOOP",
-) -> Tuple[List[FnDecl], List[Synth], Callable, Callable, Callable]:
-    # TODO: add return type
-    if prefix not in {"OUTER_LOOP", "INNER_LOOP"}:
-        raise Exception("Prefix must be one of OUTER_LOOP and INNER_LOOP")
-
-    index_fn_decl, index_synth, get_index = get_loop_index_fn(
-        loop_index_fn_args, prefix
-    )
-
-    is_left_bound_smaller_fn_name = f"{prefix}_IS_LEFT_BOUND_SMALLER"
-    (
-        is_left_bound_smaller_fn_decl,
-        is_left_bound_smaller_synth,
-        is_left_bound_smaller,
-    ) = get_no_arg_bool_fn(is_left_bound_smaller_fn_name)
-
-    left_bound_prefix = f"{prefix}_LEFT"
-    right_bound_prefix = f"{prefix}_RIGHT"
-    lower_bound_prefix = f"{prefix}_LOWER"
-    upper_bound_prefix = f"{prefix}_UPPER"
-    left_bound_fn_decl, left_bound_synth, get_left_bound = get_loop_bound_fn(
-        loop_bound_fn_args, choose(*left_bound_choices), left_bound_prefix
-    )
-    right_bound_fn_decl, right_bound_synth, get_right_bound = get_loop_bound_fn(
-        loop_bound_fn_args, choose(*right_bound_choices), right_bound_prefix
-    )
-    lower_bound_fn_decl, lower_bound_synth, get_lower_bound = get_loop_bound_fn(
-        loop_bound_fn_args,
-        get_lower_bound_fn_body(
-            is_left_bound_smaller(),
-            get_left_bound(*loop_bound_fn_args),
-            get_right_bound(*loop_bound_fn_args),
-        ),
-        lower_bound_prefix,
-    )
-    upper_bound_fn_decl, upper_bound_synth, get_upper_bound = get_loop_bound_fn(
-        loop_bound_fn_args,
-        get_upper_bound_fn_body(
-            is_left_bound_smaller(),
-            get_left_bound(*loop_bound_fn_args),
-            get_right_bound(*loop_bound_fn_args),
-        ),
-        upper_bound_prefix,
-    )
-
-    all_decls = [
-        index_fn_decl,
-        is_left_bound_smaller_fn_decl,
-        left_bound_fn_decl,
-        right_bound_fn_decl,
-        lower_bound_fn_decl,
-        upper_bound_fn_decl,
-    ]
-    all_synths = [
-        index_synth,
-        is_left_bound_smaller_synth,
-        left_bound_synth,
-        right_bound_synth,
-        lower_bound_synth,
-        upper_bound_synth,
-    ]
-    return (
-        all_decls,
-        all_synths,
-        get_lower_bound,
-        get_upper_bound,
-        get_index,
-        is_left_bound_smaller,
-    )
-
-
 def get_no_arg_bool_fn(fn_name: str) -> Tuple[FnDecl, Synth, Callable]:
     bool_fn_decl = fn_decl(fn_name, Bool, None)
     bool_fn_synth = synth(fn_name, choose(Bool(True), Bool(False)))
@@ -2378,13 +2163,6 @@ def get_no_arg_bool_fn(fn_name: str) -> Tuple[FnDecl, Synth, Callable]:
         return call(fn_name, Bool)
 
     return bool_fn_decl, bool_fn_synth, call_fn
-
-
-def get_fn_and_rv(fn_name: str, body: Any, fn_args: List[Any]) -> Any:
-    decl = fn_decl(fn_name, body.type, None, *fn_args)
-    fn_synth = synth(fn_name, body, *fn_args)
-    rv = call(fn_name, body.type, *fn_args)
-    return decl, fn_synth, rv
 
 
 # list access function decls
