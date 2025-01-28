@@ -1218,21 +1218,13 @@ scalar_vec_to_vec_target_lang = [
     scalar_vec_sub,
     scalar_vec_div
 ]
-scalar_matrix_to_matrix_target_lang = [
-    matrix_scalar_add,
-    matrix_scalar_sub,
-    matrix_scalar_mul,
-    matrix_scalar_div,
-    scalar_matrix_sub,
-    scalar_matrix_div
-]
+matrix_vec_to_vec_target_lang = [matrix_vec_mul]
+vec_to_vec_target_lang = [vec_map, exp, sqrt, map_int_to_int]
 vec_to_int_target_lang = [
     reduce_max,
     reduce_sum,
     reduce_mul
 ]
-matrix_vec_to_vec_target_lang = [matrix_vec_mul, vec_elemwise_mul, reduce_sum]
-vec_to_vec_target_lang = [vec_map, map_int_to_int]
 
 def get_matrix_computation_ps_grammar_fn(
     fixed_grammar: bool,
