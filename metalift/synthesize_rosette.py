@@ -137,7 +137,9 @@ def toExpr(
                 v2,
             )
         elif ast[0] == "length":
-            return Call("list_length", IntObject, toExpr(ast[1], fnsType, varType, choices))
+            return Call(
+                "list_length", IntObject, toExpr(ast[1], fnsType, varType, choices)
+            )
         elif ast[0] == "=":
             return Eq(
                 toExpr(ast[1], fnsType, varType, choices),

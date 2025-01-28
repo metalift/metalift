@@ -3,7 +3,15 @@ import typing
 from metalift.analysis import CodeInfo
 import pyparsing as pp
 from metalift import ir
-from metalift.ir import BoolObject, Expr, FnDeclRecursive, FnDecl, IntObject, Var, ListObject, get_nested_list_element_type, is_list_type, is_nested_list_type, is_set_type
+from metalift.ir import (
+    BoolObject,
+    Expr,
+    FnDeclRecursive,
+    FnDecl,
+    IntObject,
+    Var,
+    ListObject,
+)
 from llvmlite.binding import ValueRef
 from typing import Any, Dict, List, Sequence, Set, Tuple, Union, Optional, get_args
 
@@ -18,14 +26,14 @@ def generateAST(expr: str) -> Union[List[Any], pp.ParseResults]:
 
 def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> None:
     if v.type == IntObject:
-    # if (
-    #     # v.type.name == "Int"
-    #     # or v.type.name == "ClockInt"
-    #     # or v.type.name == "EnumInt"
-    #     # or v.type.name == "OpaqueInt"
-    #     # or v.type.name == "NodeIDInt"
-    #     type_name == "Int"
-    # ):
+        # if (
+        #     # v.type.name == "Int"
+        #     # or v.type.name == "ClockInt"
+        #     # or v.type.name == "EnumInt"
+        #     # or v.type.name == "OpaqueInt"
+        #     # or v.type.name == "NodeIDInt"
+        #     type_name == "Int"
+        # ):
         decls.append("(define-symbolic %s integer?)" % v.toRosette())
         vars_all.append(v.args[0])
 
@@ -33,7 +41,14 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
         decls.append("(define-symbolic %s boolean?)" % v.toRosette())
         vars_all.append(v.args[0])
 
-    elif is_list_type(v.type) or is_set_type(v.type):
+    elif is_list_type_expr(v) or is_set_type_expr(
+        v
+    ):  # v.type.name == "MLList" or v.type.name == "Set":
+        tmp = [v.args[0] + "_BOUNDEDSET-" + str(i) for i in range(listBound)]
+
+        for t in tmp:
+            genVar(Var(t, typing.get_args(v.type)[0]), decls, vars_all, listBound)
+
         len_name = v.args[0] + "_BOUNDEDSET-len"
         genVar(Var(len_name, ir.IntObject), decls, vars_all, listBound)
 
@@ -73,7 +88,7 @@ def genVar(v: Expr, decls: List[str], vars_all: List[str], listBound: int) -> No
             elem_names.append(elem_name)
 
         decls.append("(define %s (list %s))" % (v.args[0], " ".join(elem_names)))
-    #TODO: change this once MapObject is ready
+    # TODO: change this once MapObject is ready
     elif hasattr(v.type, "name") and v.type.name == "Map":
         tmp_k = [v.args[0] + "_MAP-" + str(i) + "-k" for i in range(listBound)]
         tmp_v = [v.args[0] + "_MAP-" + str(i) + "-v" for i in range(listBound)]

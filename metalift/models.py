@@ -2,7 +2,17 @@ from typing import Callable, Dict, List, Literal, NamedTuple, Optional, Tuple
 
 from llvmlite.binding import ValueRef
 
-from metalift.ir import Expr, NewObject, ListObject, IntObject, SetObject, TupleObject, parse_type_ref_to_obj, call, make_tuple_type
+from metalift.ir import (
+    Expr,
+    NewObject,
+    ListObject,
+    IntObject,
+    SetObject,
+    TupleObject,
+    parse_type_ref_to_obj,
+    call,
+    make_tuple_type,
+)
 from metalift.vc_util import parseOperand
 
 ReturnValue = NamedTuple(
@@ -13,6 +23,7 @@ ReturnValue = NamedTuple(
     ],
 )
 
+
 def set_create(
     primitive_vars: Dict[str, NewObject],
     pointer_vars: Dict[str, NewObject],
@@ -20,6 +31,7 @@ def set_create(
     *args: ValueRef,
 ):
     return ReturnValue(SetObject.empty(IntObject), None)
+
 
 def set_add(
     primitive_vars: Dict[str, NewObject],
@@ -36,6 +48,7 @@ def set_add(
     item = primitive_vars[args[1].name]
     return ReturnValue(s.add(item), None)
 
+
 def set_remove(
     primitive_vars: Dict[str, NewObject],
     pointer_vars: Dict[str, NewObject],
@@ -51,6 +64,7 @@ def set_remove(
     item = primitive_vars[args[1].name]
     return ReturnValue(s.remove(item), None)
 
+
 def set_contains(
     primitive_vars: Dict[str, NewObject],
     pointer_vars: Dict[str, NewObject],
@@ -65,6 +79,7 @@ def set_contains(
     )
     item = primitive_vars[args[1].name]
     return ReturnValue(item in s, None)
+
 
 def new_list(
     primitive_vars: Dict[str, NewObject],
@@ -186,13 +201,18 @@ def vector_append(
     assign_val = call(
         "list_append",
         parse_type_ref_to_obj(args[0].type),
-        primitive_vars[args[0].name] if not args[0].type.is_pointer else pointer_vars[args[0].name],
-        primitive_vars[args[1].name] if not args[1].type.is_pointer else pointer_vars[args[1].name],
+        primitive_vars[args[0].name]
+        if not args[0].type.is_pointer
+        else pointer_vars[args[0].name],
+        primitive_vars[args[1].name]
+        if not args[1].type.is_pointer
+        else pointer_vars[args[1].name],
     )
     return ReturnValue(
         None,
         [(assign_var_name, assign_val, "primitive")],
     )
+
 
 def new_tuple(
     primitive_vars: Dict[str, Expr],
@@ -201,7 +221,6 @@ def new_tuple(
     *args: ValueRef,
 ) -> ReturnValue:
     return ReturnValue(call("newTuple", TupleObject[IntObject, Literal[2]]), None)
-
 
 
 def make_tuple(
@@ -222,6 +241,7 @@ def make_tuple(
     return_type = make_tuple_type(*contained_type)
     return ReturnValue(call("make-tuple", return_type, *reg_vals), None)
 
+
 def tuple_get(
     primitive_vars: Dict[str, Expr],
     pointer_vars: Dict[str, Expr],
@@ -239,6 +259,7 @@ def tuple_get(
         ),
         None,
     )
+
 
 def get_field(
     primitive_vars: Dict[str, Expr],

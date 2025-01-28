@@ -36,6 +36,7 @@ def and_exprs(*exprs: Expr) -> Expr:
         result = And(result, expr)
     return result
 
+
 def and_objects(*objects: BoolObject) -> BoolObject:
     return BoolObject(and_exprs(*get_object_exprs(objects)))
 
@@ -46,6 +47,7 @@ def or_exprs(*exprs: Expr) -> Expr:
         return exprs[0]
     else:
         return Or(*exprs)
+
 
 def or_objects(*objects: BoolObject) -> BoolObject:
     return BoolObject(or_exprs(*get_object_exprs(objects)))

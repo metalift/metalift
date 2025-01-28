@@ -1056,8 +1056,12 @@ class VCVisitor:
             # Merge primitive and pointer variables
             # Mapping from variable names to a mapping from values to assume statements
             # Merge primitive vars
-            primitive_var_state: Dict[str, Dict[Expr, List[List[BoolObject]]]] = defaultdict(lambda: defaultdict(list))
-            pointer_var_state: Dict[str, Dict[Expr, List[List[BoolObject]]]] = defaultdict(lambda: defaultdict(list))
+            primitive_var_state: Dict[
+                str, Dict[Expr, List[List[BoolObject]]]
+            ] = defaultdict(lambda: defaultdict(list))
+            pointer_var_state: Dict[
+                str, Dict[Expr, List[List[BoolObject]]]
+            ] = defaultdict(lambda: defaultdict(list))
             for pred in block.preds:
                 pred_state = self.fn_blocks_states[pred.name]
                 for var_name, var_object in pred_state.primitive_vars.items():
@@ -1085,7 +1089,10 @@ class VCVisitor:
                     else:
                         # Otherwise if there are multiple possible values for this variable, we create a mapping from possible values to their associated preconditions.
                         expr_value_to_aggregated_precond: Dict[Expr, BoolObject] = {}
-                        for expr_value, all_preconds in expr_value_to_precond_mapping.items():
+                        for (
+                            expr_value,
+                            all_preconds,
+                        ) in expr_value_to_precond_mapping.items():
                             all_aggregated_preconds: List[Expr] = []
                             for preconds in all_preconds:
                                 all_aggregated_preconds.append(and_objects(*preconds))
@@ -1102,9 +1109,7 @@ class VCVisitor:
                                 merged_expr = expr_value
                             else:
                                 merged_expr = Ite(
-                                    aggregated_precond.src,
-                                    expr_value,
-                                    merged_expr
+                                    aggregated_precond.src, expr_value, merged_expr
                                 )
                         if merged_expr is None:
                             # This in theory should never happen, but let's just be safe
@@ -1185,10 +1190,7 @@ class VCVisitor:
             )
             if len(blk_state.precond) > 0:
                 blk_state.asserts.append(
-                    implies(
-                        and_objects(*blk_state.precond),
-                        inv.call(blk_state)
-                    )
+                    implies(and_objects(*blk_state.precond), inv.call(blk_state))
                 )
             else:
                 blk_state.asserts.append(inv.call(blk_state))
@@ -1260,17 +1262,23 @@ class VCVisitor:
 
     def visit_add_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        add_obj = self.read_operand_from_block(block_name, ops[0]) + self.read_operand_from_block(block_name, ops[1])
+        add_obj = self.read_operand_from_block(
+            block_name, ops[0]
+        ) + self.read_operand_from_block(block_name, ops[1])
         self.write_operand_to_block(block_name, o, add_obj)
 
     def visit_sub_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        sub_obj = self.read_operand_from_block(block_name, ops[0]) - self.read_operand_from_block(block_name, ops[1])
+        sub_obj = self.read_operand_from_block(
+            block_name, ops[0]
+        ) - self.read_operand_from_block(block_name, ops[1])
         self.write_operand_to_block(block_name, o, sub_obj)
 
     def visit_mul_instruction(self, block_name: str, o: ValueRef) -> None:
         ops = list(o.operands)
-        mul_obj = self.read_operand_from_block(block_name, ops[0]) * self.read_operand_from_block(block_name, ops[1])
+        mul_obj = self.read_operand_from_block(
+            block_name, ops[0]
+        ) * self.read_operand_from_block(block_name, ops[1])
         self.write_operand_to_block(block_name, o, mul_obj)
 
     def visit_bitcast_instruction(self, block_name: str, o: ValueRef) -> None:
