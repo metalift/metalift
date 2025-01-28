@@ -1,13 +1,16 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def normal_blend_8_numba(base, active, opacity, res):
-#   output = []
-  for i in range(len(base)):
-    res[i] = opacity * active[i] + (255 - opacity) * base[i]
-    # output.append(opacity * active[i] + (255 - opacity) * base[i])
+    #   output = []
+    for i in range(len(base)):
+        res[i] = opacity * active[i] + (255 - opacity) * base[i]
+        # output.append(opacity * active[i] + (255 - opacity) * base[i])
+
+
 #   return output
 
 import os

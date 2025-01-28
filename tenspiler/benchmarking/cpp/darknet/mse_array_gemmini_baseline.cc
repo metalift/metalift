@@ -29,15 +29,15 @@ int main() {
     srand(1);
     vector<long long> times;
     vector<long long> times_k;
-        
+
     size_t count = 10000;
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            
-            vector<int32_t> base_f = random_vector_int(122); 
-            
+
+            vector<int32_t> base_f = random_vector_int(122);
+
             int n = base_f.size();
 
             auto start_time = high_resolution_clock::now();
@@ -46,7 +46,7 @@ int main() {
             cout << result << endl;
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         times.push_back(time);
         times_k.push_back(time_k);

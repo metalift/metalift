@@ -6,6 +6,14 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, Object, call, choose, fn_decl, ite, synth
 from metalift.vc_util import and_objects
+from tenspiler.axioms_tenspiler import (
+    matrix_vec_mul_axiom,
+    reduce_sum_axiom,
+    vec_elemwise_div_axiom,
+    vec_elemwise_mul_axiom,
+    vec_scalar_div_axiom,
+    vec_scalar_mul_axiom,
+)
 from tenspiler.codegen.utils import DataType
 from tenspiler.llama.holing.driver.transformer.utils import (
     call_matrix_composed_index_fn,
@@ -33,14 +41,6 @@ from tenspiler.tenspiler_common import (
     vec_scalar_mul,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import (
-    vec_scalar_mul_axiom,
-    vec_scalar_div_axiom,
-    vec_elemwise_mul_axiom,
-    vec_elemwise_div_axiom,
-    reduce_sum_axiom,
-    matrix_vec_mul_axiom,
-)
 
 token_position_var = Int("token_position")
 head1_var = Int("head1")
@@ -118,7 +118,9 @@ def transformer_part1_ps_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_div(call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec)
+    vec = call_vec_scalar_div(
+        call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec
+    )
 
     return attention == vec
 
@@ -153,7 +155,9 @@ def transformer_part1_inv0_grammar(
 
     computed_vec = call_matrix_vec_mul(key_cache_layer_matrix, q_vec)
     vec = choose(q_vec, computed_vec)
-    vec = call_vec_scalar_div(call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec)
+    vec = call_vec_scalar_div(
+        call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), vec
+    )
 
     return and_objects(
         timestep >= 0,
@@ -196,7 +200,8 @@ def transformer_part1_inv1_grammar(
     )
     outer_loop_vec = choose(q_outer_loop_vec, outer_loop_computed_vec)
     outer_loop_vec = call_vec_scalar_div(
-        call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)), outer_loop_vec
+        call_integer_sqrt(call_sqrt_arg(token_position, head, head_size)),
+        outer_loop_vec,
     )
 
     inner_loop_key_cache_layer_vec = ite(
@@ -279,7 +284,7 @@ if __name__ == "__main__":
         data_type=DataType.INT32,
         benchmark_name="transformer_part1",
         has_relaxed=False,
-        list_bound_start=3
+        list_bound_start=3,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

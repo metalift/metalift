@@ -2,10 +2,10 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.axioms_tenspiler import dissolve_matrix_selection_two_args_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import get_dissolve_holing_search_space
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import dissolve_matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()

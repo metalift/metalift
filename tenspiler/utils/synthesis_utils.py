@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from metalift.frontend.llvm import Driver
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
@@ -143,6 +142,7 @@ def run_synthesis_algorithm(
         except Exception as e:
             raise e
 
+
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
@@ -201,9 +201,7 @@ def run_llm_synthesis_algorithm(
 
         # Generate the invariant
         inv_prompt = get_inv_prompt(
-            suite_name=suite_name,
-            benchmark_name=benchmark_name,
-            dsl_code=dsl_code
+            suite_name=suite_name, benchmark_name=benchmark_name, dsl_code=dsl_code
         )
         inv_sols: list[str] = []
         for inv_sol_index in range(max_num_inv_sols):
@@ -226,8 +224,7 @@ def run_llm_synthesis_algorithm(
 
             try:
                 _, inv_fn_decls, in_calls = check_solution(
-                    inv_sol,
-                    1 if is_single_loop(benchmark_name) else 2
+                    inv_sol, 1 if is_single_loop(benchmark_name) else 2
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:

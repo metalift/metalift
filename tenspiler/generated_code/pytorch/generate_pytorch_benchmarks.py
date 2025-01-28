@@ -19,19 +19,27 @@ def find_all_drivers(driver_dirs):
         for dirpath, dirnames, filenames in os.walk(root_dir):
             for filename in filenames:
                 if filename.endswith("_driver.py"):
-                    benchmark_name = filename[:-10] # remove the _driver.py at the end
+                    benchmark_name = filename[:-10]  # remove the _driver.py at the end
                     full_path = join(dirpath, filename)
                     driver_files[benchmark_name] = full_path
     return driver_files
 
-driver_dirs = ["tenspiler/c2taco/holing/driver/", "tenspiler/blend/holing/driver/", "tenspiler/llama/holing/driver/"]
+
+driver_dirs = [
+    "tenspiler/c2taco/holing/driver/",
+    "tenspiler/blend/holing/driver/",
+    "tenspiler/llama/holing/driver/",
+]
 driver_files = find_all_drivers(driver_dirs)
 
 stored_path = "./tenspiler/generated_code/pytorch/"
 
+
 def generate_benchmark(benchmark_name):
     if benchmark_name not in all_test:
-        print(f"Benchmark name {benchmark_name} is not in predefined benchmark name list!")
+        print(
+            f"Benchmark name {benchmark_name} is not in predefined benchmark name list!"
+        )
         exit(1)
 
     data_type = None
@@ -42,7 +50,6 @@ def generate_benchmark(benchmark_name):
         data_type = DataType.FLOAT
     else:
         data_type = DataType.INT32
-
 
     script_path = driver_files[benchmark_name]
     script_dir = dirname(script_path)
@@ -258,9 +265,7 @@ def generate_benchmark(benchmark_name):
     with e2e_filepath.open("w") as file:
         file.write(tensorflow_code_e2e_timing)
 
-
     print(f"Stored the genereted code into {e2e_filename}")
-
 
     stored_path = "./tenspiler/generated_code/mlx/"
 
@@ -415,7 +420,6 @@ def generate_benchmark(benchmark_name):
 
     print(f"Stored the genereted code into {e2e_filename}")
 
-
     stored_path = Path("./tenspiler/generated_code/gaudi/")
     if benchmark_name not in all_test:
         print(
@@ -423,7 +427,11 @@ def generate_benchmark(benchmark_name):
         )
         exit(1)
 
-    if benchmark_name in llama_test_name or benchmark_name in  ["vcopy", "mat1x3", "gemv"]:
+    if benchmark_name in llama_test_name or benchmark_name in [
+        "vcopy",
+        "mat1x3",
+        "gemv",
+    ]:
         print(
             f"Benchmark name {benchmark_name} is not supported in Gaudi backend with TPC-C. See PyTorch version."
         )
@@ -462,6 +470,7 @@ def generate_benchmark(benchmark_name):
 
     print(f"Stored the genereted code into {filepath}")
 
+
 def generate_benchmarks(benchmark_name):
     if benchmark_name == "ALL":
         for test in all_test:
@@ -469,6 +478,7 @@ def generate_benchmarks(benchmark_name):
     else:
         generate_benchmark(benchmark_name)
     print("Finished generation")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

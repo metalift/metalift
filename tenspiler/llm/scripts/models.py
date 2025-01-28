@@ -1,17 +1,14 @@
-import os
-from typing import Any, Optional
-from enum import Enum
 import copy
+import os
+from enum import Enum
+from typing import Any
 
 import anthropic
 import google.generativeai as genai
-from openai import OpenAI
 from dotenv import load_dotenv
-from tenspiler.llm.scripts.utils import (
-    TEMPLATE_SYS,
-    extract,
-    replace_ite,
-)
+from openai import OpenAI
+
+from tenspiler.llm.scripts.utils import TEMPLATE_SYS, extract, replace_ite
 
 load_dotenv()
 

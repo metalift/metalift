@@ -23,4 +23,3 @@ vector<vector<uint8_t>> dissolve_blend_8(vector<vector<uint8_t>> base, vector<ve
 	}
 	return out;
 }
-

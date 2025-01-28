@@ -1,40 +1,42 @@
-
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
-def softmax_part3_numba (output, max_pos, res):
+def softmax_part3_numba(output, max_pos, res):
     sum = 0
     for i in range(max_pos):
         sum += output[i]
     res[0] = sum
     # return sum
 
+
 ####### more import statements for benchmarking ########
 import time
+
 import h5py
 
 ####### setup for benchmarking ########
 rng = np.random.default_rng(1)
 
-weights_path = './vicuna_weight.h5'
+weights_path = "./vicuna_weight.h5"
 
 attn_weights = []
 
 
-with h5py.File(weights_path, 'r') as weight_file:
+with h5py.File(weights_path, "r") as weight_file:
     for layer_name in weight_file:
         w = np.squeeze(np.array(weight_file[layer_name])).astype(np.float32)
-        
+
         if "attn" in layer_name:
             attn_weights.append(w)
-            
-####### runner. need to manually update for each file ########  
+
+####### runner. need to manually update for each file ########
 inp = attn_weights[-1].flatten()
-res = np.array([0], dtype = np.float32)
+res = np.array([0], dtype=np.float32)
 max_pos = len(inp)
-outp = np.exp(inp[:max_pos]-np.max(inp[:max_pos]))
+outp = np.exp(inp[:max_pos] - np.max(inp[:max_pos]))
 
 threadsperblock = 32
 blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
@@ -48,10 +50,10 @@ for _ in range(runs):
     total_time = 0
     for i in range(len(attn_weights)):
         inp = attn_weights[i].flatten()
-        res = np.array([0], dtype = np.float32)
+        res = np.array([0], dtype=np.float32)
         max_pos = len(inp)
-        outp = np.exp(inp[:max_pos]-np.max(inp[:max_pos]))
-        
+        outp = np.exp(inp[:max_pos] - np.max(inp[:max_pos]))
+
         threadsperblock = 32
         blockspergrid = (inp.size + (threadsperblock - 1)) // threadsperblock
 
@@ -62,8 +64,8 @@ for _ in range(runs):
 
     times.append(total_time)
 
-times = np.array(times)   
+times = np.array(times)
 
 print("softmax_part3_numba")
-print(f"{np.average(times)} {np.std(times)}") 
-print(f"{np.average(times)} {np.std(times)}") 
+print(f"{np.average(times)} {np.std(times)}")
+print(f"{np.average(times)} {np.std(times)}")

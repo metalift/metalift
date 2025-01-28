@@ -2,6 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     color_dodge_8_hole_body,
@@ -9,7 +10,6 @@ from tenspiler.tenspiler_common import (
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 from tests.python.utils.utils import codegen
-from tenspiler.axioms_tenspiler import matrix_selection_two_args_axiom
 
 if __name__ == "__main__":
     driver = Driver()

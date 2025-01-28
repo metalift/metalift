@@ -24,7 +24,7 @@ vector<uint8_t> normal_blend_8(vector<uint8_t> base, vector<uint8_t> active, uin
 int main() {
     srand(1);
     fn = glob("./data/", ".*\\.jpeg$");
-    
+
     vector<long long> times;
     vector<long long> times_k;
     size_t count = fn.size();
@@ -33,12 +33,12 @@ int main() {
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base = res[0]; 
-            vector<uint8_t> base_f = flatten_int(base); 
-            vector<vector<uint8_t>> active = res[1]; 
-            vector<uint8_t> active_f = flatten_int(active); 
+            vector<vector<uint8_t>> base = res[0];
+            vector<uint8_t> base_f = flatten_int(base);
+            vector<vector<uint8_t>> active = res[1];
+            vector<uint8_t> active_f = flatten_int(active);
             uint8_t opacity = random_grayscale();
-            
+
             auto start_time = high_resolution_clock::now();
             normal_blend_8(base_f, active_f, opacity);
             auto end_time = high_resolution_clock::now();

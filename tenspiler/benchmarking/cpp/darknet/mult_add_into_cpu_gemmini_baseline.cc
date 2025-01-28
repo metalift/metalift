@@ -28,30 +28,30 @@ int main() {
 
     vector<long long> times;
     vector<long long> times_k;
-        
+
     size_t count = 10000;
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<int32_t> base_f = random_vector_int(488); 
-            vector<int32_t> active_f = random_vector_int(488); 
+            vector<int32_t> base_f = random_vector_int(488);
+            vector<int32_t> active_f = random_vector_int(488);
 
             int N = base_f.size();
-            vector<int32_t> rand_f = random_vector_int(N); 
+            vector<int32_t> rand_f = random_vector_int(N);
 
             auto start_time = high_resolution_clock::now();
             mult_add_into_cpu(N, base_f, active_f, rand_f);
             auto end_time = high_resolution_clock::now();
-            
+
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         times.push_back(time);
         times_k.push_back(time_k);
     }
-    
+
     cout << "mult_add_into_cpu_gemmini_baseline" << endl;
     cout << average(times) / 1000.0 << " " << stdiv(times) / 1000.0 << endl;
     cout << average(times_k) / 1000.0 << " " << stdiv(times_k) / 1000.0 << endl;

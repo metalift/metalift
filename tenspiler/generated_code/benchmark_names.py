@@ -41,20 +41,15 @@ darknet_test_name = [
 ]
 
 utdsp_test_name = ["fir_small", "lmsfir1", "lmsfir2"]
-all_test = (
-    blend_test_name
-    + llama_test_name
-    + darknet_test_name
-    + utdsp_test_name
-)
+all_test = blend_test_name + llama_test_name + darknet_test_name + utdsp_test_name
 gemmini_not_comp = [
     "translate_array",
 ]
 gemmini_blend_func_names = [
-    'normal_blend_8',
-    'normal_blend_f',
-    'linear_burn_8',
-    'linear_dodge_8',
-    'screen_blend_8',
+    "normal_blend_8",
+    "normal_blend_f",
+    "linear_burn_8",
+    "linear_dodge_8",
+    "screen_blend_8",
 ]
-gemmini_llama_func_names = ['softmax_part3', 'rmsnorm_part1', 'matmul']
+gemmini_llama_func_names = ["softmax_part3", "rmsnorm_part1", "matmul"]

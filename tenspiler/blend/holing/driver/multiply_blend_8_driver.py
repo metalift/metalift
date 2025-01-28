@@ -2,16 +2,16 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
+from tenspiler.axioms_tenspiler import (
+    matrix_elemwise_mul_axiom,
+    matrix_scalar_div_axiom,
+)
 from tenspiler.codegen.utils import DataType
 from tenspiler.tenspiler_common import (
     get_matrix_computation_holing_search_space,
     multiply_blend_8_hole_body,
 )
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import (
-    matrix_scalar_div_axiom,
-    matrix_elemwise_mul_axiom,
-)
 
 if __name__ == "__main__":
     driver = Driver()

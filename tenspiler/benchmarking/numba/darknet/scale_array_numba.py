@@ -1,11 +1,12 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def scale_array_numba(a, n, s, res):
     for i in range(n):
-        res[i] = s * a[i] 
+        res[i] = s * a[i]
 
 
 import os

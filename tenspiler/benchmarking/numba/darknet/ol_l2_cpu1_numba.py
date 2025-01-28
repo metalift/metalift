@@ -1,13 +1,13 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def ol_l2_cpu1_numba(n, pred, truth, res):
     for i in range(n):
         diff = truth[i] - pred[i]
         res[i] = diff * diff
-
 
 
 import os

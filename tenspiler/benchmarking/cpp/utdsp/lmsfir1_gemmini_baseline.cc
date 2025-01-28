@@ -32,8 +32,8 @@ int main() {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<int32_t> base_f = random_vector_int(122); 
-            vector<int32_t> active_f = random_vector_int(122); 
+            vector<int32_t> base_f = random_vector_int(122);
+            vector<int32_t> active_f = random_vector_int(122);
             int n = base_f.size();
             auto start_time = high_resolution_clock::now();
             auto result = lmsfir1(n, base_f, active_f);
@@ -41,7 +41,7 @@ int main() {
             cout << result << endl;
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
-        
+
         }
         times.push_back(time);
         times_k.push_back(time_k);
@@ -52,5 +52,3 @@ int main() {
     cout << average(times_k) / 1000.0 << " " << stdiv(times_k) / 1000.0 << endl;
     return 0;
 }
-
-

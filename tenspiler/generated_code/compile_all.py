@@ -1,7 +1,6 @@
 import os
 import subprocess
 
-from tenspiler.codegen.numpy_codegen import numpy_codegen
 
 def compile_all(compile_dirs):
     for d in compile_dirs:
@@ -11,5 +10,10 @@ def compile_all(compile_dirs):
         os.chdir(cwd)
         print("successfully compiled all input files")
 
-compile_dirs = ["tenspiler/llama/cpp/", "tenspiler/blend/cpp/for_synthesis/", "tenspiler/c2taco/cpp/"]
+
+compile_dirs = [
+    "tenspiler/llama/cpp/",
+    "tenspiler/blend/cpp/for_synthesis/",
+    "tenspiler/c2taco/cpp/",
+]
 compile_all(compile_dirs)

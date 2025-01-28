@@ -2,15 +2,9 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tenspiler.codegen.utils import DataType
-from tenspiler.llm.scripts.models import LLMModel
-from tenspiler.tenspiler_common import (
-    get_matrix_computation_holing_search_space,
-    linear_dodge_8_hole_body,
-)
-from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm, run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import matrix_elemwise_add_axiom
 from tenspiler.constants import TENSPILER_FNS
+from tenspiler.llm.scripts.models import LLMModel
+from tenspiler.utils.synthesis_utils import run_llm_synthesis_algorithm
 
 if __name__ == "__main__":
     driver = Driver()
@@ -37,7 +31,7 @@ if __name__ == "__main__":
         source_file="tenspiler/blend/cpp/for_synthesis/linear_dodge_8.cc",
         suite_name="blend",
         benchmark_name="linear_dodge_8",
-        llm_model=LLMModel.GPT
+        llm_model=LLMModel.GPT,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

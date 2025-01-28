@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def mse_array_numba(a, n, res):
@@ -47,7 +48,7 @@ blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
 start_time = time.perf_counter()
 mse_array_numba[blockspergrid, threadsperblock](b, n, res)
-    
+
 runs = 10
 times = []
 for _ in range(runs):

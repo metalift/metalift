@@ -39,13 +39,13 @@ int main() {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<uint8_t>> base = random_matrix_grayscale(500, 500); 
-            vector<vector<uint8_t>> active = random_matrix_grayscale(500, 500); 
+            vector<vector<uint8_t>> base = random_matrix_grayscale(500, 500);
+            vector<vector<uint8_t>> active = random_matrix_grayscale(500, 500);
 
             auto start_time = high_resolution_clock::now();
             screen_blend_8(base, active);
 			auto end_time = high_resolution_clock::now();
-            
+
             time += duration_cast<microseconds>(end_time - start_time).count();
             time_k += duration_cast<microseconds>(end_time_k - start_time_k).count();
         }

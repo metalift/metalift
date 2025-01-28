@@ -43,5 +43,7 @@ _UNSORTED_TENSPILER_FNS = list(
         ]
     )
 )
-_NOT_NONE_UNSORTED_TENSPILER_FNS = [fn for fn in _UNSORTED_TENSPILER_FNS if fn.body() is not None]
+_NOT_NONE_UNSORTED_TENSPILER_FNS = [
+    fn for fn in _UNSORTED_TENSPILER_FNS if fn.body() is not None
+]
 TENSPILER_FNS = sorted(_NOT_NONE_UNSORTED_TENSPILER_FNS, key=lambda x: x.name())

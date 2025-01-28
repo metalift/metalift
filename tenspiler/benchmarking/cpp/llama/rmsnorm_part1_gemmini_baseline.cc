@@ -29,14 +29,14 @@ int main() {
     for (int i = 0; i < 10; i++) {
         long long time = 0;
         long long time_k = 0;
-        for (int j = 0; j < count; j++) { 
-            vector<float> inp1 = random_vector(676); 
-            vector<float> inp2 = random_vector(676); 
+        for (int j = 0; j < count; j++) {
+            vector<float> inp1 = random_vector(676);
+            vector<float> inp2 = random_vector(676);
 
             auto start_time = high_resolution_clock::now();
             auto result = rmsnorm_part1(inp2, inp1);
             auto end_time = high_resolution_clock::now();
-            
+
             cout << result << endl;
 
             time += duration_cast<microseconds>(end_time - start_time).count();
@@ -44,7 +44,7 @@ int main() {
         }
         times.push_back(time);
         times_k.push_back(time_k);
-        
+
     }
 
     cout << "rmsnorm_part1_gemmini_baseline" << endl;

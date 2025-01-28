@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def lmsfir1_numba(NTAPS, input, coefficient, res):
@@ -8,6 +9,7 @@ def lmsfir1_numba(NTAPS, input, coefficient, res):
     for i in range(NTAPS):
         sum += (coefficient[i]) * (input[i])
     res[0] = sum
+
 
 import os
 
@@ -39,7 +41,7 @@ for _file in img_files:
 ####### runner. need to manually update for each file ########
 b = bases[-1].flatten().astype(np.int32)
 a = actives[-1].flatten().astype(np.int32)
-res = np.array([0], dtype = np.int32)
+res = np.array([0], dtype=np.int32)
 (n,) = b.shape
 threadsperblock = 32
 blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
@@ -53,7 +55,7 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
-        res = np.array([0], dtype = np.int32)
+        res = np.array([0], dtype=np.int32)
         (n,) = b.shape
         threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock

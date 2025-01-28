@@ -1,13 +1,16 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def normal_blend_f_numba(base, active, opacity, res):
-#   output = []
-  for i in range(len(base)):
-    res[i] = opacity * active[i] + (1 - opacity) * base[i]
-    # output.append(opacity * active[i] + (1 - opacity) * base[i])
+    #   output = []
+    for i in range(len(base)):
+        res[i] = opacity * active[i] + (1 - opacity) * base[i]
+        # output.append(opacity * active[i] + (1 - opacity) * base[i])
+
+
 #   return output
 
 import os
@@ -58,7 +61,6 @@ for _ in range(runs):
         opacity = float(rng.random(dtype=np.float32))
         threadsperblock = 32
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
-
 
         start_time = time.perf_counter()
         normal_blend_f_numba[blockspergrid, threadsperblock](b, a, opacity, res)

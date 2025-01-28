@@ -1,6 +1,7 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def lmsfir2_numba(NTAPS, input, coefficient, error, res):
@@ -38,7 +39,7 @@ for _file in img_files:
 ####### runner. need to manually update for each file ########
 b = bases[-1].flatten().astype(np.int32)
 a = actives[-1].flatten().astype(np.int32)
-res = np.empty(b.shape, dtype = np.int32)
+res = np.empty(b.shape, dtype=np.int32)
 (n,) = b.shape
 v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
 threadsperblock = 32
@@ -53,7 +54,7 @@ for _ in range(runs):
     for i in range(len(bases)):
         b = bases[i].flatten().astype(np.int32)
         a = actives[i].flatten().astype(np.int32)
-        res = np.empty(b.shape, dtype = np.int32)
+        res = np.empty(b.shape, dtype=np.int32)
         (n,) = b.shape
         v = rng.integers(low=0, high=np.iinfo(np.int32).max + 1)
         threadsperblock = 32

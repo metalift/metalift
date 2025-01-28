@@ -1,4 +1,5 @@
 import textwrap
+
 from tenspiler.llm.scripts.utils import (
     _generate_invariant_template,
     _loop_info_map,
@@ -113,7 +114,9 @@ def get_inv_prompt(
         elif num_shots == 1:
             return textwrap.dedent(one_shot_text)
         else:
-            raise ValueError(f"Invalid number of shots for invariant prompt: {num_shots}")
+            raise ValueError(
+                f"Invalid number of shots for invariant prompt: {num_shots}"
+            )
     else:
         double_loop_info = _loop_info_map[benchmark_name]
         outer_loop_var = double_loop_info.outer_loop_var.name()
@@ -165,4 +168,6 @@ def get_inv_prompt(
         elif num_shots == 1:
             return textwrap.dedent(one_shot_text)
         else:
-            raise ValueError(f"Invalid number of shots for invariant prompt: {num_shots}")
+            raise ValueError(
+                f"Invalid number of shots for invariant prompt: {num_shots}"
+            )

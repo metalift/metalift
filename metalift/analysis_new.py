@@ -1,24 +1,3 @@
-import re
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
-
-from llvmlite import binding as llvm
-from llvmlite.binding import ValueRef
-
-from metalift import ir
-from metalift.analysis import LoopInfo, parseLoops
-from metalift.ir import (
-    And,
-    Bool,
-    Eq,
-    Expr,
-    Implies,
-    ObjectT,
-    Var,
-    parse_type_ref_to_obj,
-)
-
-
-
 # # may or may not participate in a loop
 # class RawBlock(object):
 #     name: str

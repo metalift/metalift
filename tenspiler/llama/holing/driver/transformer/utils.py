@@ -1,6 +1,6 @@
-from typing import Callable, List, Tuple
+from typing import List
 
-from metalift.ir import Bool, FnDecl, Int, Synth, call, choose, fn_decl, synth
+from metalift.ir import Int, call, choose, fn_decl, synth
 from tenspiler.tenspiler_common import get_no_arg_bool_fn
 
 # Define arguments to helper functions to synthesize
@@ -64,6 +64,7 @@ vec_composed_index_synth = synth(
 
 def call_vec_composed_index_fn(token_position: Int, head: Int, head_size: Int) -> Int:
     return call(vec_composed_index_fn_name, Int, token_position, head, head_size)
+
 
 # Loop functions
 matrix_outer_loop_index_first_fn_name = "MATRIX_OUTER_LOOP_INDEX_FIRST"

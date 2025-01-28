@@ -43,8 +43,8 @@ int main() {
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
             std::array<vector<vector<uint8_t>>,2> res = get_base_active(j);
-            vector<vector<uint8_t>> base = res[0]; 
-            vector<vector<uint8_t>> active = res[1]; 
+            vector<vector<uint8_t>> base = res[0];
+            vector<vector<uint8_t>> active = res[1];
 
             auto start_time = high_resolution_clock::now();
             linear_burn_8(base, active);

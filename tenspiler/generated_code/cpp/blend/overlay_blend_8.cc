@@ -22,4 +22,3 @@ vector<vector<uint8_t>> overlay_blend_8(vector<vector<uint8_t>> base, vector<vec
     }
     return out;
 }
-

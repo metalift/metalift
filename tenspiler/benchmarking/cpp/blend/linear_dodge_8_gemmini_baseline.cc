@@ -39,8 +39,8 @@ int main() {
         long long time = 0;
         long long time_k = 0;
         for (int j = 0; j < count; j++) {
-            vector<vector<uint8_t>> base = random_matrix_grayscale(500, 500); 
-            vector<vector<uint8_t>> active = random_matrix_grayscale(500, 500); 
+            vector<vector<uint8_t>> base = random_matrix_grayscale(500, 500);
+            vector<vector<uint8_t>> active = random_matrix_grayscale(500, 500);
 
             auto start_time = high_resolution_clock::now();
             linear_dodge_8(base, active);

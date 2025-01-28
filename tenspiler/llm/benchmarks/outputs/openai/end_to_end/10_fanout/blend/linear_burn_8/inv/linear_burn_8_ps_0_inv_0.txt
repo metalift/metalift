@@ -12,4 +12,3 @@
                                                                                         active_pixel if opacity -
                                                                                         ((rand_cons % 100) + 1) // 100 >= 0
                                                                                         else base_pixel)
-    

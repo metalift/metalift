@@ -1,4 +1,5 @@
-germmini_make_file = lambda s: f"""
+germmini_make_file = (
+    lambda s: f"""
 include $(abs_top_srcdir)/Makefrag
 
 tests = \
@@ -129,3 +130,4 @@ run-baremetal: $(runs_baremetal)
 	$(RUNNER)$(abs_top_srcdir)/build/bareMetalC/$^
 
 junk += $(tests_baremetal) $(tests_linux) $(tests_pk)"""
+)

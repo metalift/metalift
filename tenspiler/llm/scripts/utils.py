@@ -1051,6 +1051,3 @@ def replace_ite(ps_sol: str) -> str:
 
     ite_pattern = r"ite\(([^,]+),\s*([^,]+),\s*([^)]+)\)"
     return re.sub(ite_pattern, repl_func, ps_sol)
-
-
-def get_solutions_with_

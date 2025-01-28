@@ -1,22 +1,25 @@
 ####### import statements ########
 import numpy as np
-from numba import jit, cuda
+from numba import cuda
+
 
 @cuda.jit()
 def dissolve_blend_8_numba(base, active, opacity, rand_cons, res):
-#   output = []
-  m = len(base)
-  n = len(base[0])
-  for i in range(m):
-    # curr_row = []
-    for j in range(n):
-      if opacity - rand_cons >= 0:
-        pixel = active[i][j]
-      else:
-        pixel = base[i][j]
-      res[i][j] = pixel
-    #   curr_row.append(pixel)
-    # output.append(curr_row)
+    #   output = []
+    m = len(base)
+    n = len(base[0])
+    for i in range(m):
+        # curr_row = []
+        for j in range(n):
+            if opacity - rand_cons >= 0:
+                pixel = active[i][j]
+            else:
+                pixel = base[i][j]
+            res[i][j] = pixel
+        #   curr_row.append(pixel)
+        # output.append(curr_row)
+
+
 #   return output
 
 
@@ -73,7 +76,9 @@ for _ in range(runs):
         blockspergrid = (b.size + (threadsperblock - 1)) // threadsperblock
 
         start_time = time.perf_counter()
-        dissolve_blend_8_numba[blockspergrid, threadsperblock](b, a, opacity, rand_cons, res)
+        dissolve_blend_8_numba[blockspergrid, threadsperblock](
+            b, a, opacity, rand_cons, res
+        )
         end_time = time.perf_counter()
         total_time += (end_time - start_time) * 1000
 
