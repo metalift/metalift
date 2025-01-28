@@ -908,7 +908,9 @@ class Int(Object):
         return Int(0)
 
     def binary_op(
-        self, other: Union["Int", int], op: Callable[[Expr, Expr], Expr]
+        self,
+        other: Union["Int", int, "List", "Matrix"],
+        op: Callable[[Expr, Expr], Expr],
     ) -> "Int":
         if isinstance(other, int):
             other = Int(other)
@@ -2464,8 +2466,8 @@ class Call(Expr):
 
 class CallValue(Expr):
     def __init__(self, value: Expr, *arguments: Expr) -> None:
-        #TODO: type no longer has args. need proper fix
-        Expr.__init__(self, value.type.args[0], [value, *arguments]) #type: ignore
+        # TODO: type no longer has args. need proper fix
+        Expr.__init__(self, value.type.args[0], [value, *arguments])  # type: ignore
 
     def value(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -2766,7 +2768,7 @@ class Synth(Expr):
 
         return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
-    def toSMT(self) -> str: 
+    def toSMT(self) -> str:
         cnts = Expr.findCommonExprs(self.args[1], [])
         commonExprs = list(
             filter(
@@ -2891,7 +2893,7 @@ class FnDeclRecursive(Expr):
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args]) #type: ignore
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])  # type: ignore
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
@@ -3048,7 +3050,7 @@ class FnDecl(Expr):
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args]) #type: ignore
+        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])  # type: ignore
 
     def name(self) -> str:
         return self.args[0]  # type: ignore
@@ -3110,7 +3112,7 @@ class FnDecl(Expr):
                 else:
                     declarations.append((a.args[0], a.type))
 
-            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations) #type: ignore
+            args = " ".join("(%s %s)" % (d[0], d[1].toSMT()) for d in declarations)  # type: ignore
 
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore

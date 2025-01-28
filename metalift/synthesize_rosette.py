@@ -8,6 +8,7 @@ import pyparsing as pp
 
 from metalift import process_tracker, utils
 from metalift.analysis import CodeInfo
+from metalift.exceptions import CVC5UnsupportedException
 from metalift.ir import (
     Add,
     And,
@@ -33,15 +34,7 @@ from metalift.ir import (
 from metalift.ir import List as mlList
 from metalift.ir import Lt, Mod, Mul, Not, ObjectT, Or
 from metalift.ir import Set as mlSet
-from metalift.ir import (
-    Sub,
-    Synth,
-    Target,
-    TupleExpr,
-    TupleGet,
-    Var,
-    get_fn_return_type,
-)
+from metalift.ir import Sub, Synth, Target, TupleExpr, TupleGet, Var, get_fn_return_type
 from metalift.rosette_translator import to_rosette
 from metalift.synthesis_common import (
     SynthesisFailed,
@@ -49,9 +42,6 @@ from metalift.synthesis_common import (
     generate_types,
     verify_synth_result,
 )
-
-# TODO: remove after proper replacement
-from metalift.types import CVC5UnsupportedException
 from tests.python.utils.utils import codegen
 
 
