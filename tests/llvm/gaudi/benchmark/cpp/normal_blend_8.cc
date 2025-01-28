@@ -2,7 +2,7 @@
 #include <vector>
 #include <chrono>
 
-#include "random.h"
+#include "utils.h"
 
 using namespace std;
 using namespace std::chrono;
