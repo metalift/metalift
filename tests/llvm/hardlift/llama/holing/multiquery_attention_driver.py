@@ -5,7 +5,7 @@ from metalift.ir import Bool, Fn, FnDecl, FnDeclRecursive, Int, Matrix, call, fn
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects, or_objects
-from tests.llvm.gaudi.gaudi_common import call_integer_exp, call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_loop_bound_fns, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, map_int_to_int_fn_obj, vec_scalar_mul, vec_to_vec, vec_to_int, matrix_vec_to_vec_target_lang
+from tests.llvm.hardlift.hardlift_common import call_integer_exp, call_matrix_vec_mul, call_reduce_sum, call_vec_elemwise_mul, call_vec_map, call_vec_scalar_mul, get_loop_bound_fns, get_map_int_to_int_synth, matrix_vec_mul, reduce_sum, vec_elemwise_mul, vec_vec_to_vec, matrix_vec_to_vec, reduce_mul, reduce_max, vec_elemwise_add, vec_elemwise_sub, vec_elemwise_div, map_int_to_int_fn_obj, vec_scalar_mul, vec_to_vec, vec_to_int, matrix_vec_to_vec_target_lang
 
 def multiquery_attention_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     return [
@@ -276,35 +276,39 @@ def multiquery_attention_part2_inv0_grammar(writes: List[Object], reads: List[Ob
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
 
+    # outer_loop_index = get_outer_loop_index(i, timestep)
+    outer_loop_index = i
+    outer_loop_index_slice_start = ite(
+        is_outer_loop_left_bound_smaller,
+        outer_loop_lower_bound,
+        outer_loop_index + 1
+    )
+    outer_loop_index_slice_end = ite(
+        is_outer_loop_left_bound_smaller,
+        i,
+        outer_loop_upper_bound
+    )
     matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_lower_bound:i].col_slice(
+        key_cache_layer[outer_loop_index_slice_start:outer_loop_index_slice_end].col_slice(
             composed_int_var + inner_loop_lower_bound,
             composed_int_var + inner_loop_upper_bound
         ),
         key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound].col_slice(
-            composed_int_var + outer_loop_lower_bound,
-            composed_int_var + i
+            composed_int_var + outer_loop_index_slice_start,
+            composed_int_var + outer_loop_index_slice_end
         )
-        # key_cache_layer.slice_with_length(0, i).col_slice_with_length(
-        #     composed_int_var,
-        #     token_position
-        # ),
-        # key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
-        #     composed_int_var,
-        #     i
-        # ).transpose(),
     )
     matrix = choose(matrix, matrix.transpose())
     vec = ite(
         is_vector_outer_loop_index(),
-        attention[outer_loop_lower_bound:i],
+        attention[outer_loop_index_slice_start:outer_loop_index_slice_end],
         attention[inner_loop_lower_bound:inner_loop_upper_bound]
     )
     # TODO(jie): we know loop bound is head_size, so vec/matrix cannot be the full thing
     return and_objects(
-        i >= outer_loop_lower_bound,
-        i <= outer_loop_upper_bound,
+        outer_loop_index >= outer_loop_lower_bound,
+        outer_loop_index <= outer_loop_upper_bound,
         xb == matrix_vec_to_vec(matrix, vec)
         # xb == call_matrix_vec_mul(
         #     key_cache_layer[int_index:non_zero_int_index]
@@ -353,56 +357,73 @@ def multiquery_attention_part2_inv1_grammar(writes: List[Object], reads: List[Ob
     outer_loop_upper_bound = get_outer_loop_upper_bound(token_position, head, head_size)
     inner_loop_lower_bound = get_inner_loop_lower_bound(token_position, head, head_size)
     inner_loop_upper_bound = get_inner_loop_upper_bound(token_position, head, head_size)
+    # outer_loop_index = get_outer_loop_index(i, timestep)
+    # inner_loop_index = get_inner_loop_index(i, timestep)
+    outer_loop_index, inner_loop_index = i, timestep
+    outer_loop_index_slice_start = ite(
+        is_outer_loop_left_bound_smaller,
+        outer_loop_lower_bound,
+        outer_loop_index + 1
+    )
+    outer_loop_index_slice_end = ite(
+        is_outer_loop_left_bound_smaller,
+        outer_loop_index,
+        outer_loop_upper_bound,
+    )
+    inner_loop_index_slice_start = ite(
+        is_inner_loop_left_bound_smaller,
+        inner_loop_lower_bound,
+        inner_loop_index + 1
+    )
+    inner_loop_index_slice_end = ite(
+        is_inner_loop_left_bound_smaller,
+        inner_loop_index,
+        inner_loop_upper_bound,
+    )
 
     outer_loop_matrix = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[outer_loop_lower_bound:i]
+        key_cache_layer[outer_loop_index_slice_start:outer_loop_index_slice_end]
         .col_slice(
             composed_int_var + inner_loop_lower_bound,
             composed_int_var + inner_loop_upper_bound
         ),
         key_cache_layer[inner_loop_lower_bound:inner_loop_upper_bound]
         .col_slice(
-            composed_int_var + outer_loop_lower_bound,
-            composed_int_var + i
+            composed_int_var + outer_loop_index_slice_start,
+            composed_int_var + outer_loop_index_slice_end
         )
-        # key_cache_layer.slice_with_length(0, i).col_slice_with_length(
-        #     composed_int_var,
-        #     token_position
-        # ),
-        # key_cache_layer.slice_with_length(0, token_position).col_slice_with_length(
-        #     composed_int_var,
-        #     i
-        # ).transpose()
     )
     outer_loop_matrix = choose(outer_loop_matrix, outer_loop_matrix.transpose())
     outer_loop_vec = ite(
         is_vector_outer_loop_index(),
-        attention[outer_loop_lower_bound:i],
+        attention[outer_loop_index_slice_start:outer_loop_index_slice_end],
         attention[inner_loop_lower_bound:inner_loop_upper_bound]
     )
 
     inner_loop_key_cache_layer_vec = ite(
         is_matrix_outer_loop_index_first(),
-        key_cache_layer[i][composed_int_var + inner_loop_lower_bound:composed_int_var + timestep],
-        key_cache_layer[inner_loop_lower_bound:timestep].col_vec(composed_int_var + i)
+        key_cache_layer[outer_loop_index][
+            composed_int_var + inner_loop_index_slice_start:composed_int_var + inner_loop_index_slice_end
+        ],
+        key_cache_layer[inner_loop_index_slice_start:inner_loop_index_slice_end].col_vec(composed_int_var + outer_loop_index)
     )
     inner_loop_vec_to_reduce = ite(
         is_vector_outer_loop_index(),
         call_vec_scalar_mul(
-            attention[i],
+            attention[outer_loop_index],
             inner_loop_key_cache_layer_vec
         ),
         call_vec_elemwise_mul(
             inner_loop_key_cache_layer_vec,
-            attention[inner_loop_lower_bound:timestep]
+            attention[inner_loop_index_slice_start:inner_loop_index_slice_end]
         )
     )
     return and_objects(
-        i >= outer_loop_lower_bound,
-        i < outer_loop_upper_bound,
-        timestep >= inner_loop_lower_bound,
-        timestep <= inner_loop_upper_bound,
+        outer_loop_index >= outer_loop_lower_bound,
+        outer_loop_index < outer_loop_upper_bound,
+        inner_loop_index >= inner_loop_lower_bound,
+        inner_loop_index <= inner_loop_upper_bound,
         curr == call_reduce_sum(inner_loop_vec_to_reduce),
         xb == call_matrix_vec_mul(outer_loop_matrix, outer_loop_vec)
     )
@@ -550,6 +571,9 @@ def get_composed_combs(int_vars: List[Int]) -> List[Int]:
 token_position_var = Int("token_position")
 head_var = Int("head")
 head_size_var = Int("head_size")
+i_var = Int("i")
+timestep_var = Int("timestep")
+
 composed_index_fn_name = "COMPOSED_INDEX_FN"
 composed_index_fn_decl = fn_decl(
     composed_index_fn_name,
@@ -597,17 +621,34 @@ def is_vector_outer_loop_index() -> Bool:
     return call(vector_outer_loop_index_fn_name, Bool)
 
 # Arguments to all loop functions
-loop_fn_args = [token_position_var, head_var, head_size_var]
-outer_loop_fn_decls, outer_loop_synths, get_outer_loop_lower_bound, get_outer_loop_upper_bound = get_loop_bound_fns(
-    loop_fn_args=loop_fn_args,
+loop_bound_fn_args = [token_position_var, head_var, head_size_var]
+loop_index_fn_args = [i_var, timestep_var]
+(
+    outer_loop_fn_decls,
+    outer_loop_synths,
+    get_outer_loop_lower_bound,
+    get_outer_loop_upper_bound,
+    get_outer_loop_index,
+    is_outer_loop_left_bound_smaller
+) = get_loop_bound_fns(
+    loop_bound_fn_args=loop_bound_fn_args,
+    loop_index_fn_args=loop_index_fn_args,
     left_bound_choices=[Int(0)],
-    right_bound_choices=loop_fn_args,
+    right_bound_choices=loop_bound_fn_args,
     prefix="OUTER_LOOP"
 )
-inner_loop_fn_decls, inner_loop_synths, get_inner_loop_lower_bound, get_inner_loop_upper_bound = get_loop_bound_fns(
-    loop_fn_args=loop_fn_args,
+(
+    inner_loop_fn_decls,
+    inner_loop_synths,
+    get_inner_loop_lower_bound,
+    get_inner_loop_upper_bound,
+    get_inner_loop_index,
+    is_inner_loop_left_bound_smaller
+) = get_loop_bound_fns(
+    loop_bound_fn_args=loop_bound_fn_args,
+    loop_index_fn_args=loop_index_fn_args,
     left_bound_choices=[Int(0)],
-    right_bound_choices=loop_fn_args,
+    right_bound_choices=loop_bound_fn_args,
     prefix="INNER_LOOP"
 )
 
@@ -626,61 +667,60 @@ def multiquery_attention_part2_target_lang() -> List[Union[FnDecl, FnDeclRecursi
 
 
 if __name__ == "__main__":
-    # Synthesize part 1
-    driver = Driver()
-    multiquery_attention_part1 = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/multiquery_attention_part1.ll",
-        loops_filepath="tests/llvm/gaudi/multiquery_attention_part1.loops",
-        fn_name="multiquery_attention_part1",
-        target_lang_fn=multiquery_attention_part1_target_lang,
-        inv_grammars={
-            "multiquery_attention_part1_inv0": InvGrammar(multiquery_attention_part1_inv0_grammar, []),
-            "multiquery_attention_part1_inv1": InvGrammar(multiquery_attention_part1_inv1_grammar, ["timestep", "agg.result"])
-        },
-        ps_grammar=multiquery_attention_part1_ps_grammar
-    )
+    # # Synthesize part 1
+    # driver = Driver()
+    # multiquery_attention_part1 = driver.analyze(
+    #     llvm_filepath="tests/llvm/gaudi/multiquery_attention_part1.ll",
+    #     loops_filepath="tests/llvm/gaudi/multiquery_attention_part1.loops",
+    #     fn_name="multiquery_attention_part1",
+    #     target_lang_fn=multiquery_attention_part1_target_lang,
+    #     inv_grammars={
+    #         "multiquery_attention_part1_inv0": InvGrammar(multiquery_attention_part1_inv0_grammar, []),
+    #         "multiquery_attention_part1_inv1": InvGrammar(multiquery_attention_part1_inv1_grammar, ["timestep", "agg.result"])
+    #     },
+    #     ps_grammar=multiquery_attention_part1_ps_grammar
+    # )
 
-    token_position_var = Int("token_position")
-    head_var = Int("head")
-    head_size_var = Int("head_size")
-    key_cache_layer_var = Matrix(Int, "key_cache_layer")
-    q_var = mlList(Int, "q")
-    driver.add_var_objects([token_position_var, head_var, head_size_var, key_cache_layer_var, q_var])
-    driver.add_precondition(token_position_var > 0)
-    driver.add_precondition(key_cache_layer_var.len() > token_position_var)
-    driver.add_precondition(head_var >= 0)
-    driver.add_precondition(head_var <= q_var.len())
-    driver.add_precondition(head_var <= key_cache_layer_var.len())
-    driver.add_precondition(head_size_var > 0)
-    driver.add_precondition(head_size_var <= q_var.len())
-    driver.add_precondition(head_size_var <= key_cache_layer_var.len())
-    driver.add_precondition((head_var * head_size_var + head_size_var) < key_cache_layer_var[0].len())
-    driver.add_precondition((head_var * head_size_var + head_size_var) < q_var.len())
+    # token_position_var = Int("token_position")
+    # head_var = Int("head")
+    # head_size_var = Int("head_size")
+    # key_cache_layer_var = Matrix(Int, "key_cache_layer")
+    # q_var = mlList(Int, "q")
+    # driver.add_var_objects([token_position_var, head_var, head_size_var, key_cache_layer_var, q_var])
+    # driver.add_precondition(token_position_var > 0)
+    # driver.add_precondition(key_cache_layer_var.len() > token_position_var)
+    # driver.add_precondition(head_var >= 0)
+    # driver.add_precondition(head_var <= q_var.len())
+    # driver.add_precondition(head_var <= key_cache_layer_var.len())
+    # driver.add_precondition(head_size_var > 0)
+    # driver.add_precondition(head_size_var <= q_var.len())
+    # driver.add_precondition(head_size_var <= key_cache_layer_var.len())
+    # driver.add_precondition((head_var * head_size_var + head_size_var) < key_cache_layer_var[0].len())
+    # driver.add_precondition((head_var * head_size_var + head_size_var) < q_var.len())
 
-    driver.fns_synths = [
-        composed_index_synth,
-        matrix_outer_loop_index_first_synth,
-        vector_outer_loop_index_synth,
-        *outer_loop_synths,
-        *inner_loop_synths
-    ]
+    # driver.fns_synths = [
+    #     composed_index_synth,
+    #     matrix_outer_loop_index_first_synth,
+    #     vector_outer_loop_index_synth,
+    #     *outer_loop_synths,
+    #     *inner_loop_synths
+    # ]
 
-    multiquery_attention_part1(
-        token_position_var,
-        head_var,
-        head_size_var,
-        key_cache_layer_var,
-        q_var,
-    )
-    int_x = Int("int_x")
-    # map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
-    driver.synthesize(listBound=3, noVerify=True)
-    exit(0)
+    # multiquery_attention_part1(
+    #     token_position_var,
+    #     head_var,
+    #     head_size_var,
+    #     key_cache_layer_var,
+    #     q_var,
+    # )
+    # int_x = Int("int_x")
+    # # map_int_to_int_synth = get_map_int_to_int_synth([call_integer_exp(int_x)])
+    # driver.synthesize(listBound=3, noVerify=True)
 
     driver = Driver()
     multiquery_attention_part2 = driver.analyze(
-        llvm_filepath="tests/llvm/gaudi/multiquery_attention_part2.ll",
-        loops_filepath="tests/llvm/gaudi/multiquery_attention_part2.loops",
+        llvm_filepath="tests/llvm/hardlift/llama/cpp/multiquery_attention_part2.ll",
+        loops_filepath="tests/llvm/hardlift/llama/cpp/multiquery_attention_part2.loops",
         fn_name="multiquery_attention_part2",
         target_lang_fn=multiquery_attention_part2_target_lang,
         inv_grammars={

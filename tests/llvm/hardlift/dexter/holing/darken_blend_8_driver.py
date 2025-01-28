@@ -2,7 +2,7 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.gaudi.gaudi_common import (darken_blend_hole_body,
+from tests.llvm.hardlift.hardlift_common import (darken_blend_hole_body,
                                            get_select_synth_from_hole,
                                            selection_two_args_inv0_grammar,
                                            selection_two_args_inv1_grammar,

@@ -1537,7 +1537,7 @@ class Driver:
                 loopAndPsInfo=synths,
                 cvcPath="cvc5",
                 # fn_defs_to_exclude=fn_defs_to_exclude,
-                rounds_to_guess=0,
+                rounds_to_guess=5,
                 fns_to_guess=inv_and_ps, # TODO(jie): might need to change this
                 **synthesize_kwargs,
             )

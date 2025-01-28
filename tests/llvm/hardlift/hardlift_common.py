@@ -2376,7 +2376,8 @@ def get_loop_index_fn(
     return index_fn_decl, index_synth, get_loop_index
 
 def get_loop_bound_fns(
-    loop_fn_args: List[Int],
+    loop_bound_fn_args: List[Int],
+    loop_index_fn_args: List[Int],
     left_bound_choices: List[Int],
     right_bound_choices: List[Int],
     prefix: str = "OUTER_LOOP"
@@ -2384,16 +2385,18 @@ def get_loop_bound_fns(
     List[FnDecl],
     List[Synth],
     Callable,
-    Callable
+    Callable,
+    Bool
 ]:
     # TODO(jie): add return type
     if prefix not in {"OUTER_LOOP", "INNER_LOOP"}:
         raise Exception("Prefix must be one of OUTER_LOOP and INNER_LOOP")
 
-    index_fn_decl, index_synth, get_index = get_loop_index_fn(loop_fn_args, prefix)
+    index_fn_decl, index_synth, get_index = get_loop_index_fn(loop_index_fn_args, prefix)
 
     is_left_bound_smaller_fn_name = f"{prefix}_IS_LEFT_BOUND_SMALLER"
     is_left_bound_smaller_fn_decl, is_left_bound_smaller_synth = get_no_arg_bool_fn(is_left_bound_smaller_fn_name)
+    is_left_bound_smaller = call(is_left_bound_smaller_fn_name, Bool)
 
     left_bound_fn_name = f"{prefix}_LEFT_BOUND"
     right_bound_fn_name = f"{prefix}_RIGHT_BOUND"
@@ -2404,53 +2407,53 @@ def get_loop_bound_fns(
         left_bound_fn_name,
         Int,
         None,
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     left_bound_synth = synth(
         left_bound_fn_name,
         choose(*left_bound_choices),
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     right_bound_fn_decl = fn_decl(
         right_bound_fn_name,
         Int,
         None,
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     right_bound_synth = synth(
         right_bound_fn_name,
         choose(*right_bound_choices),
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     lower_bound_fn_decl = fn_decl(
         lower_bound_fn_name,
         Int,
         None,
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     lower_bound_synth = synth(
         lower_bound_fn_name,
         get_lower_bound_fn_body(
-            call(is_left_bound_smaller_fn_name, Bool),
-            call(left_bound_fn_name, Int, *loop_fn_args),
-            call(right_bound_fn_name, Int, *loop_fn_args)
+            is_left_bound_smaller,
+            call(left_bound_fn_name, Int, *loop_bound_fn_args),
+            call(right_bound_fn_name, Int, *loop_bound_fn_args)
         ),
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     upper_bound_fn_decl = fn_decl(
         upper_bound_fn_name,
         Int,
         None,
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     upper_bound_synth = synth(
         upper_bound_fn_name,
         get_upper_bound_fn_body(
             call(is_left_bound_smaller_fn_name, Bool),
-            call(left_bound_fn_name, Int, *loop_fn_args),
-            call(right_bound_fn_name, Int, *loop_fn_args)
+            call(left_bound_fn_name, Int, *loop_bound_fn_args),
+            call(right_bound_fn_name, Int, *loop_bound_fn_args)
         ),
-        *loop_fn_args
+        *loop_bound_fn_args
     )
     def get_lower_bound(*args: Int) -> Int:
         return call(lower_bound_fn_name, Int, *args)
@@ -2473,7 +2476,7 @@ def get_loop_bound_fns(
         lower_bound_synth,
         upper_bound_synth
     ]
-    return all_decls, all_synths, get_lower_bound, get_upper_bound, get_index
+    return all_decls, all_synths, get_lower_bound, get_upper_bound, get_index, is_left_bound_smaller
 
 def get_no_arg_bool_fn(fn_name: str) -> Tuple[FnDecl, Synth]:
     bool_fn_decl = fn_decl(fn_name, Bool, None)
