@@ -7,16 +7,21 @@ from tests.python.utils.utils import codegen
 
 def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     arg = IntObject("n")
-    select_pred = FnDecl("Select-pred", BoolObject, arg > IntObject(2), arg)
-    select_pred1 = FnDecl("Select-pred1", BoolObject, arg < IntObject(10), arg)
-    select_pred2 = FnDecl("Select-pred2", BoolObject, And(arg > IntObject(2), arg < IntObject(10)), arg)
+    select_pred = FnDecl("Select-pred", BoolObject, arg > 2, arg)
+    select_pred1 = FnDecl("Select-pred1", BoolObject, arg < 10, arg)
+    select_pred2 = FnDecl(
+        "Select-pred2",
+        BoolObject,
+        arg > 2 and arg < 10,
+        arg
+    )
 
     data = ListObject(IntObject, "l")
     select_func = FnDeclRecursive(
         "Select",
         ListObject[IntObject],
         Ite(
-            data.len() == IntObject(0),
+            data.len() == 0,
             ListObject.empty(IntObject),
             Ite(
                 Call("Select-pred", BoolObject, data[0]),

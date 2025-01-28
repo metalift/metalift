@@ -2141,6 +2141,7 @@ class Synth(Expr):
 class Choose(Expr):
     def __init__(self, *args: Expr) -> None:
         if not all(a.type == args[0].type for a in args):
+            import pdb; pdb.set_trace()
             raise Exception(
                 "Choose args are of different types: %s"
                 % " ".join(str(a.type) for a in args)
