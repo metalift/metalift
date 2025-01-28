@@ -1,0 +1,1960 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineSystem.cmake:204 (message)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      The system is: Darwin - 21.6.0 - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[19271]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[19273]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -Aa 
+      
+      The output was:
+      4
+      dyld[19276]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -D__CLASSIC_C__ 
+      
+      The output was:
+      4
+      dyld[19278]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      gcc-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      gcc-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[19281]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[19283]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[19285]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -Aa 
+      
+      The output was:
+      4
+      dyld[19298]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -D__CLASSIC_C__ 
+      
+      The output was:
+      4
+      dyld[19308]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      gcc-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      gcc-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[19328]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the C compiler is IAR using "" did not match "IAR .+ Compiler":
+      gcc-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the C compiler is IAR using "" did not match "IAR .+ Compiler":
+      gcc-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[19364]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[19370]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      g++-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      g++-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[19399]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[19411]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[19435]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      g++-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      g++-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[19492]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+      g++-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+      g++-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-LqyCaB"
+      binary: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-LqyCaB"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-LqyCaB
+        
+        Run Build Command(s):/usr/local/Cellar/cmake/3.26.3/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_9af56/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_9af56.dir/build.make CMakeFiles/cmTC_9af56.dir/build
+        Building C object CMakeFiles/cmTC_9af56.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/gcc-7    -o CMakeFiles/cmTC_9af56.dir/CMakeCCompilerABI.c.o -c /usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeCCompilerABI.c
+        dyld[19556]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+          Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+          Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+        gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+        Please submit a full bug report,
+        with preprocessed source if appropriate.
+        See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+        make[1]: *** [CMakeFiles/cmTC_9af56.dir/CMakeCCompilerABI.c.o] Error 4
+        make: *** [cmTC_9af56/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/gcc-7"
+    directories:
+      source: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-XQONpO"
+      binary: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-XQONpO"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-XQONpO
+        
+        Run Build Command(s):/usr/local/Cellar/cmake/3.26.3/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_d1ec0/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_d1ec0.dir/build.make CMakeFiles/cmTC_d1ec0.dir/build
+        Building C object CMakeFiles/cmTC_d1ec0.dir/testCCompiler.c.o
+        /usr/local/bin/gcc-7    -o CMakeFiles/cmTC_d1ec0.dir/testCCompiler.c.o -c /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-XQONpO/testCCompiler.c
+        dyld[19626]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+          Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+          Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+        gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+        Please submit a full bug report,
+        with preprocessed source if appropriate.
+        See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+        make[1]: *** [CMakeFiles/cmTC_d1ec0.dir/testCCompiler.c.o] Error 4
+        make: *** [cmTC_d1ec0/fast] Error 2
+        
+      exitCode: 2
+...
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87489]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87779]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -Aa 
+      
+      The output was:
+      4
+      dyld[87781]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -D__CLASSIC_C__ 
+      
+      The output was:
+      4
+      dyld[87785]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      gcc-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      gcc-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87788]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87790]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87793]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -Aa 
+      
+      The output was:
+      4
+      dyld[87808]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -D__CLASSIC_C__ 
+      
+      The output was:
+      4
+      dyld[87812]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      gcc-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      gcc-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87817]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the C compiler is IAR using "" did not match "IAR .+ Compiler":
+      gcc-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the C compiler is IAR using "" did not match "IAR .+ Compiler":
+      gcc-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87824]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87831]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      g++-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      g++-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87836]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87838]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87840]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      g++-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      g++-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87847]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+      g++-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+      g++-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-mC865O"
+      binary: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-mC865O"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-mC865O
+        
+        Run Build Command(s):/usr/local/Cellar/cmake/3.26.3/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_5361e/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_5361e.dir/build.make CMakeFiles/cmTC_5361e.dir/build
+        Building C object CMakeFiles/cmTC_5361e.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/gcc-7    -o CMakeFiles/cmTC_5361e.dir/CMakeCCompilerABI.c.o -c /usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeCCompilerABI.c
+        dyld[87858]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+          Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+          Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+        gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+        Please submit a full bug report,
+        with preprocessed source if appropriate.
+        See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+        make[1]: *** [CMakeFiles/cmTC_5361e.dir/CMakeCCompilerABI.c.o] Error 4
+        make: *** [cmTC_5361e/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/gcc-7"
+    directories:
+      source: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-4eXj5a"
+      binary: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-4eXj5a"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-4eXj5a
+        
+        Run Build Command(s):/usr/local/Cellar/cmake/3.26.3/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_0f2a9/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_0f2a9.dir/build.make CMakeFiles/cmTC_0f2a9.dir/build
+        Building C object CMakeFiles/cmTC_0f2a9.dir/testCCompiler.c.o
+        /usr/local/bin/gcc-7    -o CMakeFiles/cmTC_0f2a9.dir/testCCompiler.c.o -c /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-4eXj5a/testCCompiler.c
+        dyld[87867]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+          Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+          Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+        gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+        Please submit a full bug report,
+        with preprocessed source if appropriate.
+        See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+        make[1]: *** [CMakeFiles/cmTC_0f2a9.dir/testCCompiler.c.o] Error 4
+        make: *** [cmTC_0f2a9/fast] Error 2
+        
+      exitCode: 2
+...
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87892]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87894]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -Aa 
+      
+      The output was:
+      4
+      dyld[87896]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -D__CLASSIC_C__ 
+      
+      The output was:
+      4
+      dyld[87898]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      gcc-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      gcc-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87901]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87903]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87905]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -Aa 
+      
+      The output was:
+      4
+      dyld[87907]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -D__CLASSIC_C__ 
+      
+      The output was:
+      4
+      dyld[87909]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      gcc-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      gcc-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/gcc-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87913]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the C compiler is IAR using "" did not match "IAR .+ Compiler":
+      gcc-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the C compiler is IAR using "" did not match "IAR .+ Compiler":
+      gcc-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87917]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87919]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      g++-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      g++-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87925]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      4
+      dyld[87927]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      4
+      dyld[87929]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      g++-7: error: unrecognized command line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      g++-7: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+      g++-7: error: unrecognized command line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/g++-7 
+      Build flags: 
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      4
+      dyld[87936]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+        Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1plus'
+        Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+      g++-7: internal compiler error: Abort trap: 6 (program cc1plus)
+      Please submit a full bug report,
+      with preprocessed source if appropriate.
+      See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+      g++-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1115 (message)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerId.cmake:86 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CXX compiler is IAR using "" did not match "IAR .+ Compiler":
+      g++-7: fatal error: no input files
+      compilation terminated.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-89tnDL"
+      binary: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-89tnDL"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-89tnDL
+        
+        Run Build Command(s):/usr/local/Cellar/cmake/3.26.3/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_11490/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_11490.dir/build.make CMakeFiles/cmTC_11490.dir/build
+        Building C object CMakeFiles/cmTC_11490.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/gcc-7    -o CMakeFiles/cmTC_11490.dir/CMakeCCompilerABI.c.o -c /usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeCCompilerABI.c
+        dyld[87948]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+          Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+          Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+        gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+        Please submit a full bug report,
+        with preprocessed source if appropriate.
+        See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+        make[1]: *** [CMakeFiles/cmTC_11490.dir/CMakeCCompilerABI.c.o] Error 4
+        make: *** [cmTC_11490/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/Cellar/cmake/3.26.3/share/cmake/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/gcc-7"
+    directories:
+      source: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-HeQLfw"
+      binary: "/Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-HeQLfw"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-HeQLfw
+        
+        Run Build Command(s):/usr/local/Cellar/cmake/3.26.3/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_b38d0/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_b38d0.dir/build.make CMakeFiles/cmTC_b38d0.dir/build
+        Building C object CMakeFiles/cmTC_b38d0.dir/testCCompiler.c.o
+        /usr/local/bin/gcc-7    -o CMakeFiles/cmTC_b38d0.dir/testCCompiler.c.o -c /Users/jieq/Desktop/metalift/build/CMakeFiles/CMakeScratch/TryCompile-HeQLfw/testCCompiler.c
+        dyld[87971]: Library not loaded: '/usr/local/opt/isl/lib/libisl.22.dylib'
+          Referenced from: '/usr/local/Cellar/gcc@7/7.5.0_2/libexec/gcc/x86_64-apple-darwin19.4.0/7.5.0/cc1'
+          Reason: tried: '/usr/local/opt/isl/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file), '/usr/local/Cellar/isl/0.26/lib/libisl.22.dylib' (no such file), '/usr/local/lib/libisl.22.dylib' (no such file), '/usr/lib/libisl.22.dylib' (no such file)
+        gcc-7: internal compiler error: Abort trap: 6 (program cc1)
+        Please submit a full bug report,
+        with preprocessed source if appropriate.
+        See <https://github.com/Homebrew/homebrew-core/issues> for instructions.
+        make[1]: *** [CMakeFiles/cmTC_b38d0.dir/testCCompiler.c.o] Error 4
+        make: *** [cmTC_b38d0/fast] Error 2
+        
+      exitCode: 2
+...
