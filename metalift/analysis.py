@@ -34,32 +34,8 @@ from metalift.ir import (
     Synth,
     Var,
 )
-from metalift.vc import VC, Block
-
-from llvmlite import binding as llvm
-from llvmlite.binding import ValueRef
-
-from metalift.ir import (
-    Bool,
-    Expr,
-    Lit,
-    MLInst,
-    MLInst_Assert,
-    MLInst_Assume,
-    MLInst_Call,
-    MLInst_Eq,
-    MLInst_Havoc,
-    MLInst_Load,
-    MLInst_Not,
-    MLInst_Or,
-    MLInst_Return,
-    Object,
-    ObjectT,
-    Synth,
-    Var,
-)
-from metalift.vc import VC, Block
 from metalift.types import String
+from metalift.vc import VC, Block
 
 orig_value_ref_operands = ValueRef.operands
 
@@ -263,7 +239,7 @@ def processLoops(
             opcode = i.opcode
             ops = list(i.operands)
             # prevent duplicate havocs in nested loops
-            # TODO jie: why are havocs only from store instructions
+            # TODO : why are havocs only from store instructions
             if opcode == "store" and ops[1] not in havocs:
                 havocs.append(ops[1])
 
@@ -481,11 +457,13 @@ def analyze(
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)
 
+
 def format_with_index(a: str, idx: int) -> str:
     if idx == 0:
         return a
     else:
         return f"{a}_{idx}"
+
 
 class VariableTracker(object):
     groups: Dict[str, int]
@@ -565,4 +543,3 @@ class VariableGroup(object):
             format_with_index(my_name, self.tracker.existing[my_name])
         ] = type
         return Var(format_with_index(my_name, self.tracker.existing[my_name]), type)
-

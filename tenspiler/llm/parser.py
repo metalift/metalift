@@ -1,7 +1,6 @@
 import json
 import re
 import uuid
-from functools import lru_cache
 from pathlib import Path
 from textwrap import dedent
 from typing import Dict
@@ -161,7 +160,7 @@ def mypy_parse(
             _get_func_def_ir_type(func_def),
             _get_func_def_arg_names(func_def),
         )
-
+    }
     return target_func_defs, func_sign, mypy_build.types
 
 
@@ -511,3 +510,11 @@ def check_solutions(json_filename: str, expected_num_funcs: int = 1) -> None:
             print("============================================")
             print("\n")
             solutions_seen.add(solution)
+
+
+if __name__ == "__main__":
+    # solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/10_choices/transformer_part4_ps_raw_response.json"
+    # solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/blend/outputs/openai/10_choices/screen_blend_8_ps_raw_response.json"
+    # solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/transformer_part1_ps_raw_response.json"
+    solutions_filename = "/code/metalift/tenspiler/llm/benchmarks/llama/outputs/openai/inv/10_choices/matmul_ps_raw_response.json"
+    check_solutions(solutions_filename, 2)

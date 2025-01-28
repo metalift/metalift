@@ -20,7 +20,7 @@ from typing import (
 from llvmlite import binding as llvm
 from llvmlite.binding import TypeRef, ValueRef
 
-from metalift.analysis import setupBlocks, VariableTracker
+from metalift.analysis import VariableTracker, setupBlocks
 from metalift.frontend.utils import ObjectSet
 from metalift.ir import Bool, Call, Eq, Expr, FnDecl, FnDeclRecursive, Int, Ite
 from metalift.ir import List as mlList
@@ -51,7 +51,6 @@ ReturnValue = NamedTuple(
         ("assigns", Optional[List[Tuple[str, Object, str]]]),
     ],
 )
-from metalift.ir_util import is_object_pointer_type
 
 PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
 PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >)"
@@ -268,7 +267,7 @@ def vector_length(
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)
     return ReturnValue(
-        lst.len(),  #type: ignore
+        lst.len(),  # type: ignore
         None,
     )
 
@@ -1013,7 +1012,7 @@ class VCVisitor:
         for var in loop_info.havocs:
             var_type = self.get_var_type(var.name)
             # var_type = blk_state.read_or_load_var(var.name).type
-            # TODO colin: add generic (ie containedT) support needed for objects and different types of objects
+            # TODO: add generic (ie containedT) support needed for objects and different types of objects
             obj = create_object(var_type, var.name)
             if var.type.is_pointer:
                 pointer_havocs.append(obj)
@@ -1631,8 +1630,8 @@ class Driver:
             preds=[],
             vc=vc,
             loop_and_ps_info=synths,
-            cvc_path="cvc5",
-            # cvc_path="/code/metalift/cvc5",
+            # cvc_path="cvc5",
+            cvc_path="/code/metalift/cvc5",
             # fns_to_guess=inv_and_ps, # TODO: might need to change this
             fns_to_guess=synths,
             # TODO: change this to false

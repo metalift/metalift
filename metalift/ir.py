@@ -1,13 +1,11 @@
 import re
 import typing
-from abc import abstractmethod
 from collections import Counter
 from enum import Enum
 from inspect import isclass
 from typing import Any, Callable, Dict, Generic
 from typing import List as pyList  # type: ignore
 from typing import Optional
-from typing import Set as pySet
 from typing import Tuple as pyTuple
 from typing import Type, TypeVar, Union, _GenericAlias, cast, get_args, get_origin
 
@@ -629,7 +627,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
         return List[List[Int]]
 
     elif ty_str in {"%struct.set*"}:
-        # TODO jie: how to support different contained types
+        # TODO : how to support different contained types
         return Set[Int]
     elif ty_str in {"%struct.tup*"}:
         return Tuple[typing.Tuple[Int, Int]]
