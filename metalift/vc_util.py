@@ -7,7 +7,7 @@ from metalift.frontend.utils import ObjectSet
 from metalift.ir import And, Bool, Expr, Int, Lit, Or, get_object_exprs
 
 
-def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Expr:
+def parse_operand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Expr:
     # op is a ValueRef, and if it has a name then it's a register
     if op.name:  # a reg
         try:

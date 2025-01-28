@@ -1,0 +1,94 @@
+import time
+
+from metalift.frontend.llvm import Driver
+from metalift.ir import Int, Matrix
+from tests.llvm.gaudi.gaudi_common import (
+    call_nested_selection,
+    call_selection,
+    get_matrix_computation_grammars_without_analysis,
+    matrix_computation_target_lang,
+    nested_selection,
+    select_fn_decl,
+    select_fn_obj,
+    selection,
+)
+from tests.python.utils.utils import codegen
+
+
+def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    # return [elemwise_min, nested_elemwise_min]
+    return [select_fn_decl, selection, nested_selection]
+
+
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
+    ret_val = writes[0]
+    base, active = reads
+    return ret_val == call_nested_selection(base, active, select_fn_obj)
+
+
+def inv0_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
+    # outer loop grammar
+    out, _, _, row, _ = writes
+    base, active = reads
+    return and_objects(
+        row >= 0,
+        row <= base.len(),
+        out == call_nested_selection(base[:row], active[:row], select_fn_obj),
+    )
+
+
+def inv1_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object]
+) -> Bool:
+    # inner loop grammar
+    col, _, row_vec = writes
+    row = in_scope[0]
+    base, active = reads
+    return and_objects(
+        row >= 0,
+        row < base.len(),
+        col >= 0,
+        col <= base[0].len(),
+        row_vec == call_selection(base[row][:col], active[row][:col], select_fn_obj),
+    )
+
+
+if __name__ == "__main__":
+    driver = Driver()
+    (
+        inv0_grammar,
+        inv1_grammar,
+        ps_grammar,
+    ) = get_matrix_computation_grammars_without_analysis(2)
+    multiply_blend_8 = driver.analyze(
+        llvm_filepath="tests/llvm/gaudi/multiply_blend_8.ll",
+        loops_filepath="tests/llvm/gaudi/multiply_blend_8.loops",
+        fn_name="multiply_blend_8",
+        target_lang_fn=matrix_computation_target_lang,
+        inv_grammars={
+            "multiply_blend_8_inv0": inv0_grammar,
+            "multiply_blend_8_inv1": inv1_grammar,
+        },
+        ps_grammar=ps_grammar,
+    )
+
+    base = Matrix(Int, "base")
+    active = Matrix(Int, "active")
+    driver.add_var_objects([base, active])
+
+    # Add preconditions
+    driver.add_precondition(base.len() > 1)
+    driver.add_precondition(base.len() == active.len())
+    driver.add_precondition(base[0].len() == active[0].len())
+
+    multiply_blend_8(base, active)
+
+    start_time = time.time()
+    driver.synthesize(listBound=3, noVerify=True)
+    end_time = time.time()
+    print(f"Synthesis took {end_time - start_time} seconds")
+    print("\n\ngenerated code:" + multiply_blend_8.codegen(codegen))

@@ -51,7 +51,6 @@ def topological_sort(
 def filterArgs(argList: typing.List[Expr]) -> typing.List[Expr]:
     newArgs = []
     for a in argList:
-        # TODO: since there are no longer function type, is this really needed? is also doesn't seem to run
         if not is_fn_decl_type(a.type):
             newArgs.append(a)
     return newArgs
@@ -64,13 +63,11 @@ def filterBody(funDef: Expr, funCall: str, inCall: str) -> Expr:
         or isinstance(funDef, Lit)
     ):
         return funDef
-    # if isinstance(funDef, Call) and funDef.args[0] == funCall:
     if isinstance(funDef, Call):
         newArgs = []
         for i in range(1, len(funDef.args)):
             if not is_fn_decl_type(funDef.args[i].type):
                 newArgs.append(filterBody(funDef.args[i], funCall, inCall))
-        # return Call(funCall + "_" + inCall, funDef.type, *newArgs)
         return Call(funDef.name(), funDef.type, *newArgs)
     elif isinstance(funDef, CallValue):
         newArgs = []
@@ -166,9 +163,9 @@ def toSMT(
                 decl = FnDeclRecursive(
                     # TODO: cand.type no longer has args, find proper substitution
                     cand.args[0],
-                    cand.type.args[0], # type: ignore
+                    cand.type.args[0],  # type: ignore
                     newBody,
-                    *cand.args[2:],  
+                    *cand.args[2:],
                 )
 
             if cand.args[0] in early_candidates_names:

@@ -7,7 +7,7 @@ from metalift.ir import List as mlList
 from metalift.ir import Object
 from metalift.ir import Set as mlSet
 from metalift.ir import call, make_tuple_type, parse_type_ref_to_obj
-from metalift.vc_util import parseOperand
+from metalift.vc_util import parse_operand
 
 ReturnValue = NamedTuple(
     "ReturnValue",
@@ -249,7 +249,7 @@ def tuple_get(
             primitive_vars[args[0].name]
             if not args[0].type.is_pointer
             else pointer_vars[args[0].name],
-            parseOperand(args[1], primitive_vars),
+            parse_operand(args[1], primitive_vars),
         ),
         None,
     )

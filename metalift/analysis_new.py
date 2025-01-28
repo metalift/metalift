@@ -521,14 +521,3 @@ def analyze(
         loop_info_dict[loop.header[0]] = loop
 
     return AnalysisResult(fn.name, list(fn.arguments), blocks, loop_info_dict)
-
-
-# if __name__ == "__main__":
-#     test_analysis = analyze("tests/ite1.ll", "test", "tests/ite1.loops")
-#     for block in test_analysis.blocks.values():
-#         print(block)
-#         print()
-
-#     variable_tracker = VariableTracker()
-#     vc = test_analysis.call(Int("in"))(variable_tracker, lambda ret: ret == 0)
-#     print(vc)

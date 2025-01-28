@@ -2,27 +2,6 @@ import copy
 import re
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 
-from metalift.ir import (
-    BoolObject,
-    Eq,
-    Expr,
-    FnDecl,
-    FnDeclRecursive,
-    IntObject,
-    ListObject,
-    NewObject,
-    NewObjectT,
-    SetObject,
-    Synth,
-    TupleObject,
-    Var,
-    call,
-    create_object,
-    get_object_exprs,
-    implies,
-    ite,
-    make_tuple,
-)
 from mypy import build
 from mypy.build import BuildResult
 from mypy.defaults import PYTHON3_VERSION
@@ -1017,31 +996,3 @@ class MetaliftFunc:
             raise Exception(f"{self.name} is not synthesized yet")
         else:
             return codegen_fn(self.synthesized)
-
-
-# def old_main():
-#     filename = "tests/python/add.py" if len(sys.argv) == 1 else sys.argv[1]
-
-#     driver = Driver()
-#     test = driver.analyze(filename, "test")
-
-#     i = driver.var_tracker.variable("i", Int())
-#     r = test(i)
-
-#     # r2 = test(r)
-
-#     driver.synthesize_invariants(inv_grammar)
-
-#     num_runs = 1
-#     # ps: y = x or y = 0
-#     # candidate = driver.synthesize(Eq(r, retval_grammar(i, num_runs)))
-#     candidate = driver.synthesize(Or(Eq(r, i), Eq(r, IntLit(0))))
-
-#     # r = i
-#     # num_runs = 4
-#     # for x in range(num_runs):
-#     #     r = test(r)  # test returns r+r, so this is equivalent to calculating (i * 2^num_runs)
-
-#     # candidate = driver.synthesize(Eq(r, retval_grammar(i, num_runs)))
-
-#     # codegen(candidate[0])
