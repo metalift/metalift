@@ -109,7 +109,7 @@ As before, write your own driver file. This includes:
 1. Supplying some information about the loops in your programs, if any, to help LLMLift generate a template for synthesizing invariants. Here is an example. We are working to automate this step!
 2. Specify the output variable, as the example here.
 3. You can select your favorite LLM model by setting the llm_model argument to ```run_llm_synthesis_algorithm```. Currently, we support Claude, GPT, and Gemini. You can use any of these three models by setting their corresponding API keys (OPENAI_API_KEY, CLAUDE_API_KEY, GEMINI_API_KEY) in a .env file.
-4. For initial testing, we recommend using bounded verification, which can be set through the verification_method argument. You can either set it to VerificationMethod.ROSETTE or VerificationMethod.SMT. Full verification (VerificationMethod.SMT) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom here. For more details on axioms on verified lifting, you can refer to the original MetaLift paper.
+4. For initial testing, we recommend using bounded verification, which can be set through the verification_method argument. You can either set it to VerificationMethod.ROSETTE or VerificationMethod.SMT. Full verification (VerificationMethod.SMT) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom here. For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
 
 <!--phmdoctest-mark.skip-->
 ```python
@@ -134,4 +134,4 @@ def invariant_outer(row, col, b, a, out):
     return row >= 0 and row <= len(b) and out == matrix_scalar_sub(255, matrix_add(b[:i], a[:i]))
 ```
 
-Our full paper presented at NeurIPS can be found here.
+Our full paper presented at NeurIPS can be found [here](https://openreview.net/forum?id=spwE9sLrfg).
