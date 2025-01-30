@@ -47,18 +47,3 @@ As examples, we include two sets of benchmarks, the **blend** benchmarks, which 
 ```bash
 python3 tenspiler/(blend|llama)/llm/driver/{benchmark_name}_driver.py
 ```
-
-## Writing Your Own Verified-Lifting Tool Using LLM
-Follow the following instructions to build your own tool.
-
-1. Compile your C/C++ source code to `*.ll` and `*.loops` file using by running
-    ```
-    ./metalift/utils/llvm/compile-add-blocks /path/to/{your_file_name}.cc
-    ```
-    This will output `{your_file_name}.ll` and `{your_file_name}.loops` in the same directory as your input file. We use the `.ll` and `.loops` files for analysis to generate the specifications for transpilation (verification conditions).
-1. Describe the semantics of your DSL. An example is the set of some tensor functions we define [here](./tenspiler/tenspiler_common.py).
-2. Write your own driver file. This includes
-  - Supply some information about the loops in your programs, if any, to help LLMLift generate a template for synthesizing invariants. [Here](./tenspiler/blend/llm/driver/linear_dodge_8_driver.py#L19-L33) is an example. We are working to automate this step!
-  - Specify the output variable, as the example [here](./tenspiler/blend/llm/driver/linear_dodge_8_driver.py#L34). We are working to automate this step as well!
-  - You can select your favorite LLM model by setting the `llm_model` argument to `run_llm_synthesis_algorithm`. Currently, we support Claude, GPT, and Gemini.
-3. For initial testing, we recommend using bounded verification, which can be set through the `verification_method` argument (example [here](./tenspiler/blend/llm/driver/linear_dodge_8_driver.py#L77)). You can either set it to `VerificationMethod.ROSETTE` or `VerificationMethod.SMT`. Full verification (`VerificationMethod.SMT`) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](./tenspiler/axioms.py#L141-149). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
