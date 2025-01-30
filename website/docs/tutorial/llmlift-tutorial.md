@@ -30,7 +30,7 @@ vector<vector<int>> test(vector<vector<int>> b, vector<vector<int>> a) {
 
 This sequential source program performs the linear burn blending operation in image editing. The given source program takes as input two images (represented as 2D vectors) and processes each pixel from both the images by first adding them and then subtracting by integer 255.
 
-We need to compile the source code to LLVM bytecode using the [script provided by Metalift](https://github.com/metalift/metalift/blob/llmlift_final/metalift/utils/llvm/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
+We need to compile the source code to LLVM bytecode using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/metalift/utils/llvm/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
 Similar to the previous tutorials, the next step is to define the target language. We will define the semantics of the tensor operators such as `matrix_add` and `matrix_scalar_sub`.
 
@@ -106,10 +106,10 @@ matrix_scalar_sub = fn_decl_recursive(
 In the previous tutorials, we asked the user to define the search space for loop invairants and program summaries. With LLMLift, we do not require the users to provide any of these search space descriptions. Instead, we leverage the few-shot reasoning capability by providing the models with the semantics of operators from the target language using an IR. By exposing the LLMs to these semantics, we enable them to use their reasoning capabilities over code to generate both the PS and invariants in the IR.
 
 As before, write your own driver file. This includes:
-1. Supplying some information about the loops in your programs, if any, to help LLMLift generate a template for synthesizing invariants. [Here] is an example. We are working to automate this step!
-2. Specify the output variable, as the example [here].
+1. Supplying some information about the loops in your programs, if any, to help LLMLift generate a template for synthesizing invariants. [Here](https://github.com/metalift/metalift/blob/main/benchmarks/blend/driver/multiply_blend_8_driver.py#L22-L36) is an example. We are working to automate this step!
+2. Specify the output variable, as the example [here](https://github.com/metalift/metalift/blob/main/benchmarks/blend/driver/multiply_blend_8_driver.py#L37).
 3. You can select your favorite LLM model by setting the llm_model argument to ```run_llm_synthesis_algorithm```. Currently, we support Claude, GPT, and Gemini. You can use any of these three models by setting their corresponding API keys (OPENAI_API_KEY, CLAUDE_API_KEY, GEMINI_API_KEY) in a .env file.
-4. For initial testing, we recommend using bounded verification, which can be set through the verification_method argument. You can either set it to VerificationMethod.ROSETTE or VerificationMethod.SMT. Full verification (VerificationMethod.SMT) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](../../../metalift/utils/tenspiler/axioms.py#L141-149). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
+4. For initial testing, we recommend using bounded verification, which can be set through the verification_method argument. You can either set it to VerificationMethod.ROSETTE or VerificationMethod.SMT. Full verification (VerificationMethod.SMT) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](https://github.com/metalift/metalift/blob/main/metalift/utils/tenspiler/axioms.py#L141-L149). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
 
 <!--phmdoctest-mark.skip-->
 ```python
