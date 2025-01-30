@@ -5,7 +5,7 @@ sidebar_position: 1
 # LLMs for Verified Lifting
 
 Large Language Models (LLMs) have emerged as a promising approach for tackling complex programming tasks, including code generation, repair, and testing. However, generating reliable code with formal correctness guarantees with LLMs remains challenging. To leverage LLMs for building verified lifting compilers, we must address two key constraints:
-generalization to new DSLs and providing correctness guarantees for the generated code. In this tutorial, we illustrate how to use LLMs for building a verified lifting- based compiler (LLMLift). 
+generalization to new DSLs and providing correctness guarantees for the generated code. In this tutorial, we illustrate how to use LLMs for building a verified lifting- based compiler (LLMLift).
 
 LLMLIFT, takes inspiration from the core technique of VL, which involves translating the source program to a higher-level intermediate representation (IR) that describes the semantics of the DSL operators. Once the synthesized code is verified, it is then translated to the concrete syntax of the DSL using rewrite rules. We leverage the reasoning capabilities of LLMs to translate code from context to an IR. We instruct the model via a prompt to generate code using the operators of the DSL, with Python serving as the IR to encode the semantics of these operators. Python’s significant representation in the training datasets of LLMs makes it a suitable choice for this purpose. In addition to generating the DSL program, we also prompt the model to generate a proof of correctness for the program.
 
@@ -32,7 +32,7 @@ This sequential source program performs the linear burn blending operation in im
 
 We need to compile the source code to LLVM bytecode using the [script provided by Metalift](https://github.com/metalift/metalift/blob/llmlift_final/metalift/utils/llvm/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
-Similar to the previous tutorials, the next step is to define the target language. We will define the semantics of the tensor operators such as `matrix_add` and `matrix_scalar_sub`. 
+Similar to the previous tutorials, the next step is to define the target language. We will define the semantics of the tensor operators such as `matrix_add` and `matrix_scalar_sub`.
 
 <!--phmdoctest-mark.skip-->
 ```python
@@ -78,7 +78,7 @@ def scalar_body(
     vec_fn_name: str,
     matrix_fn_name: str,
 ) -> Union[mlList[Int], Matrix[Int]]:
-    
+
     cur = call(vec_fn_name, mlList[Int], scalar, vec_or_matrix[0])
     recursed = call(matrix_fn_name, Matrix[Int], scalar, vec_or_matrix[1:])
     general_answer = recursed.prepend(cur)
@@ -101,7 +101,7 @@ matrix_scalar_sub = fn_decl_recursive(
 )
 ```
 
-## Synthesis 
+## Synthesis
 
 In the previous tutorials, we asked the user to define the search space for loop invairants and program summaries. With LLMLift, we do not require the users to provide any of these search space descriptions. Instead, we leverage the few-shot reasoning capability by providing the models with the semantics of operators from the target language using an IR. By exposing the LLMs to these semantics, we enable them to use their reasoning capabilities over code to generate both the PS and invariants in the IR.
 
@@ -109,7 +109,7 @@ As before, write your own driver file. This includes:
 1. Supplying some information about the loops in your programs, if any, to help LLMLift generate a template for synthesizing invariants. [Here] is an example. We are working to automate this step!
 2. Specify the output variable, as the example [here].
 3. You can select your favorite LLM model by setting the llm_model argument to ```run_llm_synthesis_algorithm```. Currently, we support Claude, GPT, and Gemini. You can use any of these three models by setting their corresponding API keys (OPENAI_API_KEY, CLAUDE_API_KEY, GEMINI_API_KEY) in a .env file.
-4. For initial testing, we recommend using bounded verification, which can be set through the verification_method argument. You can either set it to VerificationMethod.ROSETTE or VerificationMethod.SMT. Full verification (VerificationMethod.SMT) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](./tenspiler/axioms.py#L141-149). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper]((https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf)).
+4. For initial testing, we recommend using bounded verification, which can be set through the verification_method argument. You can either set it to VerificationMethod.ROSETTE or VerificationMethod.SMT. Full verification (VerificationMethod.SMT) requires additional axioms for the SMT solver to reason over your custom DSLs. You can see one example of the axiom [here](../../../metalift/utils/tenspiler/axioms.py#L141-149). For more details on axioms on verified lifting, you can refer to the original MetaLift [paper](https://drops.dagstuhl.de/storage/00lipics/lipics-vol263-ecoop2023/LIPIcs.ECOOP.2023.38/LIPIcs.ECOOP.2023.38.pdf).
 
 <!--phmdoctest-mark.skip-->
 ```python
