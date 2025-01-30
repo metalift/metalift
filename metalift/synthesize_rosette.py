@@ -36,7 +36,16 @@ from metalift.ir import (
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or
 from metalift.ir import Set as mlSet
-from metalift.ir import Sub, Synth, Target, TupleExpr, TupleGet, Var, get_fn_return_type
+from metalift.ir import (
+    Sub,
+    Synth,
+    Target,
+    TupleExpr,
+    TupleGet,
+    Var,
+    get_fn_return_type,
+    get_list_element_type,
+)
 from metalift.rosette_translator import to_rosette
 from metalift.synthesis_common import (
     SynthesisFailed,
