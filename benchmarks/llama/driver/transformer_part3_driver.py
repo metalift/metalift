@@ -9,7 +9,10 @@ from llmlift_scripts.synthesis import (
 from llmlift_scripts.utils import SingleLoopInfo, get_inv_args, replace_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
-from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
+from metalift.utils.tenspiler.constants import (
+    TENSPILER_FN_NAME_TO_AXIOMS,
+    TENSPILER_FNS,
+)
 
 if __name__ == "__main__":
     start_time = time.time()

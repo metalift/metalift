@@ -10,7 +10,10 @@ from llmlift_scripts.synthesis import (
 from llmlift_scripts.utils import get_inv_args, replace_args
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List, Matrix
-from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
+from metalift.utils.tenspiler.constants import (
+    TENSPILER_FN_NAME_TO_AXIOMS,
+    TENSPILER_FNS,
+)
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -43,8 +46,8 @@ if __name__ == "__main__":
     inv0_grammar = InvGrammar(None, [], inv0_args)
     inv1_grammar = InvGrammar(None, [], inv1_args)
     dissolve_blend_8 = driver.analyze(
-        llvm_filepath="tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.ll",
-        loops_filepath="tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.loops",
+        llvm_filepath="benchmarks/blend/cpp/dissolve_blend_8.ll",
+        loops_filepath="benchmarks/blend/cpp/dissolve_blend_8.loops",
         fn_name="dissolve_blend_8",
         target_lang_fn=[],
         inv_grammars={
@@ -67,9 +70,7 @@ if __name__ == "__main__":
 
     dissolve_blend_8(base, active, opacity, rand_cons)
 
-    input_code = Path(
-        f"tenspiler/blend/cpp/for_synthesis/dissolve_blend_8.cc"
-    ).read_text()
+    input_code = Path(f"benchmarks/blend/cpp/dissolve_blend_8.cc").read_text()
 
     run_llm_synthesis_algorithm(
         driver=driver,

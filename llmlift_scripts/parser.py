@@ -67,7 +67,7 @@ from metalift.ir import (
     make_fn_type,
 )
 
-TENSPILER_LLM_PATH = Path(__file__).parent.resolve()
+LLMLIFT_SCRIPTS_PATH = Path(__file__).parent.resolve()
 
 
 def mypy_type_to_ir_type(mypy_type: Optional[MypyType]) -> Optional[ObjectT]:
@@ -129,11 +129,11 @@ def get_dsl_func_defs() -> List[FuncDef]:
     options.preserve_asts = True
     options.export_types = True
     mypy_build = build.build(
-        sources=[BuildSource(path=None, module="llm.dsl")],
+        sources=[BuildSource(path=None, module="llmlift_scripts.dsl")],
         options=options,
     )
     python_dsl_tree: MypyFile = cast(
-        MypyFile, mypy_build.graph["llm.dsl"].tree
+        MypyFile, mypy_build.graph["llmlift_scripts.dsl"].tree
     )  # tree of the entire module / file
 
     # Get function signatures of the python dsl module
@@ -156,7 +156,7 @@ def mypy_parse(
     mypy_build = build.build(
         sources=[
             BuildSource(path=None, module="target_code", text=code),
-            BuildSource(path=None, module="llm.dsl"),
+            BuildSource(path=None, module="llmlift_scripts.dsl"),
         ],
         options=options,
     )
@@ -178,13 +178,21 @@ def mypy_parse(
         if func_ir_type is None:
             raise Exception(f"Function {func_def.name} has no type information")
 
-    # TODO: right now we are rejecting functions that don't have type information in the signature
-    func_sign = {
-        func_def.name: (
-            _get_func_def_ir_type(func_def),
+        arg_ir_types = func_ir_type.argument_types(get_args(func_ir_type))
+        ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
+        if any(arg_ir_types) is None:
+            raise Exception(
+                f"Function {func_def.name} has arguments with no type information"
+            )
+        if ret_ir_type is None:
+            raise Exception(f"Function {func_def.name} has no return type information")
+
+        func_sign[func_def.name] = (
+            # use .arg_types to get the argument types and .ret_type for return type
+            func_def.type,
+            func_ir_type,
             _get_func_def_arg_names(func_def),
         )
-    }
     return target_func_defs, func_sign, mypy_build.types
 
 
@@ -517,7 +525,7 @@ def check_solution(
 ) -> tuple[list[str], list[FnDeclRecursive], dict[str, list[tuple[str, str]]]]:
     universal_imports = "from typing import Any, Callable, List\n"
     dsl_imports = "from llmlift_scripts.dsl import *\n"
-    with open(TENSPILER_LLM_PATH / "dsl.py", "w") as f:
+    with open(LLMLIFT_SCRIPTS_PATH / "dsl.py", "w") as f:
         dsl_code_with_imports = dedent(
             remove_comments(dedent(universal_imports) + dedent(dsl_code))
         )

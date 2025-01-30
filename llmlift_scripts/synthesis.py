@@ -40,8 +40,7 @@ from metalift.ir import (
 from metalift.rosette_translator import generate_vars
 from metalift.smt_util import augment_arguments, replace_fn_name, toSMT
 from metalift.synthesis_common import get_used_fn_names
-from metalift.vc_util import and_objects
-from tenspiler.tenspiler_common import (
+from metalift.utils.tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
     DISSOLVE_SELECT_TWO_ARGS_ARG,
     DISSOLVE_SELECTION_TWO_ARGS,
@@ -51,6 +50,7 @@ from tenspiler.tenspiler_common import (
     dissolve_matrix_selection_two_args_fn_decl,
     dissolve_selection_two_args_fn_decl,
 )
+from metalift.vc_util import and_objects
 
 
 class VerificationMethod(Enum):

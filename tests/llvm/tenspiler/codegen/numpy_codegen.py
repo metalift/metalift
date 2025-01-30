@@ -20,8 +20,7 @@ from metalift.ir import (
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or, Sub, Var
-from tests.llvm.tenspiler.codegen.utils import DataType
-from tests.llvm.tenspiler.tenspiler_common import (
+from metalift.utils.tenspiler.tenspiler_common import (
     MAP_INT_TO_INT,
     MATRIX_ELEMWISE_ADD,
     MATRIX_ELEMWISE_DIV,
@@ -44,6 +43,7 @@ from tests.llvm.tenspiler.tenspiler_common import (
     VEC_SCALAR_MUL,
     VEC_SCALAR_SUB,
 )
+from tests.llvm.tenspiler.codegen.utils import DataType
 
 # Indentation is 4 spaces
 INDENTATION = " " * 4

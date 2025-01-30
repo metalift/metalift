@@ -2,12 +2,12 @@ import time
 
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Matrix
-from tests.llvm.tenspiler.axioms import matrix_selection_two_args_axiom
-from tests.llvm.tenspiler.codegen.utils import DataType
-from tests.llvm.tenspiler.tenspiler_common import (
+from metalift.utils.tenspiler.tenspiler_common import (
     darken_blend_8_hole_body,
     get_matrix_select_holing_search_space,
 )
+from tests.llvm.tenspiler.axioms import matrix_selection_two_args_axiom
+from tests.llvm.tenspiler.codegen.utils import DataType
 from tests.llvm.tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 if __name__ == "__main__":

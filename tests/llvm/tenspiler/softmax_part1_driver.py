@@ -5,10 +5,10 @@ from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
+from metalift.utils.tenspiler.tenspiler_common import call_reduce_max, reduce_max
 from metalift.vc_util import and_objects
 from tests.llvm.tenspiler.axioms import reduce_max_axiom
 from tests.llvm.tenspiler.codegen.utils import DataType
-from tests.llvm.tenspiler.tenspiler_common import call_reduce_max, reduce_max
 from tests.llvm.tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
