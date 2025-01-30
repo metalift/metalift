@@ -30,7 +30,7 @@ vector<vector<int>> test(vector<vector<int>> b, vector<vector<int>> a) {
 
 This sequential source program performs the linear burn blending operation in image editing. The given source program takes as input two images (represented as 2D vectors) and processes each pixel from both the images by first adding them and then subtracting by integer 255.
 
-We need to compile the source code to LLVM bytecode using the script provided by Metalift. The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
+We need to compile the source code to LLVM bytecode using the [script provided by Metalift](https://github.com/metalift/metalift/blob/main/metalift/utils/llvm/compile-add-blocks). The script generates both the LLVM bitcode (.ll) file by calling the Clang compiler, along with a file containing loop information.
 
 Similar to the previous tutorials, the next step is to define the target language. We will define the semantics of the tensor operators such as `matrix_add` and `matrix_scalar_sub`.
 
