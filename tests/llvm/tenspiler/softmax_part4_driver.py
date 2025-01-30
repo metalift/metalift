@@ -6,10 +6,10 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tenspiler.axioms import vec_scalar_div_axiom
-from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import call_vec_scalar_div, vec_scalar_div
-from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tests.llvm.tenspiler.axioms import vec_scalar_div_axiom
+from tests.llvm.tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.tenspiler_common import call_vec_scalar_div, vec_scalar_div
+from tests.llvm.tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def softmax_part4_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -20,7 +20,7 @@ def softmax_part4_ps_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
     ret_val = writes[0]
-    unnormalized_output, max_pos, sum = reads
+    max_pos, sum, unnormalized_output = reads
     vec = choose(unnormalized_output[:max_pos])
     return ret_val == call_vec_scalar_div(sum, vec)
 
@@ -28,7 +28,7 @@ def softmax_part4_ps_grammar(
 def softmax_part4_inv0_grammar(
     writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
 ) -> Bool:
-    unnormalized_output, max_pos, sum = reads
+    max_pos, sum, unnormalized_output = reads
     out, i, _ = writes
     vec = choose(unnormalized_output[:i], unnormalized_output[:1])
 
@@ -39,8 +39,8 @@ if __name__ == "__main__":
     # Synthesize part 4
     driver = Driver()
     softmax_part4 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.ll",
-        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part4.loops",
+        llvm_filepath="tests/llvm/tenspiler/softmax_part4.ll",
+        loops_filepath="tests/llvm/tenspiler/softmax_part4.loops",
         fn_name="softmax_part4",
         target_lang_fn=softmax_part4_target_lang,
         inv_grammars={

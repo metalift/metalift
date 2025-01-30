@@ -6,10 +6,10 @@ from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int
 from metalift.ir import List as mlList
 from metalift.ir import Object, choose
 from metalift.vc_util import and_objects
-from tenspiler.axioms import reduce_max_axiom
-from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import call_reduce_max, reduce_max
-from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
+from tests.llvm.tenspiler.axioms import reduce_max_axiom
+from tests.llvm.tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.tenspiler_common import call_reduce_max, reduce_max
+from tests.llvm.tenspiler.utils.synthesis_utils import run_synthesis_algorithm
 
 
 def softmax_part1_target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
@@ -24,7 +24,7 @@ def softmax_part1_ps_grammar(
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
-    if relaxed_grammar:
+    if relaxed:
         lower_bound = choose(Int(0), Int(1), Int(2))
         upper_bound = choose(max_pos, max_pos - 1, max_pos + 1)
         vec = input[lower_bound:upper_bound]
@@ -42,7 +42,7 @@ def softmax_part1_inv0_grammar(
 ) -> Bool:
     input, max_pos = reads
     i, max_val = writes
-    if relaxed_grammar:
+    if relaxed:
         lower_bound = choose(Int(0), Int(1), Int(2))
         upper_bound = choose(max_pos, max_pos - 1, max_pos + 1)
         vec = input[lower_bound:i]
@@ -58,8 +58,8 @@ if __name__ == "__main__":
     # Synthesize part 1
     driver = Driver()
     softmax_part1 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll",
-        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.loops",
+        llvm_filepath="tests/llvm/tenspiler/softmax_part1.ll",
+        loops_filepath="tests/llvm/tenspiler/softmax_part1.loops",
         fn_name="softmax_part1",
         target_lang_fn=softmax_part1_target_lang,
         inv_grammars={

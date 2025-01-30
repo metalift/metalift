@@ -1,5 +1,5 @@
-from typing import Any, Dict, Tuple, Union
 import textwrap
+from typing import Any, Dict, Tuple, Union
 
 from metalift.ir import (
     Add,
@@ -19,8 +19,8 @@ from metalift.ir import (
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
-from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import (
+from tests.llvm.tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.tenspiler_common import (
     MAP_INT_TO_INT,
     MATRIX_ELEMWISE_ADD,
     MATRIX_ELEMWISE_DIV,
@@ -295,7 +295,7 @@ def pytorch_codegen(
                 return helper(vars_to_replace[expr.name()], vars_to_replace)
             return expr.name(), expr.type
         return str(expr)
-    
+
     ###############################
     # Begins actual code generation
     ###############################

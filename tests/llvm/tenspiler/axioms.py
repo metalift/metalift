@@ -2,7 +2,7 @@ from metalift.ir import Axiom, Bool, Int
 from metalift.ir import List as mlList
 from metalift.ir import Matrix, implies, ite
 from metalift.vc_util import and_objects
-from tenspiler.tenspiler_common import (
+from tests.llvm.tenspiler.tenspiler_common import (
     call_dissolve_matrix_selection,
     call_dissolve_selection,
     call_matrix_elemwise_add,

@@ -40,6 +40,7 @@ MATRIX_ELEMWISE_MUL = "matrix_elemwise_mul"
 TENSOR3D_ELEMWISE_MUL = "tensor3d_elemwise_mul"
 VEC_ELEMWISE_DIV = "vec_elemwise_div"
 MATRIX_ELEMWISE_DIV = "matrix_elemwise_div"
+TENSOR3D_ELEMWISE_DIV = "tensor3d_elemwise_div"
 
 # Scalar functions
 VEC_SCALAR_ADD = "vec_scalar_add"

@@ -32,7 +32,7 @@ from metalift.ir import (
     is_list_type,
     is_matrix_type,
 )
-from tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.codegen.utils import DataType
 
 # Indentation is 4 spaces
 INDENTATION = " " * 4

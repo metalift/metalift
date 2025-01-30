@@ -1,3 +1,4 @@
+import textwrap
 from typing import Any, Dict, Tuple, Union
 
 from metalift.ir import (
@@ -5,6 +6,7 @@ from metalift.ir import (
     And,
     Bool,
     Call,
+    Choose,
     Div,
     Eq,
     Expr,
@@ -17,9 +19,9 @@ from metalift.ir import (
     Le,
 )
 from metalift.ir import List as mlList
-from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
-from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import (
+from metalift.ir import Lit, Lt, Matrix, Mod, Mul, Not, ObjectT, Or, Sub, Var
+from tests.llvm.tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.tenspiler_common import (
     MAP_INT_TO_INT,
     MATRIX_ELEMWISE_ADD,
     MATRIX_ELEMWISE_DIV,
@@ -79,17 +81,17 @@ translations = {
     MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})"
     if is_floor
     else f"({processed_args[1]}) / ({processed_args[0]})",
-    "matrix_vec_mul": lambda processed_args: f"tf.linalg.matvec({processed_args[0]}, {processed_args[1]})",
-    "list_eq": lambda processed_args: f"tf.equal({processed_args[0]}, {processed_args[1]})",
-    "list_empty": lambda processed_args: f"tf.zeros([0], dtype=tf.float32)",
-    "matrix_empty": lambda processed_args: f"tf.zeros([0, 0], dtype=tf.float32)",
+    "matrix_vec_mul": lambda processed_args: f"np.matmul({processed_args[0]}, {processed_args[1]})",
+    "list_eq": lambda processed_args: f"np.equal({processed_args[0]}, {processed_args[1]})",
+    "list_empty": lambda processed_args: f"np.empty((0))",
+    "matrix_empty": lambda processed_args: f"np.empty((0, 0))",
     "list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
     "matrix_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
-    "list_append": lambda processed_args: f"tf.concat([{processed_args[0]}, tf.expand_dims({processed_args[1]}, 0)], axis=0)",
-    "matrix_append": lambda processed_args: f"tf.concat([{processed_args[0]}, tf.expand_dims({processed_args[1]}, 0)], axis=0)",
-    "list_prepend": lambda processed_args: f"tf.concat([tf.expand_dims({processed_args[1]}, 0), {processed_args[0]}], axis=0)",
-    "matrix_prepend": lambda processed_args: f"tf.concat([tf.expand_dims({processed_args[1]}, 0), {processed_args[0]}], axis=0)",
-    "list_concat": lambda processed_args: f"tf.concat([{processed_args[0]}, {processed_args[1]}], dim=0)",
+    "list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "matrix_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "matrix_prepand": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "list_concat": lambda processed_args: f"np.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "matrix_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
@@ -100,22 +102,14 @@ translations = {
     "matrix_row_slice_with_length": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "matrix_col_slice": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[2]}]",
     "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
-    "list_length": lambda processed_args, is_int=True: f"tf.size({processed_args[0]})"
-    if is_int
-    else f"tf.size({processed_args[0]}, tf.float32)",
-    "matrix_length": lambda processed_args, is_int=True: f"tf.size({processed_args[0]})"
-    if is_int
-    else f"tf.size({processed_args[0]}, tf.float32)",
-    "matrix_transpose": lambda processed_args: f"tf.transpose({processed_args[0]})",
-    "reduce_max": lambda processed_args: f"tf.reduce_max({processed_args[0]})",
-    "reduce_sum": lambda processed_args: f"tf.reduce_sum({processed_args[0]})",
-    "reduce_mul": lambda processed_args: f"tf.reduce_prod({processed_args[0]})",
-    "integer_sqrt": lambda processed_args, is_list=False: f"tf.sqrt({processed_args[0]})"
-    if is_list
-    else f"tf.sqrt(tf.cast({processed_args[0]}, tf.float32))",
-    "integer_exp": lambda processed_args, is_list=False: f"tf.exp({processed_args[0]})"
-    if is_list
-    else f"tf.exp(tf.cast({processed_args[0]}, tf.float32))",
+    "list_length": lambda processed_args: f"{processed_args[0]}.size",
+    "matrix_length": lambda processed_args: f"{processed_args[0]}.size",
+    "matrix_transpose": lambda processed_args: f"np.transpose({processed_args[0]})",
+    "reduce_max": lambda processed_args: f"np.max({processed_args[0]})",
+    "reduce_sum": lambda processed_args: f"np.sum({processed_args[0]})",
+    "reduce_mul": lambda processed_args: f"np.prod({processed_args[0]})",
+    "integer_sqrt": lambda processed_args, is_list=False: f"np.sqrt({processed_args[0]})",
+    "integer_exp": lambda processed_args, is_list=False: f"np.exp({processed_args[0]})",
     Add: lambda processed_args, is_int: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args, is_int: f"({processed_args[0]}) - ({processed_args[1]})",
     Mul: lambda processed_args, is_int: f"({processed_args[0]}) * ({processed_args[1]})",
@@ -124,32 +118,32 @@ translations = {
     Mod: lambda processed_args, is_int: f"({processed_args[0]}) % ({processed_args[1]})",
     Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}"
     if is_int
-    else f"tf.equal({processed_args[0]}, {processed_args[1]})",
+    else f"np.equal({processed_args[0]}, {processed_args[1]})",
     Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}"
     if is_int
-    else f"tf.greater({processed_args[0]}, {processed_args[1]})",
+    else f"np.greater({processed_args[0]}, {processed_args[1]})",
     Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}"
     if is_int
-    else f"tf.greater_equal({processed_args[0]}, {processed_args[1]})",
+    else f"np.greater_equal({processed_args[0]}, {processed_args[1]})",
     Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}"
     if is_int
-    else f"tf.less({processed_args[0]}, {processed_args[1]})",
+    else f"np.less({processed_args[0]}, {processed_args[1]})",
     Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}"
     if is_int
-    else f"tf.less_equal({processed_args[0]}, {processed_args[1]})",
+    else f"np.less_equal({processed_args[0]}, {processed_args[1]})",
     Not: lambda processed_args, is_prim: f"not {processed_args[0]}"
     if is_prim
-    else f"tf.logical_not({processed_args[0]})",
+    else f"np.logical_not({processed_args[0]})",
     And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})"
     if is_prim
-    else f"tf.logical_and({processed_args[0]}, {processed_args[1]})",
+    else f"np.logical_and({processed_args[0]}, {processed_args[1]})",
     Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})"
     if is_prim
-    else f"tf.logical_or({processed_args[0]}, {processed_args[1]})",
+    else f"np.logical_or({processed_args[0]}, {processed_args[1]})",
 }
 
 
-def tensorflow_codegen(
+def numpy_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
@@ -157,6 +151,11 @@ def tensorflow_codegen(
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
         if not isinstance(expr, Expr):
             return str(expr), None
+        if isinstance(expr, Choose):
+            if len(expr.arguments()) == 1:
+                return helper(expr.arguments()[0], vars_to_replace)
+            else:
+                raise ValueError("Choose with more than 1 argument not supported")
         if isinstance(expr, Call):
             processed_args = [
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
@@ -180,7 +179,7 @@ def tensorflow_codegen(
                 for i in range(2):
                     vars_to_replace[select_args[i].name()] = matrix_args[i]
                 return (
-                    f"tf.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})",
+                    f"np.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})",
                     expr.type,
                 )
             elif fn_name == MAP_INT_TO_INT or fn_name == "vec_map":
@@ -200,8 +199,6 @@ def tensorflow_codegen(
                     SCALAR_MATRIX_DIV,
                     VEC_SCALAR_DIV,
                     MATRIX_SCALAR_DIV,
-                    "list_length",
-                    "matrix_length",
                 }:
                     return (
                         translations[fn_name](processed_args, d_type != DataType.FLOAT),
@@ -265,6 +262,7 @@ def tensorflow_codegen(
             if expr.name() in vars_to_replace:
                 return helper(vars_to_replace[expr.name()], vars_to_replace)
             return expr.name(), expr.type
+
         return str(expr)
 
     ###############################
@@ -272,38 +270,39 @@ def tensorflow_codegen(
     ###############################
     import_stmt = """
 ####### import statements ########
-import tensorflow as tf
+import numpy as np
 """
     print(import_stmt)
 
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
     arguments_str = ", ".join(arguments)
-    kernel_name = f"{fn_name}_tf"
+    kernel_name = f"{fn_name}_np"
+
     print("####### kernel code ########")
     kernel_fn = f"""
-    def {kernel_name}({arguments_str}):
+    def {kernel_name} ({arguments_str}):
         return {helper(ps_fn_decl.body())[0]}
     """
     kernel_fn = textwrap.dedent(kernel_fn)
     print(kernel_fn)
 
     print("####### glued code ########")
-    glued_name = f"{fn_name}_tf_glued"
+    glued_name = f"{fn_name}_np_glued "
     argument_types = [arg.type for arg in ps_fn_decl.arguments()]
 
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "tf.uint8"
+            lib_dtype = "np.uint8"
             if d_type == DataType.FLOAT:
-                lib_dtype = "tf.float32"
+                lib_dtype = "np.float32"
 
             if d_type == DataType.INT32:
-                lib_dtype = "tf.int32"
+                lib_dtype = "np.int32"
 
             conversions.append(
-                f"{arguments[i]} = tf.convert_to_tensor({arguments[i]}, dtype={lib_dtype})"
+                f"{arguments[i]} = np.array({arguments[i]}).astype({lib_dtype})"
             )
 
     arg_processing = f"\n{INDENTATION * 2}".join(conversions)

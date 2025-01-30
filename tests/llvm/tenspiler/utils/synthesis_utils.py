@@ -2,8 +2,8 @@ from pathlib import Path
 
 from metalift.frontend.llvm import Driver
 from metalift.synthesis_common import SynthesisFailed, VerificationFailed
-from tenspiler.codegen.numpy_codegen import numpy_codegen
-from tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.codegen.numpy_codegen import numpy_codegen
+from tests.llvm.tenspiler.codegen.utils import DataType
 
 tpcc_benchmarks = {
     "normal_blend_f",

@@ -1,12 +1,11 @@
-from typing import Any, Dict, Tuple, Union
 import textwrap
+from typing import Any, Dict, Tuple, Union
 
 from metalift.ir import (
     Add,
     And,
     Bool,
     Call,
-    Choose,
     Div,
     Eq,
     Expr,
@@ -20,8 +19,8 @@ from metalift.ir import (
 )
 from metalift.ir import List as mlList
 from metalift.ir import Lit, Lt, Mod, Mul, Not, ObjectT, Or, Sub, Var
-from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import (
+from tests.llvm.tenspiler.codegen.utils import DataType
+from tests.llvm.tenspiler.tenspiler_common import (
     MAP_INT_TO_INT,
     MATRIX_ELEMWISE_ADD,
     MATRIX_ELEMWISE_DIV,
@@ -47,7 +46,6 @@ from tenspiler.tenspiler_common import (
 
 # Indentation is 4 spaces
 INDENTATION = " " * 4
-
 translations = {
     VEC_ELEMWISE_ADD: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
     MATRIX_ELEMWISE_ADD: lambda processed_args: f"({processed_args[0]}) + ({processed_args[1]})",
@@ -81,17 +79,17 @@ translations = {
     MATRIX_SCALAR_DIV: lambda processed_args, is_floor: f"({processed_args[1]}) // ({processed_args[0]})"
     if is_floor
     else f"({processed_args[1]}) / ({processed_args[0]})",
-    "matrix_vec_mul": lambda processed_args: f"np.matmul({processed_args[0]}, {processed_args[1]})",
-    "list_eq": lambda processed_args: f"np.equal({processed_args[0]}, {processed_args[1]})",
-    "list_empty": lambda processed_args: f"np.empty((0))",
-    "matrix_empty": lambda processed_args: f"np.empty((0, 0))",
+    "matrix_vec_mul": lambda processed_args: f"mx.matmul({processed_args[0]}, {processed_args[1]})",
+    "list_eq": lambda processed_args: f"mx.equal({processed_args[0]}, {processed_args[1]})",
+    "list_empty": lambda processed_args: f"mx.zeros((0))",
+    "matrix_empty": lambda processed_args: f"mx.zeros([0, 0])",
     "list_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
     "matrix_get": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}]",
-    "list_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
-    "matrix_append": lambda processed_args: f"np.concatenate([{processed_args[0]}, np.expand_dims({processed_args[1]}, axis=0)], axis=0)",
-    "list_prepend": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
-    "matrix_prepand": lambda processed_args: f"np.concatenate([np.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
-    "list_concat": lambda processed_args: f"np.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
+    "list_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "matrix_append": lambda processed_args: f"mx.concatenate([{processed_args[0]}, mx.expand_dims({processed_args[1]}, axis=0)], axis=0)",
+    "list_prepend": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "matrix_prepand": lambda processed_args: f"mx.concatenate([mx.expand_dims({processed_args[1]}, axis=0), {processed_args[0]}], axis=0)",
+    "list_concat": lambda processed_args: f"mx.concatenate([{processed_args[0]}, {processed_args[1]}], dim=0)",
     "list_tail": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
     "matrix_tail": lambda processed_args: f"{processed_args[0]}[{processed_args[1]}:]",
     "list_take": lambda processed_args: f"{processed_args[0]}[:{processed_args[1]}]",
@@ -104,12 +102,16 @@ translations = {
     "matrix_col_slice_with_length": lambda processed_args: f"{processed_args[0]}[:, {processed_args[1]}:{processed_args[1]} + {processed_args[2]}]",
     "list_length": lambda processed_args: f"{processed_args[0]}.size",
     "matrix_length": lambda processed_args: f"{processed_args[0]}.size",
-    "matrix_transpose": lambda processed_args: f"np.transpose({processed_args[0]})",
-    "reduce_max": lambda processed_args: f"np.max({processed_args[0]})",
-    "reduce_sum": lambda processed_args: f"np.sum({processed_args[0]})",
-    "reduce_mul": lambda processed_args: f"np.prod({processed_args[0]})",
-    "integer_sqrt": lambda processed_args, is_list=False: f"np.sqrt({processed_args[0]})",
-    "integer_exp": lambda processed_args, is_list=False: f"np.exp({processed_args[0]})",
+    "matrix_transpose": lambda processed_args: f"mx.transpose({processed_args[0]})",
+    "reduce_max": lambda processed_args: f"mx.max({processed_args[0]})",
+    "reduce_sum": lambda processed_args: f"mx.sum({processed_args[0]})",
+    "reduce_mul": lambda processed_args: f"mx.prod({processed_args[0]})",
+    "integer_sqrt": lambda processed_args, is_list=False: f"mx.sqrt({processed_args[0]})"
+    if is_list
+    else f"mx.sqrt(mx.array({processed_args[0]}))",
+    "integer_exp": lambda processed_args, is_list=False: f"mx.exp({processed_args[0]})"
+    if is_list
+    else f"mx.exp(mx.array({processed_args[0]}))",
     Add: lambda processed_args, is_int: f"({processed_args[0]}) + ({processed_args[1]})",
     Sub: lambda processed_args, is_int: f"({processed_args[0]}) - ({processed_args[1]})",
     Mul: lambda processed_args, is_int: f"({processed_args[0]}) * ({processed_args[1]})",
@@ -118,49 +120,49 @@ translations = {
     Mod: lambda processed_args, is_int: f"({processed_args[0]}) % ({processed_args[1]})",
     Eq: lambda processed_args, is_int: f"{processed_args[0]} == {processed_args[1]}"
     if is_int
-    else f"np.equal({processed_args[0]}, {processed_args[1]})",
+    else f"mx.equal({processed_args[0]}, {processed_args[1]})",
     Gt: lambda processed_args, is_int: f"{processed_args[0]} > {processed_args[1]}"
     if is_int
-    else f"np.greater({processed_args[0]}, {processed_args[1]})",
+    else f"mx.greater({processed_args[0]}, {processed_args[1]})",
     Ge: lambda processed_args, is_int: f"{processed_args[0]} >= {processed_args[1]}"
     if is_int
-    else f"np.greater_equal({processed_args[0]}, {processed_args[1]})",
+    else f"mx.greater_equal({processed_args[0]}, {processed_args[1]})",
     Lt: lambda processed_args, is_int: f"{processed_args[0]} < {processed_args[1]}"
     if is_int
-    else f"np.less({processed_args[0]}, {processed_args[1]})",
+    else f"mx.less({processed_args[0]}, {processed_args[1]})",
     Le: lambda processed_args, is_int: f"{processed_args[0]} <= {processed_args[1]}"
     if is_int
-    else f"np.less_equal({processed_args[0]}, {processed_args[1]})",
+    else f"mx.less_equal({processed_args[0]}, {processed_args[1]})",
     Not: lambda processed_args, is_prim: f"not {processed_args[0]}"
     if is_prim
-    else f"np.logical_not({processed_args[0]})",
+    else f"mx.logical_not({processed_args[0]})",
     And: lambda processed_args, is_prim: f"({processed_args[0]}) and ({processed_args[1]})"
     if is_prim
-    else f"np.logical_and({processed_args[0]}, {processed_args[1]})",
+    else f"mx.logical_and({processed_args[0]}, {processed_args[1]})",
     Or: lambda processed_args, is_prim: f"({processed_args[0]}) or ({processed_args[1]})"
     if is_prim
-    else f"np.logical_or({processed_args[0]}, {processed_args[1]})",
+    else f"mx.logical_or({processed_args[0]}, {processed_args[1]})",
 }
 
 
-def numpy_codegen(
+def mlx_codegen(
     ps_fn_decl: Union[FnDecl, FnDeclRecursive],
     all_synthesized_fns: Dict[str, Expr],
     d_type: DataType = DataType.FLOAT,
 ) -> str:
+    has_matmul = False
+
     def helper(expr: Any, vars_to_replace: Dict[str, Expr] = {}) -> Tuple[str, ObjectT]:
+        nonlocal has_matmul
         if not isinstance(expr, Expr):
             return str(expr), None
-        if isinstance(expr, Choose):
-            if len(expr.arguments()) == 1:
-                return helper(expr.arguments()[0], vars_to_replace)
-            else:
-                raise ValueError("Choose with more than 1 argument not supported")
         if isinstance(expr, Call):
             processed_args = [
                 helper(arg, vars_to_replace)[0] for arg in expr.arguments()
             ]
             fn_name = expr.name()
+            if fn_name == "matrix_vec_mul":
+                has_matmul = True
             if fn_name.endswith("matrix_selection_two_args"):
                 for name, fn in all_synthesized_fns.items():
                     if name.endswith("select_two_args"):
@@ -179,7 +181,7 @@ def numpy_codegen(
                 for i in range(2):
                     vars_to_replace[select_args[i].name()] = matrix_args[i]
                 return (
-                    f"np.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})",
+                    f"mx.where({helper(cond, vars_to_replace)[0]}, {helper(if_then, vars_to_replace)[0]}, {helper(if_else, vars_to_replace)[0]})",
                     expr.type,
                 )
             elif fn_name == MAP_INT_TO_INT or fn_name == "vec_map":
@@ -207,13 +209,11 @@ def numpy_codegen(
                 return translations[fn_name](processed_args), expr.type
             elif fn_name in all_synthesized_fns.keys():
                 return helper(all_synthesized_fns[fn_name].body())
-
             raise Exception(f"Unknown function name: {fn_name}")
 
         # Ite expression. Some condition are constants
         if isinstance(expr, Ite):
             cond = helper(expr.c())[0]
-
             if cond == "True":
                 return helper(expr.e1(), vars_to_replace)
             elif cond == "False":
@@ -262,23 +262,18 @@ def numpy_codegen(
             if expr.name() in vars_to_replace:
                 return helper(vars_to_replace[expr.name()], vars_to_replace)
             return expr.name(), expr.type
-
         return str(expr)
 
-    ###############################
-    # Begins actual code generation
-    ###############################
+    ############# Actual codegen
     import_stmt = """
 ####### import statements ########
-import numpy as np
+import mlx.core as mx
 """
     print(import_stmt)
-
     fn_name = f"{ps_fn_decl.name()[:-3]}"
     arguments = [arg.name() for arg in ps_fn_decl.arguments()]
     arguments_str = ", ".join(arguments)
-    kernel_name = f"{fn_name}_np"
-
+    kernel_name = f"{fn_name}_mx"
     print("####### kernel code ########")
     kernel_fn = f"""
     def {kernel_name} ({arguments_str}):
@@ -286,25 +281,23 @@ import numpy as np
     """
     kernel_fn = textwrap.dedent(kernel_fn)
     print(kernel_fn)
-
     print("####### glued code ########")
-    glued_name = f"{fn_name}_np_glued "
+    glued_name = f"{fn_name}_mx_glued "
     argument_types = [arg.type for arg in ps_fn_decl.arguments()]
-
     conversions = []
     for i in range(len(arguments)):
         if argument_types[i] == Matrix[Int] or argument_types[i] == mlList[Int]:
-            lib_dtype = "np.uint8"
+            lib_dtype = "mx.uint8"
             if d_type == DataType.FLOAT:
-                lib_dtype = "np.float32"
-
+                lib_dtype = "mx.float32"
             if d_type == DataType.INT32:
-                lib_dtype = "np.int32"
-
+                lib_dtype = "mx.int32"
+            # matmul require float
+            if has_matmul:
+                lib_dtype = "mx.float32"
             conversions.append(
-                f"{arguments[i]} = np.array({arguments[i]}).astype({lib_dtype})"
+                f"{arguments[i]} = mx.array({arguments[i]}, {lib_dtype})"
             )
-
     arg_processing = f"\n{INDENTATION * 2}".join(conversions)
     glued_fn = f"""
     def {glued_name}({arguments_str}):
@@ -313,5 +306,4 @@ import numpy as np
     """
     glued_fn = textwrap.dedent(glued_fn)
     print(glued_fn)
-
     return import_stmt + kernel_fn + glued_fn
