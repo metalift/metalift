@@ -1,49 +1,60 @@
-# LLMLift
-LLMLift is an LLM-based approach for building verified-lifting tools. LLMLift builds over [MetaLift](https://metalift.pages.dev/) by replacing its symbolic synthesis engine with an LLM.
+<p align="center"><img width="800" src="https://github.com/metalift/metalift/raw/main/logo.png"/></p>
+<p align="center"><i>A program synthesis framework for verified lifting applications</i></p>
 
-Check out the full paper [here](https://openreview.net/forum?id=spwE9sLrfg), accepted at NeurIPS 2024.
+# Get Started at [metalift.pages.dev](https://metalift.pages.dev)
 
-## Getting started
+See [tests](https://github.com/metalift/metalift/tree/main/tests) folder for test cases.
+Check out any of the python files in that folder to see how to define
+your target language and build your own lifting based compiler.
+Do not use `main.py`.
 
-### Installation
+We currently support LLMs and [Rosette](https://emina.github.io/rosette/) (and [cvc5](https://cvc5.github.io/) but cvc5 has been flaky) as the synthesis backend, and [Z3](https://github.com/Z3Prover/z3) as the verifier. For synthesizing using LLMs, see [this README](./benchmarks/README.md) for instructions. We also have a detailed blog [here]().
 
-#### Get source code
-First, clone the MetaLift repository with branch `llmlift`.
-```bash
-git clone --branch llmlift https://github.com/metalift/metalift.git
-```
+### LLVM instructions
 
-#### Install dependencies
-LLMLift supports both bounded verification and full verification. Bounded verification is done using Rosette's verification API and full verification is performed using an SMT solver (cvc5).
-For bounded verification, install [Racket](https://racket-lang.org) and [Rosette](https://github.com/emina/rosette), and for full verification, install [cvc5](https://cvc5.github.io/).
+**We currently support LLVM 11**
 
-LLMLift can translate source code written in C++, and requires the following dependencies for generating the specification (VC).
-  - [Clang/LLVM 11](https://llvm.org), to compile input programs to LLVM IR for analysis.
-  - [CMake](https://cmake.org/), to build the custom LLVM pass.
-
-#### Install Python dependencies
-We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry through `pip install poetry`. Then, run `poetry install` and `poetry shell` to enter an environment with dependencies installed.
-
-#### Build the custom LLVM pass
-LLMLift makes use of a custom LLVM pass to organize the basic blocks in a way that is easier to analyze. To build the pass, we'll use CMake:
-
-```bash
+Run the following to build the LLVM pass for processing branch instructions (works for LLVM 11):
+````angular2
 cd llvm-pass
 mkdir build
 cd build
 cmake ..
 make
-cd ../..
-```
+cd ..
+````
+Then run it with:
+````angular2
+opt -load build/addEmptyBlocks/libAddEmptyBlocksPass.so -addEmptyBlock -S <.ll name>
+````
+This pass is called in `tests/compile-add-blocks`.
 
-#### Install pre-commit Hooks
-We use [pre-commit](https://pre-commit.com/) to enforce code style and formatting. To install the pre-commit hooks, run `pre-commit install`.
+### Deprecated instructions from earlier version
 
-## Running Benchmarks
-We currently support Claude, Gemini, and GPT as the LLM model for synthesis. You can use any of these three models by setting their corresponding API keys (`OPENAI_API_KEY`, `CLAUDE_API_KEY`, `GEMINI_API_KEY`) in a `.env` file.
+To run synthesis, build [CVC5](https://github.com/cvc5/cvc5) from source, run `configure` with `debug` and then build.
 
-As examples, we include two sets of benchmarks, the **blend** benchmarks, which include 12 open-source implementations of blending modes in Photoshop, and the **Llama** benchmarks, which consist of 11 C++ inference kernels of Llama2 that capture operations such as computing activations, attention mechanisms, and layer norms. The benchmarks are available in the [`tenspiler/blend/llm`](./tenspiler/blend/llm) and the [`tenspiler/llama/llm`](./tenspiler/llama/llm) directories, respectively. Scripts for end-to-end synthesis and verification of the benchmarks live under the `benchmarks/(blend|llama)/llm/driver/` directories can be run using the following commands:
+Then run metalift from `main.py`.
 
+Example synthesis usage: `main.py tests/while4.ll tests/while4-grammar.sl tests/out.smt test tests/while4.loops <path to cvc5>`
+
+Example verification usage (using pre-generated answer): `main.py tests/while4.ll tests/while4-ans.smt tests/out.smt test tests/while4.loops`
+This prints the verification file to out.smt that can be run using an external solver (e.g., z3)
+
+## Set up with Nix
+To get a development environment up and running, one option is to use [Nix](https://nixos.org/), which can automatically pull and build the necessary dependencies. First, you'll need to [install Nix](https://nixos.org/download.html). Note that this _will_ require temporary root access as Nix sets up a daemon to handle builds, and will set up a separate volume for storing build artifacts if on macOS.
+
+Once you've got Nix installed, you'll need to enable [flakes](https://nixos.wiki/wiki/Flakes).
+
+Then, all you have to do is navigate to the Metalift directory and run the following command:
 ```bash
-python3 tenspiler/(blend|llama)/llm/driver/{benchmark_name}_driver.py
+$ nix develop
 ```
+
+This will build all of Metalift's dependencies and drop you into a temporary shell with all the dependencies available.
+
+**Note**: you still will need to install Racket and Rosette separately. There _is_ a solution for doing this through Nix, but it requires [nix-ld](https://github.com/Mic92/nix-ld) to be installed and is generally not recommended unless you run NixOS.
+
+## Install Python Dependencies
+We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
+
+## LLMLift
