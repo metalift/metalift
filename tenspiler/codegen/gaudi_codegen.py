@@ -812,8 +812,8 @@ def gaudi_codegen(
 
     # TPC-C only supports vec-vec/matrix-matrix element-wise or vec-scalar/matrix-scalar
     # operations, which means the final return value has to either be a vector or a matrix.
-    is_return_type_vec = is_list_type(ps_fn_decl.returnT())
-    is_return_type_matrix = is_matrix_type(ps_fn_decl.returnT())
+    is_return_type_vec = is_list_type(ps_fn_decl.return_type())
+    is_return_type_matrix = is_matrix_type(ps_fn_decl.return_type())
     # Return type is either a vector or a matrix, or a reduce sum call
     is_reduce_sum_call = (
         isinstance(ps_fn_decl.body(), Call) and ps_fn_decl.body().name() == "reduce_sum"
@@ -828,7 +828,7 @@ def gaudi_codegen(
     # First we generate the function header. We include the tensor to return in the arguments,
     # and it should always be the last argument.
     rv_name = f"{ps_fn_decl.name()}_rv"
-    rv = create_object(ps_fn_decl.returnT(), rv_name).src
+    rv = create_object(ps_fn_decl.return_type(), rv_name).src
     args_with_types = [
         (arg, GaudiHeaderType.from_ir_and_data_type(arg.type, d_type))
         for arg in [*ps_fn_decl.arguments(), rv]

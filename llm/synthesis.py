@@ -86,14 +86,14 @@ def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
         elif isinstance(expr, FnDecl):
             return FnDecl(
                 expr.name(),
-                expr.returnT(),
+                expr.return_type(),
                 replace_in_call(expr.body(), in_call),
                 *new_args,
             )
         else:
             return FnDeclRecursive(
                 expr.name(),
-                expr.returnT(),
+                expr.return_type(),
                 replace_in_call(expr.body(), in_call),
                 *new_args,
             )

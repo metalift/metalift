@@ -215,7 +215,7 @@ def verify_synth_result(
                 # Things are good here
                 if isinstance(langFn, FnDeclRecursive) or isinstance(langFn, FnDecl):
                     decl: Union[FnDeclRecursive, FnDecl, Axiom] = FnDeclRecursive(
-                        langFn.args[0], langFn.returnT(), updated, *langFn.args[2:]
+                        langFn.args[0], langFn.return_type(), updated, *langFn.args[2:]
                     )
                 elif isinstance(langFn, Axiom):
                     # TODO: check
@@ -282,7 +282,7 @@ def verify_synth_result(
                 cvcPath,
                 "--lang=smt",
                 "--produce-models",
-                "--tlimit=1",
+                "--tlimit=100000",
                 verifFile,
             ],
             stdout=subprocess.PIPE,

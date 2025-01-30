@@ -340,7 +340,6 @@ def toSMT(
 
         rewritten_fn_decls: set[Expr] = set()
         in_calls_to_renamed_fn_name: dict[tuple[str, str], str] = {}
-
         # First, we want to replace all the direct in calls.
         for t in target_lang:
             if (
@@ -367,19 +366,18 @@ def toSMT(
                         fn_decls.append(
                             FnDeclRecursive(
                                 new_fn_name,
-                                t.returnT(),
+                                t.return_type(),
                                 new_body,
                                 *new_args,
                             )
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
                                 new_fn_name,
-                                t.returnT(),
+                                t.return_type(),
                                 new_body,
                                 *new_args,
                             )
                         )
-
         # Now, we start iteratively replacing function calls with the inlined-function-rewritten versions.
         while len(in_calls_to_renamed_fn_name) > 0:
             # We need to rename all such functions in the synthesized ones.
@@ -439,14 +437,14 @@ def toSMT(
                     fn_decls.append(
                         FnDeclRecursive(
                             new_fn_name,
-                            t.returnT(),
+                            t.return_type(),
                             new_body,
                             *new_args,
                         )
                         if isinstance(t, FnDeclRecursive)
                         else FnDecl(
                             new_fn_name,
-                            t.returnT(),
+                            t.return_type(),
                             new_body,
                             *new_args,
                         )
@@ -455,6 +453,8 @@ def toSMT(
 
         for t in target_lang:
             if t in rewritten_fn_decls:
+                continue
+            if (isinstance(t, FnDecl) or isinstance(t, FnDecl)) and t.body() is None:
                 continue
             elif isinstance(t, Axiom):
                 axioms.append(t)
@@ -471,7 +471,6 @@ def toSMT(
                 early_candidates.append(cand)
             else:
                 candidates.append(cand)
-
         candidates = topological_sort(candidates)
         out.write("\n\n".join(["\n%s\n" % cand.toSMT() for cand in early_candidates]))
         out.write("\n\n".join(["\n%s\n" % inlined.toSMT() for inlined in fn_decls]))

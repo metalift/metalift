@@ -20,7 +20,7 @@ def softmax_part1_ps_grammar(
     writes: List[Object],
     reads: List[Object],
     in_scope: List[Object],
-    relaxed_grammar: bool,
+    relaxed: bool,
 ) -> Bool:
     ret_val = writes[0]
     input, max_pos = reads
@@ -38,7 +38,7 @@ def softmax_part1_inv0_grammar(
     writes: List[Object],
     reads: List[Object],
     in_scope: List[Object],
-    relaxed_grammar: bool,
+    relaxed: bool,
 ) -> Bool:
     input, max_pos = reads
     i, max_val = writes

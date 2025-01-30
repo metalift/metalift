@@ -711,6 +711,7 @@ def synthesize(
             result_verify = "unsat"
         else:
             try:
+                print("TRYING CVC5")
                 result_verify, verify_logs = verify_synth_result(
                     basename,
                     target_lang,
@@ -727,6 +728,7 @@ def synthesize(
                     use_rosette=False,
                 )
             except CVC5UnsupportedException:
+                print("TRYING ROSETTE")
                 print("WARNING: USING LARGE BOUND ROSETTE FOR VERIFICATION")
                 result_verify, verify_logs = verify_synth_result(
                     basename,

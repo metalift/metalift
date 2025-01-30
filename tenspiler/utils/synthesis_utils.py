@@ -51,7 +51,7 @@ def run_synthesis_with_bound(
         driver.synthesize(
             filename=basename,
             list_bound=list_bound,
-            relaxed_grammar=False,
+            relaxed=False,
             rounds_to_guess=max_rounds,
             no_verify=no_verify,
         )
@@ -67,7 +67,7 @@ def run_synthesis_with_bound(
         driver.synthesize(
             filename=basename,
             list_bound=list_bound,
-            relaxed_grammar=True,
+            relaxed=True,
             rounds_to_guess=max_rounds,
         )
 

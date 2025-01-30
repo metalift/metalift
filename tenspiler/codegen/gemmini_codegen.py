@@ -452,14 +452,17 @@ else {{
             gemmini_type_helper(argument_types[i], arguments[i], var_dimensions)
         )
 
-    if ps_fn_decl.returnT() == Matrix[Int] or ps_fn_decl.returnT() == mlList[Int]:
+    if (
+        ps_fn_decl.return_type() == Matrix[Int]
+        or ps_fn_decl.return_type() == mlList[Int]
+    ):
         var_dimensions[result_var] = ["LEN", "LEN"]
         var_str.append(f"elem_t {result_var}[LEN][LEN]")
-    elif ps_fn_decl.returnT() == Int or ps_fn_decl.returnT() == Bool:
+    elif ps_fn_decl.return_type() == Int or ps_fn_decl.return_type() == Bool:
         var_dimensions[result_var] = ["1", "1"]
         var_str.append(f"elem_t* {result_var}")
     else:
-        raise Exception(f"Unsupported return type {ps_fn_decl.returnT()}")
+        raise Exception(f"Unsupported return type {ps_fn_decl.return_type()}")
 
     arguments_str = ", ".join(var_str)
 
@@ -499,22 +502,25 @@ else {{
         )
 
     # C glue code. out variable initialization
-    if ps_fn_decl.returnT() == Int or ps_fn_decl.returnT() == Bool:
+    if ps_fn_decl.return_type() == Int or ps_fn_decl.return_type() == Bool:
         converted_arguments.append(f"&{result_var}")
     else:
         converted_arguments.append(result_var)
 
-    if ps_fn_decl.returnT() == Matrix[Int] or ps_fn_decl.returnT() == mlList[Int]:
+    if (
+        ps_fn_decl.return_type() == Matrix[Int]
+        or ps_fn_decl.return_type() == mlList[Int]
+    ):
         conversions.append(f"static {lib_dtype} {result_var} [LEN][LEN];")
-    elif ps_fn_decl.returnT() == Int:
+    elif ps_fn_decl.return_type() == Int:
         conversions.append(f"elem_t {result_var};")
-    elif ps_fn_decl.returnT() == Bool:
+    elif ps_fn_decl.return_type() == Bool:
         conversions.append(f"bool {result_var};")
 
     # C glue code. out variable post processing if necessary
     rv = result_var
     postprocess = []
-    if ps_fn_decl.returnT() == mlList[Int]:
+    if ps_fn_decl.return_type() == mlList[Int]:
         old_rv = rv
         rv = "out_postprocess"
         postprocess.append(f"static {lib_dtype} {rv} [LEN]; \n")
@@ -528,16 +534,16 @@ else {{
 
     # C glue code. function definition return value
     ret_type_c = ""
-    if ps_fn_decl.returnT() in [Matrix[Int], mlList[Int]]:
+    if ps_fn_decl.return_type() in [Matrix[Int], mlList[Int]]:
         ret_type_c = f"{lib_dtype}*"
-    elif ps_fn_decl.returnT() == Int:
+    elif ps_fn_decl.return_type() == Int:
         ret_type_c = f"{lib_dtype}"
-    elif ps_fn_decl.returnT() == Bool:
+    elif ps_fn_decl.return_type() == Bool:
         ret_type_c = "bool"
-    elif ps_fn_decl.returnT() == None:
+    elif ps_fn_decl.return_type() == None:
         ret_type_c = "void"
     else:
-        raise Exception(f"Unsupported return type {ps_fn_decl.returnT()}")
+        raise Exception(f"Unsupported return type {ps_fn_decl.return_type()}")
 
     arg_processing = f"\n{INDENTATION * 2}".join(conversions)
     rv_postprocessing = f"\n{INDENTATION * 2}".join(postprocess)

@@ -1293,7 +1293,7 @@ def get_matrix_computation_holing_search_space(
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        relaxed_grammar: bool,
+        relaxed: bool,
     ) -> Bool:
         out, col, pixel, row, row_vec = writes
         base, active = reads
@@ -1315,7 +1315,7 @@ def get_matrix_computation_holing_search_space(
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        relaxed_grammar: bool,
+        relaxed: bool,
     ) -> Bool:
         col, pixel, row_vec = writes
         out, row = in_scope
@@ -1346,7 +1346,7 @@ def get_matrix_computation_holing_search_space(
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        relaxed_grammar: bool,
+        relaxed: bool,
     ) -> Bool:
         ret_val = writes[0]
         base, active = reads
@@ -1516,7 +1516,7 @@ def get_matrix_select_holing_search_space(
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        relaxed_grammar: bool,
+        relaxed: bool,
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         out = writes_by_name["agg.result"]
@@ -1544,7 +1544,7 @@ def get_matrix_select_holing_search_space(
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        relaxed_grammar: bool,
+        relaxed: bool,
     ) -> Bool:
         writes_by_name = {write_var.var_name(): write_var for write_var in writes}
         col = writes_by_name["col"]
@@ -1589,7 +1589,7 @@ def get_matrix_select_holing_search_space(
         writes: List[Object],
         reads: List[Object],
         in_scope: List[Object],
-        relaxed_grammar: bool,
+        relaxed: bool,
     ) -> Bool:
         ret_val = writes[0]
         reads_by_name = {read_var.var_name(): read_var for read_var in reads}

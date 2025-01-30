@@ -793,7 +793,7 @@ class Predicate:
     def call(self, state: State) -> Bool:
         # This is kind of a hack but sometimes we only know what's in scope at runtime when we call the predicate.
         if self.grammar is not None:
-            self.grammar(self.writes, self.reads, self.in_scope, relaxed_grammar=False)
+            self.grammar(self.writes, self.reads, self.in_scope, relaxed=False)
         call_res = call(
             self.name,
             Bool,
@@ -801,10 +801,10 @@ class Predicate:
         )
         return cast(Bool, call_res)
 
-    def gen_synth(self, relaxed_grammar: bool) -> Synth:
+    def gen_synth(self, relaxed: bool) -> Synth:
         if self.grammar is None:
             raise Exception(f"Grammar for {self.name} is not defined!")
-        body = self.grammar(self.writes, self.reads, self.in_scope, relaxed_grammar).src
+        body = self.grammar(self.writes, self.reads, self.in_scope, relaxed).src
         return Synth(self.name, body, *get_object_exprs(*self.args))
 
 
@@ -1028,7 +1028,7 @@ class VCVisitor:
             if is_pointer_type(arg.type):
                 self.store_var_to_block(block.name, arg.var_name(), arg)
             else:
-                self.write_var_to_block(block.name, arg.name(), arg)
+                self.write_var_to_block(block.name, arg.var_name(), arg)
 
         if self.fn_sret_arg is not None:
             self.store_var_to_block(
@@ -1586,13 +1586,11 @@ class Driver:
     def synthesize(
         self,
         filename: str,
-        relaxed_grammar: bool = False,
+        relaxed: bool = False,
         **synthesize_kwargs,
     ) -> None:  # type: ignore
         # First we need to call the function
-        synths = [
-            i.gen_synth(relaxed_grammar) for i in self.pred_tracker.predicates.values()
-        ]
+        synths = [i.gen_synth(relaxed) for i in self.pred_tracker.predicates.values()]
         print("asserts: %s" % self.asserts)
         vc = and_objects(*self.asserts).src
         target = self.target_lang_fns

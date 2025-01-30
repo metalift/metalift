@@ -167,14 +167,14 @@ class Expr:
         elif isinstance(self, FnDeclRecursive):
             return FnDeclRecursive(
                 self.name(),
-                self.returnT(),
+                self.return_type(),
                 f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
         elif isinstance(self, FnDecl):
             return FnDecl(
                 self.name(),
-                self.returnT(),
+                self.return_type(),
                 f(self.body()),
                 *[f(a) for a in self.arguments()],
             )
@@ -2589,7 +2589,8 @@ class Call(Expr):
 class CallValue(Expr):
     def __init__(self, value: Expr, *arguments: Expr) -> None:
         # TODO: type no longer has args. need proper fix
-        Expr.__init__(self, value.type.args[0], [value, *arguments])  # type: ignore
+        fn_ret_type = value.type.return_type(get_args(value.type))
+        Expr.__init__(self, fn_ret_type, [value, *arguments])  # type: ignore
 
     def value(self) -> Expr:
         return self.args[0]  # type: ignore
@@ -3015,7 +3016,7 @@ class FnDeclRecursive(Expr):
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])  # type: ignore
+        Expr.__init__(self, Fn((returnT, *[a.type for a in args])).type, [name, body, *args])  # type: ignore
 
     def set_name(self, name: str) -> None:
         self.args[0] = name
@@ -3029,8 +3030,8 @@ class FnDeclRecursive(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> ObjectT:
-        return self.return_type
+    def return_type(self) -> ObjectT:
+        return self.type.return_type(get_args(self.type))  # type: ignore
 
     def body(self) -> Union[Expr, str]:
         return self.args[1]  # type: ignore
@@ -3048,7 +3049,7 @@ class FnDeclRecursive(Expr):
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
                 args_type,
-                toRosetteType(self.returnT()),
+                toRosetteType(self.return_type()),
             )
 
         else:
@@ -3073,7 +3074,7 @@ class FnDeclRecursive(Expr):
                 parse_type_ref_to_obj(a.type).toSMTType(get_args(a.type))  # type: ignore
                 for a in self.arguments()
             )
-            ret_type = self.returnT()
+            ret_type = self.return_type()
             return "(declare-fun %s (%s) %s)" % (
                 self.args[0],
                 args_type,
@@ -3088,7 +3089,7 @@ class FnDeclRecursive(Expr):
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
             )
 
-            return_type = self.returnT().toSMTType(get_args(self.returnT()))  # type: ignore
+            return_type = self.return_type().toSMTType(get_args(self.return_type()))  # type: ignore
             return "(define-fun-rec %s (%s) %s\n%s)" % (
                 self.args[0],
                 args,
@@ -3102,7 +3103,7 @@ class FnDeclRecursive(Expr):
             arg_with_types.append(
                 f"{a.to_python()}: {a.type.to_python_type_str(get_args(a.type))}"
             )
-        ret_python_type = self.returnT().to_python_type_str(get_args(self.returnT()))  # type: ignore
+        ret_python_type = self.return_type().to_python_type_str(get_args(self.return_type()))  # type: ignore
         fn_declaration = (
             f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
         )
@@ -3157,7 +3158,7 @@ class FnDecl(Expr):
         body: Union[Expr, str],
         *args: Expr,
     ) -> None:
-        Expr.__init__(self, FnT(returnT, *[a.type for a in args]), [name, body, *args])  # type: ignore
+        Expr.__init__(self, Fn((returnT, *[a.type for a in args])).type, [name, body, *args])  # type: ignore
 
     def set_name(self, name: str) -> None:
         self.args[0] = name
@@ -3171,8 +3172,8 @@ class FnDecl(Expr):
     def name(self) -> str:
         return self.args[0]  # type: ignore
 
-    def returnT(self) -> ObjectT:
-        return self.return_type
+    def return_type(self) -> ObjectT:
+        return self.type.return_type(get_args(self.type))  # type: ignore
 
     def body(self) -> Union[Expr, str]:
         return self.args[1]  # type: ignore
@@ -3190,7 +3191,7 @@ class FnDecl(Expr):
             return "(define-symbolic %s (~> %s %s))" % (
                 self.args[0],
                 args_type,
-                toRosetteType(self.returnT()),
+                toRosetteType(self.return_type()),
             )
 
         else:
@@ -3214,7 +3215,7 @@ class FnDecl(Expr):
             args_type = " ".join(
                 obj_type.toSMTType(get_args(obj_type)) for obj_type in args_obj_types  # type: ignore
             )
-            ret_type = parse_type_ref_to_obj(self.returnT())
+            ret_type = parse_type_ref_to_obj(self.return_type())
             return "(declare-fun %s (%s) %s)" % (
                 self.name(),
                 args_type,
@@ -3233,7 +3234,7 @@ class FnDecl(Expr):
             args = " ".join(
                 "(%s %s)" % (d[0], d[1].toSMTType(get_args(d[1]))) for d in declarations  # type: ignore
             )
-            return_type = self.returnT().toSMTType(get_args(self.returnT()))  # type: ignore
+            return_type = self.return_type().toSMTType(get_args(self.return_type()))  # type: ignore
             return "(define-fun %s (%s) %s\n%s)" % (
                 self.name(),
                 args,
@@ -3247,7 +3248,7 @@ class FnDecl(Expr):
             arg_with_types.append(
                 f"{a.to_python()}: {a.type.to_python_type_str(get_args(a.type))}"
             )
-        ret_python_type = self.returnT().to_python_type_str(get_args(self.returnT()))  # type: ignore
+        ret_python_type = self.return_type().to_python_type_str(get_args(self.return_type()))  # type: ignore
         fn_declaration = (
             f"def {self.name()}({', '.join(arg_with_types)}) -> {ret_python_type}:"
         )
@@ -3302,7 +3303,7 @@ class Target(FnDecl):
         Target.definedFns[name] = self
 
     def call(self, *args: Expr) -> Call:
-        return TargetCall(self.name(), self.returnT(), self._codegen, *args)
+        return TargetCall(self.name(), self.return_type(), self._codegen, *args)
 
     # def accept(self, v: "Visitor[T]") -> T:
     #     return v.visit_Target(self)

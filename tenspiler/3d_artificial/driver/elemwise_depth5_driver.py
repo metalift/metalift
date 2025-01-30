@@ -177,7 +177,7 @@ if __name__ == "__main__":
     driver.synthesize(
         filename="elemwise_depth5",
         list_bound=2,
-        relaxed_grammar=False,
+        relaxed=False,
         rounds_to_guess=0,
         no_verify=True,
     )
