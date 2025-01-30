@@ -3,6 +3,7 @@
 
 # Get Started at [metalift.pages.dev](https://metalift.pages.dev)
 
+<!---
 See [tests](https://github.com/metalift/metalift/tree/main/tests) folder for test cases.
 Check out any of the python files in that folder to see how to define
 your target language and build your own lifting based compiler.
@@ -58,3 +59,5 @@ This will build all of Metalift's dependencies and drop you into a temporary she
 We use [Poetry](https://python-poetry.org/) for dependency management. To set up the environment, simply install Poetry, run `poetry install`, and then `poetry shell` to enter an environment with the dependencies installed.
 
 ## LLMLift
+
+-->
