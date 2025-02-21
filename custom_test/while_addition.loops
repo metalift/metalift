@@ -1,0 +1,2 @@
+Printing analysis 'Natural Loop Information' for function 'while_addition':
+Loop at depth 1 containing: %while.cond<header><exiting>,%while.body<latch>
