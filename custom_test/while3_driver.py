@@ -83,6 +83,8 @@ def inv_grammar(
     not_in_loop_cond = and_objects(input_arg_bound, x == int_lit, y == int_lit)
     return inv_cond.Or(not_in_loop_cond)
 
+inv_grammar_dict = defaultdict(lambda: InvGrammar(inv_grammar, []))
+inv_grammar_dict["test_inv0"] = InvGrammar(inv_grammar, [])
 
 if __name__ == "__main__":
     driver = Driver()
@@ -91,7 +93,7 @@ if __name__ == "__main__":
         loops_filepath="/Users/taeyoungkim/metalift/custom_test/while3.loops",
         fn_name="test",
         target_lang_fn=target_lang,
-        inv_grammars=defaultdict(lambda: InvGrammar(inv_grammar, [])),
+        inv_grammars=inv_grammar_dict,
         ps_grammar=ps_grammar,
     )
 
