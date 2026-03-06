@@ -55,7 +55,7 @@ RUN raco pkg install --auto --skip-installed \
 
 # --- Install newer GMP + MPFR for Bitwuzla (Ubuntu 22.04 is too old) ---
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig
-ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
 
 RUN curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 \
       https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz \
