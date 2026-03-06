@@ -1,0 +1,97 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- System deps (Python + native libs for some Python wheels) ---
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      git \
+      build-essential \
+      pkg-config \
+      m4 \
+      xz-utils \
+      python3 \
+      python3-venv \
+      python3-pip \
+      libhdf5-dev \
+      libopencv-dev \
+      libboost-all-dev \
+      libmpfr-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install --no-cache-dir --upgrade pip
+
+# --- Poetry (project uses Poetry for deps) ---
+RUN python3 -m pip install --no-cache-dir poetry
+
+WORKDIR /app
+
+# Copy everything (simple + robust; slower rebuilds but fewer surprises)
+COPY . /app
+
+# Install Python deps into /app/.venv (poetry.toml sets in-project=true)
+RUN poetry install --no-interaction --no-ansi
+
+# Make the Poetry venv the default Python
+ENV PATH="/app/.venv/bin:${PATH}"
+ENV PYTHONPATH="/app"
+
+# --- Install Racket + Rosette (needed for VerificationMethod.ROSETTE) ---
+# Note: Installer is interactive; we feed "yes" and the default install location choice.
+RUN curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 \
+      https://mirror.racket-lang.org/installers/8.7/racket-8.7-x86_64-linux.sh \
+      -o /tmp/racket-install.sh && \
+    chmod +x /tmp/racket-install.sh && \
+    printf "yes\n1\n" | /tmp/racket-install.sh --unix-style --dest /usr/ && \
+    rm -f /tmp/racket-install.sh
+
+ENV PATH="${PATH}:/usr/racket/bin"
+
+# Pin Rosette to the same commit used in CI (more stable than "latest")
+RUN raco pkg install --auto --skip-installed \
+    https://github.com/emina/rosette.git#10178550a0a21e6d80598d0f43c33c9228728f14
+
+# --- Install newer GMP + MPFR for Bitwuzla (Ubuntu 22.04 is too old) ---
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:${LD_LIBRARY_PATH}
+
+RUN curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 \
+      https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz \
+      -o /tmp/gmp.tar.xz && \
+    cd /tmp && \
+    tar -xf /tmp/gmp.tar.xz && \
+    cd /tmp/gmp-6.3.0 && \
+    ./configure --prefix=/usr/local && \
+    make -j"$(nproc)" && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/gmp-6.3.0 /tmp/gmp.tar.xz
+
+RUN curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 \
+      https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.1.tar.xz \
+      -o /tmp/mpfr.tar.xz && \
+    cd /tmp && \
+    tar -xf /tmp/mpfr.tar.xz && \
+    cd /tmp/mpfr-4.2.1 && \
+    ./configure --prefix=/usr/local --with-gmp=/usr/local && \
+    make -j"$(nproc)" && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/mpfr-4.2.1 /tmp/mpfr.tar.xz
+
+# --- Build Bitwuzla (Rosette uses it as the SMT backend) ---
+RUN /app/.venv/bin/pip install --no-cache-dir meson ninja cmake && \
+    git clone --depth 1 https://github.com/bitwuzla/bitwuzla /opt/bitwuzla && \
+    cd /opt/bitwuzla && \
+    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig \
+    LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64 \
+    /app/.venv/bin/python ./configure.py && \
+    cd /opt/bitwuzla/build && \
+    /app/.venv/bin/ninja
+
+# llm/synthesis.py requires this env var for Rosette verification.
+ENV BITWUZLA_PATH=/opt/bitwuzla/build/src/main/bitwuzla
+
+WORKDIR /app
