@@ -587,7 +587,7 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
     print("running with gpt")
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = OPENAI_CLIENT.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5.2",
         messages=messages_with_sys,
         n=1,
         temperature=0.7,
