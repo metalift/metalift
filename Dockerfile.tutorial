@@ -7,6 +7,10 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
       ca-certificates curl git build-essential pkg-config m4 xz-utils \
       python3 python3-venv python3-pip \
       libhdf5-dev libopencv-dev libboost-all-dev libmpfr-dev \
+      clang-11 llvm-11-dev llvm-11-tools \
+    && ln -sf /usr/bin/clang-11 /usr/bin/clang \
+    && ln -sf /usr/bin/clang++-11 /usr/bin/clang++ \
+    && ln -sf /usr/bin/opt-11 /usr/bin/opt \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install --no-cache-dir \
@@ -51,6 +55,9 @@ RUN poetry install --no-interaction --no-ansi --no-root --without benchmark
 # ── Project source ──────────────────────────────────────────
 COPY . .
 RUN poetry install --no-interaction --no-ansi --without benchmark
+
+# ── Build custom LLVM pass (needed by compile-add-blocks) ───
+RUN cd /app/llvm-pass && mkdir -p build && cd build && cmake .. && make
 
 ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONPATH="/app"
