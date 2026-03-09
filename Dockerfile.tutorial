@@ -49,6 +49,7 @@ RUN poetry install --no-interaction --no-ansi --no-root --without benchmark
 
 # ── Project source ──────────────────────────────────────────
 COPY . .
+RUN python3 -m pip install --no-cache-dir --upgrade poetry
 RUN poetry install --no-interaction --no-ansi --without benchmark
 
 ENV PATH="/app/.venv/bin:${PATH}" \
