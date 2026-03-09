@@ -9,7 +9,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
       libhdf5-dev libopencv-dev libboost-all-dev libmpfr-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --no-cache-dir --root-user-action=ignore \
+RUN python3 -m pip install --no-cache-dir \
       --upgrade pip meson ninja cmake
 
 # ── Racket + Rosette (slow, changes rarely → cache early) ───
@@ -45,7 +45,6 @@ ENV BITWUZLA_PATH="/opt/bitwuzla/build/src/main/bitwuzla"
 # ── Python deps (rebuild only when lock file changes) ───────
 WORKDIR /app
 COPY pyproject.toml poetry.toml poetry.lock ./
-RUN python3 -m pip install --no-cache-dir --root-user-action=ignore poetry
 RUN poetry install --no-interaction --no-ansi --no-root --without benchmark
 
 # ── Project source ──────────────────────────────────────────
