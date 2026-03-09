@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(AddEmptyBlocks)
 
 # support C++14 features used by LLVM 10.0.0
