@@ -12,7 +12,7 @@ if __name__ == "__main__":
     driver = Driver()
     loop_info = SingleLoopInfo(
         loop_var=Int("i"),
-        modified_vars=[Int("output")],
+        modified_vars=[List(Int, "output")],
         read_vars=[List(Int, "input"), Int("max_pos"), Int("max_val")],
     )
     output_var = List(Int, "output")
