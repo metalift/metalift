@@ -2,7 +2,11 @@ import time
 from pathlib import Path
 
 from llm.synthesis import LLMModel, VerificationMethod, run_llm_synthesis_algorithm
-from llm.utils import SingleLoopInfo, get_inv_args
+from llm.utils import (
+    SingleLoopInfo,
+    get_inv_args,
+    infer_single_loop_info_from_llvm,
+)
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
 from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
@@ -10,17 +14,25 @@ from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 if __name__ == "__main__":
     start_time = time.time()
     driver = Driver()
-    loop_info = SingleLoopInfo(
-        loop_var=Int("i"),
-        modified_vars=[Int("max_val")],
-        read_vars=[List(Int, "input"), Int("max_pos")],
+    llvm_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll"
+    loops_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.loops"
+
+    # Induction variable name (still supplied manually), all other loop info
+    # (modified/read vars) inferred automatically from the LLVM + loops files.
+    loop_var = Int("i")
+    loop_info = infer_single_loop_info_from_llvm(
+        llvm_filepath=llvm_path,
+        loops_filepath=loops_path,
+        fn_name="softmax_part1",
+        loop_var=loop_var,
+        inv_index=0,
     )
     output_var = Int("max_val")
     inv_args = get_inv_args(loop_info)
 
     softmax_part1 = driver.analyze(
-        llvm_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll",
-        loops_filepath="tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.loops",
+        llvm_filepath=llvm_path,
+        loops_filepath=loops_path,
         fn_name="softmax_part1",
         target_lang_fn=[],
         inv_grammars={"softmax_part1_inv0": InvGrammar(None, [], inv_args)},

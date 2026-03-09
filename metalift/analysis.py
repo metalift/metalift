@@ -1,4 +1,5 @@
 import re
+import subprocess
 from typing import (
     Any,
     Callable,
@@ -359,6 +360,40 @@ def parseGlobals(
     return globalVars
 
 
+def _get_full_demangled_name(maybe_mangled_name: str) -> str:
+    """Return the fully demangled C++ name for a (possibly mangled) symbol."""
+    result = subprocess.run(
+        ["c++filt", "-n", maybe_mangled_name], stdout=subprocess.PIPE, check=True
+    )
+    stdout = result.stdout.decode("utf-8").strip()
+    return stdout
+
+
+def _get_demangled_fn_name(maybe_mangled_name: str) -> Optional[str]:
+    """
+    Best-effort demangling of a function name.
+
+    This mirrors the logic in metalift.frontend.llvm but is kept local here to
+    avoid circular imports.
+    """
+    full_demangled_name = _get_full_demangled_name(maybe_mangled_name)
+
+    # Simple case: plain identifier with optional argument list
+    match = re.match(r"^([a-zA-Z0-9_]+)(\(.*\))?$", full_demangled_name)
+    if match is not None:
+        return match.group(1)
+
+    # More complex C++ names with namespaces/classes and optional templates
+    match = re.match(
+        r"^(.* )?(.*::)*(~?[a-zA-Z0-9_]+(\[\])?)(<.*>)?\(.*\)( const)?$",
+        full_demangled_name,
+    )
+    if match is not None:
+        return match.group(3)
+
+    return None
+
+
 def parseObjectFuncs(blocksMap: Dict[str, Block]) -> None:
     p = re.compile("ML_(\w+)_(set|get)_(\w+)")
     for b in blocksMap.values():
@@ -455,6 +490,51 @@ def analyze(
     )
 
     return (vars, invAndPs, preds, vc, loopAndPsInfo)
+
+
+def analyze_demangled(
+    filename: str,
+    demangled_fn_name: str,
+    loopsFile: str,
+    wrapSummaryCheck: Optional[Callable[[MLInst], Tuple[Expr, List[Expr]]]] = None,
+    fnNameSuffix: str = "",
+    uninterpFuncs: List[str] = [],
+    log: bool = True,
+) -> Tuple[Set[Var], List[Synth], List[Expr], Expr, List[CodeInfo]]:
+    """
+    Variant of analyze() that accepts a *demangled* function name.
+
+    This mirrors the demangling logic used in the newer LLVM frontend so that
+    callers do not need to know the mangled name that appears in the .ll/.loops
+    files. The underlying analysis is still delegated to analyze().
+    """
+    with open(filename, mode="r") as file:
+        ref = llvm.parse_assembly(file.read())
+
+    raw_fn_name: Optional[str] = None
+    for func in ref.functions:
+        if demangled_fn_name not in func.name:
+            continue
+        demangled = _get_demangled_fn_name(func.name)
+        if demangled == demangled_fn_name:
+            raw_fn_name = func.name
+            break
+
+    if raw_fn_name is None:
+        raise Exception(
+            f"Did not find function declaration for {demangled_fn_name} in {filename}"
+        )
+
+    # Delegate to the original pipeline using the mangled name
+    return analyze(
+        filename=filename,
+        fnName=raw_fn_name,
+        loopsFile=loopsFile,
+        wrapSummaryCheck=wrapSummaryCheck,
+        fnNameSuffix=fnNameSuffix,
+        uninterpFuncs=uninterpFuncs,
+        log=log,
+    )
 
 
 def format_with_index(a: str, idx: int) -> str:
