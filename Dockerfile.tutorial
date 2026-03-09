@@ -1,55 +1,8 @@
-FROM ubuntu:22.04
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-# ── System deps ──────────────────────────────────────────────
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-      ca-certificates curl git build-essential pkg-config m4 xz-utils \
-      python3 python3-venv python3-pip \
-      libhdf5-dev libopencv-dev libboost-all-dev libmpfr-dev \
-      clang-11 llvm-11-dev llvm-11-tools \
-    && ln -sf /usr/bin/clang-11 /usr/bin/clang \
-    && ln -sf /usr/bin/clang++-11 /usr/bin/clang++ \
-    && ln -sf /usr/bin/opt-11 /usr/bin/opt \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN python3 -m pip install --no-cache-dir \
-      --upgrade pip meson ninja cmake
-
-# ── Racket + Rosette (slow, changes rarely → cache early) ───
-RUN curl -fsSL --retry 5 --connect-timeout 30 \
-      https://mirror.racket-lang.org/installers/8.7/racket-8.7-x86_64-linux.sh \
-      -o /tmp/racket.sh && \
-    printf "yes\n1\n" | bash /tmp/racket.sh --unix-style --dest /usr/ && \
-    rm /tmp/racket.sh
-
-RUN raco pkg install --auto \
-      https://github.com/emina/rosette.git#29808a02d2a2c25a6824bfed5df32cc263dea734
-
-# ── GMP 6.3 + MPFR 4.2 (needed by Bitwuzla) ────────────────
-RUN curl -fsSL https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz | tar -xJ -C /tmp && \
-    cd /tmp/gmp-6.3.0 && ./configure --prefix=/usr/local && \
-    make -j"$(nproc)" && make install && ldconfig && \
-    rm -rf /tmp/gmp-6.3.0
-
-RUN curl -fsSL https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.1.tar.xz | tar -xJ -C /tmp && \
-    cd /tmp/mpfr-4.2.1 && ./configure --prefix=/usr/local --with-gmp=/usr/local && \
-    make -j"$(nproc)" && make install && ldconfig && \
-    rm -rf /tmp/mpfr-4.2.1
-
-ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig" \
-    LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
-
-# ── Bitwuzla (SMT solver for Rosette) ───────────────────────
-RUN git clone --depth 1 https://github.com/bitwuzla/bitwuzla /opt/bitwuzla && \
-    cd /opt/bitwuzla && python3 ./configure.py && ninja -C build
-
-ENV BITWUZLA_PATH="/opt/bitwuzla/build/src/main/bitwuzla"
+FROM metalift/llmlift-base:latest
 
 # ── Python deps (rebuild only when lock file changes) ───────
 WORKDIR /app
 COPY pyproject.toml poetry.toml poetry.lock ./
-RUN python3 -m pip install --no-cache-dir --upgrade poetry
 RUN poetry install --no-interaction --no-ansi --no-root --without benchmark
 
 # ── Project source ──────────────────────────────────────────
