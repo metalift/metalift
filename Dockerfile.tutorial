@@ -12,9 +12,8 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 # ── Python deps (rebuild only when lock file changes) ───────
 WORKDIR /app
 COPY pyproject.toml poetry.toml poetry.lock ./
-RUN pip3 install --no-cache-dir --upgrade pip poetry
+RUN pip3 install --no-cache-dir --upgrade pip poetry meson ninja cmake --root-user-action=ignore
 RUN poetry install --no-interaction --no-ansi --no-root
-RUN poetry run pip install --no-cache-dir meson ninja cmake
 
 # ── Racket + Rosette ────────────────────────────────────────
 RUN curl -fsSL --retry 5 --connect-timeout 30 \
