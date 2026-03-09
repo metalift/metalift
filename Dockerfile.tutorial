@@ -59,8 +59,5 @@ RUN poetry install --no-interaction --no-ansi --without benchmark
 # ── Build custom LLVM pass (needed by compile-add-blocks) ───
 RUN cd /app/llvm-pass && mkdir -p build && cd build && cmake .. && make
 
-# ── Smoke test: compile-add-blocks (remove once verified) ───
-RUN bash ./metalift/utils/llvm/compile-add-blocks tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc
-
 ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONPATH="/app"
