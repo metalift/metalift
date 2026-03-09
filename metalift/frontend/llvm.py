@@ -523,7 +523,6 @@ def parse_loops(loops_filepath: str, raw_fn_name: str) -> List[RawLoopInfo]:
             blks = m.replace("%", "").split(",")
             for b in blks:
                 name: str = re.search("([^<]+)", b).group(0)  # type: ignore
-                print("name: %s" % b)
                 if "<header>" in b:
                     header_names.append(name)
                 if "<exiting>" in b:
@@ -1049,7 +1048,6 @@ class VCVisitor:
             )
 
     def visit_instruction(self, block_name: str, o: ValueRef) -> None:
-        print(o)
         if o.opcode == "alloca":
             self.visit_alloca_instruction(block_name, o)
         elif o.opcode == "load":
@@ -1528,7 +1526,6 @@ class Driver:
         self.synthesized_fns = {}
 
     def __post_init__(self) -> None:
-        print("post init")
         self.var_tracker = VariableTracker()
         self.pred_tracker = PredicateTracker()
 
@@ -1707,7 +1704,6 @@ class MetaliftFunc:
         # raw_fn_name is potentially-mangled name of fn_name
         fn_ref: Optional[ValueRef] = None
         for func in functions:
-            print("yoyo")
             if fn_name not in func.name:
                 continue
             demangled_name = get_demangled_fn_name(func.name)
