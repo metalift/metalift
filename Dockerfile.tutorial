@@ -1,4 +1,4 @@
-FROM metalift/llmlift-base:latest
+FROM jieqiu0630/llmlift-base:latest
 
 # ── Python deps (rebuild only when lock file changes) ───────
 WORKDIR /app
