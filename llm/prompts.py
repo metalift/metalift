@@ -7,9 +7,6 @@ from metalift.ir import FnDecl, FnDeclRecursive
 
 
 def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> str:
-    import pdb
-
-    pdb.set_trace()
     """Given the loop information, generate the invariant template."""
     if isinstance(loop_info, SingleLoopInfo):
         arguments = get_inv_args(loop_info)
