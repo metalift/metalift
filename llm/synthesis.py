@@ -8,6 +8,8 @@ from typing import Any, Union
 import google.generativeai as genai
 
 from llm.constants import (
+    BEDROCK_CLIENT,
+    BEDROCK_MODEL_ID,
     CLAUDE_CLIENT,
     OPENAI_CLIENT,
     SYNTHESIS_LOGS_DIR,
@@ -63,6 +65,7 @@ class LLMModel(Enum):
     CLAUDE = "claude"
     GPT = "gpt"
     GEMINI = "gemini"
+    BEDROCK = "bedrock"
 
 
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
@@ -627,6 +630,37 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
     return extracted_solution
 
 
+def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str:
+    print("running with bedrock")
+    bedrock_messages = []
+    for msg in messages:
+        bedrock_messages.append(
+            {
+                "role": msg["role"],
+                "content": [{"text": msg["content"]}],
+            }
+        )
+
+    response = BEDROCK_CLIENT.converse(
+        modelId=BEDROCK_MODEL_ID,
+        system=[{"text": TEMPLATE_SYS}],
+        messages=bedrock_messages,
+        inferenceConfig={
+            "maxTokens": 1024,
+            "temperature": 0.7,
+            "topP": 0.9,
+        },
+    )
+
+    output_text = "".join(
+        block["text"]
+        for block in response["output"]["message"]["content"]
+        if "text" in block
+    )
+    raw_solution = extract_all_python_functions(output_text)[0]
+    return replace_ite(raw_solution)
+
+
 def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -> str:
     if llm_model == LLMModel.CLAUDE:
         return get_solution_from_claude(messages)
@@ -634,4 +668,6 @@ def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -
         return get_solution_from_gpt(messages)
     elif llm_model == LLMModel.GEMINI:
         return get_solution_from_gemini(messages)
+    elif llm_model == LLMModel.BEDROCK:
+        return get_solution_from_bedrock(messages)
     raise ValueError(f"Invalid LLM model {llm_model}")

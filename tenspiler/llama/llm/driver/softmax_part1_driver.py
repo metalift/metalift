@@ -2,11 +2,7 @@ import time
 from pathlib import Path
 
 from llm.synthesis import LLMModel, VerificationMethod, run_llm_synthesis_algorithm
-from llm.utils import (
-    SingleLoopInfo,
-    get_inv_args,
-    infer_single_loop_info_from_llvm,
-)
+from llm.utils import get_inv_args, infer_single_loop_info_from_llvm
 from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import Int, List
 from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
@@ -58,7 +54,7 @@ if __name__ == "__main__":
         output_var=output_var,
         source_code=input_code,
         benchmark_name="softmax_part1",
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         dsl_fns=TENSPILER_FNS,
         dsl_fn_name_to_axioms=TENSPILER_FN_NAME_TO_AXIOMS,
         verification_method=VerificationMethod.ROSETTE,

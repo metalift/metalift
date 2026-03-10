@@ -21,6 +21,7 @@ numpy = "1.26.2"
 openai = "^1.56.1"
 pyparsing = "^3.0.8"
 python-dotenv = "^1.0.1"
+boto3 = "^1.42.64"
 
 [tool.poetry.group.benchmark]
 optional = true
