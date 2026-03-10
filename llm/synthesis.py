@@ -5,13 +5,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Union
 
+import anthropic
+import boto3
 import google.generativeai as genai
+from openai import OpenAI
 
 from llm.constants import (
-    BEDROCK_CLIENT,
     BEDROCK_MODEL_ID,
-    CLAUDE_CLIENT,
-    OPENAI_CLIENT,
     SYNTHESIS_LOGS_DIR,
     TEMPLATE_ERR,
     TEMPLATE_SYS,
@@ -575,7 +575,13 @@ def run_llm_synthesis_algorithm(
 
 def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
     print("running with claude")
-    message = CLAUDE_CLIENT.messages.create(
+    api_key = os.getenv("CLAUDE_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "CLAUDE_API_KEY is not set but LLMModel.CLAUDE was requested"
+        )
+    claude_client = anthropic.Anthropic(api_key=api_key)
+    message = claude_client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=1000,
         temperature=0.7,
@@ -588,8 +594,12 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
 
 def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
     print("running with gpt")
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set but LLMModel.GPT was requested")
+    openai_client = OpenAI(api_key=api_key)
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
-    outputs = OPENAI_CLIENT.chat.completions.create(
+    outputs = openai_client.chat.completions.create(
         model="gpt-5.2",
         messages=messages_with_sys,
         n=1,
@@ -632,6 +642,10 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
 
 def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str:
     print("running with bedrock")
+    bedrock_client = boto3.client(
+        "bedrock-runtime",
+        region_name=os.getenv("AWS_REGION", "us-east-1"),
+    )
     bedrock_messages = []
     for msg in messages:
         bedrock_messages.append(
@@ -641,7 +655,7 @@ def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str:
             }
         )
 
-    response = BEDROCK_CLIENT.converse(
+    response = bedrock_client.converse(
         modelId=BEDROCK_MODEL_ID,
         system=[{"text": TEMPLATE_SYS}],
         messages=bedrock_messages,

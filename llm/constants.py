@@ -1,18 +1,10 @@
 import os
 from pathlib import Path
 
-import anthropic
-import boto3
 from dotenv import load_dotenv
-from openai import OpenAI
 
 load_dotenv()
-OPENAI_CLIENT = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-CLAUDE_CLIENT = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
-BEDROCK_CLIENT = boto3.client(
-    "bedrock-runtime",
-    region_name=os.getenv("AWS_REGION", "us-east-1"),
-)
+
 BEDROCK_MODEL_ID = os.getenv(
     "BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
 )
