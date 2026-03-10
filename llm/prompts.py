@@ -7,6 +7,9 @@ from metalift.ir import FnDecl, FnDeclRecursive
 
 
 def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> str:
+    import pdb
+
+    pdb.set_trace()
     """Given the loop information, generate the invariant template."""
     if isinstance(loop_info, SingleLoopInfo):
         arguments = get_inv_args(loop_info)
@@ -68,9 +71,9 @@ def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> s
         return [textwrap.dedent(inv1_template), textwrap.dedent(inv2_template)]
 
 
-def get_ps_prompt(*, dsl_code: str, source_code: str) -> str:
+def get_ps_prompt(*, benchmark_name: str, dsl_code: str, source_code: str) -> str:
     ps_text = f"""
-    Your task is to rewrite the given `test` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
+    Your task is to rewrite the given `{benchmark_name}` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
 
     #Instructions
     # 1. Do not use for/while loops for rewriting the function.

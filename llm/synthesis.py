@@ -374,7 +374,9 @@ def run_llm_synthesis_algorithm(
     dsl_code = "\n\n".join(fn.to_python() for fn in dsl_fns)
 
     # First we need to generate prompts
-    ps_prompt = get_ps_prompt(dsl_code=dsl_code, source_code=source_code)
+    ps_prompt = get_ps_prompt(
+        benchmark_name=benchmark_name, dsl_code=dsl_code, source_code=source_code
+    )
 
     # Get result from LLM
     ps_sols: list[str] = []
@@ -466,7 +468,7 @@ def run_llm_synthesis_algorithm(
         # Generate the invariant
         print("PS function declarations", ps_fn_decls)
         ps_fn_decl = next(fn_decl for fn_decl in ps_fn_decls if "ps" in fn_decl.name())
-        
+
         inv_prompt = get_inv_prompt(
             source_code=source_code,
             ps_fn_decl=ps_fn_decl,

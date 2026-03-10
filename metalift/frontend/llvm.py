@@ -282,8 +282,26 @@ def vector_get(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 2
+
+    # Try to refine the contained type of the vector argument based on the
+    # demangled function name, similar to vector_length above. This lets us
+    # distinguish between vector<int>, vector<vector<int>>, etc., even though
+    # their LLVM TypeRefs all look like %"class.std::__1::vector"*.
+    primitive_match = re.match(PRIMITIVE_VECTOR_TYPE_REGEX, full_demangled_name)
+    nested_match = re.match(NESTED_VECTOR_TYPE_REGEX, full_demangled_name)
+    double_nested_match = re.match(DOUBLE_NESTED_VECTOR_TYPE_REGEX, full_demangled_name)
+
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
+
+    if isinstance(lst, mlList):
+        if primitive_match is not None:
+            lst.containedT = Int
+        elif nested_match is not None:
+            lst.containedT = mlList[Int]
+        elif double_nested_match is not None:
+            lst.containedT = Matrix[Int]
+
     var_name = args[0].name
     var_loc = state.get_var_location(var_name)
     return ReturnValue(
