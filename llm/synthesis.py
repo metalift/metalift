@@ -350,7 +350,7 @@ def verify_benchmark_smt(
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
-    loop_info: SingleLoopInfo | DoubleLoopInfo,
+    loop_info: SingleLoopInfo | DoubleLoopInfo | None,
     output_var: Object,
     source_code: str,
     benchmark_name: str,
@@ -407,6 +407,7 @@ def run_llm_synthesis_algorithm(
                 arg_name_to_count=arg_name_to_count,
             )
             print("Passed the parser, continuing to invariant generation")
+            print("PS solution", ps_sol)
         except Exception as e:
             print("Failed to pass the parser", e)
             print("Skipping invariant generation")
@@ -418,8 +419,54 @@ def run_llm_synthesis_algorithm(
             synthesized_fn_decls=ps_fn_decls,
         )
 
+        # If there is no loop_info, this is a loop-free benchmark; skip invariant
+        # synthesis and go straight to verification using only the PS function.
+        if loop_info is None:
+            synthesized_fn_decls = ps_fn_decls
+            in_calls = ps_inv_calls
+
+            vc = and_objects(*driver.asserts).src.simplify()
+            vc = replace_in_calls(vc, in_calls)
+
+            if verification_method == VerificationMethod.SMT:
+                verified = verify_benchmark_smt(
+                    driver=driver,
+                    benchmark_name=benchmark_name,
+                    synthesized_fn_decls=synthesized_fn_decls,
+                    in_calls=in_calls,
+                    dsl_fns=dsl_fns,
+                    vc=vc,
+                    dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
+                )
+            elif verification_method == VerificationMethod.ROSETTE:
+                verified = verify_benchmark_rosette(
+                    driver=driver,
+                    benchmark_name=benchmark_name,
+                    synthesized_fn_decls=synthesized_fn_decls,
+                    in_calls=in_calls,
+                    dsl_fns=dsl_fns,
+                    vc=vc,
+                )
+            elif verification_method == VerificationMethod.NONE:
+                print("Skpping verification...")
+                verified = True
+            else:
+                raise Exception(
+                    f"Unsupported verification method {verification_method}"
+                )
+
+            if verified:
+                print("Solution verified")
+                found_sol = True
+                break
+
+            # If PS-only verification failed, continue to the next PS candidate.
+            continue
+
         # Generate the invariant
+        print("PS function declarations", ps_fn_decls)
         ps_fn_decl = next(fn_decl for fn_decl in ps_fn_decls if "ps" in fn_decl.name())
+        
         inv_prompt = get_inv_prompt(
             source_code=source_code,
             ps_fn_decl=ps_fn_decl,
@@ -600,7 +647,7 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
     openai_client = OpenAI(api_key=api_key)
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = openai_client.chat.completions.create(
-        model="gpt-5.2",
+        model="gpt-5.4",
         messages=messages_with_sys,
         n=1,
         temperature=0.7,
