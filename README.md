@@ -18,6 +18,13 @@ git clone --branch asplos https://github.com/metalift/metalift.git
 docker build -f Dockerfile.tutorial -t llmlift-tutorial .
 ```
 
+#### Run docker image
+Start an interactive shell inside the container:
+
+```bash
+docker run --rm -it llmlift-tutorial bash
+```
+
 ## Running Benchmarks
 We support Claude, Gemini, GPT, and AWS Bedrock (which hosts Claude and other models) for synthesis. For Claude, Gemini, or GPT, set the corresponding API keys (`OPENAI_API_KEY`, `CLAUDE_API_KEY`, `GEMINI_API_KEY`) in a `.env` file.
 
