@@ -647,7 +647,7 @@ def parse_type_ref_to_obj(t: TypeRef) -> ObjectT:
     elif re.match('%"class.std::__1::List(\.\d+)?"*', ty_str):
         # The \d+ is here is because if we try to parse multiple llvm files that contain types with the same names, then each time after the first time that llvmlite sees this type, it will append a ".{random number}" after the type. For example, the second time we see %"class.std::__1::List"*, llvmlite will turn it into %"class.std::__1::List.0"*
         return List[Int]
-    elif re.match('%"class.std::__1::vector"*', ty_str):
+    elif re.match('%"class.std(::__1)?::vector"*', ty_str):
         return List[List[Int]]
     elif ty_str in {"%struct.set*"}:
         # TODO : how to support different contained types
