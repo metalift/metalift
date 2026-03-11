@@ -45,6 +45,5 @@ RUN git clone --depth 1 https://github.com/bitwuzla/bitwuzla /opt/bitwuzla && \
     cd /opt/bitwuzla && python3 ./configure.py && ninja -C build
 
 ENV BITWUZLA_PATH="/opt/bitwuzla/build/src/main/bitwuzla"
-ENV CVC5_PATH="/app/cvc5"
 
 WORKDIR /app
