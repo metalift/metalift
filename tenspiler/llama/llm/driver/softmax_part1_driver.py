@@ -3,7 +3,7 @@ Driver for LLM-guided synthesis of softmax_part1 and similar single-loop .cc fun
 """
 import time
 
-from llm.synthesis import run_synthesis_for_cc
+from llm.synthesis import VerificationMethod, run_synthesis_for_cc
 from metalift.frontend.llvm import Driver
 from metalift.ir import Object
 
@@ -23,5 +23,6 @@ if __name__ == "__main__":
         "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc",
         "softmax_part1",
         precondition_fn=_softmax_part1_preconditions,
+        verification_method=VerificationMethod.SMT,
     )
     print(f"Synthesis took {time.time() - start_time} seconds")
