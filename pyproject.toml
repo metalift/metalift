@@ -22,6 +22,8 @@ openai = "^1.56.1"
 pyparsing = "^3.0.8"
 python-dotenv = "^1.0.1"
 boto3 = "^1.42.64"
+tree-sitter = "0.21.3"
+tree-sitter-languages = "^1.10.2"
 
 [tool.poetry.group.benchmark]
 optional = true
@@ -34,8 +36,6 @@ regex = "2023.10.3"
 tensorflow = "2.15"
 torch = "2.1.2"
 transformers = "*"
-tree-sitter = "0.21.3"
-tree-sitter-languages = "^1.10.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "22.3.0" # make sure to update ci.yml!
