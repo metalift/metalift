@@ -5,10 +5,14 @@ from metalift.ir import FnDecl, Int, fn_decl
 
 
 def _fma_target_lang() -> list[FnDecl]:
+    '''
+    fn_decl(name: str, return_type: Type, body: Expr, *args: Expr) -> FnDecl
+    '''
     x = Int("x")
     y = Int("y")
     z = Int("z")
     return [fn_decl("fma", Int, (x + y * z), x, y, z)]
+
 
 
 if __name__ == "__main__":
