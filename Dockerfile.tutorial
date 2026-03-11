@@ -1,5 +1,10 @@
 FROM jieqiu0630/llmlift-base:latest
 
+# ── Convenience tooling ──────────────────────────────────────
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+      vim \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Python deps (rebuild only when lock file changes) ───────
 WORKDIR /app
 COPY pyproject.toml poetry.toml poetry.lock ./
