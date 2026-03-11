@@ -674,13 +674,19 @@ def run_synthesis_for_cc(
 
     driver = Driver()
 
-    # Infer single-loop structure from LLVM (.ll + .loops); also runs the VC once
-    # so the driver gets type-refined vars (e.g. list element type).
-    loop_info = infer_single_loop_info_from_llvm(
-        driver=driver,
-        cc_path=cc_path,
-        fn_name=fn_name,
-    )
+    # Infer loop structure from LLVM (.ll + .loops). If no loops are present,
+    # we synthesize only the postcondition (no invariants).
+    loop_info: SingleLoopInfo | DoubleLoopInfo | None
+    try:
+        loop_info = infer_single_loop_info_from_llvm(
+            driver=driver,
+            cc_path=cc_path,
+            fn_name=fn_name,
+        )
+    except RuntimeError as e:
+        if "No loops found" not in str(e):
+            raise
+        loop_info = None
 
     # Build input variables from the source tree (ordered as in the function signature).
     root_node = find_root_node_from_file(cc_path)
@@ -691,9 +697,11 @@ def run_synthesis_for_cc(
     if precondition_fn is not None:
         precondition_fn(driver, input_vars)
 
-    # Invariant grammar: one invariant (inv0) with args derived from loop_info.
-    inv_args = get_inv_args(loop_info)
-    inv_grammars = {f"{fn_name}_inv0": InvGrammar(None, [], inv_args)}
+    inv_grammars = (
+        {f"{fn_name}_inv0": InvGrammar(None, [], get_inv_args(loop_info))}
+        if loop_info is not None
+        else {}
+    )
 
     # Analyze the function and build the VC (asserts) used for verification.
     mf = driver.analyze(
@@ -707,7 +715,8 @@ def run_synthesis_for_cc(
     mf(*input_var_list)
 
     # Rebuild loop_info with types from var_tracker (after VC) so prompts see refined types.
-    loop_info = prepare_loop_info_from_driver(loop_info, driver)
+    if loop_info is not None:
+        loop_info = prepare_loop_info_from_driver(loop_info, driver)
 
     # Infer output variable from return statement and function return type.
     return_name = get_return_var_name(root_node)
