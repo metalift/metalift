@@ -2,34 +2,15 @@ import time
 from pathlib import Path
 
 from llm.synthesis import LLMModel, VerificationMethod, run_llm_synthesis_algorithm
-from llm.utils import SingleLoopInfo, get_inv_args, infer_single_loop_info_from_llvm
+from llm.utils import (
+    get_inv_args,
+    infer_single_loop_info_from_llvm,
+    prepare_loop_info_from_driver,
+)
 from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Int, create_object
+from metalift.ir import Int
 from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 from tenspiler.tree_parser import find_root_node_from_file, make_input_variables
-
-
-def recreate_loop_info_from_var_map(
-    loop_info: SingleLoopInfo, var_map: dict
-) -> SingleLoopInfo:
-    """Recreate loop_info so read_vars and modified_vars use types from var_map (e.g. from var_tracker after VC)."""
-    read_vars = [
-        create_object(var_map[var.var_name()].type, var.var_name())
-        if var.var_name() in var_map
-        else var
-        for var in loop_info.read_vars
-    ]
-    modified_vars = [
-        create_object(var_map[var.var_name()].type, var.var_name())
-        if var.var_name() in var_map
-        else var
-        for var in loop_info.modified_vars
-    ]
-    return SingleLoopInfo(
-        loop_var=loop_info.loop_var,
-        read_vars=read_vars,
-        modified_vars=modified_vars,
-    )
 
 
 if __name__ == "__main__":
@@ -38,8 +19,6 @@ if __name__ == "__main__":
     llvm_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll"
     loops_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.loops"
 
-    # Induction variable name (still supplied manually), all other loop info
-    # (modified/read vars) inferred automatically from the LLVM + loops files.
     loop_var = Int("i")
     loop_info = infer_single_loop_info_from_llvm(
         llvm_filepath=llvm_path,
@@ -70,13 +49,9 @@ if __name__ == "__main__":
 
     softmax_part1(input_var, max_pos_var)
 
-    variables = driver.var_tracker.all()
-    var_map = {var.name(): var for var in variables}
-    loop_info = recreate_loop_info_from_var_map(loop_info, var_map)
-
-    input_code = Path(
-        f"tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc"
-    ).read_text()
+    loop_info = prepare_loop_info_from_driver(loop_info, driver)
+    print("Loop info", loop_info)
+    input_code = Path(cc_path).read_text()
 
     run_llm_synthesis_algorithm(
         driver=driver,

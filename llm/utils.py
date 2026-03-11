@@ -100,6 +100,36 @@ def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Ob
     return new_args
 
 
+def recreate_loop_info_from_var_map(
+    loop_info: SingleLoopInfo, var_map: dict
+) -> SingleLoopInfo:
+    """Recreate loop_info so read_vars and modified_vars use types from var_map (e.g. from var_tracker after VC)."""
+    read_vars = [
+        create_object(var_map[var.var_name()].type, var.var_name())
+        if var.var_name() in var_map
+        else var
+        for var in loop_info.read_vars
+    ]
+    modified_vars = [
+        create_object(var_map[var.var_name()].type, var.var_name())
+        if var.var_name() in var_map
+        else var
+        for var in loop_info.modified_vars
+    ]
+    return SingleLoopInfo(
+        loop_var=loop_info.loop_var,
+        read_vars=read_vars,
+        modified_vars=modified_vars,
+    )
+
+
+def prepare_loop_info_from_driver(loop_info: SingleLoopInfo, driver) -> SingleLoopInfo:
+    """Recreate loop_info using types from driver's var_tracker (e.g. after VC). Use when loop_info was inferred from LLVM."""
+    variables = driver.var_tracker.all()
+    var_map = {var.name(): var for var in variables}
+    return recreate_loop_info_from_var_map(loop_info, var_map)
+
+
 def _codeinfo_var_to_object(v: Union[ValueRef, Object]) -> Object:
     """
     Convert a CodeInfo modified/read var (usually a ValueRef) into a Metalift Object.
