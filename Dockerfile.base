@@ -45,17 +45,6 @@ RUN git clone --depth 1 https://github.com/bitwuzla/bitwuzla /opt/bitwuzla && \
     cd /opt/bitwuzla && python3 ./configure.py && ninja -C build
 
 ENV BITWUZLA_PATH="/opt/bitwuzla/build/src/main/bitwuzla"
-
-# ── cvc5 ─────────────────────────────────────────────────────
-RUN git clone --depth 1 --branch cvc5-1.3.3 https://github.com/cvc5/cvc5.git /opt/cvc5 && \
-    cd /opt/cvc5 && \
-    ./configure.sh --auto-download && \
-    cd build && \
-    make -j"$(nproc)" && \
-    make install && \
-    ldconfig
-
-# Optional but explicit
-ENV CVC5_PATH="/usr/local/bin/cvc5"
+ENV CVC5_PATH="/app/cvc5"
 
 WORKDIR /app
