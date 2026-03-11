@@ -3,7 +3,7 @@ import copy
 import glob
 import importlib
 import os
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from typing import Any, Callable, Optional, Union
 
 from tree_sitter import Node
@@ -135,6 +135,14 @@ sclar_decl_query = """
 (declaration)@scalar_decl
 """
 
+# Return statement: capture the identifier in "return id;" inside the function body.
+# In the C++ grammar, the returned expression is in the `argument` field.
+return_ident_query = """
+(return_statement (identifier) @return_id)"""
+return_ident_via_expr_query = """
+(function_definition body: (compound_statement (return_statement argument: (expression (identifier) @ret_id))))
+"""
+
 
 def _capture_to_text(capture: tuple[Node, str]) -> str:
     return capture[0].text.decode()
@@ -142,6 +150,32 @@ def _capture_to_text(capture: tuple[Node, str]) -> str:
 
 def _node_to_text(node: Node) -> str:
     return node.text.decode()
+
+
+def get_loop_var_names(tree_node: Node) -> list[str]:
+    """Return the induction variable name(s) of the for-loop(s) in order (outer first).
+    Single loop returns one name; nested loops return two."""
+    loop_lower_ident = LANGUAGE.query(loop_lower_ident_query).captures(tree_node)
+    if not loop_lower_ident:
+        loop_lower_assign = LANGUAGE.query(loop_lower_assign_query).captures(tree_node)
+        if not loop_lower_assign:
+            raise ParserError("No for-loop initializer found")
+        # assignment form: left is the loop var
+        return [
+            _node_to_text(assign[0].child_by_field_name("left"))
+            for assign in loop_lower_assign
+        ]
+    return [_node_to_text(ident[0]) for ident in loop_lower_ident]
+
+
+def get_return_var_name(tree_node: Node) -> Optional[str]:
+    """Return the name of the variable in a simple 'return id;' in the function body.
+    Returns None if no such return statement is found (e.g. return expr; or multiple functions).
+    """
+    captures = LANGUAGE.query(return_ident_query).captures(tree_node)
+    if captures:
+        return _node_to_text(captures[0][0])
+    return None
 
 
 def get_loop_bounds_nodes(tree_node: Node) -> list[list[tuple[Node]]]:
@@ -639,11 +673,11 @@ def find_int_init_decl_to_var(var_name: str, tree_node: Node):
     return None
 
 
-def make_input_variables(tree_node: Node, driver: Driver) -> dict[str, Object]:
-    """Return a dictionary from function argument names to their corresponding variable objects."""
+def make_input_variables(tree_node: Node, driver: Driver) -> OrderedDict[str, Object]:
+    """Return an ordered dictionary from function argument names to their corresponding variable objects."""
     template_input_types = LANGUAGE.query(template_types_query).captures(tree_node)
     primitive_input_types = LANGUAGE.query(primitive_types_query).captures(tree_node)
-    input_vars: dict[str, ObjectT] = {}
+    input_vars: OrderedDict[str, ObjectT] = OrderedDict()
     for input_type in template_input_types + primitive_input_types:
         curr_var_type, curr_var_name = input_type[0].text.decode().split(" ")
         if curr_var_type == "vector<int>":

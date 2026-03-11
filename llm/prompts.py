@@ -92,6 +92,7 @@ def get_ps_prompt(*, benchmark_name: str, dsl_code: str, source_code: str) -> st
 
 def get_inv_prompt(
     *,
+    benchmark_name: str,
     source_code: str,
     ps_fn_decl: FnDecl | FnDeclRecursive,
     loop_info: SingleLoopInfo | DoubleLoopInfo,
@@ -129,14 +130,14 @@ def get_inv_prompt(
     """
     one_shot_example = textwrap.dedent(one_shot_example)
     one_shot_text = f"""
-    Your task is to prove that `assertion` is true in the `test` function. The assertion can be proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
+    Your task is to prove that `assertion` is true in the `{benchmark_name}` function. The assertion can be proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
     #Instructions:
     1. You need to use only the defined functions to write the loop invariant.
     2. Do not use for/while loops for rewriting the function.
     3. The rewritten program should just be a single return statement of the form return\_var = provided\_function(...)
     4. Inline all the expressions. Do not use intermediate variables.
-    5. Generate separate loop invariants for each loop in the test function.
+    5. Generate separate loop invariants for each loop in the {benchmark_name} function.
     6. invariant structure
     {generate_invariant_template(loop_info)}
 
@@ -174,6 +175,7 @@ def get_inv_prompt(
             {generate_invariant_template(loop_info)}
             ```
             """
+            print(generate_invariant_template(loop_info))
             return textwrap.dedent(single_loop_zero_shot_inv_text)
         elif num_shots == 1:
             return textwrap.dedent(one_shot_text)

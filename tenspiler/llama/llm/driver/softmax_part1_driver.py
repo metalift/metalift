@@ -1,68 +1,27 @@
+"""
+Driver for LLM-guided synthesis of softmax_part1 and similar single-loop .cc functions.
+"""
 import time
-from pathlib import Path
 
-from llm.synthesis import LLMModel, VerificationMethod, run_llm_synthesis_algorithm
-from llm.utils import (
-    get_inv_args,
-    infer_single_loop_info_from_llvm,
-    prepare_loop_info_from_driver,
-)
-from metalift.frontend.llvm import Driver, InvGrammar
-from metalift.ir import Int
-from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
-from tenspiler.tree_parser import find_root_node_from_file, make_input_variables
+from llm.synthesis import run_synthesis_for_cc
+from metalift.frontend.llvm import Driver
+from metalift.ir import Object
 
 
-if __name__ == "__main__":
-    start_time = time.time()
-    driver = Driver()
-    llvm_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.ll"
-    loops_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.loops"
-
-    loop_var = Int("i")
-    loop_info = infer_single_loop_info_from_llvm(
-        llvm_filepath=llvm_path,
-        loops_filepath=loops_path,
-        fn_name="softmax_part1",
-        loop_var=loop_var,
-        inv_index=0,
-    )
-    output_var = Int("max_val")
-    inv_args = get_inv_args(loop_info)
-
-    softmax_part1 = driver.analyze(
-        llvm_filepath=llvm_path,
-        loops_filepath=loops_path,
-        fn_name="softmax_part1",
-        target_lang_fn=[],
-        inv_grammars={"softmax_part1_inv0": InvGrammar(None, [], inv_args)},
-        ps_grammar=None,
-    )
-
-    cc_path = "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc"
-    root_node = find_root_node_from_file(cc_path)
-    input_vars = make_input_variables(root_node, driver)
-    input_var, max_pos_var = input_vars["input"], input_vars["max_pos"]
+def _softmax_part1_preconditions(driver: Driver, input_vars: dict[str, Object]) -> None:
+    """Add preconditions for softmax_part1: non-empty input, max_pos in range."""
+    input_var = input_vars["input"]
+    max_pos_var = input_vars["max_pos"]
     driver.add_precondition(input_var.len() > 0)
     driver.add_precondition(max_pos_var <= input_var.len())
     driver.add_precondition(max_pos_var >= 1)
 
-    softmax_part1(input_var, max_pos_var)
 
-    loop_info = prepare_loop_info_from_driver(loop_info, driver)
-    print("Loop info", loop_info)
-    input_code = Path(cc_path).read_text()
-
-    run_llm_synthesis_algorithm(
-        driver=driver,
-        loop_info=loop_info,
-        output_var=output_var,
-        source_code=input_code,
-        benchmark_name="softmax_part1",
-        llm_model=LLMModel.GPT,
-        dsl_fns=TENSPILER_FNS,
-        dsl_fn_name_to_axioms=TENSPILER_FN_NAME_TO_AXIOMS,
-        verification_method=VerificationMethod.ROSETTE,
+if __name__ == "__main__":
+    start_time = time.time()
+    run_synthesis_for_cc(
+        "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc",
+        "softmax_part1",
+        precondition_fn=_softmax_part1_preconditions,
     )
-    end_time = time.time()
-    print(f"Synthesis took {end_time - start_time} seconds")
+    print(f"Synthesis took {time.time() - start_time} seconds")

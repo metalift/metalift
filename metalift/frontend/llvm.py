@@ -1234,6 +1234,9 @@ class VCVisitor:
             args = list(ObjectSet(havocs) + ObjectSet(self.fn_args))
             args.sort(key=lambda obj: obj.var_name())
             override_args = [] if inv_grammar is None else inv_grammar.override_args
+            import pdb
+
+            pdb.set_trace()
             inv = self.pred_tracker.invariant(
                 inv_name=inv_name,
                 args=override_args or args,

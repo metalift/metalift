@@ -3,7 +3,7 @@ import os
 import subprocess
 from enum import Enum
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Callable, Optional, Union
 
 import anthropic
 import boto3
@@ -22,9 +22,12 @@ from llm.utils import (
     DoubleLoopInfo,
     SingleLoopInfo,
     extract_all_python_functions,
+    get_inv_args,
+    infer_single_loop_info_from_llvm,
+    prepare_loop_info_from_driver,
     replace_ite,
 )
-from metalift.frontend.llvm import Driver
+from metalift.frontend.llvm import Driver, InvGrammar
 from metalift.ir import (
     Axiom,
     Bool,
@@ -37,12 +40,14 @@ from metalift.ir import (
     Lit,
     Object,
     Var,
+    create_object,
     is_fn_decl_type,
 )
 from metalift.rosette_translator import generate_vars
 from metalift.smt_util import augment_arguments, replace_fn_name, toSMT
 from metalift.synthesis_common import get_used_fn_names
 from metalift.vc_util import and_objects
+from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
     DISSOLVE_SELECT_TWO_ARGS_ARG,
@@ -52,6 +57,11 @@ from tenspiler.tenspiler_common import (
     SELECTION_TWO_ARGS,
     dissolve_matrix_selection_two_args_fn_decl,
     dissolve_selection_two_args_fn_decl,
+)
+from tenspiler.tree_parser import (
+    find_root_node_from_file,
+    get_return_var_name,
+    make_input_variables,
 )
 
 
@@ -276,6 +286,7 @@ def verify_benchmark_rosette(
 
     # Run the verification
     print(f"Running verification for benchmark {benchmark_name}")
+    print(f"Verification file: {verify_file_name}")
     verification_output = subprocess.run(
         ["racket", verify_file_name], check=True, capture_output=True
     )
@@ -470,6 +481,7 @@ def run_llm_synthesis_algorithm(
         ps_fn_decl = next(fn_decl for fn_decl in ps_fn_decls if "ps" in fn_decl.name())
 
         inv_prompt = get_inv_prompt(
+            benchmark_name=benchmark_name,
             source_code=source_code,
             ps_fn_decl=ps_fn_decl,
             loop_info=loop_info,
@@ -620,6 +632,105 @@ def run_llm_synthesis_algorithm(
 
     print("Found PS solution")
     print(ps_sol)
+
+
+def run_synthesis_for_cc(
+    cc_path: str,
+    fn_name: str,
+    *,
+    precondition_fn: Optional[Callable[[Driver, dict], None]] = None,
+    llm_model: Optional[LLMModel] = None,
+    verification_method: Optional[VerificationMethod] = None,
+    dsl_fns=None,
+    dsl_fn_name_to_axioms=None,
+) -> None:
+    """
+    Run LLM-guided synthesis for a single-function .cc file.
+
+    Infers loop info from the compiled LLVM, builds input/output variables from
+    the source AST, and runs the synthesis algorithm. The .cc file is expected
+    to compile to .ll and .loops (via the standard compile-add-blocks pipeline).
+
+    Intended for use by driver scripts under tenspiler/*/llm/driver/ and similar.
+
+    Args:
+        cc_path: Path to the C++ source file (e.g. "tenspiler/llama/cpp/for_synthesis/softmax/softmax_part1.cc").
+        fn_name: Name of the function to synthesize (e.g. "softmax_part1").
+        precondition_fn: Optional callback (driver, input_vars) to add preconditions
+            (e.g. bounds on inputs) before running the VC.
+        llm_model: LLM to use for synthesis (default: LLMModel.GPT).
+        verification_method: SMT or Rosette (default: VerificationMethod.ROSETTE).
+        dsl_fns: DSL function declarations (default: TENSPILER_FNS).
+        dsl_fn_name_to_axioms: Axioms per DSL fn (default: TENSPILER_FN_NAME_TO_AXIOMS).
+    """
+    if dsl_fns is None:
+        dsl_fns = TENSPILER_FNS
+    if dsl_fn_name_to_axioms is None:
+        dsl_fn_name_to_axioms = TENSPILER_FN_NAME_TO_AXIOMS
+    if llm_model is None:
+        llm_model = LLMModel.GPT
+    if verification_method is None:
+        verification_method = VerificationMethod.ROSETTE
+
+    driver = Driver()
+
+    # Infer single-loop structure from LLVM (.ll + .loops); also runs the VC once
+    # so the driver gets type-refined vars (e.g. list element type).
+    loop_info = infer_single_loop_info_from_llvm(
+        driver=driver,
+        cc_path=cc_path,
+        fn_name=fn_name,
+    )
+
+    # Build input variables from the source tree (ordered as in the function signature).
+    root_node = find_root_node_from_file(cc_path)
+    input_vars = make_input_variables(root_node, driver)
+    input_var_list = list(input_vars.values())
+
+    # Optional: let the caller add preconditions (e.g. input_var.len() > 0).
+    if precondition_fn is not None:
+        precondition_fn(driver, input_vars)
+
+    # Invariant grammar: one invariant (inv0) with args derived from loop_info.
+    inv_args = get_inv_args(loop_info)
+    inv_grammars = {f"{fn_name}_inv0": InvGrammar(None, [], inv_args)}
+
+    # Analyze the function and build the VC (asserts) used for verification.
+    mf = driver.analyze(
+        llvm_filepath=cc_path.replace(".cc", ".ll"),
+        loops_filepath=cc_path.replace(".cc", ".loops"),
+        fn_name=fn_name,
+        target_lang_fn=[],
+        inv_grammars=inv_grammars,
+        ps_grammar=None,
+    )
+    mf(*input_var_list)
+
+    # Rebuild loop_info with types from var_tracker (after VC) so prompts see refined types.
+    loop_info = prepare_loop_info_from_driver(loop_info, driver)
+
+    # Infer output variable from return statement and function return type.
+    return_name = get_return_var_name(root_node)
+    if return_name is None:
+        raise ValueError(
+            "Could not infer return variable from source (expected simple 'return id;')"
+        )
+    output_type = mf.fn_ret_type
+    output_var = create_object(output_type, return_name)
+
+    source_code = Path(cc_path).read_text()
+
+    run_llm_synthesis_algorithm(
+        driver=driver,
+        loop_info=loop_info,
+        output_var=output_var,
+        source_code=source_code,
+        benchmark_name=fn_name,
+        llm_model=llm_model,
+        dsl_fns=dsl_fns,
+        dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
+        verification_method=verification_method,
+    )
 
 
 def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:

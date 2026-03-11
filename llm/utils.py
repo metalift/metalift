@@ -1,11 +1,14 @@
 import re
+import subprocess
 from dataclasses import dataclass
 from typing import List, Union
 
 from llvmlite.binding import ValueRef
 
-from metalift.analysis import CodeInfo, analyze_demangled
-from metalift.ir import Object, create_object, parse_type_ref_to_obj
+from metalift.analysis import CodeInfo
+from metalift.frontend.llvm import Driver
+from metalift.ir import Int, Object, create_object, parse_type_ref_to_obj
+from tenspiler.tree_parser import find_root_node_from_file, get_loop_var_names
 
 
 @dataclass
@@ -188,11 +191,9 @@ def single_loop_info_from_codeinfo(
 
 def infer_single_loop_info_from_llvm(
     *,
-    llvm_filepath: str,
-    loops_filepath: str,
+    driver: "Driver",
+    cc_path: str,
     fn_name: str,
-    loop_var: Object,
-    inv_index: int = 0,
 ) -> SingleLoopInfo:
     """
     Build SingleLoopInfo by parsing the LLVM file with the new frontend.
@@ -200,13 +201,24 @@ def infer_single_loop_info_from_llvm(
     Uses Driver + MetaliftFunc only (no VC), so C++ vector/STL calls in the .ll
     are handled by parse_object_func and do not trigger "NYI" in the legacy VC.
 
+    - cc_path: path to the C/C++ source file (e.g. *.cc).
     - fn_name: demangled function name (e.g. "softmax_part1").
     - inv_index: which loop to use (0 = first loop).
-    - loop_var: induction variable Object (e.g. Int("i")).
     """
-    from metalift.frontend.llvm import Driver
+    # 1) Ensure the corresponding .ll and .loops files exist by running the
+    #    compile-add-blocks helper. This compiles `cc_path` to LLVM, runs the
+    #    AddEmptyBlocks pass and loop analysis, and produces *.ll / *.loops.
+    subprocess.run(
+        ["metalift/utils/llvm/compile-add-blocks", cc_path],
+        check=True,
+    )
 
-    driver = Driver()
+    if cc_path.endswith(".cc"):
+        llvm_filepath = cc_path.replace(".cc", ".ll")
+        loops_filepath = cc_path.replace(".cc", ".loops")
+    else:
+        raise ValueError(f"Unsupported file extension: {cc_path}")
+
     mf = driver.analyze(
         llvm_filepath=llvm_filepath,
         loops_filepath=loops_filepath,
@@ -215,15 +227,18 @@ def infer_single_loop_info_from_llvm(
         inv_grammars={},
         ps_grammar=None,
     )
+
     if not mf.loops:
-        raise RuntimeError(
-            f"No loops found for function {fn_name} in {llvm_filepath}"
-        )
-    if inv_index < 0 or inv_index >= len(mf.loops):
-        raise IndexError(
-            f"inv_index {inv_index} out of range for {len(mf.loops)} loops"
-        )
-    loop = mf.loops[inv_index]
+        raise RuntimeError(f"No loops found for function {fn_name} in {llvm_filepath}")
+
+    root_node = find_root_node_from_file(cc_path)
+    names = get_loop_var_names(root_node)
+    # There should be only one loop variable.
+    if len(names) != 1:
+        raise ValueError(f"Expected 1 loop variable, got {len(names)}")
+    loop_var = Int(names[0])
+
+    loop = mf.loops[0]
     modified_vars = [
         create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(loop.havocs, key=lambda x: x.name)
@@ -232,8 +247,10 @@ def infer_single_loop_info_from_llvm(
         create_object(mf.fn_args_types[i], mf.fn_args[i].name)
         for i in range(len(mf.fn_args))
     ]
-    return SingleLoopInfo(
+    loop_info = SingleLoopInfo(
         loop_var=loop_var,
         modified_vars=modified_vars,
         read_vars=read_vars,
     )
+
+    return loop_info
