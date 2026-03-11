@@ -419,8 +419,8 @@ def reduce_max_body(lst: mlList[Int]) -> Int:
     lst_rest = lst[1:]
     recursed = call_reduce_max(lst_rest)
     general_answer = ite(cur > recursed, cur, recursed)
-    # TODO(sahil)
-    return ite(vec_size < 1, 0 - Int(32), ite(vec_size == 1, lst[0], general_answer))
+    # TODO(sahil: changed to int min)
+    return ite(vec_size < 1, 0 - Int(-2147483648), ite(vec_size == 1, lst[0], general_answer))
 
 
 reduce_max = fn_decl_recursive(REDUCEMAX, Int, reduce_max_body(x), x)
