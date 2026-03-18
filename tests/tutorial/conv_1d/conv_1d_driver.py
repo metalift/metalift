@@ -4,7 +4,12 @@ import time
 from llm.synthesis import LLMModel, VerificationMethod, run_synthesis_for_cc
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, List, Object, call, fn_decl_recursive, ite
-from tenspiler.tenspiler_common import call_reduce_sum, call_vec_elemwise_mul
+from tenspiler.tenspiler_common import (
+    call_reduce_sum,
+    call_vec_elemwise_mul,
+    reduce_sum,
+    vec_elemwise_mul,
+)
 
 CONV1D = "conv1d"
 
@@ -46,7 +51,7 @@ if __name__ == "__main__":
         fn_name="conv_1d",
         precondition_fn=_conv_1d_preconditions,
         llm_model=LLMModel.GPT,
-        dsl_fns=[conv_1d],
+        dsl_fns=[conv_1d, vec_elemwise_mul, reduce_sum],
         verification_method=VerificationMethod.ROSETTE,
     )
     end_time = time.time()
