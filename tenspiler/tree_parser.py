@@ -168,6 +168,21 @@ def get_loop_var_names(tree_node: Node) -> list[str]:
     return [_node_to_text(ident[0]) for ident in loop_lower_ident]
 
 
+def get_inner_loop_declared_var_names(tree_node: Node) -> set[str]:
+    """Return variable names declared inside the inner loop body."""
+    inner_loop_decl_vars = LANGUAGE.query(inner_loop_decl_var_names_query).captures(
+        tree_node
+    )
+    inner_loop_decl_var_names = {node.text.decode() for node, _ in inner_loop_decl_vars}
+    inner_loop_init_decl_vars = LANGUAGE.query(
+        inner_loop_init_decl_var_names_query
+    ).captures(tree_node)
+    inner_loop_init_decl_var_names = {
+        node.text.decode() for node, _ in inner_loop_init_decl_vars
+    }
+    return inner_loop_decl_var_names | inner_loop_init_decl_var_names
+
+
 def get_return_var_name(tree_node: Node) -> Optional[str]:
     """Return the name of the variable in a simple 'return id;' in the function body.
     Returns None if no such return statement is found (e.g. return expr; or multiple functions).

@@ -8,7 +8,11 @@ from llvmlite.binding import ValueRef
 from metalift.analysis import CodeInfo
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Object, create_object, parse_type_ref_to_obj
-from tenspiler.tree_parser import find_root_node_from_file, get_loop_var_names
+from tenspiler.tree_parser import (
+    find_root_node_from_file,
+    get_inner_loop_declared_var_names,
+    get_loop_var_names,
+)
 
 
 @dataclass
@@ -317,13 +321,26 @@ def infer_double_loop_info_from_llvm(
     outer_loop = mf.loops[0]
     inner_loop = mf.loops[1]
 
+    # Outer-loop modified vars should exclude:
+    # 1) vars also modified by the inner loop, and
+    # 2) loop induction vars.
+    inner_havoc_names = {v.name for v in inner_loop.havocs}
+    excluded_outer_names = {
+        outer_loop_var.var_name(),
+        inner_loop_var.var_name(),
+        *inner_havoc_names,
+    }
     outer_loop_modified_vars = [
         create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(outer_loop.havocs, key=lambda x: x.name)
+        if v.name not in excluded_outer_names
     ]
+    inner_declared_names = get_inner_loop_declared_var_names(root_node)
+    excluded_inner_names = {inner_loop_var.var_name(), *inner_declared_names}
     inner_loop_modified_vars = [
         create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(inner_loop.havocs, key=lambda x: x.name)
+        if v.name not in excluded_inner_names
     ]
 
     # Conservatively treat function args as read vars for both loops.
