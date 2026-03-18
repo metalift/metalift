@@ -4,7 +4,6 @@ import time
 from llm.synthesis import LLMModel, VerificationMethod, run_synthesis_for_cc
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, List, Matrix, Object, call, fn_decl_recursive, ite
-from tenspiler.tenspiler_common import reduce_sum, vec_elemwise_mul
 
 # Dot product
 DOT = "dot"
@@ -92,7 +91,7 @@ if __name__ == "__main__":
         fn_name="conv_1d",
         precondition_fn=_conv_1d_preconditions,
         llm_model=LLMModel.GPT,
-        dsl_fns=[depthwise_conv_1d, conv_1d, dot, vec_elemwise_mul, reduce_sum],
+        dsl_fns=[depthwise_conv_1d, conv_1d, dot],
         verification_method=VerificationMethod.ROSETTE,
     )
     end_time = time.time()

@@ -518,6 +518,9 @@ def run_llm_synthesis_algorithm(
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
+                import pdb
+
+                pdb.set_trace()
                 print("Failed to pass the parser", e)
                 continue
 

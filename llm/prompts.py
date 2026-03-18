@@ -70,12 +70,13 @@ def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> s
 
 def get_ps_prompt(*, benchmark_name: str, dsl_code: str, source_code: str) -> str:
     ps_text = f"""
-    Your task is to rewrite the given `{benchmark_name}` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `test` function. Please generate the shortest possible solution.
+    Your task is to rewrite the given `{benchmark_name}` C++ Function. You need to use only the set of provided functions and constants to achieve this. The rewritten program should be semantically equivalent to the `{benchmark_name}` function. Please generate the shortest possible solution.
 
     #Instructions
     # 1. Do not use for/while loops for rewriting the function.
     # 2. The rewritten program should just be a single return statement of the form return provided_function(...)
     # 3. Inline all the expressions. Do not use intermediate variables. Return the function signature as well as the function body in python.
+    # 4. Include full type annotations in the function signature (argument and return types).
 
     #defined functions
     ```python
@@ -83,7 +84,7 @@ def get_ps_prompt(*, benchmark_name: str, dsl_code: str, source_code: str) -> st
     ```
 
     ```cpp
-    //test function
+    //{benchmark_name} function
     {source_code}
     ```
     """
