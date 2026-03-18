@@ -6,7 +6,7 @@ from typing import List, Union
 from llvmlite.binding import ValueRef
 
 from metalift.analysis import CodeInfo
-from metalift.frontend.llvm import Driver, normalize_var_name
+from metalift.frontend.llvm import Driver
 from metalift.ir import Int, Object, create_object, parse_type_ref_to_obj
 from tenspiler.tree_parser import (
     find_root_node_from_file,
@@ -71,7 +71,7 @@ def get_inv_args(
             ),
             key=lambda x: x.name(),
         )
-        return [create_object(var.type, normalize_var_name(var.name())) for var in vars]
+        return [create_object(var.type, var.name()) for var in vars]
     else:
         outer_inv_args = sorted(
             list(
@@ -93,14 +93,8 @@ def get_inv_args(
             ),
             key=lambda x: x.name(),
         )
-        outer_inv_args = [
-            create_object(var.type, normalize_var_name(var.name()))
-            for var in outer_inv_args
-        ]
-        inner_inv_args = [
-            create_object(var.type, normalize_var_name(var.name()))
-            for var in inner_inv_args
-        ]
+        outer_inv_args = [create_object(var.type, var.name()) for var in outer_inv_args]
+        inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
         return outer_inv_args, inner_inv_args
 
 
@@ -108,7 +102,7 @@ def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Ob
     """In the given list of args, replace the variable names according to the given `replace_args`."""
     new_args: list[Object] = []
     for arg in args:
-        arg_name = normalize_var_name(replace_args.get(arg.var_name(), arg.var_name()))
+        arg_name = replace_args.get(arg.var_name(), arg.var_name())
         new_args.append(create_object(arg.type, arg_name))
     return new_args
 
@@ -120,11 +114,9 @@ def recreate_loop_info_from_var_map(
 
     def _remap_vars(vars: list[Object]) -> list[Object]:
         return [
-            create_object(
-                var_map[var.var_name()].type, normalize_var_name(var.var_name())
-            )
+            create_object(var_map[var.var_name()].type, var.var_name())
             if var.var_name() in var_map
-            else create_object(var.type, normalize_var_name(var.var_name()))
+            else var
             for var in vars
         ]
 
@@ -261,11 +253,11 @@ def infer_single_loop_info_from_llvm(
 
     loop = mf.loops[0]
     modified_vars = [
-        create_object(parse_type_ref_to_obj(v.type), normalize_var_name(v.name))
+        create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(loop.havocs, key=lambda x: x.name)
     ]
     read_vars = [
-        create_object(mf.fn_args_types[i], normalize_var_name(mf.fn_args[i].name))
+        create_object(mf.fn_args_types[i], mf.fn_args[i].name)
         for i in range(len(mf.fn_args))
     ]
     loop_info = SingleLoopInfo(
@@ -339,21 +331,21 @@ def infer_double_loop_info_from_llvm(
         *inner_havoc_names,
     }
     outer_loop_modified_vars = [
-        create_object(parse_type_ref_to_obj(v.type), normalize_var_name(v.name))
+        create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(outer_loop.havocs, key=lambda x: x.name)
         if v.name not in excluded_outer_names
     ]
     inner_declared_names = get_inner_loop_declared_var_names(root_node)
     excluded_inner_names = {inner_loop_var.var_name(), *inner_declared_names}
     inner_loop_modified_vars = [
-        create_object(parse_type_ref_to_obj(v.type), normalize_var_name(v.name))
+        create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(inner_loop.havocs, key=lambda x: x.name)
         if v.name not in excluded_inner_names
     ]
 
     # Conservatively treat function args as read vars for both loops.
     fn_read_vars = [
-        create_object(mf.fn_args_types[i], normalize_var_name(mf.fn_args[i].name))
+        create_object(mf.fn_args_types[i], mf.fn_args[i].name)
         for i in range(len(mf.fn_args))
     ]
 

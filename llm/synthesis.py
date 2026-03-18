@@ -80,16 +80,6 @@ class LLMModel(Enum):
     BEDROCK = "bedrock"
 
 
-def _print_parser_error(context: str, err: Exception, candidate_code: str) -> None:
-    """Print detailed parser diagnostics for a candidate solution."""
-    print(f"{context}: {type(err).__name__}: {err}")
-    print("Traceback:")
-    print(traceback.format_exc())
-    print("Candidate code:")
-    for idx, line in enumerate(candidate_code.splitlines(), start=1):
-        print(f"{idx:4}: {line}")
-
-
 def replace_in_call(expr: Expr, in_call: tuple[str, str]) -> Expr:
     caller_fn_name, callee_fn_name = in_call
     if (
@@ -434,7 +424,7 @@ def run_llm_synthesis_algorithm(
             print("Passed the parser, continuing to invariant generation")
             print("PS solution", ps_sol)
         except Exception as e:
-            _print_parser_error("Failed to pass the parser (PS)", e, ps_sol)
+            print("Failed to pass the parser", e, ps_sol)
             print("Skipping invariant generation")
             continue
 
@@ -528,7 +518,7 @@ def run_llm_synthesis_algorithm(
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
-                _print_parser_error("Failed to pass the parser (INV)", e, inv_sol)
+                print("Failed to pass the parser", e)
                 continue
 
             process_synthesized_fn_decls(
