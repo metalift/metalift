@@ -64,6 +64,54 @@ def normalize_var_name(name: str) -> str:
     return name.replace(".", "_")
 
 
+def normalize_llvm_valueref_names(fn_ref: ValueRef) -> None:
+    """Normalize LLVM variable-like ValueRef names in-place for a function.
+
+    Why this exists:
+    - Clang emits names like `agg.result` for sret/aggregate return pointers.
+    - Those names later flow into Metalift Objects, invariant arguments, and
+      emitted solver variable names.
+    - Dot-containing identifiers are awkward in Python-facing templates and can
+      be error-prone in downstream text processing.
+
+    Scope:
+    - We only rename *variable-like* names (function args, SSA result names,
+      and variable operands).
+    - We intentionally skip non-variable symbols such as:
+      - call target function names,
+      - branch/switch label targets.
+
+    Timing:
+    - This must run before `setupBlocks(...)` and before loop/state processing,
+      so every subsequent consumer sees a consistent normalized name.
+    """
+
+    def normalize_valueref_name(v: ValueRef) -> None:
+        if v.name:
+            v.name = normalize_var_name(v.name)
+
+    for arg in fn_ref.arguments:
+        # Function parameters become initial in-scope variables in VC state.
+        normalize_valueref_name(arg)
+
+    for block in fn_ref.blocks:
+        for inst in block.instructions:
+            # Instruction result names correspond to SSA variables (e.g. `%x.1`).
+            normalize_valueref_name(inst)
+            operands = list(inst.operands)
+            for idx, operand in enumerate(operands):
+                if not hasattr(operand, "name") or not operand.name:
+                    continue
+                # Skip non-variable operands:
+                # - call target function symbol (last operand in a call)
+                # - branch/switch labels
+                if inst.opcode == "call" and idx == len(operands) - 1:
+                    continue
+                if inst.opcode in {"br", "switch"}:
+                    continue
+                normalize_valueref_name(operand)
+
+
 def set_create(
     state: "State",
     global_vars: Dict[str, str],
@@ -1739,6 +1787,12 @@ class MetaliftFunc:
             raise Exception(
                 f"Did not find function declaration for {fn_name} in {llvm_filepath}"
             )
+
+        # IMPORTANT: normalize names at the LLVM boundary exactly once.
+        # Everything below (setupBlocks, parse_object_func, VC state merges, loop
+        # havoc construction, invariant arg assembly) reuses these ValueRefs, so
+        # this gives us one consistent naming scheme for the whole pipeline.
+        normalize_llvm_valueref_names(fn_ref)
 
         # Set up blocks
         self.fn_blocks = setupBlocks(fn_ref.blocks)
