@@ -59,6 +59,11 @@ DOUBLE_NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({NESTED_VECTOR_TYPE_REGE
 GrammarT = Callable[[List[Object], List[Object], List[Object]], Bool]
 
 
+def normalize_var_name(name: str) -> str:
+    """Normalize variable names for Python/SMT-facing code."""
+    return name.replace(".", "_")
+
+
 def set_create(
     state: "State",
     global_vars: Dict[str, str],
@@ -709,6 +714,17 @@ class State:
         self.has_returned = has_returned if not has_returned else has_returned
         self.processed = False
 
+    def _resolve_var_name(
+        self, var_name: str, scope: Dict[str, Object]
+    ) -> Optional[str]:
+        if var_name in scope:
+            return var_name
+        normalized = normalize_var_name(var_name)
+        for key in scope.keys():
+            if normalize_var_name(key) == normalized:
+                return key
+        return None
+
     def read_operand(self, op: ValueRef) -> Object:
         if op.name:
             return self.read_var(op.name)
@@ -744,15 +760,17 @@ class State:
             self.write_operand(op, value)
 
     def read_var(self, var_name: str) -> Object:
-        if var_name in self.primitive_vars.keys():
-            return self.primitive_vars[var_name]
+        resolved = self._resolve_var_name(var_name, self.primitive_vars)
+        if resolved is not None:
+            return self.primitive_vars[resolved]
         raise RuntimeError(
             f"{var_name} not found in primitive vars {self.primitive_vars}"
         )
 
     def load_var(self, var_name: str) -> Object:
-        if var_name in self.pointer_vars.keys():
-            return self.pointer_vars[var_name]
+        resolved = self._resolve_var_name(var_name, self.pointer_vars)
+        if resolved is not None:
+            return self.pointer_vars[resolved]
         raise RuntimeError(
             f"{var_name} not found in primitive vars {self.pointer_vars}"
         )
@@ -764,10 +782,12 @@ class State:
         self.pointer_vars[var_name] = value
 
     def read_or_load_var(self, var_name: str) -> Object:
-        if var_name in self.primitive_vars.keys():
-            return self.primitive_vars[var_name]
-        if var_name in self.pointer_vars.keys():
-            return self.pointer_vars[var_name]
+        primitive_resolved = self._resolve_var_name(var_name, self.primitive_vars)
+        if primitive_resolved is not None:
+            return self.primitive_vars[primitive_resolved]
+        pointer_resolved = self._resolve_var_name(var_name, self.pointer_vars)
+        if pointer_resolved is not None:
+            return self.pointer_vars[pointer_resolved]
         raise RuntimeError(
             f"{var_name} not found in primitive vars {self.primitive_vars} and pointer vars {self.pointer_vars}"
         )
@@ -779,9 +799,9 @@ class State:
             return self.read_operand(op)
 
     def get_var_location(self, var_name: str) -> str:
-        if var_name in self.primitive_vars.keys():
+        if self._resolve_var_name(var_name, self.primitive_vars) is not None:
             return "primitive"
-        elif var_name in self.pointer_vars.keys():
+        elif self._resolve_var_name(var_name, self.pointer_vars) is not None:
             return "pointer"
         else:
             raise Exception(f"{var_name} not found in state!")
