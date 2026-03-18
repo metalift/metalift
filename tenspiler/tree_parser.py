@@ -692,13 +692,18 @@ def make_input_variables(tree_node: Node, driver: Driver) -> OrderedDict[str, Ob
     return input_vars
 
 
+def get_num_loops(tree_node: Node) -> int:
+    """Return the number of for-loops in the given tree."""
+    loops = LANGUAGE.query(loop_query).captures(tree_node)
+    return len(loops)
+
+
 def find_compute_from_node(
     tree_node: Node,
 ) -> Node:
     """Find the compute from the given node. The node should usually be the root node of the file."""
     # Get number of loops
-    loops = LANGUAGE.query(loop_query).captures(tree_node)
-    num_loops = len(loops)
+    num_loops = get_num_loops(tree_node)
     if num_loops not in {1, 2}:
         raise ParserError(
             f"Only singly or doubly nested loops are supported, but found {num_loops} loops"

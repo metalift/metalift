@@ -104,29 +104,38 @@ def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Ob
 
 
 def recreate_loop_info_from_var_map(
-    loop_info: SingleLoopInfo, var_map: dict
-) -> SingleLoopInfo:
-    """Recreate loop_info so read_vars and modified_vars use types from var_map (e.g. from var_tracker after VC)."""
-    read_vars = [
-        create_object(var_map[var.var_name()].type, var.var_name())
-        if var.var_name() in var_map
-        else var
-        for var in loop_info.read_vars
-    ]
-    modified_vars = [
-        create_object(var_map[var.var_name()].type, var.var_name())
-        if var.var_name() in var_map
-        else var
-        for var in loop_info.modified_vars
-    ]
-    return SingleLoopInfo(
-        loop_var=loop_info.loop_var,
-        read_vars=read_vars,
-        modified_vars=modified_vars,
+    loop_info: SingleLoopInfo | DoubleLoopInfo, var_map: dict
+) -> SingleLoopInfo | DoubleLoopInfo:
+    """Recreate loop_info using types from var_map (e.g. var_tracker after VC)."""
+
+    def _remap_vars(vars: list[Object]) -> list[Object]:
+        return [
+            create_object(var_map[var.var_name()].type, var.var_name())
+            if var.var_name() in var_map
+            else var
+            for var in vars
+        ]
+
+    if isinstance(loop_info, SingleLoopInfo):
+        return SingleLoopInfo(
+            loop_var=loop_info.loop_var,
+            read_vars=_remap_vars(loop_info.read_vars),
+            modified_vars=_remap_vars(loop_info.modified_vars),
+        )
+
+    return DoubleLoopInfo(
+        outer_loop_var=loop_info.outer_loop_var,
+        inner_loop_var=loop_info.inner_loop_var,
+        outer_loop_read_vars=_remap_vars(loop_info.outer_loop_read_vars),
+        inner_loop_read_vars=_remap_vars(loop_info.inner_loop_read_vars),
+        outer_loop_modified_vars=_remap_vars(loop_info.outer_loop_modified_vars),
+        inner_loop_modified_vars=_remap_vars(loop_info.inner_loop_modified_vars),
     )
 
 
-def prepare_loop_info_from_driver(loop_info: SingleLoopInfo, driver) -> SingleLoopInfo:
+def prepare_loop_info_from_driver(
+    loop_info: SingleLoopInfo | DoubleLoopInfo, driver
+) -> SingleLoopInfo | DoubleLoopInfo:
     """Recreate loop_info using types from driver's var_tracker (e.g. after VC). Use when loop_info was inferred from LLVM."""
     variables = driver.var_tracker.all()
     var_map = {var.name(): var for var in variables}
@@ -254,3 +263,80 @@ def infer_single_loop_info_from_llvm(
     )
 
     return loop_info
+
+
+def infer_double_loop_info_from_llvm(
+    *,
+    driver: "Driver",
+    cc_path: str,
+    fn_name: str,
+) -> DoubleLoopInfo:
+    """
+    Build DoubleLoopInfo by parsing the LLVM file with the new frontend.
+
+    Uses Driver + MetaliftFunc (same flow as infer_single_loop_info_from_llvm)
+    and expects exactly two loop induction variables from source parsing.
+
+    - cc_path: path to the C/C++ source file (e.g. *.cc).
+    - fn_name: demangled function name.
+    """
+    # Ensure corresponding .ll and .loops files are generated.
+    subprocess.run(
+        ["metalift/utils/llvm/compile-add-blocks", cc_path],
+        check=True,
+    )
+
+    if cc_path.endswith(".cc"):
+        llvm_filepath = cc_path.replace(".cc", ".ll")
+        loops_filepath = cc_path.replace(".cc", ".loops")
+    else:
+        raise ValueError(f"Unsupported file extension: {cc_path}")
+
+    mf = driver.analyze(
+        llvm_filepath=llvm_filepath,
+        loops_filepath=loops_filepath,
+        fn_name=fn_name,
+        target_lang_fn=lambda: [],
+        inv_grammars={},
+        ps_grammar=None,
+    )
+
+    if len(mf.loops) != 2:
+        raise RuntimeError(
+            f"Expected 2 loops for function {fn_name} in {llvm_filepath}, got {len(mf.loops)}"
+        )
+
+    root_node = find_root_node_from_file(cc_path)
+    names = get_loop_var_names(root_node)
+    if len(names) != 2:
+        raise ValueError(f"Expected 2 loop variables, got {len(names)}")
+    outer_loop_var = Int(names[0])
+    inner_loop_var = Int(names[1])
+
+    # Use the first two loops in Metalift's discovered order as outer/inner.
+    outer_loop = mf.loops[0]
+    inner_loop = mf.loops[1]
+
+    outer_loop_modified_vars = [
+        create_object(parse_type_ref_to_obj(v.type), v.name)
+        for v in sorted(outer_loop.havocs, key=lambda x: x.name)
+    ]
+    inner_loop_modified_vars = [
+        create_object(parse_type_ref_to_obj(v.type), v.name)
+        for v in sorted(inner_loop.havocs, key=lambda x: x.name)
+    ]
+
+    # Conservatively treat function args as read vars for both loops.
+    fn_read_vars = [
+        create_object(mf.fn_args_types[i], mf.fn_args[i].name)
+        for i in range(len(mf.fn_args))
+    ]
+
+    return DoubleLoopInfo(
+        outer_loop_var=outer_loop_var,
+        inner_loop_var=inner_loop_var,
+        outer_loop_read_vars=fn_read_vars,
+        inner_loop_read_vars=fn_read_vars,
+        outer_loop_modified_vars=outer_loop_modified_vars,
+        inner_loop_modified_vars=inner_loop_modified_vars,
+    )

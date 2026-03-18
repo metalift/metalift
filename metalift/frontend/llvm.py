@@ -856,6 +856,12 @@ class PredicateTracker:
         else:
             non_args_scope_vars = list(ObjectSet(in_scope) - ObjectSet(args))
             non_args_scope_vars.sort(key=lambda obj: obj.var_name())
+            try:
+                args = args + non_args_scope_vars
+            except Exception:
+                import pdb
+
+                pdb.set_trace()
             args = args + non_args_scope_vars
             inv = Predicate(
                 args=args,

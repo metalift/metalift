@@ -23,6 +23,7 @@ from llm.utils import (
     SingleLoopInfo,
     extract_all_python_functions,
     get_inv_args,
+    infer_double_loop_info_from_llvm,
     infer_single_loop_info_from_llvm,
     prepare_loop_info_from_driver,
     replace_ite,
@@ -60,6 +61,7 @@ from tenspiler.tenspiler_common import (
 )
 from tenspiler.tree_parser import (
     find_root_node_from_file,
+    get_num_loops,
     get_return_var_name,
     make_input_variables,
 )
@@ -422,7 +424,7 @@ def run_llm_synthesis_algorithm(
             print("Passed the parser, continuing to invariant generation")
             print("PS solution", ps_sol)
         except Exception as e:
-            print("Failed to pass the parser", e)
+            print("Failed to pass the parser", e, ps_sol)
             print("Skipping invariant generation")
             continue
 
@@ -677,16 +679,22 @@ def run_synthesis_for_cc(
     # Infer loop structure from LLVM (.ll + .loops). If no loops are present,
     # we synthesize only the postcondition (no invariants).
     loop_info: SingleLoopInfo | DoubleLoopInfo | None
-    try:
+    root_node = find_root_node_from_file(cc_path)
+    num_loops = get_num_loops(root_node)
+    if num_loops == 1:
         loop_info = infer_single_loop_info_from_llvm(
             driver=driver,
             cc_path=cc_path,
             fn_name=fn_name,
         )
-    except RuntimeError as e:
-        if "No loops found" not in str(e):
-            raise
-        loop_info = None
+    elif num_loops == 2:
+        loop_info = infer_double_loop_info_from_llvm(
+            driver=driver,
+            cc_path=cc_path,
+            fn_name=fn_name,
+        )
+    else:
+        raise ValueError(f"Expected 1 or 2 loops, got {num_loops}")
 
     # Build input variables from the source tree (ordered as in the function signature).
     root_node = find_root_node_from_file(cc_path)
@@ -697,11 +705,14 @@ def run_synthesis_for_cc(
     if precondition_fn is not None:
         precondition_fn(driver, input_vars)
 
-    inv_grammars = (
-        {f"{fn_name}_inv0": InvGrammar(None, [], get_inv_args(loop_info))}
-        if loop_info is not None
-        else {}
-    )
+    inv_args = get_inv_args(loop_info)
+    if isinstance(inv_args, tuple):
+        inv_grammars = {
+            f"{fn_name}_inv0": InvGrammar(None, [], inv_args[0]),
+            f"{fn_name}_inv1": InvGrammar(None, [], inv_args[1]),
+        }
+    else:
+        inv_grammars = {f"{fn_name}_inv0": InvGrammar(None, [], inv_args)}
 
     # Analyze the function and build the VC (asserts) used for verification.
     mf = driver.analyze(

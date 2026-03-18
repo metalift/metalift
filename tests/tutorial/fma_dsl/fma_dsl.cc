@@ -8,4 +8,3 @@ int test(int base, int arg1, int base2, int arg2)
 
     return a;
 }
-
