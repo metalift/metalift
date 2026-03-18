@@ -59,6 +59,11 @@ DOUBLE_NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({NESTED_VECTOR_TYPE_REGE
 GrammarT = Callable[[List[Object], List[Object], List[Object]], Bool]
 
 
+def normalize_var_name(name: str) -> str:
+    """Normalize variable names for Python/SMT-facing code."""
+    return name.replace(".", "_")
+
+
 def set_create(
     state: "State",
     global_vars: Dict[str, str],
@@ -465,11 +470,13 @@ class LoopInfo:
                 opcode = i.opcode
                 ops = list(i.operands)
                 if opcode == "store":
+                    ops[1].name = normalize_var_name(ops[1].name)
                     self.havocs.add(ops[1])
                 elif opcode == "call":
                     args = ops[:-1]
                     fn_name = get_fn_name_from_call_instruction(i)
                     if fn_name == "push_back":
+                        args[0].name = normalize_var_name(args[0].name)
                         self.havocs.add(args[0])
 
         # Remove back edges

@@ -349,7 +349,7 @@ def infer_double_loop_info_from_llvm(
         for i in range(len(mf.fn_args))
     ]
 
-    return DoubleLoopInfo(
+    loop_info = DoubleLoopInfo(
         outer_loop_var=outer_loop_var,
         inner_loop_var=inner_loop_var,
         outer_loop_read_vars=fn_read_vars,
@@ -357,3 +357,4 @@ def infer_double_loop_info_from_llvm(
         outer_loop_modified_vars=outer_loop_modified_vars,
         inner_loop_modified_vars=inner_loop_modified_vars,
     )
+    return loop_info
