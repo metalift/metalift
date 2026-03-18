@@ -76,12 +76,14 @@ depthwise_conv_1d = fn_decl_recursive(
 
 
 def _conv_1d_preconditions(driver: Driver, input_vars: dict[str, Object]) -> None:
-    input_var = input_vars["input"]
+    input_var  = input_vars["input"]
     filter_var = input_vars["filter"]
-    driver.add_precondition(input_var.len() == filter_var.len())
-    driver.add_precondition(filter_var[0].len() == 3)
-    driver.add_precondition(input_var[0].len() >= 3)
-    driver.add_precondition(input_var[0].len() >= 1)
+
+    driver.add_precondition(input_var.len() >= 1)           
+    driver.add_precondition(input_var.len() == filter_var.len())  
+    driver.add_precondition(filter_var[0].len() == 3)       
+    driver.add_precondition(input_var[0].len() >= 3)        
+    
 
 
 if __name__ == "__main__":
