@@ -4,29 +4,28 @@ import time
 from llm.synthesis import LLMModel, VerificationMethod, run_synthesis_for_cc
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, List, Object, call, fn_decl_recursive, ite
+from tenspiler.tenspiler_common import call_reduce_sum, call_vec_elemwise_mul
 
 CONV1D = "conv1d"
 
 
-def call_conv_1d(input: List[Int], filter: List[Int]) -> Int:
-    return call(CONV1D, Int, input, filter)
+def call_conv_1d(input: List[Int], filter: List[Int], W: Int, W_f: Int) -> List[Int]:
+    return call(CONV1D, List[Int], input, filter, W, W_f)
 
 
 # Recursive body
-def conv_1d_body(input: List[Int], filter: List[Int]) -> Int:
-    vec_size = filter.len()
-    cur_input = input[0]
-    cur_filter = filter[0]
-    input_rest = input[1:]
-    filter_rest = filter[1:]
-    recursed = call_conv_1d(input_rest, filter_rest)
-    general_answer = cur_input * cur_filter + recursed
-    return ite(vec_size < 1, Int(0), general_answer)
+def conv_1d_body(input: List[Int], filter: List[Int], W: Int, W_f: Int) -> Int:
+    element = call_reduce_sum(call_vec_elemwise_mul(input[:W_f], filter))
+    recursed = call_conv_1d(input[1:], filter, W - 1, W_f)
+    general_answer = recursed.prepend(element)
+    return ite(W < 1, List.empty(Int), general_answer)
 
 
 x = List(Int, "x")
 y = List(Int, "y")
-conv_1d = fn_decl_recursive(CONV1D, Int, conv_1d_body(x, y), x, y)
+W = Int("W")
+W_f = Int("W_f")
+conv_1d = fn_decl_recursive(CONV1D, Int, conv_1d_body(x, y, W, W_f), x, y, W, W_f)
 
 
 def _conv_1d_preconditions(driver: Driver, input_vars: dict[str, Object]) -> None:
