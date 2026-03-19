@@ -363,6 +363,8 @@ class Expr:
                 [
                     a.name
                     if isinstance(a, ValueRef) and a.name != ""
+                    else a.src.toSMT()
+                    if isinstance(a, Object)
                     else a.toSMT()
                     if isinstance(a, Expr)
                     else str(a)
@@ -477,7 +479,13 @@ class Expr:
             if isinstance(a, ValueRef) and a.name != "":
                 retStr += "%s" % (a.name) + " "
             else:
-                strExp = a.to_rosette() if isinstance(a, Expr) else str(a)
+                strExp = (
+                    a.src.to_rosette()
+                    if isinstance(a, Object)
+                    else a.to_rosette()
+                    if isinstance(a, Expr)
+                    else str(a)
+                )
                 retStr += strExp + " "
         retStr += ")"
         return retStr

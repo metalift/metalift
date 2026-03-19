@@ -46,27 +46,23 @@ conv_1d = fn_decl_recursive(CONV_1D, List[Int], conv_1d_body(x, f), x, f)
 DEPTHWISE_CONV_1D = "depthwise_conv_1d"
 
 
-def call_depthwise_conv_1d(
-    inp: List[List[Int]], filters: List[List[Int]]
-) -> List[List[Int]]:
-    return call(DEPTHWISE_CONV_1D, List[List[Int]], inp, filters)
+def call_depthwise_conv_1d(inp: Matrix[Int], filters: Matrix[Int]) -> Matrix[Int]:
+    return call(DEPTHWISE_CONV_1D, Matrix[Int], inp, filters)
 
 
-def depthwise_conv_1d_body(
-    inp: List[List[Int]], filters: List[List[Int]]
-) -> List[List[Int]]:
+def depthwise_conv_1d_body(inp: Matrix[Int], filters: Matrix[Int]) -> Matrix[Int]:
     vec_size = inp.len()
     cur = call_conv_1d(inp[0], filters[0])  # conv_1d of one channel
     recursed = call_depthwise_conv_1d(inp[1:], filters[1:])  # remaining channels
     general_answer = recursed.prepend(cur)
-    return ite(vec_size < 1, List.empty(List[Int]), general_answer)
+    return ite(vec_size < 1, Matrix.empty(Int), general_answer)
 
 
 matrix_x = Matrix(Int, "matrix_x")
 matrix_y = Matrix(Int, "matrix_y")
 depthwise_conv_1d = fn_decl_recursive(
     DEPTHWISE_CONV_1D,
-    List[List[Int]],
+    Matrix[Int],
     depthwise_conv_1d_body(matrix_x, matrix_y),
     matrix_x,
     matrix_y,

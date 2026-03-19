@@ -193,19 +193,12 @@ def get_inv_prompt(
         outer_loop_modified_vars = [
             var.src for var in loop_info.outer_loop_modified_vars
         ]
-        import pdb
-
-        pdb.set_trace()
         assert len(outer_loop_modified_vars) == 1
         inner_modified_vars_not_in_outer = [
             var
             for var in inner_loop_modified_vars
             if var not in outer_loop_modified_vars
         ]
-
-        import pdb
-
-        pdb.set_trace()
         assert len(inner_modified_vars_not_in_outer) == 1
         inner_modified_var = inner_modified_vars_not_in_outer[0].name()
 
