@@ -289,9 +289,7 @@ def verify_benchmark_rosette(
     # Run the verification
     print(f"Running verification for benchmark {benchmark_name}")
     print(f"Verification file: {verify_file_name}")
-    import pdb
 
-    pdb.set_trace()
     verification_output = subprocess.run(
         ["racket", verify_file_name], check=True, capture_output=True
     )
@@ -458,10 +456,6 @@ def run_llm_synthesis_algorithm(
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
-                print("hahah", list_bound)
-                import pdb
-
-                pdb.set_trace()
                 verified = verify_benchmark_rosette(
                     driver=driver,
                     benchmark_name=benchmark_name,

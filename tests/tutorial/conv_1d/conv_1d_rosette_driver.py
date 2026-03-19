@@ -90,8 +90,8 @@ def _conv_1d_preconditions(driver: Driver, input_vars: dict[str, Object]) -> Non
 if __name__ == "__main__":
     start_time = time.time()
     run_synthesis_for_cc(
-        cc_path="tests/tutorial/conv_1d/conv_1d.cc",
-        fn_name="conv_1d",
+        cc_path="tests/tutorial/conv_1d/conv_1d_rosette.cc",
+        fn_name="conv_1d_rosette",
         precondition_fn=_conv_1d_preconditions,
         llm_model=LLMModel.GPT,
         dsl_fns=[depthwise_conv_1d, conv_1d, dot],

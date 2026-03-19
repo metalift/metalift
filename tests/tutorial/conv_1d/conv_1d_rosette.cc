@@ -2,7 +2,7 @@
 using namespace std;
 
 // TODO(jie): change function name
-vector<vector<int>> conv_1d(
+vector<vector<int>> conv_1d_rosette(
     vector<vector<int>> input,    // [C][W]
     vector<vector<int>> filter)   // [C][3]
 {
@@ -12,8 +12,6 @@ vector<vector<int>> conv_1d(
 
     for (int c = 0; c < C; c++) {                  // loop 1: channels
         vector<int> row_vec;
-        // Keep output width equal to input width. For tail positions where the
-        // full 3-tap window is not available, emit 0.
         for (int w = 0; w < W; w++) {
             int val = 0;
             if (w + 2 < W) {
