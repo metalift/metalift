@@ -898,6 +898,9 @@ class Bool(Object):
     def default_value() -> "Bool":
         return Bool(False)
 
+    def to_python(self) -> str:
+        return str(self.src.to_python())
+
     # python doesn't have hooks for and, or, not
     def And(self, *args: Union["Bool", bool]) -> "Bool":
         if len(args) == 0:

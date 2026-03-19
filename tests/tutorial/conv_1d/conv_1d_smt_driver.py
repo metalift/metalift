@@ -92,7 +92,6 @@ if __name__ == "__main__":
         llm_model=LLMModel.GPT,
         dsl_fns=[depthwise_conv_1d, conv_1d, dot],
         verification_method=VerificationMethod.SMT,
-        list_bound=3,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

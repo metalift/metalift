@@ -64,6 +64,18 @@ def normalize_var_name(name: str) -> str:
     return name.replace(".", "_")
 
 
+def is_llvm_temp_name(name: str) -> bool:
+    """Return True for compiler-generated LLVM temporary names."""
+    return (
+        ".tmp" in name
+        or name.startswith("tmp")
+        or name.startswith("ref.tmp")
+        or name.startswith("agg.tmp")
+        or name.startswith("undef.agg.tmp")
+        or bool(re.match(r"^(call|add|sub|mul|div|rem|cmp|phi|idx|conv)\\d+$", name))
+    )
+
+
 def normalize_llvm_valueref_names(fn_ref: ValueRef) -> None:
     """Normalize LLVM variable-like ValueRef names in-place for a function.
 
@@ -518,14 +530,16 @@ class LoopInfo:
                 opcode = i.opcode
                 ops = list(i.operands)
                 if opcode == "store":
-                    ops[1].name = normalize_var_name(ops[1].name)
-                    self.havocs.add(ops[1])
+                    if not is_llvm_temp_name(ops[1].name):
+                        ops[1].name = normalize_var_name(ops[1].name)
+                        self.havocs.add(ops[1])
                 elif opcode == "call":
                     args = ops[:-1]
                     fn_name = get_fn_name_from_call_instruction(i)
                     if fn_name == "push_back":
-                        args[0].name = normalize_var_name(args[0].name)
-                        self.havocs.add(args[0])
+                        if not is_llvm_temp_name(args[0].name):
+                            args[0].name = normalize_var_name(args[0].name)
+                            self.havocs.add(args[0])
 
         # Remove back edges
         for latch in self.latches:
@@ -1788,14 +1802,22 @@ class MetaliftFunc:
                 f"Did not find function declaration for {fn_name} in {llvm_filepath}"
             )
 
+        # Set up blocks
+        self.fn_blocks = setupBlocks(fn_ref.blocks)
+
+        # Get the raw loops before resolving valueref names to avoid temporary names in havocs.
+        # Parse and process loops
+        raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_ref.name)
+        self.loops = [
+            LoopInfo.from_raw_loop_info(raw_loop, self.fn_blocks)
+            for raw_loop in raw_loops
+        ]
+
         # IMPORTANT: normalize names at the LLVM boundary exactly once.
         # Everything below (setupBlocks, parse_object_func, VC state merges, loop
         # havoc construction, invariant arg assembly) reuses these ValueRefs, so
         # this gives us one consistent naming scheme for the whole pipeline.
         normalize_llvm_valueref_names(fn_ref)
-
-        # Set up blocks
-        self.fn_blocks = setupBlocks(fn_ref.blocks)
 
         # Find the return type of function, and set self.fn_type
         self.fn_ret_type, self.fn_sret_arg = find_return_type_and_sret_arg(
@@ -1811,13 +1833,6 @@ class MetaliftFunc:
         self.inv_grammars = inv_grammars
         self.ps_grammar = ps_grammar
         self.synthesized = []
-
-        # Parse and process loops
-        raw_loops: List[RawLoopInfo] = parse_loops(loops_filepath, fn_ref.name)
-        self.loops = [
-            LoopInfo.from_raw_loop_info(raw_loop, self.fn_blocks)
-            for raw_loop in raw_loops
-        ]
 
     def __call__(self, *args: Object, **kwds: Any) -> Any:
         if self.fn_sret_arg is not None:
