@@ -973,6 +973,9 @@ class Int(Object):
     def default_value() -> "Int":
         return Int(0)
 
+    def to_python(self) -> str:
+        return str(self.src.to_python())
+
     def binary_op(
         self,
         other: Union["Int", int, "List", "Matrix"],

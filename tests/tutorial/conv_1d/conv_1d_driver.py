@@ -3,7 +3,7 @@ import time
 
 from llm.synthesis import LLMModel, VerificationMethod, run_synthesis_for_cc
 from metalift.frontend.llvm import Driver
-from metalift.ir import Int, List, Matrix, Object, Or, call, fn_decl_recursive, ite
+from metalift.ir import Int, List, Matrix, Object, call, fn_decl_recursive, ite
 
 # Dot product
 DOT = "dot"
@@ -35,10 +35,14 @@ def call_conv_1d(x: List[Int], f: List[Int]) -> List[Int]:
 def conv_1d_body(x: List[Int], f: List[Int]) -> List[Int]:
     x_size = x.len()
     f_size = f.len()
-    cur = call_dot(x[:f_size], f)
+    # Keep output length equal to input length: when the filter window is not
+    # valid at this position, emit 0 for the current slot.
+    cur = ite(x_size < f_size, Int(0), call_dot(x[:f_size], f))
     recursed = call_conv_1d(x[1:], f)
     general_answer = recursed.prepend(cur)
-    return ite(Or(f_size < 1, x_size < f_size), List.empty(Int), general_answer)
+    # Base case only depends on input exhaustion, so we emit one element per
+    # input position.
+    return ite(x_size < 1, List.empty(Int), general_answer)
 
 
 conv_1d = fn_decl_recursive(CONV_1D, List[Int], conv_1d_body(x, f), x, f)

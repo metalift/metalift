@@ -8,14 +8,19 @@ vector<vector<int>> conv_1d(
 {
     vector<vector<int>> output;
     int C = input.size();
-    int W = input[0].size();      // no padding — use raw width
+    int W = input[0].size();
 
     for (int c = 0; c < C; c++) {                  // loop 1: channels
         vector<int> row_vec;
-        for (int w = 0; w < W - 2; w++) {          // loop 2: W-2 valid positions
-            int val = input[c][w+0] * filter[c][0]
-                    + input[c][w+1] * filter[c][1]
-                    + input[c][w+2] * filter[c][2];
+        // Keep output width equal to input width. For tail positions where the
+        // full 3-tap window is not available, emit 0.
+        for (int w = 0; w < W; w++) {
+            int val = 0;
+            if (w + 2 < W) {
+                val = input[c][w + 0] * filter[c][0]
+                    + input[c][w + 1] * filter[c][1]
+                    + input[c][w + 2] * filter[c][2];
+            }
             row_vec.push_back(val);
         }
         output.push_back(row_vec);
