@@ -36,13 +36,11 @@ def conv_1d_body(x: List[Int], f: List[Int]) -> List[Int]:
     x_size = x.len()
     f_size = f.len()
     cur = call_dot(x[:f_size], f)
-    recursed = call_conv_1d(x[f_size:], f)
+    recursed = call_conv_1d(x[1:], f)
     general_answer = recursed.prepend(cur)
-    return ite(x_size < f_size, List.empty(Int), general_answer)
+    return ite(f_size < 1 or x_size < f_size, List.empty(Int), general_answer)
 
 
-x = List(Int, "x")
-f = List(Int, "f")
 conv_1d = fn_decl_recursive(CONV_1D, List[Int], conv_1d_body(x, f), x, f)
 
 DEPTHWISE_CONV_1D = "depthwise_conv_1d"

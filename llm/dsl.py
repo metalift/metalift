@@ -15,7 +15,7 @@ def depthwise_conv_1d(
 
 
 def conv_1d(x: List[int], f: List[int]) -> List[int]:
-    return [] if len(x) < len(f) else [dot(x[: len(f)], f), *conv_1d(x[len(f) :], f)]
+    return [] if len(f) < 1 else [dot(x[: len(f)], f), *conv_1d(x[1:], f)]
 
 
 def dot(x: List[int], f: List[int]) -> int:
