@@ -93,6 +93,9 @@ def get_inv_args(
             ),
             key=lambda x: x.name(),
         )
+        import pdb
+
+        pdb.set_trace()
         outer_inv_args = [create_object(var.type, var.name()) for var in outer_inv_args]
         inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
         return outer_inv_args, inner_inv_args
@@ -337,23 +340,32 @@ def infer_double_loop_info_from_llvm(
     ]
     inner_declared_names = get_inner_loop_declared_var_names(root_node)
     excluded_inner_names = {inner_loop_var.var_name(), *inner_declared_names}
+
     inner_loop_modified_vars = [
         create_object(parse_type_ref_to_obj(v.type), v.name)
         for v in sorted(inner_loop.havocs, key=lambda x: x.name)
         if v.name not in excluded_inner_names
-    ]
+    ] + outer_loop_modified_vars
 
-    # Conservatively treat function args as read vars for both loops.
+    # Function args are always readable in both loops.
     fn_read_vars = [
         create_object(mf.fn_args_types[i], mf.fn_args[i].name)
         for i in range(len(mf.fn_args))
     ]
+    # Inner loop also reads outer-loop context:
+    # - outer loop induction var (e.g. row / channel index),
+    # - outer-loop-carried modified vars (e.g. partial output/state).
+    inner_loop_read_vars = fn_read_vars + [outer_loop_var] + outer_loop_modified_vars
+    # Deduplicate by variable name while preserving order.
+    inner_loop_read_vars = list(
+        {var.var_name(): var for var in inner_loop_read_vars}.values()
+    )
 
     loop_info = DoubleLoopInfo(
         outer_loop_var=outer_loop_var,
         inner_loop_var=inner_loop_var,
         outer_loop_read_vars=fn_read_vars,
-        inner_loop_read_vars=fn_read_vars,
+        inner_loop_read_vars=inner_loop_read_vars,
         outer_loop_modified_vars=outer_loop_modified_vars,
         inner_loop_modified_vars=inner_loop_modified_vars,
     )

@@ -289,6 +289,9 @@ def verify_benchmark_rosette(
     # Run the verification
     print(f"Running verification for benchmark {benchmark_name}")
     print(f"Verification file: {verify_file_name}")
+    import pdb
+
+    pdb.set_trace()
     verification_output = subprocess.run(
         ["racket", verify_file_name], check=True, capture_output=True
     )
