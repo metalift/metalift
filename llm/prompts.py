@@ -65,10 +65,6 @@ def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> s
         def invariant2({inner_inv_args_with_types}) -> bool:
             return expression over loop index variable `{outer_loop_var}` and `{inner_loop_var}` and {inner_modified_vars_cond}
         """
-        print(inv2_template)
-        import pdb
-
-        pdb.set_trace()
         return [textwrap.dedent(inv1_template), textwrap.dedent(inv2_template)]
 
 

@@ -93,9 +93,6 @@ def get_inv_args(
             ),
             key=lambda x: x.name(),
         )
-        import pdb
-
-        pdb.set_trace()
         outer_inv_args = [create_object(var.type, var.name()) for var in outer_inv_args]
         inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
         return outer_inv_args, inner_inv_args

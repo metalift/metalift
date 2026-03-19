@@ -376,6 +376,7 @@ def run_llm_synthesis_algorithm(
     max_num_ps_sols: int = 10,
     max_num_inv_sols: int = 10,
     verification_method: VerificationMethod = VerificationMethod.SMT,
+    list_bound: int = 2,
 ) -> None:
     """
     The flow of the function is as follows:
@@ -457,6 +458,10 @@ def run_llm_synthesis_algorithm(
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
+                print("hahah", list_bound)
+                import pdb
+
+                pdb.set_trace()
                 verified = verify_benchmark_rosette(
                     driver=driver,
                     benchmark_name=benchmark_name,
@@ -464,6 +469,7 @@ def run_llm_synthesis_algorithm(
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
                     vc=vc,
+                    list_bound=list_bound,
                 )
             elif verification_method == VerificationMethod.NONE:
                 print("Skpping verification...")
@@ -615,6 +621,7 @@ def run_llm_synthesis_algorithm(
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
                     vc=vc,
+                    list_bound=list_bound,
                 )
             elif verification_method == VerificationMethod.NONE:
                 print("Skpping verification...")
@@ -648,6 +655,7 @@ def run_synthesis_for_cc(
     verification_method: Optional[VerificationMethod] = None,
     dsl_fns=None,
     dsl_fn_name_to_axioms=None,
+    list_bound: int = 2,
 ) -> None:
     """
     Run LLM-guided synthesis for a single-function .cc file.
@@ -667,6 +675,7 @@ def run_synthesis_for_cc(
         verification_method: SMT or Rosette (default: VerificationMethod.ROSETTE).
         dsl_fns: DSL function declarations (default: TENSPILER_FNS).
         dsl_fn_name_to_axioms: Axioms per DSL fn (default: TENSPILER_FN_NAME_TO_AXIOMS).
+        list_bound: List bound for the synthesis (default: 2).
     """
     if dsl_fns is None:
         dsl_fns = TENSPILER_FNS
@@ -753,6 +762,7 @@ def run_synthesis_for_cc(
         dsl_fns=dsl_fns,
         dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
         verification_method=verification_method,
+        list_bound=list_bound,
     )
 
 
