@@ -110,6 +110,12 @@ primitive_types_query = """
 (function_declarator (parameter_list (parameter_declaration(primitive_type))@type))
 """
 
+function_def_query = """
+(function_definition
+  declarator: (function_declarator declarator: (identifier) @fn_name) @fn_def
+)
+"""
+
 # Loop and scalar queries
 loop_lower_ident_query = """
 (for_statement initializer: (declaration declarator: (init_declarator declarator: (identifier) @ident)))
@@ -152,9 +158,25 @@ def _node_to_text(node: Node) -> str:
     return node.text.decode()
 
 
+def find_function_definition_node(tree_node: Node, func_name: str) -> Node:
+    """Return the AST node for the named function definition."""
+    captures = LANGUAGE.query(function_def_query).captures(tree_node)
+    for node, capture_name in captures:
+        if capture_name != "fn_name":
+            continue
+        if _node_to_text(node) == func_name:
+            fn_def = node.parent
+            if fn_def is not None and fn_def.type == "function_declarator":
+                fn_def = fn_def.parent
+            if fn_def is not None and fn_def.type == "function_definition":
+                return fn_def
+    raise ParserError(f"Could not find function definition for {func_name}")
+
+
 def get_loop_var_names(tree_node: Node) -> list[str]:
     """Return the induction variable name(s) of the for-loop(s) in order (outer first).
-    Single loop returns one name; nested loops return two."""
+    Single loop returns one name; nested loops return two. Sequential loops return multiple names, in the order of the loops.
+    """
     loop_lower_ident = LANGUAGE.query(loop_lower_ident_query).captures(tree_node)
     if not loop_lower_ident:
         loop_lower_assign = LANGUAGE.query(loop_lower_assign_query).captures(tree_node)
@@ -183,11 +205,12 @@ def get_inner_loop_declared_var_names(tree_node: Node) -> set[str]:
     return inner_loop_decl_var_names | inner_loop_init_decl_var_names
 
 
-def get_return_var_name(tree_node: Node) -> Optional[str]:
+def get_return_var_name(tree_node: Node, func_name: str) -> Optional[str]:
     """Return the name of the variable in a simple 'return id;' in the function body.
     Returns None if no such return statement is found (e.g. return expr; or multiple functions).
     """
-    captures = LANGUAGE.query(return_ident_query).captures(tree_node)
+    function_node = find_function_definition_node(tree_node, func_name)
+    captures = LANGUAGE.query(return_ident_query).captures(function_node)
     if captures:
         return _node_to_text(captures[0][0])
     return None
@@ -688,10 +711,15 @@ def find_int_init_decl_to_var(var_name: str, tree_node: Node):
     return None
 
 
-def make_input_variables(tree_node: Node, driver: Driver) -> OrderedDict[str, Object]:
-    """Return an ordered dictionary from function argument names to their corresponding variable objects."""
-    template_input_types = LANGUAGE.query(template_types_query).captures(tree_node)
-    primitive_input_types = LANGUAGE.query(primitive_types_query).captures(tree_node)
+def make_input_variables(
+    tree_node: Node, driver: Driver, func_name: str
+) -> OrderedDict[str, Object]:
+    """Return ordered input vars for the named function only."""
+    function_node = find_function_definition_node(tree_node, func_name)
+    template_input_types = LANGUAGE.query(template_types_query).captures(function_node)
+    primitive_input_types = LANGUAGE.query(primitive_types_query).captures(
+        function_node
+    )
     input_vars: OrderedDict[str, ObjectT] = OrderedDict()
     for input_type in template_input_types + primitive_input_types:
         curr_var_type, curr_var_name = input_type[0].text.decode().split(" ")
@@ -711,6 +739,18 @@ def get_num_loops(tree_node: Node) -> int:
     """Return the number of for-loops in the given tree."""
     loops = LANGUAGE.query(loop_query).captures(tree_node)
     return len(loops)
+
+
+def has_nested_loops(tree_node: Node) -> bool:
+    """Return True if any for-loop is nested inside another for-loop."""
+    loops = [node for node, _ in LANGUAGE.query(loop_query).captures(tree_node)]
+    for child in loops:
+        parent = child.parent
+        while parent is not None:
+            if parent.type == "for_statement":
+                return True
+            parent = parent.parent
+    return False
 
 
 def find_compute_from_node(
@@ -1164,7 +1204,7 @@ def analyze_single_loop(
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalar_objs(root_node)
     loop_bounds = get_loop_bounds_nodes(root_node)
-    input_vars = make_input_variables(root_node, driver)
+    input_vars = make_input_variables(root_node, driver, func_name)
     compute_node = find_compute_from_file(file_path)
 
     TARGET_LANG_FNS: set[Object] = set()
@@ -1223,7 +1263,7 @@ def analyze_nested_loops(file_path: str, func_name, axioms: list[Object]):
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalar_objs(root_node)
     loop_bounds = get_loop_bounds_nodes(root_node)
-    input_vars = make_input_variables(root_node, driver)
+    input_vars = make_input_variables(root_node, driver, func_name)
     compute_node = find_compute_from_file(file_path)
 
     TARGET_LANG_FNS: set[Object] = set()

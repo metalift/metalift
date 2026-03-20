@@ -20,10 +20,12 @@ from llm.parser import check_solution
 from llm.prompts import get_inv_prompt, get_ps_prompt
 from llm.utils import (
     NestedLoopInfo,
+    SequentialLoopInfo,
     SingleLoopInfo,
     extract_all_python_functions,
     get_inv_args,
     infer_nested_loop_info_from_llvm,
+    infer_sequential_loop_info_from_llvm,
     infer_single_loop_info_from_llvm,
     prepare_loop_info_from_driver,
     replace_ite,
@@ -63,6 +65,7 @@ from tenspiler.tree_parser import (
     find_root_node_from_file,
     get_num_loops,
     get_return_var_name,
+    has_nested_loops,
     make_input_variables,
 )
 
@@ -203,6 +206,7 @@ def process_synthesized_fn_decls(
     output_var: Object,
     benchmark_name: str,
     synthesized_fn_decls: list[FnDecl | FnDeclRecursive],
+    num_invariants: int = 1,
 ) -> None:
     """The functions LLMs return need to be processed before verification.
 
@@ -210,16 +214,14 @@ def process_synthesized_fn_decls(
     Moreover, the PS function name needs to be changed to {benchmark_name}_ps, and the body of the PS function needs to be changed to output_var == body.
     """
     for idx, fn_decl in enumerate(synthesized_fn_decls):
-        # Change function names
-        # Change single loop invariant names
+        # Change invariant function names:
+        # - single loop models often emit `invariant`
+        # - multi-loop models typically emit invariant1..invariantN
         if fn_decl.name() == "invariant":
             fn_decl.set_name(f"{benchmark_name}_inv0")
-
-        # Change double loop invariant names
-        if fn_decl.name() == "invariant1":
-            fn_decl.set_name(f"{benchmark_name}_inv0")
-        if fn_decl.name() == "invariant2":
-            fn_decl.set_name(f"{benchmark_name}_inv1")
+        for inv_idx in range(num_invariants):
+            if fn_decl.name() == f"invariant{inv_idx + 1}":
+                fn_decl.set_name(f"{benchmark_name}_inv{inv_idx}")
 
         # Change ps function name
         if fn_decl.name() == benchmark_name:
@@ -364,7 +366,7 @@ def verify_benchmark_smt(
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
-    loop_info: SingleLoopInfo | NestedLoopInfo | None,
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo | None,
     output_var: Object,
     source_code: str,
     benchmark_name: str,
@@ -510,11 +512,16 @@ def run_llm_synthesis_algorithm(
             inv_sols.append(inv_sol)
 
             try:
+                expected_num_inv_funcs = (
+                    len(loop_info.loop_infos)
+                    if isinstance(loop_info, SequentialLoopInfo)
+                    else 1
+                    if isinstance(loop_info, SingleLoopInfo)
+                    else 2
+                )
                 _, inv_fn_decls, inv_in_calls = check_solution(
                     solution=inv_sol,
-                    expected_num_funcs=1
-                    if isinstance(loop_info, SingleLoopInfo)
-                    else 2,
+                    expected_num_funcs=expected_num_inv_funcs,
                     dsl_code=dsl_code,
                     lambda_exprs=lambda_exprs,
                     arg_name_to_count=arg_name_to_count,
@@ -528,6 +535,7 @@ def run_llm_synthesis_algorithm(
                 output_var=output_var,
                 benchmark_name=benchmark_name,
                 synthesized_fn_decls=inv_fn_decls,
+                num_invariants=expected_num_inv_funcs,
             )
 
             synthesized_fn_decls = list(set([*ps_fn_decls, *inv_fn_decls]))
@@ -684,34 +692,42 @@ def run_synthesis_for_cc(
 
     # Infer loop structure from LLVM (.ll + .loops). If no loops are present,
     # we synthesize only the postcondition (no invariants).
-    loop_info: SingleLoopInfo | NestedLoopInfo | None
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo | None
     root_node = find_root_node_from_file(cc_path)
     num_loops = get_num_loops(root_node)
-    print("num loops", num_loops)
-    import pdb
-
-    pdb.set_trace()
     if num_loops == 1:
         loop_info = infer_single_loop_info_from_llvm(
             driver=driver,
             cc_path=cc_path,
             fn_name=fn_name,
         )
-    elif num_loops == 2:
+    elif has_nested_loops(root_node):
+        if num_loops != 2:
+            raise ValueError(
+                f"Nested-loop mode currently expects 2 loops, got {num_loops}"
+            )
         loop_info = infer_nested_loop_info_from_llvm(
             driver=driver,
             cc_path=cc_path,
             fn_name=fn_name,
         )
-        import pdb
-
-        pdb.set_trace()
     else:
-        raise ValueError(f"Expected 1 or 2 loops, got {num_loops}")
+        loop_info = infer_sequential_loop_info_from_llvm(
+            driver=driver,
+            cc_path=cc_path,
+            fn_name=fn_name,
+        )
+
+        if isinstance(loop_info, SequentialLoopInfo):
+            for info in loop_info.loop_infos:
+                print(info.loop_var.src.name())
+                print(info.modified_vars)
+                print(info.read_vars)
+                print("--------------------------------")
 
     # Build input variables from the source tree (ordered as in the function signature).
     root_node = find_root_node_from_file(cc_path)
-    input_vars = make_input_variables(root_node, driver)
+    input_vars = make_input_variables(root_node, driver, fn_name)
     input_var_list = list(input_vars.values())
 
     # Optional: let the caller add preconditions (e.g. input_var.len() > 0).
@@ -723,6 +739,15 @@ def run_synthesis_for_cc(
         inv_grammars = {
             f"{fn_name}_inv0": InvGrammar(None, [], inv_args[0]),
             f"{fn_name}_inv1": InvGrammar(None, [], inv_args[1]),
+        }
+    elif (
+        isinstance(inv_args, list)
+        and len(inv_args) > 0
+        and isinstance(inv_args[0], list)
+    ):
+        inv_grammars = {
+            f"{fn_name}_inv{i}": InvGrammar(None, [], args)
+            for i, args in enumerate(inv_args)
         }
     else:
         inv_grammars = {f"{fn_name}_inv0": InvGrammar(None, [], inv_args)}
@@ -743,7 +768,7 @@ def run_synthesis_for_cc(
         loop_info = prepare_loop_info_from_driver(loop_info, driver)
 
     # Infer output variable from return statement and function return type.
-    return_name = get_return_var_name(root_node)
+    return_name = get_return_var_name(root_node, fn_name)
     if return_name is None:
         raise ValueError(
             "Could not infer return variable from source (expected simple 'return id;')"

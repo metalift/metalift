@@ -14,8 +14,8 @@ vector<int> rmsnorm(vector<int> input, vector<int> weight) {
 
     // part 2: normalize + scale
     int inv_ss = 1 / integer_sqrt(ss / size + 1);
-    for (int i = 0; i < size; i++)
-        output.push_back(inv_ss * input[i] * weight[i]);
+    for (int j = 0; j < size; j++)
+        output.push_back(inv_ss * input[j] * weight[j]);
 
     return output;
 }

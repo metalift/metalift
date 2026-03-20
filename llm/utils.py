@@ -32,6 +32,11 @@ class NestedLoopInfo:
     inner_loop_modified_vars: list[Object]
 
 
+@dataclass
+class SequentialLoopInfo:
+    loop_infos: list[SingleLoopInfo]
+
+
 def extract_all_python_functions(s: str) -> list[str]:
     # TODO(sahil): use this instead of the extract function in all models.
     extracted_result = [
@@ -57,8 +62,8 @@ def replace_ite(ps_sol: str) -> str:
 
 
 def get_inv_args(
-    loop_info: SingleLoopInfo | NestedLoopInfo,
-) -> Union[list[Object], tuple[list[Object], list[Object]]]:
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo,
+) -> Union[list[Object], tuple[list[Object], list[Object]], list[list[Object]]]:
     """Given some loop info, return the invariant arguments."""
     if isinstance(loop_info, SingleLoopInfo):
         vars = sorted(
@@ -72,7 +77,7 @@ def get_inv_args(
             key=lambda x: x.name(),
         )
         return [create_object(var.type, var.name()) for var in vars]
-    else:
+    elif isinstance(loop_info, NestedLoopInfo):
         outer_inv_args = sorted(
             list(
                 set(
@@ -96,6 +101,8 @@ def get_inv_args(
         outer_inv_args = [create_object(var.type, var.name()) for var in outer_inv_args]
         inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
         return outer_inv_args, inner_inv_args
+    else:
+        return [get_inv_args(info) for info in loop_info.loop_infos]  # type: ignore
 
 
 def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Object]:
@@ -108,8 +115,8 @@ def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Ob
 
 
 def recreate_loop_info_from_var_map(
-    loop_info: SingleLoopInfo | NestedLoopInfo, var_map: dict
-) -> SingleLoopInfo | NestedLoopInfo:
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo, var_map: dict
+) -> SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo:
     """Recreate loop_info using types from var_map (e.g. var_tracker after VC)."""
 
     def _remap_vars(vars: list[Object]) -> list[Object]:
@@ -126,20 +133,26 @@ def recreate_loop_info_from_var_map(
             read_vars=_remap_vars(loop_info.read_vars),
             modified_vars=_remap_vars(loop_info.modified_vars),
         )
-
-    return NestedLoopInfo(
-        outer_loop_var=loop_info.outer_loop_var,
-        inner_loop_var=loop_info.inner_loop_var,
-        outer_loop_read_vars=_remap_vars(loop_info.outer_loop_read_vars),
-        inner_loop_read_vars=_remap_vars(loop_info.inner_loop_read_vars),
-        outer_loop_modified_vars=_remap_vars(loop_info.outer_loop_modified_vars),
-        inner_loop_modified_vars=_remap_vars(loop_info.inner_loop_modified_vars),
+    if isinstance(loop_info, NestedLoopInfo):
+        return NestedLoopInfo(
+            outer_loop_var=loop_info.outer_loop_var,
+            inner_loop_var=loop_info.inner_loop_var,
+            outer_loop_read_vars=_remap_vars(loop_info.outer_loop_read_vars),
+            inner_loop_read_vars=_remap_vars(loop_info.inner_loop_read_vars),
+            outer_loop_modified_vars=_remap_vars(loop_info.outer_loop_modified_vars),
+            inner_loop_modified_vars=_remap_vars(loop_info.inner_loop_modified_vars),
+        )
+    return SequentialLoopInfo(
+        loop_infos=[
+            recreate_loop_info_from_var_map(info, var_map)  # type: ignore[arg-type]
+            for info in loop_info.loop_infos
+        ]
     )
 
 
 def prepare_loop_info_from_driver(
-    loop_info: SingleLoopInfo | NestedLoopInfo, driver
-) -> SingleLoopInfo | NestedLoopInfo:
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo, driver
+) -> SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo:
     """Recreate loop_info using types from driver's var_tracker (e.g. after VC). Use when loop_info was inferred from LLVM."""
     variables = driver.var_tracker.all()
     var_map = {var.name(): var for var in variables}
@@ -367,3 +380,77 @@ def infer_nested_loop_info_from_llvm(
         inner_loop_modified_vars=inner_loop_modified_vars,
     )
     return loop_info
+
+
+def infer_sequential_loop_info_from_llvm(
+    *,
+    driver: "Driver",
+    cc_path: str,
+    fn_name: str,
+) -> SequentialLoopInfo:
+    """Infer loop info for multiple non-nested (sequential) loops."""
+    subprocess.run(
+        ["metalift/utils/llvm/compile-add-blocks", cc_path],
+        check=True,
+    )
+    if cc_path.endswith(".cc"):
+        llvm_filepath = cc_path.replace(".cc", ".ll")
+        loops_filepath = cc_path.replace(".cc", ".loops")
+    else:
+        raise ValueError(f"Unsupported file extension: {cc_path}")
+
+    mf = driver.analyze(
+        llvm_filepath=llvm_filepath,
+        loops_filepath=loops_filepath,
+        fn_name=fn_name,
+        target_lang_fn=lambda: [],
+        inv_grammars={},
+        ps_grammar=None,
+    )
+    if not mf.loops:
+        raise RuntimeError(f"No loops found for function {fn_name} in {llvm_filepath}")
+
+    root_node = find_root_node_from_file(cc_path)
+    names = get_loop_var_names(root_node)
+    if len(names) != len(mf.loops):
+        raise ValueError(f"Expected {len(mf.loops)} loop variables, got {len(names)}")
+    fn_read_vars = [
+        create_object(mf.fn_args_types[i], mf.fn_args[i].name)
+        for i in range(len(mf.fn_args))
+    ]
+    # Align loops by induction variable name when possible: for each source
+    # loop var from tree-sitter, pick the LLVM loop whose havoc set contains it.
+    matched_loops: list = []
+    remaining_loops = list(mf.loops)
+    for loop_var_name in names:
+        matched = None
+        for loop in remaining_loops:
+            havoc_names = {v.name for v in loop.havocs}
+            if loop_var_name in havoc_names:
+                matched = loop
+                break
+        if matched is not None:
+            matched_loops.append(matched)
+            remaining_loops.remove(matched)
+
+    if remaining_loops:
+        raise ValueError(
+            f"Could not match all loops for function {fn_name} in {llvm_filepath}"
+        )
+
+    loop_infos: list[SingleLoopInfo] = []
+    for loop_idx, loop in enumerate(matched_loops):
+        loop_var = Int(names[loop_idx])
+        modified_vars = [
+            create_object(parse_type_ref_to_obj(v.type), v.name)
+            for v in sorted(loop.havocs, key=lambda x: x.name)
+            if v.name != loop_var.var_name()
+        ]
+        loop_infos.append(
+            SingleLoopInfo(
+                loop_var=loop_var,
+                read_vars=fn_read_vars,
+                modified_vars=modified_vars,
+            )
+        )
+    return SequentialLoopInfo(loop_infos=loop_infos)

@@ -1,14 +1,19 @@
 import re
 import textwrap
-from typing import get_args
+from typing import Optional, get_args
 
-from llm.utils import NestedLoopInfo, SingleLoopInfo, get_inv_args
+from llm.utils import NestedLoopInfo, SequentialLoopInfo, SingleLoopInfo, get_inv_args
 from metalift.ir import FnDecl, FnDeclRecursive
 
 
-def generate_invariant_template(loop_info: SingleLoopInfo | NestedLoopInfo) -> str:
+def generate_invariant_template(
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo,
+) -> list[str]:
     """Given the loop information, generate the invariant template."""
-    if isinstance(loop_info, SingleLoopInfo):
+
+    def _generate_invariant_template_single_loop(
+        loop_info: SingleLoopInfo, index: Optional[int] = None
+    ) -> str:
         arguments = get_inv_args(loop_info)
         args_with_types = ", ".join(
             [
@@ -25,11 +30,14 @@ def generate_invariant_template(loop_info: SingleLoopInfo | NestedLoopInfo) -> s
         )
         return textwrap.dedent(
             f"""
-            def invariant({args_with_types}) -> bool:
+            def invariant{f'{index}' if index is not None else ''}({args_with_types}) -> bool:
                 return expression over loop index variable {loop_var} and {modified_vars_cond}
             """
         )
-    else:
+
+    if isinstance(loop_info, SingleLoopInfo):
+        return _generate_invariant_template_single_loop(loop_info)
+    elif isinstance(loop_info, NestedLoopInfo):
         outer_inv_args, inner_inv_args = get_inv_args(loop_info)
         outer_inv_args_with_types = ", ".join(
             [
@@ -66,6 +74,13 @@ def generate_invariant_template(loop_info: SingleLoopInfo | NestedLoopInfo) -> s
             return expression over loop index variable `{outer_loop_var}` and `{inner_loop_var}` and {inner_modified_vars_cond}
         """
         return [textwrap.dedent(inv1_template), textwrap.dedent(inv2_template)]
+    else:
+        templates: list[str] = []
+        for idx, single_info in enumerate(loop_info.loop_infos):
+            templates.append(
+                _generate_invariant_template_single_loop(single_info, idx + 1)
+            )
+        return templates
 
 
 def get_ps_prompt(*, benchmark_name: str, dsl_code: str, source_code: str) -> str:
@@ -96,7 +111,7 @@ def get_inv_prompt(
     benchmark_name: str,
     source_code: str,
     ps_fn_decl: FnDecl | FnDeclRecursive,
-    loop_info: SingleLoopInfo | NestedLoopInfo,
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo,
     dsl_code: str,
     num_shots: int = 1,
 ) -> str:
@@ -130,6 +145,7 @@ def get_inv_prompt(
         out == matrix_elemwise_sub(base[:row], active[:row])
     """
     one_shot_example = textwrap.dedent(one_shot_example)
+    invariant_templates = "\n".join(generate_invariant_template(loop_info))
     one_shot_text = f"""
     Your task is to prove that `assertion` is true in the `{benchmark_name}` function. The assertion can be proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
@@ -140,7 +156,7 @@ def get_inv_prompt(
     4. Inline all the expressions. Do not use intermediate variables.
     5. Generate separate loop invariants for each loop in the {benchmark_name} function.
     6. invariant structure
-    {generate_invariant_template(loop_info)}
+    {invariant_templates}
 
     Example1:
     #defined functions
@@ -150,9 +166,17 @@ def get_inv_prompt(
     Example2:
     {inv_code_with_assert}
     """
-    if isinstance(loop_info, SingleLoopInfo):
-        loop_var_name = loop_info.loop_var.src.name()
+    if isinstance(loop_info, SingleLoopInfo) or isinstance(
+        loop_info, SequentialLoopInfo
+    ):
         if num_shots == 0:
+            if isinstance(loop_info, SingleLoopInfo):
+                loop_var_names = [loop_info.loop_var.src.name()]
+            else:
+                loop_var_names = [
+                    info.loop_var.src.name() for info in loop_info.loop_infos
+                ]
+            invariant_templates = "\n".join(generate_invariant_template(loop_info))
             single_loop_zero_shot_inv_text = f"""
             Your task is to generate the loop invariant `Inv` such that it is true at all the locations it is defined at.  Generate only a single `Inv` expression which holds at all the locations. The invariant needs to be generated using only the functions defined below. Write the loop invariant as a python boolean formula.
             #Instructions:
@@ -171,12 +195,11 @@ def get_inv_prompt(
             ```
 
             # A strong loop invariant should have the following properties:
-            # 1. It should have boolean expressions over the loop index variable `{loop_var_name}` to describe the valid range of `{loop_var_name}`.
+            # 1. It should have boolean expressions over the loop index variable(s) `{', '.join(loop_var_names)}` to describe the valid range of `{', '.join(loop_var_names)}`.
             # 2. It should have an inductive expression describing the output variable `out` using the defined functions.
-            {generate_invariant_template(loop_info)}
+            {invariant_templates}
             ```
             """
-            print(generate_invariant_template(loop_info))
             return textwrap.dedent(single_loop_zero_shot_inv_text)
         elif num_shots == 1:
             return textwrap.dedent(one_shot_text)
@@ -184,7 +207,7 @@ def get_inv_prompt(
             raise ValueError(
                 f"Invalid number of shots for invariant prompt: {num_shots}"
             )
-    else:
+    elif isinstance(loop_info, NestedLoopInfo):
         outer_loop_var = loop_info.outer_loop_var.src.name()
         inner_loop_var = loop_info.inner_loop_var.src.name()
         inner_loop_modified_vars = [
@@ -193,10 +216,6 @@ def get_inv_prompt(
         outer_loop_modified_vars = [
             var.src for var in loop_info.outer_loop_modified_vars
         ]
-        print(outer_loop_modified_vars)
-        import pdb
-
-        pdb.set_trace()
         assert len(outer_loop_modified_vars) == 1
         inner_modified_vars_not_in_outer = [
             var
