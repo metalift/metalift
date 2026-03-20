@@ -19,11 +19,11 @@ from llm.constants import (
 from llm.parser import check_solution
 from llm.prompts import get_inv_prompt, get_ps_prompt
 from llm.utils import (
-    DoubleLoopInfo,
+    NestedLoopInfo,
     SingleLoopInfo,
     extract_all_python_functions,
     get_inv_args,
-    infer_double_loop_info_from_llvm,
+    infer_nested_loop_info_from_llvm,
     infer_single_loop_info_from_llvm,
     prepare_loop_info_from_driver,
     replace_ite,
@@ -364,7 +364,7 @@ def verify_benchmark_smt(
 def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
-    loop_info: SingleLoopInfo | DoubleLoopInfo | None,
+    loop_info: SingleLoopInfo | NestedLoopInfo | None,
     output_var: Object,
     source_code: str,
     benchmark_name: str,
@@ -684,9 +684,13 @@ def run_synthesis_for_cc(
 
     # Infer loop structure from LLVM (.ll + .loops). If no loops are present,
     # we synthesize only the postcondition (no invariants).
-    loop_info: SingleLoopInfo | DoubleLoopInfo | None
+    loop_info: SingleLoopInfo | NestedLoopInfo | None
     root_node = find_root_node_from_file(cc_path)
     num_loops = get_num_loops(root_node)
+    print("num loops", num_loops)
+    import pdb
+
+    pdb.set_trace()
     if num_loops == 1:
         loop_info = infer_single_loop_info_from_llvm(
             driver=driver,
@@ -694,11 +698,14 @@ def run_synthesis_for_cc(
             fn_name=fn_name,
         )
     elif num_loops == 2:
-        loop_info = infer_double_loop_info_from_llvm(
+        loop_info = infer_nested_loop_info_from_llvm(
             driver=driver,
             cc_path=cc_path,
             fn_name=fn_name,
         )
+        import pdb
+
+        pdb.set_trace()
     else:
         raise ValueError(f"Expected 1 or 2 loops, got {num_loops}")
 

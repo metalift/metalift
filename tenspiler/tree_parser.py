@@ -1218,7 +1218,7 @@ def analyze_single_loop(
     return driver, input_vars, fn
 
 
-def analyze_double_loops(file_path: str, func_name, axioms: list[Object]):
+def analyze_nested_loops(file_path: str, func_name, axioms: list[Object]):
     driver = Driver()
     root_node = find_root_node_from_file(file_path)
     scalars = get_scalar_objs(root_node)

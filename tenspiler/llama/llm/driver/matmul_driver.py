@@ -2,8 +2,8 @@ import time
 from pathlib import Path
 
 from llm.synthesis import (
-    DoubleLoopInfo,
     LLMModel,
+    NestedLoopInfo,
     VerificationMethod,
     run_llm_synthesis_algorithm,
 )
@@ -15,7 +15,7 @@ from tenspiler.constants import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
 if __name__ == "__main__":
     start_time = time.time()
     driver = Driver()
-    loop_info = DoubleLoopInfo(
+    loop_info = NestedLoopInfo(
         outer_loop_var=Int("row"),
         inner_loop_var=Int("col"),
         outer_loop_read_vars=[List(Int, "weight"), List(Int, "input")],

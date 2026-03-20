@@ -420,7 +420,9 @@ def reduce_max_body(lst: mlList[Int]) -> Int:
     recursed = call_reduce_max(lst_rest)
     general_answer = ite(cur > recursed, cur, recursed)
     # TODO(sahil: changed to int min)
-    return ite(vec_size < 1, 0 - Int(2147483648), ite(vec_size == 1, lst[0], general_answer))
+    return ite(
+        vec_size < 1, 0 - Int(2147483648), ite(vec_size == 1, lst[0], general_answer)
+    )
 
 
 reduce_max = fn_decl_recursive(REDUCEMAX, Int, reduce_max_body(x), x)
@@ -1281,7 +1283,7 @@ integer_sqrt_helper_fn_decl = fn_decl_recursive(
 )
 
 integer_sqrt_fn_name = "integer_sqrt"
-integer_sqrt_fn_decl = fn_decl(
+integer_sqrt = fn_decl(
     integer_sqrt_fn_name, Int, call(integer_sqrt_helper_fn_name, Int, n // 2, n), n
 )
 

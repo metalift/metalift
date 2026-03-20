@@ -15,7 +15,7 @@ from tenspiler.axioms import (
 from tenspiler.tenspiler_common import (
     firsts_fn_decl,
     integer_exp_fn_decl,
-    integer_sqrt_fn_decl,
+    integer_sqrt,
     integer_sqrt_helper_fn_decl,
     ite_int,
     rests_fn_decl,
@@ -40,7 +40,7 @@ _UNSORTED_TENSPILER_FNS = list(
             rests_fn_decl,
             integer_exp_fn_decl,
             integer_sqrt_helper_fn_decl,
-            integer_sqrt_fn_decl,
+            integer_sqrt,
             ite_int,
         ]
     )
@@ -63,4 +63,3 @@ TENSPILER_FN_NAME_TO_AXIOMS = {
     "vec_scalar_div": [vec_scalar_div_axiom],
     "vec_elemwise_div": [vec_elemwise_div_axiom],
 }
-

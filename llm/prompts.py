@@ -2,11 +2,11 @@ import re
 import textwrap
 from typing import get_args
 
-from llm.utils import DoubleLoopInfo, SingleLoopInfo, get_inv_args
+from llm.utils import NestedLoopInfo, SingleLoopInfo, get_inv_args
 from metalift.ir import FnDecl, FnDeclRecursive
 
 
-def generate_invariant_template(loop_info: SingleLoopInfo | DoubleLoopInfo) -> str:
+def generate_invariant_template(loop_info: SingleLoopInfo | NestedLoopInfo) -> str:
     """Given the loop information, generate the invariant template."""
     if isinstance(loop_info, SingleLoopInfo):
         arguments = get_inv_args(loop_info)
@@ -96,7 +96,7 @@ def get_inv_prompt(
     benchmark_name: str,
     source_code: str,
     ps_fn_decl: FnDecl | FnDeclRecursive,
-    loop_info: SingleLoopInfo | DoubleLoopInfo,
+    loop_info: SingleLoopInfo | NestedLoopInfo,
     dsl_code: str,
     num_shots: int = 1,
 ) -> str:
@@ -193,6 +193,10 @@ def get_inv_prompt(
         outer_loop_modified_vars = [
             var.src for var in loop_info.outer_loop_modified_vars
         ]
+        print(outer_loop_modified_vars)
+        import pdb
+
+        pdb.set_trace()
         assert len(outer_loop_modified_vars) == 1
         inner_modified_vars_not_in_outer = [
             var
@@ -205,7 +209,7 @@ def get_inv_prompt(
         rv_var = outer_loop_modified_vars[0].name()
         outer_inv, inner_inv = generate_invariant_template(loop_info)
         if num_shots == 0:
-            double_loop_zero_shot_inv_text = f"""
+            nested_loop_zero_shot_inv_text = f"""
             Your task is to generate two loop invariants `invariant1` and `invariant2` such that the given assertion holds. The invariants need to be generated using only the functions defined below. Write the loop invariants as python boolean formulas.
 
             #Instructions:
@@ -235,7 +239,7 @@ def get_inv_prompt(
             {inner_inv}
             ```
             """
-            return textwrap.dedent(double_loop_zero_shot_inv_text)
+            return textwrap.dedent(nested_loop_zero_shot_inv_text)
         elif num_shots == 1:
             return textwrap.dedent(one_shot_text)
         else:

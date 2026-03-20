@@ -23,7 +23,7 @@ class SingleLoopInfo:
 
 
 @dataclass
-class DoubleLoopInfo:
+class NestedLoopInfo:
     outer_loop_var: Object
     inner_loop_var: Object
     outer_loop_read_vars: list[Object]
@@ -57,7 +57,7 @@ def replace_ite(ps_sol: str) -> str:
 
 
 def get_inv_args(
-    loop_info: SingleLoopInfo | DoubleLoopInfo,
+    loop_info: SingleLoopInfo | NestedLoopInfo,
 ) -> Union[list[Object], tuple[list[Object], list[Object]]]:
     """Given some loop info, return the invariant arguments."""
     if isinstance(loop_info, SingleLoopInfo):
@@ -108,8 +108,8 @@ def replace_args(*, args: list[Object], replace_args: dict[str, str]) -> list[Ob
 
 
 def recreate_loop_info_from_var_map(
-    loop_info: SingleLoopInfo | DoubleLoopInfo, var_map: dict
-) -> SingleLoopInfo | DoubleLoopInfo:
+    loop_info: SingleLoopInfo | NestedLoopInfo, var_map: dict
+) -> SingleLoopInfo | NestedLoopInfo:
     """Recreate loop_info using types from var_map (e.g. var_tracker after VC)."""
 
     def _remap_vars(vars: list[Object]) -> list[Object]:
@@ -127,7 +127,7 @@ def recreate_loop_info_from_var_map(
             modified_vars=_remap_vars(loop_info.modified_vars),
         )
 
-    return DoubleLoopInfo(
+    return NestedLoopInfo(
         outer_loop_var=loop_info.outer_loop_var,
         inner_loop_var=loop_info.inner_loop_var,
         outer_loop_read_vars=_remap_vars(loop_info.outer_loop_read_vars),
@@ -138,8 +138,8 @@ def recreate_loop_info_from_var_map(
 
 
 def prepare_loop_info_from_driver(
-    loop_info: SingleLoopInfo | DoubleLoopInfo, driver
-) -> SingleLoopInfo | DoubleLoopInfo:
+    loop_info: SingleLoopInfo | NestedLoopInfo, driver
+) -> SingleLoopInfo | NestedLoopInfo:
     """Recreate loop_info using types from driver's var_tracker (e.g. after VC). Use when loop_info was inferred from LLVM."""
     variables = driver.var_tracker.all()
     var_map = {var.name(): var for var in variables}
@@ -269,12 +269,12 @@ def infer_single_loop_info_from_llvm(
     return loop_info
 
 
-def infer_double_loop_info_from_llvm(
+def infer_nested_loop_info_from_llvm(
     *,
     driver: "Driver",
     cc_path: str,
     fn_name: str,
-) -> DoubleLoopInfo:
+) -> NestedLoopInfo:
     """
     Build DoubleLoopInfo by parsing the LLVM file with the new frontend.
 
@@ -358,7 +358,7 @@ def infer_double_loop_info_from_llvm(
         {var.var_name(): var for var in inner_loop_read_vars}.values()
     )
 
-    loop_info = DoubleLoopInfo(
+    loop_info = NestedLoopInfo(
         outer_loop_var=outer_loop_var,
         inner_loop_var=inner_loop_var,
         outer_loop_read_vars=fn_read_vars,

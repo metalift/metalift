@@ -24,7 +24,7 @@ from tenspiler.axioms import (
 from tenspiler.tenspiler_common import (
     firsts_fn_decl,
     integer_exp_fn_decl,
-    integer_sqrt_fn_decl,
+    integer_sqrt,
     integer_sqrt_helper_fn_decl,
     ite_int,
     matrix_col_slice_fn_decl,
@@ -63,7 +63,7 @@ _UNSORTED_TENSPILER_FNS = list(
             matrix_transpose_fn_decl,
             integer_exp_fn_decl,
             integer_sqrt_helper_fn_decl,
-            integer_sqrt_fn_decl,
+            integer_sqrt,
             ite_int,
         ]
     )
