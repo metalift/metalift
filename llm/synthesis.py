@@ -762,8 +762,9 @@ def run_synthesis_for_cc(
         raise ValueError(
             "Could not infer return variable from source (expected simple 'return id;')"
         )
-    output_type = mf.fn_ret_type
-    output_var = create_object(output_type, return_name)
+    var_map = {var.name(): var for var in driver.var_tracker.all()}
+    return_name = f"{fn_name}_rv"
+    output_var = create_object(var_map[return_name].type, return_name)
 
     source_code = Path(cc_path).read_text()
 

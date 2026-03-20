@@ -35,7 +35,7 @@ if __name__ == "__main__":
             integer_sqrt,
             vec_map,
         ],
-        verification_method=VerificationMethod.ROSETTE,
+        verification_method=VerificationMethod.SMT,
         list_bound=2,
     )
     end_time = time.time()
