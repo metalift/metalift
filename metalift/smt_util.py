@@ -308,7 +308,7 @@ def toSMT(
     vars: set[Var],
     inv_and_ps: typing.Sequence[Union[FnDeclRecursive, Synth]],
     preds: Union[str, typing.List[Any]],
-    vc: Expr,
+    vc_clauses: list[Expr],
     out_file: str,
     in_calls: list[tuple[str, str]],
     fn_calls: list[str],
@@ -461,7 +461,7 @@ def toSMT(
             else:
                 out.write("\n" + t.toSMT() + "\n")
 
-        vc = filter_fn_args(vc)
+        vc_clauses = filter_fn_args(vc_clauses)
 
         early_candidates: list[FnDeclRecursive | Synth] = []
         candidates: list[FnDeclRecursive | Synth] = []
@@ -520,8 +520,12 @@ def toSMT(
             raise Exception("unknown type passed in for preds: %s" % preds)
 
         if is_synthesis:
-            out.write("%s\n\n" % Constraint(vc).toSMT())
+            out.write("%s\n\n" % Constraint(vc_clauses).toSMT())
             out.write("(check-synth)")
         else:
-            out.write("%s\n\n" % MLInst_Assert(Not(vc).toSMT()))
-            out.write("(check-sat)\n(get-model)")
+            for i, clause in enumerate(vc_clauses, start=1):
+                out.write(f"; VC{i}\n")
+                out.write("(push)\n")
+                out.write("%s\n" % MLInst_Assert(Not(clause).toSMT()))
+                out.write("(check-sat)\n")
+                out.write("(pop)\n\n")

@@ -277,7 +277,7 @@ def synthesize(
         vars,
         invAndPs,
         preds,
-        vc,
+        [vc],
         sygusFile,
         [],
         [f.name() for f in targetLang],

@@ -247,7 +247,7 @@ def verify_synth_result(
             vars,
             candidatesSMT,
             preds,
-            vc,
+            [vc],
             verifFile,
             inCalls,
             fnCalls,

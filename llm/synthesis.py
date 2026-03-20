@@ -313,7 +313,7 @@ def verify_benchmark_smt(
     synthesized_fn_decls: list[Union[FnDecl, FnDeclRecursive]],
     in_calls: list[tuple[str, str]],
     dsl_fns: list[FnDecl | FnDeclRecursive],
-    vc: Expr,
+    vc_clauses: list[Expr],
     dsl_fn_name_to_axioms: dict[str, list[Axiom]],
 ) -> None:
     """Verify the benchmark using SMT."""
@@ -335,7 +335,7 @@ def verify_benchmark_smt(
         vars=set(driver.var_tracker.all()),
         inv_and_ps=synthesized_fn_decls,
         preds=[],
-        vc=vc,
+        vc_clauses=vc_clauses,
         out_file=verify_file,
         in_calls=in_calls,
         fn_calls=[*target_lang_fn_names, *synthesized_fn_names],
@@ -348,6 +348,7 @@ def verify_benchmark_smt(
             "--lang=smt",
             "--produce-models",
             "--tlimit=100000",
+            "--incremental",
             verify_file,
         ],
         stdout=subprocess.PIPE,
@@ -357,10 +358,16 @@ def verify_benchmark_smt(
     if verify_proc.returncode < 0:
         return False
     else:
-        proc_output = verify_proc.stdout
-        result_verify = proc_output.decode("utf-8").split("\n")[0]
-        print(result_verify)
-        return True
+        proc_output = verify_proc.stdout.decode("utf-8")
+        results = [line.strip() for line in proc_output.splitlines() if line.strip()]
+        if not results:
+            print("unknown")
+            return False
+        if all(result == "unsat" for result in results):
+            print("unsat")
+            return True
+        print(results[0])
+        return False
 
 
 def run_llm_synthesis_algorithm(
@@ -446,6 +453,10 @@ def run_llm_synthesis_algorithm(
 
             vc = and_objects(*driver.asserts).src.simplify()
             vc = replace_in_calls(vc, in_calls)
+            vc_clauses = [
+                replace_in_calls(assert_obj.src, in_calls).simplify()
+                for assert_obj in driver.asserts
+            ]
 
             if verification_method == VerificationMethod.SMT:
                 verified = verify_benchmark_smt(
@@ -454,7 +465,7 @@ def run_llm_synthesis_algorithm(
                     synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
-                    vc=vc,
+                    vc_clauses=vc_clauses,
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
@@ -603,6 +614,10 @@ def run_llm_synthesis_algorithm(
             # Write assertions
             vc = and_objects(*driver.asserts).src.simplify()
             vc = replace_in_calls(vc, in_calls)
+            vc_clauses = [
+                replace_in_calls(assert_obj.src, in_calls).simplify()
+                for assert_obj in driver.asserts
+            ]
 
             # Verify the solution
             if verification_method == VerificationMethod.SMT:
@@ -612,7 +627,7 @@ def run_llm_synthesis_algorithm(
                     synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
-                    vc=vc,
+                    vc_clauses=vc_clauses,
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
