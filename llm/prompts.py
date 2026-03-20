@@ -77,9 +77,10 @@ def generate_invariant_template(
     else:
         templates: list[str] = []
         for idx, single_info in enumerate(loop_info.loop_infos):
-            templates.append(
-                _generate_invariant_template_single_loop(single_info, idx + 1)
+            invariant_template = _generate_invariant_template_single_loop(
+                single_info, idx + 1
             )
+            templates.append(invariant_template)
         return templates
 
 
@@ -155,7 +156,8 @@ def get_inv_prompt(
     3. The rewritten program should just be a single return statement of the form return\_var = provided\_function(...)
     4. Inline all the expressions. Do not use intermediate variables.
     5. Generate separate loop invariants for each loop in the {benchmark_name} function.
-    6. invariant structure
+    6. DO NOT make any changes to the function signatures as they are used for verification downstream.
+    7. invariant structure
     {invariant_templates}
 
     Example1:

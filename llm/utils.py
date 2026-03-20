@@ -412,36 +412,28 @@ def infer_sequential_loop_info_from_llvm(
         raise RuntimeError(f"No loops found for function {fn_name} in {llvm_filepath}")
 
     root_node = find_root_node_from_file(cc_path)
-    names = get_loop_var_names(root_node)
-    if len(names) != len(mf.loops):
-        raise ValueError(f"Expected {len(mf.loops)} loop variables, got {len(names)}")
+    loop_var_names = get_loop_var_names(root_node)
+    if len(loop_var_names) != len(mf.loops):
+        raise ValueError(
+            f"Expected {len(mf.loops)} loop variables, got {len(loop_var_names)}"
+        )
     fn_read_vars = [
         create_object(mf.fn_args_types[i], mf.fn_args[i].name)
         for i in range(len(mf.fn_args))
     ]
-    # Align loops by induction variable name when possible: for each source
-    # loop var from tree-sitter, pick the LLVM loop whose havoc set contains it.
-    matched_loops: list = []
-    remaining_loops = list(mf.loops)
-    for loop_var_name in names:
-        matched = None
-        for loop in remaining_loops:
-            havoc_names = {v.name for v in loop.havocs}
-            if loop_var_name in havoc_names:
-                matched = loop
-                break
-        if matched is not None:
-            matched_loops.append(matched)
-            remaining_loops.remove(matched)
-
-    if remaining_loops:
-        raise ValueError(
-            f"Could not match all loops for function {fn_name} in {llvm_filepath}"
-        )
 
     loop_infos: list[SingleLoopInfo] = []
-    for loop_idx, loop in enumerate(matched_loops):
-        loop_var = Int(names[loop_idx])
+    for loop in mf.loops:
+        loop_var = None
+        havoc_names = {v.name for v in loop.havocs}
+        for loop_var_name in loop_var_names:
+            if loop_var_name in havoc_names:
+                loop_var = Int(loop_var_name)
+                break
+        if loop_var is None:
+            raise ValueError(
+                f"Could not find loop var for loop {loop.header.name} in {fn_name}"
+            )
         modified_vars = [
             create_object(parse_type_ref_to_obj(v.type), v.name)
             for v in sorted(loop.havocs, key=lambda x: x.name)
