@@ -51,11 +51,6 @@ ReturnValue = NamedTuple(
     ],
 )
 
-PRIMITIVE_TYPE_REGEX = r"[a-zA-Z]+"
-PRIMITIVE_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_TYPE_REGEX})> >)"
-NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({PRIMITIVE_VECTOR_TYPE_REGEX}), std::__1::allocator<({PRIMITIVE_VECTOR_TYPE_REGEX}) > >)"
-DOUBLE_NESTED_VECTOR_TYPE_REGEX = rf"(std::__1::vector<({NESTED_VECTOR_TYPE_REGEX}), std::__1::allocator<({NESTED_VECTOR_TYPE_REGEX}) > >)"
-
 GrammarT = Callable[[List[Object], List[Object], List[Object]], Bool]
 
 
@@ -74,6 +69,28 @@ def is_llvm_temp_name(name: str) -> bool:
         or name.startswith("undef.agg.tmp")
         or bool(re.match(r"^(call|add|sub|mul|div|rem|cmp|phi|idx|conv)\\d+$", name))
     )
+
+
+def infer_vector_nesting_depth_from_demangled_name(
+    full_demangled_name: str,
+) -> Optional[int]:
+    """Infer vector nesting depth from demangled C++ std::vector signatures.
+
+    This is intentionally tolerant to libc++ namespace spellings (`std::__1` vs `std`)
+    and allocator-heavy demangled forms.
+    """
+    normalized = re.sub(r"\s+", "", full_demangled_name).replace("std::__1::", "std::")
+    m = re.match(r"^(std::vector<.*>)::(?:vector\(|size\(|operator\[\])", normalized)
+    if m is None:
+        return None
+    vector_type = m.group(1)
+    if "std::vector<std::vector<std::vector<" in vector_type:
+        return 3
+    if "std::vector<std::vector<" in vector_type:
+        return 2
+    if vector_type.startswith("std::vector<"):
+        return 1
+    return None
 
 
 def normalize_llvm_valueref_names(fn_ref: ValueRef) -> None:
@@ -246,20 +263,12 @@ def new_vector(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    primitive_match = re.match(
-        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
-    )
-    nested_match = re.match(
-        rf"{NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
-    )
-    double_nested_match = re.match(
-        rf"{DOUBLE_NESTED_VECTOR_TYPE_REGEX}::vector\(\)", full_demangled_name
-    )
-    if primitive_match is not None:
+    nesting_depth = infer_vector_nesting_depth_from_demangled_name(full_demangled_name)
+    if nesting_depth == 1:
         list_obj = mlList.empty(Int)
-    elif nested_match:
+    elif nesting_depth == 2:
         list_obj = Matrix.empty(Int)
-    elif double_nested_match:
+    elif nesting_depth == 3:
         list_obj = Tensor3D.empty(Int)
     else:
         raise Exception(
@@ -309,23 +318,15 @@ def vector_length(
     *args: ValueRef,
 ) -> ReturnValue:
     assert len(args) == 1
-    primitive_match = re.match(
-        rf"{PRIMITIVE_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
-    )
-    nested_match = re.match(
-        rf"{NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
-    )
-    double_nested_match = re.match(
-        rf"{DOUBLE_NESTED_VECTOR_TYPE_REGEX}::size\(\)", full_demangled_name
-    )
+    nesting_depth = infer_vector_nesting_depth_from_demangled_name(full_demangled_name)
     lst = state.read_or_load_operand(args[0])
     if not isinstance(lst, mlList):
         raise Exception(f"{args[0]} is not a list! Cannot extract its length")
-    if primitive_match is not None:
+    if nesting_depth == 1:
         lst.containedT = Int
-    elif nested_match is not None:
+    elif nesting_depth == 2:
         lst.containedT = mlList[Int]
-    elif double_nested_match is not None:
+    elif nesting_depth == 3:
         lst.containedT = Matrix[Int]
     else:
         raise Exception(
@@ -352,19 +353,17 @@ def vector_get(
     # demangled function name, similar to vector_length above. This lets us
     # distinguish between vector<int>, vector<vector<int>>, etc., even though
     # their LLVM TypeRefs all look like %"class.std::__1::vector"*.
-    primitive_match = re.match(PRIMITIVE_VECTOR_TYPE_REGEX, full_demangled_name)
-    nested_match = re.match(NESTED_VECTOR_TYPE_REGEX, full_demangled_name)
-    double_nested_match = re.match(DOUBLE_NESTED_VECTOR_TYPE_REGEX, full_demangled_name)
+    nesting_depth = infer_vector_nesting_depth_from_demangled_name(full_demangled_name)
 
     lst = state.read_or_load_operand(args[0])
     index = state.read_or_load_operand(args[1])
 
     if isinstance(lst, mlList):
-        if primitive_match is not None:
+        if nesting_depth == 1:
             lst.containedT = Int
-        elif nested_match is not None:
+        elif nesting_depth == 2:
             lst.containedT = mlList[Int]
-        elif double_nested_match is not None:
+        elif nesting_depth == 3:
             lst.containedT = Matrix[Int]
 
     var_name = args[0].name
