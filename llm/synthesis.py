@@ -718,13 +718,6 @@ def run_synthesis_for_cc(
             fn_name=fn_name,
         )
 
-        if isinstance(loop_info, SequentialLoopInfo):
-            for info in loop_info.loop_infos:
-                print(info.loop_var.src.name())
-                print(info.modified_vars)
-                print(info.read_vars)
-                print("--------------------------------")
-
     # Build input variables from the source tree (ordered as in the function signature).
     root_node = find_root_node_from_file(cc_path)
     input_vars = make_input_variables(root_node, driver, fn_name)
@@ -735,16 +728,12 @@ def run_synthesis_for_cc(
         precondition_fn(driver, input_vars)
 
     inv_args = get_inv_args(loop_info)
-    if isinstance(inv_args, tuple):
+    if isinstance(loop_info, NestedLoopInfo):
         inv_grammars = {
             f"{fn_name}_inv0": InvGrammar(None, [], inv_args[0]),
             f"{fn_name}_inv1": InvGrammar(None, [], inv_args[1]),
         }
-    elif (
-        isinstance(inv_args, list)
-        and len(inv_args) > 0
-        and isinstance(inv_args[0], list)
-    ):
+    elif isinstance(loop_info, SequentialLoopInfo):
         inv_grammars = {
             f"{fn_name}_inv{i}": InvGrammar(None, [], args)
             for i, args in enumerate(inv_args)

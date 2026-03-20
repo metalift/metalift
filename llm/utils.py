@@ -102,6 +102,7 @@ def get_inv_args(
         inner_inv_args = [create_object(var.type, var.name()) for var in inner_inv_args]
         return outer_inv_args, inner_inv_args
     else:
+        # Sequential loops: return a list of lists of inv args, one for each loop.
         return [get_inv_args(info) for info in loop_info.loop_infos]  # type: ignore
 
 
