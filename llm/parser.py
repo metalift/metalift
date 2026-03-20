@@ -240,7 +240,10 @@ def mypy_node_to_ir(
     lambda_exprs: dict[Expr, str],
     arg_name_to_count: dict[str, int],
 ) -> Expr:
+    lambda_arg_counter = 0
+
     def parse_node(node: Node) -> Expr:
+        nonlocal lambda_arg_counter
         # TODO: add support for non-lambda inline functions
         if isinstance(node, FuncDef) or isinstance(node, LambdaExpr):
             if isinstance(node, FuncDef):
@@ -252,7 +255,11 @@ def mypy_node_to_ir(
             # Create one variable for each argument
             variables: list[Object] = []
             for arg, ir_type in zip(node.arguments, arg_ir_types):
-                variables.append(create_object(ir_type, arg.variable.name))
+                arg_name = arg.variable.name
+                if isinstance(node, LambdaExpr) and arg_name == "_":
+                    arg_name = f"_lambda_arg_{lambda_arg_counter}"
+                    lambda_arg_counter += 1
+                variables.append(create_object(ir_type, arg_name))
             if isinstance(node, FuncDef):
                 # Sort the variables by name so that the order is consistent
                 variables = sorted(variables, key=lambda x: x.var_name())
