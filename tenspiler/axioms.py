@@ -219,10 +219,12 @@ def list_take_axiom(l: Matrix[int], i: int) -> Bool:
     )
 
 
-def reduce_sum_vec_elemwise_mul_axiom(a: mlList[int], b: mlList[int]) -> Bool:
-    return call_reduce_sum(call_vec_elemwise_mul(a, b)) == call_reduce_sum(
-        call_vec_elemwise_mul(a[:0], b[:0])
-    ) + call_reduce_sum(call_vec_elemwise_mul(a[1:], b[1:]))
+def reduce_sum_vec_elemwise_mul_axiom(a: mlList[int], b: mlList[int], i: int) -> Bool:
+    return implies(
+        and_objects(i >= 0, i < a.len(), a.len() == b.len()),
+        call_reduce_sum(call_vec_elemwise_mul(a[: i + 1], b[: i + 1]))
+        == call_reduce_sum(call_vec_elemwise_mul(a[:i], b[:i])) + a[i] * b[i],
+    )
 
 
 def dissolve_matrix_selection_two_args_axiom(
@@ -324,5 +326,5 @@ dissolve_matrix_selection_two_args_axiom = Axiom(
 
 list_take_axiom = Axiom(list_take_axiom(a, index).src, a.src, index.src)
 reduce_sum_vec_elemwise_mul_axiom = Axiom(
-    reduce_sum_vec_elemwise_mul_axiom(a, b).src, a.src, b.src
+    reduce_sum_vec_elemwise_mul_axiom(a, b, i).src, a.src, b.src, i.src
 )

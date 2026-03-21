@@ -50,7 +50,7 @@ from metalift.rosette_translator import generate_vars
 from metalift.smt_util import augment_arguments, replace_fn_name, toSMT
 from metalift.synthesis_common import get_used_fn_names
 from metalift.vc_util import and_objects
-from tenspiler.constants_vec import TENSPILER_FN_NAME_TO_AXIOMS, TENSPILER_FNS
+from tenspiler.constants_vec import TENSPILER_FNS
 from tenspiler.tenspiler_common import (
     DISSOLVE_MATRIX_SELECTION_TWO_ARGS,
     DISSOLVE_SELECT_TWO_ARGS_ARG,
@@ -697,14 +697,14 @@ def run_synthesis_for_cc(
         llm_model: LLM to use for synthesis (default: LLMModel.GPT).
         verification_method: SMT or Rosette (default: VerificationMethod.ROSETTE).
         dsl_fns: DSL function declarations (default: TENSPILER_FNS).
-        dsl_fn_name_to_axioms: Axioms per DSL fn (default: TENSPILER_FN_NAME_TO_AXIOMS).
+        dsl_fn_name_to_axioms: Axioms per DSL fn (default: {}).
         additional_axioms: Additional axioms to add to the synthesis (default: None).
         list_bound: List bound for the synthesis (default: 2).
     """
     if dsl_fns is None:
         dsl_fns = TENSPILER_FNS
     if dsl_fn_name_to_axioms is None:
-        dsl_fn_name_to_axioms = TENSPILER_FN_NAME_TO_AXIOMS
+        dsl_fn_name_to_axioms = {}
     if additional_axioms is None:
         additional_axioms = []
     if llm_model is None:
