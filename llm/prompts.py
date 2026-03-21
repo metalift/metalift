@@ -220,7 +220,7 @@ def get_inv_prompt(
         4. Inline all the expressions. Do not use intermediate variables.
         5. Generate separate loop invariants for each loop in the {fn_name} function.
         6. DO NOT make any changes to the function signatures as they are used for verification downstream.
-        7. invariant structure
+        7. Keep invariant argument names, types, and order EXACTLY as shown in the template.
         {invariant_templates}
 
         Example1:
@@ -247,6 +247,7 @@ def get_inv_prompt(
         1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct.
         2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code in a code block.
         3. Do not define intermediate variables. Inline all expressions.
+        4. Keep invariant argument names, types, and order EXACTLY as shown in the template.
         Example1:
 
         {dsl_code}
@@ -293,6 +294,7 @@ def get_inv_prompt(
             1. You can use the defined functions to write the loop invariant. Do not use any for loops or any other python construct such as list comprehensions or the `all` function.
             2. Generate separate loop invariants for each loop in the test function. Return the loop invariant as a single boolean expression. Only return the invariant and no other code.
             3. Do not define intermediate variables. Inline all expressions.
+            4. Keep invariant argument names and order EXACTLY as shown in the templates below. Do not rename any argument.
 
             ```
             #defined functions
