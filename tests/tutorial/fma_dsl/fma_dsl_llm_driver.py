@@ -19,7 +19,7 @@ if __name__ == "__main__":
     run_synthesis_for_cc(
         "tests/tutorial/fma_dsl/fma_dsl.cc",
         "fma_dsl",
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         verification_method=VerificationMethod.SMT,
         dsl_fns=_fma_target_lang(),
         dsl_fn_name_to_axioms={},
