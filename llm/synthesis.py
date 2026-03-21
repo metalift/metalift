@@ -376,7 +376,7 @@ def run_llm_synthesis_algorithm(
     loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo | None,
     output_var: Object,
     source_code: str,
-    benchmark_name: str,
+    fn_name: str,
     llm_model: LLMModel,
     dsl_fns: list[FnDecl | FnDeclRecursive],
     dsl_fn_name_to_axioms: dict[str, list[Axiom]],
@@ -399,7 +399,7 @@ def run_llm_synthesis_algorithm(
 
     # First we need to generate prompts
     ps_prompt = get_ps_prompt(
-        benchmark_name=benchmark_name, dsl_code=dsl_code, source_code=source_code
+        benchmark_name=fn_name, dsl_code=dsl_code, source_code=source_code
     )
 
     # Get result from LLM
@@ -441,7 +441,7 @@ def run_llm_synthesis_algorithm(
 
         process_synthesized_fn_decls(
             output_var=output_var,
-            benchmark_name=benchmark_name,
+            benchmark_name=fn_name,
             synthesized_fn_decls=ps_fn_decls,
         )
 
@@ -461,7 +461,7 @@ def run_llm_synthesis_algorithm(
             if verification_method == VerificationMethod.SMT:
                 verified = verify_benchmark_smt(
                     driver=driver,
-                    benchmark_name=benchmark_name,
+                    benchmark_name=fn_name,
                     synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
@@ -471,7 +471,7 @@ def run_llm_synthesis_algorithm(
             elif verification_method == VerificationMethod.ROSETTE:
                 verified = verify_benchmark_rosette(
                     driver=driver,
-                    benchmark_name=benchmark_name,
+                    benchmark_name=fn_name,
                     synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
@@ -499,7 +499,7 @@ def run_llm_synthesis_algorithm(
         ps_fn_decl = next(fn_decl for fn_decl in ps_fn_decls if "ps" in fn_decl.name())
 
         inv_prompt = get_inv_prompt(
-            benchmark_name=benchmark_name,
+            fn_name=fn_name,
             source_code=source_code,
             ps_fn_decl=ps_fn_decl,
             loop_info=loop_info,
@@ -544,7 +544,7 @@ def run_llm_synthesis_algorithm(
 
             process_synthesized_fn_decls(
                 output_var=output_var,
-                benchmark_name=benchmark_name,
+                benchmark_name=fn_name,
                 synthesized_fn_decls=inv_fn_decls,
                 num_invariants=expected_num_inv_funcs,
             )
@@ -553,7 +553,7 @@ def run_llm_synthesis_algorithm(
             in_calls = [*ps_inv_calls, *inv_in_calls]
 
             # This is a hack for dissolve_blend_8
-            if benchmark_name == "dissolve_blend_8":
+            if fn_name == "dissolve_blend_8":
                 # Process synthesized functions.
                 for idx, fn_decl in enumerate(synthesized_fn_decls):
                     if "select_two_args_arg" in fn_decl.name():
@@ -623,7 +623,7 @@ def run_llm_synthesis_algorithm(
             if verification_method == VerificationMethod.SMT:
                 verified = verify_benchmark_smt(
                     driver=driver,
-                    benchmark_name=benchmark_name,
+                    benchmark_name=fn_name,
                     synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
@@ -633,7 +633,7 @@ def run_llm_synthesis_algorithm(
             elif verification_method == VerificationMethod.ROSETTE:
                 verified = verify_benchmark_rosette(
                     driver=driver,
-                    benchmark_name=benchmark_name,
+                    benchmark_name=fn_name,
                     synthesized_fn_decls=synthesized_fn_decls,
                     in_calls=in_calls,
                     dsl_fns=dsl_fns,
@@ -788,7 +788,7 @@ def run_synthesis_for_cc(
         loop_info=loop_info,
         output_var=output_var,
         source_code=source_code,
-        benchmark_name=fn_name,
+        fn_name=fn_name,
         llm_model=llm_model,
         dsl_fns=dsl_fns,
         dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,

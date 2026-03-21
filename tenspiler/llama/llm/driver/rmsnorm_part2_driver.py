@@ -47,7 +47,7 @@ if __name__ == "__main__":
         loop_info=loop_info,
         output_var=output_var,
         source_code=input_code,
-        benchmark_name="rmsnorm_part2",
+        fn_name="rmsnorm_part2",
         llm_model=LLMModel.GPT,
         dsl_fns=TENSPILER_FNS,
         dsl_fn_name_to_axioms=TENSPILER_FN_NAME_TO_AXIOMS,
