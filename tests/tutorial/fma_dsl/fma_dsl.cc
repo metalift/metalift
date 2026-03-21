@@ -1,4 +1,4 @@
-int test(int base, int arg1, int base2, int arg2)
+int fma_dsl(int base, int arg1, int base2, int arg2)
 {
     int a = 0;
 

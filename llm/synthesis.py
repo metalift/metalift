@@ -537,9 +537,6 @@ def run_llm_synthesis_algorithm(
                     lambda_exprs=lambda_exprs,
                     arg_name_to_count=arg_name_to_count,
                 )
-                import pdb
-
-                pdb.set_trace()
                 print("Passed the parser, continuing to verification")
             except Exception as e:
                 print("Failed to pass the parser", e)
@@ -706,11 +703,17 @@ def run_synthesis_for_cc(
     if verification_method is None:
         verification_method = VerificationMethod.ROSETTE
 
+    subprocess.run(
+        ["metalift/utils/llvm/compile-add-blocks", cc_path],
+        check=True,
+    )
+
     driver = Driver()
 
     # Infer loop structure from LLVM (.ll + .loops). If no loops are present,
     # we synthesize only the postcondition (no invariants).
-    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo | None
+    # Loop info is none when there are no loops in the function.
+    loop_info: SingleLoopInfo | NestedLoopInfo | SequentialLoopInfo | None = None
     root_node = find_root_node_from_file(cc_path)
     num_loops = get_num_loops(root_node)
     if num_loops == 1:
@@ -729,7 +732,7 @@ def run_synthesis_for_cc(
             cc_path=cc_path,
             fn_name=fn_name,
         )
-    else:
+    elif num_loops > 1:
         loop_info = infer_sequential_loop_info_from_llvm(
             driver=driver,
             cc_path=cc_path,
@@ -745,19 +748,22 @@ def run_synthesis_for_cc(
     if precondition_fn is not None:
         precondition_fn(driver, input_vars)
 
-    inv_args = get_inv_args(loop_info)
-    if isinstance(loop_info, NestedLoopInfo):
-        inv_grammars = {
-            f"{fn_name}_inv0": InvGrammar(None, [], inv_args[0]),
-            f"{fn_name}_inv1": InvGrammar(None, [], inv_args[1]),
-        }
-    elif isinstance(loop_info, SequentialLoopInfo):
-        inv_grammars = {
-            f"{fn_name}_inv{i}": InvGrammar(None, [], args)
-            for i, args in enumerate(inv_args)
-        }
+    if loop_info is None:
+        inv_grammars = {}
     else:
-        inv_grammars = {f"{fn_name}_inv0": InvGrammar(None, [], inv_args)}
+        inv_args = get_inv_args(loop_info)
+        if isinstance(loop_info, NestedLoopInfo):
+            inv_grammars = {
+                f"{fn_name}_inv0": InvGrammar(None, [], inv_args[0]),
+                f"{fn_name}_inv1": InvGrammar(None, [], inv_args[1]),
+            }
+        elif isinstance(loop_info, SequentialLoopInfo):
+            inv_grammars = {
+                f"{fn_name}_inv{i}": InvGrammar(None, [], args)
+                for i, args in enumerate(inv_args)
+            }
+        else:
+            inv_grammars = {f"{fn_name}_inv0": InvGrammar(None, [], inv_args)}
 
     # Analyze the function and build the VC (asserts) used for verification.
     mf = driver.analyze(
