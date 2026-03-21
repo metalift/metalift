@@ -212,6 +212,19 @@ def matrix_selection_two_args_axiom(x: Matrix[int], y: Matrix[int], index: int) 
     )
 
 
+def list_take_axiom(l: Matrix[int], i: int) -> Bool:
+    return implies(
+        and_objects(i >= 0, i < l.len()),
+        l[: i + 1] == l[:i].append(l[i]),
+    )
+
+
+def reduce_sum_vec_elemwise_mul_axiom(a: mlList[int], b: mlList[int]) -> Bool:
+    return call_reduce_sum(call_vec_elemwise_mul(a, b)) == call_reduce_sum(
+        call_vec_elemwise_mul(a[:0], b[:0])
+    ) + call_reduce_sum(call_vec_elemwise_mul(a[1:], b[1:]))
+
+
 def dissolve_matrix_selection_two_args_axiom(
     x: Matrix[int], y: Matrix[int], opacity: int, rand: int, index: int
 ) -> Bool:
@@ -307,4 +320,9 @@ dissolve_matrix_selection_two_args_axiom = Axiom(
     opacity.src,
     rand.src,
     index.src,
+)
+
+list_take_axiom = Axiom(list_take_axiom(a, index).src, a.src, index.src)
+reduce_sum_vec_elemwise_mul_axiom = Axiom(
+    reduce_sum_vec_elemwise_mul_axiom(a, b).src, a.src, b.src
 )

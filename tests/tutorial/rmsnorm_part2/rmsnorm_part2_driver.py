@@ -3,6 +3,7 @@ import time
 from llm.synthesis import LLMModel, VerificationMethod, run_synthesis_for_cc
 from metalift.frontend.llvm import Driver
 from metalift.ir import Int, List, Object, call, fn_decl, fn_decl_recursive, ite
+from tenspiler.axioms import list_take_axiom
 
 # ── vec_elemwise_mul ────────────────────────────────────────────────
 VEC_ELEMWISE_MUL = "vec_elemwise_mul"
@@ -84,6 +85,7 @@ if __name__ == "__main__":
             integer_sqrt,  # op 3: reciprocal sqrt
         ],
         verification_method=VerificationMethod.SMT,
+        additional_axioms=[list_take_axiom],
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")

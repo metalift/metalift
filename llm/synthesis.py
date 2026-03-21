@@ -315,6 +315,7 @@ def verify_benchmark_smt(
     dsl_fns: list[FnDecl | FnDeclRecursive],
     vc_clauses: list[Expr],
     dsl_fn_name_to_axioms: dict[str, list[Axiom]],
+    additional_axioms: list[Axiom],
 ) -> None:
     """Verify the benchmark using SMT."""
     SYNTHESIS_LOGS_DIR.mkdir(exist_ok=True)
@@ -326,6 +327,7 @@ def verify_benchmark_smt(
     axioms: list[Axiom] = []
     for fn_name in used_fn_names:
         axioms.extend(dsl_fn_name_to_axioms.get(fn_name, []))
+    axioms.extend(additional_axioms)
 
     synthesized_fn_names = [fn_decl.name() for fn_decl in synthesized_fn_decls]
     target_lang_fn_names = [fn_decl.name() for fn_decl in final_dsl_fns]
@@ -380,6 +382,7 @@ def run_llm_synthesis_algorithm(
     llm_model: LLMModel,
     dsl_fns: list[FnDecl | FnDeclRecursive],
     dsl_fn_name_to_axioms: dict[str, list[Axiom]],
+    additional_axioms: list[Axiom] = [],
     max_num_ps_sols: int = 10,
     max_num_inv_sols: int = 10,
     verification_method: VerificationMethod = VerificationMethod.SMT,
@@ -467,6 +470,7 @@ def run_llm_synthesis_algorithm(
                     dsl_fns=dsl_fns,
                     vc_clauses=vc_clauses,
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
+                    additional_axioms=additional_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
                 verified = verify_benchmark_rosette(
@@ -629,6 +633,7 @@ def run_llm_synthesis_algorithm(
                     dsl_fns=dsl_fns,
                     vc_clauses=vc_clauses,
                     dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
+                    additional_axioms=additional_axioms,
                 )
             elif verification_method == VerificationMethod.ROSETTE:
                 verified = verify_benchmark_rosette(
@@ -670,8 +675,9 @@ def run_synthesis_for_cc(
     precondition_fn: Optional[Callable[[Driver, dict], None]] = None,
     llm_model: Optional[LLMModel] = None,
     verification_method: Optional[VerificationMethod] = None,
-    dsl_fns=None,
-    dsl_fn_name_to_axioms=None,
+    dsl_fns: Optional[list[FnDecl | FnDeclRecursive]] = None,
+    dsl_fn_name_to_axioms: Optional[dict[str, list[Axiom]]] = None,
+    additional_axioms: Optional[list[Axiom]] = None,
     list_bound: int = 2,
 ) -> None:
     """
@@ -692,12 +698,15 @@ def run_synthesis_for_cc(
         verification_method: SMT or Rosette (default: VerificationMethod.ROSETTE).
         dsl_fns: DSL function declarations (default: TENSPILER_FNS).
         dsl_fn_name_to_axioms: Axioms per DSL fn (default: TENSPILER_FN_NAME_TO_AXIOMS).
+        additional_axioms: Additional axioms to add to the synthesis (default: None).
         list_bound: List bound for the synthesis (default: 2).
     """
     if dsl_fns is None:
         dsl_fns = TENSPILER_FNS
     if dsl_fn_name_to_axioms is None:
         dsl_fn_name_to_axioms = TENSPILER_FN_NAME_TO_AXIOMS
+    if additional_axioms is None:
+        additional_axioms = []
     if llm_model is None:
         llm_model = LLMModel.GPT
     if verification_method is None:
@@ -801,6 +810,7 @@ def run_synthesis_for_cc(
         llm_model=llm_model,
         dsl_fns=dsl_fns,
         dsl_fn_name_to_axioms=dsl_fn_name_to_axioms,
+        additional_axioms=additional_axioms,
         verification_method=verification_method,
         list_bound=list_bound,
     )
