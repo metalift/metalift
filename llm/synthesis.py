@@ -418,12 +418,7 @@ def run_llm_synthesis_algorithm(
             ]
         else:
             messages_for_new_sol = [inv_template_message]
-        # DO NOT MERGE
-        # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-        ps_sol = """
-def rmsnorm_part2(input: List[int], weight: List[int], ss: int) -> List[int]:
-    return vec_scalar_mul(integer_sqrt(ss // len(input) + 1), vec_elemwise_mul(input, weight))
-"""
+        ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
         ps_sols.append(ps_sol)
 
         # Check if the solution passes the parser. If it does, we can continue to the next step. Otherwise, we would like to generate another PS.
@@ -523,12 +518,7 @@ def rmsnorm_part2(input: List[int], weight: List[int], ss: int) -> List[int]:
                 ]
             else:
                 messages_for_new_sol = [inv_template_message]
-            # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
-            # DO NOT MERGE
-            inv_sol = """
-def invariant(output: List[int], i: int, input: List[int], ss: int, weight: List[int]) -> bool:
-    return i >= 0 and i <= len(input) and output == vec_scalar_mul(integer_sqrt((ss // len(input)) + 1), vec_elemwise_mul(input[:i], weight[:i]))
-"""
+            inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
             print("Generated new INV solution", inv_sol)
             inv_sols.append(inv_sol)
 
