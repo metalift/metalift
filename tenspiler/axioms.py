@@ -259,6 +259,13 @@ def list_take_length_axiom(a: mlList[Int], i: Int) -> Bool:
     )
 
 
+def vec_scalar_mul_list_length_axiom(a: mlList[Int], i: Int, int_a: Int) -> Bool:
+    return implies(
+        a.len() >= 0,
+        call_vec_scalar_mul(i, a).len() == a.len(),
+    )
+
+
 def dissolve_matrix_selection_two_args_axiom(
     x: Matrix[int], y: Matrix[int], opacity: int, rand: int, index: int
 ) -> Bool:
@@ -371,3 +378,6 @@ vec_scalar_mul_list_append_axiom = Axiom(
     vec_scalar_mul_list_append_axiom(i, a, int_a).src, i.src, a.src, int_a.src
 )
 list_take_length_axiom = Axiom(list_take_length_axiom(a, i).src, a.src, i.src)
+vec_scalar_mul_list_length_axiom = Axiom(
+    vec_scalar_mul_list_length_axiom(a, i, int_a).src, a.src, i.src, int_a.src
+)

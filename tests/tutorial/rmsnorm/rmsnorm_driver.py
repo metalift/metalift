@@ -26,6 +26,7 @@ from tenspiler.axioms import (
     vec_elemwise_mul_list_append_axiom,
     vec_scalar_mul_axiom,
     vec_scalar_mul_list_append_axiom,
+    vec_scalar_mul_list_length_axiom,
 )
 from tenspiler.tenspiler_common import reduce_sum, vec_elemwise_mul, vec_scalar_mul
 
@@ -212,6 +213,7 @@ if __name__ == "__main__":
             vec_elemwise_mul_list_append_axiom,
             vec_scalar_mul_list_append_axiom,
             list_take_length_axiom,
+            vec_scalar_mul_list_length_axiom,
         ],
     )
     part2_body = _extract_ps_body(part2_decls, "rmsnorm_part2_ps")

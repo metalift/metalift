@@ -10,6 +10,7 @@ from tenspiler.axioms import (
     vec_elemwise_mul_list_append_axiom,
     vec_scalar_mul_axiom,
     vec_scalar_mul_list_append_axiom,
+    vec_scalar_mul_list_length_axiom,
 )
 
 # ── vec_elemwise_mul ────────────────────────────────────────────────
@@ -99,6 +100,7 @@ if __name__ == "__main__":
             vec_elemwise_mul_list_append_axiom,
             vec_scalar_mul_list_append_axiom,
             list_take_length_axiom,
+            vec_scalar_mul_list_length_axiom,
         ],
     )
     end_time = time.time()
