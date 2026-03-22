@@ -60,6 +60,4 @@ RUN curl -fsSL --retry 5 \
     ln -sf "$(find /opt/cvc5 -type f -name cvc5 | head -n 1)" /usr/local/bin/cvc5 && \
     rm -f /tmp/${CVC5_ZIP}
 
-RUN cvc5 --version
-
 WORKDIR /app
