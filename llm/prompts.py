@@ -221,6 +221,8 @@ def get_inv_prompt(
         5. Generate separate loop invariants for each loop in the {fn_name} function.
         6. DO NOT make any changes to the function signatures as they are used for verification downstream.
         7. Keep invariant argument names, types, and order EXACTLY as shown in the template provided below.
+
+        #Invariant output template in python
         {invariant_templates}
 
         Example1:

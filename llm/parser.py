@@ -239,6 +239,7 @@ def mypy_node_to_ir(
     in_calls: list[tuple[str, str]],
     lambda_exprs: dict[Expr, str],
     arg_name_to_count: dict[str, int],
+    canonical_arg_names: Optional[dict[str, list[str]]] = None,
 ) -> Expr:
     lambda_arg_counter = 0
 
@@ -254,8 +255,13 @@ def mypy_node_to_ir(
             ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
             # Create one variable for each argument
             variables: list[Object] = []
-            for arg, ir_type in zip(node.arguments, arg_ir_types):
+            expected_names_for_func: Optional[list[str]] = None
+            if isinstance(node, FuncDef) and canonical_arg_names is not None:
+                expected_names_for_func = canonical_arg_names.get(node.name)
+            for idx, (arg, ir_type) in enumerate(zip(node.arguments, arg_ir_types)):
                 arg_name = arg.variable.name
+                if expected_names_for_func is not None:
+                    arg_name = expected_names_for_func[idx]
                 if isinstance(node, LambdaExpr) and arg_name == "_":
                     arg_name = f"_lambda_arg_{lambda_arg_counter}"
                     lambda_arg_counter += 1
@@ -544,12 +550,14 @@ def check_solution(
         remove_comments(universal_imports + dsl_imports + dedent(solution))
     )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
+    canonical_arg_names: Optional[dict[str, list[str]]] = None
 
     # Optionally normalize synthesized argument names to expected signatures.
     # This is useful when LLM output uses semantically equivalent names
     # (e.g. `output`) while downstream invariants expect canonical names
     # (e.g. `agg_result`).
     if expected_signatures is not None:
+        canonical_arg_names = {}
         if len(expected_signatures) != len(target_func_defs):
             raise Exception(
                 f"Expected {len(expected_signatures)} signatures, got {len(target_func_defs)} functions"
@@ -569,12 +577,13 @@ def check_solution(
                 raise Exception(
                     f"Function {func_def.name} arg types do not match expected signature"
                 )
-            for func_arg, expected_arg in zip(func_def.arguments, expected_args):
-                func_arg.variable.name = expected_arg.var_name()
+            canonical_arg_names[func_def.name] = [
+                expected_arg.var_name() for expected_arg in expected_args
+            ]
             func_sigs[func_def.name] = (
                 func_type,
                 func_ir_type,
-                [arg.var_name() for arg in expected_args],
+                canonical_arg_names[func_def.name],
             )
 
     fn_decls: list[FnDeclRecursive] = []
@@ -589,6 +598,7 @@ def check_solution(
             in_calls,
             lambda_exprs,
             arg_name_to_count,
+            canonical_arg_names,
         )
     target_func_names = [func_def.name for func_def in target_func_defs]
     return target_func_names, fn_decls, in_calls
