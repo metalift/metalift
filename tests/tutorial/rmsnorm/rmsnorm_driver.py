@@ -20,9 +20,12 @@ from metalift.ir import (
 )
 from tenspiler.axioms import (
     list_take_axiom,
+    list_take_length_axiom,
     reduce_sum_vec_elemwise_mul_axiom,
     vec_elemwise_mul_axiom,
+    vec_elemwise_mul_list_append_axiom,
     vec_scalar_mul_axiom,
+    vec_scalar_mul_list_append_axiom,
 )
 from tenspiler.tenspiler_common import reduce_sum, vec_elemwise_mul, vec_scalar_mul
 
@@ -186,7 +189,7 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part1.cc",
         fn_name="rmsnorm_part1",
         precondition_fn=_rmsnorm_part1_preconditions,
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         dsl_fns=[reduce_sum, vec_elemwise_mul],
         verification_method=VerificationMethod.SMT,
         additional_axioms=[reduce_sum_vec_elemwise_mul_axiom],
@@ -199,13 +202,16 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part2.cc",
         fn_name="rmsnorm_part2",
         precondition_fn=_rmsnorm_part2_preconditions,
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         dsl_fns=[vec_elemwise_mul, vec_scalar_mul, integer_sqrt],
         verification_method=VerificationMethod.SMT,
         additional_axioms=[
             list_take_axiom,
             vec_elemwise_mul_axiom,
             vec_scalar_mul_axiom,
+            vec_elemwise_mul_list_append_axiom,
+            vec_scalar_mul_list_append_axiom,
+            list_take_length_axiom,
         ],
     )
     part2_body = _extract_ps_body(part2_decls, "rmsnorm_part2_ps")
