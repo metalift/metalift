@@ -1,6 +1,6 @@
 from metalift.ir import Axiom, Bool, Int
 from metalift.ir import List as mlList
-from metalift.ir import Matrix, implies, ite
+from metalift.ir import Matrix, call, implies, ite
 from metalift.vc_util import and_objects
 from tenspiler.tenspiler_common import (
     call_dissolve_matrix_selection,
@@ -233,19 +233,23 @@ def reduce_sum_vec_elemwise_mul_axiom(a: mlList[int], b: mlList[int], i: int) ->
 def vec_elemwise_mul_list_append_axiom(
     a: mlList[Int], b: mlList[Int], int_a: Int, int_b: Int
 ) -> Bool:
+    a_appended = call("list_append", mlList[Int], a, int_a)
+    b_appended = call("list_append", mlList[Int], b, int_b)
+    mul_appended = call(
+        "list_append", mlList[Int], call_vec_elemwise_mul(a, b), int_a * int_b
+    )
     return implies(
         a.len() == b.len(),
-        call_vec_elemwise_mul(a.append(int_a), b.append(int_b))
-        == call_vec_elemwise_mul(a, b).append(int_a * int_b),
+        call_vec_elemwise_mul(a_appended, b_appended) == mul_appended,
     )
 
 
 def vec_scalar_mul_list_append_axiom(i: Int, a: mlList[Int], int_a: Int) -> Bool:
-    return implies(
-        a.len() >= 0,
-        call_vec_scalar_mul(i, a.append(int_a))
-        == call_vec_scalar_mul(i, a).append(i * int_a),
+    a_appended = call("list_append", mlList[Int], a, int_a)
+    scaled_appended = call(
+        "list_append", mlList[Int], call_vec_scalar_mul(i, a), i * int_a
     )
+    return call_vec_scalar_mul(i, a_appended) == scaled_appended
 
 
 def list_take_length_axiom(a: mlList[Int], i: Int) -> Bool:

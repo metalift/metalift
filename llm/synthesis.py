@@ -564,9 +564,6 @@ def invariant(output: List[int], i: int, input: List[int], ss: int, weight: List
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
-                import pdb
-
-                pdb.set_trace()
                 print("Failed to pass the parser", e)
                 continue
 
