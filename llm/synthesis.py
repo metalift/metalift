@@ -348,7 +348,7 @@ def verify_benchmark_smt(
             "cvc5",
             "--lang=smt",
             "--produce-models",
-            "--tlimit=100000",
+            "--tlimit=20000",
             "--incremental",
             verify_file,
         ],
