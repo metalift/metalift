@@ -837,9 +837,7 @@ def get_solution_from_claude(messages: list[dict[str, Any]]) -> str:
     print("running with claude")
     api_key = os.getenv("CLAUDE_API_KEY")
     if not api_key:
-        raise RuntimeError(
-            "CLAUDE_API_KEY is not set but LLMModel.CLAUDE was requested"
-        )
+        raise RuntimeError("CLAUDE_API_KEY is not set")
     claude_client = anthropic.Anthropic(api_key=api_key)
     message = claude_client.messages.create(
         model="claude-3-5-sonnet-20240620",
@@ -856,9 +854,7 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
     print("running with gpt")
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY is not set but LLMModel.BEDROCK was requested"
-        )
+        raise RuntimeError("OPENAI_API_KEY is not set")
     openai_client = OpenAI(api_key=api_key)
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = openai_client.chat.completions.create(
