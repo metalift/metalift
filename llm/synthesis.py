@@ -909,8 +909,8 @@ def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str:
         system=[{"text": TEMPLATE_SYS}],
         messages=bedrock_messages,
         inferenceConfig={
-            "maxTokens": 1024,
-            "temperature": 0.7,
+            # "maxTokens": 1024,
+            "temperature": 0.0,
             "topP": 0.9,
         },
     )
