@@ -711,7 +711,7 @@ def run_synthesis_for_cc(
         fn_name: Name of the function to synthesize (e.g. "softmax_part1").
         precondition_fn: Optional callback (driver, input_vars) to add preconditions
             (e.g. bounds on inputs) before running the VC.
-        llm_model: LLM to use for synthesis (default: LLMModel.BEDROCK).
+        llm_model: LLM to use for synthesis (default: LLMModel.GPT).
         verification_method: SMT or Rosette (default: VerificationMethod.ROSETTE).
         dsl_fns: DSL function declarations (default: TENSPILER_FNS).
         dsl_fn_name_to_axioms: Axioms per DSL fn (default: {}).
@@ -725,7 +725,7 @@ def run_synthesis_for_cc(
     if additional_axioms is None:
         additional_axioms = []
     if llm_model is None:
-        llm_model = LLMModel.BEDROCK
+        llm_model = LLMModel.GPT
     if verification_method is None:
         verification_method = VerificationMethod.ROSETTE
 
@@ -941,7 +941,7 @@ def get_solution_from_llm(
 ) -> str | None:
     if llm_model == LLMModel.CLAUDE:
         return get_solution_from_claude(messages)
-    elif llm_model == LLMModel.BEDROCK:
+    elif llm_model == LLMModel.GPT:
         return get_solution_from_gpt(messages)
     elif llm_model == LLMModel.GEMINI:
         return get_solution_from_gemini(messages)
