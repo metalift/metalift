@@ -5,8 +5,11 @@ from metalift.frontend.llvm import Driver
 from metalift.ir import Int, List, Object, call, fn_decl, fn_decl_recursive, ite
 from tenspiler.axioms import (
     list_take_axiom,
+    list_take_length_axiom,
     vec_elemwise_mul_axiom,
+    vec_elemwise_mul_list_append_axiom,
     vec_scalar_mul_axiom,
+    vec_scalar_mul_list_append_axiom,
 )
 
 # ── vec_elemwise_mul ────────────────────────────────────────────────
@@ -93,6 +96,9 @@ if __name__ == "__main__":
             list_take_axiom,
             vec_elemwise_mul_axiom,
             vec_scalar_mul_axiom,
+            vec_elemwise_mul_list_append_axiom,
+            vec_scalar_mul_list_append_axiom,
+            list_take_length_axiom,
         ],
     )
     end_time = time.time()

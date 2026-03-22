@@ -37,6 +37,9 @@ y = Matrix(Int, "y")
 opacity = Int("opacity")
 rand = Int("rand")
 
+int_a = Int("int_a")
+int_b = Int("int_b")
+
 
 def vec_elemwise_add_axiom(a: mlList[int], b: mlList[int], index: int) -> Bool:
     return implies(
@@ -227,6 +230,31 @@ def reduce_sum_vec_elemwise_mul_axiom(a: mlList[int], b: mlList[int], i: int) ->
     )
 
 
+def vec_elemwise_mul_list_append_axiom(
+    a: mlList[Int], b: mlList[Int], int_a: Int, int_b: Int
+) -> Bool:
+    return implies(
+        a.len() == b.len(),
+        call_vec_elemwise_mul(a.append(int_a), b.append(int_b))
+        == call_vec_elemwise_mul(a, b).append(int_a * int_b),
+    )
+
+
+def vec_scalar_mul_list_append_axiom(i: Int, a: mlList[Int], int_a: Int) -> Bool:
+    return implies(
+        a.len() >= 0,
+        call_vec_scalar_mul(i, a.append(int_a))
+        == call_vec_scalar_mul(i, a).append(i * int_a),
+    )
+
+
+def list_take_length_axiom(a: mlList[Int], i: Int) -> Bool:
+    return implies(
+        and_objects(i >= 0, i <= a.len()),
+        a[:i].len() == i,
+    )
+
+
 def dissolve_matrix_selection_two_args_axiom(
     x: Matrix[int], y: Matrix[int], opacity: int, rand: int, index: int
 ) -> Bool:
@@ -328,3 +356,14 @@ list_take_axiom = Axiom(list_take_axiom(a, index).src, a.src, index.src)
 reduce_sum_vec_elemwise_mul_axiom = Axiom(
     reduce_sum_vec_elemwise_mul_axiom(a, b, i).src, a.src, b.src, i.src
 )
+vec_elemwise_mul_list_append_axiom = Axiom(
+    vec_elemwise_mul_list_append_axiom(a, b, int_a, int_b).src,
+    a.src,
+    b.src,
+    int_a.src,
+    int_b.src,
+)
+vec_scalar_mul_list_append_axiom = Axiom(
+    vec_scalar_mul_list_append_axiom(i, a, int_a).src, i.src, a.src, int_a.src
+)
+list_take_length_axiom = Axiom(list_take_length_axiom(a, i).src, a.src, i.src)
