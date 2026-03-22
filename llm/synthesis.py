@@ -387,7 +387,7 @@ def run_llm_synthesis_algorithm(
     max_num_inv_sols: int = 10,
     verification_method: VerificationMethod = VerificationMethod.SMT,
     list_bound: int = 2,
-) -> None:
+) -> list[FnDecl | FnDeclRecursive]:
     """
     The flow of the function is as follows:
     1. Start with asking the model to rewrite the function.
@@ -408,6 +408,7 @@ def run_llm_synthesis_algorithm(
     # Get result from LLM
     ps_sols: list[str] = []
     found_sol = False
+    final_synthesized_fn_decls: Optional[list[FnDecl | FnDeclRecursive]] = None
     for ps_sol_index in range(max_num_ps_sols):
         # First we get a new solution. If there are previous incorrect solutions, we show them to the model.
         print(f"===== Starting iteration {ps_sol_index} =====")
@@ -493,6 +494,7 @@ def run_llm_synthesis_algorithm(
             if verified:
                 print("Solution verified")
                 found_sol = True
+                final_synthesized_fn_decls = synthesized_fn_decls
                 break
 
             # If PS-only verification failed, continue to the next PS candidate.
@@ -655,6 +657,7 @@ def run_llm_synthesis_algorithm(
             if verified:
                 print("Solution verified")
                 found_sol = True
+                final_synthesized_fn_decls = synthesized_fn_decls
                 break
 
         # If we have a correct solution, we can break out of the loop.
@@ -663,9 +666,12 @@ def run_llm_synthesis_algorithm(
 
     if not found_sol:
         raise Exception("No correct solution found")
+    if final_synthesized_fn_decls is None:
+        raise Exception("No synthesized function declarations captured")
 
     print("Found PS solution")
     print(ps_sol)
+    return final_synthesized_fn_decls
 
 
 def run_synthesis_for_cc(
@@ -679,7 +685,7 @@ def run_synthesis_for_cc(
     dsl_fn_name_to_axioms: Optional[dict[str, list[Axiom]]] = None,
     additional_axioms: Optional[list[Axiom]] = None,
     list_bound: int = 2,
-) -> None:
+) -> list[FnDecl | FnDeclRecursive]:
     """
     Run LLM-guided synthesis for a single-function .cc file.
 
@@ -801,7 +807,7 @@ def run_synthesis_for_cc(
 
     source_code = Path(cc_path).read_text()
 
-    run_llm_synthesis_algorithm(
+    return run_llm_synthesis_algorithm(
         driver=driver,
         loop_info=loop_info,
         output_var=output_var,

@@ -79,10 +79,10 @@ def _rmsnorm_part2_preconditions(driver: Driver, input_vars: dict[str, Object]) 
 if __name__ == "__main__":
     start_time = time.time()
     run_synthesis_for_cc(
-        cc_path="tests/tutorial/rmsnorm_part2/rmsnorm_part2.cc",
+        cc_path="tests/tutorial/rmsnorm/rmsnorm_part2.cc",
         fn_name="rmsnorm_part2",
         precondition_fn=_rmsnorm_part2_preconditions,
-        llm_model=LLMModel.BEDROCK,
+        llm_model=LLMModel.GPT,
         dsl_fns=[
             vec_elemwise_mul,  # op 5: col scale
             vec_scalar_mul,  # op 4: row scale
