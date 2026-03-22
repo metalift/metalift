@@ -186,7 +186,7 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part1.cc",
         fn_name="rmsnorm_part1",
         precondition_fn=_rmsnorm_part1_preconditions,
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         dsl_fns=[reduce_sum, vec_elemwise_mul],
         verification_method=VerificationMethod.SMT,
         additional_axioms=[reduce_sum_vec_elemwise_mul_axiom],
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part2.cc",
         fn_name="rmsnorm_part2",
         precondition_fn=_rmsnorm_part2_preconditions,
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         dsl_fns=[vec_elemwise_mul, vec_scalar_mul, integer_sqrt],
         verification_method=VerificationMethod.SMT,
         additional_axioms=[
