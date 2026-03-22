@@ -214,13 +214,13 @@ def get_inv_prompt(
         Your task is to prove that `assertion` is true in the `{fn_name}` function. The assertion can be proved by finding a loop invariant using the defined functions. Write the loop invariant as a python boolean formula.
 
         #Instructions:
-        1. You need to use only the defined functions to write the loop invariant.
+        1. You need to use only the defined functions to write the loop invariant in python syntax.
         2. Do not use for/while loops for rewriting the function.
         3. The rewritten program should just be a single return statement of the form return\_var = provided\_function(...)
         4. Inline all the expressions. Do not use intermediate variables.
         5. Generate separate loop invariants for each loop in the {fn_name} function.
         6. DO NOT make any changes to the function signatures as they are used for verification downstream.
-        7. Keep invariant argument names, types, and order EXACTLY as shown in the template.
+        7. Keep invariant argument names, types, and order EXACTLY as shown in the template provided below.
         {invariant_templates}
 
         Example1:
