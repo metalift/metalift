@@ -82,7 +82,7 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part2.cc",
         fn_name="rmsnorm_part2",
         precondition_fn=_rmsnorm_part2_preconditions,
-        llm_model=LLMModel.GPT,
+        llm_model=LLMModel.BEDROCK,
         dsl_fns=[
             vec_elemwise_mul,  # op 5: col scale
             vec_scalar_mul,  # op 4: row scale
