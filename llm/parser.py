@@ -231,6 +231,24 @@ def _simplify_type_name(type_name: str) -> str:
         raise Exception(f"Type {type_name} cannot be simplified to natural language")
 
 
+def rename_in_func(func: FuncDef, old: str, new: str):
+    # rename argument
+    for arg in func.arguments:
+        if arg.variable.name == old:
+            arg.variable.name = new
+
+    # rename usages
+    def visit(node):
+        if isinstance(node, NameExpr) and node.name == old:
+            node.name = new
+
+        for child in node.children():
+            if child:
+                visit(child)
+
+    visit(func.body)
+
+
 def mypy_node_to_ir(
     root_node: Node,
     func_sign: dict[str, list[Union[Type, type]]],
@@ -239,7 +257,6 @@ def mypy_node_to_ir(
     in_calls: list[tuple[str, str]],
     lambda_exprs: dict[Expr, str],
     arg_name_to_count: dict[str, int],
-    canonical_arg_names: Optional[dict[str, list[str]]] = None,
 ) -> Expr:
     lambda_arg_counter = 0
 
@@ -255,13 +272,8 @@ def mypy_node_to_ir(
             ret_ir_type = func_ir_type.return_type(get_args(func_ir_type))
             # Create one variable for each argument
             variables: list[Object] = []
-            expected_names_for_func: Optional[list[str]] = None
-            if isinstance(node, FuncDef) and canonical_arg_names is not None:
-                expected_names_for_func = canonical_arg_names.get(node.name)
             for idx, (arg, ir_type) in enumerate(zip(node.arguments, arg_ir_types)):
                 arg_name = arg.variable.name
-                if expected_names_for_func is not None:
-                    arg_name = expected_names_for_func[idx]
                 if isinstance(node, LambdaExpr) and arg_name == "_":
                     arg_name = f"_lambda_arg_{lambda_arg_counter}"
                     lambda_arg_counter += 1
@@ -550,14 +562,12 @@ def check_solution(
         remove_comments(universal_imports + dsl_imports + dedent(solution))
     )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
-    canonical_arg_names: Optional[dict[str, list[str]]] = None
 
     # Optionally normalize synthesized argument names to expected signatures.
     # This is useful when LLM output uses semantically equivalent names
     # (e.g. `output`) while downstream invariants expect canonical names
     # (e.g. `agg_result`).
     if expected_signatures is not None:
-        canonical_arg_names = {}
         if len(expected_signatures) != len(target_func_defs):
             raise Exception(
                 f"Expected {len(expected_signatures)} signatures, got {len(target_func_defs)} functions"
@@ -577,13 +587,15 @@ def check_solution(
                 raise Exception(
                     f"Function {func_def.name} arg types do not match expected signature"
                 )
-            canonical_arg_names[func_def.name] = [
-                expected_arg.var_name() for expected_arg in expected_args
-            ]
+            for actual_arg, expected_arg in zip(func_def.arguments, expected_args):
+                actual_name = actual_arg.variable.name
+                expected_name = expected_arg.var_name()
+                if actual_name != expected_name:
+                    rename_in_func(func_def, actual_name, expected_name)
             func_sigs[func_def.name] = (
                 func_type,
                 func_ir_type,
-                canonical_arg_names[func_def.name],
+                [expected_arg.var_name() for expected_arg in expected_args],
             )
 
     fn_decls: list[FnDeclRecursive] = []
@@ -598,8 +610,8 @@ def check_solution(
             in_calls,
             lambda_exprs,
             arg_name_to_count,
-            canonical_arg_names,
         )
+
     target_func_names = [func_def.name for func_def in target_func_defs]
     return target_func_names, fn_decls, in_calls
 

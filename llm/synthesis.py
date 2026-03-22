@@ -533,6 +533,9 @@ def run_llm_synthesis_algorithm(
             else:
                 messages_for_new_sol = [inv_template_message]
             inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+            if inv_sol is None:
+                print("Did not generate invariant solution")
+                continue
             print("Generated new INV solution", inv_sol)
             inv_sols.append(inv_sol)
 
@@ -898,7 +901,7 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
     return extracted_solution
 
 
-def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str:
+def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str | None:
     print("running with bedrock")
     bedrock_client = boto3.client(
         "bedrock-runtime",
@@ -929,11 +932,16 @@ def get_solution_from_bedrock(messages: list[dict[str, Any]]) -> str:
         for block in response["output"]["message"]["content"]
         if "text" in block
     )
-    raw_solution = extract_all_python_functions(output_text)[0]
-    return replace_ite(raw_solution)
+    raw_solution = extract_all_python_functions(output_text)
+    if raw_solution:
+        return replace_ite(raw_solution[0])
+    else:
+        return None
 
 
-def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -> str:
+def get_solution_from_llm(
+    llm_model: LLMModel, messages: list[dict[str, Any]]
+) -> str | None:
     if llm_model == LLMModel.CLAUDE:
         return get_solution_from_claude(messages)
     elif llm_model == LLMModel.GPT:
