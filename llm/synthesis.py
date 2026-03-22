@@ -223,7 +223,6 @@ def process_synthesized_fn_decls(
             if fn_decl.name() == f"invariant{inv_idx + 1}":
                 fn_decl.set_name(f"{benchmark_name}_inv{inv_idx}")
 
-        # Change ps function name
         if fn_decl.name() == benchmark_name:
             fn_decl = process_ps_fn_decl(fn_decl, output_var)
             synthesized_fn_decls[idx] = fn_decl
@@ -557,6 +556,9 @@ def run_llm_synthesis_algorithm(
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
+                import pdb
+
+                pdb.set_trace()
                 print("Failed to pass the parser", e)
                 continue
 

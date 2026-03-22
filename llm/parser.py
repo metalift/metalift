@@ -4,7 +4,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional, Type, Union, cast, get_args
+from typing import Any, Optional, Type, Union, cast, get_args
 
 from mypy import build
 from mypy.defaults import PYTHON3_VERSION
@@ -32,6 +32,7 @@ from mypy.nodes import (
     UnaryExpr,
 )
 from mypy.options import Options
+from mypy.traverser import TraverserVisitor
 from mypy.types import AnyType, CallableType, Instance
 from mypy.types import Type as MypyType
 from mypy.types import TypeList, UnboundType
@@ -231,22 +232,28 @@ def _simplify_type_name(type_name: str) -> str:
         raise Exception(f"Type {type_name} cannot be simplified to natural language")
 
 
+class RenameVisitor(TraverserVisitor):
+    def __init__(self, target_var: Any, old_name: str, new_name: str):
+        super().__init__()
+        self.target_var = target_var
+        self.old_name = old_name
+        self.new_name = new_name
+
+    def visit_name_expr(self, node: NameExpr):
+        if node.node is self.target_var or node.name == self.old_name:
+            node.name = self.new_name
+        super().visit_name_expr(node)
+
+
 def rename_in_func(func: FuncDef, old: str, new: str):
-    # rename argument
+    target_var = None
     for arg in func.arguments:
         if arg.variable.name == old:
-            arg.variable.name = new
-
-    # rename usages
-    def visit(node):
-        if isinstance(node, NameExpr) and node.name == old:
-            node.name = new
-
-        for child in node.children():
-            if child:
-                visit(child)
-
-    visit(func.body)
+            arg.variable._name = new
+            target_var = arg.variable
+            break
+    if target_var is not None:
+        RenameVisitor(target_var, old, new).visit_func_def(func)
 
 
 def mypy_node_to_ir(
