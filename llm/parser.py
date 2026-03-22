@@ -531,6 +531,7 @@ def check_solution(
     dsl_code: str,
     lambda_exprs: dict[Expr, str],
     arg_name_to_count: dict[str, int],
+    expected_signatures: Optional[list[list[Object]]] = None,
 ) -> tuple[list[str], list[FnDeclRecursive], dict[str, list[tuple[str, str]]]]:
     universal_imports = "from typing import Any, Callable, List\n"
     dsl_imports = "from llm.dsl import *\n"
@@ -543,6 +544,39 @@ def check_solution(
         remove_comments(universal_imports + dsl_imports + dedent(solution))
     )
     target_func_defs, func_sigs, types = mypy_parse(full_prog, expected_num_funcs)
+
+    # Optionally normalize synthesized argument names to expected signatures.
+    # This is useful when LLM output uses semantically equivalent names
+    # (e.g. `output`) while downstream invariants expect canonical names
+    # (e.g. `agg_result`).
+    if expected_signatures is not None:
+        if len(expected_signatures) != len(target_func_defs):
+            raise Exception(
+                f"Expected {len(expected_signatures)} signatures, got {len(target_func_defs)} functions"
+            )
+        for func_def, expected_args in zip(target_func_defs, expected_signatures):
+            if len(func_def.arguments) != len(expected_args):
+                raise Exception(
+                    f"Function {func_def.name} expects {len(expected_args)} args, got {len(func_def.arguments)}"
+                )
+            func_type, func_ir_type, _ = func_sigs[func_def.name]
+            actual_arg_types = func_ir_type.argument_types(get_args(func_ir_type))
+            expected_arg_types = [arg.type for arg in expected_args]
+            if len(actual_arg_types) != len(expected_arg_types) or any(
+                actual_t != expected_t
+                for actual_t, expected_t in zip(actual_arg_types, expected_arg_types)
+            ):
+                raise Exception(
+                    f"Function {func_def.name} arg types do not match expected signature"
+                )
+            for func_arg, expected_arg in zip(func_def.arguments, expected_args):
+                func_arg.variable.name = expected_arg.var_name()
+            func_sigs[func_def.name] = (
+                func_type,
+                func_ir_type,
+                [arg.var_name() for arg in expected_args],
+            )
+
     fn_decls: list[FnDeclRecursive] = []
     in_calls: list[tuple[str, str]] = []
 

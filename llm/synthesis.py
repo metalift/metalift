@@ -512,6 +512,14 @@ def run_llm_synthesis_algorithm(
             dsl_code=dsl_code,
         )
         inv_sols: list[str] = []
+        expected_inv_signatures: list[list[Object]]
+        if isinstance(loop_info, SingleLoopInfo):
+            expected_inv_signatures = [get_inv_args(loop_info)]  # type: ignore[list-item]
+        elif isinstance(loop_info, NestedLoopInfo):
+            outer_inv_args, inner_inv_args = get_inv_args(loop_info)  # type: ignore[misc]
+            expected_inv_signatures = [outer_inv_args, inner_inv_args]
+        else:
+            expected_inv_signatures = get_inv_args(loop_info)  # type: ignore[assignment]
         for inv_sol_index in range(max_num_inv_sols):
             print(f"----- Generating {inv_sol_index} invariant -----")
             inv_template_message = {"role": "user", "content": inv_prompt}
@@ -542,6 +550,7 @@ def run_llm_synthesis_algorithm(
                     dsl_code=dsl_code,
                     lambda_exprs=lambda_exprs,
                     arg_name_to_count=arg_name_to_count,
+                    expected_signatures=expected_inv_signatures,
                 )
                 print("Passed the parser, continuing to verification")
             except Exception as e:
