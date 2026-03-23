@@ -81,6 +81,7 @@ def ref(a_tensor, weight):
     N = a_tensor.shape[1]
 
     out_tensor = nl.ndarray(a_tensor.shape, dtype=a_tensor.dtype, buffer=nl.shared_hbm)
+    input = nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
 {buffer_allocations}
 
     for i in nl.sequential_range(a_tensor.shape[0]):

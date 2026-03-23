@@ -1,18 +1,9 @@
-"""
-Copyright (C) 2024, Amazon.com. All Rights Reserved
-
-RMSNorm NKI kernel implementation.
-
-"""
-
 # NKI_EXAMPLE_42_BEGIN
 
 import neuronxcc.nki as nki
 import neuronxcc.nki.isa as nisa
 import neuronxcc.nki.language as nl
 import numpy as np
-
-# SUBSTITUTE HERE
 
 
 def row_indices_ref(width):
@@ -82,25 +73,42 @@ def write_row_ref(out_tensor, row_idx, row_tensor):
 
 
 @nki.jit
-def ref(a_tensor, g_tensor):
-    """RMSNorm with per-row 1D helper functions, shared_hbm pre-allocated."""
+def ref(a_tensor, weight):
+    # RMSNorm with per-row 1D helper functions, shared_hbm pre-allocated.
     N = a_tensor.shape[1]
 
     out_tensor = nl.ndarray(a_tensor.shape, dtype=a_tensor.dtype, buffer=nl.shared_hbm)
-    squared_buf = nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
-    mean_buf = nl.ndarray((1, 1), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
-    rsqrt_buf = nl.ndarray((1, 1), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
-    scaled_buf = nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
-    out_row_buf = nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
+    input = nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
+    input_squared_buf = nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
+    input_squared_buf_mean_buf = nl.ndarray(
+        (1, 1), dtype=a_tensor.dtype, buffer=nl.shared_hbm
+    )
+    input_squared_buf_mean_buf_rsqrt_buf = nl.ndarray(
+        (1, 1), dtype=a_tensor.dtype, buffer=nl.shared_hbm
+    )
+    input_weight_elemwise_mul_buf = nl.ndarray(
+        (1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm
+    )
+    input_weight_elemwise_mul_buf_input_squared_buf_mean_buf_rsqrt_buf_scaled_buf = (
+        nl.ndarray((1, N), dtype=a_tensor.dtype, buffer=nl.shared_hbm)
+    )
 
     for i in nl.sequential_range(a_tensor.shape[0]):
-        a_row = a_tensor[i : i + 1, :]
-        square_ref(a_row, squared_buf)
-        mean_ref(squared_buf, mean_buf)
-        rsqrt_ref(mean_buf, rsqrt_buf)
-        col_multiply_ref(a_row, rsqrt_buf, scaled_buf)
-        row_multiply_ref(scaled_buf, g_tensor, out_row_buf)
-        write_row_ref(out_tensor, i, out_row_buf)
+        input = a_tensor[i : i + 1, :]
+        square_ref(input, input_squared_buf)
+        mean_ref(input_squared_buf, input_squared_buf_mean_buf)
+        rsqrt_ref(input_squared_buf_mean_buf, input_squared_buf_mean_buf_rsqrt_buf)
+        row_multiply_ref(input, weight, input_weight_elemwise_mul_buf)
+        col_multiply_ref(
+            input_weight_elemwise_mul_buf,
+            input_squared_buf_mean_buf_rsqrt_buf,
+            input_weight_elemwise_mul_buf_input_squared_buf_mean_buf_rsqrt_buf_scaled_buf,
+        )
+        write_row_ref(
+            out_tensor,
+            i,
+            input_weight_elemwise_mul_buf_input_squared_buf_mean_buf_rsqrt_buf_scaled_buf,
+        )
 
     return out_tensor
 

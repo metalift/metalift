@@ -191,7 +191,7 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part1.cc",
         fn_name="rmsnorm_part1",
         precondition_fn=_rmsnorm_part1_preconditions,
-        llm_model=LLMModel.BEDROCK,
+        llm_model=LLMModel.GPT,
         dsl_fns=[reduce_sum, vec_elemwise_mul],
         verification_method=VerificationMethod.SMT,
         additional_axioms=[reduce_sum_vec_elemwise_mul_axiom],
@@ -204,7 +204,7 @@ if __name__ == "__main__":
         cc_path="tests/tutorial/rmsnorm/rmsnorm_part2.cc",
         fn_name="rmsnorm_part2",
         precondition_fn=_rmsnorm_part2_preconditions,
-        llm_model=LLMModel.BEDROCK,
+        llm_model=LLMModel.GPT,
         dsl_fns=[vec_elemwise_mul, vec_scalar_mul, integer_sqrt],
         verification_method=VerificationMethod.SMT,
         additional_axioms=[
@@ -240,6 +240,7 @@ if __name__ == "__main__":
         combined_fn.body(), instruction_list, vec_shape_map
     )
     template_code = nki_template(instruction_list, output_buffer_name, vec_shape_map)
-    with open("synthesisLogs/rmsnorm_nki.py", "w") as f:
+    nki_output_path = "synthesisLogs/rmsnorm_nki.py"
+    with open(nki_output_path, "w") as f:
         f.write(template_code)
-    print(f"Wrote function to {output_path}")
+    print(f"Wrote synthesized nki code to {nki_output_path}")
