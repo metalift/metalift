@@ -226,10 +226,10 @@ if __name__ == "__main__":
 
     print("Combined synthesized function:")
     print(combined_fn.to_python())
-    output_path = "synthesisLogs/rmsnorm_combined.py"
+    output_path = "synthesisLogs/rmsnorm.py"
     with open(output_path, "w") as f:
         f.write(combined_fn.to_python() + "\n")
-    print(f"Wrote combined function to {output_path}")
+    print(f"Wrote function to {output_path}")
 
     end_time = time.time()
     print(f"Total synthesis took {end_time - start_time} seconds")
@@ -240,6 +240,6 @@ if __name__ == "__main__":
         combined_fn.body(), instruction_list, vec_shape_map
     )
     template_code = nki_template(instruction_list, output_buffer_name, vec_shape_map)
-    with open("synthesisLogs/rmsnorm_combined.nki", "w") as f:
+    with open("synthesisLogs/rmsnorm_nki.py", "w") as f:
         f.write(template_code)
-    print(f"Wrote combined function to {output_path}")
+    print(f"Wrote function to {output_path}")
