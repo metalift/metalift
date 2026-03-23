@@ -29,6 +29,7 @@ from tenspiler.axioms import (
     vec_scalar_mul_list_length_axiom,
 )
 from tenspiler.tenspiler_common import reduce_sum, vec_elemwise_mul, vec_scalar_mul
+from tests.tutorial.rmsnorm.rmsnorm_codegen import nki_codegen, nki_template
 
 # ── reduce_sum ──────────────────────────────────────────────────────
 REDUCE_SUM = "reduce_sum"
@@ -232,3 +233,13 @@ if __name__ == "__main__":
 
     end_time = time.time()
     print(f"Total synthesis took {end_time - start_time} seconds")
+
+    instruction_list: list[str] = []
+    vec_shape_map: dict[str, tuple[str, str]] = {}
+    output_buffer_name = nki_codegen(
+        combined_fn.body(), instruction_list, vec_shape_map
+    )
+    template_code = nki_template(instruction_list, output_buffer_name, vec_shape_map)
+    with open("synthesisLogs/rmsnorm_combined.nki", "w") as f:
+        f.write(template_code)
+    print(f"Wrote combined function to {output_path}")
