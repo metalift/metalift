@@ -628,11 +628,11 @@ def parse_loops(loops_filepath: str, raw_fn_name: str) -> List[RawLoopInfo]:
             )
             raw_loops.append(raw_loop_info)
 
-        for loop in raw_loops:
-            print(
-                "found loop: header: %s, body: %s, exits: %s, latches: %s"
-                % (loop.header_name, loop.body_names, loop.exit_names, loop.latch_names)
-            )
+        # for loop in raw_loops:
+        #     print(
+        #         "found loop: header: %s, body: %s, exits: %s, latches: %s"
+        #         % (loop.header_name, loop.body_names, loop.exit_names, loop.latch_names)
+        #     )
         return raw_loops
 
 
@@ -1542,7 +1542,7 @@ class VCVisitor:
         else:
             blk_state.asserts.append(ps)
         self.driver.postconditions.append(ps)
-        print(f"ps: {blk_state.asserts[-1]}")
+        # print(f"ps: {blk_state.asserts[-1]}")
         blk_state.has_returned = True
 
     def visit_call_instruction(self, block_name: str, o: ValueRef) -> None:

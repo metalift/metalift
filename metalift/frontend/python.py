@@ -564,7 +564,7 @@ class VCVisitor(StatementVisitor[None], ExpressionVisitor[Object]):
         else:
             self.state.asserts.append(ps)
 
-        print(f"ps: {self.state.asserts[-1]}")
+        # print(f"ps: {self.state.asserts[-1]}")
         self.state.has_returned = True
 
     def visit_assert_stmt(self, o: AssertStmt) -> None:
