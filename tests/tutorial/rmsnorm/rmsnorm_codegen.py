@@ -76,7 +76,7 @@ def write_row_ref(out_tensor, row_idx, row_tensor):
     nl.store(row_dst_ref(out_tensor, row_idx), value=nl.load(row_tensor[ip, iy]))
 
 @nki.jit
-def ref(a_tensor, weight):
+def test(a_tensor, weight):
     # RMSNorm with per-row 1D helper functions, shared_hbm pre-allocated.
     N = a_tensor.shape[1]
 
